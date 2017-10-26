@@ -46,7 +46,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	for _, oid := range oids {
-		mp, err := lfs.LocalMediaPath(oid)
+		mp, err := ctx.gitfilter.ObjectPath(oid)
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
 		}

@@ -61,8 +61,8 @@ func pull(remote string, filter *filepathfilter.Filter) {
 		}
 
 		// no need to download objects that exist locally already
-		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if cfg.LFSObjectExists(p.Oid, p.Size) {
 			singleCheckout.Run(p)
 			return
 		}

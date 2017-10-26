@@ -387,7 +387,7 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 	filename := p.Name
 	oid := p.Oid
 
-	localMediaPath, err := lfs.LocalMediaPath(oid)
+	localMediaPath, err := c.gitfilter.ObjectPath(oid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
 	}

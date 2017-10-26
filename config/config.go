@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 )
 
 var (
@@ -29,26 +32,41 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
+	CurrentRemote string
+
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
 	gitConfig *git.Configuration
 
-	fs *fs
-
-	CurrentRemote string
-
+	fs         *fs.Filesystem
+	gitDir     *string
+	workDir    string
 	loading    sync.Mutex // guards initialization of gitConfig and remotes
+	loadingGit sync.Mutex // guards initialization of local git and working dirs
 	remotes    []string
 	extensions map[string]Extension
 }
 
 func New() *Configuration {
+	return NewIn("", "")
+}
+
+func NewIn(workdir, gitdir string) *Configuration {
 	gitConf := git.Config
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
 		gitConfig:     gitConf,
 	}
+
+	if len(workdir) > 0 {
+		if len(gitdir) == 0 {
+			gitdir = filepath.Join(workdir, ".git")
+		}
+		c.gitDir = &gitdir
+		c.workDir = workdir
+	}
+
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
 			sources, err := gitConf.Sources(filepath.Join(c.LocalWorkingDir(), ".lfsconfig"))
@@ -170,36 +188,91 @@ func (c *Configuration) HookDir() string {
 }
 
 func (c *Configuration) InRepo() bool {
-	return c.fs.InRepo()
+	return len(c.LocalGitDir()) > 0
 }
 
 func (c *Configuration) LocalWorkingDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.WorkingDir
+	c.loadGitDirs()
+	return c.workDir
 }
 
 func (c *Configuration) LocalGitDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.GitDir
+	c.loadGitDirs()
+	return *c.gitDir
+}
+
+func (c *Configuration) loadGitDirs() {
+	c.loadingGit.Lock()
+	defer c.loadingGit.Unlock()
+
+	if c.gitDir != nil {
+		return
+	}
+
+	gitdir, workdir, err := git.GitAndRootDirs()
+	if err != nil {
+		errMsg := err.Error()
+		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
+		if !strings.Contains(errMsg, "Not a git repository") {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
+		}
+		c.gitDir = &gitdir
+	}
+
+	gitdir = tools.ResolveSymlinks(gitdir)
+	c.gitDir = &gitdir
+	c.workDir = tools.ResolveSymlinks(workdir)
 }
 
 func (c *Configuration) LocalGitStorageDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.GitStorageDir
+	return c.Filesystem().GitStorageDir
 }
 
 func (c *Configuration) LocalReferenceDir() string {
-	return LocalReferenceDir
+	return c.Filesystem().ReferenceDir
+}
+
+func (c *Configuration) LFSStorageDir() string {
+	return c.Filesystem().LFSStorageDir
+}
+
+func (c *Configuration) LFSObjectDir() string {
+	return c.Filesystem().LFSObjectDir()
+}
+
+func (c *Configuration) LFSObjectExists(oid string, size int64) bool {
+	return c.Filesystem().ObjectExists(oid, size)
+}
+
+func (c *Configuration) EachLFSObject(fn func(fs.Object) error) error {
+	return c.Filesystem().EachObject(fn)
 }
 
 func (c *Configuration) LocalLogDir() string {
-	c.ResolveGitBasicDirs()
-	return c.fs.LogDir
+	return c.Filesystem().LogDir()
 }
 
-func (c *Configuration) SetLocalLogDir(s string) {
-	c.ResolveGitBasicDirs()
-	c.fs.LogDir = s
+func (c *Configuration) TempDir() string {
+	return c.Filesystem().TempDir()
+}
+
+func (c *Configuration) Filesystem() *fs.Filesystem {
+	c.loadGitDirs()
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.fs == nil {
+		lfsdir, _ := c.Git.Get("lfs.storage")
+		c.fs = fs.New(c.LocalGitDir(), c.LocalWorkingDir(), lfsdir)
+	}
+
+	return c.fs
+}
+
+func (c *Configuration) Cleanup() error {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	return c.fs.Cleanup()
 }
 
 func (c *Configuration) GitConfig() *git.Configuration {
@@ -252,15 +325,6 @@ func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 
 func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
 	return c.gitConfig.UnsetLocalKey(file, key)
-}
-
-func (c *Configuration) ResolveGitBasicDirs() {
-	c.loading.Lock()
-	defer c.loading.Unlock()
-
-	if c.fs == nil {
-		c.fs = resolveGitBasicDirs()
-	}
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

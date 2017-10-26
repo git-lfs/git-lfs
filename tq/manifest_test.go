@@ -14,7 +14,7 @@ func TestManifestIsConfigurable(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 3, m.MaxRetries())
 }
 
@@ -26,7 +26,7 @@ func TestManifestChecksNTLM(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }
 
@@ -36,7 +36,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }
 
@@ -46,6 +46,6 @@ func TestManifestIgnoresNonInts(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }

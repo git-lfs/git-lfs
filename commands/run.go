@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +24,7 @@ var (
 // Each command will initialize the local storage ('.git/lfs') directory when
 // run, unless the PreRun hook is set to nil.
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
-	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
+	return &cobra.Command{Use: name, Run: runFn, PreRun: setupHTTPLogger}
 }
 
 // RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
@@ -79,19 +77,6 @@ func gitlfsCommand(cmd *cobra.Command, args []string) {
 	cmd.Usage()
 }
 
-// resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
-// necessary to wire it up via `cobra.Command.PreRun`. When run, this function
-// will resolve the localstorage directories.
-func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs(cfg)
-	setupHTTPLogger(getAPIClient())
-}
-
-func setupLocalStorage(cmd *cobra.Command, args []string) {
-	cfg.ResolveGitBasicDirs()
-	setupHTTPLogger(getAPIClient())
-}
-
 func helpCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		printHelp("git-lfs")
@@ -113,8 +98,8 @@ func printHelp(commandName string) {
 	}
 }
 
-func setupHTTPLogger(c *lfsapi.Client) {
-	if c == nil || len(os.Getenv("GIT_LOG_STATS")) < 1 {
+func setupHTTPLogger(cmd *cobra.Command, args []string) {
+	if len(os.Getenv("GIT_LOG_STATS")) < 1 {
 		return
 	}
 
@@ -129,6 +114,6 @@ func setupHTTPLogger(c *lfsapi.Client) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 	} else {
-		c.LogHTTPStats(file)
+		getAPIClient().LogHTTPStats(file)
 	}
 }

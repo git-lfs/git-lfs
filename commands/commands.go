@@ -18,7 +18,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -61,7 +60,7 @@ func getTransferManifestOperationRemote(operation, remote string) *tq.Manifest {
 
 	k := fmt.Sprintf("%s.%s", operation, remote)
 	if tqManifest[k] == nil {
-		tqManifest[k] = tq.NewManifestClientOperationRemote(c, operation, remote)
+		tqManifest[k] = tq.NewManifest(cfg.Filesystem(), c, operation, remote)
 	}
 
 	return tqManifest[k]
@@ -91,10 +90,10 @@ func closeAPIClient() error {
 }
 
 func newLockClient(remote string) *locking.Client {
-	storageConfig := localstorage.NewConfig(cfg)
 	lockClient, err := locking.NewClient(remote, getAPIClient())
 	if err == nil {
-		err = lockClient.SetupFileCache(storageConfig.LfsStorageDir)
+		os.MkdirAll(cfg.LFSStorageDir(), 0755)
+		err = lockClient.SetupFileCache(cfg.LFSStorageDir())
 	}
 
 	if err != nil {
@@ -133,8 +132,7 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64) {
-	path, _ = lfs.LocalMediaPath(p.Oid)
-
+	path, _ = cfg.Filesystem().ObjectPath(p.Oid)
 	return p.Name, path, p.Oid, p.Size
 }
 
@@ -259,7 +257,7 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Cleanup() {
-	if err := lfs.ClearTempObjects(); err != nil {
+	if err := cfg.Cleanup(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
 	}
 }

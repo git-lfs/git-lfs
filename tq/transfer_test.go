@@ -45,7 +45,7 @@ func newRenamedTestAdapter(name string, dir Direction) Adapter {
 }
 
 func testBasicAdapterExists(t *testing.T) {
-	m := NewManifest()
+	m := NewManifest(nil, nil, "", "")
 
 	assert := assert.New(t)
 
@@ -72,7 +72,7 @@ func testBasicAdapterExists(t *testing.T) {
 }
 
 func testAdapterRegAndOverride(t *testing.T) {
-	m := NewManifest()
+	m := NewManifest(nil, nil, "", "")
 	assert := assert.New(t)
 
 	assert.Nil(m.NewDownloadAdapter("test"))
@@ -123,7 +123,7 @@ func testAdapterRegButBasicOnly(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 
 	assert := assert.New(t)
 

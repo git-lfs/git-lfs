@@ -5,60 +5,15 @@ package lfs
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 )
-
-// LocalMediaDir returns the root of lfs objects
-func LocalMediaDir() string {
-	if localstorage.Objects() != nil {
-		return localstorage.Objects().RootDir
-	}
-	return ""
-}
-
-func LocalObjectTempDir() string {
-	if localstorage.Objects() != nil {
-		return localstorage.Objects().TempDir
-	}
-	return ""
-}
-
-func TempDir() string {
-	return localstorage.TempDir
-}
-
-func TempFile(prefix string) (*os.File, error) {
-	return localstorage.TempFile(prefix)
-}
-
-func LocalMediaPath(oid string) (string, error) {
-	return localstorage.Objects().BuildObjectPath(oid)
-}
-
-func LocalMediaPathReadOnly(oid string) string {
-	return localstorage.Objects().ObjectPath(oid)
-}
-
-func LocalReferencePath(sha string) string {
-	if config.LocalReferenceDir == "" {
-		return ""
-	}
-	return filepath.Join(config.LocalReferenceDir, sha[0:2], sha[2:4], sha)
-}
-
-func ObjectExistsOfSize(oid string, size int64) bool {
-	path := localstorage.Objects().ObjectPath(oid)
-	return tools.FileExistsOfSize(path, size)
-}
 
 func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
@@ -79,15 +34,14 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	sort.Strings(ultransfers)
 
 	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
-	storageConfig := localstorage.NewConfig(cfg)
 
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
 		fmt.Sprintf("LocalGitDir=%s", cfg.LocalGitDir()),
 		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
-		fmt.Sprintf("LocalMediaDir=%s", LocalMediaDir()),
+		fmt.Sprintf("LocalMediaDir=%s", cfg.LFSObjectDir()),
 		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
-		fmt.Sprintf("TempDir=%s", TempDir()),
+		fmt.Sprintf("TempDir=%s", cfg.TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
@@ -99,7 +53,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
-		fmt.Sprintf("LfsStorageDir=%s", storageConfig.LfsStorageDir),
+		fmt.Sprintf("LfsStorageDir=%s", cfg.LFSStorageDir()),
 		fmt.Sprintf("AccessDownload=%s", download),
 		fmt.Sprintf("AccessUpload=%s", upload),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
@@ -125,17 +79,6 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	return env
 }
 
-func ClearTempObjects() error {
-	if localstorage.Objects() == nil {
-		return nil
-	}
-	return localstorage.Objects().ClearTempObjects()
-}
-
-func ScanObjectsChan() <-chan localstorage.Object {
-	return localstorage.Objects().ScanObjectsChan()
-}
-
 func init() {
 	tracerx.DefaultKey = "GIT"
 	tracerx.Prefix = "trace git-lfs: "
@@ -151,22 +94,17 @@ const (
 	gitPtrPrefix = "gitdir: "
 )
 
-// only used in tests
-func AllObjects() []localstorage.Object {
-	return localstorage.Objects().AllObjects()
-}
-
-func LinkOrCopyFromReference(oid string, size int64) error {
-	if ObjectExistsOfSize(oid, size) {
+func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) error {
+	if cfg.LFSObjectExists(oid, size) {
 		return nil
 	}
-	altMediafile := LocalReferencePath(oid)
-	mediafile, err := LocalMediaPath(oid)
+	altMediafile := cfg.Filesystem().ObjectReferencePath(oid)
+	mediafile, err := cfg.Filesystem().ObjectPath(oid)
 	if err != nil {
 		return err
 	}
 	if altMediafile != "" && tools.FileExistsOfSize(altMediafile, size) {
-		return LinkOrCopy(altMediafile, mediafile)
+		return LinkOrCopy(cfg, altMediafile, mediafile)
 	}
 	return nil
 }

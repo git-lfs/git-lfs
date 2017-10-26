@@ -37,12 +37,12 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 }
 
 func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
-	mediafile, err := LocalMediaPath(ptr.Oid)
+	mediafile, err := f.ObjectPath(ptr.Oid)
 	if err != nil {
 		return 0, err
 	}
 
-	LinkOrCopyFromReference(ptr.Oid, ptr.Size)
+	LinkOrCopyFromReference(f.cfg, ptr.Oid, ptr.Size)
 
 	stat, statErr := os.Stat(mediafile)
 	if statErr == nil && stat != nil {
@@ -139,7 +139,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 
 		request := &pipeRequest{"smudge", reader, workingfile, extsR}
 
-		response, err := pipeExtensions(request)
+		response, err := pipeExtensions(f.cfg, request)
 		if err != nil {
 			return 0, errors.Wrap(err, "smudge")
 		}

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +11,6 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if localInstall || cfg.InRepo() {
-		localstorage.InitStorageOrFail(cfg)
 		uninstallHooksCommand(cmd, args)
 	}
 
@@ -33,6 +31,5 @@ func init() {
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.AddCommand(NewCommand("hooks", uninstallHooksCommand))
-		cmd.PreRun = setupLocalStorage
 	})
 }

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -71,8 +70,6 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Make sure we pop back to dir we started in at the end
 	defer os.Chdir(cwd)
 
-	// Also need to derive dirs now
-	localstorage.ResolveDirs(cfg)
 	requireInRepo()
 
 	// Now just call pull with default args

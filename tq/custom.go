@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/tools"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -124,7 +125,6 @@ func (a *customAdapter) ClearTempStorage() error {
 }
 
 func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
-
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1
 	a.Trace("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
@@ -202,7 +202,6 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 // exchangeMessage sends a message to a process and reads a response if resp != nil
 // Only fatal errors to communicate return an error, errors may be embedded in reply
 func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req interface{}) (*customAdapterResponseMessage, error) {
-
 	err := a.sendMessage(ctx, req)
 	if err != nil {
 		return nil, err
@@ -341,8 +340,8 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	return nil
 }
 
-func newCustomAdapter(name string, dir Direction, path, args string, concurrent, standalone bool) *customAdapter {
-	c := &customAdapter{newAdapterBase(name, dir, nil), path, args, concurrent, 3, standalone}
+func newCustomAdapter(f *fs.Filesystem, name string, dir Direction, path, args string, concurrent, standalone bool) *customAdapter {
+	c := &customAdapter{newAdapterBase(f, name, dir, nil), path, args, concurrent, 3, standalone}
 	// self implements impl
 	c.transferImpl = c
 	return c
@@ -372,7 +371,7 @@ func configureCustomAdapters(git Env, m *Manifest) {
 		// Separate closure for each since we need to capture vars above
 		newfunc := func(name string, dir Direction) Adapter {
 			standalone := m.standaloneTransferAgent != ""
-			return newCustomAdapter(name, dir, path, args, concurrent, standalone)
+			return newCustomAdapter(m.fs, name, dir, path, args, concurrent, standalone)
 		}
 
 		if direction == "download" || direction == "both" {

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -53,7 +53,7 @@ type PruneProgress struct {
 type PruneProgressChan chan PruneProgress
 
 func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]localstorage.Object, 0, 100)
+	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
@@ -274,7 +274,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 	var deletedFiles int
 	for i, oid := range prunableObjects {
 		spinner.Print(OutputWriter, fmt.Sprintf("Deleting object %d/%d", i, len(prunableObjects)))
-		mediaFile, err := lfs.LocalMediaPath(oid)
+		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
 			continue
@@ -294,14 +294,14 @@ func pruneDeleteFiles(prunableObjects []string) {
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]fs.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	localObjectsChan := lfs.ScanObjectsChan()
-	for f := range localObjectsChan {
-		*outLocalObjects = append(*outLocalObjects, f)
+	cfg.EachLFSObject(func(obj fs.Object) error {
+		*outLocalObjects = append(*outLocalObjects, obj)
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
-	}
+		return nil
+	})
 }
 
 // Background task, must call waitg.Done() once at end

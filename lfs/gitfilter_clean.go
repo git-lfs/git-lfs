@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -31,7 +32,7 @@ func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb 
 		request := &pipeRequest{"clean", reader, fileName, extensions}
 
 		var response pipeResponse
-		if response, err = pipeExtensions(request); err != nil {
+		if response, err = pipeExtensions(f.cfg, request); err != nil {
 			return nil, err
 		}
 
@@ -50,7 +51,7 @@ func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb 
 			}
 		}
 	} else {
-		oid, size, tmp, err = copyToTemp(reader, fileSize, cb)
+		oid, size, tmp, err = f.copyToTemp(reader, fileSize, cb)
 		if err != nil {
 			return nil, err
 		}
@@ -60,8 +61,8 @@ func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb 
 	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
-func copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
-	tmp, err = TempFile("")
+func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
+	tmp, err = ioutil.TempFile(f.cfg.TempDir(), "")
 	if err != nil {
 		return
 	}

@@ -9,7 +9,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -66,8 +65,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	storageConfig := localstorage.NewConfig(cfg)
-	badDir := filepath.Join(storageConfig.LfsStorageDir, "bad")
+	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
 	Print("Moving corrupt objects to %s", badDir)
 
 	if err := os.MkdirAll(badDir, 0755); err != nil {
@@ -76,14 +74,14 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 
 	for _, oid := range corruptOids {
 		badFile := filepath.Join(badDir, oid)
-		if err := os.Rename(lfs.LocalMediaPathReadOnly(oid), badFile); err != nil {
+		if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
 			ExitWithError(err)
 		}
 	}
 }
 
 func fsckPointer(name, oid string) (bool, error) {
-	path := lfs.LocalMediaPathReadOnly(oid)
+	path := cfg.Filesystem().ObjectPathname(oid)
 
 	Debug("Examining %v (%v)", name, path)
 
