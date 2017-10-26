@@ -19,7 +19,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
 
-	api, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	api, err := lfsapi.NewClient(cfg)
 	if err != nil {
 		// TODO(@ttaylorr): don't panic
 		panic(err.Error())

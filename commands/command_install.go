@@ -46,6 +46,7 @@ func cmdInstallOptions() *lfs.FilterOptions {
 	}
 
 	return &lfs.FilterOptions{
+		GitConfig:  cfg.GitConfig(),
 		Force:      forceInstall,
 		Local:      localInstall,
 		System:     systemInstall,

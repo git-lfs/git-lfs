@@ -5,13 +5,14 @@ import (
 	"path/filepath"
 
 	"github.com/bgentry/go-netrc/netrc"
+	"github.com/git-lfs/git-lfs/config"
 )
 
 type NetrcFinder interface {
 	FindMachine(string) *netrc.Machine
 }
 
-func ParseNetrc(osEnv Env) (NetrcFinder, string, error) {
+func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 	home, _ := osEnv.Get("HOME")
 	if len(home) == 0 {
 		return &noFinder{}, "", nil

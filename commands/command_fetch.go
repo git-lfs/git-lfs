@@ -271,7 +271,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	// Lazily initialize the current remote.
 	if len(cfg.CurrentRemote) == 0 {
 		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := git.DefaultRemote()
+		defaultRemote, err := cfg.GitConfig().DefaultRemote()
 		if err != nil {
 			Exit("No default remote")
 		}

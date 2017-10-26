@@ -52,19 +52,16 @@ func New() *Configuration {
 }
 
 func NewIn(workdir, gitdir string) *Configuration {
-	gitConf := git.Config
+	gitConf := git.NewConfig(workdir, gitdir)
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
 		gitConfig:     gitConf,
 	}
 
-	if len(workdir) > 0 {
-		if len(gitdir) == 0 {
-			gitdir = filepath.Join(workdir, ".git")
-		}
-		c.gitDir = &gitdir
-		c.workDir = workdir
+	if len(gitConf.WorkDir) > 0 {
+		c.gitDir = &gitConf.GitDir
+		c.workDir = gitConf.WorkDir
 	}
 
 	c.Git = &delayedEnvironment{
@@ -111,7 +108,7 @@ func NewFrom(v Values) *Configuration {
 	c := &Configuration{
 		CurrentRemote: defaultRemote,
 		Os:            EnvironmentOf(mapFetcher(v.Os)),
-		gitConfig:     git.Config,
+		gitConfig:     git.NewConfig("", ""),
 	}
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
@@ -178,7 +175,7 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 }
 
 func (c *Configuration) HookDir() string {
-	if c.gitConfig.IsGitVersionAtLeast("2.9.0") {
+	if git.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
 			return hp
@@ -275,16 +272,16 @@ func (c *Configuration) Cleanup() error {
 	return c.fs.Cleanup()
 }
 
+func (c *Configuration) OSEnv() Environment {
+	return c.Os
+}
+
+func (c *Configuration) GitEnv() Environment {
+	return c.Git
+}
+
 func (c *Configuration) GitConfig() *git.Configuration {
 	return c.gitConfig
-}
-
-func (c *Configuration) GitVersion() (string, error) {
-	return c.gitConfig.Version()
-}
-
-func (c *Configuration) IsGitVersionAtLeast(ver string) bool {
-	return c.gitConfig.IsGitVersionAtLeast(ver)
 }
 
 func (c *Configuration) FindGitGlobalKey(key string) string {
@@ -307,8 +304,8 @@ func (c *Configuration) SetGitSystemKey(key, val string) (string, error) {
 	return c.gitConfig.SetSystem(key, val)
 }
 
-func (c *Configuration) SetGitLocalKey(file, key, val string) (string, error) {
-	return c.gitConfig.SetLocal(file, key, val)
+func (c *Configuration) SetGitLocalKey(key, val string) (string, error) {
+	return c.gitConfig.SetLocal(key, val)
 }
 
 func (c *Configuration) UnsetGitGlobalSection(key string) (string, error) {
@@ -323,8 +320,8 @@ func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 	return c.gitConfig.UnsetLocalSection(key)
 }
 
-func (c *Configuration) UnsetGitLocalKey(file, key string) (string, error) {
-	return c.gitConfig.UnsetLocalKey(file, key)
+func (c *Configuration) UnsetGitLocalKey(key string) (string, error) {
+	return c.gitConfig.UnsetLocalKey(key)
 }
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on

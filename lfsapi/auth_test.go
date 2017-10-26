@@ -72,7 +72,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c, err := NewClient(nil, UniqTestEnv(map[string]string{
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/repo/lfs",
 	}))
 	require.Nil(t, err)
@@ -141,12 +141,11 @@ func TestDoWithAuthReject(t *testing.T) {
 	creds.Approve(invalidCreds)
 	assert.True(t, creds.IsApproved(invalidCreds))
 
-	c := &Client{
-		Credentials: creds,
-		Endpoints: NewEndpointFinder(UniqTestEnv(map[string]string{
-			"lfs.url": srv.URL,
-		})),
-	}
+	c, _ := NewClient(nil)
+	c.Credentials = creds
+	c.Endpoints = NewEndpointFinder(NewContext(nil, nil, map[string]string{
+		"lfs.url": srv.URL,
+	}))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	require.Nil(t, err)
@@ -532,7 +531,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ef := NewEndpointFinder(UniqTestEnv(test.Config))
+		ef := NewEndpointFinder(NewContext(nil, nil, test.Config))
 		endpoint, access, creds, credsURL, err := getCreds(credHelper, netrcFinder, ef, test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue

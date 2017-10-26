@@ -27,7 +27,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 		remote = args[0]
 	} else {
 		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := git.DefaultRemote()
+		defaultRemote, err := cfg.GitConfig().DefaultRemote()
 		if err != nil {
 			Panic(err, "No default remote")
 		}

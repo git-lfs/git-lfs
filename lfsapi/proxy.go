@@ -48,7 +48,7 @@ func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv Env) (httpsProxy string, httpProxy string, noProxy string) {
+func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environment) (httpsProxy string, httpProxy string, noProxy string) {
 	if urlCfg != nil {
 		httpProxy, _ = urlCfg.Get("http", u.String(), "proxy")
 		if strings.HasPrefix(httpProxy, "https://") {

@@ -58,7 +58,7 @@ func getRootCAsForHost(c *Client, host string) *x509.CertPool {
 	return appendRootCAsForHostFromPlatform(pool, host)
 }
 
-func appendRootCAsForHostFromGitconfig(osEnv Env, gitEnv Env, pool *x509.CertPool, host string) *x509.CertPool {
+func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x509.CertPool, host string) *x509.CertPool {
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first

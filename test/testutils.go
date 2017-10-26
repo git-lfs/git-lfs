@@ -104,6 +104,10 @@ func (r *Repo) Filesystem() *fs.Filesystem {
 	return r.fs
 }
 
+func (r *Repo) GitConfig() *git.Configuration {
+	return r.cfg.GitConfig()
+}
+
 func (r *Repo) GitEnv() config.Environment {
 	return r.cfg.Git
 }

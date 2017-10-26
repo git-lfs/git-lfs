@@ -55,7 +55,7 @@ func (m *Manifest) batchClient() *tqClient {
 
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *Manifest {
 	if apiClient == nil {
-		cli, err := lfsapi.NewClient(nil, nil)
+		cli, err := lfsapi.NewClient(nil)
 		if err != nil {
 			tracerx.Printf("unable to init tq.Manifest: %s", err)
 			return nil
