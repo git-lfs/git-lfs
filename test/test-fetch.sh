@@ -440,12 +440,6 @@ begin_test "fetch with no origin remote"
   # and no origin, but only 1 remote, should pick the only one as default
   git lfs fetch
   assert_local_object "$contents_oid" 1
-
-  # delete again, now add a second remote, also non-origin
-  rm -rf .git/lfs
-  git remote add something2 "$GITSERVER/$reponame"
-  git lfs fetch 2>&1 | grep "No default remote"
-  refute_local_object "$contents_oid"
 )
 end_test
 

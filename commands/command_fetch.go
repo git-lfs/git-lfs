@@ -43,8 +43,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Exit("Invalid remote name %q", args[0])
 		}
 		cfg.SetRemote(args[0])
-	} else {
-		cfg.SetRemote("")
 	}
 
 	if len(args) > 1 {
@@ -268,16 +266,6 @@ func scanAll() []*lfs.WrappedPointer {
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
-	// Lazily initialize the current remote.
-	if len(cfg.Remote()) == 0 {
-		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := cfg.GitConfig().DefaultRemote()
-		if err != nil {
-			Exit("No default remote")
-		}
-		cfg.SetRemote(defaultRemote)
-	}
-
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
