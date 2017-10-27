@@ -300,6 +300,29 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
+		"basic access with url-specific usehttppath": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://git-server.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://git-server.com/repo/lfs",
+				"lfs.https://git-server.com/repo/lfs.access":    "basic",
+				"credential.https://git-server.com.usehttppath": "true",
+			},
+			Expected: getCredsExpected{
+				Access:        BasicAccess,
+				Endpoint:      "https://git-server.com/repo/lfs",
+				Authorization: basicAuth("git-server.com", "monkey"),
+				CredsURL:      "https://git-server.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "git-server.com",
+					"username": "git-server.com",
+					"password": "monkey",
+					"path":     "repo/lfs",
+				},
+			},
+		},
 		"ntlm": getCredsTest{
 			Remote: "origin",
 			Method: "GET",
