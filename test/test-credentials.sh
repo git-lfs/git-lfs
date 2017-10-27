@@ -8,7 +8,7 @@ begin_test "credentials without useHttpPath, with bad path password"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="no-httppath-bad-password"
   setup_remote_repo "$reponame"
 
   printf "path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
@@ -20,16 +20,18 @@ begin_test "credentials without useHttpPath, with bad path password"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
 
-  contents="a"
-  contents_oid=$(calc_oid "$contents")
-
-  printf "$contents" > a.dat
+  printf "a" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat"
 
-  git push origin without-path 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin without-path 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
+
+  echo "approvals:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
 )
 end_test
 
@@ -37,7 +39,7 @@ begin_test "credentials with useHttpPath, with wrong password"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="httppath-bad-password"
   setup_remote_repo "$reponame"
 
   printf "path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
@@ -56,8 +58,12 @@ begin_test "credentials with useHttpPath, with wrong password"
   git add .gitattributes
   git commit -m "add a.dat"
 
-  git push origin with-path-wrong-pass 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
   [ "0" = "$(grep -c "(1 of 1 files)" push.log)" ]
+  echo "approvals:"
+  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
 )
 end_test
 
@@ -86,8 +92,12 @@ begin_test "credentials with useHttpPath, with correct password"
   git add .gitattributes
   git commit -m "add b.dat"
 
-  git push origin with-path-correct-pass 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin with-path-correct-pass 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
+  echo "approvals:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
 )
 end_test
 
@@ -175,8 +185,10 @@ begin_test "credentials from netrc"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git lfs push netrc master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
   grep "(1 of 1 files)" push.log
+  echo "any git credential calls:"
+  [ "0" -eq "$(cat push.log | grep "git credential" | wc -l)" ]
 )
 end_test
 
