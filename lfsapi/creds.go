@@ -244,7 +244,7 @@ func credCacheKey(creds Creds) string {
 	return strings.Join(parts, "//")
 }
 
-func (c credentialCacher) Fill(what Creds) (Creds, error) {
+func (c *credentialCacher) Fill(what Creds) (Creds, error) {
 	key := credCacheKey(what)
 	c.mu.Lock()
 	cached, ok := c.creds[key]
@@ -259,7 +259,7 @@ func (c credentialCacher) Fill(what Creds) (Creds, error) {
 	return nil, credHelperNoOp
 }
 
-func (c credentialCacher) Approve(what Creds) error {
+func (c *credentialCacher) Approve(what Creds) error {
 	key := credCacheKey(what)
 
 	c.mu.Lock()
@@ -273,7 +273,7 @@ func (c credentialCacher) Approve(what Creds) error {
 	return credHelperNoOp
 }
 
-func (c credentialCacher) Reject(what Creds) error {
+func (c *credentialCacher) Reject(what Creds) error {
 	key := credCacheKey(what)
 	c.mu.Lock()
 	delete(c.creds, key)
@@ -304,7 +304,7 @@ var credHelperNoOp = errors.New("no-op!")
 // If a fill was successful, it is returned immediately, and no other
 // `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
 // it is returned immediately.
-func (s CredentialHelpers) Fill(what Creds) (Creds, error) {
+func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 	errs := make([]string, 0, len(s.helpers))
 	for i, h := range s.helpers {
 		if s.skipped(i) {
@@ -337,7 +337,7 @@ func (s CredentialHelpers) Fill(what Creds) (Creds, error) {
 // amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
 // non-nil error, no further `CredentialHelper`s are notified, so as to prevent
 // inconsistent state.
-func (s CredentialHelpers) Reject(what Creds) error {
+func (s *CredentialHelpers) Reject(what Creds) error {
 	for i, h := range s.helpers {
 		if s.skipped(i) {
 			continue
@@ -355,7 +355,7 @@ func (s CredentialHelpers) Reject(what Creds) error {
 // "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
 // returned a non-nil error, no further `CredentialHelper`s are notified, so as
 // to prevent inconsistent state.
-func (s CredentialHelpers) Approve(what Creds) error {
+func (s *CredentialHelpers) Approve(what Creds) error {
 	skipped := make(map[int]bool)
 	for i, h := range s.helpers {
 		if s.skipped(i) {
@@ -378,13 +378,13 @@ func (s CredentialHelpers) Approve(what Creds) error {
 	return errors.New("no valid credential helpers to approve")
 }
 
-func (s CredentialHelpers) skip(i int) {
+func (s *CredentialHelpers) skip(i int) {
 	s.mu.Lock()
 	s.skippedHelpers[i] = true
 	s.mu.Unlock()
 }
 
-func (s CredentialHelpers) skipped(i int) bool {
+func (s *CredentialHelpers) skipped(i int) bool {
 	s.mu.Lock()
 	skipped := s.skippedHelpers[i]
 	s.mu.Unlock()
