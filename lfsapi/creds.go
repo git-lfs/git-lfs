@@ -39,11 +39,12 @@ func bufferCreds(c Creds) *bytes.Buffer {
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
 func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
+	rawurl := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	input := Creds{"protocol": u.Scheme, "host": u.Host}
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
-	if c.gitEnv.Bool("credential.usehttppath", false) {
+	if c.uc.Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
@@ -56,7 +57,7 @@ func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
 		helpers = append(helpers, c.cachingCredHelper)
 	}
 	if c.askpassCredHelper != nil {
-		helper, _ := c.gitEnv.Get("credential.helper")
+		helper, _ := c.uc.Get("credential", rawurl, "helper")
 		if len(helper) == 0 {
 			helpers = append(helpers, c.askpassCredHelper)
 		}
