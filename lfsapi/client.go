@@ -79,6 +79,8 @@ func joinURL(prefix, suffix string) string {
 	return prefix + slash + suffix
 }
 
+// Do sends an HTTP request to get an HTTP response. It wraps net/http, adding
+// extra headers, redirection handling, and error reporting.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 	req.Header.Set("User-Agent", UserAgent)

@@ -20,6 +20,9 @@ var (
 	defaultEndpointFinder   = NewEndpointFinder(nil)
 )
 
+// DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
+// authentication from netrc or git's credential helpers if necessary,
+// supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
 	if err != nil {

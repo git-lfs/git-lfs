@@ -12,12 +12,17 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+// CredentialHelper is an interface used by the lfsapi Client to interact with
+// the 'git credential' command: https://git-scm.com/docs/gitcredentials
+// Other implementations include ASKPASS support, and an in-memory cache.
 type CredentialHelper interface {
 	Fill(Creds) (Creds, error)
 	Reject(Creds) error
 	Approve(Creds) error
 }
 
+// Creds represents a set of key/value pairs that are passed to 'git credential'
+// as input.
 type Creds map[string]string
 
 func bufferCreds(c Creds) *bytes.Buffer {
@@ -282,14 +287,23 @@ func (c *credentialCacher) Reject(what Creds) error {
 	return credHelperNoOp
 }
 
+// CredentialHelpers iterates through a slice of CredentialHelper objects
 // CredentialHelpers is a []CredentialHelper that iterates through each
-// credential helper to fill, reject, or approve credentials.
+// credential helper to fill, reject, or approve credentials. Typically, the
+// first success returns immediately. Errors are reported to tracerx, unless
+// all credential helpers return errors. Any erroring credential helpers are
+// skipped for future calls.
+//
+// A CredentialHelper can return a credHelperNoOp error, signaling that the
+// CredentialHelpers should try the next one.
 type CredentialHelpers struct {
 	helpers        []CredentialHelper
 	skippedHelpers map[int]bool
 	mu             sync.Mutex
 }
 
+// NewCredentialHelpers initializes a new CredentialHelpers from the given
+// slice of CredentialHelper instances.
 func NewCredentialHelpers(helpers []CredentialHelper) CredentialHelper {
 	return &CredentialHelpers{
 		helpers:        helpers,
@@ -304,7 +318,10 @@ var credHelperNoOp = errors.New("no-op!")
 //
 // If a fill was successful, it is returned immediately, and no other
 // `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
-// it is returned immediately.
+// it is reported to tracerx, and the next one is attempted. If they all error,
+// then a collection of all the error messages is returned. Erroring credential
+// helpers are added to the skip list, and never attempted again for the
+// lifetime of the current Git LFS command.
 func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 	errs := make([]string, 0, len(s.helpers))
 	for i, h := range s.helpers {
@@ -335,9 +352,7 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 }
 
 // Reject implements CredentialHelper.Reject and rejects the given Creds "what"
-// amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
-// non-nil error, no further `CredentialHelper`s are notified, so as to prevent
-// inconsistent state.
+// with the first successful attempt.
 func (s *CredentialHelpers) Reject(what Creds) error {
 	for i, h := range s.helpers {
 		if s.skipped(i) {
@@ -353,9 +368,10 @@ func (s *CredentialHelpers) Reject(what Creds) error {
 }
 
 // Approve implements CredentialHelper.Approve and approves the given Creds
-// "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
-// returned a non-nil error, no further `CredentialHelper`s are notified, so as
-// to prevent inconsistent state.
+// "what" with the first successful CredentialHelper. If an error occurrs,
+// it calls Reject() with the same Creds and returns the error immediately. This
+// ensures a caching credential helper removes the cache, since the Erroring
+// CredentialHelper never successfully saved it.
 func (s *CredentialHelpers) Approve(what Creds) error {
 	skipped := make(map[int]bool)
 	for i, h := range s.helpers {

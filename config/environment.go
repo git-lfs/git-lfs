@@ -79,6 +79,15 @@ func (e *environment) All() map[string][]string {
 	return e.Fetcher.All()
 }
 
+// Int returns the int value associated with the given value, or the value
+// "def", if the value is blank.
+//
+// To convert from a the string value attached to a given key,
+// `strconv.Atoi(val)` is called. If `Atoi` returned a non-nil error,
+// then the value "def" will be returned instead.
+//
+// Otherwise, if the value was converted `string -> int` successfully,
+// then it will be returned wholesale.
 func Int(value string, def int) int {
 	if len(value) == 0 {
 		return def
@@ -92,6 +101,16 @@ func Int(value string, def int) int {
 	return i
 }
 
+// Bool returns the boolean state associated with the given value, or the
+// value "def", if the value is blank.
+//
+// The "boolean state associated with a given key" is defined as the
+// case-insensitive string comparison with the following:
+//
+// 1) true if...
+//   "true", "1", "on", "yes", or "t"
+// 2) false if...
+//   "false", "0", "off", "no", "f", or otherwise.
 func Bool(value string, def bool) bool {
 	if len(value) == 0 {
 		return def
