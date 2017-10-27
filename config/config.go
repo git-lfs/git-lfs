@@ -149,6 +149,10 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
+func (c *Configuration) IsDefaultRemote() bool {
+	return c.Remote() == defaultRemote
+}
+
 func (c *Configuration) Remote() string {
 	c.loadingGit.Lock()
 	defer c.loadingGit.Unlock()
