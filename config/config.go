@@ -169,6 +169,11 @@ func (c *Configuration) IsDefaultRemote() bool {
 	return c.Remote() == defaultRemote
 }
 
+// Remote returns the default remote based on:
+// 1. The currently tracked remote branch, if present
+// 2. Any other SINGLE remote defined in .git/config
+// 3. Use "origin" as a fallback.
+// Results are cached after the first hit.
 func (c *Configuration) Remote() string {
 	ref := c.CurrentRef()
 

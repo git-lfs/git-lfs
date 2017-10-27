@@ -71,10 +71,6 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "refs/remotes/origin/someremotebranch", refname)
 
-	remote, err := gitConf.RemoteForCurrentBranch()
-	assert.Nil(t, err)
-	assert.Equal(t, "origin", remote)
-
 	ref, err = ResolveRef(outputs[2].Sha)
 	assert.Nil(t, err)
 	assert.Equal(t, &Ref{outputs[2].Sha, RefTypeOther, outputs[2].Sha}, ref)

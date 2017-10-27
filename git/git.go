@@ -242,19 +242,6 @@ func (c *Configuration) CurrentRemoteRef() (*Ref, error) {
 	return ResolveRef(remoteref)
 }
 
-// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
-func (c *Configuration) RemoteForCurrentBranch() (string, error) {
-	ref, err := CurrentRef()
-	if err != nil {
-		return "", err
-	}
-	remote := c.RemoteForBranch(ref.Name)
-	if remote == "" {
-		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
-	}
-	return remote, nil
-}
-
 // RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
 // that the current branch is tracking.
 func (c *Configuration) RemoteRefNameForCurrentBranch() (string, error) {
@@ -421,39 +408,6 @@ func ValidateRemoteURL(remote string) error {
 	default:
 		return fmt.Errorf("Invalid remote url protocol %q in %q", u.Scheme, remote)
 	}
-}
-
-// DefaultRemote returns the default remote based on:
-// 1. The currently tracked remote branch, if present
-// 2. "origin", if defined
-// 3. Any other SINGLE remote defined in .git/config
-// Returns an error if all of these fail, i.e. no tracked remote branch, no
-// "origin", and either no remotes defined or 2+ non-"origin" remotes
-func (c *Configuration) DefaultRemote() (string, error) {
-	tracked, err := c.RemoteForCurrentBranch()
-	if err == nil {
-		return tracked, nil
-	}
-
-	// Otherwise, check what remotes are defined
-	remotes, err := RemoteList()
-	if err != nil {
-		return "", err
-	}
-	switch len(remotes) {
-	case 0:
-		return "", errors.New("No remotes defined")
-	case 1: // always use a single remote whether it's origin or otherwise
-		return remotes[0], nil
-	default:
-		for _, remote := range remotes {
-			// Use origin if present
-			if remote == "origin" {
-				return remote, nil
-			}
-		}
-	}
-	return "", errors.New("Unable to pick default remote, too ambiguous")
 }
 
 func UpdateIndexFromStdin() *subprocess.Cmd {
