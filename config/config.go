@@ -38,6 +38,7 @@ type Configuration struct {
 	// version.
 	gitConfig *git.Configuration
 
+	ref        *git.Ref
 	fs         *fs.Filesystem
 	gitDir     *string
 	workDir    string
@@ -149,21 +150,45 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
+func (c *Configuration) CurrentRef() *git.Ref {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	if c.ref == nil {
+		r, err := git.CurrentRef()
+		if err != nil {
+			tracerx.Printf("Error loading current ref: %s", err)
+			c.ref = &git.Ref{}
+		} else {
+			c.ref = r
+		}
+	}
+	return c.ref
+}
+
 func (c *Configuration) IsDefaultRemote() bool {
 	return c.Remote() == defaultRemote
 }
 
 func (c *Configuration) Remote() string {
-	c.loadingGit.Lock()
-	defer c.loadingGit.Unlock()
+	ref := c.CurrentRef()
+
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
 	if c.currentRemote == nil {
-		r, err := c.GitConfig().DefaultRemote()
-		if err == nil && len(r) > 0 {
-			c.currentRemote = &r
+		if len(ref.Name) == 0 {
+			c.currentRemote = &defaultRemote
+			return defaultRemote
+		}
+
+		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); ok {
+			// try tracking remote
+			c.currentRemote = &remote
+		} else if remotes := c.Remotes(); len(remotes) == 1 {
+			// use only remote if there is only 1
+			c.currentRemote = &remotes[0]
 		} else {
-			if err != nil {
-				tracerx.Printf("Error getting default remote: %+v", err)
-			}
+			// fall back to default :(
 			c.currentRemote = &defaultRemote
 		}
 	}
