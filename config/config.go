@@ -157,7 +157,15 @@ func (c *Configuration) Remote() string {
 	c.loadingGit.Lock()
 	defer c.loadingGit.Unlock()
 	if c.currentRemote == nil {
-		c.currentRemote = &defaultRemote
+		r, err := c.GitConfig().DefaultRemote()
+		if err == nil && len(r) > 0 {
+			c.currentRemote = &r
+		} else {
+			if err != nil {
+				tracerx.Printf("Error getting default remote: %+v", err)
+			}
+			c.currentRemote = &defaultRemote
+		}
 	}
 	return *c.currentRemote
 }
