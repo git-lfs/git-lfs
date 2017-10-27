@@ -251,6 +251,8 @@ func (c credentialCacher) Fill(what Creds) (Creds, error) {
 	c.mu.Unlock()
 
 	if ok {
+		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
+			what["protocol"], what["host"], what["path"])
 		return cached, nil
 	}
 
