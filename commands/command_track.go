@@ -205,7 +205,7 @@ ArgsLoop:
 	}
 
 	// now flip read-only mode based on lockable / not lockable changes
-	lockClient := newLockClient(cfg.CurrentRemote)
+	lockClient := newLockClient(cfg.Remote())
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions: %s", err)

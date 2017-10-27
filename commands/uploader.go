@@ -91,7 +91,7 @@ const (
 )
 
 func newUploadContext(remote string, dryRun bool) *uploadContext {
-	cfg.CurrentRemote = remote
+	cfg.SetRemote(remote)
 
 	ctx := &uploadContext{
 		Remote:         remote,

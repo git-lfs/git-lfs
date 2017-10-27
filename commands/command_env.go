@@ -9,7 +9,7 @@ import (
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
-	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.CurrentRemote)
+	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.Remote())
 
 	gitV, err := git.Version()
 	if err != nil {

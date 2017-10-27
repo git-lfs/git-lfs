@@ -42,9 +42,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if err := git.ValidateRemote(args[0]); err != nil {
 			Exit("Invalid remote name %q", args[0])
 		}
-		cfg.CurrentRemote = args[0]
+		cfg.SetRemote(args[0])
 	} else {
-		cfg.CurrentRemote = ""
+		cfg.SetRemote("")
 	}
 
 	if len(args) > 1 {
@@ -104,7 +104,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if !success {
 		c := getAPIClient()
-		e := c.Endpoints.Endpoint("download", cfg.CurrentRemote)
+		e := c.Endpoints.Endpoint("download", cfg.Remote())
 		Exit("error: failed to fetch some objects from '%s'", e.Url)
 	}
 }
@@ -184,7 +184,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	if fetchconf.FetchRecentRefsDays > 0 {
 		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.CurrentRemote)
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}
@@ -269,19 +269,19 @@ func scanAll() []*lfs.WrappedPointer {
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
 	// Lazily initialize the current remote.
-	if len(cfg.CurrentRemote) == 0 {
+	if len(cfg.Remote()) == 0 {
 		// Actively find the default remote, don't just assume origin
 		defaultRemote, err := cfg.GitConfig().DefaultRemote()
 		if err != nil {
 			Exit("No default remote")
 		}
-		cfg.CurrentRemote = defaultRemote
+		cfg.SetRemote(defaultRemote)
 	}
 
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
 	q := newDownloadQueue(
-		getTransferManifestOperationRemote("download", cfg.CurrentRemote),
-		cfg.CurrentRemote, tq.WithProgress(meter),
+		getTransferManifestOperationRemote("download", cfg.Remote()),
+		cfg.Remote(), tq.WithProgress(meter),
 	)
 
 	if out != nil {

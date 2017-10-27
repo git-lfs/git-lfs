@@ -40,7 +40,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 }
 
 func pull(remote string, filter *filepathfilter.Filter) {
-	cfg.CurrentRemote = remote
+	cfg.SetRemote(remote)
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")

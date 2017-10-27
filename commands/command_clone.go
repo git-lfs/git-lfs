@@ -86,7 +86,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		filter := buildFilepathFilter(cfg, includeArg, excludeArg)
 		if cloneFlags.NoCheckout || cloneFlags.Bare {
 			// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-			cfg.CurrentRemote = remote
+			cfg.SetRemote(remote)
 			fetchRef(ref.Name, filter)
 		} else {
 			pull(remote, filter)

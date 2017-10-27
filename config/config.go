@@ -32,7 +32,7 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	CurrentRemote string
+	currentRemote string
 
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
@@ -54,7 +54,7 @@ func New() *Configuration {
 func NewIn(workdir, gitdir string) *Configuration {
 	gitConf := git.NewConfig(workdir, gitdir)
 	c := &Configuration{
-		CurrentRemote: defaultRemote,
+		currentRemote: defaultRemote,
 		Os:            EnvironmentOf(NewOsFetcher()),
 		gitConfig:     gitConf,
 	}
@@ -106,7 +106,7 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	c := &Configuration{
-		CurrentRemote: defaultRemote,
+		currentRemote: defaultRemote,
 		Os:            EnvironmentOf(mapFetcher(v.Os)),
 		gitConfig:     git.NewConfig("", ""),
 	}
@@ -149,6 +149,14 @@ func (c *Configuration) FetchIncludePaths() []string {
 func (c *Configuration) FetchExcludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchexclude")
 	return tools.CleanPaths(patterns, ",")
+}
+
+func (c *Configuration) Remote() string {
+	return c.currentRemote
+}
+
+func (c *Configuration) SetRemote(name string) {
+	c.currentRemote = name
 }
 
 func (c *Configuration) Remotes() []string {

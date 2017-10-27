@@ -24,7 +24,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 
 	requireGitVersion()
 
-	lockClient := newLockClient(cfg.CurrentRemote)
+	lockClient := newLockClient(cfg.Remote())
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {
