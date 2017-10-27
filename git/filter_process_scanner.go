@@ -172,8 +172,6 @@ func (o *FilterProcessScanner) Err() error { return o.err }
 // will read the body of the request. Since the body is _not_ offset, one
 // request should be read in its entirety before consuming the next request.
 func (o *FilterProcessScanner) readRequest() (*Request, error) {
-	tracerx.Printf("Read filter-process request.")
-
 	requestList, err := o.pl.readPacketList()
 	if err != nil {
 		return nil, err
