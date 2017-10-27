@@ -33,7 +33,7 @@ begin_test "askpass: push with bad askpass"
 (
   set -e
 
-  reponame="askpass-with-git-environ"
+  reponame="askpass-with-bad-askpass"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
