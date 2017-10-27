@@ -39,10 +39,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
-		if err := git.ValidateRemote(args[0]); err != nil {
-			Exit("Invalid remote name %q", args[0])
+		if err := cfg.SetValidRemote(args[0]); err != nil {
+			Exit("Invalid remote name %q: %s", args[0], err)
 		}
-		cfg.SetRemote(args[0])
 	}
 
 	if len(args) > 1 {

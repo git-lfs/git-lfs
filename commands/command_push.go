@@ -113,11 +113,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	if err := git.ValidateRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q", args[0])
+	if err := cfg.SetValidRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q: %s", args[0], err)
 	}
-
-	cfg.SetRemote(args[0])
 
 	ctx := newUploadContext(pushDryRun)
 

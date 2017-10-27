@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -46,10 +45,9 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	if err := git.ValidateRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q", args[0])
+	if err := cfg.SetValidRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q: %s", args[0], err)
 	}
-	cfg.SetRemote(args[0])
 
 	ctx := newUploadContext(prePushDryRun)
 

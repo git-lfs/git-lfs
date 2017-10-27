@@ -170,6 +170,14 @@ func (c *Configuration) Remote() string {
 	return *c.currentRemote
 }
 
+func (c *Configuration) SetValidRemote(name string) error {
+	if err := git.ValidateRemote(name); err != nil {
+		return err
+	}
+	c.SetRemote(name)
+	return nil
+}
+
 func (c *Configuration) SetRemote(name string) {
 	c.currentRemote = &name
 }

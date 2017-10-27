@@ -20,10 +20,9 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
-		if err := git.ValidateRemote(args[0]); err != nil {
-			Panic(err, fmt.Sprintf("Invalid remote name '%v'", args[0]))
+		if err := cfg.SetValidRemote(args[0]); err != nil {
+			Exit("Invalid remote name %q: %s", args[0], err)
 		}
-		cfg.SetRemote(args[0])
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
