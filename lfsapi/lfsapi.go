@@ -47,7 +47,6 @@ type Client struct {
 
 	LoggingStats bool // DEPRECATED
 
-	// only used for per-host ssl certs
 	gitEnv config.Environment
 	osEnv  config.Environment
 	uc     *config.URLConfig

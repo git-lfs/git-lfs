@@ -363,6 +363,160 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	return creds, nil
 }
 
+type credentialCacher2 struct {
+	creds map[string]Creds
+	mu    sync.Mutex
+}
+
+func newCredentialCacher() *credentialCacher2 {
+	return &credentialCacher2{creds: make(map[string]Creds)}
+}
+
+func (c credentialCacher2) Fill(what Creds) (Creds, error) {
+	key := credCacheKey(what)
+	c.mu.Lock()
+	cached, ok := c.creds[key]
+	c.mu.Unlock()
+
+	if ok {
+		return cached, nil
+	}
+
+	return nil, credHelperNoOp
+}
+
+func (c credentialCacher2) Approve(what Creds) error {
+	key := credCacheKey(what)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, ok := c.creds[key]; ok {
+		return nil
+	}
+
+	c.creds[key] = what
+	return credHelperNoOp
+}
+
+func (c credentialCacher2) Reject(what Creds) error {
+	key := credCacheKey(what)
+	c.mu.Lock()
+	delete(c.creds, key)
+	c.mu.Unlock()
+	return credHelperNoOp
+}
+
+// CredentialHelperSet is a []CredentialHelper that iterates through each
+// credential helper to fill, reject, or approve credentials.
+type CredentialHelperSet struct {
+	helpers        []CredentialHelper
+	skippedHelpers map[int]bool
+	mu             sync.Mutex
+}
+
+func NewCredentialHelpers(helpers []CredentialHelper) CredentialHelper {
+	return &CredentialHelperSet{
+		helpers:        helpers,
+		skippedHelpers: make(map[int]bool),
+	}
+}
+
+var credHelperNoOp = errors.New("no-op!")
+
+// Fill implements CredentialHelper.Fill by asking each CredentialHelper in
+// order to fill the credentials.
+//
+// If a fill was successful, it is returned immediately, and no other
+// `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
+// it is returned immediately.
+func (s CredentialHelperSet) Fill(what Creds) (Creds, error) {
+	errs := make([]string, 0, len(s.helpers))
+	for i, h := range s.helpers {
+		if s.skipped(i) {
+			continue
+		}
+
+		creds, err := h.Fill(what)
+		if err != nil {
+			if err != credHelperNoOp {
+				s.skip(i)
+				tracerx.Printf("credential fill error: %s", err)
+				errs = append(errs, err.Error())
+			}
+			continue
+		}
+
+		if creds != nil {
+			return creds, nil
+		}
+	}
+
+	if len(errs) > 0 {
+		return nil, errors.New("credential fill errors:\n" + strings.Join(errs, "\n"))
+	}
+
+	return nil, nil
+}
+
+// Reject implements CredentialHelper.Reject and rejects the given Creds "what"
+// amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
+// non-nil error, no further `CredentialHelper`s are notified, so as to prevent
+// inconsistent state.
+func (s CredentialHelperSet) Reject(what Creds) error {
+	for i, h := range s.helpers {
+		if s.skipped(i) {
+			continue
+		}
+
+		if err := h.Reject(what); err != credHelperNoOp {
+			return err
+		}
+	}
+
+	return errors.New("no valid credential helpers to reject")
+}
+
+// Approve implements CredentialHelper.Approve and approves the given Creds
+// "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
+// returned a non-nil error, no further `CredentialHelper`s are notified, so as
+// to prevent inconsistent state.
+func (s CredentialHelperSet) Approve(what Creds) error {
+	skipped := make(map[int]bool)
+	for i, h := range s.helpers {
+		if s.skipped(i) {
+			skipped[i] = true
+			continue
+		}
+
+		if err := h.Approve(what); err != credHelperNoOp {
+			if err != nil && i > 0 { // clear any cached approvals
+				for j := 0; j < i; j++ {
+					if !skipped[j] {
+						s.helpers[j].Reject(what)
+					}
+				}
+			}
+			return err
+		}
+	}
+
+	return errors.New("no valid credential helpers to approve")
+}
+
+func (s CredentialHelperSet) skip(i int) {
+	s.mu.Lock()
+	s.skippedHelpers[i] = true
+	s.mu.Unlock()
+}
+
+func (s CredentialHelperSet) skipped(i int) bool {
+	s.mu.Lock()
+	skipped := s.skippedHelpers[i]
+	s.mu.Unlock()
+	return skipped
+}
+
 type nullCredentialHelper struct{}
 
 var (
