@@ -12,6 +12,27 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+type CredentialHelper interface {
+	Fill(Creds) (Creds, error)
+	Reject(Creds) error
+	Approve(Creds) error
+}
+
+type Creds map[string]string
+
+func bufferCreds(c Creds) *bytes.Buffer {
+	buf := new(bytes.Buffer)
+
+	for k, v := range c {
+		buf.Write([]byte(k))
+		buf.Write([]byte("="))
+		buf.Write([]byte(v))
+		buf.Write([]byte("\n"))
+	}
+
+	return buf
+}
+
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
@@ -30,94 +51,18 @@ func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
 		return c.Credentials, input
 	}
 
-	askpass, ok := c.osEnv.Get("GIT_ASKPASS")
-	if !ok {
-		askpass, ok = c.gitEnv.Get("core.askpass")
+	helpers := make([]CredentialHelper, 0, 3)
+	if c.cachingCredHelper != nil {
+		helpers = append(helpers, c.cachingCredHelper)
 	}
-	if !ok {
-		askpass, ok = c.osEnv.Get("SSH_ASKPASS")
-	}
-	helper, _ := c.gitEnv.Get("credential.helper")
-	cached := c.gitEnv.Bool("lfs.cachecredentials", true)
-	skipPrompt := c.osEnv.Bool("GIT_TERMINAL_PROMPT", false)
-
-	var hs []CredentialHelper
-	if len(helper) == 0 && len(askpass) > 0 {
-		hs = append(hs, &AskPassCredentialHelper{
-			Program: askpass,
-		})
-	}
-
-	var h CredentialHelper
-	h = &commandCredentialHelper{
-		SkipPrompt: skipPrompt,
-	}
-
-	if cached {
-		h = withCredentialCache(h)
-	}
-	hs = append(hs, h)
-
-	switch len(hs) {
-	case 0:
-		return defaultCredentialHelper, input
-	case 1:
-		return hs[0], input
-	}
-	return CredentialHelpers(hs), input
-}
-
-// CredentialHelpers is a []CredentialHelper that iterates through each
-// credential helper to fill, reject, or approve credentials.
-type CredentialHelpers []CredentialHelper
-
-// Fill implements CredentialHelper.Fill by asking each CredentialHelper in
-// order to fill the credentials.
-//
-// If a fill was successful, it is returned immediately, and no other
-// `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
-// it is returned immediately.
-func (h CredentialHelpers) Fill(what Creds) (Creds, error) {
-	for _, c := range h {
-		creds, err := c.Fill(what)
-		if err != nil {
-			return nil, err
-		}
-
-		if creds != nil {
-			return creds, nil
+	if c.askpassCredHelper != nil {
+		helper, _ := c.gitEnv.Get("credential.helper")
+		if len(helper) == 0 {
+			helpers = append(helpers, c.askpassCredHelper)
 		}
 	}
 
-	return nil, nil
-}
-
-// Reject implements CredentialHelper.Reject and rejects the given Creds "what"
-// amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
-// non-nil error, no further `CredentialHelper`s are notified, so as to prevent
-// inconsistent state.
-func (h CredentialHelpers) Reject(what Creds) error {
-	for _, c := range h {
-		if err := c.Reject(what); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Approve implements CredentialHelper.Approve and approves the given Creds
-// "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
-// returned a non-nil error, no further `CredentialHelper`s are notified, so as
-// to prevent inconsistent state.
-func (h CredentialHelpers) Approve(what Creds) error {
-	for _, c := range h {
-		if err := c.Approve(what); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return NewCredentialHelpers(append(helpers, c.commandCredHelper)), input
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
@@ -211,88 +156,6 @@ func (a *AskPassCredentialHelper) args(prompt string) []string {
 	return []string{prompt}
 }
 
-type CredentialHelper interface {
-	Fill(Creds) (Creds, error)
-	Reject(Creds) error
-	Approve(Creds) error
-}
-
-type Creds map[string]string
-
-func bufferCreds(c Creds) *bytes.Buffer {
-	buf := new(bytes.Buffer)
-
-	for k, v := range c {
-		buf.Write([]byte(k))
-		buf.Write([]byte("="))
-		buf.Write([]byte(v))
-		buf.Write([]byte("\n"))
-	}
-
-	return buf
-}
-
-func withCredentialCache(helper CredentialHelper) CredentialHelper {
-	return &credentialCacher{
-		cmu:    new(sync.Mutex),
-		creds:  make(map[string]Creds),
-		helper: helper,
-	}
-}
-
-type credentialCacher struct {
-	// cmu guards creds
-	cmu    *sync.Mutex
-	creds  map[string]Creds
-	helper CredentialHelper
-}
-
-func credCacheKey(creds Creds) string {
-	parts := []string{
-		creds["protocol"],
-		creds["host"],
-		creds["path"],
-	}
-	return strings.Join(parts, "//")
-}
-
-func (c *credentialCacher) Fill(creds Creds) (Creds, error) {
-	key := credCacheKey(creds)
-
-	c.cmu.Lock()
-	defer c.cmu.Unlock()
-
-	if cache, ok := c.creds[key]; ok {
-		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
-			creds["protocol"], creds["host"], creds["path"])
-		return cache, nil
-	}
-
-	creds, err := c.helper.Fill(creds)
-	if err == nil && len(creds["username"]) > 0 && len(creds["password"]) > 0 {
-		c.creds[key] = creds
-	}
-	return creds, err
-}
-
-func (c *credentialCacher) Reject(creds Creds) error {
-	c.cmu.Lock()
-	defer c.cmu.Unlock()
-
-	delete(c.creds, credCacheKey(creds))
-	return c.helper.Reject(creds)
-}
-
-func (c *credentialCacher) Approve(creds Creds) error {
-	err := c.helper.Approve(creds)
-	if err == nil {
-		c.cmu.Lock()
-		c.creds[credCacheKey(creds)] = creds
-		c.cmu.Unlock()
-	}
-	return err
-}
-
 type commandCredentialHelper struct {
 	SkipPrompt bool
 }
@@ -363,16 +226,25 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	return creds, nil
 }
 
-type credentialCacher2 struct {
+type credentialCacher struct {
 	creds map[string]Creds
 	mu    sync.Mutex
 }
 
-func newCredentialCacher() *credentialCacher2 {
-	return &credentialCacher2{creds: make(map[string]Creds)}
+func newCredentialCacher() *credentialCacher {
+	return &credentialCacher{creds: make(map[string]Creds)}
 }
 
-func (c credentialCacher2) Fill(what Creds) (Creds, error) {
+func credCacheKey(creds Creds) string {
+	parts := []string{
+		creds["protocol"],
+		creds["host"],
+		creds["path"],
+	}
+	return strings.Join(parts, "//")
+}
+
+func (c credentialCacher) Fill(what Creds) (Creds, error) {
 	key := credCacheKey(what)
 	c.mu.Lock()
 	cached, ok := c.creds[key]
@@ -385,7 +257,7 @@ func (c credentialCacher2) Fill(what Creds) (Creds, error) {
 	return nil, credHelperNoOp
 }
 
-func (c credentialCacher2) Approve(what Creds) error {
+func (c credentialCacher) Approve(what Creds) error {
 	key := credCacheKey(what)
 
 	c.mu.Lock()
@@ -399,7 +271,7 @@ func (c credentialCacher2) Approve(what Creds) error {
 	return credHelperNoOp
 }
 
-func (c credentialCacher2) Reject(what Creds) error {
+func (c credentialCacher) Reject(what Creds) error {
 	key := credCacheKey(what)
 	c.mu.Lock()
 	delete(c.creds, key)
@@ -407,16 +279,16 @@ func (c credentialCacher2) Reject(what Creds) error {
 	return credHelperNoOp
 }
 
-// CredentialHelperSet is a []CredentialHelper that iterates through each
+// CredentialHelpers is a []CredentialHelper that iterates through each
 // credential helper to fill, reject, or approve credentials.
-type CredentialHelperSet struct {
+type CredentialHelpers struct {
 	helpers        []CredentialHelper
 	skippedHelpers map[int]bool
 	mu             sync.Mutex
 }
 
 func NewCredentialHelpers(helpers []CredentialHelper) CredentialHelper {
-	return &CredentialHelperSet{
+	return &CredentialHelpers{
 		helpers:        helpers,
 		skippedHelpers: make(map[int]bool),
 	}
@@ -430,7 +302,7 @@ var credHelperNoOp = errors.New("no-op!")
 // If a fill was successful, it is returned immediately, and no other
 // `CredentialHelper`s are consulted. If any CredentialHelper returns an error,
 // it is returned immediately.
-func (s CredentialHelperSet) Fill(what Creds) (Creds, error) {
+func (s CredentialHelpers) Fill(what Creds) (Creds, error) {
 	errs := make([]string, 0, len(s.helpers))
 	for i, h := range s.helpers {
 		if s.skipped(i) {
@@ -463,7 +335,7 @@ func (s CredentialHelperSet) Fill(what Creds) (Creds, error) {
 // amongst all knonw CredentialHelpers. If any `CredentialHelper`s returned a
 // non-nil error, no further `CredentialHelper`s are notified, so as to prevent
 // inconsistent state.
-func (s CredentialHelperSet) Reject(what Creds) error {
+func (s CredentialHelpers) Reject(what Creds) error {
 	for i, h := range s.helpers {
 		if s.skipped(i) {
 			continue
@@ -481,7 +353,7 @@ func (s CredentialHelperSet) Reject(what Creds) error {
 // "what" amongst all known CredentialHelpers. If any `CredentialHelper`s
 // returned a non-nil error, no further `CredentialHelper`s are notified, so as
 // to prevent inconsistent state.
-func (s CredentialHelperSet) Approve(what Creds) error {
+func (s CredentialHelpers) Approve(what Creds) error {
 	skipped := make(map[int]bool)
 	for i, h := range s.helpers {
 		if s.skipped(i) {
@@ -504,13 +376,13 @@ func (s CredentialHelperSet) Approve(what Creds) error {
 	return errors.New("no valid credential helpers to approve")
 }
 
-func (s CredentialHelperSet) skip(i int) {
+func (s CredentialHelpers) skip(i int) {
 	s.mu.Lock()
 	s.skippedHelpers[i] = true
 	s.mu.Unlock()
 }
 
-func (s CredentialHelperSet) skipped(i int) bool {
+func (s CredentialHelpers) skipped(i int) bool {
 	s.mu.Lock()
 	skipped := s.skippedHelpers[i]
 	s.mu.Unlock()

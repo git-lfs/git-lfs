@@ -47,9 +47,12 @@ type Client struct {
 
 	LoggingStats bool // DEPRECATED
 
-	gitEnv config.Environment
-	osEnv  config.Environment
-	uc     *config.URLConfig
+	commandCredHelper *commandCredentialHelper
+	askpassCredHelper *AskPassCredentialHelper
+	cachingCredHelper *credentialCacher
+	gitEnv            config.Environment
+	osEnv             config.Environment
+	uc                *config.URLConfig
 }
 
 type Context interface {
@@ -70,8 +73,9 @@ func NewClient(ctx Context) (*Client, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
+	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
-	if gitEnv.Bool("lfs.cachecredentials", true) {
+	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
 
@@ -86,9 +90,29 @@ func NewClient(ctx Context) (*Client, error) {
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		gitEnv:              gitEnv,
-		osEnv:               osEnv,
-		uc:                  config.NewURLConfig(gitEnv),
+		commandCredHelper: &commandCredentialHelper{
+			SkipPrompt: osEnv.Bool("GIT_TERMINAL_PROMPT", false),
+		},
+		gitEnv: gitEnv,
+		osEnv:  osEnv,
+		uc:     config.NewURLConfig(gitEnv),
+	}
+
+	askpass, ok := osEnv.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = gitEnv.Get("core.askpass")
+	}
+	if !ok {
+		askpass, _ = osEnv.Get("SSH_ASKPASS")
+	}
+	if len(askpass) > 0 {
+		c.askpassCredHelper = &AskPassCredentialHelper{
+			Program: askpass,
+		}
+	}
+
+	if cacheCreds {
+		c.cachingCredHelper = newCredentialCacher()
 	}
 
 	return c, nil
