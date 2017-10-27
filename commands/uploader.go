@@ -116,7 +116,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		return ctx
 	}
 
-	ourLocks, theirLocks, verifyState := verifyLocks(remote)
+	ourLocks, theirLocks, verifyState := verifyLocks()
 	ctx.lockVerifyState = verifyState
 	for _, l := range theirLocks {
 		ctx.theirLocks[l.Path] = l
@@ -128,14 +128,14 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 	return ctx
 }
 
-func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
-	endpoint := getAPIClient().Endpoints.Endpoint("upload", remote)
+func verifyLocks() (ours, theirs []locking.Lock, st verifyState) {
+	endpoint := getAPIClient().Endpoints.Endpoint("upload", cfg.Remote())
 	state := getVerifyStateFor(endpoint)
 	if state == verifyStateDisabled {
 		return
 	}
 
-	lockClient := newLockClient(remote)
+	lockClient := newLockClient()
 
 	ours, theirs, err := lockClient.VerifiableLocks(0)
 	if err != nil {
@@ -149,7 +149,7 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 					Exit("ERROR: Authentication error: %s", err)
 				}
 			} else {
-				Print("Remote %q does not support the LFS locking API. Consider disabling it with:", remote)
+				Print("Remote %q does not support the LFS locking API. Consider disabling it with:", cfg.Remote())
 				Print("  $ git config lfs.%s.locksverify false", endpoint.Url)
 				if state == verifyStateEnabled {
 					ExitWithError(err)
@@ -157,7 +157,7 @@ func verifyLocks(remote string) (ours, theirs []locking.Lock, st verifyState) {
 			}
 		}
 	} else if state == verifyStateUnknown {
-		Print("Locking support detected on remote %q. Consider enabling it with:", remote)
+		Print("Locking support detected on remote %q. Consider enabling it with:", cfg.Remote())
 		Print("  $ git config lfs.%s.locksverify true", endpoint.Url)
 	}
 

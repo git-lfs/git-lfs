@@ -28,7 +28,11 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	lockClient := newLockClient(lockRemote)
+	if len(lockRemote) > 0 {
+		cfg.SetRemote(lockRemote)
+	}
+
+	lockClient := newLockClient()
 	defer lockClient.Close()
 
 	lock, err := lockClient.LockFile(path)
@@ -90,7 +94,7 @@ func lockPath(file string) (string, error) {
 
 func init() {
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.Remote(), lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

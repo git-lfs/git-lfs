@@ -22,7 +22,11 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		Exit("Error building filters: %v", err)
 	}
 
-	lockClient := newLockClient(lockRemote)
+	if len(lockRemote) > 0 {
+		cfg.SetRemote(lockRemote)
+	}
+
+	lockClient := newLockClient()
 	defer lockClient.Close()
 
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
@@ -109,7 +113,7 @@ func (l *locksFlags) Filters() (map[string]string, error) {
 
 func init() {
 	RegisterCommand("locks", locksCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.Remote(), lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")

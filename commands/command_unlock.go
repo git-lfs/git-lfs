@@ -35,7 +35,11 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		Exit(unlockUsage)
 	}
 
-	lockClient := newLockClient(lockRemote)
+	if len(lockRemote) > 0 {
+		cfg.SetRemote(lockRemote)
+	}
+
+	lockClient := newLockClient()
 	defer lockClient.Close()
 
 	if hasPath {
@@ -131,7 +135,7 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 
 func init() {
 	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.Remote(), lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
