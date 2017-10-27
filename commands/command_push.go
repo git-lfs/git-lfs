@@ -117,7 +117,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q", args[0])
 	}
 
-	ctx := newUploadContext(args[0], pushDryRun)
+	cfg.SetRemote(args[0])
+
+	ctx := newUploadContext(pushDryRun)
 
 	if pushObjectIDs {
 		if len(args) < 2 {

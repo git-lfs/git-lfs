@@ -90,12 +90,9 @@ const (
 	verifyStateDisabled
 )
 
-func newUploadContext(remote string, dryRun bool) *uploadContext {
-	cfg.SetRemote(remote)
-
+func newUploadContext(dryRun bool) *uploadContext {
 	ctx := &uploadContext{
-		Remote:         remote,
-		Manifest:       getTransferManifestOperationRemote("upload", remote),
+		Remote:         cfg.Remote(),
 		DryRun:         dryRun,
 		uploadedOids:   tools.NewStringSet(),
 		gitfilter:      lfs.NewGitFilter(cfg),
@@ -105,6 +102,7 @@ func newUploadContext(remote string, dryRun bool) *uploadContext {
 		allowMissing:   cfg.Git.Bool("lfs.allowincompletepush", true),
 	}
 
+	ctx.Manifest = getTransferManifestOperationRemote("upload", ctx.Remote)
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
