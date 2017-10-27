@@ -18,29 +18,20 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 	requireInRepo()
 
-	var remote string
 	if len(args) > 0 {
 		// Remote is first arg
 		if err := git.ValidateRemote(args[0]); err != nil {
 			Panic(err, fmt.Sprintf("Invalid remote name '%v'", args[0]))
 		}
-		remote = args[0]
-	} else {
-		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := cfg.GitConfig().DefaultRemote()
-		if err != nil {
-			Panic(err, "No default remote")
-		}
-		remote = defaultRemote
+		cfg.SetRemote(args[0])
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
-	pull(remote, filter)
+	pull(filter)
 }
 
-func pull(remote string, filter *filepathfilter.Filter) {
-	cfg.SetRemote(remote)
+func pull(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not pull")
@@ -48,6 +39,7 @@ func pull(remote string, filter *filepathfilter.Filter) {
 
 	pointers := newPointerMap()
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	remote := cfg.Remote()
 	singleCheckout := newSingleCheckout(cfg.Git, remote)
 	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
