@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
@@ -208,34 +206,14 @@ func (e testEnv) GetAll(key string) []string {
 	return make([]string, 0)
 }
 
-func (e testEnv) Int(key string, def int) (val int) {
+func (e testEnv) Int(key string, def int) int {
 	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-
-	return i
+	return config.Int(s, def)
 }
 
-func (e testEnv) Bool(key string, def bool) (val bool) {
+func (e testEnv) Bool(key string, def bool) bool {
 	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
+	return config.Bool(s, def)
 }
 
 func (e testEnv) All() map[string][]string {

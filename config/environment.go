@@ -65,29 +65,26 @@ func (e *environment) GetAll(key string) []string {
 	return e.Fetcher.GetAll(key)
 }
 
-func (e *environment) Bool(key string, def bool) (val bool) {
+func (e *environment) Bool(key string, def bool) bool {
 	s, _ := e.Fetcher.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
+	return Bool(s, def)
 }
 
-func (e *environment) Int(key string, def int) (val int) {
+func (e *environment) Int(key string, def int) int {
 	s, _ := e.Fetcher.Get(key)
-	if len(s) == 0 {
+	return Int(s, def)
+}
+
+func (e *environment) All() map[string][]string {
+	return e.Fetcher.All()
+}
+
+func Int(value string, def int) int {
+	if len(value) == 0 {
 		return def
 	}
 
-	i, err := strconv.Atoi(s)
+	i, err := strconv.Atoi(value)
 	if err != nil {
 		return def
 	}
@@ -95,6 +92,17 @@ func (e *environment) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e *environment) All() map[string][]string {
-	return e.Fetcher.All()
+func Bool(value string, def bool) bool {
+	if len(value) == 0 {
+		return def
+	}
+
+	switch strings.ToLower(value) {
+	case "true", "1", "on", "yes", "t":
+		return true
+	case "false", "0", "off", "no", "f":
+		return false
+	default:
+		return false
+	}
 }
