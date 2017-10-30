@@ -181,19 +181,24 @@ func (c *Configuration) Remote() string {
 	defer c.loading.Unlock()
 
 	if c.currentRemote == nil {
+		tracerx.Printf("REMOTE: %+v", ref)
 		if len(ref.Name) == 0 {
+			tracerx.Printf("REMOTE: empty")
 			c.currentRemote = &defaultRemote
 			return defaultRemote
 		}
 
 		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); ok {
+			tracerx.Printf("REMOTE: branch.*.remote")
 			// try tracking remote
 			c.currentRemote = &remote
 		} else if remotes := c.Remotes(); len(remotes) == 1 {
+			tracerx.Printf("REMOTE: first remote: %+v", remotes)
 			// use only remote if there is only 1
 			c.currentRemote = &remotes[0]
 		} else {
 			// fall back to default :(
+			tracerx.Printf("REMOTE: default")
 			c.currentRemote = &defaultRemote
 		}
 	}
