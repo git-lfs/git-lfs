@@ -189,7 +189,7 @@ func (c *Configuration) Remote() string {
 		}
 
 		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); ok {
-			tracerx.Printf("REMOTE: branch.*.remote")
+			tracerx.Printf("REMOTE: branch.*.remote %q (%v)", remote, ok)
 			// try tracking remote
 			c.currentRemote = &remote
 		} else if remotes := c.Remotes(); len(remotes) == 1 {
