@@ -81,7 +81,8 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 	//
 	// Either way, forward it into the *tq.TransferQueue so that updates are
 	// sent over correctly.
-	q := tq.NewTransferQueue(tq.Download, manifest, "", tq.WithProgressCallback(cb))
+
+	q := tq.NewTransferQueue(tq.Download, manifest, f.cfg.Remote(), tq.WithProgressCallback(cb))
 	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
 	q.Wait()
 

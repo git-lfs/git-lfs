@@ -32,12 +32,13 @@ type Configuration struct {
 	// configuration.
 	Git Environment
 
-	CurrentRemote string
+	currentRemote *string
 
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
 	gitConfig *git.Configuration
 
+	ref        *git.Ref
 	fs         *fs.Filesystem
 	gitDir     *string
 	workDir    string
@@ -54,9 +55,8 @@ func New() *Configuration {
 func NewIn(workdir, gitdir string) *Configuration {
 	gitConf := git.NewConfig(workdir, gitdir)
 	c := &Configuration{
-		CurrentRemote: defaultRemote,
-		Os:            EnvironmentOf(NewOsFetcher()),
-		gitConfig:     gitConf,
+		Os:        EnvironmentOf(NewOsFetcher()),
+		gitConfig: gitConf,
 	}
 
 	if len(gitConf.WorkDir) > 0 {
@@ -106,9 +106,8 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	c := &Configuration{
-		CurrentRemote: defaultRemote,
-		Os:            EnvironmentOf(mapFetcher(v.Os)),
-		gitConfig:     git.NewConfig("", ""),
+		Os:        EnvironmentOf(mapFetcher(v.Os)),
+		gitConfig: git.NewConfig("", ""),
 	}
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
@@ -149,6 +148,68 @@ func (c *Configuration) FetchIncludePaths() []string {
 func (c *Configuration) FetchExcludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchexclude")
 	return tools.CleanPaths(patterns, ",")
+}
+
+func (c *Configuration) CurrentRef() *git.Ref {
+	c.loading.Lock()
+	defer c.loading.Unlock()
+	if c.ref == nil {
+		r, err := git.CurrentRef()
+		if err != nil {
+			tracerx.Printf("Error loading current ref: %s", err)
+			c.ref = &git.Ref{}
+		} else {
+			c.ref = r
+		}
+	}
+	return c.ref
+}
+
+func (c *Configuration) IsDefaultRemote() bool {
+	return c.Remote() == defaultRemote
+}
+
+// Remote returns the default remote based on:
+// 1. The currently tracked remote branch, if present
+// 2. Any other SINGLE remote defined in .git/config
+// 3. Use "origin" as a fallback.
+// Results are cached after the first hit.
+func (c *Configuration) Remote() string {
+	ref := c.CurrentRef()
+
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.currentRemote == nil {
+		if len(ref.Name) == 0 {
+			c.currentRemote = &defaultRemote
+			return defaultRemote
+		}
+
+		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); ok {
+			// try tracking remote
+			c.currentRemote = &remote
+		} else if remotes := c.Remotes(); len(remotes) == 1 {
+			// use only remote if there is only 1
+			c.currentRemote = &remotes[0]
+		} else {
+			// fall back to default :(
+			c.currentRemote = &defaultRemote
+		}
+	}
+	return *c.currentRemote
+}
+
+func (c *Configuration) SetValidRemote(name string) error {
+	if err := git.ValidateRemote(name); err != nil {
+		return err
+	}
+	c.SetRemote(name)
+	return nil
+}
+
+func (c *Configuration) SetRemote(name string) {
+	c.currentRemote = &name
 }
 
 func (c *Configuration) Remotes() []string {

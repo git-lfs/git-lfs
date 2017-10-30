@@ -69,8 +69,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	if supportsDelay {
 		q = tq.NewTransferQueue(
 			tq.Download,
-			getTransferManifestOperationRemote("download", cfg.CurrentRemote),
-			cfg.CurrentRemote,
+			getTransferManifestOperationRemote("download", cfg.Remote()),
+			cfg.Remote(),
 		)
 		go infiniteTransferBuffer(q, available)
 	}
