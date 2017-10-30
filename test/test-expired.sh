@@ -47,7 +47,6 @@ for typ in "${expiration_types[@]}"; do
 
     sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
     git config lfs.url "$sshurl"
-    git config lfs.cachecredentials "true"
 
     contents="contents"
     contents_oid="$(calc_oid "$contents")"
