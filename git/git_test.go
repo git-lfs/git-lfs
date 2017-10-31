@@ -13,6 +13,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParseRefs(t *testing.T) {
+	tests := map[string]RefType{
+		"refs/heads":        RefTypeLocalBranch,
+		"refs/tags":         RefTypeLocalTag,
+		"refs/remotes/tags": RefTypeRemoteTag,
+		"refs/remotes":      RefTypeRemoteBranch,
+	}
+
+	for prefix, expectedType := range tests {
+		r := ParseRef(prefix+"/branch", "abc123")
+		assert.Equal(t, "abc123", r.Sha, "prefix: "+prefix)
+		assert.Equal(t, "branch", r.Name, "prefix: "+prefix)
+		assert.Equal(t, expectedType, r.Type, "prefix: "+prefix)
+	}
+
+	r := ParseRef("refs/foo/branch", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: refs/foo")
+	assert.Equal(t, "refs/foo/branch", r.Name, "prefix: refs/foo")
+	assert.Equal(t, RefTypeOther, r.Type, "prefix: refs/foo")
+
+	r = ParseRef("HEAD", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: HEAD")
+	assert.Equal(t, "HEAD", r.Name, "prefix: HEAD")
+	assert.Equal(t, RefTypeHEAD, r.Type, "prefix: HEAD")
+}
+
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	repo := test.NewRepo(t)
 	repo.Pushd()

@@ -178,11 +178,8 @@ func (c *Configuration) RemoteRef() *git.Ref {
 
 	if r != nil {
 		merge, _ := c.Git.Get(fmt.Sprintf("branch.%s.merge", r.Name))
-		if strings.HasPrefix(merge, "refs/heads/") {
-			c.remoteRef = &git.Ref{
-				Name: merge[11:],
-				Type: git.RefTypeRemoteBranch,
-			}
+		if len(merge) > 0 {
+			c.remoteRef = git.ParseRef(merge, "")
 		} else {
 			c.remoteRef = r
 		}
