@@ -777,6 +777,73 @@ begin_test "pre-push disable locks verify on partial url"
 )
 end_test
 
+begin_test "pre-push locks verify 403 with good ref"
+(
+  set -e
+
+  reponame="lock-verify-master-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with good tracked ref"
+(
+  set -e
+
+  reponame="lock-verify-tracked-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config branch.master.merge refs/heads/tracked
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with bad ref"
+(
+  set -e
+
+  reponame="lock-verify-other-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master 2>&1 | tee push.log
+  grep "failed to push some refs" push.log
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
 begin_test "pre-push locks verify 5xx with verification unset"
 (
   set -e

@@ -192,6 +192,8 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 // lockVerifiableRequest encapsulates the request sent to the server when the
 // client would like a list of locks to verify a Git push.
 type lockVerifiableRequest struct {
+	Ref string `json:"ref"`
+
 	// Cursor is an optional field used to tell the server which lock was
 	// seen last, if scanning through multiple pages of results.
 	//

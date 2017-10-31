@@ -39,6 +39,7 @@ type Configuration struct {
 	gitConfig *git.Configuration
 
 	ref        *git.Ref
+	remoteRef  *git.Ref
 	fs         *fs.Filesystem
 	gitDir     *string
 	workDir    string
@@ -163,6 +164,38 @@ func (c *Configuration) CurrentRef() *git.Ref {
 		}
 	}
 	return c.ref
+}
+
+func (c *Configuration) RemoteRef() *git.Ref {
+	r := c.CurrentRef()
+
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.remoteRef != nil {
+		return c.remoteRef
+	}
+
+	if r != nil {
+		merge, _ := c.Git.Get(fmt.Sprintf("branch.%s.merge", r.Name))
+		if strings.HasPrefix(merge, "refs/heads/") {
+			c.remoteRef = &git.Ref{
+				Name: merge[11:],
+				Type: git.RefTypeRemoteBranch,
+			}
+		} else {
+			c.remoteRef = r
+		}
+	}
+
+	return c.remoteRef
+}
+
+func (c *Configuration) RemoteRefName() string {
+	if r := c.RemoteRef(); r != nil {
+		return r.Name
+	}
+	return ""
 }
 
 func (c *Configuration) IsDefaultRemote() bool {

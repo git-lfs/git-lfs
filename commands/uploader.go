@@ -135,7 +135,7 @@ func verifyLocks() (ours, theirs []locking.Lock, st verifyState) {
 
 	lockClient := newLockClient()
 
-	ours, theirs, err := lockClient.VerifiableLocks(0)
+	ours, theirs, err := lockClient.VerifiableLocks(cfg.RemoteRefName(), 0)
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(endpoint)
