@@ -36,7 +36,7 @@ func (s *AttributeSource) String() string {
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
-// workingDIr is the root of the working copy
+// workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
