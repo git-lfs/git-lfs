@@ -56,7 +56,11 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 		scanner.Split(le.ScanLines)
 
 		for scanner.Scan() {
-			line := scanner.Text()
+			line := strings.TrimSpace(scanner.Text())
+
+			if strings.HasPrefix(line, "#") {
+				continue
+			}
 
 			// Check for filter=lfs (signifying that LFS is tracking
 			// this file) or "lockable", which indicates that the
