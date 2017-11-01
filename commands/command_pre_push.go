@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -69,13 +70,13 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 		tracerx.Printf("pre-push: %s", line)
 
-		left, _ := decodeRefs(line)
-		if left == prePushDeleteBranch {
+		left, right := decodeRefs(line)
+		if left.Sha == prePushDeleteBranch {
 			continue
 		}
 
-		if err := uploadLeftOrAll(gitscanner, ctx, left); err != nil {
-			Print("Error scanning for Git LFS files in %q", left)
+		if err := uploadLeftOrAll(gitscanner, ctx, left, right); err != nil {
+			Print("Error scanning for Git LFS files in %+v", left)
 			ExitWithError(err)
 		}
 	}
@@ -85,19 +86,15 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
 // hook's stdin.
-func decodeRefs(input string) (string, string) {
+func decodeRefs(input string) (*git.Ref, *git.Ref) {
 	refs := strings.Split(strings.TrimSpace(input), " ")
-	var left, right string
-
-	if len(refs) > 1 {
-		left = refs[1]
+	for len(refs) < 4 {
+		refs = append(refs, "")
 	}
 
-	if len(refs) > 3 {
-		right = "^" + refs[3]
-	}
-
-	return left, right
+	leftRef := git.ParseRef(refs[0], refs[1])
+	rightRef := git.ParseRef(refs[2], refs[3])
+	return leftRef, rightRef
 }
 
 func init() {

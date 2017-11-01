@@ -485,15 +485,8 @@ begin_test "push ambiguous branch name"
   # lfs push master, should work
   git lfs push origin master
 
-  # push ambiguous, should fail
-  set +e
+  # push ambiguous, does not fail since lfs scans git with sha, not ref name
   git lfs push origin ambiguous
-  if [ $? -eq 0 ]
-  then
-    exit 1
-  fi
-  set -e
-
 )
 end_test
 

@@ -583,7 +583,7 @@ begin_test "pre-push with our lock"
   git commit -m "add unauthorized changes"
 
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
-  grep "Consider unlocking your own locked file(s)" push.log
+  grep "Consider unlocking your own locked files" push.log
   grep "* locked.dat" push.log
 
   assert_server_lock "$id"
@@ -631,7 +631,7 @@ begin_test "pre-push with their lock on lfs file"
       exit 1
     fi
 
-    grep "Unable to push 1 locked file(s)" push.log
+    grep "Unable to push locked files" push.log
     grep "* locked_theirs.dat - Git LFS Tests" push.log
 
     grep "ERROR: Cannot update locked files." push.log
@@ -687,7 +687,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
       exit 1
     fi
 
-    grep "Unable to push 2 locked file(s)" push.log
+    grep "Unable to push locked files" push.log
     grep "* large_locked_theirs.dat - Git LFS Tests" push.log
     grep "* tiny_locked_theirs.dat - Git LFS Tests" push.log
     grep "ERROR: Cannot update locked files." push.log

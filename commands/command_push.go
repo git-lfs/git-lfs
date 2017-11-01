@@ -35,7 +35,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 
 	for _, ref := range refs {
-		if err = uploadLeftOrAll(gitscanner, ctx, ref.Name); err != nil {
+		if err = uploadLeftOrAll(gitscanner, ctx, ref, nil); err != nil {
 			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
 			ExitWithError(err)
 		}
