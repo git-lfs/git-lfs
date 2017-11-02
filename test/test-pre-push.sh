@@ -823,6 +823,28 @@ begin_test "pre-push locks verify 403 with good tracked ref"
 )
 end_test
 
+begin_test "pre-push locks verify 403 with explicit ref"
+(
+  set -e
+
+  reponame="lock-verify-explicit-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master:explicit 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
 begin_test "pre-push locks verify 403 with bad ref"
 (
   set -e
