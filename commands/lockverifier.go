@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tq"
+	"github.com/rubyist/tracerx"
 )
 
 type verifyState byte
@@ -20,6 +21,15 @@ const (
 	verifyStateEnabled
 	verifyStateDisabled
 )
+
+func verifyLocksForUpdates(lv *lockVerifier, updates []*refUpdate) {
+	lv.Verify(cfg.RemoteRefName())
+	/*
+		for _, update := range updates {
+			lv.Verify(update.Right().Name)
+		}
+		// */
+}
 
 // lockVerifier verifies locked files before updating one or more refs.
 type lockVerifier struct {
@@ -43,6 +53,7 @@ func (lv *lockVerifier) Verify(ref string) {
 		return
 	}
 
+	tracerx.Printf("LOCK VERIFY %q", ref)
 	lockClient := newLockClient()
 	ours, theirs, err := lockClient.VerifiableLocks(ref, 0)
 	if err != nil {

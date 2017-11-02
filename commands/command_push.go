@@ -74,6 +74,8 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 		Exit("Error getting local refs.")
 	}
 
+	verifyLocksForUpdates(ctx.lockVerifier, updates)
+
 	for _, update := range updates {
 		if err = uploadLeftOrAll(gitscanner, ctx, update); err != nil {
 			Print("Error scanning for Git LFS files in the %q ref", update.Left().Name)

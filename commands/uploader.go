@@ -70,9 +70,6 @@ func newUploadContext(dryRun bool) *uploadContext {
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
-
-	ctx.lockVerifier.Verify(cfg.RemoteRefName())
-
 	return ctx
 }
 
