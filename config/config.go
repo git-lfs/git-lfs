@@ -166,35 +166,6 @@ func (c *Configuration) CurrentRef() *git.Ref {
 	return c.ref
 }
 
-func (c *Configuration) RemoteRef() *git.Ref {
-	r := c.CurrentRef()
-
-	c.loading.Lock()
-	defer c.loading.Unlock()
-
-	if c.remoteRef != nil {
-		return c.remoteRef
-	}
-
-	if r != nil {
-		merge, _ := c.Git.Get(fmt.Sprintf("branch.%s.merge", r.Name))
-		if len(merge) > 0 {
-			c.remoteRef = git.ParseRef(merge, "")
-		} else {
-			c.remoteRef = r
-		}
-	}
-
-	return c.remoteRef
-}
-
-func (c *Configuration) RemoteRefName() string {
-	if r := c.RemoteRef(); r != nil {
-		return r.Name
-	}
-	return ""
-}
-
 func (c *Configuration) IsDefaultRemote() bool {
 	return c.Remote() == defaultRemote
 }
