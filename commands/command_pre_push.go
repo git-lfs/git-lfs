@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"strings"
 
@@ -50,20 +51,38 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		Exit("Invalid remote name %q: %s", args[0], err)
 	}
 
+	updates := prePushRefs(os.Stdin)
 	ctx := newUploadContext(prePushDryRun)
-
 	gitscanner, err := ctx.buildGitScanner()
 	if err != nil {
 		ExitWithError(err)
 	}
 	defer gitscanner.Close()
 
-	// We can be passed multiple lines of refs
-	scanner := bufio.NewScanner(os.Stdin)
+	for _, update := range updates {
+		if err := uploadLeftOrAll(gitscanner, ctx, update); err != nil {
+			Print("Error scanning for Git LFS files in %+v", update.Left())
+			ExitWithError(err)
+		}
+	}
 
+	ctx.Await()
+}
+
+// prePushRefs parses commit information that the pre-push git hook receives:
+//
+//   <local ref> <local sha1> <remote ref> <remote sha1>
+//
+// Each line describes a proposed update of the remote ref at the remote sha to
+// the local sha. Multiple updates can be received on multiple lines (such as
+// from 'git push --all'). These updates are typically received over STDIN.
+func prePushRefs(r io.Reader) []*refUpdate {
+	scanner := bufio.NewScanner(r)
+	refs := make([]*refUpdate, 0, 1)
+
+	// We can be passed multiple lines of refs
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-
 		if len(line) == 0 {
 			continue
 		}
@@ -75,13 +94,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		if err := uploadLeftOrAll(gitscanner, ctx, left, right); err != nil {
-			Print("Error scanning for Git LFS files in %+v", left)
-			ExitWithError(err)
-		}
+		refs = append(refs, newRefUpdate(cfg.Git, left, right))
 	}
 
-	ctx.Await()
+	return refs
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push

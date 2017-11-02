@@ -19,6 +19,46 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
+// pushCommand pushes local objects to a Git LFS server.  It takes two
+// arguments:
+//
+//   `<remote> <remote ref>`
+//
+// Remote must be a remote name, not a URL
+//
+// pushCommand calculates the git objects to send by comparing the range
+// of commits between the local and remote git servers.
+func pushCommand(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
+		os.Exit(1)
+	}
+
+	requireGitVersion()
+
+	// Remote is first arg
+	if err := cfg.SetValidRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q: %s", args[0], err)
+	}
+
+	ctx := newUploadContext(pushDryRun)
+	if pushObjectIDs {
+		if len(args) < 2 {
+			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
+			return
+		}
+
+		uploadsWithObjectIDs(ctx, args[1:])
+	} else {
+		if len(args) < 1 {
+			Print("Usage: git lfs push --dry-run <remote> [ref]")
+			return
+		}
+
+		uploadsBetweenRefAndRemote(ctx, args[1:])
+	}
+}
+
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
 
@@ -28,15 +68,15 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	}
 	defer gitscanner.Close()
 
-	refs, err := refsByNames(refnames)
+	updates, err := lfsPushRefs(refnames, pushAll)
 	if err != nil {
 		Error(err.Error())
 		Exit("Error getting local refs.")
 	}
 
-	for _, ref := range refs {
-		if err = uploadLeftOrAll(gitscanner, ctx, ref, nil); err != nil {
-			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
+	for _, update := range updates {
+		if err = uploadLeftOrAll(gitscanner, ctx, update); err != nil {
+			Print("Error scanning for Git LFS files in the %q ref", update.Left().Name)
 			ExitWithError(err)
 		}
 	}
@@ -68,14 +108,21 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	ctx.Await()
 }
 
-func refsByNames(refnames []string) ([]*git.Ref, error) {
+// lfsPushRefs returns valid ref updates from the given ref and --all arguments.
+// Either one or more refs can be explicitly specified, or --all indicates all
+// local refs are pushed.
+func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
 	localrefs, err := git.LocalRefs()
 	if err != nil {
 		return nil, err
 	}
 
 	if pushAll && len(refnames) == 0 {
-		return localrefs, nil
+		refs := make([]*refUpdate, len(localrefs))
+		for i, lr := range localrefs {
+			refs[i] = newRefUpdate(cfg.Git, lr, nil)
+		}
+		return refs, nil
 	}
 
 	reflookup := make(map[string]*git.Ref, len(localrefs))
@@ -83,57 +130,17 @@ func refsByNames(refnames []string) ([]*git.Ref, error) {
 		reflookup[ref.Name] = ref
 	}
 
-	refs := make([]*git.Ref, len(refnames))
+	refs := make([]*refUpdate, len(refnames))
 	for i, name := range refnames {
-		if ref, ok := reflookup[name]; ok {
-			refs[i] = ref
+		if left, ok := reflookup[name]; ok {
+			refs[i] = newRefUpdate(cfg.Git, left, nil)
 		} else {
-			refs[i] = &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			refs[i] = newRefUpdate(cfg.Git, left, nil)
 		}
 	}
 
 	return refs, nil
-}
-
-// pushCommand pushes local objects to a Git LFS server.  It takes two
-// arguments:
-//
-//   `<remote> <remote ref>`
-//
-// Remote must be a remote name, not a URL
-//
-// pushCommand calculates the git objects to send by comparing the range
-// of commits between the local and remote git servers.
-func pushCommand(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
-		os.Exit(1)
-	}
-
-	requireGitVersion()
-
-	// Remote is first arg
-	if err := cfg.SetValidRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q: %s", args[0], err)
-	}
-
-	ctx := newUploadContext(pushDryRun)
-
-	if pushObjectIDs {
-		if len(args) < 2 {
-			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
-			return
-		}
-
-		uploadsWithObjectIDs(ctx, args[1:])
-	} else {
-		if len(args) < 1 {
-			Print("Usage: git lfs push --dry-run <remote> [ref]")
-			return
-		}
-
-		uploadsBetweenRefAndRemote(ctx, args[1:])
-	}
 }
 
 func init() {

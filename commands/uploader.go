@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -17,26 +16,14 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, left, right *git.Ref) error {
-	leftName := left.Name
-	if len(left.Sha) > 0 {
-		leftName = left.Sha
-	}
-
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate) error {
 	if pushAll {
-		if err := g.ScanRefWithDeleted(leftName, nil); err != nil {
+		if err := g.ScanRefWithDeleted(update.LeftCommitish(), nil); err != nil {
 			return err
 		}
 	} else {
-		if right == nil {
-			if merge, ok := cfg.Git.Get(fmt.Sprintf("branch.%s.merge", left.Name)); ok {
-				right = git.ParseRef(merge, "")
-			} else {
-				right = &git.Ref{Name: left.Name}
-			}
-		}
-		tracerx.Printf("DEBUG LEFT to RIGHT: %+v => %+v", left, right)
-		if err := g.ScanLeftToRemote(leftName, nil); err != nil {
+		tracerx.Printf("DEBUG LEFT to RIGHT: %+v => %+v", update.Left(), update.Right())
+		if err := g.ScanLeftToRemote(update.LeftCommitish(), nil); err != nil {
 			return err
 		}
 	}
