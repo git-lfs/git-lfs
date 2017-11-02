@@ -12,6 +12,10 @@ type lockClient struct {
 	*lfsapi.Client
 }
 
+type lockRef struct {
+	Name string `json:"name,omitempty"`
+}
+
 // LockRequest encapsulates the payload sent across the API when a client would
 // like to obtain a lock against a particular path on a given remote.
 type lockRequest struct {
@@ -192,7 +196,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 // lockVerifiableRequest encapsulates the request sent to the server when the
 // client would like a list of locks to verify a Git push.
 type lockVerifiableRequest struct {
-	Ref string `json:"ref"`
+	Ref *lockRef `json:"ref"`
 
 	// Cursor is an optional field used to tell the server which lock was
 	// seen last, if scanning through multiple pages of results.

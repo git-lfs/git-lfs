@@ -210,7 +210,7 @@ func (c *Client) VerifiableLocks(ref string, limit int) (ourLocks, theirLocks []
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{
-		Ref:   ref,
+		Ref:   &lockRef{Name: ref},
 		Limit: limit,
 	}
 
