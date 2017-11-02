@@ -881,10 +881,21 @@ type LockList struct {
 	Message    string `json:"message,omitempty"`
 }
 
+type Ref struct {
+	Name string `json:"name,omitempty"`
+}
+
 type VerifiableLockRequest struct {
-	Ref    string `json:"ref,omitempty"`
+	Ref    *Ref   `json:"ref,omitempty"`
 	Cursor string `json:"cursor,omitempty"`
 	Limit  int    `json:"limit,omitempty"`
+}
+
+func (r *VerifiableLockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type VerifiableLockList struct {
@@ -1093,11 +1104,11 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			if strings.HasSuffix(repo, "ref-required") {
 				parts := strings.Split(repo, "-")
 				lenParts := len(parts)
-				if lenParts > 3 && parts[lenParts-3] != reqBody.Ref {
+				if lenParts > 3 && parts[lenParts-3] != reqBody.RefName() {
 					w.WriteHeader(403)
 					enc.Encode(struct {
 						Message string `json:"message"`
-					}{fmt.Sprintf("Expected ref %q, got %q", parts[lenParts-3], reqBody.Ref)})
+					}{fmt.Sprintf("Expected ref %q, got %q", parts[lenParts-3], reqBody.RefName())})
 					return
 				}
 			}
