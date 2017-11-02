@@ -814,9 +814,10 @@ begin_test "pre-push locks verify 403 with good tracked ref"
   git add .gitattributes a.dat
   git commit --message "initial commit"
 
+  git config push.default upstream
   git config branch.master.merge refs/heads/tracked
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
-  git push origin master 2>&1 | tee push.log
+  git push 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid"
 )

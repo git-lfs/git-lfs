@@ -96,7 +96,7 @@ func prePushRefs(r io.Reader) []*refUpdate {
 			continue
 		}
 
-		refs = append(refs, newRefUpdate(cfg.Git, left, right))
+		refs = append(refs, newRefUpdate(cfg.Git, cfg.Remote(), left, right))
 	}
 
 	return refs

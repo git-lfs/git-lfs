@@ -122,7 +122,7 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
 	if pushAll && len(refnames) == 0 {
 		refs := make([]*refUpdate, len(localrefs))
 		for i, lr := range localrefs {
-			refs[i] = newRefUpdate(cfg.Git, lr, nil)
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), lr, nil)
 		}
 		return refs, nil
 	}
@@ -135,10 +135,10 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
 	refs := make([]*refUpdate, len(refnames))
 	for i, name := range refnames {
 		if left, ok := reflookup[name]; ok {
-			refs[i] = newRefUpdate(cfg.Git, left, nil)
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), left, nil)
 		} else {
 			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-			refs[i] = newRefUpdate(cfg.Git, left, nil)
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), left, nil)
 		}
 	}
 
