@@ -19,82 +19,6 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
-
-	gitscanner, err := ctx.buildGitScanner()
-	if err != nil {
-		ExitWithError(err)
-	}
-	defer gitscanner.Close()
-
-	refs, err := refsByNames(refnames)
-	if err != nil {
-		Error(err.Error())
-		Exit("Error getting local refs.")
-	}
-
-	for _, ref := range refs {
-		if err = uploadLeftOrAll(gitscanner, ctx, ref.Name); err != nil {
-			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
-			ExitWithError(err)
-		}
-	}
-
-	ctx.Await()
-}
-
-func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
-	for _, oid := range oids {
-		mp, err := ctx.gitfilter.ObjectPath(oid)
-		if err != nil {
-			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
-		}
-
-		stat, err := os.Stat(mp)
-		if err != nil {
-			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
-		}
-
-		uploadPointers(ctx, &lfs.WrappedPointer{
-			Name: mp,
-			Pointer: &lfs.Pointer{
-				Oid:  oid,
-				Size: stat.Size(),
-			},
-		})
-	}
-
-	ctx.Await()
-}
-
-func refsByNames(refnames []string) ([]*git.Ref, error) {
-	localrefs, err := git.LocalRefs()
-	if err != nil {
-		return nil, err
-	}
-
-	if pushAll && len(refnames) == 0 {
-		return localrefs, nil
-	}
-
-	reflookup := make(map[string]*git.Ref, len(localrefs))
-	for _, ref := range localrefs {
-		reflookup[ref.Name] = ref
-	}
-
-	refs := make([]*git.Ref, len(refnames))
-	for i, name := range refnames {
-		if ref, ok := reflookup[name]; ok {
-			refs[i] = ref
-		} else {
-			refs[i] = &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-		}
-	}
-
-	return refs, nil
-}
-
 // pushCommand pushes local objects to a Git LFS server.  It takes two
 // arguments:
 //
@@ -118,7 +42,6 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := newUploadContext(pushDryRun)
-
 	if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
@@ -134,6 +57,81 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		uploadsBetweenRefAndRemote(ctx, args[1:])
 	}
+}
+
+func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
+	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
+
+	updates, err := lfsPushRefs(refnames, pushAll)
+	if err != nil {
+		Error(err.Error())
+		Exit("Error getting local refs.")
+	}
+
+	if err := uploadForRefUpdates(ctx, updates, pushAll); err != nil {
+		ExitWithError(err)
+	}
+}
+
+func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
+	pointers := make([]*lfs.WrappedPointer, len(oids))
+	for i, oid := range oids {
+		mp, err := ctx.gitfilter.ObjectPath(oid)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
+		}
+
+		stat, err := os.Stat(mp)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
+		}
+
+		pointers[i] = &lfs.WrappedPointer{
+			Name: mp,
+			Pointer: &lfs.Pointer{
+				Oid:  oid,
+				Size: stat.Size(),
+			},
+		}
+	}
+
+	uploadPointers(ctx, pointers...)
+	ctx.Await()
+}
+
+// lfsPushRefs returns valid ref updates from the given ref and --all arguments.
+// Either one or more refs can be explicitly specified, or --all indicates all
+// local refs are pushed.
+func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
+	localrefs, err := git.LocalRefs()
+	if err != nil {
+		return nil, err
+	}
+
+	if pushAll && len(refnames) == 0 {
+		refs := make([]*refUpdate, len(localrefs))
+		for i, lr := range localrefs {
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), lr, nil)
+		}
+		return refs, nil
+	}
+
+	reflookup := make(map[string]*git.Ref, len(localrefs))
+	for _, ref := range localrefs {
+		reflookup[ref.Name] = ref
+	}
+
+	refs := make([]*refUpdate, len(refnames))
+	for i, name := range refnames {
+		if left, ok := reflookup[name]; ok {
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), left, nil)
+		} else {
+			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			refs[i] = newRefUpdate(cfg.Git, cfg.Remote(), left, nil)
+		}
+	}
+
+	return refs, nil
 }
 
 func init() {

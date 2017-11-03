@@ -39,6 +39,7 @@ type Configuration struct {
 	gitConfig *git.Configuration
 
 	ref        *git.Ref
+	remoteRef  *git.Ref
 	fs         *fs.Filesystem
 	gitDir     *string
 	workDir    string
