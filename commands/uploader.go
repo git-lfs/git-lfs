@@ -72,7 +72,7 @@ type uploadContext struct {
 }
 
 func newUploadContext(dryRun bool) *uploadContext {
-	remote := cfg.Remote()
+	remote := cfg.PushRemote()
 	manifest := getTransferManifestOperationRemote("upload", remote)
 	ctx := &uploadContext{
 		Remote:       remote,
