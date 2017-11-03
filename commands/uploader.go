@@ -16,13 +16,30 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate) error {
+func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool) error {
+	gitscanner, err := ctx.buildGitScanner()
+	if err != nil {
+		return err
+	}
+	defer gitscanner.Close()
+
+	verifyLocksForUpdates(ctx.lockVerifier, updates)
+	for _, update := range updates {
+		if err := uploadLeftOrAll(gitscanner, ctx, update, pushAll); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("ref %s:", update.Left().Name))
+		}
+	}
+
+	ctx.Await()
+	return nil
+}
+
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate, pushAll bool) error {
 	if pushAll {
 		if err := g.ScanRefWithDeleted(update.LeftCommitish(), nil); err != nil {
 			return err
 		}
 	} else {
-		tracerx.Printf("DEBUG LEFT to RIGHT: %+v => %+v", update.Left(), update.Right())
 		if err := g.ScanLeftToRemote(update.LeftCommitish(), nil); err != nil {
 			return err
 		}

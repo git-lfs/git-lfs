@@ -62,32 +62,20 @@ func pushCommand(cmd *cobra.Command, args []string) {
 func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
 
-	gitscanner, err := ctx.buildGitScanner()
-	if err != nil {
-		ExitWithError(err)
-	}
-	defer gitscanner.Close()
-
 	updates, err := lfsPushRefs(refnames, pushAll)
 	if err != nil {
 		Error(err.Error())
 		Exit("Error getting local refs.")
 	}
 
-	verifyLocksForUpdates(ctx.lockVerifier, updates)
-
-	for _, update := range updates {
-		if err = uploadLeftOrAll(gitscanner, ctx, update); err != nil {
-			Print("Error scanning for Git LFS files in the %q ref", update.Left().Name)
-			ExitWithError(err)
-		}
+	if err := uploadForRefUpdates(ctx, updates, pushAll); err != nil {
+		ExitWithError(err)
 	}
-
-	ctx.Await()
 }
 
 func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
-	for _, oid := range oids {
+	pointers := make([]*lfs.WrappedPointer, len(oids))
+	for i, oid := range oids {
 		mp, err := ctx.gitfilter.ObjectPath(oid)
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
@@ -98,15 +86,16 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
 		}
 
-		uploadPointers(ctx, &lfs.WrappedPointer{
+		pointers[i] = &lfs.WrappedPointer{
 			Name: mp,
 			Pointer: &lfs.Pointer{
 				Oid:  oid,
 				Size: stat.Size(),
 			},
-		})
+		}
 	}
 
+	uploadPointers(ctx, pointers...)
 	ctx.Await()
 }
 

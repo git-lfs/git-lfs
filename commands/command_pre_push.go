@@ -52,23 +52,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := newUploadContext(prePushDryRun)
-	gitscanner, err := ctx.buildGitScanner()
-	if err != nil {
+	updates := prePushRefs(os.Stdin)
+	if err := uploadForRefUpdates(ctx, updates, false); err != nil {
 		ExitWithError(err)
 	}
-	defer gitscanner.Close()
-
-	updates := prePushRefs(os.Stdin)
-	verifyLocksForUpdates(ctx.lockVerifier, updates)
-
-	for _, update := range updates {
-		if err := uploadLeftOrAll(gitscanner, ctx, update); err != nil {
-			Print("Error scanning for Git LFS files in %+v", update.Left())
-			ExitWithError(err)
-		}
-	}
-
-	ctx.Await()
 }
 
 // prePushRefs parses commit information that the pre-push git hook receives:
