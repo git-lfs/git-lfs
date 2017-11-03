@@ -33,6 +33,7 @@ type Configuration struct {
 	Git Environment
 
 	currentRemote *string
+	pushRemote    *string
 
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
@@ -199,6 +200,28 @@ func (c *Configuration) Remote() string {
 		}
 	}
 	return *c.currentRemote
+}
+
+func (c *Configuration) PushRemote() string {
+	ref := c.CurrentRef()
+	c.loading.Lock()
+	defer c.loading.Unlock()
+
+	if c.pushRemote == nil {
+		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.pushRemote", ref.Name)); ok {
+			c.pushRemote = &remote
+		} else if remote, ok := c.Git.Get("remote.pushDefault"); ok {
+			c.pushRemote = &remote
+		} else {
+			c.loading.Unlock()
+			remote := c.Remote()
+			c.loading.Lock()
+
+			c.pushRemote = &remote
+		}
+	}
+
+	return *c.pushRemote
 }
 
 func (c *Configuration) SetValidRemote(name string) error {
