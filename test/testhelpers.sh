@@ -269,6 +269,7 @@ wait_for_file() {
   wait_time=1
   while [ $n -lt 17 ]; do
     if [ -s $filename ]; then
+      echo "$filename: attempt: $n, wait_time: $wait_time"
       return 0
     fi
 
