@@ -266,7 +266,7 @@ size %s
 wait_for_file() {
   local filename="$1"
   n=0
-  wait_time=1
+  wait_time=0.5
   while [ $n -lt 17 ]; do
     if [ -s $filename ]; then
       echo "$filename: attempt: $n, wait_time: $wait_time"
@@ -275,9 +275,6 @@ wait_for_file() {
 
     sleep $wait_time
     n=`expr $n + 1`
-    if [ $wait_time -lt 4 ]; then
-      wait_time=`expr $wait_time \* 2`
-    fi
   done
 
   echo "$filename did not appear after 60 seconds."
