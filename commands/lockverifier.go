@@ -12,7 +12,6 @@ import (
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tq"
-	"github.com/rubyist/tracerx"
 )
 
 type verifyState byte
