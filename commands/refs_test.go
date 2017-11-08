@@ -19,8 +19,9 @@ func TestRefUpdateDefault(t *testing.T) {
 			},
 		})
 
-		u := newRefUpdate(cfg.Git, "origin", git.ParseRef("left", ""), nil)
+		u := newRefUpdate(cfg.Git, "origin", git.ParseRef("refs/heads/left", ""), nil)
 		assert.Equal(t, "left", u.Right().Name, "pushmode=%q", pushMode)
+		assert.Equal(t, git.RefTypeLocalBranch, u.Right().Type, "pushmode=%q", pushMode)
 	}
 }
 
@@ -31,12 +32,13 @@ func TestRefUpdateTrackedDefault(t *testing.T) {
 			Git: map[string][]string{
 				"push.default":       []string{pushMode},
 				"branch.left.remote": []string{"origin"},
-				"branch.left.merge":  []string{"tracked"},
+				"branch.left.merge":  []string{"refs/heads/tracked"},
 			},
 		})
 
-		u := newRefUpdate(cfg.Git, "origin", git.ParseRef("left", ""), nil)
+		u := newRefUpdate(cfg.Git, "origin", git.ParseRef("refs/heads/left", ""), nil)
 		assert.Equal(t, "tracked", u.Right().Name, "pushmode=%s", pushMode)
+		assert.Equal(t, git.RefTypeLocalBranch, u.Right().Type, "pushmode=%q", pushMode)
 	}
 }
 
@@ -49,12 +51,13 @@ func TestRefUpdateCurrentDefault(t *testing.T) {
 		},
 	})
 
-	u := newRefUpdate(cfg.Git, "origin", git.ParseRef("left", ""), nil)
+	u := newRefUpdate(cfg.Git, "origin", git.ParseRef("refs/heads/left", ""), nil)
 	assert.Equal(t, "left", u.Right().Name)
+	assert.Equal(t, git.RefTypeLocalBranch, u.Right().Type)
 }
 
 func TestRefUpdateExplicitLeftAndRight(t *testing.T) {
-	u := newRefUpdate(nil, "", git.ParseRef("left", "abc123"), git.ParseRef("right", "def456"))
+	u := newRefUpdate(nil, "", git.ParseRef("refs/heads/left", "abc123"), git.ParseRef("refs/heads/right", "def456"))
 	assert.Equal(t, "left", u.Left().Name)
 	assert.Equal(t, "abc123", u.Left().Sha)
 	assert.Equal(t, "abc123", u.LeftCommitish())
@@ -62,7 +65,7 @@ func TestRefUpdateExplicitLeftAndRight(t *testing.T) {
 	assert.Equal(t, "def456", u.Right().Sha)
 	assert.Equal(t, "def456", u.RightCommitish())
 
-	u = newRefUpdate(nil, "", git.ParseRef("left", ""), git.ParseRef("right", ""))
+	u = newRefUpdate(nil, "", git.ParseRef("refs/heads/left", ""), git.ParseRef("refs/heads/right", ""))
 	assert.Equal(t, "left", u.Left().Name)
 	assert.Equal(t, "", u.Left().Sha)
 	assert.Equal(t, "left", u.LeftCommitish())

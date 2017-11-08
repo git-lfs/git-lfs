@@ -54,12 +54,8 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/tags", true
 	case RefTypeRemoteTag:
 		return "refs/remotes/tags", true
-	case RefTypeHEAD:
-		return "", false
-	case RefTypeOther:
-		return "", false
 	default:
-		panic(fmt.Sprintf("git: unknown RefType %d", t))
+		return "", false
 	}
 }
 
@@ -93,6 +89,16 @@ type Ref struct {
 	Name string
 	Type RefType
 	Sha  string
+}
+
+func (r *Ref) Refspec() string {
+	if r == nil {
+		return ""
+	}
+	if prefix, ok := r.Type.Prefix(); ok {
+		return fmt.Sprintf("%s/%s", prefix, r.Name)
+	}
+	return r.Name
 }
 
 // Some top level information about a commit (only first line of message)
@@ -373,14 +379,7 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // reflog entry, if a "reason" was provided). It operates within the given
 // working directory "wd". It returns an error if any were encountered.
 func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
-	var refspec string
-	if prefix, ok := ref.Type.Prefix(); ok {
-		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
-	} else {
-		refspec = ref.Name
-	}
-
-	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
