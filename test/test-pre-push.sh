@@ -583,7 +583,7 @@ begin_test "pre-push with our lock"
   git commit -m "add unauthorized changes"
 
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
-  grep "Consider unlocking your own locked file(s)" push.log
+  grep "Consider unlocking your own locked files" push.log
   grep "* locked.dat" push.log
 
   assert_server_lock "$id"
@@ -631,7 +631,7 @@ begin_test "pre-push with their lock on lfs file"
       exit 1
     fi
 
-    grep "Unable to push 1 locked file(s)" push.log
+    grep "Unable to push locked files" push.log
     grep "* locked_theirs.dat - Git LFS Tests" push.log
 
     grep "ERROR: Cannot update locked files." push.log
@@ -687,7 +687,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
       exit 1
     fi
 
-    grep "Unable to push 2 locked file(s)" push.log
+    grep "Unable to push locked files" push.log
     grep "* large_locked_theirs.dat - Git LFS Tests" push.log
     grep "* tiny_locked_theirs.dat - Git LFS Tests" push.log
     grep "ERROR: Cannot update locked files." push.log
@@ -774,6 +774,96 @@ begin_test "pre-push disable locks verify on partial url"
   [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
 
   assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with good ref"
+(
+  set -e
+
+  reponame="lock-verify-master-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with good tracked ref"
+(
+  set -e
+
+  reponame="lock-verify-tracked-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with explicit ref"
+(
+  set -e
+
+  reponame="lock-verify-explicit-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master:explicit 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "pre-push locks verify 403 with bad ref"
+(
+  set -e
+
+  reponame="lock-verify-other-ref-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="example"
+  contents_oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit --message "initial commit"
+
+  git config "lfs.$GITSERVER/$reponame.git.locksverify" true
+  git push origin master 2>&1 | tee push.log
+  grep "failed to push some refs" push.log
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 

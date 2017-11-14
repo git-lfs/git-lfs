@@ -63,6 +63,31 @@ func (t RefType) Prefix() (string, bool) {
 	}
 }
 
+func ParseRef(absRef, sha string) *Ref {
+	r := &Ref{Sha: sha}
+	if strings.HasPrefix(absRef, "refs/heads/") {
+		r.Name = absRef[11:]
+		r.Type = RefTypeLocalBranch
+	} else if strings.HasPrefix(absRef, "refs/tags/") {
+		r.Name = absRef[10:]
+		r.Type = RefTypeLocalTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/tags/") {
+		r.Name = absRef[18:]
+		r.Type = RefTypeRemoteTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/") {
+		r.Name = absRef[13:]
+		r.Type = RefTypeRemoteBranch
+	} else {
+		r.Name = absRef
+		if absRef == "HEAD" {
+			r.Type = RefTypeHEAD
+		} else {
+			r.Type = RefTypeOther
+		}
+	}
+	return r
+}
+
 // A git reference (branch, tag etc)
 type Ref struct {
 	Name string

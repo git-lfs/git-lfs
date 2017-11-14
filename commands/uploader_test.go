@@ -3,7 +3,6 @@ package commands
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,11 +12,7 @@ type LockingSupportTestCase struct {
 }
 
 func (l *LockingSupportTestCase) Assert(t *testing.T) {
-	ep := lfsapi.Endpoint{
-		Url: l.Given,
-	}
-
-	assert.Equal(t, l.ExpectedToMatch, supportsLockingAPI(ep))
+	assert.Equal(t, l.ExpectedToMatch, supportsLockingAPI(l.Given))
 }
 
 func TestSupportedLockingHosts(t *testing.T) {

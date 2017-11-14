@@ -26,7 +26,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	download := api.Endpoints.AccessFor(api.Endpoints.Endpoint("download", cfg.Remote()).Url)
-	upload := api.Endpoints.AccessFor(api.Endpoints.Endpoint("upload", cfg.Remote()).Url)
+	upload := api.Endpoints.AccessFor(api.Endpoints.Endpoint("upload", cfg.PushRemote()).Url)
 
 	dltransfers := manifest.GetDownloadAdapterNames()
 	sort.Strings(dltransfers)

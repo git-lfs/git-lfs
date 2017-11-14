@@ -3,8 +3,61 @@ package config
 import (
 	"testing"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRemoteDefault(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"branch.unused.remote":     []string{"a"},
+			"branch.unused.pushRemote": []string{"b"},
+		},
+	})
+	assert.Equal(t, "origin", cfg.Remote())
+	assert.Equal(t, "origin", cfg.PushRemote())
+}
+
+func TestRemoteBranchConfig(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"branch.master.remote":    []string{"a"},
+			"branch.other.pushRemote": []string{"b"},
+		},
+	})
+	cfg.ref = &git.Ref{Name: "master"}
+
+	assert.Equal(t, "a", cfg.Remote())
+	assert.Equal(t, "a", cfg.PushRemote())
+}
+
+func TestRemotePushDefault(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"branch.master.remote":    []string{"a"},
+			"remote.pushDefault":      []string{"b"},
+			"branch.other.pushRemote": []string{"c"},
+		},
+	})
+	cfg.ref = &git.Ref{Name: "master"}
+
+	assert.Equal(t, "a", cfg.Remote())
+	assert.Equal(t, "b", cfg.PushRemote())
+}
+
+func TestRemoteBranchPushDefault(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"branch.master.remote":     []string{"a"},
+			"remote.pushDefault":       []string{"b"},
+			"branch.master.pushRemote": []string{"c"},
+		},
+	})
+	cfg.ref = &git.Ref{Name: "master"}
+
+	assert.Equal(t, "a", cfg.Remote())
+	assert.Equal(t, "c", cfg.PushRemote())
+}
 
 func TestBasicTransfersOnlySetValue(t *testing.T) {
 	cfg := NewFrom(Values{
