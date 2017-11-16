@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -9,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -54,8 +57,9 @@ type uploadContext struct {
 	uploadedOids tools.StringSet
 	gitfilter    *lfs.GitFilter
 
-	meter progress.Meter
-	tq    *tq.TransferQueue
+	logger *log.Logger
+	meter  progress.Meter
+	tq     *tq.TransferQueue
 
 	committerName  string
 	committerEmail string
@@ -84,7 +88,15 @@ func newUploadContext(dryRun bool) *uploadContext {
 		allowMissing: cfg.Git.Bool("lfs.allowincompletepush", true),
 	}
 
+	var sink io.Writer = os.Stdout
+	if dryRun {
+		sink = ioutil.Discard
+	}
+
+	ctx.logger = log.NewLogger(sink)
 	ctx.meter = buildProgressMeter(ctx.DryRun)
+	ctx.logger.Enqueue(ctx.meter)
+
 	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 	return ctx
