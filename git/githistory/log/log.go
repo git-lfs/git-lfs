@@ -80,7 +80,7 @@ func (l *Logger) Close() {
 // Waitier creates and enqueues a new *WaitingTask.
 func (l *Logger) Waiter(msg string) *WaitingTask {
 	t := NewWaitingTask(msg)
-	l.enqueue(t)
+	l.Enqueue(t)
 
 	return t
 }
@@ -88,7 +88,7 @@ func (l *Logger) Waiter(msg string) *WaitingTask {
 // Percentage creates and enqueues a new *PercentageTask.
 func (l *Logger) Percentage(msg string, total uint64) *PercentageTask {
 	t := NewPercentageTask(msg, total)
-	l.enqueue(t)
+	l.Enqueue(t)
 
 	return t
 }
@@ -96,13 +96,13 @@ func (l *Logger) Percentage(msg string, total uint64) *PercentageTask {
 // List creates and enqueues a new *ListTask.
 func (l *Logger) List(msg string) *ListTask {
 	t := NewListTask(msg)
-	l.enqueue(t)
+	l.Enqueue(t)
 
 	return t
 }
 
-// enqueue enqueues the given Tasks "ts".
-func (l *Logger) enqueue(ts ...Task) {
+// Enqueue enqueues the given Tasks "ts".
+func (l *Logger) Enqueue(ts ...Task) {
 	if l == nil {
 		for _, t := range ts {
 			go func(t Task) {
