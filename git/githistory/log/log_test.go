@@ -175,3 +175,16 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 		"second, done\n",
 	}, ""), buf.String())
 }
+
+func TestLoggerHandlesSilentTasks(t *testing.T) {
+	var buf bytes.Buffer
+
+	task := make(chan *Update)
+	close(task)
+
+	l := NewLogger(&buf)
+	l.Enqueue(ChanTask(task))
+	l.Close()
+
+	assert.Equal(t, "", buf.String())
+}

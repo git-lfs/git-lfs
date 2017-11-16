@@ -203,7 +203,12 @@ func (l *Logger) logTask(task Task) {
 		}
 	}
 
-	l.log(fmt.Sprintf("%s, done\n", update.S))
+	if update != nil {
+		// If a task sent no updates, the last recorded update will be
+		// nil. Given this, only log a message when there was at least
+		// (1) update.
+		l.log(fmt.Sprintf("%s, done\n", update.S))
+	}
 }
 
 // logLine writes a complete line and moves the cursor to the beginning of the
