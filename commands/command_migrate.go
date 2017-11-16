@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -122,7 +123,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 
-		include = append(include, ref.Name)
+		include = append(include, ref.String())
 	}
 
 	if hardcore {
@@ -142,7 +143,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 		}
 
 		for _, ref := range localRefs {
-			include = append(include, ref.Name)
+			include = append(include, ref.String())
 		}
 	} else {
 		// Otherwise, if neither --include-ref=<ref> or
@@ -154,7 +155,9 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 
-		exclude = append(exclude, remoteRefs...)
+		for _, rr := range remoteRefs {
+			exclude = append(exclude, rr.String())
+		}
 	}
 
 	return include, exclude, nil
@@ -163,8 +166,8 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *log.Logger) ([]string, error) {
-	var refs []string
+func getRemoteRefs(l *log.Logger) ([]*git.Ref, error) {
+	var refs []*git.Ref
 
 	remotes, err := git.RemoteList()
 	if err != nil {
@@ -183,8 +186,12 @@ func getRemoteRefs(l *log.Logger) ([]string, error) {
 			return nil, err
 		}
 
-		for _, ref := range refsForRemote {
-			refs = append(refs, formatRefName(ref, remote))
+		for _, rr := range refsForRemote {
+			// HACK(@ttaylorr): add remote name to fully-qualify
+			// references:
+			rr.Name = fmt.Sprintf("%s/%s", remote, rr.Name)
+
+			refs = append(refs, rr)
 		}
 	}
 
