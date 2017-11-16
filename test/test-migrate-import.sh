@@ -403,8 +403,6 @@ begin_test "migrate import (--everything with --include-ref)"
 )
 end_test
 
-exit 0
-
 begin_test "migrate import (--everything with --exclude-ref)"
 (
   set -e
