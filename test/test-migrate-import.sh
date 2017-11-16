@@ -380,6 +380,19 @@ begin_test "migrate import (--everything)"
 )
 end_test
 
+begin_test "migrate import (ambiguous reference)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  # Create an ambiguously named reference sharing the name as the SHA-1 of
+  # "HEAD".
+  git tag "$sha"
+
+  git lfs migrate import --everything
+)
+end_test
 
 begin_test "migrate import (--everything with args)"
 (
