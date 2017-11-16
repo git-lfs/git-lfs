@@ -85,6 +85,13 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 	req.Header.Set("User-Agent", UserAgent)
 
+	return c.do(req)
+}
+
+// do performs an *http.Request respecting redirects, and handles the response
+// as defined in c.handleResponse. Notably, it does not alter the headers for
+// the request argument in any way.
+func (c *Client) do(req *http.Request) (*http.Response, error) {
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
 	if err != nil {
 		return res, err

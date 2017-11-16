@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL) (*http.Response, error) {
-	res, err := c.Do(req)
+	res, err := c.do(req)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
@@ -69,7 +69,7 @@ func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, cred
 
 func (c *Client) ntlmNegotiate(req *http.Request, message string) (*http.Response, []byte, error) {
 	req.Header.Add("Authorization", message)
-	res, err := c.Do(req)
+	res, err := c.do(req)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, nil, err
 	}
@@ -100,7 +100,7 @@ func (c *Client) ntlmChallenge(req *http.Request, challengeBytes []byte, creds C
 
 	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
 	req.Header.Set("Authorization", "NTLM "+authMsg)
-	return c.Do(req)
+	return c.do(req)
 }
 
 func (c *Client) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
