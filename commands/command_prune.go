@@ -9,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
@@ -55,6 +56,11 @@ type PruneProgressChan chan PruneProgress
 func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
 	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
+
+	logger := log.NewLogger(OutputWriter)
+	spinner := progress.NewSpinner()
+	logger.Enqueue(spinner)
+
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
 
@@ -98,7 +104,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// Report progress
 	var progresswait sync.WaitGroup
 	progresswait.Add(1)
-	go pruneTaskDisplayProgress(progressChan, &progresswait)
+	go pruneTaskDisplayProgress(progressChan, &progresswait, spinner)
 
 	taskwait.Wait() // wait for subtasks
 	gitscanner.Close()
@@ -183,7 +189,13 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		if verbose {
 			Print(verboseOutput.String())
 		}
-		pruneDeleteFiles(prunableObjects)
+
+		// Since the above progress will have completed, create and
+		// enqueue a _new_ spinner to track deletion progress.
+		spinner := progress.NewSpinner()
+		logger.Enqueue(spinner)
+
+		pruneDeleteFiles(prunableObjects, spinner)
 	}
 
 }
@@ -220,10 +232,9 @@ func pruneCheckErrors(taskErrors []error) {
 	}
 }
 
-func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, spinner *progress.Spinner) {
 	defer waitg.Done()
 
-	spinner := progress.NewSpinner()
 	localCount := 0
 	retainCount := 0
 	verifyCount := 0
@@ -241,9 +252,9 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 		if verifyCount > 0 {
 			msg += fmt.Sprintf(", %d verified with remote", verifyCount)
 		}
-		spinner.Print(OutputWriter, msg)
+		spinner.Spinf(msg)
 	}
-	spinner.Finish(OutputWriter, msg)
+	spinner.Finish(msg)
 }
 
 func pruneTaskCollectRetained(outRetainedObjects *tools.StringSet, retainChan chan string,
@@ -267,13 +278,12 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 	}
 }
 
-func pruneDeleteFiles(prunableObjects []string) {
-	spinner := progress.NewSpinner()
+func pruneDeleteFiles(prunableObjects []string, spinner *progress.Spinner) {
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int
 	for i, oid := range prunableObjects {
-		spinner.Print(OutputWriter, fmt.Sprintf("Deleting object %d/%d", i, len(prunableObjects)))
+		spinner.Spinf("Deleting object %d/%d", i, len(prunableObjects))
 		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
@@ -286,7 +296,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 		}
 		deletedFiles++
 	}
-	spinner.Finish(OutputWriter, fmt.Sprintf("Deleted %d files", deletedFiles))
+	spinner.Finish("Deleted %d files", deletedFiles)
 	if problems.Len() > 0 {
 		LoggedError(fmt.Errorf("Failed to delete some files"), problems.String())
 		Exit("Prune failed, see errors above")
