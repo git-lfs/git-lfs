@@ -12,6 +12,12 @@ Perform the following actions to remove the Git LFS configuration:
 * Remove the "lfs" clean and smudge filters from the global Git config.
 * Uninstall the Git LFS pre-push hook if run from inside a Git repository.
 
+## OPTIONS
+
+* --local:
+    Removes the "lfs" smudge and clean filters from the local repository's git
+    config, instead of the global git config (~/.gitconfig).
+
 ## SEE ALSO
 
 git-lfs-install(1).
