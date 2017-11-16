@@ -13,6 +13,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRefString(t *testing.T) {
+	const sha = "0000000000000000000000000000000000000000"
+	for s, r := range map[string]*Ref{
+		"refs/heads/master": &Ref{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/origin/master": &Ref{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/tags/v1.0.0": &Ref{
+			Name: "v1.0.0",
+			Type: RefTypeRemoteTag,
+			Sha:  sha,
+		},
+		"refs/tags/v1.0.0": &Ref{
+			Name: "v1.0.0",
+			Type: RefTypeLocalTag,
+			Sha:  sha,
+		},
+		"HEAD": &Ref{
+			Name: "HEAD",
+			Type: RefTypeHEAD,
+			Sha:  sha,
+		},
+		"other": &Ref{
+			Name: "other",
+			Type: RefTypeOther,
+			Sha:  sha,
+		},
+	} {
+		assert.Equal(t, s, r.String())
+	}
+}
+
 func TestParseRefs(t *testing.T) {
 	tests := map[string]RefType{
 		"refs/heads":        RefTypeLocalBranch,
