@@ -25,17 +25,6 @@ var (
 // supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
-	if len(req.Header.Get("Authorization")) > 0 {
-		// If the extra headers that were configured contained
-		// credentials, assume it is preferred to use those over
-		// contacting the credential helper. Fallback to c.Do.
-		res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
-		if err != nil {
-			return res, err
-		}
-
-		return res, c.handleResponse(res)
-	}
 
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
 	if err != nil {
