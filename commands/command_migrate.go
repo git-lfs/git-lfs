@@ -123,7 +123,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 
-		include = append(include, ref.String())
+		include = append(include, ref.Refspec())
 	}
 
 	if hardcore {
@@ -143,7 +143,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 		}
 
 		for _, ref := range localRefs {
-			include = append(include, ref.String())
+			include = append(include, ref.Refspec())
 		}
 	} else {
 		// Otherwise, if neither --include-ref=<ref> or
@@ -156,7 +156,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 		}
 
 		for _, rr := range remoteRefs {
-			exclude = append(exclude, rr.String())
+			exclude = append(exclude, rr.Refspec())
 		}
 	}
 

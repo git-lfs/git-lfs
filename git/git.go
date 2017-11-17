@@ -95,12 +95,16 @@ type Ref struct {
 	Sha  string
 }
 
-// String implements fmt.Stringer.String and returns the fully-qualified
-// reference name (including remote), i.e., for a remote branch called
-// 'my-feature' on remote 'origin', this function will return:
+// Refspec returns the fully-qualified reference name (including remote), i.e.,
+// for a remote branch called 'my-feature' on remote 'origin', this function
+// will return:
 //
 //   refs/remotes/origin/my-feature
-func (r *Ref) String() string {
+func (r *Ref) Refspec() string {
+	if r == nil {
+		return ""
+	}
+
 	prefix, ok := r.Type.Prefix()
 	if ok {
 		return fmt.Sprintf("%s/%s", prefix, r.Name)
@@ -387,14 +391,7 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // reflog entry, if a "reason" was provided). It operates within the given
 // working directory "wd". It returns an error if any were encountered.
 func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
-	var refspec string
-	if prefix, ok := ref.Type.Prefix(); ok {
-		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
-	} else {
-		refspec = ref.Name
-	}
-
-	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
