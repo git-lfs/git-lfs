@@ -145,7 +145,7 @@ func NewPattern(rawpattern string) Pattern {
 
 	// Special case local dir, matches all (inc subpaths)
 	if _, local := localDirSet[cleanpattern]; local {
-		return noOpMatcher{}
+		return &noOpMatcher{pattern: cleanpattern}
 	}
 
 	hasPathSep := strings.Contains(cleanpattern, sep)
@@ -340,18 +340,22 @@ func (p *doubleWildcardPattern) String() string {
 }
 
 type noOpMatcher struct {
+	pattern string
 }
 
-func (n noOpMatcher) Match(name string) bool {
+func (n *noOpMatcher) Match(name string) bool {
 	return true
 }
 
-func (n noOpMatcher) HasPrefix(name string) bool {
+func (n *noOpMatcher) HasPrefix(name string) bool {
 	return true
 }
 
-func (n noOpMatcher) String() string {
-	return ""
+func (n *noOpMatcher) String() string {
+	if n == nil {
+		return ""
+	}
+	return n.pattern
 }
 
 var localDirSet = map[string]struct{}{
