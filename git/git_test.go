@@ -47,7 +47,7 @@ func TestRefString(t *testing.T) {
 			Sha:  sha,
 		},
 	} {
-		assert.Equal(t, s, r.String())
+		assert.Equal(t, s, r.Refspec())
 	}
 }
 
