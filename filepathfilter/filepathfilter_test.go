@@ -9,6 +9,20 @@ import (
 )
 
 func TestPatternMatch(t *testing.T) {
+	for _, wildcard := range []string{"*", "*.*"} {
+		assertPatternMatch(t, wildcard,
+			"a",
+			"a/",
+			"a.a",
+			"a/b",
+			"a/b/",
+			"a/b.b",
+			"a/b/c",
+			"a/b/c/",
+			"a/b/c.c",
+		)
+	}
+
 	assertPatternMatch(t, "filename.txt", "filename.txt")
 	assertPatternMatch(t, "*.txt", "filename.txt")
 	refutePatternMatch(t, "*.tx", "filename.txt")

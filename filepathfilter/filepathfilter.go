@@ -355,6 +355,8 @@ func (n noOpMatcher) String() string {
 }
 
 var localDirSet = map[string]struct{}{
+	"*":   struct{}{},
+	"*.*": struct{}{},
 	".":   struct{}{},
 	"./":  struct{}{},
 	".\\": struct{}{},
