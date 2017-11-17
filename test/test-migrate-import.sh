@@ -388,6 +388,7 @@ begin_test "migrate import (ambiguous reference)"
 
   # Create an ambiguously named reference sharing the name as the SHA-1 of
   # "HEAD".
+  sha="$(git rev-parse HEAD)"
   git tag "$sha"
 
   git lfs migrate import --everything
