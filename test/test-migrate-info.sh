@@ -307,6 +307,21 @@ begin_test "migrate info (--everything)"
 )
 end_test
 
+begin_test "migrate info (ambiguous reference)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  # Create an ambiguously named reference sharing the name as the SHA-1 of
+  # "HEAD".
+  sha="$(git rev-parse HEAD)"
+  git tag "$sha"
+
+  git lfs migrate info --everything
+)
+end_test
+
 begin_test "migrate info (--everything with args)"
 (
   set -e

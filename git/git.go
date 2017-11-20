@@ -91,13 +91,21 @@ type Ref struct {
 	Sha  string
 }
 
+// Refspec returns the fully-qualified reference name (including remote), i.e.,
+// for a remote branch called 'my-feature' on remote 'origin', this function
+// will return:
+//
+//   refs/remotes/origin/my-feature
 func (r *Ref) Refspec() string {
 	if r == nil {
 		return ""
 	}
-	if prefix, ok := r.Type.Prefix(); ok {
+
+	prefix, ok := r.Type.Prefix()
+	if ok {
 		return fmt.Sprintf("%s/%s", prefix, r.Name)
 	}
+
 	return r.Name
 }
 
