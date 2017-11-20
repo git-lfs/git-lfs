@@ -112,14 +112,14 @@ func TestPatternMatch(t *testing.T) {
 
 func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {
 	p := NewPattern(pattern)
-	for _, filename := range filenames {
+	for _, filename := range toWindowsPaths(filenames) {
 		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
 	}
 }
 
 func refutePatternMatch(t *testing.T, pattern string, filenames ...string) {
 	p := NewPattern(pattern)
-	for _, filename := range filenames {
+	for _, filename := range toWindowsPaths(filenames) {
 		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
 	}
 }
@@ -154,23 +154,21 @@ func (c *filterPrefixTest) Assert(t *testing.T) {
 }
 
 func (c *filterPrefixTest) platformIncludes() []string {
-	if runtime.GOOS == "windows" {
-		return toWindowsPaths(c.includes)
-	}
-	return c.includes
+	return toWindowsPaths(c.includes)
 }
 
 func (c *filterPrefixTest) platformExcludes() []string {
-	if runtime.GOOS == "windows" {
-		return toWindowsPaths(c.excludes)
-	}
-	return c.excludes
+	return toWindowsPaths(c.excludes)
 }
 
 func toWindowsPaths(paths []string) []string {
-	var out []string
-	for _, path := range paths {
-		out = append(out, strings.Replace(path, "/", "\\", -1))
+	if runtime.GOOS != "windows" {
+		return paths
+	}
+
+	out := make([]string, len(paths))
+	for i, path := range paths {
+		out[i] = strings.Replace(path, "/", "\\", -1)
 	}
 
 	return out
