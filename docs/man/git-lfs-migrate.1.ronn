@@ -27,6 +27,11 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 * `--exclude-ref`=<refname>:
     See [INCLUDE AND EXCLUDE (REFS)].
 
+* `--skip-fetch`:
+    Assumes that the known set of remote references is complete, and should not
+    be refreshed when determining the set of "un-pushed" commits to migrate. Has
+    no effect when combined with `--include-ref` or `--exclude-ref`.
+
 * `--everything`:
     See [INCLUDE AND EXCLUDE (REFS)].
 

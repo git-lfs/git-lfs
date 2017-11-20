@@ -513,3 +513,30 @@ begin_test "track (\$GIT_LFS_TRACK_NO_INSTALL_HOOKS)"
   [ ! -f .git/hooks/post-merge ]
 )
 end_test
+
+begin_test "track (with comments)"
+(
+  set -e
+
+  reponame="track-with=comments"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "*.jpg filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "# *.png filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "*.pdf filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git lfs track 2>&1 | tee track.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "expected \`git lfs track\` command to exit cleanly, didn't"
+    exit 1
+  fi
+
+  [ "1" -eq "$(grep -c "\.jpg" track.log)" ]
+  [ "1" -eq "$(grep -c "\.pdf" track.log)" ]
+  [ "0" -eq "$(grep -c "\.png" track.log)" ]
+)
+end_test

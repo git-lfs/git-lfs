@@ -781,7 +781,7 @@ begin_test "pre-push locks verify 403 with good ref"
 (
   set -e
 
-  reponame="lock-verify-master-ref-required"
+  reponame="lock-verify-master-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -803,7 +803,7 @@ begin_test "pre-push locks verify 403 with good tracked ref"
 (
   set -e
 
-  reponame="lock-verify-tracked-ref-required"
+  reponame="lock-verify-tracked-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -827,7 +827,7 @@ begin_test "pre-push locks verify 403 with explicit ref"
 (
   set -e
 
-  reponame="lock-verify-explicit-ref-required"
+  reponame="lock-verify-explicit-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -849,7 +849,7 @@ begin_test "pre-push locks verify 403 with bad ref"
 (
   set -e
 
-  reponame="lock-verify-other-ref-required"
+  reponame="lock-verify-other-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
