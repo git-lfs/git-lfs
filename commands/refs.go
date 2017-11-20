@@ -57,7 +57,7 @@ func defaultRemoteRef(g config.Environment, remote string, left *git.Ref) *git.R
 
 		// When pushing to a remote that is different from the remote you normally
 		// pull from, work as current.
-		return &git.Ref{Name: left.Name}
+		return left
 	case "upstream", "tracking":
 		// push the current branch back to the branch whose changes are usually
 		// integrated into the current branch
@@ -65,10 +65,10 @@ func defaultRemoteRef(g config.Environment, remote string, left *git.Ref) *git.R
 	case "current":
 		// push the current branch to update a branch with the same name on the
 		// receiving end.
-		return &git.Ref{Name: left.Name}
+		return left
 	default:
 		tracerx.Printf("WARNING: %q push mode not supported", pushMode)
-		return &git.Ref{Name: left.Name}
+		return left
 	}
 }
 
@@ -76,7 +76,7 @@ func trackingRef(g config.Environment, left *git.Ref) *git.Ref {
 	if merge, ok := g.Get(fmt.Sprintf("branch.%s.merge", left.Name)); ok {
 		return git.ParseRef(merge, "")
 	}
-	return &git.Ref{Name: left.Name}
+	return left
 }
 
 func (u *refUpdate) RightCommitish() string {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tq"
@@ -23,7 +24,7 @@ const (
 
 func verifyLocksForUpdates(lv *lockVerifier, updates []*refUpdate) {
 	for _, update := range updates {
-		lv.Verify(update.Right().Name)
+		lv.Verify(update.Right())
 	}
 }
 
@@ -44,8 +45,8 @@ type lockVerifier struct {
 	unownedLocks []*refLock
 }
 
-func (lv *lockVerifier) Verify(ref string) {
-	if lv.verifyState == verifyStateDisabled || lv.verifiedRefs[ref] {
+func (lv *lockVerifier) Verify(ref *git.Ref) {
+	if lv.verifyState == verifyStateDisabled || lv.verifiedRefs[ref.Refspec()] {
 		return
 	}
 
@@ -76,10 +77,10 @@ func (lv *lockVerifier) Verify(ref string) {
 
 	lv.addLocks(ref, ours, lv.ourLocks)
 	lv.addLocks(ref, theirs, lv.theirLocks)
-	lv.verifiedRefs[ref] = true
+	lv.verifiedRefs[ref.Refspec()] = true
 }
 
-func (lv *lockVerifier) addLocks(ref string, locks []locking.Lock, set map[string]*refLock) {
+func (lv *lockVerifier) addLocks(ref *git.Ref, locks []locking.Lock, set map[string]*refLock) {
 	for _, l := range locks {
 		if rl, ok := set[l.Path]; ok {
 			if err := rl.Add(ref, l); err != nil {
@@ -136,11 +137,11 @@ func (lv *lockVerifier) Enabled() bool {
 	return lv.verifyState == verifyStateEnabled
 }
 
-func (lv *lockVerifier) newRefLocks(ref string, l locking.Lock) *refLock {
+func (lv *lockVerifier) newRefLocks(ref *git.Ref, l locking.Lock) *refLock {
 	return &refLock{
 		allRefs: lv.verifiedRefs,
 		path:    l.Path,
-		refs:    map[string]locking.Lock{ref: l},
+		refs:    map[*git.Ref]locking.Lock{ref: l},
 	}
 }
 
@@ -169,7 +170,7 @@ func newLockVerifier(m *tq.Manifest) *lockVerifier {
 type refLock struct {
 	path    string
 	allRefs map[string]bool
-	refs    map[string]locking.Lock
+	refs    map[*git.Ref]locking.Lock
 }
 
 // Path returns the locked path.
@@ -189,7 +190,7 @@ func (r *refLock) Owners() string {
 		if _, ok := users[u]; !ok {
 			users[u] = make([]string, 0, len(r.refs))
 		}
-		users[u] = append(users[u], ref)
+		users[u] = append(users[u], ref.Name)
 	}
 
 	owners := make([]string, 0, len(users))
@@ -212,7 +213,7 @@ func (r *refLock) Owners() string {
 	return strings.Join(owners, ", ")
 }
 
-func (r *refLock) Add(ref string, l locking.Lock) error {
+func (r *refLock) Add(ref *git.Ref, l locking.Lock) error {
 	r.refs[ref] = l
 	return nil
 }

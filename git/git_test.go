@@ -623,16 +623,3 @@ func TestRefTypeKnownPrefixes(t *testing.T) {
 		assert.Equal(t, expected.Ok, ok)
 	}
 }
-
-func TestRefTypeUnknownPrefix(t *testing.T) {
-	defer func() {
-		if err := recover(); err != nil {
-			assert.Equal(t, "git: unknown RefType -1", err)
-		} else {
-			t.Fatal("git: expected panic() from RefType.Prefix()")
-		}
-	}()
-
-	unknown := RefType(-1)
-	unknown.Prefix()
-}

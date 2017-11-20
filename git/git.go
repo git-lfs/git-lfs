@@ -54,12 +54,8 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/tags", true
 	case RefTypeRemoteTag:
 		return "refs/remotes/tags", true
-	case RefTypeHEAD:
-		return "", false
-	case RefTypeOther:
-		return "", false
 	default:
-		panic(fmt.Sprintf("git: unknown RefType %d", t))
+		return "", false
 	}
 }
 
