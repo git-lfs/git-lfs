@@ -20,10 +20,10 @@ var (
 	// in the migration.
 	migrateExcludeRefs []string
 
-	// migrateAssumeCurrentRemoteReferences assumes that the client has the
-	// latest copy of remote references, and thus should not contact the
-	// remote for a set of updated references.
-	migrateAssumeCurrentRemoteReferences bool
+	// migrateSkipFetch assumes that the client has the latest copy of
+	// remote references, and thus should not contact the remote for a set
+	// of updated references.
+	migrateSkipFetch bool
 
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
@@ -176,7 +176,7 @@ func getRemoteRefs(l *log.Logger) ([]string, error) {
 		return nil, err
 	}
 
-	if !migrateAssumeCurrentRemoteReferences {
+	if !migrateSkipFetch {
 		w := l.Waiter("migrate: Fetching remote refs")
 		if err := git.Fetch(remotes...); err != nil {
 			return nil, err
@@ -186,7 +186,7 @@ func getRemoteRefs(l *log.Logger) ([]string, error) {
 
 	for _, remote := range remotes {
 		var refsForRemote []*git.Ref
-		if migrateAssumeCurrentRemoteReferences {
+		if migrateSkipFetch {
 			refsForRemote, err = git.CachedRemoteRefs(remote)
 		} else {
 			refsForRemote, err = git.RemoteRefs(remote)
@@ -265,7 +265,7 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
-		cmd.PersistentFlags().BoolVar(&migrateAssumeCurrentRemoteReferences, "assume-current-remote-refs", false, "Assume up-to-date remote references.")
+		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
 		cmd.AddCommand(importCmd, info)
 	})

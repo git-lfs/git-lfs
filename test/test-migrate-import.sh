@@ -202,7 +202,7 @@ begin_test "migrate import (given branch, exclude remote refs)"
 )
 end_test
 
-begin_test "migrate import (given ref, --assume-current-remote-refs)"
+begin_test "migrate import (given ref, --skip-fetch)"
 (
   set -e
 
@@ -218,7 +218,7 @@ begin_test "migrate import (given ref, --assume-current-remote-refs)"
   # not fetch it.
   git update-ref -d refs/remotes/origin/master
 
-  git lfs migrate import --assume-current-remote-refs
+  git lfs migrate import --skip-fetch
 
   assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "50"
   assert_pointer "pseudo-remote" "a.md" "$md_remote_oid" "140"

@@ -132,7 +132,7 @@ begin_test "migrate info (given branch, exclude remote refs)"
 )
 end_test
 
-begin_test "migrate info (given ref, --assume-current-remote-refs)"
+begin_test "migrate info (given ref, --skip-fetch)"
 (
   set -e
 
@@ -146,7 +146,7 @@ begin_test "migrate info (given ref, --assume-current-remote-refs)"
   # not fetch it.
   git update-ref -d refs/remotes/origin/master
 
-  diff -u <(git lfs migrate info --assume-current-remote-refs 2>&1 | tail -n 2) <(cat <<-EOF
+  diff -u <(git lfs migrate info --skip-fetch 2>&1 | tail -n 2) <(cat <<-EOF
 	*.md 	190 B	2/2 files(s)	100%
 	*.txt	150 B	2/2 files(s)	100%
 	EOF)
