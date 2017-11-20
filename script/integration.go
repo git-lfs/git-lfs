@@ -54,17 +54,10 @@ func mainIntegration() {
 
 	outputDone := make(chan bool)
 	go func() {
-		for {
-			select {
-			case out, ok := <-output:
-				if !ok {
-					outputDone <- true
-					return
-				}
-
-				fmt.Println(out)
-			}
+		for out := range output {
+			fmt.Println(out)
 		}
+		outputDone <- true
 	}()
 
 	for i := 0; i < maxprocs; i++ {

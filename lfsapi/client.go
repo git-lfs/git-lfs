@@ -83,6 +83,14 @@ func joinURL(prefix, suffix string) string {
 // extra headers, redirection handling, and error reporting.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
+
+	return c.do(req)
+}
+
+// do performs an *http.Request respecting redirects, and handles the response
+// as defined in c.handleResponse. Notably, it does not alter the headers for
+// the request argument in any way.
+func (c *Client) do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)

@@ -24,6 +24,8 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
+	req.Header = c.extraHeadersFor(req)
+
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
 	if err != nil {
 		return nil, err
@@ -59,7 +61,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
-	return c.Do(req)
+	return c.do(req)
 }
 
 // getCreds fills the authorization header for the given request if possible,
