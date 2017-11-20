@@ -1101,14 +1101,14 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				return
 			}
 
-			if strings.HasSuffix(repo, "ref-required") {
+			if strings.HasSuffix(repo, "branch-required") {
 				parts := strings.Split(repo, "-")
 				lenParts := len(parts)
-				if lenParts > 3 && parts[lenParts-3] != reqBody.RefName() {
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != reqBody.RefName() {
 					w.WriteHeader(403)
 					enc.Encode(struct {
 						Message string `json:"message"`
-					}{fmt.Sprintf("Expected ref %q, got %q", parts[lenParts-3], reqBody.RefName())})
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], reqBody.RefName())})
 					return
 				}
 			}
