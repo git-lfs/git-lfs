@@ -54,13 +54,34 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/tags", true
 	case RefTypeRemoteTag:
 		return "refs/remotes/tags", true
-	case RefTypeHEAD:
-		return "", false
-	case RefTypeOther:
-		return "", false
 	default:
-		panic(fmt.Sprintf("git: unknown RefType %d", t))
+		return "", false
 	}
+}
+
+func ParseRef(absRef, sha string) *Ref {
+	r := &Ref{Sha: sha}
+	if strings.HasPrefix(absRef, "refs/heads/") {
+		r.Name = absRef[11:]
+		r.Type = RefTypeLocalBranch
+	} else if strings.HasPrefix(absRef, "refs/tags/") {
+		r.Name = absRef[10:]
+		r.Type = RefTypeLocalTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/tags/") {
+		r.Name = absRef[18:]
+		r.Type = RefTypeRemoteTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/") {
+		r.Name = absRef[13:]
+		r.Type = RefTypeRemoteBranch
+	} else {
+		r.Name = absRef
+		if absRef == "HEAD" {
+			r.Type = RefTypeHEAD
+		} else {
+			r.Type = RefTypeOther
+		}
+	}
+	return r
 }
 
 // A git reference (branch, tag etc)
@@ -68,6 +89,24 @@ type Ref struct {
 	Name string
 	Type RefType
 	Sha  string
+}
+
+// Refspec returns the fully-qualified reference name (including remote), i.e.,
+// for a remote branch called 'my-feature' on remote 'origin', this function
+// will return:
+//
+//   refs/remotes/origin/my-feature
+func (r *Ref) Refspec() string {
+	if r == nil {
+		return ""
+	}
+
+	prefix, ok := r.Type.Prefix()
+	if ok {
+		return fmt.Sprintf("%s/%s", prefix, r.Name)
+	}
+
+	return r.Name
 }
 
 // Some top level information about a commit (only first line of message)
@@ -242,19 +281,6 @@ func (c *Configuration) CurrentRemoteRef() (*Ref, error) {
 	return ResolveRef(remoteref)
 }
 
-// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
-func (c *Configuration) RemoteForCurrentBranch() (string, error) {
-	ref, err := CurrentRef()
-	if err != nil {
-		return "", err
-	}
-	remote := c.RemoteForBranch(ref.Name)
-	if remote == "" {
-		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
-	}
-	return remote, nil
-}
-
 // RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
 // that the current branch is tracking.
 func (c *Configuration) RemoteRefNameForCurrentBranch() (string, error) {
@@ -361,14 +387,7 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // reflog entry, if a "reason" was provided). It operates within the given
 // working directory "wd". It returns an error if any were encountered.
 func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
-	var refspec string
-	if prefix, ok := ref.Type.Prefix(); ok {
-		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
-	} else {
-		refspec = ref.Name
-	}
-
-	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
@@ -421,39 +440,6 @@ func ValidateRemoteURL(remote string) error {
 	default:
 		return fmt.Errorf("Invalid remote url protocol %q in %q", u.Scheme, remote)
 	}
-}
-
-// DefaultRemote returns the default remote based on:
-// 1. The currently tracked remote branch, if present
-// 2. "origin", if defined
-// 3. Any other SINGLE remote defined in .git/config
-// Returns an error if all of these fail, i.e. no tracked remote branch, no
-// "origin", and either no remotes defined or 2+ non-"origin" remotes
-func (c *Configuration) DefaultRemote() (string, error) {
-	tracked, err := c.RemoteForCurrentBranch()
-	if err == nil {
-		return tracked, nil
-	}
-
-	// Otherwise, check what remotes are defined
-	remotes, err := RemoteList()
-	if err != nil {
-		return "", err
-	}
-	switch len(remotes) {
-	case 0:
-		return "", errors.New("No remotes defined")
-	case 1: // always use a single remote whether it's origin or otherwise
-		return remotes[0], nil
-	default:
-		for _, remote := range remotes {
-			// Use origin if present
-			if remote == "origin" {
-				return remote, nil
-			}
-		}
-	}
-	return "", errors.New("Unable to pick default remote, too ambiguous")
 }
 
 func UpdateIndexFromStdin() *subprocess.Cmd {

@@ -64,6 +64,35 @@ begin_test "happy path"
 )
 end_test
 
+begin_test "happy path on non-origin remote"
+(
+  set -e
+
+  reponame="happy-without-origin"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-without-origin
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track"
+  git push origin master
+
+  clone_repo "$reponame" clone-without-origin
+  git remote rename origin happy-path
+
+  cd ../repo-without-origin
+  echo "a" > a.dat
+  git add a.dat
+  git commit -m "boom"
+  git push origin master
+
+  cd ../clone-without-origin
+  echo "remotes:"
+  git remote
+  git pull happy-path master
+)
+end_test
+
 begin_test "clears local temp objects"
 (
   set -e

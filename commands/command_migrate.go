@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -19,6 +20,11 @@ var (
 	// migrateExcludeRefs is a set of Git references to explicitly exclude
 	// in the migration.
 	migrateExcludeRefs []string
+
+	// migrateSkipFetch assumes that the client has the latest copy of
+	// remote references, and thus should not contact the remote for a set
+	// of updated references.
+	migrateSkipFetch bool
 
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
@@ -122,7 +128,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 
-		include = append(include, ref.Name)
+		include = append(include, ref.Refspec())
 	}
 
 	if hardcore {
@@ -142,7 +148,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 		}
 
 		for _, ref := range localRefs {
-			include = append(include, ref.Name)
+			include = append(include, ref.Refspec())
 		}
 	} else {
 		// Otherwise, if neither --include-ref=<ref> or
@@ -154,7 +160,9 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 			return nil, nil, err
 		}
 
-		exclude = append(exclude, remoteRefs...)
+		for _, rr := range remoteRefs {
+			exclude = append(exclude, rr.Refspec())
+		}
 	}
 
 	return include, exclude, nil
@@ -163,28 +171,40 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *log.Logger) ([]string, error) {
-	var refs []string
+func getRemoteRefs(l *log.Logger) ([]*git.Ref, error) {
+	var refs []*git.Ref
 
 	remotes, err := git.RemoteList()
 	if err != nil {
 		return nil, err
 	}
 
-	w := l.Waiter("migrate: Fetching remote refs")
-	if err := git.Fetch(remotes...); err != nil {
-		return nil, err
+	if !migrateSkipFetch {
+		w := l.Waiter("migrate: Fetching remote refs")
+		if err := git.Fetch(remotes...); err != nil {
+			return nil, err
+		}
+		w.Complete()
 	}
-	w.Complete()
 
 	for _, remote := range remotes {
-		refsForRemote, err := git.RemoteRefs(remote)
+		var refsForRemote []*git.Ref
+		if migrateSkipFetch {
+			refsForRemote, err = git.CachedRemoteRefs(remote)
+		} else {
+			refsForRemote, err = git.RemoteRefs(remote)
+		}
+
 		if err != nil {
 			return nil, err
 		}
 
-		for _, ref := range refsForRemote {
-			refs = append(refs, formatRefName(ref, remote))
+		for _, rr := range refsForRemote {
+			// HACK(@ttaylorr): add remote name to fully-qualify
+			// references:
+			rr.Name = fmt.Sprintf("%s/%s", remote, rr.Name)
+
+			refs = append(refs, rr)
 		}
 	}
 
@@ -252,6 +272,7 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateIncludeRefs, "include-ref", nil, "An explicit list of refs to include")
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
+		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
 		cmd.AddCommand(importCmd, info)
 	})

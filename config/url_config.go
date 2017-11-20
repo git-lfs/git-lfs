@@ -50,6 +50,11 @@ func (c *URLConfig) GetAll(prefix, rawurl, key string) []string {
 	return c.git.GetAll(strings.Join([]string{prefix, key}, "."))
 }
 
+func (c *URLConfig) Bool(prefix, rawurl, key string, def bool) bool {
+	s, _ := c.Get(prefix, rawurl, key)
+	return Bool(s, def)
+}
+
 func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 	hosts, paths := c.hostsAndPaths(rawurl)
 

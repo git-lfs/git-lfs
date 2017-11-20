@@ -90,8 +90,8 @@ func closeAPIClient() error {
 	return apiClient.Close()
 }
 
-func newLockClient(remote string) *locking.Client {
-	lockClient, err := locking.NewClient(remote, getAPIClient())
+func newLockClient() *locking.Client {
+	lockClient, err := locking.NewClient(cfg.PushRemote(), getAPIClient())
 	if err == nil {
 		os.MkdirAll(cfg.LFSStorageDir(), 0755)
 		err = lockClient.SetupFileCache(cfg.LFSStorageDir())

@@ -206,12 +206,15 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
-func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err error) {
+func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{
+		Ref:   &lockRef{Name: ref.Refspec()},
 		Limit: limit,
 	}
+
+	c.cache.Clear()
 
 	for {
 		list, res, err := c.client.SearchVerifiable(c.Remote, body)
@@ -236,6 +239,7 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 		}
 
 		for _, l := range list.Ours {
+			c.cache.Add(l)
 			ourLocks = append(ourLocks, l)
 			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
 				return ourLocks, theirLocks, nil
@@ -243,6 +247,7 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 		}
 
 		for _, l := range list.Theirs {
+			c.cache.Add(l)
 			theirLocks = append(theirLocks, l)
 			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
 				return ourLocks, theirLocks, nil
@@ -347,23 +352,6 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	default:
 		return "", ErrLockAmbiguous
 	}
-}
-
-// Fetch locked files for the current user and cache them locally
-// This can be used to sync up locked files when moving machines
-func (c *Client) refreshLockCache() error {
-	ourLocks, _, err := c.VerifiableLocks(0)
-	if err != nil {
-		return err
-	}
-
-	// We're going to overwrite the entire local cache
-	c.cache.Clear()
-	for _, l := range ourLocks {
-		c.cache.Add(l)
-	}
-
-	return nil
 }
 
 // IsFileLockedByCurrentCommitter returns whether a file is locked by the

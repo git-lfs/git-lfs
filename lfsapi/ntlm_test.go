@@ -90,7 +90,6 @@ func TestNTLMAuth(t *testing.T) {
 	creds := Creds{
 		"protocol": srvURL.Scheme,
 		"host":     srvURL.Host,
-		"path":     "ntlm",
 		"username": "ntlmdomain\\ntlmuser",
 		"password": "ntlmpass",
 	}
