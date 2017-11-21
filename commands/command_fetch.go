@@ -2,10 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tq"
@@ -227,7 +229,9 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
+	logger := log.NewLogger(OutputWriter)
 	spinner := progress.NewSpinner()
+	logger.Enqueue(spinner)
 	var numObjs int64
 
 	// use temp gitscanner to collect pointers
@@ -244,7 +248,7 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+		spinner.Spinf("%d objects found", numObjs)
 		pointers = append(pointers, p)
 	})
 
@@ -258,7 +262,7 @@ func scanAll() []*lfs.WrappedPointer {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
-	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+	spinner.Finish("%d objects found", numObjs)
 	return pointers
 }
 
@@ -321,7 +325,10 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 }
 
 func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
+	logger := log.NewLogger(os.Stdout)
 	meter := buildProgressMeter(false)
+	logger.Enqueue(meter)
+
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))

@@ -2,50 +2,68 @@ package progress
 
 import (
 	"fmt"
-	"io"
 	"runtime"
+	"time"
+
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 )
 
 // Indeterminate progress indicator 'spinner'
 type Spinner struct {
 	stage int
 	msg   string
+
+	updates chan *log.Update
 }
 
 var spinnerChars = []byte{'|', '/', '-', '\\'}
 
-// Print a spinner (stage) to out followed by msg (no linefeed)
-func (s *Spinner) Print(out io.Writer, msg string) {
-	s.msg = msg
-	s.Spin(out)
+func NewSpinner() *Spinner {
+	return &Spinner{
+		updates: make(chan *log.Update),
+	}
 }
 
-// Just spin the spinner one more notch & use the last message
-func (s *Spinner) Spin(out io.Writer) {
-	s.stage = (s.stage + 1) % len(spinnerChars)
-	s.update(out, string(spinnerChars[s.stage]), s.msg)
+func (s *Spinner) Updates() <-chan *log.Update {
+	return s.updates
+}
+
+func (s *Spinner) Throttled() bool {
+	return false
+}
+
+func (s *Spinner) Spinf(fstr string, vs ...interface{}) {
+	s.msg = fmt.Sprintf(fstr, vs...)
+	s.spin(s.msg)
+}
+
+func (s *Spinner) Spin() {
+	s.spin(s.msg)
 }
 
 // Finish the spinner with a completion message & newline
-func (s *Spinner) Finish(out io.Writer, finishMsg string) {
-	s.msg = finishMsg
-	s.stage = 0
+func (s *Spinner) Finish(fstr string, vs ...interface{}) {
 	var sym string
 	if runtime.GOOS == "windows" {
-		// Windows console sucks, can't do nice check mark except in ConEmu (not cmd or git bash)
-		// So play it safe & boring
+		// Windows' console can't render UTF-8 check marks outside of
+		// ConEmu, so fall-back to '*'.
 		sym = "*"
 	} else {
 		sym = fmt.Sprintf("%c", '\u2714')
 	}
-	s.update(out, sym, finishMsg)
-	out.Write([]byte{'\n'})
+	s.update(sym, fmt.Sprintf(fstr, vs...))
+
+	close(s.updates)
 }
 
-func (s *Spinner) update(out io.Writer, prefix, msg string) {
-	fmt.Fprintf(out, "\r%v", pad(fmt.Sprintf("%v %v", prefix, msg)))
+func (s *Spinner) spin(msg string) {
+	s.stage = (s.stage + 1) % len(spinnerChars)
+	s.update(string(spinnerChars[s.stage]), msg)
 }
 
-func NewSpinner() *Spinner {
-	return &Spinner{}
+func (s *Spinner) update(sym, msg string) {
+	s.updates <- &log.Update{
+		S:  fmt.Sprintf("%s %s", sym, msg),
+		At: time.Now(),
+	}
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/fs"
+	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/test"
@@ -179,7 +180,9 @@ func buildTestData(repo *test.Repo, manifest *tq.Manifest) (oidsExist, oidsMissi
 	oidsMissing = make([]TestObject, 0, oidCount)
 
 	// just one commit
+	logger := log.NewLogger(os.Stdout)
 	meter := progress.NewMeter(progress.WithOSEnv(repo.OSEnv()))
+	logger.Enqueue(meter)
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
 	for i := 0; i < oidCount; i++ {
 		filename := fmt.Sprintf("file%d.dat", i)

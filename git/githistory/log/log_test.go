@@ -34,7 +34,7 @@ func TestLoggerLogsTasks(t *testing.T) {
 	l := NewLogger(&buf)
 	l.throttle = 0
 	l.widthFn = func() int { return 0 }
-	l.enqueue(ChanTask(task))
+	l.Enqueue(ChanTask(task))
 	l.Close()
 
 	assert.Equal(t, "first\rsecond\rsecond, done\n", buf.String())
@@ -59,7 +59,7 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 	l := NewLogger(&buf)
 	l.throttle = 0
 	l.widthFn = func() int { return 0 }
-	l.enqueue(ChanTask(t1), ChanTask(t2))
+	l.Enqueue(ChanTask(t1), ChanTask(t2))
 	l.Close()
 
 	assert.Equal(t, strings.Join([]string{
@@ -80,10 +80,10 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 	t1, t2 := make(chan *Update), make(chan *Update)
 
 	l.widthFn = func() int { return 0 }
-	l.enqueue(ChanTask(t1))
+	l.Enqueue(ChanTask(t1))
 
 	t1 <- &Update{"first", time.Now(), false}
-	l.enqueue(ChanTask(t2))
+	l.Enqueue(ChanTask(t2))
 	close(t1)
 	t2 <- &Update{"second", time.Now(), false}
 	close(t2)
@@ -116,7 +116,7 @@ func TestLoggerThrottlesWrites(t *testing.T) {
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Millisecond
 
-	l.enqueue(ChanTask(t1))
+	l.Enqueue(ChanTask(t1))
 	l.Close()
 
 	assert.Equal(t, strings.Join([]string{
@@ -143,7 +143,7 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Millisecond
 
-	l.enqueue(ChanTask(t1))
+	l.Enqueue(ChanTask(t1))
 	l.Close()
 
 	assert.Equal(t, strings.Join([]string{
@@ -166,7 +166,7 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 		close(t1)                                  // t = 0+3ε ms, throttle is closed
 	}()
 
-	l.enqueue(UnthrottledChanTask(t1))
+	l.Enqueue(UnthrottledChanTask(t1))
 	l.Close()
 
 	assert.Equal(t, strings.Join([]string{
@@ -174,4 +174,17 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 		"second\r",
 		"second, done\n",
 	}, ""), buf.String())
+}
+
+func TestLoggerHandlesSilentTasks(t *testing.T) {
+	var buf bytes.Buffer
+
+	task := make(chan *Update)
+	close(task)
+
+	l := NewLogger(&buf)
+	l.Enqueue(ChanTask(task))
+	l.Close()
+
+	assert.Equal(t, "", buf.String())
 }
