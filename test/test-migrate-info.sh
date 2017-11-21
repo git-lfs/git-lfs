@@ -132,6 +132,33 @@ begin_test "migrate info (given branch, exclude remote refs)"
 )
 end_test
 
+begin_test "migrate info (given ref, --skip-fetch)"
+(
+  set -e
+
+  setup_single_remote_branch
+
+  original_remote="$(git rev-parse refs/remotes/origin/master)"
+  original_master="$(git rev-parse refs/heads/master)"
+
+  git tag pseudo-remote "$original_remote"
+  # Remove the refs/remotes/origin/master ref, and instruct 'git lfs migrate' to
+  # not fetch it.
+  git update-ref -d refs/remotes/origin/master
+
+  diff -u <(git lfs migrate info --skip-fetch 2>&1 | tail -n 2) <(cat <<-EOF
+	*.md 	190 B	2/2 files(s)	100%
+	*.txt	150 B	2/2 files(s)	100%
+	EOF)
+
+  migrated_remote="$(git rev-parse pseudo-remote)"
+  migrated_master="$(git rev-parse refs/heads/master)"
+
+  assert_ref_unmoved "refs/remotes/origin/master" "$original_remote" "$migrated_remote"
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+)
+end_test
+
 begin_test "migrate info (include/exclude ref)"
 (
   set -e
@@ -304,6 +331,21 @@ begin_test "migrate info (--everything)"
 
   assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
+begin_test "migrate info (ambiguous reference)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  # Create an ambiguously named reference sharing the name as the SHA-1 of
+  # "HEAD".
+  sha="$(git rev-parse HEAD)"
+  git tag "$sha"
+
+  git lfs migrate info --everything
 )
 end_test
 

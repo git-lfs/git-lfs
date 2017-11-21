@@ -206,11 +206,11 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
-func (c *Client) VerifiableLocks(ref string, limit int) (ourLocks, theirLocks []Lock, err error) {
+func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{
-		Ref:   &lockRef{Name: ref},
+		Ref:   &lockRef{Name: ref.Refspec()},
 		Limit: limit,
 	}
 

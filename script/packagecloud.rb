@@ -60,6 +60,7 @@ $distro_name_map = {
     ubuntu/xenial
     ubuntu/yakkety
     ubuntu/zesty
+    ubuntu/artful
   ),
 }
 
