@@ -16,7 +16,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -192,7 +191,7 @@ func performUpload(apiClient *lfsapi.Client, oid string, size int64, a *action, 
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
 	}
-	req.Body = progress.NewBodyWithCallback(f, size, cb)
+	req.Body = tools.NewBodyWithCallback(f, size, cb)
 
 	res, err := apiClient.DoWithAuth("origin", req)
 	if err != nil {

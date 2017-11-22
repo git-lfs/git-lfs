@@ -6,7 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ import (
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
 func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
-	var cb progress.CopyCallback
+	var cb tools.CopyCallback
 	var file *os.File
 
 	if len(fileName) > 0 {

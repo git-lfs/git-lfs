@@ -9,7 +9,6 @@ import (
 	"runtime"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -25,7 +24,7 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
+func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles int) (tools.CopyCallback, *os.File, error) {
 	logPath, _ := f.cfg.Os.Get("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
@@ -47,7 +46,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 
 	var prevWritten int64
 
-	cb := progress.CopyCallback(func(total int64, written int64, current int) error {
+	cb := tools.CopyCallback(func(total int64, written int64, current int) error {
 		if written != prevWritten {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()

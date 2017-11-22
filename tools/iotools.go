@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/progress"
 )
 
 const (
@@ -21,7 +20,7 @@ const (
 )
 
 // CopyWithCallback copies reader to writer while performing a progress callback
-func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb progress.CopyCallback) (int64, error) {
+func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
 	if success, _ := CloneFile(writer, reader); success {
 		if cb != nil {
 			cb(totalSize, totalSize, 0)
@@ -32,7 +31,7 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb pr
 		return io.Copy(writer, reader)
 	}
 
-	cbReader := &progress.CallbackReader{
+	cbReader := &CallbackReader{
 		C:         cb,
 		TotalSize: totalSize,
 		Reader:    reader,
