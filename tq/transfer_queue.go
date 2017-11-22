@@ -109,7 +109,7 @@ type TransferQueue struct {
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
 	cb                tools.CopyCallback
-	meter             progress.Meter
+	meter             *progress.Meter
 	errors            []error
 	transfers         map[string]*objects
 	batchSize         int
@@ -178,7 +178,7 @@ func DryRun(dryRun bool) Option {
 	}
 }
 
-func WithProgress(m progress.Meter) Option {
+func WithProgress(m *progress.Meter) Option {
 	return func(tq *TransferQueue) {
 		tq.meter = m
 	}

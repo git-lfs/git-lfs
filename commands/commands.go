@@ -436,7 +436,7 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter(dryRun bool) *progress.ProgressMeter {
+func buildProgressMeter(dryRun bool) *progress.Meter {
 	return progress.NewMeter(
 		progress.WithOSEnv(cfg.Os),
 		progress.DryRun(dryRun),
