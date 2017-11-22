@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 )
 
@@ -26,7 +27,7 @@ type Meter struct {
 	estimatedFiles    int32
 	paused            uint32
 	logToFile         uint32
-	logger            *progressLogger
+	logger            *tools.SyncWriter
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	dryRun            bool
@@ -76,7 +77,7 @@ func WithLogFile(name string) meterOption {
 		}
 
 		m.logToFile = 1
-		m.logger.log = file
+		m.logger = tools.NewSyncWriter(file)
 	}
 }
 
@@ -90,7 +91,6 @@ func WithOSEnv(os env) meterOption {
 // NewMeter creates a new Meter.
 func NewMeter(options ...meterOption) *Meter {
 	m := &Meter{
-		logger:         &progressLogger{},
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tlog.Update),
