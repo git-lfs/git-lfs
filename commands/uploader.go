@@ -11,9 +11,9 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tlog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
@@ -57,7 +57,7 @@ type uploadContext struct {
 	uploadedOids tools.StringSet
 	gitfilter    *lfs.GitFilter
 
-	logger *log.Logger
+	logger *tlog.Logger
 	meter  progress.Meter
 	tq     *tq.TransferQueue
 
@@ -93,7 +93,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 		sink = ioutil.Discard
 	}
 
-	ctx.logger = log.NewLogger(sink)
+	ctx.logger = tlog.NewLogger(sink)
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.logger.Enqueue(ctx.meter)
 

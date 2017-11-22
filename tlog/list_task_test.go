@@ -1,4 +1,4 @@
-package log
+package tlog
 
 import (
 	"testing"
@@ -14,9 +14,9 @@ func TestListTaskCallsDoneWhenComplete(t *testing.T) {
 	case update, ok := <-task.Updates():
 		assert.Equal(t, "example: ...", update.S)
 		assert.True(t, ok,
-			"git/githistory/log: expected Updates() to remain open")
+			"tlog: expected Updates() to remain open")
 	default:
-		t.Fatal("git/githistory/log: expected update from *ListTask")
+		t.Fatal("tlog: expected update from *ListTask")
 	}
 
 	select {
@@ -24,7 +24,7 @@ func TestListTaskCallsDoneWhenComplete(t *testing.T) {
 		assert.False(t, ok,
 			"git/githistory.log: unexpected *ListTask.Update(): %s", update)
 	default:
-		t.Fatal("git/githistory/log: expected *ListTask.Updates() to be closed")
+		t.Fatal("tlog: expected *ListTask.Updates() to be closed")
 	}
 }
 
@@ -35,10 +35,10 @@ func TestListTaskWritesEntries(t *testing.T) {
 	select {
 	case update, ok := <-task.Updates():
 		assert.True(t, ok,
-			"git/githistory/log: expected ListTask.Updates() to remain open")
+			"tlog: expected ListTask.Updates() to remain open")
 		assert.Equal(t, "1\n", update.S)
 	default:
-		t.Fatal("git/githistory/log: expected task.Updates() to have an update")
+		t.Fatal("tlog: expected task.Updates() to have an update")
 	}
 }
 
@@ -48,5 +48,5 @@ func TestListTaskIsNotThrottled(t *testing.T) {
 	throttled := task.Throttled()
 
 	assert.False(t, throttled,
-		"git/githistory/log: expected *ListTask to be Throttle()-d")
+		"tlog: expected *ListTask to be Throttle()-d")
 }

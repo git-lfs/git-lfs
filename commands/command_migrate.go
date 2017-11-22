@@ -8,8 +8,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/tlog"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ var (
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
-func migrate(args []string, r *githistory.Rewriter, l *log.Logger, opts *githistory.RewriteOptions) {
+func migrate(args []string, r *githistory.Rewriter, l *tlog.Logger, opts *githistory.RewriteOptions) {
 	requireInRepo()
 
 	opts, err := rewriteOptions(args, opts, l)
@@ -73,7 +73,7 @@ func getObjectDatabase() (*odb.ObjectDatabase, error) {
 //
 // If any of the above could not be determined without error, that error will be
 // returned immediately.
-func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logger) (*githistory.RewriteOptions, error) {
+func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tlog.Logger) (*githistory.RewriteOptions, error) {
 	include, exclude, err := includeExcludeRefs(l, args)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *log.Logge
 //     arguments and the --include-ref= or --exclude-ref= flag(s) aren't given.
 //   - Include all references given in --include-ref=<ref>.
 //   - Exclude all references given in --exclude-ref=<ref>.
-func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string, err error) {
+func includeExcludeRefs(l *tlog.Logger, args []string) (include, exclude []string, err error) {
 	hardcore := len(migrateIncludeRefs) > 0 || len(migrateExcludeRefs) > 0
 
 	if len(args) == 0 && !hardcore && !migrateEverything {
@@ -171,7 +171,7 @@ func includeExcludeRefs(l *log.Logger, args []string) (include, exclude []string
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *log.Logger) ([]*git.Ref, error) {
+func getRemoteRefs(l *tlog.Logger) ([]*git.Ref, error) {
 	var refs []*git.Ref
 
 	remotes, err := git.RemoteList()
@@ -248,7 +248,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
 // filter given by the --include and --exclude arguments.
-func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase, l *log.Logger) *githistory.Rewriter {
+func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase, l *tlog.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 

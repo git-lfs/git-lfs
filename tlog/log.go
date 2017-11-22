@@ -1,4 +1,4 @@
-package log
+package tlog
 
 import (
 	"fmt"
@@ -187,8 +187,8 @@ func (l *Logger) consume() {
 // of time specified by `l.throttle time.Duration`.
 //
 // If the duration if 0, or the task is "durable" (by implementing
-// github.com/git-lfs/git-lfs/git/githistory/log#DurableTask), then all entries
-// will be logged.
+// github.com/git-lfs/git-lfs/tlog#DurableTask), then all entries will be
+// logged.
 func (l *Logger) logTask(task Task) {
 	defer l.wg.Done()
 

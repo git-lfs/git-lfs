@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
+	"github.com/git-lfs/git-lfs/tlog"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -19,7 +19,7 @@ type refUpdater struct {
 	// signaling whether or not that given "old" SHA1 was migrated.
 	CacheFn func(old []byte) ([]byte, bool)
 	// Logger logs the progress of reference updating.
-	Logger *log.Logger
+	Logger *tlog.Logger
 	// Refs is a set of *git.Ref's to migrate.
 	Refs []*git.Ref
 	// Root is the given directory on disk in which the repository is

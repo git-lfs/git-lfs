@@ -1,4 +1,4 @@
-package log
+package tlog
 
 import (
 	"fmt"
@@ -41,7 +41,7 @@ func NewPercentageTask(msg string, total uint64) *PercentageTask {
 // been completed.
 func (c *PercentageTask) Count(n uint64) (new uint64) {
 	if new = atomic.AddUint64(&c.n, n); new > c.total {
-		panic("git/githistory/log: counted too many items")
+		panic("tlog: counted too many items")
 	}
 
 	var percentage float64
