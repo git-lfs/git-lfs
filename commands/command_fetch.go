@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
+	"github.com/git-lfs/git-lfs/tq/meter"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -324,7 +325,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.Meter) {
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *meter.Meter) {
 	logger := tasklog.NewLogger(os.Stdout)
 	meter := buildProgressMeter(false)
 	logger.Enqueue(meter)

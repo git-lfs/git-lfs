@@ -1,4 +1,4 @@
-package progress
+package meter
 
 import (
 	"fmt"

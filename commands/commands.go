@@ -20,9 +20,9 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
+	"github.com/git-lfs/git-lfs/tq/meter"
 )
 
 // Populate man pages
@@ -436,10 +436,10 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter(dryRun bool) *progress.Meter {
-	return progress.NewMeter(
-		progress.WithOSEnv(cfg.Os),
-		progress.DryRun(dryRun),
+func buildProgressMeter(dryRun bool) *meter.Meter {
+	return meter.NewMeter(
+		meter.WithOSEnv(cfg.Os),
+		meter.DryRun(dryRun),
 	)
 }
 
