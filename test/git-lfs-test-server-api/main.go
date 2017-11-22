@@ -13,10 +13,10 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/git-lfs/git-lfs/tq"
+	"github.com/git-lfs/git-lfs/tq/meter"
 	"github.com/spf13/cobra"
 )
 
@@ -181,7 +181,7 @@ func buildTestData(repo *test.Repo, manifest *tq.Manifest) (oidsExist, oidsMissi
 
 	// just one commit
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := progress.NewMeter(progress.WithOSEnv(repo.OSEnv()))
+	meter := meter.NewMeter(meter.WithOSEnv(repo.OSEnv()))
 	logger.Enqueue(meter)
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
 	for i := 0; i < oidCount; i++ {
