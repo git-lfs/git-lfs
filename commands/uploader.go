@@ -12,8 +12,8 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tlog/tmeter"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
@@ -58,7 +58,7 @@ type uploadContext struct {
 	gitfilter    *lfs.GitFilter
 
 	logger *tlog.Logger
-	meter  *progress.Meter
+	meter  *tmeter.Meter
 	tq     *tq.TransferQueue
 
 	committerName  string

@@ -1,4 +1,4 @@
-package progress
+package tmeter
 
 import (
 	"fmt"

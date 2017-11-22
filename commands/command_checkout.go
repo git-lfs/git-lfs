@@ -7,8 +7,8 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tlog/tmeter"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	var totalBytes int64
 	var pointers []*lfs.WrappedPointer
 	logger := tlog.NewLogger(os.Stdout)
-	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	meter := tmeter.NewMeter(tmeter.WithOSEnv(cfg.Os))
 	logger.Enqueue(meter)
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {

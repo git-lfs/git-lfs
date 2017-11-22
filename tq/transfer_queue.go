@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tlog/tmeter"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -109,7 +109,7 @@ type TransferQueue struct {
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
 	cb                tools.CopyCallback
-	meter             *progress.Meter
+	meter             *tmeter.Meter
 	errors            []error
 	transfers         map[string]*objects
 	batchSize         int
@@ -178,7 +178,7 @@ func DryRun(dryRun bool) Option {
 	}
 }
 
-func WithProgress(m *progress.Meter) Option {
+func WithProgress(m *tmeter.Meter) Option {
 	return func(tq *TransferQueue) {
 		tq.meter = m
 	}
