@@ -226,11 +226,6 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	}
 
 	q.incoming = make(chan *objectTuple, q.bufferDepth)
-
-	if q.meter == nil {
-		q.meter = progress.Noop()
-	}
-
 	q.collectorWait.Add(1)
 	q.errorwait.Add(1)
 	q.run()

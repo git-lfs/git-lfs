@@ -105,11 +105,17 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 
 // Start begins sending status updates to the optional log file, and stdout.
 func (p *ProgressMeter) Start() {
+	if p == nil {
+		return
+	}
 	atomic.StoreUint32(&p.paused, 0)
 }
 
 // Pause stops sending status updates temporarily, until Start() is called again.
 func (p *ProgressMeter) Pause() {
+	if p == nil {
+		return
+	}
 	atomic.StoreUint32(&p.paused, 1)
 }
 
@@ -117,6 +123,10 @@ func (p *ProgressMeter) Pause() {
 // possibly be transferred. If a file doesn't need to be transferred for some
 // reason, be sure to call Skip(int64) with the same size.
 func (p *ProgressMeter) Add(size int64) {
+	if p == nil {
+		return
+	}
+
 	defer p.update()
 	atomic.AddInt32(&p.estimatedFiles, 1)
 	atomic.AddInt64(&p.estimatedBytes, size)
@@ -125,6 +135,10 @@ func (p *ProgressMeter) Add(size int64) {
 // Skip tells the progress meter that a file of size `size` is being skipped
 // because the transfer is unnecessary.
 func (p *ProgressMeter) Skip(size int64) {
+	if p == nil {
+		return
+	}
+
 	defer p.update()
 	atomic.AddInt64(&p.skippedFiles, 1)
 	atomic.AddInt64(&p.skippedBytes, size)
@@ -136,6 +150,10 @@ func (p *ProgressMeter) Skip(size int64) {
 // StartTransfer tells the progress meter that a transferring file is being
 // added to the TransferQueue.
 func (p *ProgressMeter) StartTransfer(name string) {
+	if p == nil {
+		return
+	}
+
 	defer p.update()
 	idx := atomic.AddInt64(&p.transferringFiles, 1)
 	p.fileIndexMutex.Lock()
@@ -145,6 +163,10 @@ func (p *ProgressMeter) StartTransfer(name string) {
 
 // TransferBytes increments the number of bytes transferred
 func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64, current int) {
+	if p == nil {
+		return
+	}
+
 	defer p.update()
 	atomic.AddInt64(&p.currentBytes, int64(current))
 	p.logBytes(direction, name, read, total)
@@ -152,6 +174,10 @@ func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64,
 
 // FinishTransfer increments the finished transfer count
 func (p *ProgressMeter) FinishTransfer(name string) {
+	if p == nil {
+		return
+	}
+
 	defer p.update()
 	atomic.AddInt64(&p.finishedFiles, 1)
 	p.fileIndexMutex.Lock()
@@ -161,11 +187,19 @@ func (p *ProgressMeter) FinishTransfer(name string) {
 
 // Finish shuts down the ProgressMeter
 func (p *ProgressMeter) Finish() {
+	if p == nil {
+		return
+	}
+
 	p.update()
 	close(p.updates)
 }
 
 func (p *ProgressMeter) Updates() <-chan *tasklog.Update {
+	if p == nil {
+		return nil
+	}
+
 	return p.updates
 }
 
