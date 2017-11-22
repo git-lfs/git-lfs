@@ -25,6 +25,7 @@ type ProgressMeter struct {
 	skippedBytes      int64
 	estimatedFiles    int32
 	paused            uint32
+	logToFile         uint32
 	logger            *progressLogger
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
@@ -74,7 +75,7 @@ func WithLogFile(name string) meterOption {
 			return
 		}
 
-		m.logger.writeData = true
+		m.logToFile = 1
 		m.logger.log = file
 	}
 }
@@ -215,7 +216,9 @@ func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
 	idx := p.fileIndex[name]
 	p.fileIndexMutex.Unlock()
 	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.estimatedFiles, read, total, name)
-	if err := p.logger.Write([]byte(line)); err != nil {
-		p.logger.Shutdown()
+	if atomic.LoadUint32(&p.logToFile) == 1 {
+		if err := p.logger.Write([]byte(line)); err != nil {
+			atomic.StoreUint32(&p.logToFile, 0)
+		}
 	}
 }
