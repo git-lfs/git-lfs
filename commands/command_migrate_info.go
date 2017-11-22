@@ -11,7 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/odb"
-	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/spf13/cobra"
@@ -40,7 +40,7 @@ var (
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
-	l := tlog.NewLogger(os.Stderr)
+	l := tasklog.NewLogger(os.Stderr)
 
 	db, err := getObjectDatabase()
 	if err != nil {

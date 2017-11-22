@@ -14,13 +14,13 @@ import (
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
-	l := tlog.NewLogger(os.Stderr)
+	l := tasklog.NewLogger(os.Stderr)
 	defer l.Close()
 
 	db, err := getObjectDatabase()

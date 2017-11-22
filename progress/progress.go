@@ -2,10 +2,10 @@
 // NOTE: Subject to change, do not rely on this package from outside git-lfs source
 package progress
 
-import "github.com/git-lfs/git-lfs/tlog"
+import "github.com/git-lfs/git-lfs/tasklog"
 
 type Meter interface {
-	tlog.Task
+	tasklog.Task
 
 	Start()
 	Pause()

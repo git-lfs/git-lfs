@@ -1,4 +1,4 @@
-package tlog
+package tasklog
 
 import (
 	"testing"
@@ -39,12 +39,12 @@ func TestWaitingTaskPanicsWithMultipleDoneCalls(t *testing.T) {
 
 	defer func() {
 		if err := recover(); err == nil {
-			t.Fatal("tlog: expected panic()")
+			t.Fatal("tasklog: expected panic()")
 		} else {
 			if s, ok := err.(error); ok {
 				assert.Equal(t, "close of closed channel", s.Error())
 			} else {
-				t.Fatal("tlog: expected panic() to implement error")
+				t.Fatal("tasklog: expected panic() to implement error")
 			}
 		}
 	}()
@@ -58,5 +58,5 @@ func TestWaitingTaskIsThrottled(t *testing.T) {
 	throttled := task.Throttled()
 
 	assert.True(t, throttled,
-		"tlog: expected *WaitingTask to be Throttle()-d")
+		"tasklog: expected *WaitingTask to be Throttle()-d")
 }

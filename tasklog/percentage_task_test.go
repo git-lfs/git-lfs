@@ -1,4 +1,4 @@
-package tlog
+package tasklog
 
 import (
 	"testing"
@@ -58,13 +58,13 @@ func TestPercentageTaskIsThrottled(t *testing.T) {
 	throttled := task.Throttled()
 
 	assert.True(t, throttled,
-		"tlog: expected *PercentageTask to be Throttle()-d")
+		"tasklog: expected *PercentageTask to be Throttle()-d")
 }
 
 func TestPercentageTaskPanicsWhenOvercounted(t *testing.T) {
 	task := NewPercentageTask("example", 0)
 	defer func() {
-		assert.Equal(t, "tlog: counted too many items", recover())
+		assert.Equal(t, "tasklog: counted too many items", recover())
 	}()
 
 	task.Count(1)

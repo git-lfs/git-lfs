@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/git-lfs/git-lfs/tlog"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 )
 
@@ -29,7 +29,7 @@ type ProgressMeter struct {
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	dryRun            bool
-	updates           chan *tlog.Update
+	updates           chan *tasklog.Update
 }
 
 type env interface {
@@ -92,7 +92,7 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 		logger:         &progressLogger{},
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
-		updates:        make(chan *tlog.Update),
+		updates:        make(chan *tasklog.Update),
 	}
 
 	for _, opt := range options {
@@ -164,7 +164,7 @@ func (p *ProgressMeter) Finish() {
 	close(p.updates)
 }
 
-func (p *ProgressMeter) Updates() <-chan *tlog.Update {
+func (p *ProgressMeter) Updates() <-chan *tasklog.Update {
 	return p.updates
 }
 
@@ -177,7 +177,7 @@ func (p *ProgressMeter) update() {
 		return
 	}
 
-	p.updates <- &tlog.Update{
+	p.updates <- &tasklog.Update{
 		S:  p.str(),
 		At: time.Now(),
 	}

@@ -1,15 +1,15 @@
 package progress
 
-import "github.com/git-lfs/git-lfs/tlog"
+import "github.com/git-lfs/git-lfs/tasklog"
 
 func Noop() Meter {
 	return &nonMeter{
-		updates: make(chan *tlog.Update),
+		updates: make(chan *tasklog.Update),
 	}
 }
 
 type nonMeter struct {
-	updates chan *tlog.Update
+	updates chan *tasklog.Update
 }
 
 func (m *nonMeter) Start()                                                               {}
@@ -23,5 +23,5 @@ func (m *nonMeter) Finish() {
 	close(m.updates)
 }
 
-func (m *nonMeter) Updates() <-chan *tlog.Update { return m.updates }
-func (m *nonMeter) Throttled() bool              { return false }
+func (m *nonMeter) Updates() <-chan *tasklog.Update { return m.updates }
+func (m *nonMeter) Throttled() bool                 { return false }
