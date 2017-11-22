@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -18,7 +17,7 @@ type cleanedAsset struct {
 	*Pointer
 }
 
-func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb progress.CopyCallback) (*cleanedAsset, error) {
+func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb tools.CopyCallback) (*cleanedAsset, error) {
 	extensions, err := f.cfg.SortedExtensions()
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb 
 	return &cleanedAsset{tmp.Name(), pointer}, err
 }
 
-func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb progress.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
+func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
 	tmp, err = ioutil.TempFile(f.cfg.TempDir(), "")
 	if err != nil {
 		return

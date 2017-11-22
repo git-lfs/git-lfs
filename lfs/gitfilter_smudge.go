@@ -6,17 +6,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/git-lfs/tq"
-
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/rubyist/tracerx"
 )
 
-func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb progress.CopyCallback) error {
+func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb tools.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
 	file, err := os.Create(filename)
 	if err != nil {
@@ -36,7 +34,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 	return nil
 }
 
-func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, download bool, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
 	mediafile, err := f.ObjectPath(ptr.Oid)
 	if err != nil {
 		return 0, err
@@ -73,10 +71,10 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 	return n, nil
 }
 
-func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
-	// NOTE: if given, "cb" is a progress.CopyCallback which writes updates
+	// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
 	// to the logpath specified by GIT_LFS_PROGRESS.
 	//
 	// Either way, forward it into the *tq.TransferQueue so that updates are
@@ -101,7 +99,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
 }
 
-func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb progress.CopyCallback) (int64, error) {
+func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
 	reader, err := os.Open(mediafile)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Error opening media file.")

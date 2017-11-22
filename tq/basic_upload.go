@@ -10,7 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -83,7 +83,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return nil
 	}
 
-	cbr := progress.NewBodyWithCallback(f, t.Size, ccb)
+	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)
 	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start
