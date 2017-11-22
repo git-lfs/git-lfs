@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/git-lfs/git-lfs/git/githistory/log"
+	"github.com/git-lfs/git-lfs/tasklog"
 )
 
 // Indeterminate progress indicator 'spinner'
@@ -13,18 +13,18 @@ type Spinner struct {
 	stage int
 	msg   string
 
-	updates chan *log.Update
+	updates chan *tasklog.Update
 }
 
 var spinnerChars = []byte{'|', '/', '-', '\\'}
 
 func NewSpinner() *Spinner {
 	return &Spinner{
-		updates: make(chan *log.Update),
+		updates: make(chan *tasklog.Update),
 	}
 }
 
-func (s *Spinner) Updates() <-chan *log.Update {
+func (s *Spinner) Updates() <-chan *tasklog.Update {
 	return s.updates
 }
 
@@ -62,7 +62,7 @@ func (s *Spinner) spin(msg string) {
 }
 
 func (s *Spinner) update(sym, msg string) {
-	s.updates <- &log.Update{
+	s.updates <- &tasklog.Update{
 		S:  fmt.Sprintf("%s %s", sym, msg),
 		At: time.Now(),
 	}

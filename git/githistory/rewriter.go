@@ -11,8 +11,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/tasklog"
 )
 
 // Rewriter allows rewriting topologically equivalent Git histories
@@ -34,8 +34,8 @@ type Rewriter struct {
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
 	db *odb.ObjectDatabase
-	// l is the *log.Logger to which updates are written.
-	l *log.Logger
+	// l is the *tasklog.Logger to which updates are written.
+	l *tasklog.Logger
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -133,12 +133,12 @@ var (
 	// WithLoggerto logs updates caused by the *git/githistory.Rewriter to
 	// the given io.Writer "sink".
 	WithLoggerTo = func(sink io.Writer) rewriterOption {
-		return WithLogger(log.NewLogger(sink))
+		return WithLogger(tasklog.NewLogger(sink))
 	}
 
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
 	// be given to the provided logger, "l".
-	WithLogger = func(l *log.Logger) rewriterOption {
+	WithLogger = func(l *tasklog.Logger) rewriterOption {
 		return func(r *Rewriter) {
 			r.l = l
 		}
@@ -177,14 +177,14 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	var perc *log.PercentageTask
+	var perc *tasklog.PercentageTask
 	if opt.UpdateRefs {
 		perc = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
 	} else {
 		perc = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
 	}
 
-	var vPerc *log.PercentageTask
+	var vPerc *tasklog.PercentageTask
 	if opt.Verbose {
 		vPerc = perc
 	}
@@ -301,7 +301,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *log.PercentageTask) ([]byte, error) {
+func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *tasklog.PercentageTask) ([]byte, error) {
 	tree, err := r.db.Tree(treeOID)
 	if err != nil {
 		return nil, err
@@ -371,7 +371,7 @@ func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
 // database by the SHA1 "from" []byte. It writes and returns the new blob SHA,
 // or an error if either the BlobRewriteFn returned one, or if the object could
 // not be loaded/saved.
-func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewriteFn, perc *log.PercentageTask) ([]byte, error) {
+func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewriteFn, perc *tasklog.PercentageTask) ([]byte, error) {
 	blob, err := r.db.Blob(from)
 	if err != nil {
 		return nil, err
