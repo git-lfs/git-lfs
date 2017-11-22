@@ -13,11 +13,11 @@ import (
 	"github.com/git-lfs/git-lfs/tools/humanize"
 )
 
-// ProgressMeter provides a progress bar type output for the TransferQueue. It
+// Meter provides a progress bar type output for the TransferQueue. It
 // is given an estimated file count and size up front and tracks the number of
 // files and bytes transferred as well as the number of files and bytes that
 // get skipped because the transfer is unnecessary.
-type ProgressMeter struct {
+type Meter struct {
 	finishedFiles     int64 // int64s must come first for struct alignment
 	skippedFiles      int64
 	transferringFiles int64
@@ -38,12 +38,12 @@ type env interface {
 	Get(key string) (val string, ok bool)
 }
 
-type meterOption func(*ProgressMeter)
+type meterOption func(*Meter)
 
 // DryRun is an option for NewMeter() that determines whether updates should be
 // sent to stdout.
 func DryRun(dryRun bool) meterOption {
-	return func(m *ProgressMeter) {
+	return func(m *Meter) {
 		m.dryRun = dryRun
 	}
 }
@@ -54,7 +54,7 @@ func WithLogFile(name string) meterOption {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	return func(m *ProgressMeter) {
+	return func(m *Meter) {
 		if len(name) == 0 {
 			return
 		}
@@ -88,9 +88,9 @@ func WithOSEnv(os env) meterOption {
 	return WithLogFile(name)
 }
 
-// NewMeter creates a new ProgressMeter.
-func NewMeter(options ...meterOption) *ProgressMeter {
-	m := &ProgressMeter{
+// NewMeter creates a new Meter.
+func NewMeter(options ...meterOption) *Meter {
+	m := &Meter{
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
@@ -104,155 +104,155 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 }
 
 // Start begins sending status updates to the optional log file, and stdout.
-func (p *ProgressMeter) Start() {
-	if p == nil {
+func (m *Meter) Start() {
+	if m == nil {
 		return
 	}
-	atomic.StoreUint32(&p.paused, 0)
+	atomic.StoreUint32(&m.paused, 0)
 }
 
 // Pause stops sending status updates temporarily, until Start() is called again.
-func (p *ProgressMeter) Pause() {
-	if p == nil {
+func (m *Meter) Pause() {
+	if m == nil {
 		return
 	}
-	atomic.StoreUint32(&p.paused, 1)
+	atomic.StoreUint32(&m.paused, 1)
 }
 
 // Add tells the progress meter that a single file of the given size will
 // possibly be transferred. If a file doesn't need to be transferred for some
 // reason, be sure to call Skip(int64) with the same size.
-func (p *ProgressMeter) Add(size int64) {
-	if p == nil {
+func (m *Meter) Add(size int64) {
+	if m == nil {
 		return
 	}
 
-	defer p.update()
-	atomic.AddInt32(&p.estimatedFiles, 1)
-	atomic.AddInt64(&p.estimatedBytes, size)
+	defer m.update()
+	atomic.AddInt32(&m.estimatedFiles, 1)
+	atomic.AddInt64(&m.estimatedBytes, size)
 }
 
 // Skip tells the progress meter that a file of size `size` is being skipped
 // because the transfer is unnecessary.
-func (p *ProgressMeter) Skip(size int64) {
-	if p == nil {
+func (m *Meter) Skip(size int64) {
+	if m == nil {
 		return
 	}
 
-	defer p.update()
-	atomic.AddInt64(&p.skippedFiles, 1)
-	atomic.AddInt64(&p.skippedBytes, size)
+	defer m.update()
+	atomic.AddInt64(&m.skippedFiles, 1)
+	atomic.AddInt64(&m.skippedBytes, size)
 	// Reduce bytes and files so progress easier to parse
-	atomic.AddInt32(&p.estimatedFiles, -1)
-	atomic.AddInt64(&p.estimatedBytes, -size)
+	atomic.AddInt32(&m.estimatedFiles, -1)
+	atomic.AddInt64(&m.estimatedBytes, -size)
 }
 
 // StartTransfer tells the progress meter that a transferring file is being
 // added to the TransferQueue.
-func (p *ProgressMeter) StartTransfer(name string) {
-	if p == nil {
+func (m *Meter) StartTransfer(name string) {
+	if m == nil {
 		return
 	}
 
-	defer p.update()
-	idx := atomic.AddInt64(&p.transferringFiles, 1)
-	p.fileIndexMutex.Lock()
-	p.fileIndex[name] = idx
-	p.fileIndexMutex.Unlock()
+	defer m.update()
+	idx := atomic.AddInt64(&m.transferringFiles, 1)
+	m.fileIndexMutex.Lock()
+	m.fileIndex[name] = idx
+	m.fileIndexMutex.Unlock()
 }
 
 // TransferBytes increments the number of bytes transferred
-func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64, current int) {
-	if p == nil {
+func (m *Meter) TransferBytes(direction, name string, read, total int64, current int) {
+	if m == nil {
 		return
 	}
 
-	defer p.update()
-	atomic.AddInt64(&p.currentBytes, int64(current))
-	p.logBytes(direction, name, read, total)
+	defer m.update()
+	atomic.AddInt64(&m.currentBytes, int64(current))
+	m.logBytes(direction, name, read, total)
 }
 
 // FinishTransfer increments the finished transfer count
-func (p *ProgressMeter) FinishTransfer(name string) {
-	if p == nil {
+func (m *Meter) FinishTransfer(name string) {
+	if m == nil {
 		return
 	}
 
-	defer p.update()
-	atomic.AddInt64(&p.finishedFiles, 1)
-	p.fileIndexMutex.Lock()
-	delete(p.fileIndex, name)
-	p.fileIndexMutex.Unlock()
+	defer m.update()
+	atomic.AddInt64(&m.finishedFiles, 1)
+	m.fileIndexMutex.Lock()
+	delete(m.fileIndex, name)
+	m.fileIndexMutex.Unlock()
 }
 
 // Finish shuts down the ProgressMeter
-func (p *ProgressMeter) Finish() {
-	if p == nil {
+func (m *Meter) Finish() {
+	if m == nil {
 		return
 	}
 
-	p.update()
-	close(p.updates)
+	m.update()
+	close(m.updates)
 }
 
-func (p *ProgressMeter) Updates() <-chan *tasklog.Update {
-	if p == nil {
+func (m *Meter) Updates() <-chan *tasklog.Update {
+	if m == nil {
 		return nil
 	}
 
-	return p.updates
+	return m.updates
 }
 
-func (p *ProgressMeter) Throttled() bool {
+func (m *Meter) Throttled() bool {
 	return true
 }
 
-func (p *ProgressMeter) update() {
-	if p.skipUpdate() {
+func (m *Meter) update() {
+	if m.skipUpdate() {
 		return
 	}
 
-	p.updates <- &tasklog.Update{
-		S:  p.str(),
+	m.updates <- &tasklog.Update{
+		S:  m.str(),
 		At: time.Now(),
 	}
 }
 
-func (p *ProgressMeter) skipUpdate() bool {
-	return p.dryRun ||
-		(p.estimatedFiles == 0 && p.skippedFiles == 0) ||
-		atomic.LoadUint32(&p.paused) == 1
+func (m *Meter) skipUpdate() bool {
+	return m.dryRun ||
+		(m.estimatedFiles == 0 && m.skippedFiles == 0) ||
+		atomic.LoadUint32(&m.paused) == 1
 }
 
-func (p *ProgressMeter) str() string {
+func (m *Meter) str() string {
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
 	out := fmt.Sprintf("\rGit LFS: (%d of %d files",
-		p.finishedFiles,
-		p.estimatedFiles)
-	if p.skippedFiles > 0 {
-		out += fmt.Sprintf(", %d skipped", p.skippedFiles)
+		m.finishedFiles,
+		m.estimatedFiles)
+	if m.skippedFiles > 0 {
+		out += fmt.Sprintf(", %d skipped", m.skippedFiles)
 	}
 	out += fmt.Sprintf(") %s / %s",
-		humanize.FormatBytes(uint64(p.currentBytes)),
-		humanize.FormatBytes(uint64(p.estimatedBytes)))
-	if p.skippedBytes > 0 {
+		humanize.FormatBytes(uint64(m.currentBytes)),
+		humanize.FormatBytes(uint64(m.estimatedBytes)))
+	if m.skippedBytes > 0 {
 		out += fmt.Sprintf(", %s skipped",
-			humanize.FormatBytes(uint64(p.skippedBytes)))
+			humanize.FormatBytes(uint64(m.skippedBytes)))
 	}
 
 	return out
 }
 
-func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
-	p.fileIndexMutex.Lock()
-	idx := p.fileIndex[name]
-	p.fileIndexMutex.Unlock()
-	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.estimatedFiles, read, total, name)
-	if atomic.LoadUint32(&p.logToFile) == 1 {
-		if err := p.logger.Write([]byte(line)); err != nil {
-			atomic.StoreUint32(&p.logToFile, 0)
+func (m *Meter) logBytes(direction, name string, read, total int64) {
+	m.fileIndexMutex.Lock()
+	idx := m.fileIndex[name]
+	m.fileIndexMutex.Unlock()
+	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, m.estimatedFiles, read, total, name)
+	if atomic.LoadUint32(&m.logToFile) == 1 {
+		if err := m.logger.Write([]byte(line)); err != nil {
+			atomic.StoreUint32(&m.logToFile, 0)
 		}
 	}
 }
