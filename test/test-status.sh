@@ -385,3 +385,38 @@ begin_test "status (missing objects)"
     | grep "a.dat (?: <missing> -> LFS: $(calc_oid b | head -c 7))"
 )
 end_test
+
+begin_test "status (unpushed objects)"
+(
+  set -e
+
+  reponame="status-unpushed-objects"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git push origin master
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+
+  git add a.dat
+  git commit -m "add a large file"
+
+  expected="On branch master
+Git LFS objects to be pushed to origin/master:
+
+	a.dat ($oid)
+
+Git LFS objects to be committed:
+
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test
