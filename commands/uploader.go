@@ -58,7 +58,7 @@ type uploadContext struct {
 	gitfilter    *lfs.GitFilter
 
 	logger *tasklog.Logger
-	meter  progress.Meter
+	meter  *progress.ProgressMeter
 	tq     *tq.TransferQueue
 
 	committerName  string
