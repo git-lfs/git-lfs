@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -107,7 +108,7 @@ type TransferQueue struct {
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
-	cb                progress.CopyCallback
+	cb                tools.CopyCallback
 	meter             progress.Meter
 	errors            []error
 	transfers         map[string]*objects
@@ -183,7 +184,7 @@ func WithProgress(m progress.Meter) Option {
 	}
 }
 
-func WithProgressCallback(cb progress.CopyCallback) Option {
+func WithProgressCallback(cb tools.CopyCallback) Option {
 	return func(tq *TransferQueue) {
 		tq.cb = cb
 	}
