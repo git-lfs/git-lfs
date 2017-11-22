@@ -221,7 +221,7 @@ func statusScanRefRange(ref *git.Ref) {
 			return
 		}
 
-		Print("\t%s (%s)", p.Name)
+		Print("\t%s (%s)", p.Name, p.Oid)
 	})
 	defer gitscanner.Close()
 
