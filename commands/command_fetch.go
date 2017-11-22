@@ -227,10 +227,11 @@ func fetchAll() bool {
 }
 
 func scanAll() []*lfs.WrappedPointer {
-	// This could be a long process so use the chan version & report progress
+	// This could be a long process so use the chan version & report
+	// progress
 	Print("Scanning for all objects ever referenced...")
 	logger := tlog.NewLogger(OutputWriter)
-	spinner := progress.NewSpinner()
+	spinner := tlog.NewSpinner()
 	logger.Enqueue(spinner)
 	var numObjs int64
 
