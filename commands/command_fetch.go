@@ -8,7 +8,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/git-lfs/git-lfs/tq/meter"
@@ -231,7 +230,7 @@ func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
 	Print("Scanning for all objects ever referenced...")
 	logger := tasklog.NewLogger(OutputWriter)
-	spinner := progress.NewSpinner()
+	spinner := tasklog.NewSpinner()
 	logger.Enqueue(spinner)
 	var numObjs int64
 

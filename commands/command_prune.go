@@ -10,7 +10,6 @@ import (
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -58,7 +57,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 
 	logger := tasklog.NewLogger(OutputWriter)
-	spinner := progress.NewSpinner()
+	spinner := tasklog.NewSpinner()
 	logger.Enqueue(spinner)
 
 	var reachableObjects tools.StringSet
@@ -192,7 +191,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 
 		// Since the above progress will have completed, create and
 		// enqueue a _new_ spinner to track deletion progress.
-		spinner := progress.NewSpinner()
+		spinner := tasklog.NewSpinner()
 		logger.Enqueue(spinner)
 
 		pruneDeleteFiles(prunableObjects, spinner)
@@ -232,7 +231,7 @@ func pruneCheckErrors(taskErrors []error) {
 	}
 }
 
-func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, spinner *progress.Spinner) {
+func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, spinner *tasklog.Spinner) {
 	defer waitg.Done()
 
 	localCount := 0
@@ -278,7 +277,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 	}
 }
 
-func pruneDeleteFiles(prunableObjects []string, spinner *progress.Spinner) {
+func pruneDeleteFiles(prunableObjects []string, spinner *tasklog.Spinner) {
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int
