@@ -83,6 +83,32 @@ func TestCommitDecoding(t *testing.T) {
 	assert.Equal(t, "initial commit", commit.Message)
 }
 
+func TestCommitDecodingWithEmptyName(t *testing.T) {
+	author := &Signature{Name: "", Email: "john@example.com", When: time.Now()}
+	committer := &Signature{Name: "", Email: "jane@example.com", When: time.Now()}
+
+	treeId := []byte("cccccccccccccccccccc")
+
+	from := new(bytes.Buffer)
+
+	fmt.Fprintf(from, "author %s\n", author)
+	fmt.Fprintf(from, "committer %s\n", committer)
+	fmt.Fprintf(from, "tree %s\n", hex.EncodeToString(treeId))
+	fmt.Fprintf(from, "\ninitial commit\n")
+
+	flen := from.Len()
+
+	commit := new(Commit)
+	n, err := commit.Decode(from, int64(flen))
+
+	assert.Nil(t, err)
+	assert.Equal(t, flen, n)
+
+	assert.Equal(t, author.String(), commit.Author)
+	assert.Equal(t, committer.String(), commit.Committer)
+	assert.Equal(t, "initial commit", commit.Message)
+}
+
 func TestCommitDecodingWithMessageKeywordPrefix(t *testing.T) {
 	author := &Signature{Name: "John Doe", Email: "john@example.com", When: time.Now()}
 	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: time.Now()}
