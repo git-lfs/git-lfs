@@ -120,9 +120,17 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 				}
 				c.ParentIDs = append(c.ParentIDs, id)
 			case "author":
-				c.Author = strings.Join(fields[1:], " ")
+				if len(text) >= 7 {
+					c.Author = text[7:]
+				} else {
+					c.Author = ""
+				}
 			case "committer":
-				c.Committer = strings.Join(fields[1:], " ")
+				if len(text) >= 10 {
+					c.Committer = text[10:]
+				} else {
+					c.Committer = ""
+				}
 			default:
 				c.ExtraHeaders = append(c.ExtraHeaders, &ExtraHeader{
 					K: fields[0],
