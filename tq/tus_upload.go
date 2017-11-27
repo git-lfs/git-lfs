@@ -10,7 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -119,7 +119,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		return nil
 	}
 
-	var reader lfsapi.ReadSeekCloser = progress.NewBodyWithCallback(f, t.Size, ccb)
+	var reader lfsapi.ReadSeekCloser = tools.NewBodyWithCallback(f, t.Size, ccb)
 	reader = newStartCallbackReader(reader, func() error {
 		// seek to the offset since lfsapi.Client rewinds the body
 		if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
@@ -165,7 +165,7 @@ func configureTusAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
-			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}
+			bu := &tusUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bu.transferImpl = bu
 			return bu

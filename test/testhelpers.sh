@@ -238,6 +238,14 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_status() {
+  status="$(git status)"
+  echo "$status" | grep "working tree clean" || {
+    echo $status
+    git lfs status
+  }
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>
@@ -258,15 +266,20 @@ size %s
 wait_for_file() {
   local filename="$1"
   n=0
-  while [ $n -lt 10 ]; do
+  wait_time=1
+  while [ $n -lt 17 ]; do
     if [ -s $filename ]; then
       return 0
     fi
 
-    sleep 0.5
+    sleep $wait_time
     n=`expr $n + 1`
+    if [ $wait_time -lt 4 ]; then
+      wait_time=`expr $wait_time \* 2`
+    fi
   done
 
+  echo "$filename did not appear after 60 seconds."
   return 1
 }
 
@@ -339,7 +352,6 @@ clone_repo_url() {
   echo "$out" > clone.log
   echo "$out"
 }
-
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
 # $dir under $TRASHDIR, using the SSL endpoint.

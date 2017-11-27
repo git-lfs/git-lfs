@@ -36,7 +36,7 @@ var filterSmudgeSkip bool
 
 func filterCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git filter process")
-	lfs.InstallHooks(false)
+	installHooks(false)
 
 	s := git.NewFilterProcessScanner(os.Stdin, os.Stdout)
 
@@ -67,12 +67,17 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	available := make(chan *tq.Transfer)
 
 	if supportsDelay {
-		q = tq.NewTransferQueue(tq.Download, getTransferManifest(), cfg.CurrentRemote)
+		q = tq.NewTransferQueue(
+			tq.Download,
+			getTransferManifestOperationRemote("download", cfg.Remote()),
+			cfg.Remote(),
+		)
 		go infiniteTransferBuffer(q, available)
 	}
 
 	var malformed []string
 	var malformedOnWindows []string
+	gitfilter := lfs.NewGitFilter(cfg)
 	for s.Scan() {
 		var n int64
 		var err error
@@ -87,7 +92,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
 
 			var ptr *lfs.Pointer
-			ptr, err = clean(w, req.Payload, req.Header["pathname"], -1)
+			ptr, err = clean(gitfilter, w, req.Payload, req.Header["pathname"], -1)
 
 			if ptr != nil {
 				n = ptr.Size
@@ -97,7 +102,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			if req.Header["can-delay"] == "1" {
 				var ptr *lfs.Pointer
 
-				n, delayed, ptr, err = delayedSmudge(s, w, req.Payload, q, req.Header["pathname"], skip, filter)
+				n, delayed, ptr, err = delayedSmudge(gitfilter, s, w, req.Payload, q, req.Header["pathname"], skip, filter)
 
 				if delayed {
 					ptrs[req.Header["pathname"]] = ptr
@@ -109,7 +114,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					break
 				}
 
-				n, err = smudge(w, from, req.Header["pathname"], skip, filter)
+				n, err = smudge(gitfilter, w, from, req.Header["pathname"], skip, filter)
 				if err == nil {
 					delete(ptrs, req.Header["pathname"])
 				}
@@ -196,7 +201,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformedOnWindows) > 0 {
-		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n")
+		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n", len(malformedOnWindows))
 
 		for _, m := range malformedOnWindows {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)

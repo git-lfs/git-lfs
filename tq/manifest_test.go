@@ -9,43 +9,43 @@ import (
 )
 
 func TestManifestIsConfigurable(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "3",
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 3, m.MaxRetries())
 }
 
 func TestManifestChecksNTLM(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url":                 "http://foo",
 		"lfs.http://foo.access":   "ntlm",
 		"lfs.concurrenttransfers": "3",
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "-1",
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
-	cli, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "not_an_int",
 	}))
 	require.Nil(t, err)
 
-	m := NewManifestWithClient(cli)
+	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }

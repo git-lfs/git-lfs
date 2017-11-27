@@ -18,7 +18,7 @@ begin_test "checkout"
   contentsize=19
   contents_oid=$(calc_oid "$contents")
 
-  echo "Same content everywhere is ok, just one object in lfs db"
+  # Same content everywhere is ok, just one object in lfs db
   printf "$contents" > file1.dat
   printf "$contents" > file2.dat
   printf "$contents" > file3.dat
@@ -48,7 +48,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
-  # Remove again
+  # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
   echo "checkout with filters"
@@ -100,7 +100,43 @@ begin_test "checkout"
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+)
+end_test
 
+begin_test "checkout: without clean filter"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")"
+  git lfs uninstall
+
+  git clone "$GITSERVER/$reponame" checkout-without-clean
+  cd checkout-without-clean
+
+  echo "checkout without clean filter"
+  git lfs uninstall
+  git config --list > config.txt
+  grep "filter.lfs.clean" config.txt && {
+    echo "clean filter still configured:"
+    cat config.txt
+    exit 1
+  }
+  ls -al
+
+  git lfs checkout | tee checkout.txt
+  grep "Git LFS is not installed" checkout.txt
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+
+  contentsize=19
+  contents_oid=$(calc_oid "something something")
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file1.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file2.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat folder1/nested.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat folder2/nested.dat)" ]
 )
 end_test
 

@@ -93,7 +93,9 @@ begin_test "track directory"
   cd dir
   git init
 
-  git lfs track "foo bar/*"
+  git lfs track "foo bar\\*" | tee track.txt
+  [ "foo[[:space:]]bar/* filter=lfs diff=lfs merge=lfs -text" = "$(cat .gitattributes)" ]
+  [ "Tracking \"foo bar/*\"" = "$(cat track.txt)" ]
 
   mkdir "foo bar"
   echo "a" > "foo bar/a"
@@ -104,6 +106,7 @@ begin_test "track directory"
   assert_pointer "master" "foo bar/a" "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7" 2
   assert_pointer "master" "foo bar/b" "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f" 2
 )
+end_test
 
 begin_test "track without trailing linebreak"
 (
@@ -486,5 +489,54 @@ begin_test "track (symlinked repository)"
     [ "Tracking \"a.dat\"" = "$(git lfs track "a.dat")" ]
     [ "\"a.dat\" already supported" = "$(git lfs track "a.dat")" ]
   popd > /dev/null
+)
+end_test
+
+begin_test "track (\$GIT_LFS_TRACK_NO_INSTALL_HOOKS)"
+(
+  set -e
+
+  reponame="track-no-setup-hooks"
+  git init "$reponame"
+  cd "$reponame"
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+
+  GIT_LFS_TRACK_NO_INSTALL_HOOKS=1 git lfs track
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+)
+end_test
+
+begin_test "track (with comments)"
+(
+  set -e
+
+  reponame="track-with=comments"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "*.jpg filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "# *.png filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "*.pdf filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git lfs track 2>&1 | tee track.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "expected \`git lfs track\` command to exit cleanly, didn't"
+    exit 1
+  fi
+
+  [ "1" -eq "$(grep -c "\.jpg" track.log)" ]
+  [ "1" -eq "$(grep -c "\.pdf" track.log)" ]
+  [ "0" -eq "$(grep -c "\.png" track.log)" ]
 )
 end_test

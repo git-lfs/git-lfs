@@ -29,15 +29,10 @@ begin_test "install with old (non-upgradeable) settings"
   git config --global filter.lfs.smudge "git-lfs smudge --something %f"
   git config --global filter.lfs.clean "git-lfs clean --something %f"
 
-  set +e
-  git lfs install 2> install.log
-  res=$?
-  set -e
+  git lfs install | tee install.log
+  [ "${PIPESTATUS[0]}" = 0 ]
 
-  [ "$res" = 2 ]
-
-  cat install.log
-  grep -E "(clean|smudge) attribute should be" install.log
+  grep -E "(clean|smudge)\" attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
 
   [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
@@ -194,7 +189,7 @@ begin_test "install --skip-smudge"
   [ "git-lfs smudge --skip -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process --skip" = "$(git config --global filter.lfs.process)" ]
 
-  git lfs install --force
+  git lfs install
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
@@ -281,5 +276,17 @@ begin_test "install in repo without changing hooks"
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+)
+end_test
+
+
+begin_test "can install when multiple global values registered"
+(
+  set -e
+
+  git config --global filter.lfs.smudge "git-lfs smudge --something %f"
+  git config --global --add filter.lfs.smudge "git-lfs smudge --something-else %f"
+
+  git lfs install --force
 )
 end_test

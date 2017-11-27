@@ -1,10 +1,14 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/spf13/cobra"
 )
 
@@ -15,9 +19,17 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Panic(err, "Could not checkout")
 	}
 
+	singleCheckout := newSingleCheckout(cfg.Git, "")
+	if singleCheckout.Skip() {
+		fmt.Println("Cannot checkout LFS objects, Git LFS is not installed.")
+		return
+	}
+
 	var totalBytes int64
+	var pointers []*lfs.WrappedPointer
+	logger := tasklog.NewLogger(os.Stdout)
 	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	singleCheckout := newSingleCheckout()
+	logger.Enqueue(meter)
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error: %s", err)
@@ -27,13 +39,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		totalBytes += p.Size
 		meter.Add(p.Size)
 		meter.StartTransfer(p.Name)
-
-		singleCheckout.Run(p)
-
-		// not strictly correct (parallel) but we don't have a callback & it's just local
-		// plus only 1 slot in channel so it'll block & be close
-		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
-		meter.FinishTransfer(p.Name)
+		pointers = append(pointers, p)
 	})
 
 	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil)
@@ -41,9 +47,18 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
 	}
+	chgitscanner.Close()
 
 	meter.Start()
-	chgitscanner.Close()
+	for _, p := range pointers {
+		singleCheckout.Run(p)
+
+		// not strictly correct (parallel) but we don't have a callback & it's just local
+		// plus only 1 slot in channel so it'll block & be close
+		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
+		meter.FinishTransfer(p.Name)
+	}
+
 	meter.Finish()
 	singleCheckout.Close()
 }
@@ -52,7 +67,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 // firstly convert any pathspecs to the root of the repo, in case this is being
 // executed in a sub-folder
 func rootedPaths(args []string) []string {
-	pathConverter, err := lfs.NewCurrentToRepoPathConverter()
+	pathConverter, err := lfs.NewCurrentToRepoPathConverter(cfg)
 	if err != nil {
 		Panic(err, "Could not checkout")
 	}

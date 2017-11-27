@@ -241,6 +241,91 @@ func TestSubtreeOrderReturnsEmptyForNilElements(t *testing.T) {
 	assert.Equal(t, "", o.Name(0))
 }
 
+func TestTreeEqualReturnsTrueWithUnchangedContents(t *testing.T) {
+	t1 := &Tree{Entries: []*TreeEntry{
+		{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+	}}
+	t2 := &Tree{Entries: []*TreeEntry{
+		{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+	}}
+
+	assert.True(t, t1.Equal(t2))
+}
+
+func TestTreeEqualReturnsFalseWithChangedContents(t *testing.T) {
+	t1 := &Tree{Entries: []*TreeEntry{
+		{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+		{Name: "b.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+	}}
+	t2 := &Tree{Entries: []*TreeEntry{
+		{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+		{Name: "c.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+	}}
+
+	assert.False(t, t1.Equal(t2))
+}
+
+func TestTreeEqualReturnsTrueWhenOneTreeIsNil(t *testing.T) {
+	t1 := &Tree{Entries: []*TreeEntry{
+		{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)},
+	}}
+	t2 := (*Tree)(nil)
+
+	assert.False(t, t1.Equal(t2))
+	assert.False(t, t2.Equal(t1))
+}
+
+func TestTreeEqualReturnsTrueWhenBothTreesAreNil(t *testing.T) {
+	t1 := (*Tree)(nil)
+	t2 := (*Tree)(nil)
+
+	assert.True(t, t1.Equal(t2))
+}
+
+func TestTreeEntryEqualReturnsTrueWhenEntriesAreTheSame(t *testing.T) {
+	e1 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+	e2 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+
+	assert.True(t, e1.Equal(e2))
+}
+
+func TestTreeEntryEqualReturnsFalseWhenDifferentNames(t *testing.T) {
+	e1 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+	e2 := &TreeEntry{Name: "b.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+
+	assert.False(t, e1.Equal(e2))
+}
+
+func TestTreeEntryEqualReturnsFalseWhenDifferentOids(t *testing.T) {
+	e1 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+	e2 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+
+	e2.Oid[0] = 1
+
+	assert.False(t, e1.Equal(e2))
+}
+
+func TestTreeEntryEqualReturnsFalseWhenDifferentFilemodes(t *testing.T) {
+	e1 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+	e2 := &TreeEntry{Name: "a.dat", Filemode: 0100755, Oid: make([]byte, 20)}
+
+	assert.False(t, e1.Equal(e2))
+}
+
+func TestTreeEntryEqualReturnsFalseWhenOneEntryIsNil(t *testing.T) {
+	e1 := &TreeEntry{Name: "a.dat", Filemode: 0100644, Oid: make([]byte, 20)}
+	e2 := (*TreeEntry)(nil)
+
+	assert.False(t, e1.Equal(e2))
+}
+
+func TestTreeEntryEqualReturnsTrueWhenBothEntriesAreNil(t *testing.T) {
+	e1 := (*TreeEntry)(nil)
+	e2 := (*TreeEntry)(nil)
+
+	assert.True(t, e1.Equal(e2))
+}
+
 func assertTreeEntry(t *testing.T, buf *bytes.Buffer,
 	name string, oid []byte, mode int32) {
 

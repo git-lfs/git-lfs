@@ -19,8 +19,6 @@ import (
 func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
 	scanner, err := NewPointerScanner()
 	if err != nil {
-		scanner.Close()
-
 		return err
 	}
 

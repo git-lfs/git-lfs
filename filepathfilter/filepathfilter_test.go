@@ -1,7 +1,6 @@
 package filepathfilter
 
 import (
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -10,6 +9,20 @@ import (
 )
 
 func TestPatternMatch(t *testing.T) {
+	for _, wildcard := range []string{"*", "*.*"} {
+		assertPatternMatch(t, wildcard,
+			"a",
+			"a/",
+			"a.a",
+			"a/b",
+			"a/b/",
+			"a/b.b",
+			"a/b/c",
+			"a/b/c/",
+			"a/b/c.c",
+		)
+	}
+
 	assertPatternMatch(t, "filename.txt", "filename.txt")
 	assertPatternMatch(t, "*.txt", "filename.txt")
 	refutePatternMatch(t, "*.tx", "filename.txt")
@@ -28,9 +41,11 @@ func TestPatternMatch(t *testing.T) {
 
 	// matches only in subdir
 	assertPatternMatch(t, "sub/*.txt", "sub/filename.txt")
-	refutePatternMatch(t, "sub/*.txt", "top/sub/filename.txt")
-	refutePatternMatch(t, "sub/*.txt", "sub/filename.dat")
-	refutePatternMatch(t, "sub/*.txt", "other/filename.txt")
+	refutePatternMatch(t, "sub/*.txt",
+		"top/sub/filename.txt",
+		"sub/filename.dat",
+		"other/filename.txt",
+	)
 
 	// Needs wildcard for exact filename
 	assertPatternMatch(t, "**/filename.txt", "sub/sub/sub/filename.txt")
@@ -39,48 +54,51 @@ func TestPatternMatch(t *testing.T) {
 	refutePatternMatch(t, "*.ign", "sub/shouldignoreme.txt")
 
 	// Path specific
-	assertPatternMatch(t, "sub", "sub/")
-	assertPatternMatch(t, "sub", "sub")
-	assertPatternMatch(t, "sub", "sub/filename.txt")
-	assertPatternMatch(t, "sub/", "sub/filename.txt")
-	assertPatternMatch(t, "sub", "top/sub/filename.txt")
-	assertPatternMatch(t, "sub/", "top/sub/filename.txt")
-	assertPatternMatch(t, "sub", "top/sub/")
-	assertPatternMatch(t, "sub", "top/sub")
-	assertPatternMatch(t, "/sub", "sub/")
-	assertPatternMatch(t, "/sub", "sub")
-	assertPatternMatch(t, "/sub", "sub/filename.txt")
+	assertPatternMatch(t, "sub",
+		"sub/",
+		"sub",
+		"sub/filename.txt",
+		"top/sub/",
+		"top/sub",
+		"top/sub/filename.txt",
+	)
+
+	assertPatternMatch(t, "sub/", "sub/filename.txt", "top/sub/filename.txt")
+	assertPatternMatch(t, "/sub", "sub/", "sub", "sub/filename.txt")
 	assertPatternMatch(t, "/sub/", "sub/filename.txt")
-	refutePatternMatch(t, "/sub", "top/sub/filename.txt")
-	refutePatternMatch(t, "/sub/", "top/sub/filename.txt")
-	refutePatternMatch(t, "/sub", "top/sub/")
-	refutePatternMatch(t, "/sub", "top/sub")
+	refutePatternMatch(t, "/sub", "subfilename.txt", "top/sub/", "top/sub", "top/sub/filename.txt")
 	refutePatternMatch(t, "sub", "subfilename.txt")
 	refutePatternMatch(t, "sub/", "subfilename.txt")
-	refutePatternMatch(t, "/sub", "subfilename.txt")
-	refutePatternMatch(t, "/sub/", "subfilename.txt")
+	refutePatternMatch(t, "/sub/", "subfilename.txt", "top/sub/filename.txt")
 
 	// nested path
-	assertPatternMatch(t, "top/sub", "top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub",
+		"top/sub/filename.txt",
+		"top/sub/",
+		"top/sub",
+		"root/top/sub/filename.txt",
+		"root/top/sub/",
+		"root/top/sub",
+	)
 	assertPatternMatch(t, "top/sub/", "top/sub/filename.txt")
-	assertPatternMatch(t, "top/sub", "top/sub/")
-	assertPatternMatch(t, "top/sub", "top/sub")
-	assertPatternMatch(t, "top/sub", "root/top/sub/filename.txt")
 	assertPatternMatch(t, "top/sub/", "root/top/sub/filename.txt")
-	assertPatternMatch(t, "top/sub", "root/top/sub/")
-	assertPatternMatch(t, "top/sub", "root/top/sub")
-	assertPatternMatch(t, "/top/sub", "top/sub/filename.txt")
+
+	assertPatternMatch(t, "/top/sub", "top/sub/", "top/sub", "top/sub/filename.txt")
 	assertPatternMatch(t, "/top/sub/", "top/sub/filename.txt")
-	assertPatternMatch(t, "/top/sub", "top/sub/")
-	assertPatternMatch(t, "/top/sub", "top/sub")
-	refutePatternMatch(t, "/top/sub", "root/top/sub/filename.txt")
-	refutePatternMatch(t, "/top/sub/", "root/top/sub/filename.txt")
-	refutePatternMatch(t, "/top/sub", "root/top/sub/")
-	refutePatternMatch(t, "/top/sub", "root/top/sub")
+
 	refutePatternMatch(t, "top/sub", "top/subfilename.txt")
 	refutePatternMatch(t, "top/sub/", "top/subfilename.txt")
-	refutePatternMatch(t, "/top/sub", "top/subfilename.txt")
-	refutePatternMatch(t, "/top/sub/", "top/subfilename.txt")
+	refutePatternMatch(t, "/top/sub",
+		"top/subfilename.txt",
+		"root/top/sub/filename.txt",
+		"root/top/sub/",
+		"root/top/sub",
+	)
+
+	refutePatternMatch(t, "/top/sub/",
+		"root/top/sub/filename.txt",
+		"top/subfilename.txt",
+	)
 
 	// Absolute
 	assertPatternMatch(t, "*.dat", "/path/to/sub/.git/test.dat")
@@ -92,16 +110,18 @@ func TestPatternMatch(t *testing.T) {
 	assertPatternMatch(t, ".\\", "path.txt")
 }
 
-func assertPatternMatch(t *testing.T, pattern, filename string) {
-	assert.True(t, patternMatch(pattern, filename), "%q should match pattern %q", filename, pattern)
+func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {
+	p := NewPattern(pattern)
+	for _, filename := range toWindowsPaths(filenames) {
+		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
+	}
 }
 
-func refutePatternMatch(t *testing.T, pattern, filename string) {
-	assert.False(t, patternMatch(pattern, filename), "%q should not match pattern %q", filename, pattern)
-}
-
-func patternMatch(pattern, filename string) bool {
-	return NewPattern(pattern).Match(filepath.Clean(filename))
+func refutePatternMatch(t *testing.T, pattern string, filenames ...string) {
+	p := NewPattern(pattern)
+	for _, filename := range toWindowsPaths(filenames) {
+		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
+	}
 }
 
 type filterTest struct {
@@ -113,6 +133,7 @@ type filterTest struct {
 
 type filterPrefixTest struct {
 	expected bool
+	prefixes []string
 	includes []string
 	excludes []string
 }
@@ -120,7 +141,7 @@ type filterPrefixTest struct {
 func (c *filterPrefixTest) Assert(t *testing.T) {
 	f := New(c.platformIncludes(), c.platformExcludes())
 
-	prefixes := []string{"foo", "foo/", "foo/bar", "foo/bar/baz", "foo/bar/baz/"}
+	prefixes := c.prefixes
 	if runtime.GOOS == "windows" {
 		prefixes = toWindowsPaths(prefixes)
 	}
@@ -133,41 +154,64 @@ func (c *filterPrefixTest) Assert(t *testing.T) {
 }
 
 func (c *filterPrefixTest) platformIncludes() []string {
-	if runtime.GOOS == "windows" {
-		return toWindowsPaths(c.includes)
-	}
-	return c.includes
+	return toWindowsPaths(c.includes)
 }
 
 func (c *filterPrefixTest) platformExcludes() []string {
-	if runtime.GOOS == "windows" {
-		return toWindowsPaths(c.excludes)
-	}
-	return c.excludes
+	return toWindowsPaths(c.excludes)
 }
 
 func toWindowsPaths(paths []string) []string {
-	var out []string
-	for _, path := range paths {
-		out = append(out, strings.Replace(path, "/", "\\", -1))
+	if runtime.GOOS != "windows" {
+		return paths
+	}
+
+	out := make([]string, len(paths))
+	for i, path := range paths {
+		out[i] = strings.Replace(path, "/", "\\", -1)
 	}
 
 	return out
 }
 
 func TestFilterHasPrefix(t *testing.T) {
+	prefixes := []string{"foo", "foo/", "foo/bar", "foo/bar/baz", "foo/bar/baz/"}
 	for desc, c := range map[string]*filterPrefixTest{
-		"path prefix pattern":       {true, []string{"/foo/bar/baz"}, nil},
-		"path pattern":              {true, []string{"foo/bar/baz"}, nil},
-		"simple ext pattern":        {true, []string{"*.dat"}, nil},
-		"pathless wildcard pattern": {true, []string{"foo*.dat"}, nil},
-		"double wildcard pattern":   {true, []string{"foo/**/baz"}, nil},
+		"empty filter":              {true, prefixes, nil, nil},
+		"path prefix pattern":       {true, prefixes, []string{"/foo/bar/baz"}, nil},
+		"path pattern":              {true, prefixes, []string{"foo/bar/baz"}, nil},
+		"simple ext pattern":        {true, prefixes, []string{"*.dat"}, nil},
+		"pathless wildcard pattern": {true, prefixes, []string{"foo*.dat"}, nil},
+		"double wildcard pattern":   {true, prefixes, []string{"foo/**/baz"}, nil},
+		"include other dir":         {false, prefixes, []string{"other"}, nil},
 
-		"exclude path prefix pattern":       {false, nil, []string{"/foo/bar/baz"}},
-		"exclude path pattern":              {false, nil, []string{"foo/bar/baz"}},
-		"exclude simple ext pattern":        {false, nil, []string{"*.dat"}},
-		"exclude pathless wildcard pattern": {false, nil, []string{"foo*.dat"}},
-		"exclude double wildcard pattern":   {false, nil, []string{"foo/**/baz"}},
+		"exclude pattern":                   {true, prefixes, nil, []string{"other"}},
+		"exclude simple ext pattern":        {true, prefixes, nil, []string{"*.dat"}},
+		"exclude pathless wildcard pattern": {true, prefixes, nil, []string{"foo*.dat"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+
+	prefixes = []string{"foo", "foo/", "foo/bar"}
+	for desc, c := range map[string]*filterPrefixTest{
+		"exclude path prefix pattern":     {true, prefixes, nil, []string{"/foo/bar/baz"}},
+		"exclude path pattern":            {true, prefixes, nil, []string{"foo/bar/baz"}},
+		"exclude double wildcard pattern": {true, prefixes, nil, []string{"foo/**/baz"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+
+	prefixes = []string{"foo/bar/baz", "foo/bar/baz/"}
+	for desc, c := range map[string]*filterPrefixTest{
+		"exclude path prefix pattern": {false, prefixes, nil, []string{"/foo/bar/baz"}},
+		"exclude path pattern":        {false, prefixes, nil, []string{"foo/bar/baz"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+
+	prefixes = []string{"foo/bar/baz", "foo/test/baz"}
+	for desc, c := range map[string]*filterPrefixTest{
+		"exclude double wildcard pattern": {false, prefixes, nil, []string{"foo/**/baz"}},
 	} {
 		t.Run(desc, c.Assert)
 	}

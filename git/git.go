@@ -16,7 +16,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	lfserrors "github.com/git-lfs/git-lfs/errors"
@@ -55,13 +54,34 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/tags", true
 	case RefTypeRemoteTag:
 		return "refs/remotes/tags", true
-	case RefTypeHEAD:
-		return "", false
-	case RefTypeOther:
-		return "", false
 	default:
-		panic(fmt.Sprintf("git: unknown RefType %d", t))
+		return "", false
 	}
+}
+
+func ParseRef(absRef, sha string) *Ref {
+	r := &Ref{Sha: sha}
+	if strings.HasPrefix(absRef, "refs/heads/") {
+		r.Name = absRef[11:]
+		r.Type = RefTypeLocalBranch
+	} else if strings.HasPrefix(absRef, "refs/tags/") {
+		r.Name = absRef[10:]
+		r.Type = RefTypeLocalTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/tags/") {
+		r.Name = absRef[18:]
+		r.Type = RefTypeRemoteTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/") {
+		r.Name = absRef[13:]
+		r.Type = RefTypeRemoteBranch
+	} else {
+		r.Name = absRef
+		if absRef == "HEAD" {
+			r.Type = RefTypeHEAD
+		} else {
+			r.Type = RefTypeOther
+		}
+	}
+	return r
 }
 
 // A git reference (branch, tag etc)
@@ -69,6 +89,24 @@ type Ref struct {
 	Name string
 	Type RefType
 	Sha  string
+}
+
+// Refspec returns the fully-qualified reference name (including remote), i.e.,
+// for a remote branch called 'my-feature' on remote 'origin', this function
+// will return:
+//
+//   refs/remotes/origin/my-feature
+func (r *Ref) Refspec() string {
+	if r == nil {
+		return ""
+	}
+
+	prefix, ok := r.Type.Prefix()
+	if ok {
+		return fmt.Sprintf("%s/%s", prefix, r.Name)
+	}
+
+	return r.Name
 }
 
 // Some top level information about a commit (only first line of message)
@@ -95,7 +133,7 @@ func gitConfigNoLFS(args ...string) []string {
 	// causes difficult issues with passing through Stdin for login prompts
 	// This way is simpler & more practical.
 	filterOverride := ""
-	if !Config.IsGitVersionAtLeast("2.8.0") {
+	if !IsGitVersionAtLeast("2.8.0") {
 		filterOverride = "cat"
 	}
 
@@ -234,8 +272,8 @@ func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
-func CurrentRemoteRef() (*Ref, error) {
-	remoteref, err := RemoteRefNameForCurrentBranch()
+func (c *Configuration) CurrentRemoteRef() (*Ref, error) {
+	remoteref, err := c.RemoteRefNameForCurrentBranch()
 	if err != nil {
 		return nil, err
 	}
@@ -243,22 +281,9 @@ func CurrentRemoteRef() (*Ref, error) {
 	return ResolveRef(remoteref)
 }
 
-// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
-func RemoteForCurrentBranch() (string, error) {
-	ref, err := CurrentRef()
-	if err != nil {
-		return "", err
-	}
-	remote := RemoteForBranch(ref.Name)
-	if remote == "" {
-		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
-	}
-	return remote, nil
-}
-
 // RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
 // that the current branch is tracking.
-func RemoteRefNameForCurrentBranch() (string, error) {
+func (c *Configuration) RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
@@ -268,32 +293,31 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := RemoteForBranch(ref.Name)
+	remote := c.RemoteForBranch(ref.Name)
 	if remote == "" {
 		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 
-	remotebranch := RemoteBranchForLocalBranch(ref.Name)
+	remotebranch := c.RemoteBranchForLocalBranch(ref.Name)
 
 	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
-func RemoteForBranch(localBranch string) string {
-	return Config.Find(fmt.Sprintf("branch.%s.remote", localBranch))
+func (c *Configuration) RemoteForBranch(localBranch string) string {
+	return c.Find(fmt.Sprintf("branch.%s.remote", localBranch))
 }
 
 // RemoteBranchForLocalBranch returns the name (only) of the remote branch that the local branch is tracking
 // If no specific branch is configured, returns local branch name
-func RemoteBranchForLocalBranch(localBranch string) string {
+func (c *Configuration) RemoteBranchForLocalBranch(localBranch string) string {
 	// get remote ref to track, may not be same name
-	merge := Config.Find(fmt.Sprintf("branch.%s.merge", localBranch))
+	merge := c.Find(fmt.Sprintf("branch.%s.merge", localBranch))
 	if strings.HasPrefix(merge, "refs/heads/") {
 		return merge[11:]
 	} else {
 		return localBranch
 	}
-
 }
 
 func RemoteList() ([]string, error) {
@@ -363,14 +387,7 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // reflog entry, if a "reason" was provided). It operates within the given
 // working directory "wd". It returns an error if any were encountered.
 func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
-	var refspec string
-	if prefix, ok := ref.Type.Prefix(); ok {
-		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
-	} else {
-		refspec = ref.Name
-	}
-
-	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
@@ -425,166 +442,8 @@ func ValidateRemoteURL(remote string) error {
 	}
 }
 
-// DefaultRemote returns the default remote based on:
-// 1. The currently tracked remote branch, if present
-// 2. "origin", if defined
-// 3. Any other SINGLE remote defined in .git/config
-// Returns an error if all of these fail, i.e. no tracked remote branch, no
-// "origin", and either no remotes defined or 2+ non-"origin" remotes
-func DefaultRemote() (string, error) {
-	tracked, err := RemoteForCurrentBranch()
-	if err == nil {
-		return tracked, nil
-	}
-
-	// Otherwise, check what remotes are defined
-	remotes, err := RemoteList()
-	if err != nil {
-		return "", err
-	}
-	switch len(remotes) {
-	case 0:
-		return "", errors.New("No remotes defined")
-	case 1: // always use a single remote whether it's origin or otherwise
-		return remotes[0], nil
-	default:
-		for _, remote := range remotes {
-			// Use origin if present
-			if remote == "origin" {
-				return remote, nil
-			}
-		}
-	}
-	return "", errors.New("Unable to pick default remote, too ambiguous")
-}
-
 func UpdateIndexFromStdin() *subprocess.Cmd {
-	return gitNoLFS("update-index", "-q", "--refresh", "--stdin")
-}
-
-type gitConfig struct {
-	gitVersion string
-	mu         sync.Mutex
-}
-
-var Config = &gitConfig{}
-
-// Find returns the git config value for the key
-func (c *gitConfig) Find(val string) string {
-	output, _ := gitSimple("config", val)
-	return output
-}
-
-// FindGlobal returns the git config value global scope for the key
-func (c *gitConfig) FindGlobal(val string) string {
-	output, _ := gitSimple("config", "--global", val)
-	return output
-}
-
-// FindSystem returns the git config value in system scope for the key
-func (c *gitConfig) FindSystem(val string) string {
-	output, _ := gitSimple("config", "--system", val)
-	return output
-}
-
-// Find returns the git config value for the key
-func (c *gitConfig) FindLocal(val string) string {
-	output, _ := gitSimple("config", "--local", val)
-	return output
-}
-
-// SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) (string, error) {
-	return gitSimple("config", "--global", key, val)
-}
-
-// SetSystem sets the git config value for the key in the system config
-func (c *gitConfig) SetSystem(key, val string) (string, error) {
-	return gitSimple("config", "--system", key, val)
-}
-
-// UnsetGlobal removes the git config value for the key from the global config
-func (c *gitConfig) UnsetGlobal(key string) (string, error) {
-	return gitSimple("config", "--global", "--unset", key)
-}
-
-// UnsetSystem removes the git config value for the key from the system config
-func (c *gitConfig) UnsetSystem(key string) (string, error) {
-	return gitSimple("config", "--system", "--unset", key)
-}
-
-// UnsetGlobalSection removes the entire named section from the global config
-func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
-	return gitSimple("config", "--global", "--remove-section", key)
-}
-
-// UnsetSystemSection removes the entire named section from the system config
-func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
-	return gitSimple("config", "--system", "--remove-section", key)
-}
-
-// UnsetLocalSection removes the entire named section from the system config
-func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
-	return gitSimple("config", "--local", "--remove-section", key)
-}
-
-// SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
-	args := make([]string, 1, 5)
-	args[0] = "config"
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	args = append(args, key, val)
-	return gitSimple(args...)
-}
-
-// UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
-	args := make([]string, 1, 5)
-	args[0] = "config"
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	args = append(args, "--unset", key)
-	return gitSimple(args...)
-}
-
-// List lists all of the git config values
-func (c *gitConfig) List() (string, error) {
-	return gitSimple("config", "-l")
-}
-
-// ListFromFile lists all of the git config values in the given config file
-func (c *gitConfig) ListFromFile(f string) (string, error) {
-	return gitSimple("config", "-l", "-f", f)
-}
-
-// Version returns the git version
-func (c *gitConfig) Version() (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if len(c.gitVersion) == 0 {
-		v, err := gitSimple("version")
-		if err != nil {
-			return v, err
-		}
-		c.gitVersion = v
-	}
-
-	return c.gitVersion, nil
-}
-
-// IsVersionAtLeast returns whether the git version is the one specified or higher
-// argument is plain version string separated by '.' e.g. "2.3.1" but can omit minor/patch
-func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
-	gitver, err := c.Version()
-	if err != nil {
-		tracerx.Printf("Error getting git version: %v", err)
-		return false
-	}
-	return IsVersionAtLeast(gitver, ver)
+	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
 // RecentBranches returns branches with commit dates on or after the given date/time
@@ -855,48 +714,6 @@ func parseRefFile(filename string) (*Ref, error) {
 		contents = strings.TrimSpace(contents[4:])
 	}
 	return ResolveRef(contents)
-}
-
-// IsVersionAtLeast compares 2 version strings (ok to be prefixed with 'git version', ignores)
-func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
-	// Capture 1-3 version digits, optionally prefixed with 'git version' and possibly
-	// with suffixes which we'll ignore (e.g. unstable builds, MinGW versions)
-	verregex := regexp.MustCompile(`(?:git version\s+)?(\d+)(?:.(\d+))?(?:.(\d+))?.*`)
-
-	var atleast uint64
-	// Support up to 1000 in major/minor/patch digits
-	const majorscale = 1000 * 1000
-	const minorscale = 1000
-
-	if match := verregex.FindStringSubmatch(desiredVersion); match != nil {
-		// Ignore errors as regex won't match anything other than digits
-		major, _ := strconv.Atoi(match[1])
-		atleast += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			atleast += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			atleast += uint64(patch)
-		}
-	}
-
-	var actual uint64
-	if match := verregex.FindStringSubmatch(actualVersion); match != nil {
-		major, _ := strconv.Atoi(match[1])
-		actual += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			actual += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			actual += uint64(patch)
-		}
-	}
-
-	return actual >= atleast
 }
 
 // IsBare returns whether or not a repository is bare. It requires that the

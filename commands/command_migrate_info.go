@@ -10,8 +10,8 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/spf13/cobra"
@@ -40,12 +40,14 @@ var (
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
-	l := log.NewLogger(os.Stderr)
+	l := tasklog.NewLogger(os.Stderr)
 
 	db, err := getObjectDatabase()
 	if err != nil {
 		ExitWithError(err)
 	}
+	defer db.Close()
+
 	rewriter := getHistoryRewriter(cmd, db, l)
 
 	exts := make(map[string]*MigrateInfoEntry)
@@ -90,6 +92,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			return b, nil
 		},
 	})
+	l.Close()
 
 	entries := EntriesBySize(MapToEntries(exts))
 	entries = removeEmptyEntries(entries)

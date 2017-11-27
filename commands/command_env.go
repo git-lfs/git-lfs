@@ -9,9 +9,8 @@ import (
 
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
-	endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.CurrentRemote)
 
-	gitV, err := git.Config.Version()
+	gitV, err := git.Version()
 	if err != nil {
 		gitV = "Error getting git version: " + err.Error()
 	}
@@ -20,11 +19,14 @@ func envCommand(cmd *cobra.Command, args []string) {
 	Print(gitV)
 	Print("")
 
-	if len(endpoint.Url) > 0 {
-		access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
-		Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
-		if len(endpoint.SshUserAndHost) > 0 {
-			Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+	if cfg.IsDefaultRemote() {
+		endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.Remote())
+		if len(endpoint.Url) > 0 {
+			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
+			Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
+			if len(endpoint.SshUserAndHost) > 0 {
+				Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
+			}
 		}
 	}
 

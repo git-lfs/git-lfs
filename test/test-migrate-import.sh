@@ -202,6 +202,47 @@ begin_test "migrate import (given branch, exclude remote refs)"
 )
 end_test
 
+begin_test "migrate import (given ref, --skip-fetch)"
+(
+  set -e
+
+  setup_single_remote_branch
+
+  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+
+  git tag pseudo-remote "$(git rev-parse refs/remotes/origin/master)"
+  # Remove the refs/remotes/origin/master ref, and instruct 'git lfs migrate' to
+  # not fetch it.
+  git update-ref -d refs/remotes/origin/master
+
+  git lfs migrate import --skip-fetch
+
+  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "50"
+  assert_pointer "pseudo-remote" "a.md" "$md_remote_oid" "140"
+  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "30"
+  assert_pointer "pseudo-remote" "a.txt" "$txt_remote_oid" "120"
+
+  assert_local_object "$md_master_oid" "50"
+  assert_local_object "$txt_master_oid" "30"
+  assert_local_object "$md_remote_oid" "140"
+  assert_local_object "$txt_remote_oid" "120"
+
+  master="$(git rev-parse refs/heads/master)"
+  remote="$(git rev-parse pseudo-remote)"
+
+  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
+
+  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$remote_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$remote_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+)
+end_test
+
 begin_test "migrate import (include/exclude ref)"
 (
   set -e
@@ -324,6 +365,21 @@ begin_test "migrate import (bare repository)"
 )
 end_test
 
+begin_test "migrate import (nested sub-trees, no filter)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  oid="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --everything
+
+  assert_local_object "$oid" "$size"
+)
+end_test
+
 begin_test "migrate import (prefix include(s))"
 (
   set -e
@@ -340,5 +396,75 @@ begin_test "migrate import (prefix include(s))"
 
     cd ..
   done
+)
+end_test
+
+begin_test "migrate import (--everything)"
+(
+  set -e
+
+  setup_multiple_local_branches
+  git checkout master
+
+  master_txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  master_md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
+  feature_md_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
+  master_txt_size="$(git cat-file -p :a.txt | wc -c | awk '{ print $1 }')"
+  master_md_size="$(git cat-file -p :a.md | wc -c | awk '{ print $1 }')"
+  feature_md_size="$(git cat-file -p my-feature:a.md | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --everything
+
+  assert_pointer "master" "a.txt" "$master_txt_oid" "$master_txt_size"
+  assert_pointer "master" "a.md" "$master_md_oid" "$master_md_size"
+  assert_pointer "my-feature" "a.md" "$feature_md_oid" "$feature_md_size"
+)
+end_test
+
+begin_test "migrate import (ambiguous reference)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  # Create an ambiguously named reference sharing the name as the SHA-1 of
+  # "HEAD".
+  sha="$(git rev-parse HEAD)"
+  git tag "$sha"
+
+  git lfs migrate import --everything
+)
+end_test
+
+begin_test "migrate import (--everything with args)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything master 2>&1)" = \
+    "fatal: cannot use --everything with explicit reference arguments" ]
+)
+end_test
+
+begin_test "migrate import (--everything with --include-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything --include-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test
+
+begin_test "migrate import (--everything with --exclude-ref)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/master 2>&1)" = \
+    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test

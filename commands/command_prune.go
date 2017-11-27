@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/git-lfs/tq"
@@ -32,7 +32,7 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 		Exit("Cannot specify both --verify-remote and --no-verify-remote")
 	}
 
-	fetchPruneConfig := cfg.FetchPruneConfig()
+	fetchPruneConfig := lfs.NewFetchPruneConfig(cfg.Git)
 	verify := !pruneDoNotVerifyArg &&
 		(fetchPruneConfig.PruneVerifyRemoteAlways || pruneVerifyArg)
 	prune(fetchPruneConfig, verify, pruneDryRunArg, pruneVerboseArg)
@@ -53,9 +53,14 @@ type PruneProgress struct {
 }
 type PruneProgressChan chan PruneProgress
 
-func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
-	localObjects := make([]localstorage.Object, 0, 100)
+func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
+	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
+
+	logger := tasklog.NewLogger(OutputWriter)
+	spinner := progress.NewSpinner()
+	logger.Enqueue(spinner)
+
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
 
@@ -99,7 +104,7 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	// Report progress
 	var progresswait sync.WaitGroup
 	progresswait.Add(1)
-	go pruneTaskDisplayProgress(progressChan, &progresswait)
+	go pruneTaskDisplayProgress(progressChan, &progresswait, spinner)
 
 	taskwait.Wait() // wait for subtasks
 	gitscanner.Close()
@@ -121,7 +126,10 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 	var verifywait sync.WaitGroup
 
 	if verifyRemote {
-		verifyQueue = newDownloadCheckQueue(getTransferManifest(), fetchPruneConfig.PruneRemoteName)
+		verifyQueue = newDownloadCheckQueue(
+			getTransferManifestOperationRemote("download", fetchPruneConfig.PruneRemoteName),
+			fetchPruneConfig.PruneRemoteName,
+		)
 		verifiedObjects = tools.NewStringSetWithCapacity(len(localObjects) / 2)
 
 		// this channel is filled with oids for which Check() succeeded & Transfer() was called
@@ -181,7 +189,13 @@ func prune(fetchPruneConfig config.FetchPruneConfig, verifyRemote, dryRun, verbo
 		if verbose {
 			Print(verboseOutput.String())
 		}
-		pruneDeleteFiles(prunableObjects)
+
+		// Since the above progress will have completed, create and
+		// enqueue a _new_ spinner to track deletion progress.
+		spinner := progress.NewSpinner()
+		logger.Enqueue(spinner)
+
+		pruneDeleteFiles(prunableObjects, spinner)
 	}
 
 }
@@ -218,10 +232,9 @@ func pruneCheckErrors(taskErrors []error) {
 	}
 }
 
-func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, spinner *progress.Spinner) {
 	defer waitg.Done()
 
-	spinner := progress.NewSpinner()
 	localCount := 0
 	retainCount := 0
 	verifyCount := 0
@@ -239,9 +252,9 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 		if verifyCount > 0 {
 			msg += fmt.Sprintf(", %d verified with remote", verifyCount)
 		}
-		spinner.Print(OutputWriter, msg)
+		spinner.Spinf(msg)
 	}
-	spinner.Finish(OutputWriter, msg)
+	spinner.Finish(msg)
 }
 
 func pruneTaskCollectRetained(outRetainedObjects *tools.StringSet, retainChan chan string,
@@ -265,14 +278,13 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 	}
 }
 
-func pruneDeleteFiles(prunableObjects []string) {
-	spinner := progress.NewSpinner()
+func pruneDeleteFiles(prunableObjects []string, spinner *progress.Spinner) {
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int
 	for i, oid := range prunableObjects {
-		spinner.Print(OutputWriter, fmt.Sprintf("Deleting object %d/%d", i, len(prunableObjects)))
-		mediaFile, err := lfs.LocalMediaPath(oid)
+		spinner.Spinf("Deleting object %d/%d", i, len(prunableObjects))
+		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
 			continue
@@ -284,7 +296,7 @@ func pruneDeleteFiles(prunableObjects []string) {
 		}
 		deletedFiles++
 	}
-	spinner.Finish(OutputWriter, fmt.Sprintf("Deleted %d files", deletedFiles))
+	spinner.Finish("Deleted %d files", deletedFiles)
 	if problems.Len() > 0 {
 		LoggedError(fmt.Errorf("Failed to delete some files"), problems.String())
 		Exit("Prune failed, see errors above")
@@ -292,14 +304,14 @@ func pruneDeleteFiles(prunableObjects []string) {
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetLocalObjects(outLocalObjects *[]localstorage.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
+func pruneTaskGetLocalObjects(outLocalObjects *[]fs.Object, progChan PruneProgressChan, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
-	localObjectsChan := lfs.ScanObjectsChan()
-	for f := range localObjectsChan {
-		*outLocalObjects = append(*outLocalObjects, f)
+	cfg.EachLFSObject(func(obj fs.Object) error {
+		*outLocalObjects = append(*outLocalObjects, obj)
 		progChan <- PruneProgress{PruneProgressTypeLocal, 1}
-	}
+		return nil
+	})
 }
 
 // Background task, must call waitg.Done() once at end
@@ -342,7 +354,7 @@ func pruneTaskGetPreviousVersionsOfRef(gitscanner *lfs.GitScanner, ref string, s
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchconf lfs.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	// We actually increment the waitg in this func since we kick off sub-goroutines
@@ -396,7 +408,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 }
 
 // Background task, must call waitg.Done() once at end
-func pruneTaskGetRetainedUnpushed(gitscanner *lfs.GitScanner, fetchconf config.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
+func pruneTaskGetRetainedUnpushed(gitscanner *lfs.GitScanner, fetchconf lfs.FetchPruneConfig, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup) {
 	defer waitg.Done()
 
 	err := gitscanner.ScanUnpushed(fetchconf.PruneRemoteName, func(p *lfs.WrappedPointer, err error) {
@@ -420,7 +432,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, retainChan chan st
 
 	// Retain other worktree HEADs too
 	// Working copy, branch & maybe commit is different but repo is shared
-	allWorktreeRefs, err := git.GetAllWorkTreeHEADs(config.LocalGitStorageDir)
+	allWorktreeRefs, err := git.GetAllWorkTreeHEADs(cfg.LocalGitStorageDir())
 	if err != nil {
 		errorChan <- err
 		return

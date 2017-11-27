@@ -54,7 +54,7 @@ func TestAPIBatch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -110,7 +110,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -128,7 +128,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 }
 
 func TestAPIBatchEmptyObjects(t *testing.T) {
-	c, err := lfsapi.NewClient(nil, nil)
+	c, err := lfsapi.NewClient(nil)
 	require.Nil(t, err)
 
 	tqc := &tqClient{Client: c}

@@ -11,8 +11,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/tasklog"
 )
 
 // Rewriter allows rewriting topologically equivalent Git histories
@@ -34,8 +34,8 @@ type Rewriter struct {
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
 	db *odb.ObjectDatabase
-	// l is the *log.Logger to which updates are written.
-	l *log.Logger
+	// l is the *tasklog.Logger to which updates are written.
+	l *tasklog.Logger
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -51,6 +51,9 @@ type RewriteOptions struct {
 	// original graph onto the migrated one. If true, the refs will be
 	// moved, and a reflog entry will be created.
 	UpdateRefs bool
+
+	// Verbose mode prints migrated objects.
+	Verbose bool
 
 	// BlobFn specifies a function to rewrite blobs.
 	//
@@ -130,12 +133,12 @@ var (
 	// WithLoggerto logs updates caused by the *git/githistory.Rewriter to
 	// the given io.Writer "sink".
 	WithLoggerTo = func(sink io.Writer) rewriterOption {
-		return WithLogger(log.NewLogger(sink))
+		return WithLogger(tasklog.NewLogger(sink))
 	}
 
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
 	// be given to the provided logger, "l".
-	WithLogger = func(l *log.Logger) rewriterOption {
+	WithLogger = func(l *tasklog.Logger) rewriterOption {
 		return func(r *Rewriter) {
 			r.l = l
 		}
@@ -174,7 +177,17 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	p := r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+	var perc *tasklog.PercentageTask
+	if opt.UpdateRefs {
+		perc = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+	} else {
+		perc = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
+	}
+
+	var vPerc *tasklog.PercentageTask
+	if opt.Verbose {
+		vPerc = perc
+	}
 
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
@@ -188,7 +201,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(original.TreeID, "", opt.blobFn(), opt.treeFn())
+		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treeFn(), vPerc)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +234,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Construct a new commit using the original header information,
 		// but the rewritten set of parents as well as root tree.
-		rewrittenCommit, err := r.db.WriteCommit(&odb.Commit{
+		rewrittenCommit := &odb.Commit{
 			Author:       original.Author,
 			Committer:    original.Committer,
 			ExtraHeaders: original.ExtraHeaders,
@@ -229,20 +242,29 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 			ParentIDs: rewrittenParents,
 			TreeID:    rewrittenTree,
-		})
-		if err != nil {
-			return nil, err
+		}
+
+		var newSha []byte
+
+		if original.Equal(rewrittenCommit) {
+			newSha = make([]byte, len(oid))
+			copy(newSha, oid)
+		} else {
+			newSha, err = r.db.WriteCommit(rewrittenCommit)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Cache that commit so that we can reassign children of this
 		// commit.
-		r.cacheCommit(oid, rewrittenCommit)
+		r.cacheCommit(oid, newSha)
 
 		// Increment the percentage displayed in the terminal.
-		p.Count(1)
+		perc.Count(1)
 
 		// Move the tip forward.
-		tip = rewrittenCommit
+		tip = newSha
 	}
 
 	if opt.UpdateRefs {
@@ -265,8 +287,6 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 	}
 
-	r.l.Close()
-
 	return tip, err
 }
 
@@ -281,8 +301,8 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn) ([]byte, error) {
-	tree, err := r.db.Tree(sha)
+func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *tasklog.PercentageTask) ([]byte, error) {
+	tree, err := r.db.Tree(treeOID)
 	if err != nil {
 		return nil, err
 	}
@@ -305,9 +325,9 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 
 		switch entry.Type() {
 		case odb.BlobObjectType:
-			oid, err = r.rewriteBlob(entry.Oid, path, fn)
+			oid, err = r.rewriteBlob(commitOID, entry.Oid, path, fn, perc)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(entry.Oid, path, fn, tfn)
+			oid, err = r.rewriteTree(commitOID, entry.Oid, path, fn, tfn, perc)
 		default:
 			oid = entry.Oid
 
@@ -326,6 +346,10 @@ func (r *Rewriter) rewriteTree(sha []byte, path string, fn BlobRewriteFn, tfn Tr
 	rewritten, err := tfn(string(os.PathSeparator)+path, &odb.Tree{Entries: entries})
 	if err != nil {
 		return nil, err
+	}
+
+	if tree.Equal(rewritten) {
+		return treeOID, nil
 	}
 	return r.db.WriteTree(rewritten)
 }
@@ -347,7 +371,7 @@ func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
 // database by the SHA1 "from" []byte. It writes and returns the new blob SHA,
 // or an error if either the BlobRewriteFn returned one, or if the object could
 // not be loaded/saved.
-func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]byte, error) {
+func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewriteFn, perc *tasklog.PercentageTask) ([]byte, error) {
 	blob, err := r.db.Blob(from)
 	if err != nil {
 		return nil, err
@@ -358,12 +382,12 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		return nil, err
 	}
 
-	sha, err := r.db.WriteBlob(b)
-	if err != nil {
-		return nil, err
-	}
+	if !blob.Equal(b) {
+		sha, err := r.db.WriteBlob(b)
+		if err != nil {
+			return nil, err
+		}
 
-	if blob != b {
 		// Close the source blob, so long as it is not equal to the
 		// rewritten blob. If the two are equal, as in the check above
 		// this comment, calling r.db.WriteBlob(b) will have already
@@ -374,8 +398,20 @@ func (r *Rewriter) rewriteBlob(from []byte, path string, fn BlobRewriteFn) ([]by
 		if err = blob.Close(); err != nil {
 			return nil, err
 		}
+
+		if perc != nil {
+			perc.Entry(fmt.Sprintf("migrate: commit %s: %s", hex.EncodeToString(commitOID), path))
+		}
+
+		return sha, nil
 	}
-	return sha, nil
+
+	// Close the source blob, since it is identical to the rewritten blob,
+	// but neither were written.
+	if err := blob.Close(); err != nil {
+		return nil, err
+	}
+	return from, nil
 }
 
 // commitsToMigrate returns an in-memory copy of a list of commits according to
@@ -410,10 +446,29 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 // refsToMigrate returns a list of references to migrate, or an error if loading
 // those references failed.
 func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
+	var refs []*git.Ref
+	var err error
+
 	if root, ok := r.db.Root(); ok {
-		return git.AllRefsIn(root)
+		refs, err = git.AllRefsIn(root)
+	} else {
+		refs, err = git.AllRefs()
 	}
-	return git.AllRefs()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var local []*git.Ref
+	for _, ref := range refs {
+		if ref.Type == git.RefTypeRemoteBranch || ref.Type == git.RefTypeRemoteTag {
+			continue
+		}
+
+		local = append(local, ref)
+	}
+
+	return local, nil
 }
 
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the

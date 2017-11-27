@@ -12,25 +12,31 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/githistory/log"
 	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
-	l := log.NewLogger(os.Stderr)
+	l := tasklog.NewLogger(os.Stderr)
+	defer l.Close()
 
 	db, err := getObjectDatabase()
 	if err != nil {
 		ExitWithError(err)
 	}
+	defer db.Close()
+
 	rewriter := getHistoryRewriter(cmd, db, l)
 
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
+	gitfilter := lfs.NewGitFilter(cfg)
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
+		Verbose: migrateVerbose,
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
@@ -38,7 +44,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			if _, err := clean(&buf, b.Contents, path, b.Size); err != nil {
+			if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
 				return nil, err
 			}
 
@@ -97,10 +103,14 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		UpdateRefs: true,
 	})
 
+	// Only perform `git-checkout(1) -f` if the repository is
+	// non-bare.
 	if bare, _ := git.IsBare(); !bare {
-		// Only perform `git-checkout(1) -f` if the repository is
-		// non-bare.
-		if err := git.Checkout("", nil, true); err != nil {
+		t := l.Waiter("migrate: checkout")
+		err := git.Checkout("", nil, true)
+		t.Complete()
+
+		if err != nil {
 			ExitWithError(err)
 		}
 	}

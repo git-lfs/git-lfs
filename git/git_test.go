@@ -13,6 +13,70 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRefString(t *testing.T) {
+	const sha = "0000000000000000000000000000000000000000"
+	for s, r := range map[string]*Ref{
+		"refs/heads/master": &Ref{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/origin/master": &Ref{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/tags/v1.0.0": &Ref{
+			Name: "v1.0.0",
+			Type: RefTypeRemoteTag,
+			Sha:  sha,
+		},
+		"refs/tags/v1.0.0": &Ref{
+			Name: "v1.0.0",
+			Type: RefTypeLocalTag,
+			Sha:  sha,
+		},
+		"HEAD": &Ref{
+			Name: "HEAD",
+			Type: RefTypeHEAD,
+			Sha:  sha,
+		},
+		"other": &Ref{
+			Name: "other",
+			Type: RefTypeOther,
+			Sha:  sha,
+		},
+	} {
+		assert.Equal(t, s, r.Refspec())
+	}
+}
+
+func TestParseRefs(t *testing.T) {
+	tests := map[string]RefType{
+		"refs/heads":        RefTypeLocalBranch,
+		"refs/tags":         RefTypeLocalTag,
+		"refs/remotes/tags": RefTypeRemoteTag,
+		"refs/remotes":      RefTypeRemoteBranch,
+	}
+
+	for prefix, expectedType := range tests {
+		r := ParseRef(prefix+"/branch", "abc123")
+		assert.Equal(t, "abc123", r.Sha, "prefix: "+prefix)
+		assert.Equal(t, "branch", r.Name, "prefix: "+prefix)
+		assert.Equal(t, expectedType, r.Type, "prefix: "+prefix)
+	}
+
+	r := ParseRef("refs/foo/branch", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: refs/foo")
+	assert.Equal(t, "refs/foo/branch", r.Name, "prefix: refs/foo")
+	assert.Equal(t, RefTypeOther, r.Type, "prefix: refs/foo")
+
+	r = ParseRef("HEAD", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: HEAD")
+	assert.Equal(t, "HEAD", r.Name, "prefix: HEAD")
+	assert.Equal(t, RefTypeHEAD, r.Type, "prefix: HEAD")
+}
+
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	repo := test.NewRepo(t)
 	repo.Pushd()
@@ -48,8 +112,11 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 			},
 		},
 	}
+
 	outputs := repo.AddCommits(inputs)
+
 	// last commit was on branch3
+	gitConf := repo.GitConfig()
 	ref, err := CurrentRef()
 	assert.Nil(t, err)
 	assert.Equal(t, &Ref{"branch3", RefTypeLocalBranch, outputs[3].Sha}, ref)
@@ -60,17 +127,13 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	// Check remote
 	repo.AddRemote("origin")
 	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
-	ref, err = CurrentRemoteRef()
+	ref, err = gitConf.CurrentRemoteRef()
 	assert.Nil(t, err)
 	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
 
-	refname, err := RemoteRefNameForCurrentBranch()
+	refname, err := gitConf.RemoteRefNameForCurrentBranch()
 	assert.Nil(t, err)
 	assert.Equal(t, "refs/remotes/origin/someremotebranch", refname)
-
-	remote, err := RemoteForCurrentBranch()
-	assert.Nil(t, err)
-	assert.Equal(t, "origin", remote)
 
 	ref, err = ResolveRef(outputs[2].Sha)
 	assert.Nil(t, err)
@@ -200,9 +263,8 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 }
 
 func TestWorkTrees(t *testing.T) {
-
 	// Only git 2.5+
-	if !Config.IsGitVersionAtLeast("2.5.0") {
+	if !IsGitVersionAtLeast("2.5.0") {
 		return
 	}
 
@@ -560,17 +622,4 @@ func TestRefTypeKnownPrefixes(t *testing.T) {
 		assert.Equal(t, expected.Prefix, prefix)
 		assert.Equal(t, expected.Ok, ok)
 	}
-}
-
-func TestRefTypeUnknownPrefix(t *testing.T) {
-	defer func() {
-		if err := recover(); err != nil {
-			assert.Equal(t, "git: unknown RefType -1", err)
-		} else {
-			t.Fatal("git: expected panic() from RefType.Prefix()")
-		}
-	}()
-
-	unknown := RefType(-1)
-	unknown.Prefix()
 }

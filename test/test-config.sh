@@ -152,7 +152,7 @@ begin_test "config: ignoring unsafe lfsconfig keys"
   # Insert an 'unsafe' key into this repository's '.lfsconfig'.
   git config --file=.lfsconfig core.askpass unsafe
 
-  git lfs status 2>&1 | tee status.log
+  git lfs env 2>&1 | tee status.log
 
   grep "WARNING: These unsafe lfsconfig keys were ignored:" status.log
   grep "  core.askpass" status.log

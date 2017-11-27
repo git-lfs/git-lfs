@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -28,7 +27,7 @@ func (a *basicDownloadAdapter) tempDir() string {
 	// Must be dedicated to this adapter as deleted by ClearTempStorage
 	// Also make local to this repo not global, and separate to localstorage temp,
 	// which gets cleared at the end of every invocation
-	d := filepath.Join(localstorage.Objects().RootDir, "incomplete")
+	d := filepath.Join(a.fs.LFSStorageDir, "incomplete")
 	if err := os.MkdirAll(d, 0755); err != nil {
 		return os.TempDir()
 	}
@@ -222,7 +221,7 @@ func configureBasicDownloadAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
-			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}
+			bd := &basicDownloadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bd.transferImpl = bd
 			return bd

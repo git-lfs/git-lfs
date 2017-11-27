@@ -83,6 +83,32 @@ func TestCommitDecoding(t *testing.T) {
 	assert.Equal(t, "initial commit", commit.Message)
 }
 
+func TestCommitDecodingWithEmptyName(t *testing.T) {
+	author := &Signature{Name: "", Email: "john@example.com", When: time.Now()}
+	committer := &Signature{Name: "", Email: "jane@example.com", When: time.Now()}
+
+	treeId := []byte("cccccccccccccccccccc")
+
+	from := new(bytes.Buffer)
+
+	fmt.Fprintf(from, "author %s\n", author)
+	fmt.Fprintf(from, "committer %s\n", committer)
+	fmt.Fprintf(from, "tree %s\n", hex.EncodeToString(treeId))
+	fmt.Fprintf(from, "\ninitial commit\n")
+
+	flen := from.Len()
+
+	commit := new(Commit)
+	n, err := commit.Decode(from, int64(flen))
+
+	assert.Nil(t, err)
+	assert.Equal(t, flen, n)
+
+	assert.Equal(t, author.String(), commit.Author)
+	assert.Equal(t, committer.String(), commit.Committer)
+	assert.Equal(t, "initial commit", commit.Message)
+}
+
 func TestCommitDecodingWithMessageKeywordPrefix(t *testing.T) {
 	author := &Signature{Name: "John Doe", Email: "john@example.com", When: time.Now()}
 	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: time.Now()}
@@ -115,4 +141,153 @@ func assertLine(t *testing.T, buf *bytes.Buffer, wanted string, args ...interfac
 
 	assert.Nil(t, err)
 	assert.Equal(t, fmt.Sprintf(wanted, args...), strings.TrimSuffix(got, "\n"))
+}
+
+func TestCommitEqualReturnsTrueWithIdenticalCommits(t *testing.T) {
+	c1 := &Commit{
+		Author:    "Jane Doe <jane@example.com> 1503956287 -0400",
+		Committer: "Jane Doe <jane@example.com> 1503956287 -0400",
+		ParentIDs: [][]byte{make([]byte, 20)},
+		TreeID:    make([]byte, 20),
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+		},
+		Message: "initial commit",
+	}
+	c2 := &Commit{
+		Author:    "Jane Doe <jane@example.com> 1503956287 -0400",
+		Committer: "Jane Doe <jane@example.com> 1503956287 -0400",
+		ParentIDs: [][]byte{make([]byte, 20)},
+		TreeID:    make([]byte, 20),
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+		},
+		Message: "initial commit",
+	}
+
+	assert.True(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentParentCounts(t *testing.T) {
+	c1 := &Commit{
+		ParentIDs: [][]byte{make([]byte, 20), make([]byte, 20)},
+	}
+	c2 := &Commit{
+		ParentIDs: [][]byte{make([]byte, 20)},
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentParentsIds(t *testing.T) {
+	c1 := &Commit{
+		ParentIDs: [][]byte{make([]byte, 20)},
+	}
+	c2 := &Commit{
+		ParentIDs: [][]byte{make([]byte, 20)},
+	}
+
+	c1.ParentIDs[0][1] = 0x1
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentHeaderCounts(t *testing.T) {
+	c1 := &Commit{
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+			{K: "GPG-Signature", V: "..."},
+		},
+	}
+	c2 := &Commit{
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+		},
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentHeaders(t *testing.T) {
+	c1 := &Commit{
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+		},
+	}
+	c2 := &Commit{
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Jane Smith"},
+		},
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentAuthors(t *testing.T) {
+	c1 := &Commit{
+		Author: "Jane Doe <jane@example.com> 1503956287 -0400",
+	}
+	c2 := &Commit{
+		Author: "John Doe <john@example.com> 1503956287 -0400",
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentCommitters(t *testing.T) {
+	c1 := &Commit{
+		Committer: "Jane Doe <jane@example.com> 1503956287 -0400",
+	}
+	c2 := &Commit{
+		Committer: "John Doe <john@example.com> 1503956287 -0400",
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentMessages(t *testing.T) {
+	c1 := &Commit{
+		Message: "initial commit",
+	}
+	c2 := &Commit{
+		Message: "not the initial commit",
+	}
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWithDifferentTreeIDs(t *testing.T) {
+	c1 := &Commit{
+		TreeID: make([]byte, 20),
+	}
+	c2 := &Commit{
+		TreeID: make([]byte, 20),
+	}
+
+	c1.TreeID[0] = 0x1
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsFalseWhenOneCommitIsNil(t *testing.T) {
+	c1 := &Commit{
+		Author:    "Jane Doe <jane@example.com> 1503956287 -0400",
+		Committer: "Jane Doe <jane@example.com> 1503956287 -0400",
+		ParentIDs: [][]byte{make([]byte, 20)},
+		TreeID:    make([]byte, 20),
+		ExtraHeaders: []*ExtraHeader{
+			{K: "Signed-off-by", V: "Joe Smith"},
+		},
+		Message: "initial commit",
+	}
+	c2 := (*Commit)(nil)
+
+	assert.False(t, c1.Equal(c2))
+}
+
+func TestCommitEqualReturnsTrueWhenBothCommitsAreNil(t *testing.T) {
+	c1 := (*Commit)(nil)
+	c2 := (*Commit)(nil)
+
+	assert.True(t, c1.Equal(c2))
 }

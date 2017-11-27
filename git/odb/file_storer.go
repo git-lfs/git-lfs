@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/lfs"
 )
 
 // fileStorer implements the storer interface by writing to the .git/objects
@@ -16,12 +15,16 @@ import (
 type fileStorer struct {
 	// root is the top level /objects directory's path on disc.
 	root string
+
+	// temp directory, defaults to os.TempDir
+	tmp string
 }
 
 // NewFileStorer returns a new fileStorer instance with the given root.
-func newFileStorer(root string) *fileStorer {
+func newFileStorer(root, tmp string) *fileStorer {
 	return &fileStorer{
 		root: root,
+		tmp:  tmp,
 	}
 }
 
@@ -56,7 +59,7 @@ func (fs *fileStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 		return 0, nil
 	}
 
-	tmp, err := lfs.TempFile("")
+	tmp, err := ioutil.TempFile(fs.tmp, "")
 	if err != nil {
 		return 0, err
 	}

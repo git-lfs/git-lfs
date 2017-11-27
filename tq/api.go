@@ -9,6 +9,7 @@ import (
 )
 
 type tqClient struct {
+	MaxRetries int
 	*lfsapi.Client
 }
 
@@ -57,7 +58,7 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
 	req = c.LogRequest(req, "lfs.batch")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoWithAuth(remote, lfsapi.WithRetries(req, c.MaxRetries))
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")

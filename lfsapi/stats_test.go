@@ -33,7 +33,8 @@ func TestStatsWithKey(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{ConcurrentTransfers: 5}
+	c, _ := NewClient(nil)
+	c.ConcurrentTransfers = 5
 	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
@@ -98,7 +99,8 @@ func TestStatsWithoutKey(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{ConcurrentTransfers: 5}
+	c, _ := NewClient(nil)
+	c.ConcurrentTransfers = 5
 	c.LogHTTPStats(nopCloser(out))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
@@ -139,7 +141,8 @@ func TestStatsDisabled(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{ConcurrentTransfers: 5}
+	c, _ := NewClient(nil)
+	c.ConcurrentTransfers = 5
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req = c.LogRequest(req, "stats-test")

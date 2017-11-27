@@ -36,7 +36,7 @@ func (s *AttributeSource) String() string {
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
-// workingDIr is the root of the working copy
+// workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
@@ -56,7 +56,11 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 		scanner.Split(le.ScanLines)
 
 		for scanner.Scan() {
-			line := scanner.Text()
+			line := strings.TrimSpace(scanner.Text())
+
+			if strings.HasPrefix(line, "#") {
+				continue
+			}
 
 			// Check for filter=lfs (signifying that LFS is tracking
 			// this file) or "lockable", which indicates that the
