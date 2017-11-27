@@ -1,7 +1,7 @@
 # http://docs.travis-ci.com/user/languages/go/
 language: go
 
-go: 1.9
+go: 1.9.2
 
 os:
   - linux
