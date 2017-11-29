@@ -177,15 +177,20 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	if len(prunableObjects) == 0 {
 		return
 	}
+
+	info := tasklog.NewSimpleTask()
+	logger.Enqueue(info)
 	if dryRun {
-		Print("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
+		info.Logf("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
 		if verbose {
-			Print(verboseOutput.String())
+			info.Logf("\n%s", verboseOutput.String())
 		}
+		info.Complete()
 	} else {
 		if verbose {
-			Print(verboseOutput.String())
+			info.Log(verboseOutput.String())
 		}
+		info.Complete()
 
 		// Since the above progress will have completed, create and
 		// enqueue a _new_ percentage task to track deletion progress.
