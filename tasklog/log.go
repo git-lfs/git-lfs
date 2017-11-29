@@ -105,6 +105,11 @@ func (l *Logger) List(msg string) *ListTask {
 func (l *Logger) Enqueue(ts ...Task) {
 	if l == nil {
 		for _, t := range ts {
+			if t == nil {
+				// NOTE: Do not allow nil tasks which are unable
+				// to be completed.
+				continue
+			}
 			go func(t Task) {
 				for range t.Updates() {
 					// Discard all updates.
@@ -116,6 +121,10 @@ func (l *Logger) Enqueue(ts ...Task) {
 
 	l.wg.Add(len(ts))
 	for _, t := range ts {
+		if t == nil {
+			// NOTE: See above.
+			continue
+		}
 		l.queue <- t
 	}
 }
