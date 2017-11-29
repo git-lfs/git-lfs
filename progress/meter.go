@@ -40,14 +40,6 @@ type env interface {
 
 type meterOption func(*Meter)
 
-// DryRun is an option for NewMeter() that determines whether updates should be
-// sent to stdout.
-func DryRun(dryRun bool) meterOption {
-	return func(m *Meter) {
-		m.dryRun = dryRun
-	}
-}
-
 // WithLogFile is an option for NewMeter() that sends updates to a text file.
 func WithLogFile(name string) meterOption {
 	printErr := func(err string) {
@@ -88,17 +80,68 @@ func WithOSEnv(os env) meterOption {
 	return WithLogFile(name)
 }
 
+type MeterOption struct {
+	// DryRun is an option that determines whether updates should be sent to
+	// stdout.
+	DryRun bool
+	// LogFile is an option that sends updates to a text file.
+	LogFile string
+	// OS is an option that sends updates to the text file path specified in
+	// the OS Env.
+	OS interface {
+		Get(key string) (val string, ok bool)
+	}
+}
+
+func (o *MeterOption) configure(m *Meter) {
+	m.dryRun = o.DryRun
+
+	if f, ok := o.logFile(); ok {
+		m.logToFile = 1
+		m.logger = tools.NewSyncWriter(f)
+	}
+}
+
+func (o *MeterOption) logFile() (*os.File, bool) {
+	var name string = o.LogFile
+	if len(name) == 0 {
+		name, _ = o.OS.Get("GIT_LFS_PROGRESS")
+		if len(name) == 0 {
+			return nil, false
+		}
+	}
+
+	printErr := func(err string) {
+		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
+	}
+
+	if !filepath.IsAbs(name) {
+		printErr("GIT_LFS_PROGRESS must be an absolute path")
+		return nil, false
+	}
+
+	if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
+		printErr(err.Error())
+		return nil, false
+	}
+
+	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		printErr(err.Error())
+		return nil, false
+	}
+
+	return file, true
+}
+
 // NewMeter creates a new Meter.
-func NewMeter(options ...meterOption) *Meter {
+func NewMeter(opt *MeterOption) *Meter {
 	m := &Meter{
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
 	}
-
-	for _, opt := range options {
-		opt(m)
-	}
+	opt.configure(m)
 
 	return m
 }

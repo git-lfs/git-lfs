@@ -40,7 +40,9 @@ func pull(filter *filepathfilter.Filter) {
 
 	pointers := newPointerMap()
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
+	meter := progress.NewMeter(&progress.MeterOption{
+		OS: cfg.Os,
+	})
 	logger.Enqueue(meter)
 	remote := cfg.Remote()
 	singleCheckout := newSingleCheckout(cfg.Git, remote)
