@@ -13,11 +13,11 @@ import (
 	"github.com/git-lfs/git-lfs/tools/humanize"
 )
 
-// ProgressMeter provides a progress bar type output for the TransferQueue. It
+// Meter provides a progress bar type output for the TransferQueue. It
 // is given an estimated file count and size up front and tracks the number of
 // files and bytes transferred as well as the number of files and bytes that
 // get skipped because the transfer is unnecessary.
-type ProgressMeter struct {
+type Meter struct {
 	finishedFiles     int64 // int64s must come first for struct alignment
 	skippedFiles      int64
 	transferringFiles int64
@@ -38,12 +38,12 @@ type env interface {
 	Get(key string) (val string, ok bool)
 }
 
-type meterOption func(*ProgressMeter)
+type meterOption func(*Meter)
 
 // DryRun is an option for NewMeter() that determines whether updates should be
 // sent to stdout.
 func DryRun(dryRun bool) meterOption {
-	return func(m *ProgressMeter) {
+	return func(m *Meter) {
 		m.dryRun = dryRun
 	}
 }
@@ -54,7 +54,7 @@ func WithLogFile(name string) meterOption {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
-	return func(m *ProgressMeter) {
+	return func(m *Meter) {
 		if len(name) == 0 {
 			return
 		}
@@ -88,9 +88,9 @@ func WithOSEnv(os env) meterOption {
 	return WithLogFile(name)
 }
 
-// NewMeter creates a new ProgressMeter.
-func NewMeter(options ...meterOption) *ProgressMeter {
-	m := &ProgressMeter{
+// NewMeter creates a new Meter.
+func NewMeter(options ...meterOption) *Meter {
+	m := &Meter{
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
@@ -104,7 +104,7 @@ func NewMeter(options ...meterOption) *ProgressMeter {
 }
 
 // Start begins sending status updates to the optional log file, and stdout.
-func (p *ProgressMeter) Start() {
+func (p *Meter) Start() {
 	if p == nil {
 		return
 	}
@@ -112,7 +112,7 @@ func (p *ProgressMeter) Start() {
 }
 
 // Pause stops sending status updates temporarily, until Start() is called again.
-func (p *ProgressMeter) Pause() {
+func (p *Meter) Pause() {
 	if p == nil {
 		return
 	}
@@ -122,7 +122,7 @@ func (p *ProgressMeter) Pause() {
 // Add tells the progress meter that a single file of the given size will
 // possibly be transferred. If a file doesn't need to be transferred for some
 // reason, be sure to call Skip(int64) with the same size.
-func (p *ProgressMeter) Add(size int64) {
+func (p *Meter) Add(size int64) {
 	if p == nil {
 		return
 	}
@@ -134,7 +134,7 @@ func (p *ProgressMeter) Add(size int64) {
 
 // Skip tells the progress meter that a file of size `size` is being skipped
 // because the transfer is unnecessary.
-func (p *ProgressMeter) Skip(size int64) {
+func (p *Meter) Skip(size int64) {
 	if p == nil {
 		return
 	}
@@ -149,7 +149,7 @@ func (p *ProgressMeter) Skip(size int64) {
 
 // StartTransfer tells the progress meter that a transferring file is being
 // added to the TransferQueue.
-func (p *ProgressMeter) StartTransfer(name string) {
+func (p *Meter) StartTransfer(name string) {
 	if p == nil {
 		return
 	}
@@ -162,7 +162,7 @@ func (p *ProgressMeter) StartTransfer(name string) {
 }
 
 // TransferBytes increments the number of bytes transferred
-func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64, current int) {
+func (p *Meter) TransferBytes(direction, name string, read, total int64, current int) {
 	if p == nil {
 		return
 	}
@@ -173,7 +173,7 @@ func (p *ProgressMeter) TransferBytes(direction, name string, read, total int64,
 }
 
 // FinishTransfer increments the finished transfer count
-func (p *ProgressMeter) FinishTransfer(name string) {
+func (p *Meter) FinishTransfer(name string) {
 	if p == nil {
 		return
 	}
@@ -185,8 +185,8 @@ func (p *ProgressMeter) FinishTransfer(name string) {
 	p.fileIndexMutex.Unlock()
 }
 
-// Finish shuts down the ProgressMeter
-func (p *ProgressMeter) Finish() {
+// Finish shuts down the Meter.
+func (p *Meter) Finish() {
 	if p == nil {
 		return
 	}
@@ -195,18 +195,18 @@ func (p *ProgressMeter) Finish() {
 	close(p.updates)
 }
 
-func (p *ProgressMeter) Updates() <-chan *tasklog.Update {
+func (p *Meter) Updates() <-chan *tasklog.Update {
 	if p == nil {
 		return nil
 	}
 	return p.updates
 }
 
-func (p *ProgressMeter) Throttled() bool {
+func (p *Meter) Throttled() bool {
 	return true
 }
 
-func (p *ProgressMeter) update() {
+func (p *Meter) update() {
 	if p.skipUpdate() {
 		return
 	}
@@ -217,13 +217,13 @@ func (p *ProgressMeter) update() {
 	}
 }
 
-func (p *ProgressMeter) skipUpdate() bool {
+func (p *Meter) skipUpdate() bool {
 	return p.dryRun ||
 		(p.estimatedFiles == 0 && p.skippedFiles == 0) ||
 		atomic.LoadUint32(&p.paused) == 1
 }
 
-func (p *ProgressMeter) str() string {
+func (p *Meter) str() string {
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
@@ -244,7 +244,7 @@ func (p *ProgressMeter) str() string {
 	return out
 }
 
-func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
+func (p *Meter) logBytes(direction, name string, read, total int64) {
 	p.fileIndexMutex.Lock()
 	idx := p.fileIndex[name]
 	p.fileIndexMutex.Unlock()
