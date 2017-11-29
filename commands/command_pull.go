@@ -9,7 +9,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
@@ -40,7 +39,7 @@ func pull(filter *filepathfilter.Filter) {
 
 	pointers := newPointerMap()
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := progress.NewMeter(&progress.MeterOption{
+	meter := tq.NewMeter(&tq.MeterOption{
 		OS: cfg.Os,
 	})
 	logger.Enqueue(meter)

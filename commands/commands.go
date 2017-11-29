@@ -20,7 +20,6 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
@@ -436,8 +435,8 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter(dryRun bool) *progress.Meter {
-	return progress.NewMeter(&progress.MeterOption{
+func buildProgressMeter(dryRun bool) *tq.Meter {
+	return tq.NewMeter(&tq.MeterOption{
 		DryRun: dryRun,
 		OS:     cfg.Os,
 	})

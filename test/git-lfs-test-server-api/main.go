@@ -13,7 +13,6 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/test"
 	"github.com/git-lfs/git-lfs/tq"
@@ -181,7 +180,7 @@ func buildTestData(repo *test.Repo, manifest *tq.Manifest) (oidsExist, oidsMissi
 
 	// just one commit
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := progress.NewMeter(&progress.MeterOption{
+	meter := tq.NewMeter(&tq.MeterOption{
 		OS: repo.OSEnv(),
 	})
 	logger.Enqueue(meter)
