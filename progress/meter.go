@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 )
 
@@ -25,7 +26,8 @@ type ProgressMeter struct {
 	skippedBytes      int64
 	estimatedFiles    int32
 	paused            uint32
-	logger            *progressLogger
+	logToFile         uint32
+	logger            *tools.SyncWriter
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	dryRun            bool
@@ -74,8 +76,8 @@ func WithLogFile(name string) meterOption {
 			return
 		}
 
-		m.logger.writeData = true
-		m.logger.log = file
+		m.logToFile = 1
+		m.logger = tools.NewSyncWriter(file)
 	}
 }
 
@@ -89,7 +91,6 @@ func WithOSEnv(os env) meterOption {
 // NewMeter creates a new ProgressMeter.
 func NewMeter(options ...meterOption) *ProgressMeter {
 	m := &ProgressMeter{
-		logger:         &progressLogger{},
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
@@ -215,7 +216,9 @@ func (p *ProgressMeter) logBytes(direction, name string, read, total int64) {
 	idx := p.fileIndex[name]
 	p.fileIndexMutex.Unlock()
 	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, p.estimatedFiles, read, total, name)
-	if err := p.logger.Write([]byte(line)); err != nil {
-		p.logger.Shutdown()
+	if atomic.LoadUint32(&p.logToFile) == 1 {
+		if err := p.logger.Write([]byte(line)); err != nil {
+			atomic.StoreUint32(&p.logToFile, 0)
+		}
 	}
 }
