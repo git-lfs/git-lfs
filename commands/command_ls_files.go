@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -9,8 +11,9 @@ import (
 )
 
 var (
-	longOIDs = false
-	debug    = false
+	longOIDs        = false
+	lsFilesShowSize = false
+	debug           = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -55,7 +58,12 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 				p.Oid,
 				p.Version)
 		} else {
-			Print("%s %s %s", p.Oid[0:showOidLen], lsFilesMarker(p), p.Name)
+			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
+			if lsFilesShowSize {
+				msg = append(msg, fmt.Sprintf("(%d)", p.Size))
+			}
+
+			Print(strings.Join(msg, " "))
 		}
 	})
 	defer gitscanner.Close()
@@ -81,6 +89,7 @@ func lsFilesMarker(p *lfs.WrappedPointer) string {
 func init() {
 	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
+		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 	})
 }
