@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
-ronn=`which ronn`
+set -e
 
-if [ -x "$ronn" ]; then
-  mkdir -p man
-  rm -rf man/*.ronn
-  rm -rf man/*.txt
-  cp docs/man/*.ronn man
-  cp docs/man/*.txt man
-  $ronn man/*.ronn
-  rm -rf man/*.ronn
-  rm -rf man/*.txt
-else
-  echo "Install the 'ronn' ruby gem to build the man pages."
+pandoc=`which pandoc`
+if [ ! -x "$pandoc" ]; then
+  echo 2>&1 "fatal: please install 'pandoc\` to generate man pages ..."
+  exit 1
 fi
+
+mkdir -p man
+rm -rf man/*.ronn
+rm -rf man/*.txt
+cp docs/man/*.ronn man
+cp docs/man/*.txt man
+
+for page in `ls man/*.ronn`; do
+  name="$(basename $page | sed -e 's/\.ronn$//g')"
+
+  pandoc --to man --standalone < $page > man/$name
+  pandoc --to html --metadata "title:$name" --standalone < $page > man/$name.html
+done
+
+rm -rf man/*.ronn
+rm -rf man/*.txt

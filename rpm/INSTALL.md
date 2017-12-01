@@ -5,11 +5,11 @@ source code tarball needs to be put in a SOURCES directory. The BUILD and
 BUILDROOT directories are used during the build process. The final RPM ends up
 in the RPMS directory and a source-rpm in SRPMS.
 
-In order to expedite installing all dependencies (mainly ruby-ronn and golang)
-and download any needed files a build_rpms.bsh script is included. This is the
+In order to expedite installing all dependencies (mainly pandoc and golang) and
+download any needed files a build_rpms.bsh script is included. This is the
 **RECOMMENDED** way to build the rpms. It will install all yum packages in
-order to build the rpm. This can be especially difficult in CentOS 5 and 6,
-but it will build and install a suitable golang/ruby so that git-lfs can be
+order to build the rpm. This can be especially difficult in CentOS 5 and 6, but
+it will build and install a suitable golang/ruby so that git-lfs can be
 built.
 
 Simple run:
@@ -38,7 +38,7 @@ yum install RPMS/x86_64/git-lfs*.rpm
 
 If you want to use your own ruby/golang without using the version from
 build_rpms.bsh, you will have to disable dependencies on the rpms. It's pretty
-easy, just make sure ronn and go are in the path, and run
+easy, just make sure pandoc and go are in the path, and run
 
 ```
 NODEPS=1 ./build_rpms.bsh
@@ -47,7 +47,7 @@ NODEPS=1 ./build_rpms.bsh
 ### Manual build method ###
 
 If you want to use your own ruby/golang without using build_rpms.bsh, it's a
-little more complicated. You have to make sure ronn and go are in the path,
+little more complicated. You have to make sure pandoc and go are in the path,
 and create the build structure, and download/create the tar.gz file used. This
 is not recommended, but it is possible.
 
@@ -81,7 +81,7 @@ BUILD_LOCAL=1 ./build_rpms.bsh
 
 ### Troubleshooting ###
 
-**Q**) I ran build_rpms.bsh as root and now there are root owned files in the 
+**Q**) I ran build_rpms.bsh as root and now there are root owned files in the
 rpm dir
 
 **A**) That happens. Either run build_rpms.bsh as a user with sudo permissions

@@ -89,53 +89,9 @@ if ! which go; then
   fi
 fi
 
-if which ruby > /dev/null 2>&1; then
-  IFS_OLD=${IFS}
-  IFS=.
-  RUBY_VERSION=($(ruby -e "print RUBY_VERSION"))
-  IFS=${IFS_OLD}
-else
-  RUBY_VERSION=(0 0 0)
-fi
-
-if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if [[ ${VERSION_ID[0]} < 7 ]]; then
-    echo "Downloading ruby..."
-
-    if ! rpm -q epel-release; then
-      $SUDO yum install -y epel-release #Optional part of centos
-    fi
-
-    $SUDO yum install -y patch libyaml-devel glibc-headers autoconf gcc-c++ glibc-devel readline-devel zlib-devel libffi-devel openssl-devel automake libtool sqlite-devel
-    pushd ${CURDIR}/SOURCES
-      curl -L -O http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
-    popd
-    echo "Building ruby..."
-    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
-    echo "Installing ruby..."
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
-  else
-    $SUDO yum install -y ruby ruby-devel
-  fi
-fi
-
-if ! which ronn; then
-  echo "Downloading some ruby gems..."
-  pushd ${CURDIR}/SOURCES
-    curl -L -O https://rubygems.org/downloads/rdiscount-2.1.8.gem
-    curl -L -O https://rubygems.org/downloads/hpricot-0.8.6.gem
-    curl -L -O https://rubygems.org/downloads/mustache-1.0.1.gem
-    curl -L -O https://rubygems.org/downloads/ronn-0.7.3.gem
-  popd
-
-  echo "Building ruby gems..."
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-rdiscount.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-mustache.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-hpricot.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-ronn.spec
-
-  echo "Installing ruby gems..."
-  $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
+if ! which pandoc; then
+  echo "Installing pandoc..."
+  $SUDO yum install -y --nogpgcheck pandoc
 fi
 
 pushd ${CURDIR}/..
