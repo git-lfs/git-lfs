@@ -51,17 +51,10 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 		percentage = 100 * float64(new) / float64(c.total)
 	}
 
-	u := &Update{
+	c.ch <- &Update{
 		S: fmt.Sprintf("%s: %3.f%% (%d/%d)",
 			c.msg, math.Floor(percentage), new, c.total),
 		At: time.Now(),
-	}
-
-	select {
-	case c.ch <- u:
-	default:
-		// Use a non-blocking write, since it's unimportant that callers
-		// receive all updates.
 	}
 
 	if new >= c.total {
