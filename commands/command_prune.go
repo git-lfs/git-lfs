@@ -120,7 +120,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	var verifyQueue *tq.TransferQueue
 	var verifiedObjects tools.StringSet
 	var totalSize int64
-	var verboseOutput bytes.Buffer
+	var verboseOutput []string
 	var verifyc chan *tq.Transfer
 	var verifywait sync.WaitGroup
 
@@ -150,7 +150,10 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 			totalSize += file.Size
 			if verbose {
 				// Save up verbose output for the end.
-				verboseOutput.WriteString(fmt.Sprintf(" * %v (%v)\n", file.Oid, humanize.FormatBytes(uint64(file.Size))))
+				verboseOutput = append(verboseOutput,
+					fmt.Sprintf(" * %v (%v)\n",
+						file.Oid,
+						humanize.FormatBytes(uint64(file.Size))))
 			}
 
 			if verifyRemote {
@@ -183,12 +186,16 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	if dryRun {
 		info.Logf("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
 		if verbose {
-			info.Logf("\n%s", verboseOutput.String())
+			for _, item := range verboseOutput {
+				info.Logf("\n%s", item)
+			}
+			info.Complete()
 		}
-		info.Complete()
 	} else {
 		if verbose {
-			info.Log(verboseOutput.String())
+			for _, item := range verboseOutput {
+				info.Logf("\n%s", item)
+			}
 		}
 		info.Complete()
 
