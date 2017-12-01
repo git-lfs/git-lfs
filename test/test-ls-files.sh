@@ -57,7 +57,7 @@ begin_test "ls-files: --size"
   git commit -m "add a.dat"
 
   git lfs ls-files --size 2>&1 | tee ls.log
-  [ "d1b2a59fbe * a.dat (8)" = "$(cat ls.log)" ]
+  [ "d1b2a59fbe * a.dat (8 B)" = "$(cat ls.log)" ]
 )
 end_test
 

@@ -1,12 +1,12 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +60,8 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
 			if lsFilesShowSize {
-				msg = append(msg, fmt.Sprintf("(%d)", p.Size))
+				size := humanize.FormatBytes(uint64(p.Size))
+				msg = append(msg, "("+size+")")
 			}
 
 			Print(strings.Join(msg, " "))
