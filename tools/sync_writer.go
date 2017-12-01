@@ -28,10 +28,14 @@ func NewSyncWriter(w io.Writer) *SyncWriter {
 		Sync() error
 	}); ok {
 		sw.syncFn = sync.Sync
+	} else {
+		sw.syncFn = func() error { return nil }
 	}
 
 	if close, ok := w.(io.Closer); ok {
 		sw.closeFn = close.Close
+	} else {
+		sw.closeFn = func() error { return nil }
 	}
 
 	return sw
