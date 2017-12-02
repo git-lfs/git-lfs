@@ -209,6 +209,16 @@ func (l *Logger) logTask(task Task) {
 		// (1) update.
 		l.log(fmt.Sprintf("%s, done\n", update.S))
 	}
+
+	if v, ok := task.(interface {
+		// OnComplete is called after the Task "task" is closed, but
+		// before new tasks are accepted.
+		OnComplete()
+	}); ok {
+		// If the Task implements this interface, call it and block
+		// before accepting new tasks.
+		v.OnComplete()
+	}
 }
 
 // logLine writes a complete line and moves the cursor to the beginning of the

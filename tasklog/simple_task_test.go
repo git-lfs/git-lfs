@@ -1,7 +1,6 @@
 package tasklog
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,13 +12,11 @@ func TestSimpleTaskLogLogsUpdates(t *testing.T) {
 
 	var updates []*Update
 
-	wait := new(sync.WaitGroup)
-	wait.Add(1)
 	go func() {
 		for update := range task.Updates() {
 			updates = append(updates, update)
 		}
-		wait.Done()
+		task.OnComplete()
 	}()
 
 	task.Log("Hello, world")
@@ -34,13 +31,11 @@ func TestSimpleTaskLogfLogsFormattedUpdates(t *testing.T) {
 
 	var updates []*Update
 
-	wait := new(sync.WaitGroup)
-	wait.Add(1)
 	go func() {
 		for update := range task.Updates() {
 			updates = append(updates, update)
 		}
-		wait.Done()
+		task.OnComplete()
 	}()
 
 	task.Logf("Hello, world (%d)", 3+4)
@@ -58,6 +53,11 @@ func TestSimpleTaskCompleteClosesUpdates(t *testing.T) {
 		t.Fatalf("tasklog: unexpected update from *SimpleTask")
 	default:
 	}
+
+	go func() {
+		<-task.Updates()
+		task.OnComplete()
+	}()
 
 	task.Complete()
 
