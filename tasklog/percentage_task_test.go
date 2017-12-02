@@ -44,6 +44,7 @@ func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 	default:
 	}
 
+	go task.OnComplete()
 	assert.EqualValues(t, 10, task.Count(10))
 	assert.Equal(t, "example: 100% (10/10)", (<-task.Updates()).S)
 
