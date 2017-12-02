@@ -3,7 +3,6 @@ package tasklog
 import (
 	"fmt"
 	"math"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -28,7 +27,6 @@ func NewPercentageTask(msg string, total uint64) *PercentageTask {
 		msg:   msg,
 		total: total,
 		ch:    make(chan *Update, 1),
-		wg:    new(sync.WaitGroup),
 	}
 	p.Count(0)
 
