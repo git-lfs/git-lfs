@@ -207,6 +207,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		pruneDeleteFiles(prunableObjects, percentage)
 	}
 
+	logger.Close()
 }
 
 func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects tools.StringSet) {
