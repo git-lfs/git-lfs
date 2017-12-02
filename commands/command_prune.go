@@ -151,7 +151,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 			if verbose {
 				// Save up verbose output for the end.
 				verboseOutput = append(verboseOutput,
-					fmt.Sprintf(" * %v (%v)\n",
+					fmt.Sprintf("%s (%s)",
 						file.Oid,
 						humanize.FormatBytes(uint64(file.Size))))
 			}
@@ -187,7 +187,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		info.Logf("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
 		if verbose {
 			for _, item := range verboseOutput {
-				info.Logf("\n%s", item)
+				info.Logf("\n * %s", item)
 			}
 			info.Complete()
 		}
