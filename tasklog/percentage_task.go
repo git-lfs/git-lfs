@@ -21,10 +21,6 @@ type PercentageTask struct {
 	// ch is a channel which is written to when the task state changes and
 	// is closed when the task is completed.
 	ch chan *Update
-	// wg is used to wait between closing the channel, and acknowledging
-	// that the close-related operations have been completed by the
-	// tasklog.Logger.
-	wg *sync.WaitGroup
 }
 
 func NewPercentageTask(msg string, total uint64) *PercentageTask {
@@ -64,19 +60,10 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 	}
 
 	if new >= c.total {
-		if c.total != 0 {
-			c.wg.Add(1)
-			defer c.wg.Wait()
-		}
-
 		close(c.ch)
 	}
 
 	return new
-}
-
-func (c *PercentageTask) OnComplete() {
-	c.wg.Done()
 }
 
 // Entry logs a line-delimited task entry.
