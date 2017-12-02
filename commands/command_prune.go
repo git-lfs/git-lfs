@@ -189,8 +189,8 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 			for _, item := range verboseOutput {
 				info.Logf("\n * %s", item)
 			}
-			info.Complete()
 		}
+		info.Complete()
 	} else {
 		if verbose {
 			for _, item := range verboseOutput {
