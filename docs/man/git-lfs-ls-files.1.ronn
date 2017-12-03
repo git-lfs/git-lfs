@@ -17,8 +17,7 @@ An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object
   Show the entire 64 character OID, instead of just first 10.
 
 * `-s` `--size`:
-  Show the size in bytes of the LFS object between parenthesis at the end of a
-  line.
+  Show the size of the LFS object between parenthesis at the end of a line.
 
 * -d --debug:
   Show as much information as possible about a LFS file. This is intended
