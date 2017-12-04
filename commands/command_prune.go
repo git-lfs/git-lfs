@@ -285,8 +285,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 }
 
 func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
-	task := tasklog.NewPercentageTask("prune: Deleting objects", uint64(len(prunableObjects)))
-	logger.Enqueue(task)
+	task := logger.Percentage("prune: Deleting objects", uint64(len(prunableObjects)))
 
 	var problems bytes.Buffer
 	// In case we fail to delete some
