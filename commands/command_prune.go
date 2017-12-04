@@ -57,8 +57,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 
 	logger := tasklog.NewLogger(OutputWriter)
-	task := tasklog.NewSimpleTask()
-	logger.Enqueue(task)
+	defer logger.Close()
 
 	var reachableObjects tools.StringSet
 	var taskwait sync.WaitGroup
@@ -103,7 +102,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// Report progress
 	var progresswait sync.WaitGroup
 	progresswait.Add(1)
-	go pruneTaskDisplayProgress(progressChan, &progresswait, task)
+	go pruneTaskDisplayProgress(progressChan, &progresswait, logger)
 
 	taskwait.Wait() // wait for subtasks
 	gitscanner.Close()
@@ -199,15 +198,8 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		}
 		info.Complete()
 
-		// Since the above progress will have completed, create and
-		// enqueue a _new_ percentage task to track deletion progress.
-		percentage := tasklog.NewPercentageTask("prune: Deleting objects", uint64(len(prunableObjects)))
-		logger.Enqueue(percentage)
-
-		pruneDeleteFiles(prunableObjects, percentage)
+		pruneDeleteFiles(prunableObjects, logger)
 	}
-
-	logger.Close()
 }
 
 func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects tools.StringSet) {
@@ -242,8 +234,13 @@ func pruneCheckErrors(taskErrors []error) {
 	}
 }
 
-func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, task *tasklog.SimpleTask) {
+func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, logger *tasklog.Logger) {
 	defer waitg.Done()
+
+	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
+	logger.Enqueue(task)
 
 	localCount := 0
 	retainCount := 0
@@ -264,7 +261,6 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 		}
 		task.Log(msg)
 	}
-	task.Complete()
 }
 
 func pruneTaskCollectRetained(outRetainedObjects *tools.StringSet, retainChan chan string,
@@ -288,7 +284,10 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 	}
 }
 
-func pruneDeleteFiles(prunableObjects []string, task *tasklog.PercentageTask) {
+func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
+	task := tasklog.NewPercentageTask("prune: Deleting objects", uint64(len(prunableObjects)))
+	logger.Enqueue(task)
+
 	var problems bytes.Buffer
 	// In case we fail to delete some
 	var deletedFiles int
