@@ -32,7 +32,6 @@ func TestPercentageTaskCalculatesPercentWithoutTotal(t *testing.T) {
 }
 
 func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
-	t.Skip()
 	task := NewPercentageTask("example", 10)
 
 	select {

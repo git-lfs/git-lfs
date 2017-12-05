@@ -37,6 +37,30 @@ EOF)
 )
 end_test
 
+begin_test "ls-files: --size"
+(
+  set -e
+
+  reponame="ls-files-size"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="contents"
+  size="$(printf "$contents" | wc -c | awk '{ print $1 }')"
+  printf "$contents" > a.dat
+
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git lfs ls-files --size 2>&1 | tee ls.log
+  [ "d1b2a59fbe * a.dat (8 B)" = "$(cat ls.log)" ]
+)
+end_test
+
 begin_test "ls-files: outside git repository"
 (
   set +e

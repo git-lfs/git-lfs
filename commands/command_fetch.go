@@ -84,7 +84,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("fetch: Fetching reference %s", ref.Name)
+			Print("fetch: Fetching reference %s", ref.Refspec())
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
@@ -229,6 +229,8 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
 	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
 	logger := tasklog.NewLogger(OutputWriter)
 	logger.Enqueue(task)
 	var numObjs int64
@@ -261,7 +263,6 @@ func scanAll() []*lfs.WrappedPointer {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
-	task.Complete()
 	return pointers
 }
 
