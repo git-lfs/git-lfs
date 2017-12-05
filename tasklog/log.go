@@ -101,6 +101,14 @@ func (l *Logger) List(msg string) *ListTask {
 	return t
 }
 
+// List creates and enqueues a new *SimpleTask.
+func (l *Logger) Simple() *SimpleTask {
+	t := NewSimpleTask()
+	l.Enqueue(t)
+
+	return t
+}
+
 // Enqueue enqueues the given Tasks "ts".
 func (l *Logger) Enqueue(ts ...Task) {
 	if l == nil {
