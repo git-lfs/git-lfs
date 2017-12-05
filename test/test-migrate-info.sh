@@ -22,6 +22,16 @@ begin_test "migrate info (default branch)"
 )
 end_test
 
+begin_test "migrate info (bare repository)"
+(
+  set -e
+
+  setup_multiple_remote_branches
+
+  git lfs migrate info --everything
+)
+end_test
+
 begin_test "migrate info (given branch)"
 (
   set -e

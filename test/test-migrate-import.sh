@@ -33,6 +33,16 @@ begin_test "migrate import (default branch)"
 )
 end_test
 
+begin_test "migrate import (bare repository)"
+(
+  set -e
+
+  setup_multiple_remote_branches
+
+  git lfs migrate import --everything
+)
+end_test
+
 begin_test "migrate import (given branch)"
 (
   set -e

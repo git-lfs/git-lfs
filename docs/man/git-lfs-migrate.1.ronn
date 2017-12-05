@@ -130,7 +130,7 @@ migrated.
 
 The migrate command's most common use case is to convert large git objects to
 LFS before pushing your commits. By default, it only scans commits that don't
-exist on any remote.
+exist on any remote, so long as the repository is non-bare.
 
 First, run `git lfs migrate info` to list the file types taking up the most
 space in your repository.
