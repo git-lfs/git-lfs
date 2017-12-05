@@ -151,17 +151,24 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 			include = append(include, ref.Refspec())
 		}
 	} else {
-		// Otherwise, if neither --include-ref=<ref> or
-		// --exclude-ref=<ref> were given, include no additional
-		// references, and exclude all remote references that are remote
-		// branches or remote tags.
-		remoteRefs, err := getRemoteRefs(l)
+		bare, err := git.IsBare()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "fatal: unable to determine bareness")
 		}
 
-		for _, rr := range remoteRefs {
-			exclude = append(exclude, rr.Refspec())
+		if !bare {
+			// Otherwise, if neither --include-ref=<ref> or
+			// --exclude-ref=<ref> were given, include no additional
+			// references, and exclude all remote references that
+			// are remote branches or remote tags.
+			remoteRefs, err := getRemoteRefs(l)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			for _, rr := range remoteRefs {
+				exclude = append(exclude, rr.Refspec())
+			}
 		}
 	}
 
