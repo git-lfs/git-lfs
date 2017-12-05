@@ -229,6 +229,8 @@ func fetchAll() bool {
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
 	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
 	logger := tasklog.NewLogger(OutputWriter)
 	logger.Enqueue(task)
 	var numObjs int64
@@ -260,8 +262,6 @@ func scanAll() []*lfs.WrappedPointer {
 	if multiErr != nil {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
-
-	task.Complete()
 	return pointers
 }
 
