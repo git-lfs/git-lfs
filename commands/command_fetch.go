@@ -262,6 +262,7 @@ func scanAll() []*lfs.WrappedPointer {
 	if multiErr != nil {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
+
 	return pointers
 }
 
