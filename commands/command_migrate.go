@@ -32,6 +32,10 @@ var (
 
 	// migrateVerbose enables verbose logging
 	migrateVerbose bool
+
+	// migrateTemplate is parsed to a Go template and is used to format
+	// migrated commit messages.
+	migrateTemplate string
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -264,6 +268,7 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
+	importCmd.Flags().StringVar(&migrateTemplate, "commit-msg", "hello", "Commit message template")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")

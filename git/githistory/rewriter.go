@@ -1,12 +1,16 @@
 package githistory
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"text/template"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -67,6 +71,8 @@ type RewriteOptions struct {
 	// been reassembled by calling the above BlobFn on all existing tree
 	// entries.
 	TreeCallbackFn TreeCallbackFn
+
+	MessageTmpl *template.Template
 }
 
 // blobFn returns a useable BlobRewriteFn, either the one that was given in the
@@ -242,6 +248,43 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 			ParentIDs: rewrittenParents,
 			TreeID:    rewrittenTree,
+		}
+
+		if opt.MessageTmpl != nil {
+			var msg bytes.Buffer
+			if err := opt.MessageTmpl.Execute(&msg, &struct {
+				Original string
+			}{
+				Original: hex.EncodeToString(oid),
+			}); err != nil {
+				return nil, errors.Wrapf(err, "fatal: could not reformat commit %s", oid[:7])
+			}
+
+			var (
+				tmplMessages []string
+				tmplTrailers []*odb.ExtraHeader
+			)
+
+			var trailers bool
+			for s := bufio.NewScanner(&msg); s.Scan(); {
+				if len(s.Bytes()) == 0 {
+					trailers = true
+					continue
+				}
+
+				if trailers {
+					parts := strings.Fields(s.Text())
+					tmplTrailers = append(tmplTrailers, &odb.ExtraHeader{
+						K: parts[0],
+						V: strings.Join(parts[1:], " "),
+					})
+				} else {
+					tmplMessages = append(tmplMessages, s.Text())
+				}
+			}
+
+			rewrittenCommit.Message = strings.Join(tmplMessages, "\n")
+			rewrittenCommit.ExtraHeaders = tmplTrailers
 		}
 
 		var newSha []byte

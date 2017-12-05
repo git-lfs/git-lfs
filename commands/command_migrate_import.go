@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
@@ -34,6 +36,16 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
 	gitfilter := lfs.NewGitFilter(cfg)
+
+	var tmpl *template.Template
+	if len(migrateTemplate) > 0 {
+		var err error
+
+		tmpl, err = template.New("commit").Parse(migrateTemplate)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: could not parse template"))
+		}
+	}
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose: migrateVerbose,
@@ -100,7 +112,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			}), nil
 		},
 
-		UpdateRefs: true,
+		UpdateRefs:  true,
+		MessageTmpl: tmpl,
 	})
 
 	// Only perform `git-checkout(1) -f` if the repository is
