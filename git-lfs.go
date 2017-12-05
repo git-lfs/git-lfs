@@ -1,4 +1,4 @@
-//go:generate goversioninfo -icon=script/windows-installer/git-lfs-logo.ico
+//go:generate goversioninfo
 
 package main
 
