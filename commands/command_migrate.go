@@ -92,6 +92,8 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 
 		BlobFn:         opts.BlobFn,
 		TreeCallbackFn: opts.TreeCallbackFn,
+
+		MessageTmpl: opts.MessageTmpl,
 	}, nil
 }
 

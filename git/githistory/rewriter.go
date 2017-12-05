@@ -1,14 +1,11 @@
 package githistory
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"text/template"
 
@@ -72,6 +69,8 @@ type RewriteOptions struct {
 	// entries.
 	TreeCallbackFn TreeCallbackFn
 
+	// MessageTmpl is a *text/template.Template used to reformat commit
+	// messages.
 	MessageTmpl *template.Template
 }
 
@@ -195,6 +194,11 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		vPerc = perc
 	}
 
+	var msg *MessageRewriter
+	if opt.MessageTmpl != nil {
+		msg = NewMessageRewriter(opt.MessageTmpl)
+	}
+
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
@@ -238,54 +242,19 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			rewrittenParents = append(rewrittenParents, rewrittenParent)
 		}
 
-		// Construct a new commit using the original header information,
-		// but the rewritten set of parents as well as root tree.
-		rewrittenCommit := &odb.Commit{
-			Author:       original.Author,
-			Committer:    original.Committer,
-			ExtraHeaders: original.ExtraHeaders,
-			Message:      original.Message,
-
-			ParentIDs: rewrittenParents,
-			TreeID:    rewrittenTree,
+		// Construct a new commit by first rewriting the commit message
+		// according to the given template.
+		rewrittenCommit, err := msg.Rewrite(oid, original)
+		if err != nil {
+			return nil, errors.Wrap(err,
+				"fatal: could not reformat %s",
+				hex.EncodeToString(oid)[:7])
 		}
 
-		if opt.MessageTmpl != nil {
-			var msg bytes.Buffer
-			if err := opt.MessageTmpl.Execute(&msg, &struct {
-				Original string
-			}{
-				Original: hex.EncodeToString(oid),
-			}); err != nil {
-				return nil, errors.Wrapf(err, "fatal: could not reformat commit %s", oid[:7])
-			}
-
-			var (
-				tmplMessages []string
-				tmplTrailers []*odb.ExtraHeader
-			)
-
-			var trailers bool
-			for s := bufio.NewScanner(&msg); s.Scan(); {
-				if len(s.Bytes()) == 0 {
-					trailers = true
-					continue
-				}
-
-				if trailers {
-					parts := strings.Fields(s.Text())
-					tmplTrailers = append(tmplTrailers, &odb.ExtraHeader{
-						K: parts[0],
-						V: strings.Join(parts[1:], " "),
-					})
-				} else {
-					tmplMessages = append(tmplMessages, s.Text())
-				}
-			}
-
-			rewrittenCommit.Message = strings.Join(tmplMessages, "\n")
-			rewrittenCommit.ExtraHeaders = tmplTrailers
-		}
+		// Modify the rewritten commit to include the new set of
+		// rewritten parents, and the migrated root tree.
+		rewrittenCommits.ParentIDs = rewrittenParents
+		rewrittenCommits.TreeID = rewrittenTree
 
 		var newSha []byte
 
