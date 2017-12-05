@@ -184,17 +184,13 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	logger.Enqueue(info)
 	if dryRun {
 		info.Logf("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
-		if verbose {
-			for _, item := range verboseOutput {
-				info.Logf("\n * %s", item)
-			}
+		for _, item := range verboseOutput {
+			info.Logf("\n * %s", item)
 		}
 		info.Complete()
 	} else {
-		if verbose {
-			for _, item := range verboseOutput {
-				info.Logf("\n%s", item)
-			}
+		for _, item := range verboseOutput {
+			info.Logf("\n%s", item)
 		}
 		info.Complete()
 
