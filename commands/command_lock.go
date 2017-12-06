@@ -35,7 +35,8 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	lockClient := newLockClient()
 	defer lockClient.Close()
 
-	lock, err := lockClient.LockFile(path)
+	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
+	lock, err := lockClient.LockFile(refUpdate.Right(), path)
 	if err != nil {
 		Exit("Lock failed: %v", errors.Cause(err))
 	}

@@ -2,16 +2,61 @@
 
 . "test/testlib.sh"
 
-begin_test "creating a lock"
+begin_test "lock with good ref"
 (
   set -e
 
-  reponame="lock_create_simple"
+  reponame="lock-master-branch-required"
   setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
 
-  git lfs lock --json "a.dat" | tee lock.json
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
+
   id=$(assert_lock lock.json a.dat)
   assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "lock with good tracked ref"
+(
+  set -e
+
+  reponame="lock-tracked-branch-required"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "lock with bad ref"
+(
+  set -e
+
+  reponame="lock-other-branch-required"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs lock "a.dat" 2>&1 | tee lock.json
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  grep 'Lock failed: Expected ref "refs/heads/other", got "refs/heads/master"' lock.json
 )
 end_test
 

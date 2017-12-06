@@ -20,7 +20,8 @@ type lockRef struct {
 // like to obtain a lock against a particular path on a given remote.
 type lockRequest struct {
 	// Path is the path that the client would like to obtain a lock against.
-	Path string `json:"path"`
+	Path string   `json:"path"`
+	Ref  *lockRef `json:"ref"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to

@@ -89,8 +89,11 @@ func (c *Client) Close() error {
 // LockFile attempts to lock a file on the current remote
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func (c *Client) LockFile(path string) (Lock, error) {
-	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{Path: path})
+func (c *Client) LockFile(ref *git.Ref, path string) (Lock, error) {
+	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{
+		Path: path,
+		Ref:  &lockRef{Name: ref.Refspec()},
+	})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
 	}

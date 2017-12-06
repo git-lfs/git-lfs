@@ -858,7 +858,15 @@ type Lock struct {
 }
 
 type LockRequest struct {
+	Ref  *Ref   `json:"ref,omitempty"`
 	Path string `json:"path"`
+}
+
+func (r *LockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type LockResponse struct {
@@ -1136,9 +1144,21 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 
 		if strings.HasSuffix(r.URL.Path, "/locks") {
-			var lockRequest LockRequest
-			if err := dec.Decode(&lockRequest); err != nil {
+			lockRequest := &LockRequest{}
+			if err := dec.Decode(lockRequest); err != nil {
 				enc.Encode(&LockResponse{Message: err.Error()})
+			}
+
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != lockRequest.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], lockRequest.RefName())})
+					return
+				}
 			}
 
 			for _, l := range getLocks(repo) {
