@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 )
 
@@ -70,7 +71,8 @@ type unlockRequest struct {
 	// Force determines whether or not the lock should be "forcibly"
 	// unlocked; that is to say whether or not a given individual should be
 	// able to break a different individual's lock.
-	Force bool `json:"force"`
+	Force bool     `json:"force"`
+	Ref   *lockRef `json:"ref"`
 }
 
 // UnlockResponse is the result sent back from the API when asked to remove a
@@ -88,10 +90,13 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *http.Response, error) {
+func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
-	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{Force: force})
+	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{
+		Force: force,
+		Ref:   &lockRef{Name: ref.Refspec()},
+	})
 	if err != nil {
 		return nil, nil, err
 	}

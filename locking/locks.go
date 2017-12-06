@@ -141,19 +141,19 @@ func getAbsolutePath(p string) (string, error) {
 // UnlockFile attempts to unlock a file on the current remote
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFile(path string, force bool) error {
+func (c *Client) UnlockFile(ref *git.Ref, path string, force bool) error {
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return c.UnlockFileById(id, force)
+	return c.UnlockFileById(ref, id, force)
 }
 
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFileById(id string, force bool) error {
-	unlockRes, _, err := c.client.Unlock(c.Remote, id, force)
+func (c *Client) UnlockFileById(ref *git.Ref, id string, force bool) error {
+	unlockRes, _, err := c.client.Unlock(ref, c.Remote, id, force)
 	if err != nil {
 		return errors.Wrap(err, "api")
 	}

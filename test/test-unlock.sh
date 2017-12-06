@@ -2,12 +2,12 @@
 
 . "test/testlib.sh"
 
-begin_test "unlocking a lock by path"
+begin_test "unlocking a lock by path with good ref"
 (
   set -e
 
-  reponame="unlock_by_path"
-  setup_remote_repo_with_file "unlock_by_path" "c.dat"
+  reponame="unlock-by-path-master-branch-required"
+  setup_remote_repo_with_file "$reponame" "c.dat"
 
   git lfs lock --json "c.dat" | tee lock.log
 
@@ -16,6 +16,77 @@ begin_test "unlocking a lock by path"
 
   git lfs unlock "c.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "unlocking a lock by path with tracked ref"
+(
+  set -e
+
+  reponame="unlock-by-path-tracked-branch-required"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git lfs unlock "c.dat" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "unlocking a lock by path with bad ref"
+(
+  set -e
+
+  reponame="unlock-by-path-other-branch-required"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git checkout -b other
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git checkout master
+  git lfs unlock "c.dat" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  assert_server_lock "$reponame" "$id"
+  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
+)
+end_test
+
+begin_test "unlocking a lock by id with bad ref"
+(
+  set -e
+
+  reponame="unlock-by-id-other-branch-required"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git checkout -b other
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git checkout master
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  assert_server_lock "$reponame" "$id"
+  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
 )
 end_test
 

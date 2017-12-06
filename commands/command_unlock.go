@@ -39,6 +39,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
+	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
 	defer lockClient.Close()
 
@@ -54,7 +55,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		// This call can early-out
 		unlockAbortIfFileModified(path, !os.IsNotExist(err))
 
-		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
+		err = lockClient.UnlockFile(refUpdate.Right(), path, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("%s", errors.Cause(err))
 		}
@@ -67,7 +68,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		// This call can early-out
 		unlockAbortIfFileModifiedById(unlockCmdFlags.Id, lockClient)
 
-		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
+		err := lockClient.UnlockFileById(refUpdate.Right(), unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
 			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))
 		}

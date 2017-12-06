@@ -106,7 +106,7 @@ func TestAPIUnlock(t *testing.T) {
 	require.Nil(t, err)
 
 	lc := &lockClient{Client: c}
-	unlockRes, res, err := lc.Unlock("", "123", true)
+	unlockRes, res, err := lc.Unlock(nil, "", "123", true)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "123", unlockRes.Lock.Id)
