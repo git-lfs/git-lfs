@@ -17,7 +17,7 @@ begin_test "lock with good ref"
   fi
 
   id=$(assert_lock lock.json a.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
 )
 end_test
 
@@ -38,7 +38,7 @@ begin_test "lock with good tracked ref"
   fi
 
   id=$(assert_lock lock.json a.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
 )
 end_test
 

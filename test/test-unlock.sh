@@ -12,10 +12,10 @@ begin_test "unlocking a lock by path with good ref"
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
 
-  git lfs unlock "c.dat" 2>&1 | tee unlock.log
-  refute_server_lock "$reponame" "$id"
+  git lfs unlock --id="$id"
+  refute_server_lock "$reponame" "$id" "refs/heads/master"
 )
 end_test
 
@@ -31,10 +31,10 @@ begin_test "unlocking a lock by path with tracked ref"
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
 
-  git lfs unlock "c.dat" 2>&1 | tee unlock.log
-  refute_server_lock "$reponame" "$id"
+  git lfs unlock --id="$id"
+  refute_server_lock "$reponame" "$id" "refs/heads/tracked"
 )
 end_test
 
@@ -50,16 +50,16 @@ begin_test "unlocking a lock by path with bad ref"
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
 
   git checkout master
-  git lfs unlock "c.dat" 2>&1 | tee unlock.log
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
     exit 1
   fi
 
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
   grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
 )
 end_test
@@ -76,7 +76,7 @@ begin_test "unlocking a lock by id with bad ref"
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
 
   git checkout master
   git lfs unlock --id="$id" 2>&1 | tee unlock.log
@@ -85,7 +85,7 @@ begin_test "unlocking a lock by id with bad ref"
     exit 1
   fi
 
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
   grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
 )
 end_test

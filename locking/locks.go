@@ -37,9 +37,10 @@ type LockCacher interface {
 
 // Client is the main interface object for the locking package
 type Client struct {
-	Remote string
-	client *lockClient
-	cache  LockCacher
+	Remote    string
+	RemoteRef *git.Ref
+	client    *lockClient
+	cache     LockCacher
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -89,10 +90,10 @@ func (c *Client) Close() error {
 // LockFile attempts to lock a file on the current remote
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
-func (c *Client) LockFile(ref *git.Ref, path string) (Lock, error) {
+func (c *Client) LockFile(path string) (Lock, error) {
 	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{
 		Path: path,
-		Ref:  &lockRef{Name: ref.Refspec()},
+		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
 	})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
@@ -141,19 +142,19 @@ func getAbsolutePath(p string) (string, error) {
 // UnlockFile attempts to unlock a file on the current remote
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFile(ref *git.Ref, path string, force bool) error {
+func (c *Client) UnlockFile(path string, force bool) error {
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	return c.UnlockFileById(ref, id, force)
+	return c.UnlockFileById(id, force)
 }
 
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
-func (c *Client) UnlockFileById(ref *git.Ref, id string, force bool) error {
-	unlockRes, _, err := c.client.Unlock(ref, c.Remote, id, force)
+func (c *Client) UnlockFileById(id string, force bool) error {
+	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
 		return errors.Wrap(err, "api")
 	}
@@ -210,6 +211,10 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 }
 
 func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
+	if ref == nil {
+		ref = c.RemoteRef
+	}
+
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{

@@ -32,11 +32,12 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
+	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
-	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
-	lock, err := lockClient.LockFile(refUpdate.Right(), path)
+	lock, err := lockClient.LockFile(path)
 	if err != nil {
 		Exit("Lock failed: %v", errors.Cause(err))
 	}
