@@ -2,6 +2,65 @@
 
 . "test/testlib.sh"
 
+begin_test "push with good ref"
+(
+  set -e
+  reponame="push-master-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git lfs push origin master
+)
+end_test
+
+begin_test "push with tracked ref"
+(
+  set -e
+  reponame="push-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git lfs push origin master
+)
+end_test
+
+begin_test "push with bad ref"
+(
+  set -e
+  reponame="push-other-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git lfs push origin master 2>&1 | tee push.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo "expected command to fail"
+    exit 1
+  fi
+
+  grep 'batch response: Expected ref "refs/heads/other", got "refs/heads/master"' push.log
+)
+end_test
+
 begin_test "push"
 (
   set -e
