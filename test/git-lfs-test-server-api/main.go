@@ -180,9 +180,8 @@ func buildTestData(repo *test.Repo, manifest *tq.Manifest) (oidsExist, oidsMissi
 
 	// just one commit
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := tq.NewMeter(&tq.MeterOption{
-		OS: repo.OSEnv(),
-	})
+	meter := tq.NewMeter()
+	meter.Logger = meter.LoggerFromEnv(repo.OSEnv())
 	logger.Enqueue(meter)
 	commit := test.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}
 	for i := 0; i < oidCount; i++ {

@@ -18,6 +18,9 @@ import (
 // files and bytes transferred as well as the number of files and bytes that
 // get skipped because the transfer is unnecessary.
 type Meter struct {
+	DryRun bool
+	Logger *tools.SyncWriter
+
 	finishedFiles     int64 // int64s must come first for struct alignment
 	skippedFiles      int64
 	transferringFiles int64
@@ -26,11 +29,8 @@ type Meter struct {
 	skippedBytes      int64
 	estimatedFiles    int32
 	paused            uint32
-	logToFile         uint32
-	logger            *tools.SyncWriter
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
-	dryRun            bool
 	updates           chan *tasklog.Update
 }
 
@@ -38,68 +38,45 @@ type env interface {
 	Get(key string) (val string, ok bool)
 }
 
-type MeterOption struct {
-	// DryRun is an option that determines whether updates should be sent to
-	// stdout.
-	DryRun bool
-	// LogFile is an option that sends updates to a text file.
-	LogFile string
-	// OS is an option that sends updates to the text file path specified in
-	// the OS Env.
-	OS interface {
-		Get(key string) (val string, ok bool)
+func (m *Meter) LoggerFromEnv(os env) *tools.SyncWriter {
+	name, _ := os.Get("GIT_LFS_PROGRESS")
+	if len(name) < 1 {
+		return nil
 	}
+	return m.LoggerToFile(name)
 }
 
-func (o *MeterOption) configure(m *Meter) {
-	m.dryRun = o.DryRun
-
-	if f, ok := o.logFile(); ok {
-		m.logToFile = 1
-		m.logger = tools.NewSyncWriter(f)
-	}
-}
-
-func (o *MeterOption) logFile() (*os.File, bool) {
-	var name string = o.LogFile
-	if len(name) == 0 {
-		name, _ = o.OS.Get("GIT_LFS_PROGRESS")
-		if len(name) == 0 {
-			return nil, false
-		}
-	}
-
+func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 	printErr := func(err string) {
 		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
 	}
 
 	if !filepath.IsAbs(name) {
 		printErr("GIT_LFS_PROGRESS must be an absolute path")
-		return nil, false
+		return nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
 		printErr(err.Error())
-		return nil, false
+		return nil
 	}
 
 	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		printErr(err.Error())
-		return nil, false
+		return nil
 	}
 
-	return file, true
+	return tools.NewSyncWriter(file)
 }
 
 // NewMeter creates a new Meter.
-func NewMeter(opt *MeterOption) *Meter {
+func NewMeter() *Meter {
 	m := &Meter{
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
 	}
-	opt.configure(m)
 
 	return m
 }
@@ -219,7 +196,7 @@ func (m *Meter) update() {
 }
 
 func (m *Meter) skipUpdate() bool {
-	return m.dryRun ||
+	return m.DryRun ||
 		(m.estimatedFiles == 0 && m.skippedFiles == 0) ||
 		atomic.LoadUint32(&m.paused) == 1
 }
@@ -248,11 +225,16 @@ func (m *Meter) str() string {
 func (m *Meter) logBytes(direction, name string, read, total int64) {
 	m.fileIndexMutex.Lock()
 	idx := m.fileIndex[name]
+	logger := m.Logger
 	m.fileIndexMutex.Unlock()
+	if logger == nil {
+		return
+	}
+
 	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, m.estimatedFiles, read, total, name)
-	if atomic.LoadUint32(&m.logToFile) == 1 {
-		if err := m.logger.Write([]byte(line)); err != nil {
-			atomic.StoreUint32(&m.logToFile, 0)
-		}
+	if err := m.Logger.Write([]byte(line)); err != nil {
+		m.fileIndexMutex.Lock()
+		m.Logger = nil
+		m.fileIndexMutex.Unlock()
 	}
 }

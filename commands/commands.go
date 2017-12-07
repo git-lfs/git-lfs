@@ -436,10 +436,10 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 }
 
 func buildProgressMeter(dryRun bool) *tq.Meter {
-	return tq.NewMeter(&tq.MeterOption{
-		DryRun: dryRun,
-		OS:     cfg.Os,
-	})
+	m := tq.NewMeter()
+	m.Logger = m.LoggerFromEnv(cfg.Os)
+	m.DryRun = dryRun
+	return m
 }
 
 func requireGitVersion() {
