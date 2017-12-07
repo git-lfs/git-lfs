@@ -8,7 +8,6 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
