@@ -19,6 +19,13 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+// wraps a meter so it can be used with multiple tq.TransferQueue objects.
+type unfinishableMeter struct {
+	progress.Meter
+}
+
+func (m *unfinishableMeter) Finish() { m.Sync() }
+
 func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool) error {
 	gitscanner, err := ctx.buildGitScanner()
 	if err != nil {
@@ -26,28 +33,41 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 	}
 	defer gitscanner.Close()
 
+	meter := buildProgressMeter(ctx.DryRun)
+	updateMeter := &unfinishableMeter{Meter: meter}
+	ctx.logger.Enqueue(meter)
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	for _, update := range updates {
-		if err := uploadLeftOrAll(gitscanner, ctx, update, pushAll); err != nil {
+		if err := uploadLeftOrAll(gitscanner, ctx, updateMeter, update, pushAll); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("ref %s:", update.Left().Name))
 		}
 	}
 
-	ctx.Await()
+	meter.Finish()
+	ctx.ReportErrors()
 	return nil
 }
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate, pushAll bool) error {
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, meter progress.Meter, update *refUpdate, pushAll bool) error {
+	tqueue := newUploadQueue(ctx.Manifest, ctx.Remote,
+		tq.RemoteRef(update.Right()),
+		tq.WithProgress(meter),
+		tq.DryRun(ctx.DryRun),
+	)
+
 	if pushAll {
-		if err := g.ScanRefWithDeleted(update.LeftCommitish(), nil); err != nil {
+		if err := g.ScanRefWithDeleted(update.LeftCommitish(), ctx.gitScannerCallback(tqueue, meter)); err != nil {
 			return err
 		}
 	} else {
-		if err := g.ScanLeftToRemote(update.LeftCommitish(), nil); err != nil {
+		if err := g.ScanLeftToRemote(update.LeftCommitish(), ctx.gitScannerCallback(tqueue, meter)); err != nil {
 			return err
 		}
 	}
-	return ctx.scannerError()
+
+	err := ctx.scannerError()
+	ctx.CollectErrors(tqueue)
+	return err
 }
 
 type uploadContext struct {
@@ -58,8 +78,6 @@ type uploadContext struct {
 	gitfilter    *lfs.GitFilter
 
 	logger *tasklog.Logger
-	meter  progress.Meter
-	tq     *tq.TransferQueue
 
 	committerName  string
 	committerEmail string
@@ -73,11 +91,20 @@ type uploadContext struct {
 	// tracks errors from gitscanner callbacks
 	scannerErr error
 	errMu      sync.Mutex
+	// filename => oid
+	missing   map[string]string
+	corrupt   map[string]string
+	otherErrs []error
 }
 
 func newUploadContext(dryRun bool) *uploadContext {
 	remote := cfg.PushRemote()
 	manifest := getTransferManifestOperationRemote("upload", remote)
+	var sink io.Writer = os.Stdout
+	if dryRun {
+		sink = ioutil.Discard
+	}
+
 	ctx := &uploadContext{
 		Remote:       remote,
 		Manifest:     manifest,
@@ -85,21 +112,32 @@ func newUploadContext(dryRun bool) *uploadContext {
 		uploadedOids: tools.NewStringSet(),
 		gitfilter:    lfs.NewGitFilter(cfg),
 		lockVerifier: newLockVerifier(manifest),
+		logger:       tasklog.NewLogger(sink),
 		allowMissing: cfg.Git.Bool("lfs.allowincompletepush", true),
+		missing:      make(map[string]string),
+		corrupt:      make(map[string]string),
+		otherErrs:    make([]error, 0),
 	}
 
-	var sink io.Writer = os.Stdout
-	if dryRun {
-		sink = ioutil.Discard
-	}
-
-	ctx.logger = tasklog.NewLogger(sink)
-	ctx.meter = buildProgressMeter(ctx.DryRun)
-	ctx.logger.Enqueue(ctx.meter)
-
-	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 	return ctx
+}
+
+func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
+	gitscanner := lfs.NewGitScanner(nil)
+	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
+	gitscanner.PotentialLockables = c.lockVerifier
+	return gitscanner, gitscanner.RemoteForPush(c.Remote)
+}
+
+func (c *uploadContext) gitScannerCallback(tqueue *tq.TransferQueue, meter progress.Meter) func(*lfs.WrappedPointer, error) {
+	return func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			c.addScannerError(err)
+		} else {
+			c.uploadPointers(tqueue, meter, p)
+		}
+	}
 }
 
 func (c *uploadContext) scannerError() error {
@@ -120,20 +158,6 @@ func (c *uploadContext) addScannerError(err error) {
 	}
 }
 
-func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			c.addScannerError(err)
-		} else {
-			uploadPointers(c, p)
-		}
-	})
-
-	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
-	gitscanner.PotentialLockables = c.lockVerifier
-	return gitscanner, gitscanner.RemoteForPush(c.Remote)
-}
-
 // AddUpload adds the given oid to the set of oids that have been uploaded in
 // the current process.
 func (c *uploadContext) SetUploaded(oid string) {
@@ -146,7 +170,7 @@ func (c *uploadContext) HasUploaded(oid string) bool {
 	return c.uploadedOids.Contains(oid)
 }
 
-func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
+func (c *uploadContext) prepareUpload(meter progress.Meter, unfiltered ...*lfs.WrappedPointer) []*lfs.WrappedPointer {
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
 
@@ -188,16 +212,16 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 			// estimate in meter early (even if it's not going into
 			// uploadables), since we will call Skip() based on the
 			// results of the download check queue.
-			c.meter.Add(p.Size)
+			meter.Add(p.Size)
 
 			uploadables = append(uploadables, p)
 		}
 	}
 
-	return c.tq, uploadables
+	return uploadables
 }
 
-func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
+func (c *uploadContext) uploadPointers(tqueue *tq.TransferQueue, meter progress.Meter, unfiltered ...*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {
@@ -211,42 +235,45 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 		return
 	}
 
-	q, pointers := c.prepareUpload(unfiltered...)
+	pointers := c.prepareUpload(meter, unfiltered...)
 	for _, p := range pointers {
 		t, err := c.uploadTransfer(p)
 		if err != nil && !errors.IsCleanPointerError(err) {
 			ExitWithError(err)
 		}
 
-		q.Add(t.Name, t.Path, t.Oid, t.Size)
+		tqueue.Add(t.Name, t.Path, t.Oid, t.Size)
 		c.SetUploaded(p.Oid)
 	}
 }
 
-func (c *uploadContext) Await() {
-	c.tq.Wait()
+func (c *uploadContext) CollectErrors(tqueues ...*tq.TransferQueue) {
+	for _, tqueue := range tqueues {
+		tqueue.Wait()
+		c.errMu.Lock()
 
-	var missing = make(map[string]string)
-	var corrupt = make(map[string]string)
-	var others = make([]error, 0, len(c.tq.Errors()))
-
-	for _, err := range c.tq.Errors() {
-		if malformed, ok := err.(*tq.MalformedObjectError); ok {
-			if malformed.Missing() {
-				missing[malformed.Name] = malformed.Oid
-			} else if malformed.Corrupt() {
-				corrupt[malformed.Name] = malformed.Oid
+		for _, err := range tqueue.Errors() {
+			if malformed, ok := err.(*tq.MalformedObjectError); ok {
+				if malformed.Missing() {
+					c.missing[malformed.Name] = malformed.Oid
+				} else if malformed.Corrupt() {
+					c.corrupt[malformed.Name] = malformed.Oid
+				}
+			} else {
+				c.otherErrs = append(c.otherErrs, err)
 			}
-		} else {
-			others = append(others, err)
 		}
-	}
 
-	for _, err := range others {
+		c.errMu.Unlock()
+	}
+}
+
+func (c *uploadContext) ReportErrors() {
+	for _, err := range c.otherErrs {
 		FullError(err)
 	}
 
-	if len(missing) > 0 || len(corrupt) > 0 {
+	if len(c.missing) > 0 || len(c.corrupt) > 0 {
 		var action string
 		if c.allowMissing {
 			action = "missing objects"
@@ -255,10 +282,10 @@ func (c *uploadContext) Await() {
 		}
 
 		Print("LFS upload %s:", action)
-		for name, oid := range missing {
+		for name, oid := range c.missing {
 			Print("  (missing) %s (%s)", name, oid)
 		}
-		for name, oid := range corrupt {
+		for name, oid := range c.corrupt {
 			Print("  (corrupt) %s (%s)", name, oid)
 		}
 
@@ -267,7 +294,7 @@ func (c *uploadContext) Await() {
 		}
 	}
 
-	if len(others) > 0 {
+	if len(c.otherErrs) > 0 {
 		os.Exit(2)
 	}
 

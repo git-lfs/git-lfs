@@ -275,6 +275,25 @@ func lfsDeleteHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	w.WriteHeader(200)
 }
 
+type batchReq struct {
+	Transfers []string    `json:"transfers"`
+	Operation string      `json:"operation"`
+	Objects   []lfsObject `json:"objects"`
+	Ref       *Ref        `json:"ref,omitempty"`
+}
+
+func (r *batchReq) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
+}
+
+type batchResp struct {
+	Transfer string      `json:"transfer,omitempty"`
+	Objects  []lfsObject `json:"objects"`
+}
+
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	checkingObject := r.Header.Get("X-Check-Object") == "1"
 	if !checkingObject && repo == "batchunsupported" {
@@ -299,20 +318,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		return
 	}
 
-	type batchReq struct {
-		Transfers []string    `json:"transfers"`
-		Operation string      `json:"operation"`
-		Objects   []lfsObject `json:"objects"`
-	}
-	type batchResp struct {
-		Transfer string      `json:"transfer,omitempty"`
-		Objects  []lfsObject `json:"objects"`
-	}
-
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
-	var objs batchReq
-	err := json.NewDecoder(tee).Decode(&objs)
+	objs := &batchReq{}
+	err := json.NewDecoder(tee).Decode(objs)
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
@@ -321,6 +330,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if strings.HasSuffix(repo, "branch-required") {
+		parts := strings.Split(repo, "-")
+		lenParts := len(parts)
+		if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != objs.RefName() {
+			w.WriteHeader(403)
+			json.NewEncoder(w).Encode(struct {
+				Message string `json:"message"`
+			}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], objs.RefName())})
+			return
+		}
 	}
 
 	res := []lfsObject{}

@@ -14,5 +14,6 @@ type Meter interface {
 	StartTransfer(name string)
 	TransferBytes(direction, name string, read, total int64, current int)
 	FinishTransfer(name string)
+	Sync()
 	Finish()
 }

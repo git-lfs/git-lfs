@@ -27,7 +27,7 @@ func TestAPIBatch(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "80", r.Header.Get("Content-Length"))
+		assert.Equal(t, "91", r.Header.Get("Content-Length"))
 
 		bodyLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		bReq := &batchRequest{}
