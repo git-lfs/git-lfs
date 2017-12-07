@@ -84,7 +84,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("Fetching %v", ref.Name)
+			Print("fetch: Fetching reference %s", ref.Refspec())
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
@@ -181,7 +181,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
+		Print("fetch: Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
 		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
 		if err != nil {
@@ -195,7 +195,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("Fetching %v", ref.Name)
+				Print("fetch: Fetching reference %s", ref.Name)
 				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
@@ -210,7 +210,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				Error("Couldn't scan commits at %v: %v", refName, err)
 				continue
 			}
-			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
+			Print("fetch: Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
 			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
@@ -222,16 +222,17 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 
 func fetchAll() bool {
 	pointers := scanAll()
-	Print("Fetching objects...")
+	Print("fetch: Fetching all references...")
 	return fetchAndReportToChan(pointers, nil, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
-	Print("Scanning for all objects ever referenced...")
+	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
 	logger := tasklog.NewLogger(OutputWriter)
-	spinner := progress.NewSpinner()
-	logger.Enqueue(spinner)
+	logger.Enqueue(task)
 	var numObjs int64
 
 	// use temp gitscanner to collect pointers
@@ -248,7 +249,7 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		spinner.Spinf("%d objects found", numObjs)
+		task.Logf("fetch: %d object(s) found", numObjs)
 		pointers = append(pointers, p)
 	})
 
@@ -262,7 +263,6 @@ func scanAll() []*lfs.WrappedPointer {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
-	spinner.Finish("%d objects found", numObjs)
 	return pointers
 }
 

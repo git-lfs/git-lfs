@@ -101,6 +101,14 @@ func (l *Logger) List(msg string) *ListTask {
 	return t
 }
 
+// List creates and enqueues a new *SimpleTask.
+func (l *Logger) Simple() *SimpleTask {
+	t := NewSimpleTask()
+	l.Enqueue(t)
+
+	return t
+}
+
 // Enqueue enqueues the given Tasks "ts".
 func (l *Logger) Enqueue(ts ...Task) {
 	if l == nil {
@@ -217,6 +225,16 @@ func (l *Logger) logTask(task Task) {
 		// nil. Given this, only log a message when there was at least
 		// (1) update.
 		l.log(fmt.Sprintf("%s, done\n", update.S))
+	}
+
+	if v, ok := task.(interface {
+		// OnComplete is called after the Task "task" is closed, but
+		// before new tasks are accepted.
+		OnComplete()
+	}); ok {
+		// If the Task implements this interface, call it and block
+		// before accepting new tasks.
+		v.OnComplete()
 	}
 }
 

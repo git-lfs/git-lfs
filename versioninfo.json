@@ -14,5 +14,6 @@
 		"LegalCopyright": "GitHub, Inc. and Git LFS contributors",
 		"ProductName": "Git Large File Storage (LFS)",
 		"ProductVersion": "2.3.4"
-	}
+	},
+	"IconPath": "script/windows-installer/git-lfs-logo.ico"
 }
