@@ -6,6 +6,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -95,8 +96,15 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	uploadPointers(ctx, pointers...)
-	ctx.CollectErrors(ctx.tq)
+	meter := buildProgressMeter(ctx.DryRun)
+	tqueue := newUploadQueue(ctx.Manifest, ctx.Remote,
+		tq.RemoteRef(currentRemoteRef()),
+		tq.WithProgress(meter),
+		tq.DryRun(ctx.DryRun),
+	)
+	ctx.logger.Enqueue(meter)
+	ctx.uploadPointers(tqueue, meter, pointers...)
+	ctx.CollectErrors(tqueue)
 	ctx.ReportErrors()
 }
 

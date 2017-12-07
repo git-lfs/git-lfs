@@ -28,7 +28,6 @@ end_test
 begin_test "pre-push with tracked ref"
 (
   set -e
-  exit 0
   reponame="pre-push-tracked-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"

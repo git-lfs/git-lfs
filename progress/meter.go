@@ -159,6 +159,11 @@ func (p *ProgressMeter) FinishTransfer(name string) {
 	p.fileIndexMutex.Unlock()
 }
 
+// Sync sends an update now, if necessary
+func (p *ProgressMeter) Sync() {
+	p.update()
+}
+
 // Finish shuts down the ProgressMeter
 func (p *ProgressMeter) Finish() {
 	p.update()

@@ -126,9 +126,7 @@ func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option
 
 // newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
 func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, manifest, remote, append(options,
-		tq.RemoteRef(currentRemoteRef()),
-	)...)
+	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
 }
 
 func currentRemoteRef() *git.Ref {
