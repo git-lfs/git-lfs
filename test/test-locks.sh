@@ -2,17 +2,40 @@
 
 . "test/testlib.sh"
 
+begin_test "list a single lock with bad ref"
+(
+  set -e
+
+  reponame="locks-list-other-branch-required"
+  setup_remote_repo_with_file "$reponame" "f.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git checkout -b other
+  git lfs lock --json "f.dat" | tee lock.log
+
+  git checkout master
+  git lfs locks --path "f.dat" 2>&1 | tee locks.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' locks.log
+)
+end_test
+
 begin_test "list a single lock"
 (
   set -e
 
-  reponame="locks_list_single"
+  reponame="locks-list-master-branch-required"
   setup_remote_repo_with_file "$reponame" "f.dat"
+  clone_repo "$reponame" "$reponame"
 
   git lfs lock --json "f.dat" | tee lock.log
 
   id=$(assert_lock lock.log f.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
 
   git lfs locks --path "f.dat" | tee locks.log
   [ $(wc -l < locks.log) -eq 1 ]

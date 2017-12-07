@@ -1042,16 +1042,27 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 
 		ll := &LockList{}
 		w.Header().Set("Content-Type", "application/json")
-		locks, nextCursor, err := getFilteredLocks(repo,
-			r.FormValue("path"),
-			r.FormValue("cursor"),
-			r.FormValue("limit"))
 
-		if err != nil {
-			ll.Message = err.Error()
-		} else {
-			ll.Locks = locks
-			ll.NextCursor = nextCursor
+		if strings.HasSuffix(repo, "branch-required") {
+			parts := strings.Split(repo, "-")
+			lenParts := len(parts)
+			if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != r.FormValue("refspec") {
+				ll.Message = fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], r.FormValue("refspec"))
+			}
+		}
+
+		if len(ll.Message) < 1 {
+			locks, nextCursor, err := getFilteredLocks(repo,
+				r.FormValue("path"),
+				r.FormValue("cursor"),
+				r.FormValue("limit"))
+
+			if err != nil {
+				ll.Message = err.Error()
+			} else {
+				ll.Locks = locks
+				ll.NextCursor = nextCursor
+			}
 		}
 
 		enc.Encode(ll)

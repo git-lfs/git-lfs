@@ -134,6 +134,8 @@ type lockSearchRequest struct {
 	Cursor string
 	// Limit is the maximum number of locks to return in a single page.
 	Limit int
+
+	Refspec string
 }
 
 func (r *lockSearchRequest) QueryValues() map[string]string {
@@ -148,6 +150,10 @@ func (r *lockSearchRequest) QueryValues() map[string]string {
 
 	if r.Limit > 0 {
 		q["limit"] = strconv.Itoa(r.Limit)
+	}
+
+	if len(r.Refspec) > 0 {
+		q["refspec"] = r.Refspec
 	}
 
 	return q

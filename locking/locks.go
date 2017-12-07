@@ -300,7 +300,13 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for k, v := range filter {
 		apifilters = append(apifilters, lockFilter{Property: k, Value: v})
 	}
-	query := &lockSearchRequest{Filters: apifilters, Limit: limit}
+
+	query := &lockSearchRequest{
+		Filters: apifilters,
+		Limit:   limit,
+		Refspec: c.RemoteRef.Refspec(),
+	}
+
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {
