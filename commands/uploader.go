@@ -33,7 +33,8 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 		}
 	}
 
-	ctx.Await()
+	ctx.CollectErrors(ctx.tq)
+	ctx.ReportErrors()
 	return nil
 }
 
@@ -73,6 +74,10 @@ type uploadContext struct {
 	// tracks errors from gitscanner callbacks
 	scannerErr error
 	errMu      sync.Mutex
+	// filename => oid
+	missing   map[string]string
+	corrupt   map[string]string
+	otherErrs []error
 }
 
 func newUploadContext(dryRun bool) *uploadContext {
@@ -86,6 +91,9 @@ func newUploadContext(dryRun bool) *uploadContext {
 		gitfilter:    lfs.NewGitFilter(cfg),
 		lockVerifier: newLockVerifier(manifest),
 		allowMissing: cfg.Git.Bool("lfs.allowincompletepush", true),
+		missing:      make(map[string]string),
+		corrupt:      make(map[string]string),
+		otherErrs:    make([]error, 0),
 	}
 
 	var sink io.Writer = os.Stdout
@@ -223,30 +231,33 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 	}
 }
 
-func (c *uploadContext) Await() {
-	c.tq.Wait()
+func (c *uploadContext) CollectErrors(tqueues ...*tq.TransferQueue) {
+	for _, tqueue := range tqueues {
+		tqueue.Wait()
+		c.errMu.Lock()
 
-	var missing = make(map[string]string)
-	var corrupt = make(map[string]string)
-	var others = make([]error, 0, len(c.tq.Errors()))
-
-	for _, err := range c.tq.Errors() {
-		if malformed, ok := err.(*tq.MalformedObjectError); ok {
-			if malformed.Missing() {
-				missing[malformed.Name] = malformed.Oid
-			} else if malformed.Corrupt() {
-				corrupt[malformed.Name] = malformed.Oid
+		for _, err := range tqueue.Errors() {
+			if malformed, ok := err.(*tq.MalformedObjectError); ok {
+				if malformed.Missing() {
+					c.missing[malformed.Name] = malformed.Oid
+				} else if malformed.Corrupt() {
+					c.corrupt[malformed.Name] = malformed.Oid
+				}
+			} else {
+				c.otherErrs = append(c.otherErrs, err)
 			}
-		} else {
-			others = append(others, err)
 		}
-	}
 
-	for _, err := range others {
+		c.errMu.Unlock()
+	}
+}
+
+func (c *uploadContext) ReportErrors() {
+	for _, err := range c.otherErrs {
 		FullError(err)
 	}
 
-	if len(missing) > 0 || len(corrupt) > 0 {
+	if len(c.missing) > 0 || len(c.corrupt) > 0 {
 		var action string
 		if c.allowMissing {
 			action = "missing objects"
@@ -255,10 +266,10 @@ func (c *uploadContext) Await() {
 		}
 
 		Print("LFS upload %s:", action)
-		for name, oid := range missing {
+		for name, oid := range c.missing {
 			Print("  (missing) %s (%s)", name, oid)
 		}
-		for name, oid := range corrupt {
+		for name, oid := range c.corrupt {
 			Print("  (corrupt) %s (%s)", name, oid)
 		}
 
@@ -267,7 +278,7 @@ func (c *uploadContext) Await() {
 		}
 	}
 
-	if len(others) > 0 {
+	if len(c.otherErrs) > 0 {
 		os.Exit(2)
 	}
 

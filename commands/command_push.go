@@ -96,7 +96,8 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	}
 
 	uploadPointers(ctx, pointers...)
-	ctx.Await()
+	ctx.CollectErrors(ctx.tq)
+	ctx.ReportErrors()
 }
 
 // lfsPushRefs returns valid ref updates from the given ref and --all arguments.
