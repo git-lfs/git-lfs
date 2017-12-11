@@ -54,6 +54,36 @@ func (r *refUpdater) UpdateRefs() error {
 		}
 
 		to, ok := r.CacheFn(sha1)
+
+		if ref.Type == git.RefTypeLocalTag {
+			tag, _ := r.db.Tag(sha1)
+			if tag != nil && tag.ObjectType == odb.CommitObjectType {
+				// Assume that a non-nil error is an indication
+				// that the tag is bare (without annotation).
+
+				toObj, okObj := r.CacheFn(tag.Object)
+				if !okObj {
+					continue
+				}
+
+				newTag, err := r.db.WriteTag(&odb.Tag{
+					Object:     toObj,
+					ObjectType: tag.ObjectType,
+					Name:       tag.Name,
+					Tagger:     tag.Tagger,
+
+					Message: tag.Message,
+				})
+
+				if err != nil {
+					return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+				}
+
+				to = newTag
+				ok = true
+			}
+		}
+
 		if !ok {
 			continue
 		}
