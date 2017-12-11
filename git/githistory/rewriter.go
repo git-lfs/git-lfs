@@ -280,6 +280,8 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			Logger:  r.l,
 			Refs:    refs,
 			Root:    root,
+
+			db: r.db,
 		}
 
 		if err := updater.UpdateRefs(); err != nil {

@@ -26,6 +26,7 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 			},
 		},
 		Root: root,
+		db:   db,
 	}
 
 	err := updater.UpdateRefs()
@@ -55,6 +56,7 @@ func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
 			},
 		},
 		Root: root,
+		db:   db,
 	}
 
 	err := updater.UpdateRefs()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -25,6 +26,8 @@ type refUpdater struct {
 	// Root is the given directory on disk in which the repository is
 	// located.
 	Root string
+
+	db *odb.ObjectDatabase
 }
 
 // UpdateRefs performs the reference update(s) from existing locations (see:
