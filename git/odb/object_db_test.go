@@ -166,6 +166,57 @@ func TestWriteCommit(t *testing.T) {
 	assert.NotNil(t, fs.fs[hex.EncodeToString(sha)])
 }
 
+func TestDecodeTag(t *testing.T) {
+	const sha = "7639ba293cd2c457070e8446ecdea56682af0f48"
+	tagShaHex, err := hex.DecodeString(sha)
+
+	var buf bytes.Buffer
+
+	zw := zlib.NewWriter(&buf)
+	fmt.Fprintf(zw, "tag 165\x00")
+	fmt.Fprintf(zw, "object 6161616161616161616161616161616161616161\n")
+	fmt.Fprintf(zw, "type commit\n")
+	fmt.Fprintf(zw, "tag v2.4.0\n")
+	fmt.Fprintf(zw, "tagger A U Thor <author@example.com>\n")
+	fmt.Fprintf(zw, "\n")
+	fmt.Fprintf(zw, "The quick brown fox jumps over the lazy dog.\n")
+	zw.Close()
+
+	odb := &ObjectDatabase{s: newMemoryStorer(map[string]io.ReadWriter{
+		sha: &buf,
+	})}
+
+	tag, err := odb.Tag(tagShaHex)
+
+	assert.Nil(t, err)
+
+	assert.Equal(t, []byte("aaaaaaaaaaaaaaaaaaaa"), tag.Object)
+	assert.Equal(t, CommitObjectType, tag.ObjectType)
+	assert.Equal(t, "v2.4.0", tag.Name)
+	assert.Equal(t, "A U Thor <author@example.com>", tag.Tagger)
+	assert.Equal(t, "The quick brown fox jumps over the lazy dog.", tag.Message)
+}
+
+func TestWriteTag(t *testing.T) {
+	fs := newMemoryStorer(make(map[string]io.ReadWriter))
+	odb := &ObjectDatabase{s: fs}
+
+	sha, err := odb.WriteTag(&Tag{
+		Object:     []byte("aaaaaaaaaaaaaaaaaaaa"),
+		ObjectType: CommitObjectType,
+		Name:       "v2.4.0",
+		Tagger:     "A U Thor <author@example.com>",
+
+		Message: "The quick brown fox jumps over the lazy dog.",
+	})
+
+	expected := "b0ea0039d536fb739dfa44e74e488b635bbb3a86"
+
+	assert.Nil(t, err)
+	assert.Equal(t, expected, hex.EncodeToString(sha))
+	assert.NotNil(t, fs.fs[hex.EncodeToString(sha)])
+}
+
 func TestReadingAMissingObjectAfterClose(t *testing.T) {
 	sha, _ := hex.DecodeString("af5626b4a114abcb82d63db7c8082c3c4756e51b")
 
