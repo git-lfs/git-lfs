@@ -253,6 +253,40 @@ begin_test "migrate import (given ref, --skip-fetch)"
 )
 end_test
 
+begin_test "migrate import (un-annotated tags)"
+(
+  set -e
+
+  setup_single_local_branch_with_tags
+
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+
+  git lfs migrate import --everything
+
+  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "2"
+  assert_local_object "$txt_master_oid" "2"
+
+  git tag --points-at "$(git rev-parse HEAD)" | grep -q "v1.0.0"
+)
+end_test
+
+begin_test "migrate import (annotated tags)"
+(
+  set -e
+
+  setup_single_local_branch_with_annotated_tags
+
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+
+  git lfs migrate import --everything
+
+  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "2"
+  assert_local_object "$txt_master_oid" "2"
+
+  git tag --points-at "$(git rev-parse HEAD)" | grep -q "v1.0.0"
+)
+end_test
+
 begin_test "migrate import (include/exclude ref)"
 (
   set -e
