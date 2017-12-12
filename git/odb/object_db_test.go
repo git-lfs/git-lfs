@@ -159,7 +159,7 @@ func TestWriteCommit(t *testing.T) {
 		Message:   "initial commit",
 	})
 
-	expected := "fee8a35c2890cd6e0e28d24cc457fcecbd460962"
+	expected := "77a746376fdb591a44a4848b5ba308b2d3e2a90c"
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, hex.EncodeToString(sha))
