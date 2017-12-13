@@ -293,6 +293,44 @@ begin_test "migrate import (include/exclude ref)"
 )
 end_test
 
+begin_test "migrate import (include/exclude ref args)"
+(
+  set -e
+
+  setup_multiple_remote_branches
+
+  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
+
+  git lfs migrate import my-feature ^master
+
+  assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
+  assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30"
+
+  assert_local_object "$md_feature_oid" "31"
+  refute_local_object "$md_master_oid" "21"
+  assert_local_object "$txt_feature_oid" "30"
+  refute_local_object "$txt_master_oid" "20"
+  refute_local_object "$md_remote_oid" "11"
+  refute_local_object "$txt_remote_oid" "10"
+
+  master="$(git rev-parse refs/heads/master)"
+  feature="$(git rev-parse refs/heads/my-feature)"
+  remote="$(git rev-parse refs/remotes/origin/master)"
+
+  [ ! $(git cat-file -p "$master:.gitattributes") ]
+  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
+
+  echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$feature_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+)
+end_test
+
 begin_test "migrate import (include/exclude ref with filter)"
 (
   set -e
