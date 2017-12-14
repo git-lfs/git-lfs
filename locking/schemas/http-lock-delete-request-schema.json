@@ -5,6 +5,9 @@
   "properties": {
     "force": {
       "type": "boolean"
+    },
+    "ref": {
+      "type": "string"
     }
   }
 }
