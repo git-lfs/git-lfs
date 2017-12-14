@@ -5,6 +5,15 @@
   "properties": {
     "force": {
       "type": "boolean"
+    },
+    "ref": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
     }
   }
 }

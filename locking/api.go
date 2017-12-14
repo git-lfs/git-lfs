@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 )
 
@@ -20,7 +21,8 @@ type lockRef struct {
 // like to obtain a lock against a particular path on a given remote.
 type lockRequest struct {
 	// Path is the path that the client would like to obtain a lock against.
-	Path string `json:"path"`
+	Path string   `json:"path"`
+	Ref  *lockRef `json:"ref,omitempty"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to
@@ -69,7 +71,8 @@ type unlockRequest struct {
 	// Force determines whether or not the lock should be "forcibly"
 	// unlocked; that is to say whether or not a given individual should be
 	// able to break a different individual's lock.
-	Force bool `json:"force"`
+	Force bool     `json:"force"`
+	Ref   *lockRef `json:"ref,omitempty"`
 }
 
 // UnlockResponse is the result sent back from the API when asked to remove a
@@ -87,10 +90,13 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Unlock(remote, id string, force bool) (*unlockResponse, *http.Response, error) {
+func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, *http.Response, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
-	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{Force: force})
+	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{
+		Force: force,
+		Ref:   &lockRef{Name: ref.Refspec()},
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,6 +134,8 @@ type lockSearchRequest struct {
 	Cursor string
 	// Limit is the maximum number of locks to return in a single page.
 	Limit int
+
+	Refspec string
 }
 
 func (r *lockSearchRequest) QueryValues() map[string]string {
@@ -142,6 +150,10 @@ func (r *lockSearchRequest) QueryValues() map[string]string {
 
 	if r.Limit > 0 {
 		q["limit"] = strconv.Itoa(r.Limit)
+	}
+
+	if len(r.Refspec) > 0 {
+		q["refspec"] = r.Refspec
 	}
 
 	return q
@@ -196,7 +208,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 // lockVerifiableRequest encapsulates the request sent to the server when the
 // client would like a list of locks to verify a Git push.
 type lockVerifiableRequest struct {
-	Ref *lockRef `json:"ref"`
+	Ref *lockRef `json:"ref,omitempty"`
 
 	// Cursor is an optional field used to tell the server which lock was
 	// seen last, if scanning through multiple pages of results.

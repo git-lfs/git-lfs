@@ -37,9 +37,10 @@ type LockCacher interface {
 
 // Client is the main interface object for the locking package
 type Client struct {
-	Remote string
-	client *lockClient
-	cache  LockCacher
+	Remote    string
+	RemoteRef *git.Ref
+	client    *lockClient
+	cache     LockCacher
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -90,7 +91,10 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{Path: path})
+	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{
+		Path: path,
+		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
+	})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
 	}
@@ -150,7 +154,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
 func (c *Client) UnlockFileById(id string, force bool) error {
-	unlockRes, _, err := c.client.Unlock(c.Remote, id, force)
+	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
 		return errors.Wrap(err, "api")
 	}
@@ -207,6 +211,10 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 }
 
 func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
+	if ref == nil {
+		ref = c.RemoteRef
+	}
+
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{
@@ -292,7 +300,13 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for k, v := range filter {
 		apifilters = append(apifilters, lockFilter{Property: k, Value: v})
 	}
-	query := &lockSearchRequest{Filters: apifilters, Limit: limit}
+
+	query := &lockSearchRequest{
+		Filters: apifilters,
+		Limit:   limit,
+		Refspec: c.RemoteRef.Refspec(),
+	}
+
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {

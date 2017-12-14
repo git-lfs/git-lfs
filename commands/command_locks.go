@@ -26,7 +26,9 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
+	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)

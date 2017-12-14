@@ -39,7 +39,9 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
+	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
 	if hasPath {

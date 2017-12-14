@@ -6,8 +6,8 @@ The File Locking API is used to create, list, and delete locks, as well as
 verify that locks are respected in Git pushes. The locking URLs are built
 by adding a suffix to the LFS Server URL.
 
-Git remote: https://git-server.com/foo/bar  
-LFS server: https://git-server.com/foo/bar.git/info/lfs  
+Git remote: https://git-server.com/foo/bar
+LFS server: https://git-server.com/foo/bar.git/info/lfs
 Locks API: https://git-server.com/foo/bar.git/info/lfs/locks
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS
@@ -35,6 +35,9 @@ to one user.
 
 * `path` - String path name of the file that is locked. This should be
 relative to the root of the repository working directory.
+* `ref` - The fully-qualified reference from which the client is locking the
+file. It is the responsibility of the server implementing this specification
+to decide on the semantic meaning of this.
 
 ```js
 // POST https://lfs-server.com/locks
@@ -42,7 +45,10 @@ relative to the root of the repository working directory.
 // Content-Type: application/vnd.git-lfs+json
 // Authorization: Basic ...
 {
-  "path": "foo/bar.zip"
+  "path": "foo/bar.zip",
+  "ref": {
+    "name": "refs/heads/my-feature
+  }
 }
 ```
 
@@ -151,6 +157,8 @@ The properties are sent as URI query values, instead of through a JSON body:
 should be the `next_cursor` from a previous request.
 * `limit` - The integer limit of the number of locks to return. The server
 should have its own upper and lower bounds on the supported limits.
+* `ref` - Optional reference representing the reference from which the client
+is searching for looks.
 
 ```js
 // GET https://lfs-server.com/locks?path=&id=&cursor=&limit=
@@ -234,8 +242,8 @@ that can affect a Git push. For a caller, this endpoint is very similar to the
 "List Locks" endpoint above, except:
 
 * Verification requires a `POST` request.
-* The `cursor` and `limit` values are sent as properties in the json request
-body.
+* The `cursor`, `ref` and `limit` values are sent as properties in the json
+request body.
 * The response includes locks partitioned into `ours` and `theirs` properties.
 
 LFS Servers should ensure that users have push access to the repository.
@@ -253,7 +261,10 @@ to `/locks/verify` (appended to the LFS server url, as described above):
 // Authorization: Basic ...
 {
   "cursor": "optional cursor",
-  "limit": 100 // also optional
+  "limit": 100, // also optional
+  "ref": {
+    "name": "refs/heads/my-feature"
+  }
 }
 ```
 
@@ -374,6 +385,9 @@ Properties:
 
 * `force` - Optional boolean specifying that the user is deleting another user's
 lock.
+* `ref` - Optional reference object specifying the reference from which the
+client is deleting the lock. It is the responsibility of the server implementing
+this specification to decide upon the semantic meaning of this.
 
 ```js
 // POST https://lfs-server.com/locks/:id/unlock
@@ -382,7 +396,10 @@ lock.
 // Authorization: Basic ...
 
 {
-  "force": true
+  "force": true,
+  "ref": {
+    "name": "refs/heads/my-feature
+  }
 }
 ```
 
