@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -165,6 +166,9 @@ func TestCommitDecodingWithWhitespace(t *testing.T) {
 
 func assertLine(t *testing.T, buf *bytes.Buffer, wanted string, args ...interface{}) {
 	got, err := buf.ReadString('\n')
+	if err == io.EOF {
+		err = nil
+	}
 
 	assert.Nil(t, err)
 	assert.Equal(t, fmt.Sprintf(wanted, args...), strings.TrimSuffix(got, "\n"))

@@ -159,7 +159,7 @@ func TestWriteCommit(t *testing.T) {
 		Message:   "initial commit",
 	})
 
-	expected := "fee8a35c2890cd6e0e28d24cc457fcecbd460962"
+	expected := "77a746376fdb591a44a4848b5ba308b2d3e2a90c"
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, hex.EncodeToString(sha))
@@ -210,7 +210,7 @@ func TestWriteTag(t *testing.T) {
 		Message: "The quick brown fox jumps over the lazy dog.",
 	})
 
-	expected := "b0ea0039d536fb739dfa44e74e488b635bbb3a86"
+	expected := "e614dda21829f4176d3db27fe62fb4aee2e2475d"
 
 	assert.Nil(t, err)
 	assert.Equal(t, expected, hex.EncodeToString(sha))

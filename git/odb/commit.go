@@ -185,7 +185,7 @@ func (c *Commit) Encode(to io.Writer) (n int, err error) {
 		n = n + n3
 	}
 
-	n4, err := fmt.Fprintf(to, "\n%s\n", c.Message)
+	n4, err := fmt.Fprintf(to, "\n%s", c.Message)
 	if err != nil {
 		return n, err
 	}

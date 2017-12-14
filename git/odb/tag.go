@@ -89,7 +89,7 @@ func (t *Tag) Encode(w io.Writer) (int, error) {
 		fmt.Sprintf("tagger %s", t.Tagger),
 	}
 
-	return fmt.Fprintf(w, "%s\n\n%s\n", strings.Join(headers, "\n"), t.Message)
+	return fmt.Fprintf(w, "%s\n\n%s", strings.Join(headers, "\n"), t.Message)
 }
 
 // Equal returns whether the receiving and given Tags are equal, or in other
