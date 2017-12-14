@@ -64,7 +64,7 @@ func TestRefUpdaterMovesRefsWithAnnotatedTags(t *testing.T) {
 	assert.NoError(t, err)
 
 	AssertRef(t, db,
-		"refs/tags/middle", HexDecode(t, "6873f9b24037dade0bd1d8a17b0913bf9a6a4f12"))
+		"refs/tags/middle", HexDecode(t, "9a3c2b4823ad6b300ef25197f0435b267d4f0ad8"))
 }
 
 func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
