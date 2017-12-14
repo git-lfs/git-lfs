@@ -193,6 +193,29 @@ begin_test "migrate info (include/exclude ref)"
 )
 end_test
 
+begin_test "migrate info (include/exclude ref args)"
+(
+  set -e
+
+  setup_multiple_remote_branches
+
+  original_master="$(git rev-parse refs/heads/master)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
+
+  diff -u <(git lfs migrate info \
+    my-feature ^master 2>&1 | tail -n 2) <(cat <<-EOF
+	*.md 	31 B	1/1 files(s)	100%
+	*.txt	30 B	1/1 files(s)	100%
+	EOF)
+
+  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_feature="$(git rev-parse refs/heads/my-feature)"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
 begin_test "migrate info (include/exclude ref with filter)"
 (
   set -e

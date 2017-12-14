@@ -39,6 +39,9 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
     Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
     will migrate the currently checked out branch.
 
+    References beginning with '^' will be excluded, whereas branches that do not
+    begin with '^' will be included.
+
     If any of `--include-ref` or `--exclude-ref` are given, the checked out
     branch will not be appended, but branches given explicitly will be appended.
 
