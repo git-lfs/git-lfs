@@ -100,7 +100,7 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 		text := s.Text()
 		n = n + len(text+"\n")
 
-		if len(s.Text()) == 0 {
+		if len(s.Text()) == 0 && !finishedHeaders {
 			finishedHeaders = true
 			continue
 		}

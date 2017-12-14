@@ -121,6 +121,33 @@ func TestCommitDecodingWithMessageKeywordPrefix(t *testing.T) {
 	fmt.Fprintf(from, "author %s\n", author)
 	fmt.Fprintf(from, "committer %s\n", committer)
 	fmt.Fprintf(from, "tree %s\n", hex.EncodeToString(treeId))
+	fmt.Fprintf(from, "\nfirst line\n\nsecond line\n")
+
+	flen := from.Len()
+
+	commit := new(Commit)
+	n, err := commit.Decode(from, int64(flen))
+
+	assert.NoError(t, err)
+	assert.Equal(t, flen, n)
+
+	assert.Equal(t, author.String(), commit.Author)
+	assert.Equal(t, committer.String(), commit.Committer)
+	assert.Equal(t, treeIdAscii, hex.EncodeToString(commit.TreeID))
+	assert.Equal(t, "first line\n\nsecond line", commit.Message)
+}
+
+func TestCommitDecodingWithWhitespace(t *testing.T) {
+	author := &Signature{Name: "John Doe", Email: "john@example.com", When: time.Now()}
+	committer := &Signature{Name: "Jane Doe", Email: "jane@example.com", When: time.Now()}
+
+	treeId := []byte("aaaaaaaaaaaaaaaaaaaa")
+	treeIdAscii := hex.EncodeToString(treeId)
+
+	from := new(bytes.Buffer)
+	fmt.Fprintf(from, "author %s\n", author)
+	fmt.Fprintf(from, "committer %s\n", committer)
+	fmt.Fprintf(from, "tree %s\n", hex.EncodeToString(treeId))
 	fmt.Fprintf(from, "\ntree <- initial commit\n")
 
 	flen := from.Len()

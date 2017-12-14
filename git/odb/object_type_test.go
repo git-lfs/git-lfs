@@ -12,6 +12,7 @@ func TestObjectTypeFromString(t *testing.T) {
 		"blob":           BlobObjectType,
 		"tree":           TreeObjectType,
 		"commit":         CommitObjectType,
+		"tag":            TagObjectType,
 		"something else": UnknownObjectType,
 	} {
 		t.Run(str, func(t *testing.T) {
@@ -25,6 +26,7 @@ func TestObjectTypeToString(t *testing.T) {
 		BlobObjectType:            "blob",
 		TreeObjectType:            "tree",
 		CommitObjectType:          "commit",
+		TagObjectType:             "tag",
 		UnknownObjectType:         "unknown",
 		ObjectType(math.MaxUint8): "<unknown>",
 	} {

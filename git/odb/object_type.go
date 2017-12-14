@@ -11,6 +11,7 @@ const (
 	BlobObjectType
 	TreeObjectType
 	CommitObjectType
+	TagObjectType
 )
 
 // ObjectTypeFromString converts from a given string to an ObjectType
@@ -23,6 +24,8 @@ func ObjectTypeFromString(s string) ObjectType {
 		return TreeObjectType
 	case "commit":
 		return CommitObjectType
+	case "tag":
+		return TagObjectType
 	default:
 		return UnknownObjectType
 	}
@@ -40,6 +43,8 @@ func (t ObjectType) String() string {
 		return "tree"
 	case CommitObjectType:
 		return "commit"
+	case TagObjectType:
+		return "tag"
 	}
 	return "<unknown>"
 }

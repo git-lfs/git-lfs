@@ -7,6 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -25,6 +26,8 @@ type refUpdater struct {
 	// Root is the given directory on disk in which the repository is
 	// located.
 	Root string
+
+	db *odb.ObjectDatabase
 }
 
 // UpdateRefs performs the reference update(s) from existing locations (see:
@@ -51,6 +54,36 @@ func (r *refUpdater) UpdateRefs() error {
 		}
 
 		to, ok := r.CacheFn(sha1)
+
+		if ref.Type == git.RefTypeLocalTag {
+			tag, _ := r.db.Tag(sha1)
+			if tag != nil && tag.ObjectType == odb.CommitObjectType {
+				// Assume that a non-nil error is an indication
+				// that the tag is bare (without annotation).
+
+				toObj, okObj := r.CacheFn(tag.Object)
+				if !okObj {
+					continue
+				}
+
+				newTag, err := r.db.WriteTag(&odb.Tag{
+					Object:     toObj,
+					ObjectType: tag.ObjectType,
+					Name:       tag.Name,
+					Tagger:     tag.Tagger,
+
+					Message: tag.Message,
+				})
+
+				if err != nil {
+					return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+				}
+
+				to = newTag
+				ok = true
+			}
+		}
+
 		if !ok {
 			continue
 		}

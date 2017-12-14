@@ -26,6 +26,7 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 			},
 		},
 		Root: root,
+		db:   db,
 	}
 
 	err := updater.UpdateRefs()
@@ -34,6 +35,36 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 
 	AssertRef(t, db,
 		"refs/tags/middle", HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"))
+}
+
+func TestRefUpdaterMovesRefsWithAnnotatedTags(t *testing.T) {
+	db := DatabaseFromFixture(t, "linear-history-with-annotated-tags.git")
+	root, _ := db.Root()
+
+	AssertRef(t, db,
+		"refs/tags/middle", HexDecode(t, "05797a38b05f910e6efe40dc1a5c0a046a9403e8"))
+
+	updater := &refUpdater{
+		CacheFn: func(old []byte) ([]byte, bool) {
+			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
+		},
+		Refs: []*git.Ref{
+			{
+				Name: "middle",
+				Sha:  "05797a38b05f910e6efe40dc1a5c0a046a9403e8",
+				Type: git.RefTypeLocalTag,
+			},
+		},
+		Root: root,
+		db:   db,
+	}
+
+	err := updater.UpdateRefs()
+
+	assert.NoError(t, err)
+
+	AssertRef(t, db,
+		"refs/tags/middle", HexDecode(t, "6873f9b24037dade0bd1d8a17b0913bf9a6a4f12"))
 }
 
 func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
@@ -55,6 +86,7 @@ func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
 			},
 		},
 		Root: root,
+		db:   db,
 	}
 
 	err := updater.UpdateRefs()

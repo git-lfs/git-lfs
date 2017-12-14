@@ -96,6 +96,17 @@ func (o *ObjectDatabase) Commit(sha []byte) (*Commit, error) {
 	return &c, nil
 }
 
+// Tag returns a *Tag as identified by the SHA given, or an error if one was
+// encountered.
+func (o *ObjectDatabase) Tag(sha []byte) (*Tag, error) {
+	var t Tag
+
+	if err := o.decode(sha, &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 // WriteBlob stores a *Blob on disk and returns the SHA it is uniquely
 // identified by, or an error if one was encountered.
 func (o *ObjectDatabase) WriteBlob(b *Blob) ([]byte, error) {
@@ -131,6 +142,16 @@ func (o *ObjectDatabase) WriteTree(t *Tree) ([]byte, error) {
 // identified by, or an error if one was encountered.
 func (o *ObjectDatabase) WriteCommit(c *Commit) ([]byte, error) {
 	sha, _, err := o.encode(c)
+	if err != nil {
+		return nil, err
+	}
+	return sha, nil
+}
+
+// WriteTag stores a *Tag on disk and returns the SHA it is uniquely identified
+// by, or an error if one was encountered.
+func (o *ObjectDatabase) WriteTag(t *Tag) ([]byte, error) {
+	sha, _, err := o.encode(t)
 	if err != nil {
 		return nil, err
 	}

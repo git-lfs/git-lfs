@@ -159,6 +159,67 @@ setup_multiple_remote_branches() {
   git checkout master
 }
 
+# setup_single_local_branch_with_tags creates a repository as follows:
+#
+#   A---B
+#       |\
+#       | refs/heads/master
+#       |
+#        \
+#         refs/tags/v1.0.0
+#
+# - Commit 'A' has 1 byte of data in 'a.txt'
+# - Commit 'B' has 2 bytes of data in 'a.txt', and is tagged at 'v1.0.0'.
+setup_single_local_branch_with_tags() {
+  set -e
+
+  reponame="migrate-single-local-branch-tags"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 1 > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  base64 < /dev/urandom | head -c 2 > a.txt
+
+  git add a.txt
+  git commit -m "secondary commit"
+  git tag "v1.0.0"
+}
+
+# setup_single_local_branch_with_annotated_tags creates a repository as follows:
+#
+#   A---B
+#       |\
+#       | refs/heads/master
+#       |
+#        \
+#         refs/tags/v1.0.0 (annotated)
+#
+# - Commit 'A' has 1 byte of data in 'a.txt'
+# - Commit 'B' has 2 bytes of data in 'a.txt', and is tagged (with annotation)
+#     at 'v1.0.0'.
+setup_single_local_branch_with_annotated_tags() {
+  set -e
+
+  reponame="migrate-single-local-branch-annotated-tags"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 1 > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  base64 < /dev/urandom | head -c 2 > a.txt
+
+  git add a.txt
+  git commit -m "secondary commit"
+  git tag "v1.0.0" -m "v1.0.0"
+}
+
 # setup_single_local_branch_deep_trees creates a repository as follows:
 #
 #   A
