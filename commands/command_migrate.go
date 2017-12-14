@@ -121,6 +121,12 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 	}
 
 	for _, name := range args {
+		var excluded bool
+		if strings.HasPrefix("^", name) {
+			name = name[1:]
+			excluded = true
+		}
+
 		// Then, loop through each branch given, resolve that reference,
 		// and include it.
 		ref, err := git.ResolveRef(name)
@@ -128,7 +134,11 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 			return nil, nil, err
 		}
 
-		include = append(include, ref.Refspec())
+		if excluded {
+			exclude = append(exclude, ref.Refspec())
+		} else {
+			include = append(include, ref.Refspec())
+		}
 	}
 
 	if hardcore {
