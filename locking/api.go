@@ -22,7 +22,7 @@ type lockRef struct {
 type lockRequest struct {
 	// Path is the path that the client would like to obtain a lock against.
 	Path string   `json:"path"`
-	Ref  *lockRef `json:"ref"`
+	Ref  *lockRef `json:"ref,omitempty"`
 }
 
 // LockResponse encapsulates the information sent over the API in response to
@@ -72,7 +72,7 @@ type unlockRequest struct {
 	// unlocked; that is to say whether or not a given individual should be
 	// able to break a different individual's lock.
 	Force bool     `json:"force"`
-	Ref   *lockRef `json:"ref"`
+	Ref   *lockRef `json:"ref,omitempty"`
 }
 
 // UnlockResponse is the result sent back from the API when asked to remove a
@@ -208,7 +208,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 // lockVerifiableRequest encapsulates the request sent to the server when the
 // client would like a list of locks to verify a Git push.
 type lockVerifiableRequest struct {
-	Ref *lockRef `json:"ref"`
+	Ref *lockRef `json:"ref,omitempty"`
 
 	// Cursor is an optional field used to tell the server which lock was
 	// seen last, if scanning through multiple pages of results.
