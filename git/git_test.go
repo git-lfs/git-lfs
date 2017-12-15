@@ -16,32 +16,32 @@ import (
 func TestRefString(t *testing.T) {
 	const sha = "0000000000000000000000000000000000000000"
 	for s, r := range map[string]*Ref{
-		"refs/heads/master": &Ref{
+		"refs/heads/master": {
 			Name: "master",
 			Type: RefTypeLocalBranch,
 			Sha:  sha,
 		},
-		"refs/remotes/origin/master": &Ref{
+		"refs/remotes/origin/master": {
 			Name: "origin/master",
 			Type: RefTypeRemoteBranch,
 			Sha:  sha,
 		},
-		"refs/remotes/tags/v1.0.0": &Ref{
+		"refs/remotes/tags/v1.0.0": {
 			Name: "v1.0.0",
 			Type: RefTypeRemoteTag,
 			Sha:  sha,
 		},
-		"refs/tags/v1.0.0": &Ref{
+		"refs/tags/v1.0.0": {
 			Name: "v1.0.0",
 			Type: RefTypeLocalTag,
 			Sha:  sha,
 		},
-		"HEAD": &Ref{
+		"HEAD": {
 			Name: "HEAD",
 			Type: RefTypeHEAD,
 			Sha:  sha,
 		},
-		"other": &Ref{
+		"other": {
 			Name: "other",
 			Type: RefTypeOther,
 			Sha:  sha,
@@ -119,17 +119,29 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	gitConf := repo.GitConfig()
 	ref, err := CurrentRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"branch3", RefTypeLocalBranch, outputs[3].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "branch3",
+		Type: RefTypeLocalBranch,
+		Sha:  outputs[3].Sha,
+	}, ref)
 	test.RunGitCommand(t, true, "checkout", "master")
 	ref, err = CurrentRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"master", RefTypeLocalBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "master",
+		Type: RefTypeLocalBranch,
+		Sha:  outputs[2].Sha,
+	}, ref)
 	// Check remote
 	repo.AddRemote("origin")
 	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
 	ref, err = gitConf.CurrentRemoteRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "origin/someremotebranch",
+		Type: RefTypeRemoteBranch,
+		Sha:  outputs[2].Sha,
+	}, ref)
 
 	refname, err := gitConf.RemoteRefNameForCurrentBranch()
 	assert.Nil(t, err)
@@ -137,7 +149,11 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 
 	ref, err = ResolveRef(outputs[2].Sha)
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{outputs[2].Sha, RefTypeOther, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: outputs[2].Sha,
+		Type: RefTypeOther,
+		Sha:  outputs[2].Sha,
+	}, ref)
 }
 
 func TestRecentBranches(t *testing.T) {
@@ -211,9 +227,21 @@ func TestRecentBranches(t *testing.T) {
 	refs, err := RecentBranches(now.AddDate(0, 0, -7), false, "")
 	assert.Equal(t, nil, err)
 	expectedRefs := []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 
@@ -221,13 +249,41 @@ func TestRecentBranches(t *testing.T) {
 	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "")
 	assert.Equal(t, nil, err)
 	expectedRefs = []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
-		&Ref{"upstream/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"upstream/included_branch_2", RefTypeRemoteBranch, outputs[4].Sha},
-		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
+		{
+			Name: "upstream/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "upstream/included_branch_2",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "origin/included_branch",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
@@ -238,11 +294,31 @@ func TestRecentBranches(t *testing.T) {
 	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "origin")
 	assert.Equal(t, nil, err)
 	expectedRefs = []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
-		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
+		{
+			Name: "origin/included_branch",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
@@ -317,9 +393,21 @@ func TestWorkTrees(t *testing.T) {
 	refs, err := GetAllWorkTreeHEADs(filepath.Join(repo.Path, ".git"))
 	assert.Equal(t, nil, err)
 	expectedRefs := []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[0].Sha},
-		&Ref{"branch2", RefTypeLocalBranch, outputs[1].Sha},
-		&Ref{"branch4", RefTypeLocalBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[0].Sha,
+		},
+		{
+			Name: "branch2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[1].Sha,
+		},
+		{
+			Name: "branch4",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
