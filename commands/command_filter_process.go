@@ -329,8 +329,6 @@ func readAvailable(ch <-chan *tq.Transfer, cap int) []*tq.Transfer {
 			return append(ts, t)
 		}
 	}
-
-	return ts
 }
 
 // pathnames formats a list of *tq.Transfers as a valid response to the
