@@ -73,7 +73,7 @@ func TestChainDeltaWithMultipleInstructions(t *testing.T) {
 	assert.Equal(t, []byte("Hello, world!\n"), data)
 }
 
-func TestchainDeltaWithInvalidDeltaInstruction(t *testing.T) {
+func TestChainDeltaWithInvalidDeltaInstruction(t *testing.T) {
 	c := &ChainDelta{
 		base: &ChainSimple{
 			X: make([]byte, 0),

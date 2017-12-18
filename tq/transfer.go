@@ -117,7 +117,7 @@ type Action struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 	ExpiresIn int               `json:"expires_in,omitempty"`
 
-	createdAt time.Time `json:"-"`
+	createdAt time.Time
 }
 
 func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
