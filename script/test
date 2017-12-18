@@ -29,6 +29,7 @@ GO15VENDOREXPERIMENT=1 go test $PACKAGES
 GO15VENDOREXPERIMENT=1 go tool vet $(
   echo "$PACKAGES" \
     | grep -v vendor \
+    | grep -v git-source \
     | sed -e 's/github\.com\/git-lfs\/git-lfs//g' \
     | sed -e 's/^\///g' \
     | xargs \
