@@ -77,6 +77,21 @@ begin_test "ls-files: outside git repository"
 )
 end_test
 
+begin_test "ls-files: before first commit"
+(
+  set -e
+
+  reponame="ls-files-before-first-commit"
+  git init "$reponame"
+  cd "$reponame"
+
+  if [ 0 -ne $(git lfs ls-files | wc -l) ]; then
+    echo >&2 "fatal: expected \`git lfs ls-files\` to produce no output"
+    exit 1
+  fi
+)
+end_test
+
 begin_test "ls-files: show duplicate files"
 (
   set -e
