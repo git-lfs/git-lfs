@@ -77,6 +77,52 @@ begin_test "ls-files: outside git repository"
 )
 end_test
 
+begin_test "ls-files: --include"
+(
+  set -e
+
+  git init ls-files-include
+  cd ls-files-include
+
+  git lfs track "*.dat" "*.bin"
+  echo "a" > a.dat
+  echo "b" > b.dat
+  echo "c" > c.bin
+
+  git add *.gitattributes a.dat b.dat c.bin
+  git commit -m "initial commit"
+
+  git lfs ls-files --include="*.dat" 2>&1 | tee ls-files.log
+
+  [ "0" -eq "$(grep -c "\.bin" ls-files.log)" ]
+  [ "2" -eq "$(grep -c "\.dat" ls-files.log)" ]
+)
+end_test
+
+begin_test "ls-files: --exclude"
+(
+  set -e
+
+  git init ls-files-exclude
+  cd ls-files-exclude
+
+  mkdir dir
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  echo "b" > b.dat
+  echo "c" > dir/c.dat
+
+  git add *.gitattributes a.dat b.dat dir/c.dat
+  git commit -m "initial commit"
+
+  git lfs ls-files --exclude="dir/" 2>&1 | tee ls-files.log
+
+  [ "0" -eq "$(grep -c "dir" ls-files.log)" ]
+  [ "2" -eq "$(grep -c "\.dat" ls-files.log)" ]
+)
+end_test
+
 begin_test "ls-files: with zero files"
 (
   set -e
