@@ -78,7 +78,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	})
 	defer gitscanner.Close()
 
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
+	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg)
+
+  if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		Exit("Could not scan for Git LFS tree: %s", err)
 	}
 	if err := gitscanner.ScanTree(ref); err != nil {
@@ -104,5 +107,7 @@ func init() {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	})
 }

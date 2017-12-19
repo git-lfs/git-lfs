@@ -23,8 +23,14 @@ An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object
   Show as much information as possible about a LFS file. This is intended
   for manual inspection; the exact format may change at any time.
 
+* `-I` <paths> `--include=`<paths>:
+  Include paths matching only these patterns; see [FETCH SETTINGS].
+
+* `-X` <paths> `--exclude=`<paths>:
+  Exclude paths matching any of these patterns; see [FETCH SETTINGS].
+
 ## SEE ALSO
 
-git-lfs-status(1).
+git-lfs-status(1), git-lfs-config(5).
 
 Part of the git-lfs(1) suite.
