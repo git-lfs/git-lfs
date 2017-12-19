@@ -77,29 +77,6 @@ begin_test "ls-files: outside git repository"
 )
 end_test
 
-begin_test "ls-files: with zero files"
-(
-  set -e
-  mkdir empty
-  cd empty
-  git init
-  git lfs track "*.dat"
-  git add .gitattributes
-
-  set +e
-  git lfs ls-files 2> ls-files.log
-  res=$?
-  set -e
-
-  cat ls-files.log
-  [ "$res" = "2" ]
-  grep "Git can't resolve ref:" ls-files.log
-
-  git commit -m "initial commit"
-  [ "$(git lfs ls-files)" = "" ]
-)
-end_test
-
 begin_test "ls-files: show duplicate files"
 (
   set -e
