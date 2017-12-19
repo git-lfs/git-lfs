@@ -37,7 +37,13 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		showOidLen = 64
 	}
 
+	seen := make(map[string]struct{})
+
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if _, ok := seen[p.Name]; ok {
+			return
+		}
+
 		if err != nil {
 			Exit("Could not scan for Git LFS tree: %s", err)
 			return
@@ -67,6 +73,8 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 			Print(strings.Join(msg, " "))
 		}
+
+		seen[p.Name] = struct{}{}
 	})
 	defer gitscanner.Close()
 
