@@ -120,18 +120,13 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 				name = scanner.Entry().SrcName
 			}
 
-			var sha string = scanner.Entry().DstSha
-			if scanner.Entry().Status == StatusModification {
-				sha = scanner.Entry().SrcSha
-			}
-
-			indexMap.Add(sha, &indexFile{
+			indexMap.Add(scanner.Entry().DstSha, &indexFile{
 				Name:    name,
 				SrcName: scanner.Entry().SrcName,
 				Status:  string(scanner.Entry().Status),
 			})
 
-			revs <- sha
+			revs <- scanner.Entry().DstSha
 		}
 
 		if err := scanner.Err(); err != nil {
