@@ -85,8 +85,14 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		Exit("Could not scan for Git LFS index: %s", err)
 	}
-	if err := gitscanner.ScanTree(ref); err != nil {
-		Exit("Could not scan for Git LFS tree: %s", err)
+	if lsFilesScanAll {
+		if err := gitscanner.ScanAll(nil); err != nil {
+			Exit("Could not scan for Git LFS history: %s", err)
+		}
+	} else {
+		if err := gitscanner.ScanTree(ref); err != nil {
+			Exit("Could not scan for Git LFS tree: %s", err)
+		}
 	}
 }
 
