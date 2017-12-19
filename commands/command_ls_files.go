@@ -26,9 +26,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	} else {
 		fullref, err := git.CurrentRef()
 		if err != nil {
-			Exit(err.Error())
+			ref = git.RefBeforeFirstCommit
+		} else {
+			ref = fullref.Sha
 		}
-		ref = fullref.Sha
 	}
 
 	showOidLen := 10
