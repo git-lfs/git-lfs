@@ -27,6 +27,10 @@ An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object
   Inspects the full history of the repository, not the current HEAD (or other
   provided reference).
 
+* `--deleted`:
+  Shows the full history of the given reference, including objects that have
+  been deleted.
+
 * `-I` <paths> `--include=`<paths>:
   Include paths matching only these patterns; see [FETCH SETTINGS].
 

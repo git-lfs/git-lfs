@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	longOIDs        = false
-	lsFilesScanAll  = false
-	lsFilesShowSize = false
-	debug           = false
+	longOIDs           = false
+	lsFilesScanAll     = false
+	lsFilesScanDeleted = false
+	lsFilesShowSize    = false
+	debug              = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -95,7 +96,14 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			Exit("Could not scan for Git LFS history: %s", err)
 		}
 	} else {
-		if err := gitscanner.ScanTree(ref); err != nil {
+		var err error
+		if lsFilesScanDeleted {
+			err = gitscanner.ScanRefWithDeleted(ref, nil)
+		} else {
+			err = gitscanner.ScanTree(ref)
+		}
+
+		if err != nil {
 			Exit("Could not scan for Git LFS tree: %s", err)
 		}
 	}
@@ -120,6 +128,7 @@ func init() {
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
+		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	})

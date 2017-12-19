@@ -281,3 +281,28 @@ begin_test "ls-files: --all with argument(s)"
   [ "fatal: cannot use --all with explicit reference" = "$(cat ls-files.log)" ]
 )
 end_test
+
+begin_test "ls-files: reference with --deleted"
+(
+  set -e
+
+  reponame="ls-files-reference-with-deleted"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  printf "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  rm a.dat
+  git add a.dat
+  git commit -m "a.dat: remove a.dat"
+
+  git lfs ls-files 2>&1 | tee ls-files.log
+  git lfs ls-files --deleted 2>&1 | tee ls-files-deleted.log
+
+  [ 0 -eq $(grep -c "a\.dat" ls-files.log) ]
+  [ 1 -eq $(grep -c "a\.dat" ls-files-deleted.log) ]
+)
+end_test
