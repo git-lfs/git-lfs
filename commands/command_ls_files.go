@@ -12,6 +12,7 @@ import (
 
 var (
 	longOIDs        = false
+	lsFilesScanAll  = false
 	lsFilesShowSize = false
 	debug           = false
 )
@@ -107,6 +108,7 @@ func init() {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
+		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	})
