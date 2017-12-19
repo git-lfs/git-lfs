@@ -33,17 +33,6 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 	go func() {
 		seenRevs := make(map[string]bool, 0)
 
-		for rev := range revs.Results {
-			if !seenRevs[rev] {
-				allRevsChan <- rev
-				seenRevs[rev] = true
-			}
-		}
-		err := revs.Wait()
-		if err != nil {
-			allRevsErr <- err
-		}
-
 		for rev := range cachedRevs.Results {
 			if !seenRevs[rev] {
 				allRevsChan <- rev
@@ -51,6 +40,17 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 			}
 		}
 		err = cachedRevs.Wait()
+		if err != nil {
+			allRevsErr <- err
+		}
+
+		for rev := range revs.Results {
+			if !seenRevs[rev] {
+				allRevsChan <- rev
+				seenRevs[rev] = true
+			}
+		}
+		err := revs.Wait()
 		if err != nil {
 			allRevsErr <- err
 		}
@@ -120,18 +120,13 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 				name = scanner.Entry().SrcName
 			}
 
-			var sha string = scanner.Entry().DstSha
-			if scanner.Entry().Status == StatusModification {
-				sha = scanner.Entry().SrcSha
-			}
-
-			indexMap.Add(sha, &indexFile{
+			indexMap.Add(scanner.Entry().DstSha, &indexFile{
 				Name:    name,
 				SrcName: scanner.Entry().SrcName,
 				Status:  string(scanner.Entry().Status),
 			})
 
-			revs <- sha
+			revs <- scanner.Entry().DstSha
 		}
 
 		if err := scanner.Err(); err != nil {

@@ -61,6 +61,58 @@ begin_test "ls-files: --size"
 )
 end_test
 
+begin_test "ls-files: indexed files without tree"
+(
+  set -e
+
+  reponame="ls-files-indexed-files-without-tree"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+  git add .gitattributes
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  git add a.dat
+
+  [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+)
+end_test
+
+begin_test "ls-files: indexed file with tree"
+(
+  set -e
+
+  reponame="ls-files-indexed-files-with-tree"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  tree_contents="a"
+  tree_oid="$(calc_oid "$tree_contents")"
+
+  printf "$tree_contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  index_contents="b"
+  index_oid="$(calc_oid "$index_contents")"
+
+  printf "$index_contents" > a.dat
+  git add a.dat
+
+  [ "${index_oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+)
+end_test
+
 begin_test "ls-files: outside git repository"
 (
   set +e
