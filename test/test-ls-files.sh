@@ -123,26 +123,18 @@ begin_test "ls-files: --exclude"
 )
 end_test
 
-begin_test "ls-files: with zero files"
+begin_test "ls-files: before first commit"
 (
   set -e
-  mkdir empty
-  cd empty
-  git init
-  git lfs track "*.dat"
-  git add .gitattributes
 
-  set +e
-  git lfs ls-files 2> ls-files.log
-  res=$?
-  set -e
+  reponame="ls-files-before-first-commit"
+  git init "$reponame"
+  cd "$reponame"
 
-  cat ls-files.log
-  [ "$res" = "2" ]
-  grep "Git can't resolve ref:" ls-files.log
-
-  git commit -m "initial commit"
-  [ "$(git lfs ls-files)" = "" ]
+  if [ 0 -ne $(git lfs ls-files | wc -l) ]; then
+    echo >&2 "fatal: expected \`git lfs ls-files\` to produce no output"
+    exit 1
+  fi
 )
 end_test
 
