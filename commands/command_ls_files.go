@@ -23,6 +23,9 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	var ref string
 
 	if len(args) == 1 {
+		if lsFilesScanAll {
+			Exit("fatal: cannot use --all with explicit reference")
+		}
 		ref = args[0]
 	} else {
 		fullref, err := git.CurrentRef()

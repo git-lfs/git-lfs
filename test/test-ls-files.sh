@@ -262,3 +262,22 @@ begin_test "ls-files: history with --all"
   [ 1 -eq $(grep -c "b\.dat" ls-files-all.log) ]
 )
 end_test
+
+begin_test "ls-files: --all with argument(s)"
+(
+  set -e
+
+  reponame="ls-files-all-with-arguments"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs ls-files --all master 2>&1 | tee ls-files.log
+
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: \`git lfs ls-files --all master\` to fail"
+    exit 1
+  fi
+
+  [ "fatal: cannot use --all with explicit reference" = "$(cat ls-files.log)" ]
+)
+end_test
