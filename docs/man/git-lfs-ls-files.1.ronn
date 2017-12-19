@@ -23,6 +23,10 @@ An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object
   Show as much information as possible about a LFS file. This is intended
   for manual inspection; the exact format may change at any time.
 
+* -a --all:
+  Inspects the full history of the repository, not the current HEAD (or other
+  provided reference).
+
 * `-I` <paths> `--include=`<paths>:
   Include paths matching only these patterns; see [FETCH SETTINGS].
 
