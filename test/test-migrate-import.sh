@@ -589,3 +589,29 @@ begin_test "migrate import (nested sub-trees and --include with wildcard)"
   assert_local_object "$oid" "$size"
 )
 end_test
+
+begin_test "migrate import (handle copies of files)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  # add the object from the sub-tree to the root directory
+  cp foo/bar/baz/a.txt a.txt
+  git add a.txt
+  git commit -m "duplicated file"
+
+  oid_root="$(calc_oid "$(git cat-file -p :a.txt)")"
+  oid_tree="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  # only import objects under "foo"
+  git lfs migrate import --include="foo/**"
+
+  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid_tree" "$size"
+  assert_local_object "$oid_tree" "$size"
+
+  # "a.txt" is not under "foo" and therefore should not be in LFS
+  refute_local_object "$oid_root"
+)
+end_test
