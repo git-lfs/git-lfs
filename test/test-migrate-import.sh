@@ -573,3 +573,19 @@ begin_test "migrate import (--everything and --include with glob pattern)"
   refute_local_object "$txt_feature_oid"
 )
 end_test
+
+begin_test "migrate import (nested sub-trees and --include with wildcard)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  oid="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --include="**/*ar/**"
+
+  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid" "$size"
+  assert_local_object "$oid" "$size"
+)
+end_test
