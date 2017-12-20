@@ -550,3 +550,26 @@ begin_test "migrate import (--everything with --exclude-ref)"
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
+
+begin_test "migrate import (--everything and --include with glob pattern)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
+  txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
+
+  git lfs migrate import --verbose --everything --include='*.[mM][dD]'
+
+  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "140"
+  assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
+
+  assert_local_object "$md_master_oid" "140"
+  assert_local_object "$md_feature_oid" "30"
+  refute_local_object "$txt_master_oid"
+  refute_local_object "$txt_feature_oid"
+)
+end_test
