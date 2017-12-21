@@ -285,6 +285,88 @@ func (p *simpleExtPattern) String() string {
 	return fmt.Sprintf("*%s", p.ext)
 }
 
+// pathfulWildcardPattern matches filepaths with patterns that contain both path
+// separators and wildcard operators.
+type pathfulWildcardPattern struct {
+	wildDirs []string
+}
+
+// String implements Pattern.String and returns a string representation of the
+// receiving pattern.
+func (p *pathfulWildcardPattern) String() string {
+	return strings.Join(p.wildDirs, string(filepath.Separator))
+}
+
+// HasPrefix returns whether the receiving pattern matches a prefix of the given
+// filepath.
+func (p *pathfulWildcardPattern) HasPrefix(name string) bool {
+	// Prefix occurs when the partial match of the filepath is non-empty.
+	return len(p.partial(name)) > 0
+}
+
+// Match returns whether the receiving pattern matches the entire filepath.
+func (p *pathfulWildcardPattern) Match(name string) bool {
+	// Match occurs when the partial match of the filepath "name" is the
+	// filepath "name" itself.
+	return p.partial(name) == name
+}
+
+func (p *pathfulWildcardPattern) partial(name string) string {
+	// Since the '*' operator does not match across directories, consider
+	// each os.PathSeparator- (or filepath.Separator-) delimited component
+	// of the filepath "name".
+	splits := filepath.SplitList(name)
+
+	for i, dir := range splits {
+		// Within a given directory pattern (i.e., "foo/bar/baz"
+		// separates as ("foo", "bar", and "baz"), keep track of the
+		// index matched within the component so far.
+		var matched int
+
+		// Split everything before the '*' operator and everything after
+		// it into a cons cell.
+		splits := strings.SplitN(p.wildDirs[i], "*", 2)
+		for len(splits) > 0 {
+			if !strings.HasPrefix(dir[matched:], splits[0]) {
+				// If the prefix of '*' in the pattern does not
+				// match the remaining portion of the directory
+				// component we are attempting to match, return
+				// what we have matched so far.
+				return strings.Join(splits[:i], string(filepath.Separator))
+			}
+
+			if len(splits) == 2 {
+				// If there are two components (i.e., if there
+				// is a cdr), then one of two cases remain:
+
+				if strings.Contains(splits[1], "*") {
+					// Case (1): The are more '*' operators
+					// in the tail to process. Resplit the
+					// remaining, and continue to match the
+					// remainder of the current directory.
+					matched += len(splits[0])
+					splits = strings.SplitN(splits[1], "*", 2)
+					break
+				}
+
+				if !strings.HasSuffix(dir[matched:], splits[1]) {
+					// Case (2): There are no more '*'
+					// operators, thus ensure that there was
+					// a suffix match of the remainder, and
+					// return appropriately.
+					return strings.Join(splits[:i], string(filepath.Separator))
+				}
+			}
+			break
+		}
+	}
+
+	// Finally, we either (1) considered no path separators, or (2) we
+	// matched the entire path, in which case the subset of the path we
+	// matched was the entire path itself.
+	return name
+}
+
 type pathlessWildcardPattern struct {
 	rawPattern string
 	wildcardRE *regexp.Regexp
