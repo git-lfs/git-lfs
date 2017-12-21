@@ -180,6 +180,10 @@ func NewPattern(rawpattern string) Pattern {
 				wildcardRE: regexp.MustCompile(regpattern),
 			}
 		}
+
+		return &pathfulWildcardPattern{
+			wildDirs: filepath.SplitList(cleanpattern),
+		}
 	}
 
 	if hasPathSep && strings.HasPrefix(cleanpattern, sep) {

@@ -36,8 +36,12 @@ func TestPatternMatch(t *testing.T) {
 	refutePatternMatch(t, "*.tx", "sub/filename.txt")
 	assertPatternMatch(t, "f*.txt", "sub/filename.txt")
 	refutePatternMatch(t, "g*.txt", "sub/filename.txt")
+	assertPatternMatch(t, "sub/f*.txt", "sub/filename.txt")
+	refutePatternMatch(t, "sub/g*.txt", "sub/filename.txt")
 	assertPatternMatch(t, "file*", "sub/filename.txt")
 	refutePatternMatch(t, "file", "sub/filename.txt")
+	assertPatternMatch(t, "sub/file*", "sub/filename.txt")
+	refutePatternMatch(t, "sub/file", "sub/filename.txt")
 
 	// matches only in subdir
 	assertPatternMatch(t, "sub/*.txt", "sub/filename.txt")
@@ -82,6 +86,8 @@ func TestPatternMatch(t *testing.T) {
 	)
 	assertPatternMatch(t, "top/sub/", "top/sub/filename.txt")
 	assertPatternMatch(t, "top/sub/", "root/top/sub/filename.txt")
+	assertPatternMatch(t, "top/sub/file*.txt", "top/sub/filename.txt")
+	assertPatternMatch(t, "root/top/sub/file*.txt", "root/top/sub/filename.txt")
 
 	assertPatternMatch(t, "/top/sub", "top/sub/", "top/sub", "top/sub/filename.txt")
 	assertPatternMatch(t, "/top/sub/", "top/sub/filename.txt")
