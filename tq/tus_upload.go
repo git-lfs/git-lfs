@@ -2,15 +2,9 @@ package tq
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
 	"strconv"
-	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -78,13 +72,6 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		return nil
 	}
 
-	// Open file for uploading
-	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
-	if err != nil {
-		return errors.Wrap(err, "tus upload")
-	}
-	defer f.Close()
-
 	// Upload-Offset=0 means start from scratch, but still send PATCH
 	if offset == 0 {
 		a.Trace("xfer: tus.io uploading %q from start", t.Oid)
@@ -108,55 +95,10 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	req.Header.Set("Upload-Offset", strconv.FormatInt(offset, 10))
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
 	req.Header.Set("Content-Length", strconv.FormatInt(t.Size-offset, 10))
-	req.ContentLength = t.Size - offset
 
-	// Ensure progress callbacks made while uploading
-	// Wrap callback to give name context
-	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		if cb != nil {
-			return cb(t.Name, totalSize, readSoFar, readSinceLast)
-		}
-		return nil
+	if err := a.fileHTTPUpload(req, t, offset, cb, authOkFunc); err != nil {
+		return err
 	}
-
-	var reader lfsapi.ReadSeekCloser = tools.NewBodyWithCallback(f, t.Size, ccb)
-	reader = newStartCallbackReader(reader, func() error {
-		// seek to the offset since lfsapi.Client rewinds the body
-		if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
-			return err
-		}
-		// Signal auth was ok on first read; this frees up other workers to start
-		if authOkFunc != nil {
-			authOkFunc()
-		}
-		return nil
-	})
-
-	req.Body = reader
-
-	req = a.apiClient.LogRequest(req, "lfs.data.upload")
-	res, err = a.doHTTP(t, req)
-	if err != nil {
-		return errors.NewRetriableError(err)
-	}
-
-	// A status code of 403 likely means that an authentication token for the
-	// upload has expired. This can be safely retried.
-	if res.StatusCode == 403 {
-		err = errors.New("http: received status 403")
-		return errors.NewRetriableError(err)
-	}
-
-	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
-			req.Method,
-			strings.SplitN(req.URL.String(), "?", 2)[0],
-			res.StatusCode,
-		)
-	}
-
-	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
 
 	return verifyUpload(a.apiClient, a.remote, t)
 }
