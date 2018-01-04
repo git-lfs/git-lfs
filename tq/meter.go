@@ -165,7 +165,7 @@ func (m *Meter) FinishTransfer(name string) {
 
 // Flush sends the latest progress update, while leaving the meter active.
 func (m *Meter) Flush() {
-	if m == nil {
+	if m == nil || m.skipUpdate() {
 		return
 	}
 
