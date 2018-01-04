@@ -37,12 +37,13 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 }
 
 func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate, pushAll bool) error {
+	cb := ctx.gitScannerCallback(ctx.tq)
 	if pushAll {
-		if err := g.ScanRefWithDeleted(update.LeftCommitish(), nil); err != nil {
+		if err := g.ScanRefWithDeleted(update.LeftCommitish(), cb); err != nil {
 			return err
 		}
 	} else {
-		if err := g.ScanLeftToRemote(update.LeftCommitish(), nil); err != nil {
+		if err := g.ScanLeftToRemote(update.LeftCommitish(), cb); err != nil {
 			return err
 		}
 	}
@@ -132,17 +133,20 @@ func (c *uploadContext) addScannerError(err error) {
 }
 
 func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			c.addScannerError(err)
-		} else {
-			c.UploadPointers(c.tq, p)
-		}
-	})
-
+	gitscanner := lfs.NewGitScanner(nil)
 	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
 	gitscanner.PotentialLockables = c.lockVerifier
 	return gitscanner, gitscanner.RemoteForPush(c.Remote)
+}
+
+func (c *uploadContext) gitScannerCallback(tqueue *tq.TransferQueue) func(*lfs.WrappedPointer, error) {
+	return func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			c.addScannerError(err)
+		} else {
+			c.UploadPointers(tqueue, p)
+		}
+	}
 }
 
 // AddUpload adds the given oid to the set of oids that have been uploaded in
