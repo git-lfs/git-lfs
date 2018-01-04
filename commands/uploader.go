@@ -23,18 +23,23 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 	if err != nil {
 		return err
 	}
-	defer gitscanner.Close()
+
+	defer func() {
+		gitscanner.Close()
+		ctx.ReportErrors()
+	}()
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
-	q := ctx.NewQueue()
 	for _, update := range updates {
-		if err := uploadLeftOrAll(gitscanner, ctx, q, update, pushAll); err != nil {
+		q := ctx.NewQueue() // initialized here to prevent looped defer
+		err := uploadLeftOrAll(gitscanner, ctx, q, update, pushAll)
+		ctx.CollectErrors(q)
+
+		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("ref %s:", update.Left().Name))
 		}
 	}
 
-	ctx.CollectErrors(q)
-	ctx.ReportErrors()
 	return nil
 }
 
@@ -258,6 +263,7 @@ func (c *uploadContext) CollectErrors(tqueues ...*tq.TransferQueue) {
 
 func (c *uploadContext) ReportErrors() {
 	c.meter.Finish()
+
 	for _, err := range c.otherErrs {
 		FullError(err)
 	}
