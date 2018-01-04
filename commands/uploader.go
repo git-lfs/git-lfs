@@ -32,7 +32,8 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 		}
 	}
 
-	ctx.Await()
+	ctx.CollectErrors(ctx.tq)
+	ctx.ReportErrors()
 	return nil
 }
 
@@ -303,11 +304,6 @@ func (c *uploadContext) ReportErrors() {
 			Print("* %s", owned.Path())
 		}
 	}
-}
-
-func (c *uploadContext) Await() {
-	c.CollectErrors(c.tq)
-	c.ReportErrors()
 }
 
 var (
