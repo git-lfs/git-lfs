@@ -169,7 +169,11 @@ func (m *Meter) Flush() {
 		return
 	}
 
-	m.update()
+	m.updates <- &tasklog.Update{
+		S:     m.str(),
+		At:    time.Now(),
+		Force: true,
+	}
 }
 
 // Finish shuts down the Meter.
