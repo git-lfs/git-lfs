@@ -768,7 +768,7 @@ func (q *TransferQueue) Wait() {
 		close(watcher)
 	}
 
-	q.meter.Finish()
+	q.meter.Flush()
 	q.errorwait.Wait()
 }
 

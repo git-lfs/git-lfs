@@ -163,6 +163,15 @@ func (m *Meter) FinishTransfer(name string) {
 	m.fileIndexMutex.Unlock()
 }
 
+// Flush sends the latest progress update, while leaving the meter active.
+func (m *Meter) Flush() {
+	if m == nil {
+		return
+	}
+
+	m.update()
+}
+
 // Finish shuts down the Meter.
 func (m *Meter) Finish() {
 	if m == nil {

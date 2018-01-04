@@ -258,6 +258,7 @@ func (c *uploadContext) CollectErrors(tqueues ...*tq.TransferQueue) {
 }
 
 func (c *uploadContext) ReportErrors() {
+	c.meter.Finish()
 	for _, err := range c.otherErrs {
 		FullError(err)
 	}
