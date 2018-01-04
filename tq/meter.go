@@ -146,7 +146,7 @@ func (m *Meter) TransferBytes(direction, name string, read, total int64, current
 	}
 
 	defer m.update()
-	atomic.AddInt64(&m.currentBytes, int64(current))
+	atomic.StoreInt64(&m.currentBytes, read)
 	m.logBytes(direction, name, read, total)
 }
 
