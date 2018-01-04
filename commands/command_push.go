@@ -95,7 +95,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	uploadPointers(ctx, pointers...)
+	ctx.UploadPointers(ctx.tq, pointers...)
 	ctx.Await()
 }
 

@@ -103,10 +103,14 @@ func newUploadContext(dryRun bool) *uploadContext {
 	ctx.logger = tasklog.NewLogger(sink)
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.logger.Enqueue(ctx.meter)
-
-	ctx.tq = newUploadQueue(ctx.Manifest, ctx.Remote, tq.WithProgress(ctx.meter), tq.DryRun(ctx.DryRun))
+	ctx.tq = ctx.NewQueue(tq.WithProgress(ctx.meter))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 	return ctx
+}
+
+func (c *uploadContext) NewQueue(options ...tq.Option) *tq.TransferQueue {
+	return tq.NewTransferQueue(tq.Upload, c.Manifest, c.Remote,
+		append(options, tq.DryRun(c.DryRun))...)
 }
 
 func (c *uploadContext) scannerError() error {
@@ -132,7 +136,7 @@ func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
 		if err != nil {
 			c.addScannerError(err)
 		} else {
-			uploadPointers(c, p)
+			c.UploadPointers(c.tq, p)
 		}
 	})
 
@@ -153,7 +157,7 @@ func (c *uploadContext) HasUploaded(oid string) bool {
 	return c.uploadedOids.Contains(oid)
 }
 
-func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.TransferQueue, []*lfs.WrappedPointer) {
+func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) []*lfs.WrappedPointer {
 	numUnfiltered := len(unfiltered)
 	uploadables := make([]*lfs.WrappedPointer, 0, numUnfiltered)
 
@@ -201,10 +205,10 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) (*tq.Tr
 		}
 	}
 
-	return c.tq, uploadables
+	return uploadables
 }
 
-func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
+func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.WrappedPointer) {
 	if c.DryRun {
 		for _, p := range unfiltered {
 			if c.HasUploaded(p.Oid) {
@@ -218,7 +222,7 @@ func uploadPointers(c *uploadContext, unfiltered ...*lfs.WrappedPointer) {
 		return
 	}
 
-	q, pointers := c.prepareUpload(unfiltered...)
+	pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
 		t, err := c.uploadTransfer(p)
 		if err != nil && !errors.IsCleanPointerError(err) {

@@ -121,11 +121,6 @@ func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option
 	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
 }
 
-// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
-}
-
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
 	return filepathfilter.New(inc, exc)
