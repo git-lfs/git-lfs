@@ -3,6 +3,7 @@ package humanize_test
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/stretchr/testify/assert"
@@ -57,6 +58,16 @@ type FormatBytesUnitTestCase struct {
 
 func (c *FormatBytesUnitTestCase) Assert(t *testing.T) {
 	assert.Equal(t, c.Expected, humanize.FormatBytesUnit(c.Given, c.Unit))
+}
+
+type FormatByteRateTestCase struct {
+	Given    uint64
+	Over     time.Duration
+	Expected string
+}
+
+func (c *FormatByteRateTestCase) Assert(t *testing.T) {
+	assert.Equal(t, c.Expected, humanize.FormatByteRate(c.Given, c.Over))
 }
 
 func TestParseBytes(t *testing.T) {
@@ -230,6 +241,39 @@ func TestFormatBytesUnit(t *testing.T) {
 		"format gigabytes over": {uint64(1.51 * math.Pow(10, 9)), humanize.Byte, "1510000000"},
 		"format petabytes over": {uint64(1.51 * math.Pow(10, 12)), humanize.Byte, "1510000000000"},
 		"format terabytes over": {uint64(1.51 * math.Pow(10, 15)), humanize.Byte, "1510000000000000"},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+func TestFormateByteRate(t *testing.T) {
+	for desc, c := range map[string]*FormatByteRateTestCase{
+		"format bytes":     {uint64(1 * math.Pow(10, 0)), time.Second, "1 B/s"},
+		"format kilobytes": {uint64(1 * math.Pow(10, 3)), time.Second, "1.0 KB/s"},
+		"format megabytes": {uint64(1 * math.Pow(10, 6)), time.Second, "1.0 MB/s"},
+		"format gigabytes": {uint64(1 * math.Pow(10, 9)), time.Second, "1.0 GB/s"},
+		"format petabytes": {uint64(1 * math.Pow(10, 12)), time.Second, "1.0 TB/s"},
+		"format terabytes": {uint64(1 * math.Pow(10, 15)), time.Second, "1.0 PB/s"},
+
+		"format kilobytes under": {uint64(1.49 * math.Pow(10, 3)), time.Second, "1.5 KB/s"},
+		"format megabytes under": {uint64(1.49 * math.Pow(10, 6)), time.Second, "1.5 MB/s"},
+		"format gigabytes under": {uint64(1.49 * math.Pow(10, 9)), time.Second, "1.5 GB/s"},
+		"format petabytes under": {uint64(1.49 * math.Pow(10, 12)), time.Second, "1.5 TB/s"},
+		"format terabytes under": {uint64(1.49 * math.Pow(10, 15)), time.Second, "1.5 PB/s"},
+
+		"format kilobytes over": {uint64(1.51 * math.Pow(10, 3)), time.Second, "1.5 KB/s"},
+		"format megabytes over": {uint64(1.51 * math.Pow(10, 6)), time.Second, "1.5 MB/s"},
+		"format gigabytes over": {uint64(1.51 * math.Pow(10, 9)), time.Second, "1.5 GB/s"},
+		"format petabytes over": {uint64(1.51 * math.Pow(10, 12)), time.Second, "1.5 TB/s"},
+		"format terabytes over": {uint64(1.51 * math.Pow(10, 15)), time.Second, "1.5 PB/s"},
+
+		"format kilobytes exact": {uint64(1.3 * math.Pow(10, 3)), time.Second, "1.3 KB/s"},
+		"format megabytes exact": {uint64(1.3 * math.Pow(10, 6)), time.Second, "1.3 MB/s"},
+		"format gigabytes exact": {uint64(1.3 * math.Pow(10, 9)), time.Second, "1.3 GB/s"},
+		"format petabytes exact": {uint64(1.3 * math.Pow(10, 12)), time.Second, "1.3 TB/s"},
+		"format terabytes exact": {uint64(1.3 * math.Pow(10, 15)), time.Second, "1.3 PB/s"},
+
+		"format bytes (non-second)": {uint64(10 * math.Pow(10, 0)), 2 * time.Second, "5 B/s"},
 	} {
 		t.Run(desc, c.Assert)
 	}
