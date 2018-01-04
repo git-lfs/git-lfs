@@ -36,6 +36,7 @@ type Meter struct {
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	updates           chan *tasklog.Update
+	direction         Direction
 }
 
 type env interface {
