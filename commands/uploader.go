@@ -243,20 +243,18 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 	}
 }
 
-func (c *uploadContext) CollectErrors(tqueues ...*tq.TransferQueue) {
-	for _, tqueue := range tqueues {
-		tqueue.Wait()
+func (c *uploadContext) CollectErrors(tqueue *tq.TransferQueue) {
+	tqueue.Wait()
 
-		for _, err := range tqueue.Errors() {
-			if malformed, ok := err.(*tq.MalformedObjectError); ok {
-				if malformed.Missing() {
-					c.missing[malformed.Name] = malformed.Oid
-				} else if malformed.Corrupt() {
-					c.corrupt[malformed.Name] = malformed.Oid
-				}
-			} else {
-				c.otherErrs = append(c.otherErrs, err)
+	for _, err := range tqueue.Errors() {
+		if malformed, ok := err.(*tq.MalformedObjectError); ok {
+			if malformed.Missing() {
+				c.missing[malformed.Name] = malformed.Oid
+			} else if malformed.Corrupt() {
+				c.corrupt[malformed.Name] = malformed.Oid
 			}
+		} else {
+			c.otherErrs = append(c.otherErrs, err)
 		}
 	}
 }
