@@ -25,7 +25,11 @@ type Meter struct {
 	skippedFiles      int64
 	transferringFiles int64
 	estimatedBytes    int64
+	lastBytes         int64
 	currentBytes      int64
+	sampleCount       uint64
+	avgBytes          float64
+	lastAvg           time.Time
 	skippedBytes      int64
 	estimatedFiles    int32
 	paused            uint32
@@ -141,12 +145,29 @@ func (m *Meter) StartTransfer(name string) {
 
 // TransferBytes increments the number of bytes transferred
 func (m *Meter) TransferBytes(direction, name string, read, total int64, current int) {
+	now := time.Now()
+
 	if m == nil {
 		return
 	}
 
 	defer m.update(false)
+
+	since := now.Sub(m.lastAvg)
 	atomic.AddInt64(&m.currentBytes, int64(current))
+	atomic.AddInt64(&m.lastBytes, int64(current))
+
+	if since > time.Second {
+		m.lastAvg = now
+
+		bps := float64(m.lastBytes) / since.Seconds()
+
+		m.avgBytes = (m.avgBytes*float64(m.sampleCount) + bps) / (float64(m.sampleCount) + 1.0)
+
+		atomic.StoreInt64(&m.lastBytes, 0)
+		atomic.AddUint64(&m.sampleCount, 1)
+	}
+
 	m.logBytes(direction, name, read, total)
 }
 
