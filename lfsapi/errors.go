@@ -58,6 +58,10 @@ func (c *Client) handleResponse(res *http.Response) error {
 		return errors.NewAuthError(err)
 	}
 
+	if res.StatusCode == 503 {
+		return errors.NewRetriableError(err)
+	}
+
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 507 && res.StatusCode != 509 {
 		return errors.NewFatalError(err)
 	}
@@ -95,6 +99,7 @@ var (
 		429: "Rate limit exceeded: %s",
 		500: "Server error: %s",
 		501: "Not Implemented: %s",
+		503: "Service Unavailable: %s",
 		507: "Insufficient server storage: %s",
 		509: "Bandwidth limit exceeded: %s",
 	}

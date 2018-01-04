@@ -131,7 +131,8 @@ func (a *adapterBase) fileHTTPUpload(req *http.Request, t *Transfer, offset int6
 	}
 
 	switch res.StatusCode {
-	case 403: // likely an expired auth token
+	case 403, // likely an expired auth token
+		503: // service unavailable
 		return errors.NewRetriableError(fmt.Errorf("http: received status %d", res.StatusCode))
 	}
 
