@@ -95,8 +95,9 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	ctx.UploadPointers(ctx.tq, pointers...)
-	ctx.CollectErrors(ctx.tq)
+	q := ctx.NewQueue()
+	ctx.UploadPointers(q, pointers...)
+	ctx.CollectErrors(q)
 	ctx.ReportErrors()
 }
 

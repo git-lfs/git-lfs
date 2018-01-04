@@ -26,19 +26,20 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 	defer gitscanner.Close()
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
+	q := ctx.NewQueue()
 	for _, update := range updates {
-		if err := uploadLeftOrAll(gitscanner, ctx, update, pushAll); err != nil {
+		if err := uploadLeftOrAll(gitscanner, ctx, q, update, pushAll); err != nil {
 			return errors.Wrap(err, fmt.Sprintf("ref %s:", update.Left().Name))
 		}
 	}
 
-	ctx.CollectErrors(ctx.tq)
+	ctx.CollectErrors(q)
 	ctx.ReportErrors()
 	return nil
 }
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, update *refUpdate, pushAll bool) error {
-	cb := ctx.gitScannerCallback(ctx.tq)
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, update *refUpdate, pushAll bool) error {
+	cb := ctx.gitScannerCallback(q)
 	if pushAll {
 		if err := g.ScanRefWithDeleted(update.LeftCommitish(), cb); err != nil {
 			return err
@@ -60,7 +61,6 @@ type uploadContext struct {
 
 	logger *tasklog.Logger
 	meter  *tq.Meter
-	tq     *tq.TransferQueue
 
 	committerName  string
 	committerEmail string
@@ -105,14 +105,13 @@ func newUploadContext(dryRun bool) *uploadContext {
 	ctx.logger = tasklog.NewLogger(sink)
 	ctx.meter = buildProgressMeter(ctx.DryRun)
 	ctx.logger.Enqueue(ctx.meter)
-	ctx.tq = ctx.NewQueue(tq.WithProgress(ctx.meter))
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()
 	return ctx
 }
 
 func (c *uploadContext) NewQueue(options ...tq.Option) *tq.TransferQueue {
 	return tq.NewTransferQueue(tq.Upload, c.Manifest, c.Remote,
-		append(options, tq.DryRun(c.DryRun))...)
+		tq.DryRun(c.DryRun), tq.WithProgress(c.meter))
 }
 
 func (c *uploadContext) scannerError() error {
