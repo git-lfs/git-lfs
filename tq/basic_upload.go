@@ -102,7 +102,9 @@ func (a *adapterBase) fileHTTPUpload(req *http.Request, t *Transfer, offset int6
 
 	if authOkFunc != nil || offset > 0 {
 		reader = newStartCallbackReader(reader, func() error {
-			authOkFunc()
+			if authOkFunc != nil {
+				authOkFunc()
+			}
 
 			if offset > 0 {
 				// seek to the offset since lfsapi.Client rewinds the body
