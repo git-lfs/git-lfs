@@ -106,7 +106,7 @@ func (m *Meter) Add(size int64) {
 		return
 	}
 
-	defer m.update()
+	defer m.update(false)
 	atomic.AddInt32(&m.estimatedFiles, 1)
 	atomic.AddInt64(&m.estimatedBytes, size)
 }
@@ -118,7 +118,7 @@ func (m *Meter) Skip(size int64) {
 		return
 	}
 
-	defer m.update()
+	defer m.update(false)
 	atomic.AddInt64(&m.skippedFiles, 1)
 	atomic.AddInt64(&m.skippedBytes, size)
 	// Reduce bytes and files so progress easier to parse
@@ -133,7 +133,7 @@ func (m *Meter) StartTransfer(name, oid string) {
 		return
 	}
 
-	defer m.update()
+	defer m.update(false)
 	m.fileIndexMutex.Lock()
 	m.oidCurrentBytes[oid] = int64(0)
 	m.fileIndex[name] = int64(len(m.oidCurrentBytes))
@@ -146,7 +146,7 @@ func (m *Meter) TransferBytes(direction, name, oid string, read, total int64, cu
 		return
 	}
 
-	defer m.update()
+	defer m.update(false)
 	m.fileIndexMutex.Lock()
 	m.oidCurrentBytes[oid] = read
 	m.fileIndexMutex.Unlock()
@@ -159,11 +159,20 @@ func (m *Meter) FinishTransfer(name string) {
 		return
 	}
 
-	defer m.update()
+	defer m.update(false)
 	atomic.AddInt64(&m.finishedFiles, 1)
 	m.fileIndexMutex.Lock()
 	delete(m.fileIndex, name)
 	m.fileIndexMutex.Unlock()
+}
+
+// Flush sends the latest progress update, while leaving the meter active.
+func (m *Meter) Flush() {
+	if m == nil {
+		return
+	}
+
+	m.update(true)
 }
 
 // Finish shuts down the Meter.
@@ -172,7 +181,7 @@ func (m *Meter) Finish() {
 		return
 	}
 
-	m.update()
+	m.update(false)
 	close(m.updates)
 }
 
@@ -187,14 +196,15 @@ func (m *Meter) Throttled() bool {
 	return true
 }
 
-func (m *Meter) update() {
+func (m *Meter) update(force bool) {
 	if m.skipUpdate() {
 		return
 	}
 
 	m.updates <- &tasklog.Update{
-		S:  m.str(),
-		At: time.Now(),
+		S:     m.str(),
+		At:    time.Now(),
+		Force: force,
 	}
 }
 
