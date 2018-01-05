@@ -6,6 +6,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -95,7 +96,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	q := ctx.NewQueue()
+	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
 	ctx.UploadPointers(q, pointers...)
 	ctx.CollectErrors(q)
 	ctx.ReportErrors()

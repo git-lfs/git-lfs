@@ -126,10 +126,11 @@ delete_server_object() {
 assert_server_object() {
   local reponame="$1"
   local oid="$2"
+  local refspec="$3"
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
-    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}],\"ref\":{\"name\":\"$refspec\"}}" \
     -H "Accept: application/vnd.git-lfs+json" \
     -H "X-Check-Object: 1" \
     -H "X-Ignore-Retries: true" 2>&1 |
@@ -163,9 +164,8 @@ assert_lock() {
 assert_server_lock() {
   local reponame="$1"
   local id="$2"
-  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 |
@@ -182,9 +182,8 @@ assert_server_lock() {
 refute_server_lock() {
   local reponame="$1"
   local id="$2"
-  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
