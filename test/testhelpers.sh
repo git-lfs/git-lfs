@@ -164,8 +164,9 @@ assert_lock() {
 assert_server_lock() {
   local reponame="$1"
   local id="$2"
+  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 |
@@ -182,8 +183,9 @@ assert_server_lock() {
 refute_server_lock() {
   local reponame="$1"
   local id="$2"
+  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log

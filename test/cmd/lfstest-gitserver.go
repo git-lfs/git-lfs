@@ -880,6 +880,14 @@ type Lock struct {
 
 type LockRequest struct {
 	Path string `json:"path"`
+	Ref  *Ref   `json:"ref,omitempty"`
+}
+
+func (r *LockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type LockResponse struct {
@@ -889,6 +897,14 @@ type LockResponse struct {
 
 type UnlockRequest struct {
 	Force bool `json:"force"`
+	Ref   *Ref `json:"ref,omitempty"`
+}
+
+func (r *UnlockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type UnlockResponse struct {
@@ -1045,6 +1061,18 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			return
 		}
 
+		if strings.HasSuffix(repo, "branch-required") {
+			parts := strings.Split(repo, "-")
+			lenParts := len(parts)
+			if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != r.FormValue("refspec") {
+				w.WriteHeader(403)
+				enc.Encode(struct {
+					Message string `json:"message"`
+				}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], r.FormValue("refspec"))})
+				return
+			}
+		}
+
 		ll := &LockList{}
 		w.Header().Set("Content-Type", "application/json")
 		locks, nextCursor, err := getFilteredLocks(repo,
@@ -1064,8 +1092,6 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	case "POST":
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
-			var unlockRequest UnlockRequest
-
 			var lockId string
 			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
 				lockId = matches[1]
@@ -1075,9 +1101,22 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
 			}
 
-			if err := dec.Decode(&unlockRequest); err != nil {
+			unlockRequest := &UnlockRequest{}
+			if err := dec.Decode(unlockRequest); err != nil {
 				enc.Encode(&UnlockResponse{Message: err.Error()})
 				return
+			}
+
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != unlockRequest.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], unlockRequest.RefName())})
+					return
+				}
 			}
 
 			if l := delLock(repo, lockId); l != nil {
@@ -1157,9 +1196,21 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 
 		if strings.HasSuffix(r.URL.Path, "/locks") {
-			var lockRequest LockRequest
-			if err := dec.Decode(&lockRequest); err != nil {
+			lockRequest := &LockRequest{}
+			if err := dec.Decode(lockRequest); err != nil {
 				enc.Encode(&LockResponse{Message: err.Error()})
+			}
+
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != lockRequest.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], lockRequest.RefName())})
+					return
+				}
 			}
 
 			for _, l := range getLocks(repo) {

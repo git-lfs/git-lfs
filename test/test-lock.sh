@@ -26,11 +26,18 @@ begin_test "lock with good tracked ref"
   set -e
 
   reponame="lock-tracked-branch-required"
-  setup_remote_repo_with_file "$reponame" "a.dat"
+  setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
+  git push origin master
+
   git lfs lock "a.dat" --json 2>&1 | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
@@ -47,10 +54,16 @@ begin_test "lock with bad ref"
   set -e
 
   reponame="lock-other-branch-required"
-  setup_remote_repo_with_file "$reponame" "a.dat"
+  setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git lfs lock "a.dat" 2>&1 | tee lock.json
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git push origin master:other
+
+  GIT_CURL_VERBOSE=1 git lfs lock "a.dat" 2>&1 | tee lock.json
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
     exit 1
