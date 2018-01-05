@@ -65,9 +65,9 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 // Each line describes a proposed update of the remote ref at the remote sha to
 // the local sha. Multiple updates can be received on multiple lines (such as
 // from 'git push --all'). These updates are typically received over STDIN.
-func prePushRefs(r io.Reader) []*refUpdate {
+func prePushRefs(r io.Reader) []*git.RefUpdate {
 	scanner := bufio.NewScanner(r)
-	refs := make([]*refUpdate, 0, 1)
+	refs := make([]*git.RefUpdate, 0, 1)
 
 	// We can be passed multiple lines of refs
 	for scanner.Scan() {
@@ -83,7 +83,7 @@ func prePushRefs(r io.Reader) []*refUpdate {
 			continue
 		}
 
-		refs = append(refs, newRefUpdate(cfg.Git, cfg.PushRemote(), left, right))
+		refs = append(refs, git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, right))
 	}
 
 	return refs
