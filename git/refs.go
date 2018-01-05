@@ -94,8 +94,4 @@ func refCommitish(r *Ref) string {
 // copy of env
 type Env interface {
 	Get(key string) (val string, ok bool)
-	GetAll(key string) (vals []string)
-	Bool(key string, def bool) (val bool)
-	Int(key string, def int) (val int)
-	All() map[string][]string
 }
