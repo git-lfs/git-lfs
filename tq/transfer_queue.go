@@ -491,7 +491,8 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				q.Skip(o.Size)
 				q.wait.Done()
 			} else {
-				q.meter.StartTransfer(objects.First().Name)
+				obj := objects.First()
+				q.meter.StartTransfer(obj.Name, obj.Oid)
 				toTransfer = append(toTransfer, tr)
 			}
 		}
@@ -716,8 +717,8 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	}
 
 	// Progress callback - receives byte updates
-	cb := func(name string, total, read int64, current int) error {
-		q.meter.TransferBytes(q.direction.String(), name, read, total, current)
+	cb := func(name, oid string, total, read int64, current int) error {
+		q.meter.TransferBytes(q.direction.String(), name, oid, read, total, current)
 		if q.cb != nil {
 			// NOTE: this is the mechanism by which the logpath
 			// specified by GIT_LFS_PROGRESS is written to.

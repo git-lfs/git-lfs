@@ -88,13 +88,13 @@ func (a *adapterBase) fileHTTPUpload(req *http.Request, t *Transfer, offset int6
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
 	if cb == nil {
-		cb = ProgressCallback(func(n string, t int64, r int64, rSince int) error {
+		cb = ProgressCallback(func(n, o string, t int64, r int64, rSince int) error {
 			return nil
 		})
 	}
 
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		return cb(t.Name, totalSize, readSoFar, readSinceLast)
+		return cb(t.Name, t.Oid, totalSize, readSoFar, readSinceLast)
 	}
 
 	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)

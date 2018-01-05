@@ -225,10 +225,10 @@ func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {
 			remainder := numBytes - read
 			if remainder > int64(maxInt) {
 				read += int64(maxInt)
-				cb(t.Name, t.Size, read, maxInt)
+				cb(t.Name, t.Oid, t.Size, read, maxInt)
 			} else {
 				read += remainder
-				cb(t.Name, t.Size, read, int(remainder))
+				cb(t.Name, t.Oid, t.Size, read, int(remainder))
 			}
 
 		}

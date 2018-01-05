@@ -198,7 +198,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	// Wrap callback to give name context
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
 		if cb != nil {
-			return cb(t.Name, totalSize, readSoFar+fromByte, readSinceLast)
+			return cb(t.Name, t.Oid, totalSize, readSoFar+fromByte, readSinceLast)
 		}
 		return nil
 	}

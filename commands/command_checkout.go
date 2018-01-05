@@ -39,7 +39,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 		totalBytes += p.Size
 		meter.Add(p.Size)
-		meter.StartTransfer(p.Name)
+		meter.StartTransfer(p.Name, p.Oid)
 		pointers = append(pointers, p)
 	})
 
@@ -56,7 +56,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 		// not strictly correct (parallel) but we don't have a callback & it's just local
 		// plus only 1 slot in channel so it'll block & be close
-		meter.TransferBytes("checkout", p.Name, p.Size, totalBytes, int(p.Size))
+		meter.TransferBytes("checkout", p.Name, p.Oid, p.Size, totalBytes, int(p.Size))
 		meter.FinishTransfer(p.Name)
 	}
 

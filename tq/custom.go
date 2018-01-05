@@ -299,7 +299,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 				return fmt.Errorf("Unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
 			}
 			if cb != nil {
-				cb(t.Name, t.Size, resp.BytesSoFar, resp.BytesSinceLast)
+				cb(t.Name, t.Oid, t.Size, resp.BytesSoFar, resp.BytesSinceLast)
 			}
 			wasAuthOk = resp.BytesSoFar > 0
 		case "complete":
