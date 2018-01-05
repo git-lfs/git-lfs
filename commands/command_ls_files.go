@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	longOIDs        = false
-	lsFilesShowSize = false
-	debug           = false
+	longOIDs           = false
+	lsFilesScanAll     = false
+	lsFilesScanDeleted = false
+	lsFilesShowSize    = false
+	debug              = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
@@ -22,6 +24,9 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	var ref string
 
 	if len(args) == 1 {
+		if lsFilesScanAll {
+			Exit("fatal: cannot use --all with explicit reference")
+		}
 		ref = args[0]
 	} else {
 		fullref, err := git.CurrentRef()
@@ -40,8 +45,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	seen := make(map[string]struct{})
 
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
-		if _, ok := seen[p.Name]; ok {
-			return
+		if !lsFilesScanAll {
+			if _, ok := seen[p.Name]; ok {
+				return
+			}
 		}
 
 		if err != nil {
@@ -84,8 +91,21 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	if err := gitscanner.ScanIndex(ref, nil); err != nil {
 		Exit("Could not scan for Git LFS index: %s", err)
 	}
-	if err := gitscanner.ScanTree(ref); err != nil {
-		Exit("Could not scan for Git LFS tree: %s", err)
+	if lsFilesScanAll {
+		if err := gitscanner.ScanAll(nil); err != nil {
+			Exit("Could not scan for Git LFS history: %s", err)
+		}
+	} else {
+		var err error
+		if lsFilesScanDeleted {
+			err = gitscanner.ScanRefWithDeleted(ref, nil)
+		} else {
+			err = gitscanner.ScanTree(ref)
+		}
+
+		if err != nil {
+			Exit("Could not scan for Git LFS tree: %s", err)
+		}
 	}
 }
 
@@ -107,6 +127,8 @@ func init() {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
+		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
+		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
 	})
