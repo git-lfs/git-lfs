@@ -22,7 +22,7 @@ begin_test "push"
   [ $(grep -c "push" push.log) -eq 1 ]
 
   git lfs push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   git checkout -b push-b
   echo "push b" > b.dat
@@ -44,7 +44,7 @@ begin_test "push"
   rm -rf .git/refs/remotes
 
   git lfs push origin push-b 2>&1 | tee push.log
-  grep "(1 of 1 files, 1 skipped)" push.log
+  grep "Uploading LFS objects: 100% (2/2), 14 B" push.log
 )
 end_test
 
@@ -136,7 +136,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  [ $(grep -c "(6 of 6 files)" push.log) -eq 1 ]
+  [ $(grep -c "Uploading LFS objects: 100% (6/6), 36 B" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -168,9 +168,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "push" push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "(5 of 5 files, 1 skipped)" push.log
-  [ $(grep -c "files" push.log) -eq 1 ]
-  [ $(grep -c "skipped" push.log) -eq 1 ]
+  grep "Uploading LFS objects: 100% (6/6), 36 B" push.log
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -353,7 +351,7 @@ begin_test "push object id(s)"
   git lfs push --object-id origin \
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     2>&1 | tee push.log
-  grep "(0 of 0 files, 1 skipped)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   echo "push b" > b.dat
   git add b.dat
@@ -363,7 +361,7 @@ begin_test "push object id(s)"
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     82be50ad35070a4ef3467a0a650c52d5b637035e7ad02c36652e59d01ba282b7 \
     2>&1 | tee push.log
-  grep "(0 of 0 files, 2 skipped)" push.log
+  grep "Uploading LFS objects: 100% (2/2), 14 B" push.log
 )
 end_test
 
@@ -516,7 +514,7 @@ begin_test "push (retry with expired actions)"
   expected="enqueue retry #1 for \"$contents_oid\" (size: $contents_size): LFS: tq: action \"upload\" expires at"
 
   grep "$expected" push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 21 B" push.log
 )
 end_test
 

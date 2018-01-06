@@ -36,7 +36,7 @@ begin_test "init for fetch tests"
   refute_server_object "$reponame" "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -62,7 +62,7 @@ begin_test "fetch"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch 2>&1 | grep "(1 of 1 files)"
+  git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
 )
 end_test
@@ -73,7 +73,7 @@ begin_test "fetch with remote"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch origin 2>&1 | grep "(1 of 1 files)"
+  git lfs fetch origin 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
 )
@@ -416,7 +416,7 @@ begin_test "fetch with no origin remote"
   refute_server_object "$reponame" "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
 

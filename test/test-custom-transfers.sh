@@ -94,7 +94,7 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" pushcustom.log
   grep "xfer\[lfstest-customadapter\]:" pushcustom.log
-  grep "12 of 12 files" pushcustom.log
+  grep "Uploading LFS objects: 100% (12/12)" pushcustom.log
 
   rm -rf .git/lfs/objects
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git lfs fetch --all  2>&1 | tee fetchcustom.log
@@ -102,7 +102,7 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-customadapter\]:" fetchcustom.log
-  grep "12 of 12 files" fetchcustom.log
+  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 
@@ -176,7 +176,7 @@ begin_test "custom-transfer-standalone"
 
   grep "xfer: started custom adapter process" pushcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" pushcustom.log
-  grep "12 of 12 files" pushcustom.log
+  grep "Uploading LFS objects: 100% (12/12)" pushcustom.log
 
   rm -rf .git/lfs/objects
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git lfs fetch --all  2>&1 | tee fetchcustom.log
@@ -184,7 +184,7 @@ begin_test "custom-transfer-standalone"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" fetchcustom.log
-  grep "12 of 12 files" fetchcustom.log
+  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 
@@ -262,7 +262,7 @@ begin_test "custom-transfer-standalone-urlmatch"
 
   grep "xfer: started custom adapter process" pushcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" pushcustom.log
-  grep "12 of 12 files" pushcustom.log
+  grep "Uploading LFS objects: 100% (12/12)" pushcustom.log
 
   rm -rf .git/lfs/objects
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git lfs fetch --all  2>&1 | tee fetchcustom.log
@@ -270,7 +270,7 @@ begin_test "custom-transfer-standalone-urlmatch"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" fetchcustom.log
-  grep "12 of 12 files" fetchcustom.log
+  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 

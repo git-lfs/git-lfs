@@ -223,6 +223,9 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	if q.bufferDepth <= 0 {
 		q.bufferDepth = q.batchSize
 	}
+	if q.meter != nil {
+		q.meter.Direction = q.direction
+	}
 
 	q.incoming = make(chan *objectTuple, q.bufferDepth)
 	q.collectorWait.Add(1)

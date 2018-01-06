@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,11 +19,11 @@ import (
 // files and bytes transferred as well as the number of files and bytes that
 // get skipped because the transfer is unnecessary.
 type Meter struct {
-	DryRun bool
-	Logger *tools.SyncWriter
+	DryRun    bool
+	Logger    *tools.SyncWriter
+	Direction Direction
 
 	finishedFiles     int64 // int64s must come first for struct alignment
-	skippedFiles      int64
 	transferringFiles int64
 	estimatedBytes    int64
 	lastBytes         int64
@@ -30,13 +31,11 @@ type Meter struct {
 	sampleCount       uint64
 	avgBytes          float64
 	lastAvg           time.Time
-	skippedBytes      int64
 	estimatedFiles    int32
 	paused            uint32
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	updates           chan *tasklog.Update
-	direction         Direction
 }
 
 type env interface {
@@ -123,11 +122,8 @@ func (m *Meter) Skip(size int64) {
 	}
 
 	defer m.update(false)
-	atomic.AddInt64(&m.skippedFiles, 1)
-	atomic.AddInt64(&m.skippedBytes, size)
-	// Reduce bytes and files so progress easier to parse
-	atomic.AddInt32(&m.estimatedFiles, -1)
-	atomic.AddInt64(&m.estimatedBytes, -size)
+	atomic.AddInt64(&m.finishedFiles, 1)
+	atomic.AddInt64(&m.currentBytes, size)
 }
 
 // StartTransfer tells the progress meter that a transferring file is being
@@ -229,29 +225,22 @@ func (m *Meter) update(force bool) {
 
 func (m *Meter) skipUpdate() bool {
 	return m.DryRun ||
-		(m.estimatedFiles == 0 && m.skippedFiles == 0) ||
+		m.estimatedFiles == 0 ||
 		atomic.LoadUint32(&m.paused) == 1
 }
 
 func (m *Meter) str() string {
-	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
-	// skipped counts only show when > 0
+	// (Uploading|Downloading) LFS objects: 100% (10/10) 100 MiB | 10 MiB/s
 
-	out := fmt.Sprintf("\rGit LFS: (%d of %d files",
-		m.finishedFiles,
-		m.estimatedFiles)
-	if m.skippedFiles > 0 {
-		out += fmt.Sprintf(", %d skipped", m.skippedFiles)
-	}
-	out += fmt.Sprintf(") %s / %s",
+	direction := strings.Title(m.Direction.String()) + "ing"
+	percentage := 100 * float64(m.finishedFiles) / float64(m.estimatedFiles)
+
+	return fmt.Sprintf("%s LFS objects: %3.f%% (%d/%d), %s | %s",
+		direction,
+		percentage,
+		m.finishedFiles, m.estimatedFiles,
 		humanize.FormatBytes(uint64(m.currentBytes)),
-		humanize.FormatBytes(uint64(m.estimatedBytes)))
-	if m.skippedBytes > 0 {
-		out += fmt.Sprintf(", %s skipped",
-			humanize.FormatBytes(uint64(m.skippedBytes)))
-	}
-
-	return out
+		humanize.FormatByteRate(uint64(m.avgBytes), time.Second))
 }
 
 func (m *Meter) logBytes(direction, name string, read, total int64) {

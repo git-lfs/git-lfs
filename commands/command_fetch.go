@@ -325,7 +325,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 
 func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout)
-	meter := buildProgressMeter(false)
+	meter := buildProgressMeter(false, tq.Download)
 	logger.Enqueue(meter)
 
 	seen := make(map[string]bool, len(allpointers))

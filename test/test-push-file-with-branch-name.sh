@@ -16,6 +16,6 @@ begin_test "push a file with the same name as a branch"
   git commit -m "add master"
 
   git lfs push --all origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 )
 end_test

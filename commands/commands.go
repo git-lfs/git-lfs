@@ -430,10 +430,11 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter(dryRun bool) *tq.Meter {
+func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 	m := tq.NewMeter()
 	m.Logger = m.LoggerFromEnv(cfg.Os)
 	m.DryRun = dryRun
+	m.Direction = d
 	return m
 }
 
