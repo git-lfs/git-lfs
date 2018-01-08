@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
@@ -18,7 +19,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool) error {
+func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll bool) error {
 	gitscanner, err := ctx.buildGitScanner()
 	if err != nil {
 		return err
@@ -31,7 +32,9 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	for _, update := range updates {
-		q := ctx.NewQueue() // initialized here to prevent looped defer
+		q := ctx.NewQueue( // initialized here to prevent looped defer
+			tq.RemoteRef(update.Right()),
+		)
 		err := uploadLeftOrAll(gitscanner, ctx, q, update, pushAll)
 		ctx.CollectErrors(q)
 
@@ -43,7 +46,7 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*refUpdate, pushAll bool)
 	return nil
 }
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, update *refUpdate, pushAll bool) error {
+func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, update *git.RefUpdate, pushAll bool) error {
 	cb := ctx.gitScannerCallback(q)
 	if pushAll {
 		if err := g.ScanRefWithDeleted(update.LeftCommitish(), cb); err != nil {
@@ -115,8 +118,10 @@ func newUploadContext(dryRun bool) *uploadContext {
 }
 
 func (c *uploadContext) NewQueue(options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, c.Manifest, c.Remote,
-		tq.DryRun(c.DryRun), tq.WithProgress(c.meter))
+	return tq.NewTransferQueue(tq.Upload, c.Manifest, c.Remote, append(options,
+		tq.DryRun(c.DryRun),
+		tq.WithProgress(c.meter),
+	)...)
 }
 
 func (c *uploadContext) scannerError() error {

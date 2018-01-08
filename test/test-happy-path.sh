@@ -93,6 +93,62 @@ begin_test "happy path on non-origin remote"
 )
 end_test
 
+begin_test "happy path on good ref"
+(
+  set -e
+
+  reponame="happy-path-master-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  # $ echo "a" | shasum -a 256
+  oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+  assert_local_object "$oid" 2
+  assert_server_object "$reponame" "$oid" "refs/heads/master"
+
+  clone_repo "$reponame" "$reponame-clone"
+  assert_local_object "$oid" 2
+)
+end_test
+
+begin_test "happy path on tracked ref"
+(
+  set -e
+
+  reponame="happy-path-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin master:tracked
+
+  # $ echo "a" | shasum -a 256
+  oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+  assert_local_object "$oid" 2
+  assert_server_object "$reponame" "$oid" "refs/heads/tracked"
+
+  git lfs clone "$GITSERVER/$reponame" --exclude "*"
+
+  git config credential.helper lfstest
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+
+  git checkout
+  assert_local_object "$oid" 2
+)
+end_test
+
 begin_test "clears local temp objects"
 (
   set -e

@@ -7,8 +7,14 @@ begin_test "list a single lock with bad ref"
   set -e
 
   reponame="locks-list-other-branch-required"
-  setup_remote_repo_with_file "$reponame" "f.dat"
+  setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "f" > f.dat
+  git add .gitattributes f.dat
+  git commit -m "add f.dat"
+  git push origin master:other
 
   git checkout -b other
   git lfs lock --json "f.dat" | tee lock.log

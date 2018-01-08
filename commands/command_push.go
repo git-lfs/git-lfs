@@ -6,6 +6,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -95,7 +96,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	q := ctx.NewQueue()
+	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
 	ctx.UploadPointers(q, pointers...)
 	ctx.CollectErrors(q)
 	ctx.ReportErrors()
@@ -104,16 +105,16 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 // lfsPushRefs returns valid ref updates from the given ref and --all arguments.
 // Either one or more refs can be explicitly specified, or --all indicates all
 // local refs are pushed.
-func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
+func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 	localrefs, err := git.LocalRefs()
 	if err != nil {
 		return nil, err
 	}
 
 	if pushAll && len(refnames) == 0 {
-		refs := make([]*refUpdate, len(localrefs))
+		refs := make([]*git.RefUpdate, len(localrefs))
 		for i, lr := range localrefs {
-			refs[i] = newRefUpdate(cfg.Git, cfg.PushRemote(), lr, nil)
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), lr, nil)
 		}
 		return refs, nil
 	}
@@ -123,13 +124,13 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*refUpdate, error) {
 		reflookup[ref.Name] = ref
 	}
 
-	refs := make([]*refUpdate, len(refnames))
+	refs := make([]*git.RefUpdate, len(refnames))
 	for i, name := range refnames {
 		if left, ok := reflookup[name]; ok {
-			refs[i] = newRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
 		} else {
 			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-			refs[i] = newRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
 		}
 	}
 
