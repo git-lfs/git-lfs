@@ -169,7 +169,7 @@ func IsActionExpiredError(err error) bool {
 // name and dir are to provide context if one func implements many instances
 type NewAdapterFunc func(name string, dir Direction) Adapter
 
-type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
+type ProgressCallback func(name, oid string, totalSize, readSoFar int64, readSinceLast int) error
 
 type AdapterConfig interface {
 	APIClient() *lfsapi.Client

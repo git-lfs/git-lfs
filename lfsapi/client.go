@@ -159,13 +159,13 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 
 	requests := tools.MaxInt(0, retries) + 1
 	for i := 0; i < requests; i++ {
+		if seek, ok := req.Body.(io.Seeker); ok {
+			seek.Seek(0, io.SeekStart)
+		}
+
 		res, err = cli.Do(req)
 		if err == nil {
 			break
-		}
-
-		if seek, ok := req.Body.(io.Seeker); ok {
-			seek.Seek(0, io.SeekStart)
 		}
 
 		c.traceResponse(req, tracedReq, nil)

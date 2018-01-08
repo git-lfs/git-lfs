@@ -561,7 +561,7 @@ func verifyHandler(w http.ResponseWriter, r *http.Request) {
 	vmu.Unlock()
 
 	if count < max {
-		writeLFSError(w, http.StatusServiceUnavailable, fmt.Sprintf(
+		writeLFSError(w, http.StatusInternalServerError, fmt.Sprintf(
 			"intentionally failing verify request %d (out of %d)", count, max,
 		))
 		return

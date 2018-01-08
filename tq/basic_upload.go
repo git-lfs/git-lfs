@@ -1,8 +1,10 @@
 package tq
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -66,37 +68,58 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		req.Header.Set("Content-Length", strconv.FormatInt(t.Size, 10))
 	}
 
-	req.ContentLength = t.Size
+	if err := a.fileHTTPUpload(req, t, 0, cb, authOkFunc); err != nil {
+		return err
+	}
+
+	return verifyUpload(a.apiClient, a.remote, t)
+}
+
+func (a *adapterBase) fileHTTPUpload(req *http.Request, t *Transfer, offset int64, cb ProgressCallback, authOkFunc func()) error {
+	req.ContentLength = t.Size - offset
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Wrap(err, "basic upload")
+		return errors.Wrap(err, "lfs upload")
 	}
+
 	defer f.Close()
 
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
+	if cb == nil {
+		cb = ProgressCallback(func(n, o string, t int64, r int64, rSince int) error {
+			return nil
+		})
+	}
+
 	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		if cb != nil {
-			return cb(t.Name, totalSize, readSoFar, readSinceLast)
-		}
-		return nil
+		return cb(t.Name, t.Oid, totalSize, readSoFar, readSinceLast)
 	}
 
 	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)
 	var reader lfsapi.ReadSeekCloser = cbr
 
-	// Signal auth was ok on first read; this frees up other workers to start
-	if authOkFunc != nil {
+	if authOkFunc != nil || offset > 0 {
 		reader = newStartCallbackReader(reader, func() error {
-			authOkFunc()
+			if authOkFunc != nil {
+				authOkFunc()
+			}
+
+			if offset > 0 {
+				// seek to the offset since lfsapi.Client rewinds the body
+				if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
+					return err
+				}
+			}
+
 			return nil
 		})
 	}
 
 	req.Body = reader
-
 	req = a.apiClient.LogRequest(req, "lfs.data.upload")
+
 	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// We're about to return a retriable error, meaning that this
@@ -112,11 +135,10 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return errors.NewRetriableError(err)
 	}
 
-	// A status code of 403 likely means that an authentication token for the
-	// upload has expired. This can be safely retried.
-	if res.StatusCode == 403 {
-		err = errors.New("http: received status 403")
-		return errors.NewRetriableError(err)
+	switch res.StatusCode {
+	case 403, // likely an expired auth token
+		503: // service unavailable
+		return errors.NewRetriableError(fmt.Errorf("http: received status %d", res.StatusCode))
 	}
 
 	if res.StatusCode > 299 {
@@ -128,9 +150,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
-	res.Body.Close()
-
-	return verifyUpload(a.apiClient, a.remote, t)
+	return res.Body.Close()
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
@@ -150,6 +170,7 @@ func (s *startCallbackReader) Read(p []byte) (n int, err error) {
 	}
 	return s.ReadSeekCloser.Read(p)
 }
+
 func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCallbackReader {
 	return &startCallbackReader{
 		ReadSeekCloser: r,

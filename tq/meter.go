@@ -21,17 +21,17 @@ type Meter struct {
 	DryRun bool
 	Logger *tools.SyncWriter
 
-	finishedFiles     int64 // int64s must come first for struct alignment
-	skippedFiles      int64
-	transferringFiles int64
-	estimatedBytes    int64
-	currentBytes      int64
-	skippedBytes      int64
-	estimatedFiles    int32
-	paused            uint32
-	fileIndex         map[string]int64 // Maps a file name to its transfer number
-	fileIndexMutex    *sync.Mutex
-	updates           chan *tasklog.Update
+	finishedFiles   int64 // int64s must come first for struct alignment
+	skippedFiles    int64
+	estimatedBytes  int64
+	currentBytes    int64
+	skippedBytes    int64
+	estimatedFiles  int32
+	paused          uint32
+	fileIndex       map[string]int64 // Maps a file name to its transfer number
+	oidCurrentBytes map[string]int64 // Mapos OID to its current transferred bytes
+	fileIndexMutex  *sync.Mutex
+	updates         chan *tasklog.Update
 }
 
 type env interface {
@@ -73,9 +73,10 @@ func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 // NewMeter creates a new Meter.
 func NewMeter() *Meter {
 	m := &Meter{
-		fileIndex:      make(map[string]int64),
-		fileIndexMutex: &sync.Mutex{},
-		updates:        make(chan *tasklog.Update),
+		oidCurrentBytes: make(map[string]int64),
+		fileIndex:       make(map[string]int64),
+		fileIndexMutex:  &sync.Mutex{},
+		updates:         make(chan *tasklog.Update),
 	}
 
 	return m
@@ -127,26 +128,28 @@ func (m *Meter) Skip(size int64) {
 
 // StartTransfer tells the progress meter that a transferring file is being
 // added to the TransferQueue.
-func (m *Meter) StartTransfer(name string) {
+func (m *Meter) StartTransfer(name, oid string) {
 	if m == nil {
 		return
 	}
 
 	defer m.update(false)
-	idx := atomic.AddInt64(&m.transferringFiles, 1)
 	m.fileIndexMutex.Lock()
-	m.fileIndex[name] = idx
+	m.oidCurrentBytes[oid] = int64(0)
+	m.fileIndex[name] = int64(len(m.oidCurrentBytes))
 	m.fileIndexMutex.Unlock()
 }
 
 // TransferBytes increments the number of bytes transferred
-func (m *Meter) TransferBytes(direction, name string, read, total int64, current int) {
+func (m *Meter) TransferBytes(direction, name, oid string, read, total int64, current int) {
 	if m == nil {
 		return
 	}
 
 	defer m.update(false)
-	atomic.AddInt64(&m.currentBytes, int64(current))
+	m.fileIndexMutex.Lock()
+	m.oidCurrentBytes[oid] = read
+	m.fileIndexMutex.Unlock()
 	m.logBytes(direction, name, read, total)
 }
 
@@ -215,6 +218,13 @@ func (m *Meter) str() string {
 	// (%d of %d files, %d skipped) %f B / %f B, %f B skipped
 	// skipped counts only show when > 0
 
+	current := int64(0)
+	m.fileIndexMutex.Lock()
+	for _, read := range m.oidCurrentBytes {
+		current += read
+	}
+	m.fileIndexMutex.Unlock()
+
 	out := fmt.Sprintf("\rGit LFS: (%d of %d files",
 		m.finishedFiles,
 		m.estimatedFiles)
@@ -222,7 +232,7 @@ func (m *Meter) str() string {
 		out += fmt.Sprintf(", %d skipped", m.skippedFiles)
 	}
 	out += fmt.Sprintf(") %s / %s",
-		humanize.FormatBytes(uint64(m.currentBytes)),
+		humanize.FormatBytes(uint64(current)),
 		humanize.FormatBytes(uint64(m.estimatedBytes)))
 	if m.skippedBytes > 0 {
 		out += fmt.Sprintf(", %s skipped",
