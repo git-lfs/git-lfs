@@ -39,7 +39,7 @@ begin_test "push zero len file"
   assert_pointer "master" "full.dat" "$contents_oid" 4
 
   git push origin master | tee push.log
-  grep "Git LFS: (1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
 )
 end_test
 

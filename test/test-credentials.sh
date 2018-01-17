@@ -51,7 +51,7 @@ begin_test "credentials without useHttpPath, with bad path password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin without-path 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
   [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
@@ -88,7 +88,7 @@ begin_test "credentials with url-specific useHttpPath, with bad path password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin without-path 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
   [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
@@ -121,7 +121,7 @@ begin_test "credentials with useHttpPath, with wrong password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
-  [ "0" = "$(grep -c "(1 of 1 files)" push.log)" ]
+  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
   echo "approvals:"
   [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
   echo "fills:"
@@ -155,7 +155,7 @@ begin_test "credentials with useHttpPath, with correct password"
   git commit -m "add b.dat"
 
   GIT_TRACE=1 git push origin with-path-correct-pass 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
   [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
   echo "fills:"
@@ -253,7 +253,7 @@ begin_test "credentials from netrc"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
   echo "any git credential calls:"
   [ "0" -eq "$(cat push.log | grep "git credential" | wc -l)" ]
 )
@@ -286,7 +286,7 @@ begin_test "credentials from netrc with bad password"
   git commit -m "add a.dat"
 
   git push netrc master 2>&1 | tee push.log
-  [ "0" = "$(grep -c "(1 of 1 files)" push.log)" ]
+  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
 )
 end_test
 
@@ -306,28 +306,28 @@ begin_test "credentials from lfs.url"
   echo "bad push"
   git lfs env
   git lfs push origin master 2>&1 | tee push.log
-  grep "(0 of 1 files)" push.log
+  grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "good push"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
   git lfs env
   git lfs push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "bad fetch"
   rm -rf .git/lfs/objects
   git config lfs.url http://$gitserverhost/$reponame.git/info/lfs
   git lfs env
   git lfs fetch --all 2>&1 | tee fetch.log
-  grep "(0 of 1 files)" fetch.log
+  grep "Downloading LFS objects:   0% (0/1), 0 B" fetch.log
 
   echo "good fetch"
   rm -rf .git/lfs/objects
   git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
   git lfs env
   git lfs fetch --all 2>&1 | tee fetch.log
-  grep "(1 of 1 files)" fetch.log
+  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 )
 end_test
 
@@ -347,27 +347,28 @@ begin_test "credentials from remote.origin.url"
   echo "bad push"
   git lfs env
   git lfs push origin master 2>&1 | tee push.log
-  grep "(0 of 1 files)" push.log
+  grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "good push"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
   git lfs env
   git lfs push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   echo "bad fetch"
   rm -rf .git/lfs/objects
   git config remote.origin.url http://$gitserverhost/$reponame.git
   git lfs env
   git lfs fetch --all 2>&1 | tee fetch.log
-  grep "(0 of 1 files)" fetch.log
+  # Missing authentication causes `git lfs fetch` to fail before the progress
+  # meter is printed to the TTY.
 
   echo "good fetch"
   rm -rf .git/lfs/objects
   git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
   git lfs env
   git lfs fetch --all 2>&1 | tee fetch.log
-  grep "(1 of 1 files)" fetch.log
+  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 )
 end_test

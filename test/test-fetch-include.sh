@@ -36,7 +36,7 @@ begin_test "fetch: setup for include test"
   grep "create mode 100644 big/big3.big" commit.log
 
   git push origin master | tee push.log
-  grep "2 of 2 files" push.log
+  grep "Uploading LFS objects: 100% (2/2), 18 B" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 )
