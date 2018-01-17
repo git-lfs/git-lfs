@@ -32,7 +32,8 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	for _, update := range updates {
-		q := ctx.NewQueue( // initialized here to prevent looped defer
+		// initialized here to prevent looped defer
+		q := ctx.NewQueue(
 			tq.RemoteRef(update.Right()),
 		)
 		err := uploadLeftOrAll(gitscanner, ctx, q, update, pushAll)
