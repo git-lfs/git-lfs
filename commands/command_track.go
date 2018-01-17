@@ -265,7 +265,7 @@ func escapeTrackPattern(unescaped string) string {
 		escaped = strings.Replace(escaped, from, to, -1)
 	}
 
-	return escaped
+	return filepath.Clean(escaped)
 }
 
 func unescapeTrackPattern(escaped string) string {
@@ -275,7 +275,7 @@ func unescapeTrackPattern(escaped string) string {
 		unescaped = strings.Replace(unescaped, from, to, -1)
 	}
 
-	return unescaped
+	return filepath.Clean(unescaped)
 }
 
 func init() {
