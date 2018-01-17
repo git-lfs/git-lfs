@@ -142,14 +142,13 @@ func (m *Meter) StartTransfer(name string) {
 
 // TransferBytes increments the number of bytes transferred
 func (m *Meter) TransferBytes(direction, name string, read, total int64, current int) {
-	now := time.Now()
-
 	if m == nil {
 		return
 	}
 
 	defer m.update(false)
 
+	now := time.Now()
 	since := now.Sub(m.lastAvg)
 	atomic.AddInt64(&m.currentBytes, int64(current))
 	atomic.AddInt64(&m.lastBytes, int64(current))
