@@ -259,23 +259,24 @@ var (
 )
 
 func escapeTrackPattern(unescaped string) string {
-	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
+	escaped := filepath.Clean(unescaped)
+	escaped = strings.Replace(escaped, `\`, "/", -1)
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
 	}
 
-	return filepath.Clean(escaped)
+	return escaped
 }
 
 func unescapeTrackPattern(escaped string) string {
-	var unescaped string = escaped
+	var unescaped string = filepath.Clean(escaped)
 
 	for to, from := range trackEscapePatterns {
 		unescaped = strings.Replace(unescaped, from, to, -1)
 	}
 
-	return filepath.Clean(unescaped)
+	return unescaped
 }
 
 func init() {
