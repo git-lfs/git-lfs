@@ -43,7 +43,6 @@ func (u *RefUpdate) Right() *Ref {
 // See push.default rules in https://git-scm.com/docs/git-config
 func defaultRemoteRef(g Env, remote string, left *Ref) *Ref {
 	pushMode, _ := g.Get("push.default")
-	tracerx.Printf("DEBUG %q pushmode = %q", remote, pushMode)
 	switch pushMode {
 	case "", "simple":
 		brRemote, _ := g.Get(fmt.Sprintf("branch.%s.remote", left.Name))
@@ -73,10 +72,8 @@ func defaultRemoteRef(g Env, remote string, left *Ref) *Ref {
 
 func trackingRef(g Env, left *Ref) *Ref {
 	if merge, ok := g.Get(fmt.Sprintf("branch.%s.merge", left.Name)); ok {
-		tracerx.Printf("DEBUG %q branch merge %q", left.Name, merge)
 		return ParseRef(merge, "")
 	}
-	tracerx.Printf("DEBUG %q branch merge default %+v", left.Name, left)
 	return left
 }
 
