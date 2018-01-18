@@ -57,6 +57,7 @@ $distro_name_map = {
     linuxmint/sarah
     linuxmint/serena
     linuxmint/sonya
+    linuxmint/sylvia
     ubuntu/xenial
     ubuntu/yakkety
     ubuntu/zesty
