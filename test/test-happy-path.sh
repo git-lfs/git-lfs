@@ -24,7 +24,7 @@ begin_test "happy path"
 
   # This executes Git LFS from the local repo that was just cloned.
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -48,7 +48,7 @@ begin_test "happy path"
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -56,11 +56,96 @@ begin_test "happy path"
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull
 
   [ "a" = "$(cat a.dat)" ]
 
   assert_pointer "master" "a.dat" "$contents_oid" 1
+)
+end_test
+
+begin_test "happy path on non-origin remote"
+(
+  set -e
+
+  reponame="happy-without-origin"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-without-origin
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track"
+  git push origin master
+
+  clone_repo "$reponame" clone-without-origin
+  git remote rename origin happy-path
+
+  cd ../repo-without-origin
+  echo "a" > a.dat
+  git add a.dat
+  git commit -m "boom"
+  git push origin master
+
+  cd ../clone-without-origin
+  echo "remotes:"
+  git remote
+  git pull happy-path master
+)
+end_test
+
+begin_test "happy path on good ref"
+(
+  set -e
+
+  reponame="happy-path-master-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  # $ echo "a" | shasum -a 256
+  oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+  assert_local_object "$oid" 2
+  assert_server_object "$reponame" "$oid" "refs/heads/master"
+
+  clone_repo "$reponame" "$reponame-clone"
+  assert_local_object "$oid" 2
+)
+end_test
+
+begin_test "happy path on tracked ref"
+(
+  set -e
+
+  reponame="happy-path-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin master:tracked
+
+  # $ echo "a" | shasum -a 256
+  oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+  assert_local_object "$oid" 2
+  assert_server_object "$reponame" "$oid" "refs/heads/tracked"
+
+  git lfs clone "$GITSERVER/$reponame" --exclude "*"
+
+  git config credential.helper lfstest
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+
+  git checkout
+  assert_local_object "$oid" 2
 )
 end_test
 

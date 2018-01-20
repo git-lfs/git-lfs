@@ -1,11 +1,13 @@
 # Git LFS Batch API
 
+Added: v0.6
+
 The Batch API is used to request the ability to transfer LFS objects with the
 LFS server. The Batch URL is built by adding `/objects/batch` to the LFS server
 URL.
 
-Git remote: https://git-server.com/foo/bar  
-LFS server: https://git-server.com/foo/bar.git/info/lfs  
+Git remote: https://git-server.com/foo/bar</br>
+LFS server: https://git-server.com/foo/bar.git/info/lfs<br>
 Batch API: https://git-server.com/foo/bar.git/info/lfs/objects/batch
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS
@@ -29,6 +31,8 @@ some objects:
 * `transfers` - An optional Array of String identifiers for transfer adapters
 that the client has configured. If omitted, the `basic` transfer adapter MUST
 be assumed by the server.
+* `ref` - Optional object describing the server ref that the objects belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
 * `objects` - An Array of objects to download.
   * `oid` - String OID of the LFS object.
   * `size` - Integer byte size of the LFS object. Must be at least zero.
@@ -46,6 +50,7 @@ transfer adapters.
 {
   "operation": "download",
   "transfers": [ "basic" ],
+  "ref": { "name": "refs/heads/master" },
   "objects": [
     {
       "oid": "12345678",
@@ -54,6 +59,62 @@ transfer adapters.
   ]
 }
 ```
+
+#### Ref Property
+
+The Batch API added the `ref` property in LFS v2.4 to support Git server authentication schemes that take the refspec into account. Since this is
+a new addition to the API, servers should be able to operate with a missing or null `ref` property.
+
+Some examples will illustrate how the `ref` property can be used.
+
+* User `owner` has full access to the repository.
+* User `contrib` has readonly access to the repository, and write access to `refs/heads/contrib`.
+
+```js
+{
+  "operation": "download",
+  "transfers": [ "basic" ],
+  "objects": [
+    {
+      "oid": "12345678",
+      "size": 123,
+    }
+  ]
+}
+```
+
+With this payload, both `owner` and `contrib` can download the requested object, since they both have read access.
+
+```js
+{
+  "operation": "upload",
+  "transfers": [ "basic" ],
+  "objects": [
+    {
+      "oid": "12345678",
+      "size": 123,
+    }
+  ]
+}
+```
+
+With this payload, only `owner` can upload the requested object.
+
+```js
+{
+  "operation": "upload",
+  "transfers": [ "basic" ],
+  "ref": { "name": "refs/heads/contrib" },
+  "objects": [
+    {
+      "oid": "12345678",
+      "size": 123,
+    }
+  ]
+}
+```
+
+Both `owner` and `contrib` can upload the request object.
 
 ### Successful Responses
 
@@ -81,6 +142,9 @@ omitted.
     * `href` - String URL to download the object.
     * `header` - Optional hash of String HTTP header key/value pairs to apply
     to the request.
+    * `expires_in` - Whole number of seconds after local client time when
+      transfer will expire. Preferred over `expires_at` if both are provided.
+      Maximum of 2147483647, minimum of -2147483647.
     * `expires_at` - String ISO 8601 formatted timestamp for when the given
     action expires (usually due to a temporary token).
 
@@ -172,7 +236,7 @@ errors.
 
 {
   "message": "Not found",
-  "documentation_url": "https://git-lfs-server.com/docs/errors",
+  "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
 ```
@@ -189,7 +253,7 @@ a custom header key so it does not trigger password prompts in browsers.
 
 {
   "message": "Credentials needed",
-  "documentation_url": "https://git-lfs-server.com/docs/errors",
+  "documentation_url": "https://lfs-server.com/docs/errors",
   "request_id": "123"
 }
 ```

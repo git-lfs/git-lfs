@@ -14,16 +14,16 @@ begin_test "tus-upload-uninterrupted"
   git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
-  contents="jksgdfljkgsdlkjafg lsjdgf alkjgsd lkfjag sldjkgf alkjsgdflkjagsd kljfg asdjgf kalsd"
+  contents="send-verify-action"
   contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  GIT_TRACE=1 git push origin master 2>&1 | tee pushtus.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushtus.log
   grep "xfer: tus.io uploading" pushtus.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -44,7 +44,10 @@ begin_test "tus-upload-interrupted-resume"
   git config lfs.tustransfers true
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents_verify="send-verify-action"
+  contents_verify_oid="$(calc_oid "$contents_verify")"
 
   # this string announces to server that we want it to abort the download part
   # way, but reject the Range: header and fall back on re-downloading instead
@@ -52,10 +55,11 @@ begin_test "tus-upload-interrupted-resume"
   contents_oid=$(calc_oid "$contents")
 
   printf "$contents" > a.dat
-  git add a.dat
+  printf "$contents_verify" > verify.dat
+  git add a.dat verify.dat
   git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
-  GIT_TRACE=1 git push origin master 2>&1 | tee pushtus_resume.log
+  git commit -m "add a.dat, verify.dat" 2>&1 | tee commit.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushtus_resume.log
   # first attempt will start from the beginning
   grep "xfer: tus.io uploading" pushtus_resume.log
   grep "HTTP: 500" pushtus_resume.log
@@ -65,6 +69,7 @@ begin_test "tus-upload-interrupted-resume"
 
   # should have completed in the end
   assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents_verify_oid"
 
 )
 end_test

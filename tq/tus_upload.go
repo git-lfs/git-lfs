@@ -6,13 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
-	"github.com/rubyist/tracerx"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -37,10 +35,12 @@ func (a *tusUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.Actions.Get("upload")
+	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
-		// return fmt.Errorf("No upload action for this object.")
+	}
+	if rel == nil {
+		return errors.Errorf("No upload action for object: %s", t.Oid)
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs
@@ -48,13 +48,15 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// 1. Send HEAD request to determine upload start point
 	//    Request must include Tus-Resumable header (version)
-	tracerx.Printf("xfer: sending tus.io HEAD request for %q", t.Oid)
-	req, err := httputil.NewHttpRequest("HEAD", rel.Href, rel.Header)
+	a.Trace("xfer: sending tus.io HEAD request for %q", t.Oid)
+	req, err := a.newHTTPRequest("HEAD", rel)
 	if err != nil {
 		return err
 	}
+
 	req.Header.Set("Tus-Resumable", TusVersion)
-	res, err := httputil.DoHttpRequest(config.Config, req, false)
+
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
@@ -71,7 +73,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// Upload-Offset=size means already completed (skip)
 	// Batch API will probably already detect this, but handle just in case
 	if offset >= t.Size {
-		tracerx.Printf("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Oid)
+		a.Trace("xfer: tus.io HEAD offset %d indicates %q is already fully uploaded, skipping", offset, t.Oid)
 		advanceCallbackProgress(cb, t, t.Size)
 		return nil
 	}
@@ -85,14 +87,10 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 
 	// Upload-Offset=0 means start from scratch, but still send PATCH
 	if offset == 0 {
-		tracerx.Printf("xfer: tus.io uploading %q from start", t.Oid)
+		a.Trace("xfer: tus.io uploading %q from start", t.Oid)
 	} else {
-		tracerx.Printf("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
+		a.Trace("xfer: tus.io resuming upload %q from %d", t.Oid, offset)
 		advanceCallbackProgress(cb, t, offset)
-		_, err := f.Seek(offset, os.SEEK_CUR)
-		if err != nil {
-			return errors.Wrap(err, "tus upload")
-		}
 	}
 
 	// 2. Send PATCH request with byte start point (even if 0) in Upload-Offset
@@ -100,11 +98,12 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response Upload-Offset must be request Upload-Offset plus sent bytes
 	//    Response may include Upload-Expires header in which case check not passed
 
-	tracerx.Printf("xfer: sending tus.io PATCH request for %q", t.Oid)
-	req, err = httputil.NewHttpRequest("PATCH", rel.Href, rel.Header)
+	a.Trace("xfer: sending tus.io PATCH request for %q", t.Oid)
+	req, err = a.newHTTPRequest("PATCH", rel)
 	if err != nil {
 		return err
 	}
+
 	req.Header.Set("Tus-Resumable", TusVersion)
 	req.Header.Set("Upload-Offset", strconv.FormatInt(offset, 10))
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
@@ -119,27 +118,27 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		}
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         ccb,
-		TotalSize: t.Size,
-		Reader:    f,
-	}
 
-	// Signal auth was ok on first read; this frees up other workers to start
-	if authOkFunc != nil {
-		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+	var reader lfsapi.ReadSeekCloser = tools.NewBodyWithCallback(f, t.Size, ccb)
+	reader = newStartCallbackReader(reader, func() error {
+		// seek to the offset since lfsapi.Client rewinds the body
+		if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
+			return err
+		}
+		// Signal auth was ok on first read; this frees up other workers to start
+		if authOkFunc != nil {
 			authOkFunc()
-		})
-	}
+		}
+		return nil
+	})
 
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = reader
 
-	res, err = httputil.DoHttpRequest(config.Config, req, false)
+	req = a.apiClient.LogRequest(req, "lfs.data.upload")
+	res, err = a.doHTTP(t, req)
 	if err != nil {
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
@@ -149,21 +148,24 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+			req.Method,
+			strings.SplitN(req.URL.String(), "?", 2)[0],
+			res.StatusCode,
+		)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	cli := &lfsapi.Client{}
-	return verifyUpload(cli, t)
+	return verifyUpload(a.apiClient, a.remote, t)
 }
 
 func configureTusAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
-			bu := &tusUploadAdapter{newAdapterBase(name, dir, nil)}
+			bu := &tusUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bu.transferImpl = bu
 			return bu

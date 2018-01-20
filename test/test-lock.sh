@@ -2,17 +2,101 @@
 
 . "test/testlib.sh"
 
-begin_test "creating a lock"
+begin_test "lock with good ref"
 (
   set -e
 
-  setup_remote_repo_with_file "lock_create_simple" "a.dat"
+  reponame="lock-master-branch-required"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "a.dat" | tee lock.log
-  grep "'a.dat' was locked" lock.log
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
+)
+end_test
+
+begin_test "lock with good tracked ref"
+(
+  set -e
+
+  reponame="lock-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git push origin master
+
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
+)
+end_test
+
+begin_test "lock with bad ref"
+(
+  set -e
+
+  reponame="lock-other-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git push origin master:other
+
+  GIT_CURL_VERBOSE=1 git lfs lock "a.dat" 2>&1 | tee lock.json
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  grep 'Lock failed: Expected ref "refs/heads/other", got "refs/heads/master"' lock.json
+)
+end_test
+
+begin_test "create lock with server using client cert"
+(
+  set -e
+  reponame="lock_create_client_cert"
+  setup_remote_repo_with_file "$reponame" "cc.dat"
+
+  git config lfs.url "$CLIENTCERTGITSERVER/$reponame.git/info/lfs"
+  git lfs lock --json "cc.dat" | tee lock.json
+  id=$(assert_lock lock.json cc.dat)
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "creating a lock (with output)"
+(
+  set -e
+
+  reponame="lock_create_simple_output"
+  setup_remote_repo_with_file "$reponame" "a_output.dat"
+
+  git lfs lock "a_output.dat" | tee lock.log
+  grep "Locked a_output.dat" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d \(\))
+  assert_server_lock "$reponame" "$id"
 )
 end_test
 
@@ -20,15 +104,14 @@ begin_test "locking a previously locked file"
 (
   set -e
 
-  setup_remote_repo_with_file "lock_create_previously_created" "b.dat"
+  reponame="lock_create_previously_created"
+  setup_remote_repo_with_file "$reponame" "b.dat"
 
-  GITLFSLOCKSENABLED=1 git lfs lock "b.dat" | tee lock.log
-  grep "'b.dat' was locked" lock.log
+  git lfs lock --json "b.dat" | tee lock.json
+  id=$(assert_lock lock.json b.dat)
+  assert_server_lock "$reponame" "$id"
 
-  id=$(grep -oh "\((.*)\)" lock.log | tr -d "()")
-  assert_server_lock $id
-
-  grep "lock already created" <(GITLFSLOCKSENABLED=1 git lfs lock "b.dat" 2>&1)
+  grep "lock already created" <(git lfs lock "b.dat" 2>&1)
 )
 end_test
 
@@ -55,7 +138,60 @@ begin_test "locking a directory"
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
 
-  GITLFSLOCKSENABLED=1 git lfs lock ./dir/ 2>&1 | tee lock.log
+  git lfs lock ./dir/ 2>&1 | tee lock.log
   grep "cannot lock directory" lock.log
+)
+end_test
+
+begin_test "locking a nested file"
+(
+  set -e
+
+  reponame="locking-nested-file"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat" --lockable
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir -p foo/bar/baz
+
+  contents="contents"
+  contents_oid="$(calc_oid "$contents")"
+
+  printf "$contents" > foo/bar/baz/a.dat
+  git add foo/bar/baz/a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  git lfs lock foo/bar/baz/a.dat 2>&1 | tee lock.log
+  grep "Locked foo/bar/baz/a.dat" lock.log
+
+  git lfs locks 2>&1 | tee locks.log
+  grep "foo/bar/baz/a.dat" locks.log
+)
+end_test
+
+begin_test "creating a lock (within subdirectory)"
+(
+  set -e
+
+  reponame="lock_create_within_subdirectory"
+  setup_remote_repo_with_file "$reponame" "sub/a.dat"
+
+  cd sub
+
+  git lfs lock --json "a.dat" | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json sub/a.dat)
+  assert_server_lock "$reponame" "$id"
 )
 end_test

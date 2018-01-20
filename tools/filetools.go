@@ -10,8 +10,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 )
@@ -139,15 +142,11 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 //    determine absolute path rather than tracking it yourself
 //  * Automatically ignores any .git directories
 //  * Respects .gitignore contents and skips ignored files/dirs
-func FastWalkGitRepo(dir string, cb FastWalkCallback) {
-	// Ignore all git metadata including subrepos
-	excludePaths := []filepathfilter.Pattern{
-		filepathfilter.NewPattern(".git"),
-		filepathfilter.NewPattern(filepath.Join("**", ".git")),
-	}
-
-	fileCh := fastWalkWithExcludeFiles(dir, ".gitignore", excludePaths)
-	for file := range fileCh {
+//
+// rootDir - Absolute path to the top of the repository working directory
+func FastWalkGitRepo(rootDir string, cb FastWalkCallback) {
+	walker := fastWalkWithExcludeFiles(rootDir, ".gitignore")
+	for file := range walker.ch {
 		cb(file.ParentDir, file.Info, file.Err)
 	}
 }
@@ -161,60 +160,97 @@ type fastWalkInfo struct {
 	Err       error
 }
 
+type fastWalker struct {
+	rootDir         string
+	excludeFilename string
+	ch              chan fastWalkInfo
+	limit           int32
+	cur             *int32
+	wg              *sync.WaitGroup
+}
+
 // fastWalkWithExcludeFiles walks the contents of a dir, respecting
 // include/exclude patterns and also loading new exlude patterns from files
 // named excludeFilename in directories walked
-func fastWalkWithExcludeFiles(dir, excludeFilename string,
-	excludePaths []filepathfilter.Pattern) <-chan fastWalkInfo {
-	fiChan := make(chan fastWalkInfo, 256)
-	go fastWalkFromRoot(dir, excludeFilename, excludePaths, fiChan)
-	return fiChan
-}
-
-func fastWalkFromRoot(dir string, excludeFilename string,
-	excludePaths []filepathfilter.Pattern, fiChan chan<- fastWalkInfo) {
-
-	dirFi, err := os.Stat(dir)
-	if err != nil {
-		fiChan <- fastWalkInfo{Err: err}
-		return
+//
+// rootDir - Absolute path to the top of the repository working directory
+func fastWalkWithExcludeFiles(rootDir, excludeFilename string) *fastWalker {
+	excludePaths := []filepathfilter.Pattern{
+		filepathfilter.NewPattern(".git"),
+		filepathfilter.NewPattern(filepath.Join("**", ".git")),
 	}
 
-	// This waitgroup will be incremented for each nested goroutine
-	var waitg sync.WaitGroup
-	fastWalkFileOrDir(filepath.Dir(dir), dirFi, excludeFilename, excludePaths, fiChan, &waitg)
-	waitg.Wait()
-	close(fiChan)
+	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))
+	if limit < 1 {
+		limit = runtime.GOMAXPROCS(-1) * 20
+	}
+
+	c := int32(0)
+	w := &fastWalker{
+		rootDir:         rootDir,
+		excludeFilename: excludeFilename,
+		limit:           int32(limit),
+		cur:             &c,
+		ch:              make(chan fastWalkInfo, 256),
+		wg:              &sync.WaitGroup{},
+	}
+
+	go func() {
+		dirFi, err := os.Stat(w.rootDir)
+		if err != nil {
+			w.ch <- fastWalkInfo{Err: err}
+			return
+		}
+
+		w.Walk(true, "", dirFi, excludePaths)
+		w.Wait()
+	}()
+	return w
 }
 
-// fastWalkFileOrDir is the main recursive implementation of fast walk
+// Walk is the main recursive implementation of fast walk.
 // Sends the file/dir and any contents to the channel so long as it passes the
 // include/exclude filter. If a dir, parses any excludeFilename found and updates
 // the excludePaths with its content before (parallel) recursing into contents
 // Also splits large directories into multiple goroutines.
 // Increments waitg.Add(1) for each new goroutine launched internally
-func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename string,
-	excludePaths []filepathfilter.Pattern, fiChan chan<- fastWalkInfo, waitg *sync.WaitGroup) {
+//
+// workDir - Relative path inside the repository
+func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
+	excludePaths []filepathfilter.Pattern) {
 
-	fullPath := filepath.Join(parentDir, itemFi.Name())
+	var fullPath string      // Absolute path to the current file or dir
+	var parentWorkDir string // Absolute path to the workDir inside the repository
+	if isRoot {
+		fullPath = w.rootDir
+	} else {
+		parentWorkDir = filepath.Join(w.rootDir, workDir)
+		fullPath = filepath.Join(parentWorkDir, itemFi.Name())
+	}
 
-	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(fullPath) {
+	workPath := filepath.Join(workDir, itemFi.Name())
+	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(workPath) {
 		return
 	}
 
-	fiChan <- fastWalkInfo{ParentDir: parentDir, Info: itemFi}
+	w.ch <- fastWalkInfo{ParentDir: parentWorkDir, Info: itemFi}
 
 	if !itemFi.IsDir() {
 		// Nothing more to do if this is not a dir
 		return
 	}
 
-	if len(excludeFilename) > 0 {
-		possibleExcludeFile := filepath.Join(fullPath, excludeFilename)
+	var childWorkDir string
+	if !isRoot {
+		childWorkDir = filepath.Join(workDir, itemFi.Name())
+	}
+
+	if len(w.excludeFilename) > 0 {
+		possibleExcludeFile := filepath.Join(fullPath, w.excludeFilename)
 		var err error
-		excludePaths, err = loadExcludeFilename(possibleExcludeFile, fullPath, excludePaths)
+		excludePaths, err = loadExcludeFilename(possibleExcludeFile, childWorkDir, excludePaths)
 		if err != nil {
-			fiChan <- fastWalkInfo{Err: err}
+			w.ch <- fastWalkInfo{Err: err}
 		}
 	}
 
@@ -224,34 +260,53 @@ func fastWalkFileOrDir(parentDir string, itemFi os.FileInfo, excludeFilename str
 	// filepath.Walk as a bonus.
 	df, err := os.Open(fullPath)
 	if err != nil {
-		fiChan <- fastWalkInfo{Err: err}
+		w.ch <- fastWalkInfo{Err: err}
 		return
 	}
-	defer df.Close()
 
 	// The number of items in a dir we process in each goroutine
 	jobSize := 100
 	for children, err := df.Readdir(jobSize); err == nil; children, err = df.Readdir(jobSize) {
 		// Parallelise all dirs, and chop large dirs into batches
-		waitg.Add(1)
-		go func(subitems []os.FileInfo) {
+		w.walk(children, func(subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				fastWalkFileOrDir(fullPath, childFi, excludeFilename, excludePaths, fiChan, waitg)
+				w.Walk(false, childWorkDir, childFi, excludePaths)
 			}
-			waitg.Done()
-		}(children)
+		})
+	}
 
-	}
+	df.Close()
 	if err != nil && err != io.EOF {
-		fiChan <- fastWalkInfo{Err: err}
+		w.ch <- fastWalkInfo{Err: err}
 	}
+}
+
+func (w *fastWalker) walk(children []os.FileInfo, fn func([]os.FileInfo)) {
+	cur := atomic.AddInt32(w.cur, 1)
+	if cur > w.limit {
+		fn(children)
+		atomic.AddInt32(w.cur, -1)
+		return
+	}
+
+	w.wg.Add(1)
+	go func() {
+		fn(children)
+		w.wg.Done()
+		atomic.AddInt32(w.cur, -1)
+	}()
+}
+
+func (w *fastWalker) Wait() {
+	w.wg.Wait()
+	close(w.ch)
 }
 
 // loadExcludeFilename reads the given file in gitignore format and returns a
 // revised array of exclude paths if there are any changes.
 // If any changes are made a copy of the array is taken so the original is not
 // modified
-func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilter.Pattern) ([]filepathfilter.Pattern, error) {
+func loadExcludeFilename(filename, workDir string, excludePaths []filepathfilter.Pattern) ([]filepathfilter.Pattern, error) {
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -284,10 +339,39 @@ func loadExcludeFilename(filename, parentDir string, excludePaths []filepathfilt
 		// Allow for both styles of separator at this point
 		if strings.ContainsAny(path, "/\\") ||
 			!strings.Contains(path, "*") {
-			path = filepath.Join(parentDir, line)
+			path = filepath.Join(workDir, line)
 		}
 		retPaths = append(retPaths, filepathfilter.NewPattern(path))
 	}
 
 	return retPaths, nil
+}
+
+// SetFileWriteFlag changes write permissions on a file
+// Used to make a file read-only or not. When writeEnabled = false, the write
+// bit is removed for all roles. When writeEnabled = true, the behaviour is
+// different per platform:
+// On Mac & Linux, the write bit is set only on the owner as per default umask.
+// All other bits are unaffected.
+// On Windows, all the write bits are set since Windows doesn't support Unix permissions.
+func SetFileWriteFlag(path string, writeEnabled bool) error {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	mode := uint32(stat.Mode())
+
+	if (writeEnabled && (mode&0200) > 0) ||
+		(!writeEnabled && (mode&0222) == 0) {
+		// no change needed
+		return nil
+	}
+
+	if writeEnabled {
+		mode = mode | 0200 // set owner write only
+		// Go's own Chmod makes Windows set all though
+	} else {
+		mode = mode &^ 0222 // disable all write
+	}
+	return os.Chmod(path, os.FileMode(mode))
 }

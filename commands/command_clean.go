@@ -6,7 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -16,19 +16,24 @@ import (
 // error is non-fatal, otherwise they will halt using the built in
 // `commands.Panic`.
 //
+// If fileSize is given as a non-negative (>= 0) integer, that value is used
+// with preference to os.Stat(fileName).Size(). If it is given as negative, the
+// value from the `stat(1)` call will be used instead.
+//
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
-func clean(to io.Writer, from io.Reader, fileName string) error {
-	var cb progress.CopyCallback
+func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
+	var cb tools.CopyCallback
 	var file *os.File
-	var fileSize int64
 
 	if len(fileName) > 0 {
 		stat, err := os.Stat(fileName)
 		if err == nil && stat != nil {
-			fileSize = stat.Size()
+			if fileSize < 0 {
+				fileSize = stat.Size()
+			}
 
-			localCb, localFile, err := lfs.CopyCallbackFile("clean", fileName, 1, 1)
+			localCb, localFile, err := gf.CopyCallbackFile("clean", fileName, 1, 1)
 			if err != nil {
 				Error(err.Error())
 			} else {
@@ -38,7 +43,7 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 		}
 	}
 
-	cleaned, err := lfs.PointerClean(from, fileName, fileSize, cb)
+	cleaned, err := gf.Clean(from, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
 	}
@@ -53,15 +58,15 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 		// containing the bytes that we should write back out to Git.
 
 		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
-		return err
+		return nil, err
 	}
 
 	if err != nil {
-		Panic(err, "Error cleaning asset.")
+		ExitWithError(errors.Wrap(err, "Error cleaning LFS object"))
 	}
 
 	tmpfile := cleaned.Filename
-	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	mediafile, err := gf.ObjectPath(cleaned.Oid)
 	if err != nil {
 		Panic(err, "Unable to get local media path.")
 	}
@@ -80,20 +85,26 @@ func clean(to io.Writer, from io.Reader, fileName string) error {
 	}
 
 	_, err = lfs.EncodePointer(to, cleaned.Pointer)
-	return err
+	return cleaned.Pointer, err
 }
 
 func cleanCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git 'clean' filter")
-	lfs.InstallHooks(false)
+	installHooks(false)
 
 	var fileName string
 	if len(args) > 0 {
 		fileName = args[0]
 	}
 
-	if err := clean(os.Stdout, os.Stdin, fileName); err != nil {
+	gitfilter := lfs.NewGitFilter(cfg)
+	ptr, err := clean(gitfilter, os.Stdout, os.Stdin, fileName, -1)
+	if err != nil {
 		Error(err.Error())
+	}
+
+	if ptr != nil && possiblyMalformedObjectSize(ptr.Size) {
+		Error("Possibly malformed conversion on Windows, see `git lfs help smudge` for more details.")
 	}
 }
 

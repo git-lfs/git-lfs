@@ -59,6 +59,7 @@ fi
 
 GITSERVER=$(cat "$LFS_URL_FILE")
 SSLGITSERVER=$(cat "$LFS_SSL_URL_FILE")
+CLIENTCERTGITSERVER=$(cat "$LFS_CLIENT_CERT_URL_FILE")
 cd "$TRASHDIR"
 
 # Mark the beginning of a test. A subshell should immediately follow this
@@ -90,6 +91,10 @@ begin_test () {
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
+
+    # do not let Git use a different configuration file
+    unset GIT_CONFIG
+    unset XDG_CONFIG_HOME
 
     # allow the subshell to exit non-zero without exiting this process
     set -x +e

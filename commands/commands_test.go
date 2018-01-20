@@ -9,9 +9,9 @@ import (
 
 var (
 	testcfg = config.NewFrom(config.Values{
-		Git: map[string]string{
-			"lfs.fetchinclude": "/default/include",
-			"lfs.fetchexclude": "/default/exclude",
+		Git: map[string][]string{
+			"lfs.fetchinclude": []string{"/default/include"},
+			"lfs.fetchexclude": []string{"/default/exclude"},
 		},
 	})
 )
@@ -39,18 +39,4 @@ func TestDetermineIncludeExcludePathsReturnsDefaultsWhenAbsent(t *testing.T) {
 
 	assert.Equal(t, []string{"/default/include"}, i)
 	assert.Equal(t, []string{"/default/exclude"}, e)
-}
-
-func TestCommandEnabledFromEnvironmentVariables(t *testing.T) {
-	cfg := config.NewFrom(config.Values{
-		Os: map[string]string{"GITLFSLOCKSENABLED": "1"},
-	})
-
-	assert.True(t, isCommandEnabled(cfg, "locks"))
-}
-
-func TestCommandEnabledDisabledByDefault(t *testing.T) {
-	cfg := config.NewFrom(config.Values{})
-
-	assert.False(t, isCommandEnabled(cfg, "locks"))
 }

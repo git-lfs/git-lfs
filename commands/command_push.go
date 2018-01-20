@@ -1,11 +1,12 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -19,93 +20,6 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
-	tracerx.Printf("Upload refs %v to remote %v", refnames, cfg.CurrentRemote)
-
-	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
-		ExitWithError(err)
-	}
-	defer gitscanner.Close()
-
-	refs, err := refsByNames(refnames)
-	if err != nil {
-		Error(err.Error())
-		Exit("Error getting local refs.")
-	}
-
-	for _, ref := range refs {
-		pointers, err := scanLeftOrAll(gitscanner, ref.Name)
-		if err != nil {
-			Print("Error scanning for Git LFS files in the %q ref", ref.Name)
-			ExitWithError(err)
-		}
-		uploadPointers(ctx, pointers)
-	}
-}
-
-func scanLeftOrAll(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		pointers = append(pointers, p)
-	}
-
-	if pushAll {
-		if err := g.ScanRefWithDeleted(ref, cb); err != nil {
-			return pointers, err
-		}
-	}
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return pointers, err
-	}
-	return pointers, multiErr
-}
-
-func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
-	pointers := make([]*lfs.WrappedPointer, len(oids))
-	for idx, oid := range oids {
-		pointers[idx] = &lfs.WrappedPointer{Pointer: &lfs.Pointer{Oid: oid}}
-	}
-	uploadPointers(ctx, pointers)
-}
-
-func refsByNames(refnames []string) ([]*git.Ref, error) {
-	localrefs, err := git.LocalRefs()
-	if err != nil {
-		return nil, err
-	}
-
-	if pushAll && len(refnames) == 0 {
-		return localrefs, nil
-	}
-
-	reflookup := make(map[string]*git.Ref, len(localrefs))
-	for _, ref := range localrefs {
-		reflookup[ref.Name] = ref
-	}
-
-	refs := make([]*git.Ref, len(refnames))
-	for i, name := range refnames {
-		if ref, ok := reflookup[name]; ok {
-			refs[i] = ref
-		} else {
-			refs[i] = &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-		}
-	}
-
-	return refs, nil
-}
-
 // pushCommand pushes local objects to a Git LFS server.  It takes two
 // arguments:
 //
@@ -113,7 +27,7 @@ func refsByNames(refnames []string) ([]*git.Ref, error) {
 //
 // Remote must be a remote name, not a URL
 //
-// pushCommand calculates the git objects to send by looking comparing the range
+// pushCommand calculates the git objects to send by comparing the range
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
@@ -124,13 +38,11 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	if err := git.ValidateRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q", args[0])
+	if err := cfg.SetValidRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q: %s", args[0], err)
 	}
 
-	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(pushDryRun)
-
 	if pushObjectIDs {
 		if len(args) < 2 {
 			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
@@ -146,6 +58,83 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 		uploadsBetweenRefAndRemote(ctx, args[1:])
 	}
+}
+
+func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
+	tracerx.Printf("Upload refs %v to remote %v", refnames, ctx.Remote)
+
+	updates, err := lfsPushRefs(refnames, pushAll)
+	if err != nil {
+		Error(err.Error())
+		Exit("Error getting local refs.")
+	}
+
+	if err := uploadForRefUpdates(ctx, updates, pushAll); err != nil {
+		ExitWithError(err)
+	}
+}
+
+func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
+	pointers := make([]*lfs.WrappedPointer, len(oids))
+	for i, oid := range oids {
+		mp, err := ctx.gitfilter.ObjectPath(oid)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
+		}
+
+		stat, err := os.Stat(mp)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
+		}
+
+		pointers[i] = &lfs.WrappedPointer{
+			Name: mp,
+			Pointer: &lfs.Pointer{
+				Oid:  oid,
+				Size: stat.Size(),
+			},
+		}
+	}
+
+	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
+	ctx.UploadPointers(q, pointers...)
+	ctx.CollectErrors(q)
+	ctx.ReportErrors()
+}
+
+// lfsPushRefs returns valid ref updates from the given ref and --all arguments.
+// Either one or more refs can be explicitly specified, or --all indicates all
+// local refs are pushed.
+func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
+	localrefs, err := git.LocalRefs()
+	if err != nil {
+		return nil, err
+	}
+
+	if pushAll && len(refnames) == 0 {
+		refs := make([]*git.RefUpdate, len(localrefs))
+		for i, lr := range localrefs {
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), lr, nil)
+		}
+		return refs, nil
+	}
+
+	reflookup := make(map[string]*git.Ref, len(localrefs))
+	for _, ref := range localrefs {
+		reflookup[ref.Name] = ref
+	}
+
+	refs := make([]*git.RefUpdate, len(refnames))
+	for i, name := range refnames {
+		if left, ok := reflookup[name]; ok {
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+		} else {
+			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+		}
+	}
+
+	return refs, nil
 }
 
 func init() {

@@ -81,6 +81,10 @@ func TestPktlineWriterWritesMultiplePacketsGreaterThanMaxPacketLength(t *testing
 	assertPacketRead(t, pl, nil)
 }
 
+func TestPktlineWriterAllowsFlushesOnNil(t *testing.T) {
+	assert.NoError(t, (*PktlineWriter)(nil).Flush())
+}
+
 func TestPktlineWriterDoesntWrapItself(t *testing.T) {
 	itself := &PktlineWriter{}
 	nw := NewPktlineWriter(itself, 0)

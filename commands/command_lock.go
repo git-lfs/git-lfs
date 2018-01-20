@@ -1,13 +1,14 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/locking"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,6 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-
 	if len(args) == 0 {
 		Print("Usage: git lfs lock <path>")
 		return
@@ -29,25 +29,35 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(lockRemote) > 0 {
-		cfg.CurrentRemote = lockRemote
+		cfg.SetRemote(lockRemote)
 	}
 
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
+	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
+	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
+
 	lock, err := lockClient.LockFile(path)
 	if err != nil {
-		Exit("Lock failed: %v", err)
+		Exit("Lock failed: %v", errors.Cause(err))
 	}
 
-	Print("\n'%s' was locked (%s)", args[0], lock.Id)
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(lock); err != nil {
+			Error(err.Error())
+		}
+		return
+	}
+
+	Print("Locked %s", path)
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root
 // path of the repository it is contained within, taking into account the
 // working directory of the caller.
+//
+// lockPaths also respects different filesystem directory separators, so that a
+// Windows path of "\foo\bar" will be normalized to "foo/bar".
 //
 // If the root directory, working directory, or file cannot be
 // determined/opened, an error will be returned. If the file in question is
@@ -72,24 +82,21 @@ func lockPath(file string) (string, error) {
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
-
+	path = strings.TrimPrefix(path, string(os.PathSeparator))
 	if stat, err := os.Stat(abs); err != nil {
 		return "", err
 	} else {
 		if stat.IsDir() {
-			return "", fmt.Errorf("lfs: cannot lock directory: %s", file)
+			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 		}
 
-		return path[1:], nil
+		return filepath.ToSlash(path), nil
 	}
 }
 
 func init() {
-	if !isCommandEnabled(cfg, "locks") {
-		return
-	}
-
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

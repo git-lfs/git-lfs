@@ -6,12 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -44,13 +43,15 @@ func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-	rel, err := t.Actions.Get("upload")
+	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
-		// return fmt.Errorf("No upload action for this object.")
+	}
+	if rel == nil {
+		return errors.Errorf("No upload action for object: %s", t.Oid)
 	}
 
-	req, err := httputil.NewHttpRequest("PUT", rel.Href, rel.Header)
+	req, err := a.newHTTPRequest("PUT", rel)
 	if err != nil {
 		return err
 	}
@@ -81,27 +82,35 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 		return nil
 	}
-	var reader io.Reader
-	reader = &progress.CallbackReader{
-		C:         ccb,
-		TotalSize: t.Size,
-		Reader:    f,
-	}
+
+	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)
+	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start
 	if authOkFunc != nil {
-		reader = newStartCallbackReader(reader, func(*startCallbackReader) {
+		reader = newStartCallbackReader(reader, func() error {
 			authOkFunc()
+			return nil
 		})
 	}
 
-	req.Body = ioutil.NopCloser(reader)
+	req.Body = reader
 
-	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
+	req = a.apiClient.LogRequest(req, "lfs.data.upload")
+	res, err := a.doHTTP(t, req)
 	if err != nil {
+		// We're about to return a retriable error, meaning that this
+		// transfer will either be retried, or it will fail.
+		//
+		// Either way, let's decrement the number of bytes that we've
+		// read _so far_, so that the next iteration doesn't re-transfer
+		// those bytes, according to the progress meter.
+		if perr := cbr.ResetProgress(); perr != nil {
+			err = errors.Wrap(err, perr.Error())
+		}
+
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.upload", res)
 
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
@@ -111,40 +120,48 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s: %d", httputil.TraceHttpReq(req), res.StatusCode)
+		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+			req.Method,
+			strings.SplitN(req.URL.String(), "?", 2)[0],
+			res.StatusCode,
+		)
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
-	cli := &lfsapi.Client{}
-	return verifyUpload(cli, t)
+	return verifyUpload(a.apiClient, a.remote, t)
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
 // first Read() call is made. This callback is only made once
 type startCallbackReader struct {
-	r      io.Reader
-	cb     func(*startCallbackReader)
+	cb     func() error
 	cbDone bool
+	lfsapi.ReadSeekCloser
 }
 
 func (s *startCallbackReader) Read(p []byte) (n int, err error) {
 	if !s.cbDone && s.cb != nil {
-		s.cb(s)
+		if err := s.cb(); err != nil {
+			return 0, err
+		}
 		s.cbDone = true
 	}
-	return s.r.Read(p)
+	return s.ReadSeekCloser.Read(p)
 }
-func newStartCallbackReader(r io.Reader, cb func(*startCallbackReader)) *startCallbackReader {
-	return &startCallbackReader{r, cb, false}
+func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCallbackReader {
+	return &startCallbackReader{
+		ReadSeekCloser: r,
+		cb:             cb,
+	}
 }
 
 func configureBasicUploadAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
-			bu := &basicUploadAdapter{newAdapterBase(name, dir, nil)}
+			bu := &basicUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bu.transferImpl = bu
 			return bu

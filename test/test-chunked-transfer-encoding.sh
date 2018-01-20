@@ -24,7 +24,7 @@ begin_test "chunked transfer encoding"
 
   # This executes Git LFS from the local repo that was just cloned.
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -48,7 +48,7 @@ begin_test "chunked transfer encoding"
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -56,7 +56,7 @@ begin_test "chunked transfer encoding"
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull 2>&1
 
   [ "a" = "$(cat a.dat)" ]
 

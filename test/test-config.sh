@@ -19,6 +19,9 @@ begin_test "default config"
   git lfs env | tee env.log
   grep "Endpoint=http://lfsconfig-file (auth=lfsconfig)" env.log
 
+  git config --file=.lfsconfig --unset lfs.url
+  git config --file=.lfsconfig --unset lfs.http://lfsconfig-file.access
+
   # new endpoint url from local git config
   # access setting no longer applied
   git config lfs.url http://local-lfsconfig
@@ -29,6 +32,8 @@ begin_test "default config"
   git config --file=.lfsconfig lfs.http://local-lfsconfig.access lfsconfig
   git lfs env | tee env.log
   grep "Endpoint=http://local-lfsconfig (auth=lfsconfig)" env.log
+
+  git config --file=.lfsconfig --unset lfs.http://local-lfsconfig.access
 
   # add the access setting to git config
   git config lfs.http://local-lfsconfig.access gitconfig
@@ -133,5 +138,23 @@ begin_test "url alias must be prefix"
   git config lfs.url badalias:rest
   git lfs env | tee env.log
   grep "Endpoint=badalias:rest (auth=none)" env.log
+)
+end_test
+
+begin_test "config: ignoring unsafe lfsconfig keys"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-keys"
+  git init "$reponame"
+  cd "$reponame"
+
+  # Insert an 'unsafe' key into this repository's '.lfsconfig'.
+  git config --file=.lfsconfig core.askpass unsafe
+
+  git lfs env 2>&1 | tee status.log
+
+  grep "WARNING: These unsafe lfsconfig keys were ignored:" status.log
+  grep "  core.askpass" status.log
 )
 end_test

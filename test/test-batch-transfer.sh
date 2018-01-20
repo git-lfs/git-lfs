@@ -26,7 +26,7 @@ begin_test "batch transfer"
 
   # This executes Git LFS from the local repo that was just cloned.
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -49,7 +49,7 @@ begin_test "batch transfer"
 
   # This pushes to the remote repository set up at the top of the test.
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -57,7 +57,7 @@ begin_test "batch transfer"
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull
 
   [ "a" = "$(cat a.dat)" ]
 
@@ -101,3 +101,47 @@ begin_test "batch transfers occur in reverse order by size"
 )
 end_test
 
+begin_test "batch transfers with ssh endpoint"
+(
+  set -e
+
+  reponame="batch-ssh"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+  git config lfs.url "$sshurl"
+  git lfs env
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  git push origin master 2>&1
+)
+end_test
+
+begin_test "batch transfers with ntlm server"
+(
+  set -e
+
+  reponame="ntlmtest"
+  setup_remote_repo "$reponame"
+
+  printf "ntlmdomain\\\ntlmuser:ntlmpass" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  GIT_CURL_VERBOSE=1 git push origin master 2>&1
+)
+end_test

@@ -11,6 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
 
@@ -39,8 +40,8 @@ type gitscannerResult struct {
 	Err     error
 }
 
-func scanUnpushed(cb GitScannerCallback, remote string) error {
-	logArgs := []string{"log",
+func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
+	logArgs := []string{
 		"--branches", "--tags", // include all locally referenced commits
 		"--not"} // but exclude everything that comes after
 
@@ -53,7 +54,7 @@ func scanUnpushed(cb GitScannerCallback, remote string) error {
 	// Add standard search args to find lfs references
 	logArgs = append(logArgs, logLfsSearchArgs...)
 
-	cmd, err := startCommand("git", logArgs...)
+	cmd, err := git.Log(logArgs...)
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func scanUnpushed(cb GitScannerCallback, remote string) error {
 	return nil
 }
 
-func parseScannerLogOutput(cb GitScannerCallback, direction LogDiffDirection, cmd *wrappedCmd) {
+func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd) {
 	ch := make(chan gitscannerResult, chanBufSize)
 
 	go func() {
@@ -88,8 +89,8 @@ func parseScannerLogOutput(cb GitScannerCallback, direction LogDiffDirection, cm
 
 // logPreviousVersions scans history for all previous versions of LFS pointers
 // from 'since' up to (but not including) the final state at ref
-func logPreviousSHAs(cb GitScannerCallback, ref string, since time.Time) error {
-	logArgs := []string{"log",
+func logPreviousSHAs(cb GitScannerFoundPointer, ref string, since time.Time) error {
+	logArgs := []string{
 		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
 	}
 	// Add standard search args to find lfs references
@@ -97,7 +98,7 @@ func logPreviousSHAs(cb GitScannerCallback, ref string, since time.Time) error {
 	// ending at ref
 	logArgs = append(logArgs, ref)
 
-	cmd, err := startCommand("git", logArgs...)
+	cmd, err := git.Log(logArgs...)
 	if err != nil {
 		return err
 	}

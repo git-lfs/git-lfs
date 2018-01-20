@@ -15,12 +15,12 @@
 // author  			xeipuuv
 // author-github 	https://github.com/xeipuuv
 // author-mail		xeipuuv@gmail.com
-// 
+//
 // repository-name	gojsonpointer
 // repository-desc	An implementation of JSON Pointer - Go language
-// 
+//
 // description		Automated tests on package.
-// 
+//
 // created      	03-03-2013
 
 package gojsonpointer
@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	TEST_DOCUMENT_NB_ELEMENTS = 11
+	TEST_DOCUMENT_NB_ELEMENTS = 13
 	TEST_NODE_OBJ_NB_ELEMENTS = 4
 	TEST_DOCUMENT_STRING      = `{
 "foo": ["bar", "baz"],
@@ -44,7 +44,9 @@ const (
 "i\\j": 5,
 "k\"l": 6,
 " ": 7,
-"m~n": 8
+"m~n": 8,
+"o~/p": 9,
+"q/~r": 10
 }`
 )
 
@@ -56,14 +58,18 @@ func init() {
 
 func TestEscaping(t *testing.T) {
 
-	ins := []string{`/`, `/`, `/a~1b`, `/a~1b`, `/c%d`, `/e^f`, `/g|h`, `/i\j`, `/k"l`, `/ `, `/m~0n`}
-	outs := []float64{0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8}
+	ins := []string{`/`, `/`, `/a~1b`, `/a~1b`, `/c%d`, `/e^f`, `/g|h`, `/i\j`, `/k"l`, `/ `, `/m~0n`, `/o~0~1p`, `/q~1~0r`}
+	outs := []float64{0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	for i := range ins {
 
 		p, err := NewJsonPointer(ins[i])
 		if err != nil {
 			t.Errorf("NewJsonPointer(%v) error %v", ins[i], err.Error())
+		}
+		s := p.String()
+		if s != ins[i] {
+			t.Errorf("\"%v\" -> \"%v\"", ins[i], s)
 		}
 
 		result, _, err := p.Get(testDocumentJson)
@@ -76,6 +82,34 @@ func TestEscaping(t *testing.T) {
 		}
 	}
 
+}
+
+func BenchmarkParse(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		NewJsonPointer(`/definitions/simple/0/next`)
+	}
+}
+
+func BenchmarkParseWithEscape(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		NewJsonPointer(`/definiti~0ons/simple/0/next`)
+	}
+}
+
+func BenchmarkString(b *testing.B) {
+	p, _ := NewJsonPointer(`/definitions/simple/0/next`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.String()
+	}
+}
+
+func BenchmarkStringWithEscape(b *testing.B) {
+	p, _ := NewJsonPointer(`/definiti~0ons/simple/0/next`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.String()
+	}
 }
 
 func TestFullDocument(t *testing.T) {
@@ -113,6 +147,14 @@ func TestGetNode(t *testing.T) {
 
 	if len(result.(map[string]interface{})) != TEST_NODE_OBJ_NB_ELEMENTS {
 		t.Errorf("Get(%v) = %v, expect full document", in, result)
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	p, _ := NewJsonPointer(`/obj/d/1/f`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		p.Get(testDocumentJson)
 	}
 }
 

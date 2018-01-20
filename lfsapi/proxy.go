@@ -5,16 +5,16 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/config"
+
 	"fmt"
 )
 
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.
-func ProxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
-	httpProxy := c.HTTPProxy
-	httpsProxy := c.HTTPSProxy
-	noProxy := c.NoProxy
-
+func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	return func(req *http.Request) (*url.URL, error) {
+		httpsProxy, httpProxy, noProxy := getProxyServers(req.URL, c.uc, c.osEnv)
+
 		var proxy string
 		if req.URL.Scheme == "https" {
 			proxy = httpsProxy
@@ -48,11 +48,16 @@ func ProxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
-	var httpsProxy string
-	httpProxy, _ := gitEnv.Get("http.proxy")
-	if strings.HasPrefix(httpProxy, "https://") {
-		httpsProxy = httpProxy
+func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environment) (httpsProxy string, httpProxy string, noProxy string) {
+	if urlCfg != nil {
+		httpProxy, _ = urlCfg.Get("http", u.String(), "proxy")
+		if strings.HasPrefix(httpProxy, "https://") {
+			httpsProxy = httpProxy
+		}
+	}
+
+	if osEnv == nil {
+		return
 	}
 
 	if len(httpsProxy) == 0 {
@@ -71,12 +76,12 @@ func getProxyServers(osEnv env, gitEnv env) (string, string, string) {
 		httpProxy, _ = osEnv.Get("http_proxy")
 	}
 
-	noProxy, _ := osEnv.Get("NO_PROXY")
+	noProxy, _ = osEnv.Get("NO_PROXY")
 	if len(noProxy) == 0 {
 		noProxy, _ = osEnv.Get("no_proxy")
 	}
 
-	return httpsProxy, httpProxy, noProxy
+	return
 }
 
 // canonicalAddr returns url.Host but always with a ":port" suffix

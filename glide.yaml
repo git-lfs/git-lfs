@@ -4,20 +4,14 @@ import:
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
   - netrc
-- package: github.com/cheggaaa/pb
-  version: bd14546a551971ae7f460e6d6e527c5b56cd38d7
-- package: github.com/kr/pretty
-  version: 088c856450c08c03eb32f7a6c221e6eefaa10e6f
 - package: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
-- package: github.com/kr/text
-  version: 6807e777504f54ad073ecef66747de158294b639
 - package: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - package: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - package: github.com/rubyist/tracerx
-  version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
+  version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - package: github.com/spf13/cobra
   version: c55cdf33856a08e4822738728b41783292812889
 - package: github.com/spf13/pflag
@@ -28,11 +22,7 @@ import:
   version: b00ec39bbdd04f845950f4dbb4fd0a2c3155e830
   subpackages:
   - ntlm
-- package: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
-- package: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - package: github.com/xeipuuv/gojsonschema
-  version: d5336c75940ef31c9ceeb0ae64cf92944bccb4ee
+  version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - package: github.com/pkg/errors
-  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+  version: c605e284fe17294bda444b34710735b29d1a9d90

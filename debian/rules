@@ -8,6 +8,10 @@ ifeq ($(DEB_HOST_ARCH), i386)
 	export GOARCH := 386
 else ifeq ($(DEB_HOST_ARCH), amd64)
 	export GOARCH := amd64
+else ifeq ($(DEB_HOST_ARCH), armhf)
+	export GOARCH := arm
+else ifeq ($(DEB_HOST_ARCH), arm64)
+	export GOARCH := arm64
 endif
 
 BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
@@ -41,6 +45,11 @@ override_dh_auto_build:
 override_dh_strip:
 	# strip disabled as golang upstream doesn't support it and it makes go
 	# crash. See https://launchpad.net/bugs/1200255.
+
+override_dh_golang:
+	# The dh_golang is used to add the Built-using field to the deb.  This is only for reference.
+	# As of https://anonscm.debian.org/cgit/collab-maint/dh-golang.git/commit/script/dh_golang?id=7c3fbec6ea92294477fa8910264fe9bd823f21c3
+	# dh_golang errors out because the go compiler used was not installed via a package.  Therefore the step is skipped
 
 override_dh_auto_install:
 	mkdir -p debian/git-lfs/usr/bin

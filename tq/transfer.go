@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/git-lfs/git-lfs/api"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 type Direction int
@@ -17,14 +18,42 @@ const (
 	Download = Direction(iota)
 )
 
+func (d Direction) String() string {
+	switch d {
+	case Download:
+		return "download"
+	case Upload:
+		return "upload"
+	default:
+		return "<unknown>"
+	}
+}
+
 type Transfer struct {
-	Name          string       `json:"name"`
+	Name          string       `json:"name,omitempty"`
 	Oid           string       `json:"oid,omitempty"`
 	Size          int64        `json:"size"`
 	Authenticated bool         `json:"authenticated,omitempty"`
 	Actions       ActionSet    `json:"actions,omitempty"`
+	Links         ActionSet    `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
-	Path          string       `json:"path"`
+	Path          string       `json:"path,omitempty"`
+}
+
+func (t *Transfer) Rel(name string) (*Action, error) {
+	a, err := t.Actions.Get(name)
+	if a != nil || err != nil {
+		return a, err
+	}
+
+	if t.Links != nil {
+		a, err := t.Links.Get(name)
+		if a != nil || err != nil {
+			return a, err
+		}
+	}
+
+	return nil, nil
 }
 
 type ObjectError struct {
@@ -32,59 +61,86 @@ type ObjectError struct {
 	Message string `json:"message"`
 }
 
-// newTransfer creates a new Transfer instance
-func newTransfer(name string, obj *api.ObjectResource, path string) *Transfer {
+func (e *ObjectError) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
+}
+
+// newTransfer returns a copy of the given Transfer, with the name and path
+// values set.
+func newTransfer(tr *Transfer, name string, path string) *Transfer {
 	t := &Transfer{
 		Name:          name,
-		Oid:           obj.Oid,
-		Size:          obj.Size,
-		Authenticated: obj.Authenticated,
-		Actions:       make(ActionSet),
 		Path:          path,
+		Oid:           tr.Oid,
+		Size:          tr.Size,
+		Authenticated: tr.Authenticated,
+		Actions:       make(ActionSet),
 	}
 
-	if obj.Error != nil {
+	if tr.Error != nil {
 		t.Error = &ObjectError{
-			Code:    obj.Error.Code,
-			Message: obj.Error.Message,
+			Code:    tr.Error.Code,
+			Message: tr.Error.Message,
 		}
 	}
 
-	for rel, action := range obj.Actions {
+	for rel, action := range tr.Actions {
 		t.Actions[rel] = &Action{
 			Href:      action.Href,
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
+			ExpiresIn: action.ExpiresIn,
+			createdAt: action.createdAt,
+		}
+	}
+
+	if tr.Links != nil {
+		t.Links = make(ActionSet)
+
+		for rel, link := range tr.Links {
+			t.Links[rel] = &Action{
+				Href:      link.Href,
+				Header:    link.Header,
+				ExpiresAt: link.ExpiresAt,
+				ExpiresIn: link.ExpiresIn,
+				createdAt: link.createdAt,
+			}
 		}
 	}
 
 	return t
-
 }
 
 type Action struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+	ExpiresIn int               `json:"expires_in,omitempty"`
+
+	createdAt time.Time
+}
+
+func (a *Action) IsExpiredWithin(d time.Duration) (time.Time, bool) {
+	return tools.IsExpiredAtOrIn(a.createdAt, d, a.ExpiresAt, time.Duration(a.ExpiresIn)*time.Second)
 }
 
 type ActionSet map[string]*Action
 
 const (
 	// objectExpirationToTransfer is the duration we expect to have passed
-	// from the time that the object's expires_at property is checked to
-	// when the transfer is executed.
+	// from the time that the object's expires_at (or expires_in) property
+	// is checked to when the transfer is executed.
 	objectExpirationToTransfer = 5 * time.Second
 )
 
 func (as ActionSet) Get(rel string) (*Action, error) {
 	a, ok := as[rel]
 	if !ok {
-		return nil, &ActionMissingError{Rel: rel}
+		return nil, nil
 	}
 
-	if !a.ExpiresAt.IsZero() && a.ExpiresAt.Before(time.Now().Add(objectExpirationToTransfer)) {
-		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: a.ExpiresAt})
+	if at, expired := a.IsExpiredWithin(objectExpirationToTransfer); expired {
+		return nil, errors.NewRetriableError(&ActionExpiredErr{Rel: rel, At: at})
 	}
 
 	return a, nil
@@ -100,52 +156,11 @@ func (e ActionExpiredErr) Error() string {
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 
-type ActionMissingError struct {
-	Rel string
-}
-
-func (e ActionMissingError) Error() string {
-	return fmt.Sprintf("tq: unable to find action %q", e.Rel)
-}
-
 func IsActionExpiredError(err error) bool {
 	if _, ok := err.(*ActionExpiredErr); ok {
 		return true
 	}
 	return false
-}
-
-func IsActionMissingError(err error) bool {
-	if _, ok := err.(*ActionMissingError); ok {
-		return true
-	}
-	return false
-}
-
-func toApiObject(t *Transfer) *api.ObjectResource {
-	o := &api.ObjectResource{
-		Oid:           t.Oid,
-		Size:          t.Size,
-		Authenticated: t.Authenticated,
-		Actions:       make(map[string]*api.LinkRelation),
-	}
-
-	for rel, a := range t.Actions {
-		o.Actions[rel] = &api.LinkRelation{
-			Href:      a.Href,
-			Header:    a.Header,
-			ExpiresAt: a.ExpiresAt,
-		}
-	}
-
-	if t.Error != nil {
-		o.Error = &api.ObjectError{
-			Code:    t.Error.Code,
-			Message: t.Error.Message,
-		}
-	}
-
-	return o
 }
 
 // NewAdapterFunc creates new instances of Adapter. Code that wishes
@@ -157,7 +172,27 @@ type NewAdapterFunc func(name string, dir Direction) Adapter
 type ProgressCallback func(name string, totalSize, readSoFar int64, readSinceLast int) error
 
 type AdapterConfig interface {
+	APIClient() *lfsapi.Client
 	ConcurrentTransfers() int
+	Remote() string
+}
+
+type adapterConfig struct {
+	apiClient           *lfsapi.Client
+	concurrentTransfers int
+	remote              string
+}
+
+func (c *adapterConfig) ConcurrentTransfers() int {
+	return c.concurrentTransfers
+}
+
+func (c *adapterConfig) APIClient() *lfsapi.Client {
+	return c.apiClient
+}
+
+func (c *adapterConfig) Remote() string {
+	return c.remote
 }
 
 // Adapter is implemented by types which can upload and/or download LFS

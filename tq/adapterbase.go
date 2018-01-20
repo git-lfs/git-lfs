@@ -2,8 +2,13 @@ package tq
 
 import (
 	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/fs"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
@@ -11,10 +16,14 @@ import (
 // process transfers with N workers handling an oid each, and which wait for
 // authentication to succeed on one worker before proceeding
 type adapterBase struct {
+	fs           *fs.Filesystem
 	name         string
 	direction    Direction
 	transferImpl transferImplementation
+	apiClient    *lfsapi.Client
+	remote       string
 	jobChan      chan *job
+	debugging    bool
 	cb           ProgressCallback
 	// WaitGroup to sync the completion of all workers
 	workerWait sync.WaitGroup
@@ -42,13 +51,13 @@ type transferImplementation interface {
 	DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error
 }
 
-func newAdapterBase(name string, dir Direction, ti transferImplementation) *adapterBase {
+func newAdapterBase(f *fs.Filesystem, name string, dir Direction, ti transferImplementation) *adapterBase {
 	return &adapterBase{
+		fs:           f,
 		name:         name,
 		direction:    dir,
 		transferImpl: ti,
-
-		jobWait: new(sync.WaitGroup),
+		jobWait:      new(sync.WaitGroup),
 	}
 }
 
@@ -61,11 +70,14 @@ func (a *adapterBase) Direction() Direction {
 }
 
 func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	a.apiClient = cfg.APIClient()
+	a.remote = cfg.Remote()
 	a.cb = cb
 	a.jobChan = make(chan *job, 100)
+	a.debugging = a.apiClient.OSEnv().Bool("GIT_TRANSFER_TRACE", false)
 	maxConcurrency := cfg.ConcurrentTransfers()
 
-	tracerx.Printf("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
+	a.Trace("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
 
 	a.workerWait.Add(maxConcurrency)
 	a.authWait.Add(1)
@@ -76,7 +88,7 @@ func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 		}
 		go a.worker(i, ctx)
 	}
-	tracerx.Printf("xfer: adapter %q started", a.Name())
+	a.Trace("xfer: adapter %q started", a.Name())
 	return nil
 }
 
@@ -110,7 +122,7 @@ func (a *adapterBase) Add(transfers ...*Transfer) <-chan TransferResult {
 }
 
 func (a *adapterBase) End() {
-	tracerx.Printf("xfer: adapter %q End()", a.Name())
+	a.Trace("xfer: adapter %q End()", a.Name())
 
 	a.jobWait.Wait()
 	close(a.jobChan)
@@ -118,13 +130,19 @@ func (a *adapterBase) End() {
 	// wait for all transfers to complete
 	a.workerWait.Wait()
 
-	tracerx.Printf("xfer: adapter %q stopped", a.Name())
+	a.Trace("xfer: adapter %q stopped", a.Name())
+}
+
+func (a *adapterBase) Trace(format string, args ...interface{}) {
+	if !a.debugging {
+		return
+	}
+	tracerx.Printf(format, args...)
 }
 
 // worker function, many of these run per adapter
 func (a *adapterBase) worker(workerNum int, ctx interface{}) {
-
-	tracerx.Printf("xfer: adapter %q worker %d starting", a.Name(), workerNum)
+	a.Trace("xfer: adapter %q worker %d starting", a.Name(), workerNum)
 	waitForAuth := workerNum > 0
 	signalAuthOnResponse := workerNum == 0
 
@@ -133,9 +151,9 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 	// make sure only 1 login prompt is presented if necessary
 	// Deliberately outside jobChan processing so we know worker 0 will process 1st item
 	if waitForAuth {
-		tracerx.Printf("xfer: adapter %q worker %d waiting for Auth", a.Name(), workerNum)
+		a.Trace("xfer: adapter %q worker %d waiting for Auth", a.Name(), workerNum)
 		a.authWait.Wait()
-		tracerx.Printf("xfer: adapter %q worker %d auth signal received", a.Name(), workerNum)
+		a.Trace("xfer: adapter %q worker %d auth signal received", a.Name(), workerNum)
 	}
 
 	for job := range a.jobChan {
@@ -148,7 +166,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 				signalAuthOnResponse = false
 			}
 		}
-		tracerx.Printf("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Oid)
+		a.Trace("xfer: adapter %q worker %d processing job for %q", a.Name(), workerNum, t.Oid)
 
 		// Actual transfer happens here
 		var err error
@@ -161,15 +179,42 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		// Mark the job as completed, and alter all listeners
 		job.Done(err)
 
-		tracerx.Printf("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Oid)
+		a.Trace("xfer: adapter %q worker %d finished job for %q", a.Name(), workerNum, t.Oid)
 	}
 	// This will only happen if no jobs were submitted; just wake up all workers to finish
 	if signalAuthOnResponse {
 		a.authWait.Done()
 	}
-	tracerx.Printf("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
+	a.Trace("xfer: adapter %q worker %d stopping", a.Name(), workerNum)
 	a.transferImpl.WorkerEnding(workerNum, ctx)
 	a.workerWait.Done()
+}
+
+var httpRE = regexp.MustCompile(`\Ahttps?://`)
+
+func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
+	if !httpRE.MatchString(rel.Href) {
+		urlfragment := strings.SplitN(rel.Href, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
+	}
+
+	req, err := http.NewRequest(method, rel.Href, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range rel.Header {
+		req.Header.Set(key, value)
+	}
+
+	return req, nil
+}
+
+func (a *adapterBase) doHTTP(t *Transfer, req *http.Request) (*http.Response, error) {
+	if t.Authenticated {
+		return a.apiClient.Do(req)
+	}
+	return a.apiClient.DoWithAuth(a.remote, req)
 }
 
 func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {

@@ -9,10 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/httputil"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -30,7 +27,7 @@ func (a *basicDownloadAdapter) tempDir() string {
 	// Must be dedicated to this adapter as deleted by ClearTempStorage
 	// Also make local to this repo not global, and separate to localstorage temp,
 	// which gets cleared at the end of every invocation
-	d := filepath.Join(localstorage.Objects().RootDir, "incomplete")
+	d := filepath.Join(a.fs.LFSStorageDir, "incomplete")
 	if err := os.MkdirAll(d, 0755); err != nil {
 		return os.TempDir()
 	}
@@ -44,7 +41,6 @@ func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
 func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
-
 	f, fromByte, hashSoFar, err := a.checkResumeDownload(t)
 	if err != nil {
 		return err
@@ -91,13 +87,15 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		defer dlFile.Close()
 	}
 
-	rel, err := t.Actions.Get("download")
+	rel, err := t.Rel("download")
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 
-	req, err := httputil.NewHttpRequest("GET", rel.Href, rel.Header)
+	req, err := a.newHTTPRequest("GET", rel)
 	if err != nil {
 		return err
 	}
@@ -110,10 +108,11 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
-	res, err := httputil.DoHttpRequest(config.Config, req, !t.Authenticated)
+	req = a.apiClient.LogRequest(req, "lfs.data.download")
+	res, err := a.doHTTP(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
-		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
+		if fromByte > 0 && dlFile != nil && (res != nil && res.StatusCode == 416) {
 			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
@@ -121,7 +120,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		}
 		return errors.NewRetriableError(err)
 	}
-	httputil.LogTransfer(config.Config, "lfs.data.download", res)
+
 	defer res.Body.Close()
 
 	// Range request must return 206 & content range to confirm
@@ -222,7 +221,7 @@ func configureBasicDownloadAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
-			bd := &basicDownloadAdapter{newAdapterBase(name, dir, nil)}
+			bd := &basicDownloadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bd.transferImpl = bd
 			return bd

@@ -29,15 +29,10 @@ begin_test "install with old (non-upgradeable) settings"
   git config --global filter.lfs.smudge "git-lfs smudge --something %f"
   git config --global filter.lfs.clean "git-lfs clean --something %f"
 
-  set +e
-  git lfs install 2> install.log
-  res=$?
-  set -e
+  git lfs install | tee install.log
+  [ "${PIPESTATUS[0]}" = 0 ]
 
-  [ "$res" = 2 ]
-
-  cat install.log
-  grep -E "(clean|smudge) attribute should be" install.log
+  grep -E "(clean|smudge)\" attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
 
   [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
@@ -76,31 +71,52 @@ begin_test "install updates repo hooks"
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/pre-push.\\n\"; exit 2; }
 git lfs pre-push \"\$@\""
 
-  [ "Updated pre-push hook.
+  post_checkout_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-checkout.\\n\"; exit 2; }
+git lfs post-checkout \"\$@\""
+
+  post_commit_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-commit.\\n\"; exit 2; }
+git lfs post-commit \"\$@\""
+
+  post_merge_hook="#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-merge.\\n\"; exit 2; }
+git lfs post-merge \"\$@\""
+
+  [ "Updated git hooks.
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
+  [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
 
   # replace old hook
   # more-comprehensive hook update tests are in test-update.sh
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
-  [ "Updated pre-push hook.
+  [ "Updated git hooks.
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # don't replace unexpected hook
   expected="Hook already exists: pre-push
 
-test
+	test
 
 To resolve this, either:
   1: run \`git lfs update --manual\` for instructions on how to merge hooks.
   2: run \`git lfs update --force\` to overwrite your hook."
 
   echo "test" > .git/hooks/pre-push
+  echo "test" > .git/hooks/post-checkout
+  echo "test" > .git/hooks/post-commit
+  echo "test" > .git/hooks/post-merge
   [ "test" = "$(cat .git/hooks/pre-push)" ]
   [ "$expected" = "$(git lfs install 2>&1)" ]
   [ "test" = "$(cat .git/hooks/pre-push)" ]
+  [ "test" = "$(cat .git/hooks/post-checkout)" ]
+  [ "test" = "$(cat .git/hooks/post-commit)" ]
+  [ "test" = "$(cat .git/hooks/post-merge)" ]
 
   # Make sure returns non-zero
   set +e
@@ -112,9 +128,12 @@ To resolve this, either:
   set -e
 
   # force replace unexpected hook
-  [ "Updated pre-push hook.
+  [ "Updated git hooks.
 Git LFS initialized." = "$(git lfs install --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
+  [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
 
   has_test_dir || exit 0
 
@@ -170,7 +189,7 @@ begin_test "install --skip-smudge"
   [ "git-lfs smudge --skip -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process --skip" = "$(git config --global filter.lfs.process)" ]
 
-  git lfs install --force
+  git lfs install
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs filter-process" = "$(git config --global filter.lfs.process)" ]
@@ -235,5 +254,39 @@ begin_test "install in directory without access to .git/lfs"
   git lfs install --force
 
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+)
+end_test
+
+
+begin_test "install in repo without changing hooks"
+(
+  set -e
+  git init non-lfs-repo
+  cd non-lfs-repo
+
+  git lfs install --skip-repo
+
+  # should not install hooks
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-merge ]
+  [ ! -f .git/hooks/post-commit ]
+
+  # filters should still be installed
+  [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+)
+end_test
+
+
+begin_test "can install when multiple global values registered"
+(
+  set -e
+
+  git config --global filter.lfs.smudge "git-lfs smudge --something %f"
+  git config --global --add filter.lfs.smudge "git-lfs smudge --something-else %f"
+
+  git lfs install --force
 )
 end_test

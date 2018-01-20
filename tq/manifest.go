@@ -3,24 +3,35 @@ package tq
 import (
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/fs"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	defaultMaxRetries          = 1
-	defaultConcurrentTransfers = 3
+	defaultMaxRetries          = 8
+	defaultConcurrentTransfers = 8
 )
 
 type Manifest struct {
-	// MaxRetries is the maximum number of retries a single object can
+	// maxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped.
-	maxRetries           int
-	concurrentTransfers  int
-	basicTransfersOnly   bool
-	tusTransfersAllowed  bool
-	downloadAdapterFuncs map[string]NewAdapterFunc
-	uploadAdapterFuncs   map[string]NewAdapterFunc
-	mu                   sync.Mutex
+	maxRetries              int
+	concurrentTransfers     int
+	basicTransfersOnly      bool
+	standaloneTransferAgent string
+	tusTransfersAllowed     bool
+	downloadAdapterFuncs    map[string]NewAdapterFunc
+	uploadAdapterFuncs      map[string]NewAdapterFunc
+	fs                      *fs.Filesystem
+	apiClient               *lfsapi.Client
+	tqClient                *tqClient
+	mu                      sync.Mutex
+}
+
+func (m *Manifest) APIClient() *lfsapi.Client {
+	return m.apiClient
 }
 
 func (m *Manifest) MaxRetries() int {
@@ -31,18 +42,37 @@ func (m *Manifest) ConcurrentTransfers() int {
 	return m.concurrentTransfers
 }
 
-func NewManifest() *Manifest {
-	return NewManifestWithGitEnv("", nil)
+func (m *Manifest) IsStandaloneTransfer() bool {
+	return m.standaloneTransferAgent != ""
 }
 
-func NewManifestWithGitEnv(access string, git Env) *Manifest {
+func (m *Manifest) batchClient() *tqClient {
+	if r := m.MaxRetries(); r > 0 {
+		m.tqClient.MaxRetries = r
+	}
+	return m.tqClient
+}
+
+func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *Manifest {
+	if apiClient == nil {
+		cli, err := lfsapi.NewClient(nil)
+		if err != nil {
+			tracerx.Printf("unable to init tq.Manifest: %s", err)
+			return nil
+		}
+		apiClient = cli
+	}
+
 	m := &Manifest{
+		fs:                   f,
+		apiClient:            apiClient,
+		tqClient:             &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
 
 	var tusAllowed bool
-	if git != nil {
+	if git := apiClient.GitEnv(); git != nil {
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
@@ -50,6 +80,9 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 			m.concurrentTransfers = v
 		}
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
+		m.standaloneTransferAgent = findStandaloneTransfer(
+			apiClient, operation, remote,
+		)
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
 	}
@@ -58,9 +91,7 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		m.maxRetries = defaultMaxRetries
 	}
 
-	if access == "ntlm" {
-		m.concurrentTransfers = 1
-	} else if m.concurrentTransfers < 1 {
+	if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 
@@ -70,6 +101,22 @@ func NewManifestWithGitEnv(access string, git Env) *Manifest {
 		configureTusAdapter(m)
 	}
 	return m
+}
+
+func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) string {
+	if operation == "" || remote == "" {
+		v, _ := client.GitEnv().Get("lfs.standalonetransferagent")
+		return v
+	}
+
+	ep := client.Endpoints.RemoteEndpoint(operation, remote)
+	uc := config.NewURLConfig(client.GitEnv())
+	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")
+	if !ok {
+		return ""
+	}
+
+	return v
 }
 
 // GetAdapterNames returns a list of the names of adapters available to be created
@@ -169,7 +216,8 @@ func (m *Manifest) NewUploadAdapter(name string) Adapter {
 // Env is any object with a config.Environment interface.
 type Env interface {
 	Get(key string) (val string, ok bool)
+	GetAll(key string) []string
 	Bool(key string, def bool) (val bool)
 	Int(key string, def int) (val int)
-	All() map[string]string
+	All() map[string][]string
 }

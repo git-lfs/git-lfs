@@ -6,11 +6,12 @@ import (
 	"fmt"
 
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // "upload" - all missing
-func uploadAllMissing(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("upload", oidsMissing)
+func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Upload, oidsMissing)
 
 	if err != nil {
 		return err
@@ -22,8 +23,8 @@ func uploadAllMissing(oidsExist, oidsMissing []TestObject) error {
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		_, ok := o.Rel("upload")
-		if !ok {
+		rel, _ := o.Rel("upload")
+		if rel == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing upload link for %s\n", o.Oid))
 		}
 		// verify link is optional so don't check
@@ -37,8 +38,8 @@ func uploadAllMissing(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "upload" - all present
-func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
-	retobjs, err := callBatchApi("upload", oidsExist)
+func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+	retobjs, err := callBatchApi(manifest, tq.Upload, oidsExist)
 
 	if err != nil {
 		return err
@@ -50,9 +51,9 @@ func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
-		if ok {
-			errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s\n", o.Oid, link))
+		link, _ := o.Rel("upload")
+		if link == nil {
+			errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %+v\n", o.Oid, link))
 		}
 	}
 
@@ -64,8 +65,7 @@ func uploadAllExists(oidsExist, oidsMissing []TestObject) error {
 }
 
 // "upload" - mix of missing & present
-func uploadMixed(oidsExist, oidsMissing []TestObject) error {
-
+func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
@@ -76,7 +76,7 @@ func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 	}
 
 	calloids := interleaveTestData(oidsExist, oidsMissing)
-	retobjs, err := callBatchApi("upload", calloids)
+	retobjs, err := callBatchApi(manifest, tq.Upload, calloids)
 
 	if err != nil {
 		return err
@@ -89,13 +89,13 @@ func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
+		link, _ := o.Rel("upload")
 		if existSet.Contains(o.Oid) {
-			if ok {
-				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s\n", o.Oid, link))
+			if link != nil {
+				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %+v\n", o.Oid, link))
 			}
 		}
-		if missingSet.Contains(o.Oid) && !ok {
+		if missingSet.Contains(o.Oid) && link == nil {
 			errbuf.WriteString(fmt.Sprintf("Missing upload link for %s\n", o.Oid))
 		}
 
@@ -109,7 +109,7 @@ func uploadMixed(oidsExist, oidsMissing []TestObject) error {
 
 }
 
-func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
+func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	errorCases := make([]TestObject, 0, 5)
 	errorCodeMap := make(map[string]int, 5)
 	errorReasonMap := make(map[string]string, 5)
@@ -149,7 +149,7 @@ func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
 	validReasonMap[sha] = "Zero size should be allowed"
 
 	calloids := interleaveTestData(errorCases, validCases)
-	retobjs, err := callBatchApi("upload", calloids)
+	retobjs, err := callBatchApi(manifest, tq.Upload, calloids)
 
 	if err != nil {
 		return err
@@ -162,11 +162,11 @@ func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
 
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
-		link, ok := o.Rel("upload")
+		link, _ := o.Rel("upload")
 		if code, iserror := errorCodeMap[o.Oid]; iserror {
 			reason, _ := errorReasonMap[o.Oid]
-			if ok {
-				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %s, reason %s\n", o.Oid, link, reason))
+			if link != nil {
+				errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %+v, reason %s\n", o.Oid, link, reason))
 			}
 			if o.Error == nil {
 				errbuf.WriteString(fmt.Sprintf("Upload should include an error for invalid object %s, reason %s", o.Oid, reason))
@@ -176,7 +176,7 @@ func uploadEdgeCases(oidsExist, oidsMissing []TestObject) error {
 
 		}
 		if reason, reasonok := validReasonMap[o.Oid]; reasonok {
-			if !ok {
+			if link == nil {
 				errbuf.WriteString(fmt.Sprintf("Missing upload link for %s, should be present because %s\n", o.Oid, reason))
 			}
 		}

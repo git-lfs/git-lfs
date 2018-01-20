@@ -1,23 +1,46 @@
 package lfsapi
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/rubyist/tracerx"
 )
 
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
 // has been disabled for the given host, or globally
 func isCertVerificationDisabledForHost(c *Client, host string) bool {
-	hostSslVerify, _ := c.gitEnv.Get(fmt.Sprintf("http.https://%v/.sslverify", host))
+	hostSslVerify, _ := c.uc.Get("http", fmt.Sprintf("https://%v", host), "sslverify")
 	if hostSslVerify == "false" {
 		return true
 	}
 
 	return c.SkipSSLVerify
+}
+
+// isClientCertEnabledForHost returns whether client certificate
+// are configured for the given host
+func isClientCertEnabledForHost(c *Client, host string) bool {
+	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
+	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+
+	return hostSslKeyOk && hostSslCertOk
+}
+
+// getClientCertForHost returns a client certificate for a specific host (which may
+// be "host:port" loaded from the gitconfig
+func getClientCertForHost(c *Client, host string) tls.Certificate {
+	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
+	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+	cert, err := tls.LoadX509KeyPair(hostSslCert, hostSslKey)
+	if err != nil {
+		tracerx.Printf("Error reading client cert/key %v", err)
+	}
+	return cert
 }
 
 // getRootCAsForHost returns a certificate pool for that specific host (which may
@@ -35,7 +58,7 @@ func getRootCAsForHost(c *Client, host string) *x509.CertPool {
 	return appendRootCAsForHostFromPlatform(pool, host)
 }
 
-func appendRootCAsForHostFromGitconfig(osEnv env, gitEnv env, pool *x509.CertPool, host string) *x509.CertPool {
+func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x509.CertPool, host string) *x509.CertPool {
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
@@ -43,17 +66,8 @@ func appendRootCAsForHostFromGitconfig(osEnv env, gitEnv env, pool *x509.CertPoo
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
-	// we know we have simply "host" or "host:port"
-	hostKeyWithSlash := fmt.Sprintf("http.https://%v/.sslcainfo", host)
-	if cafile, ok := gitEnv.Get(hostKeyWithSlash); ok {
-		return appendCertsFromFile(pool, cafile)
-	}
-	hostKeyWithoutSlash := fmt.Sprintf("http.https://%v.sslcainfo", host)
-	if cafile, ok := gitEnv.Get(hostKeyWithoutSlash); ok {
-		return appendCertsFromFile(pool, cafile)
-	}
-	// http.sslcainfo
-	if cafile, ok := gitEnv.Get("http.sslcainfo"); ok {
+	uc := config.NewURLConfig(gitEnv)
+	if cafile, ok := uc.Get("http", fmt.Sprintf("https://%v/", host), "sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH

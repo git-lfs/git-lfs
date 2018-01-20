@@ -3,8 +3,6 @@ package commands
 import (
 	"regexp"
 
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
 
@@ -20,19 +18,21 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
-	for key, value := range cfg.Git.All() {
+	for key, _ := range cfg.Git.All() {
 		matches := lfsAccessRE.FindStringSubmatch(key)
 		if len(matches) < 2 {
 			continue
 		}
 
+		value, _ := cfg.Git.Get(key)
+
 		switch value {
 		case "basic":
 		case "private":
-			git.Config.SetLocal("", key, "basic")
+			cfg.SetGitLocalKey(key, "basic")
 			Print("Updated %s access from %s to %s.", matches[1], value, "basic")
 		default:
-			git.Config.UnsetLocalKey("", key)
+			cfg.UnsetGitLocalKey(key)
 			Print("Removed invalid %s access of %s.", matches[1], value)
 		}
 	}
@@ -42,13 +42,13 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if updateManual {
-		Print(lfs.GetHookInstallSteps())
+		Print(getHookInstallSteps())
 	} else {
-		if err := lfs.InstallHooks(updateForce); err != nil {
+		if err := installHooks(updateForce); err != nil {
 			Error(err.Error())
 			Exit("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook.")
 		} else {
-			Print("Updated pre-push hook.")
+			Print("Updated git hooks.")
 		}
 	}
 

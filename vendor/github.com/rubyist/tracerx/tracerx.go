@@ -52,7 +52,7 @@ func Printf(format string, args ...interface{}) {
 func PrintfKey(key, format string, args ...interface{}) {
 	tracer := getTracer(key)
 	if tracer.enabled {
-		fmt.Fprintf(tracer.w, Prefix+format+"\n", args...)
+		fmt.Fprintf(tracer.w, time.Now().Format("15:04:05.000000 ")+Prefix+format+"\n", args...)
 		return
 	}
 }
@@ -70,7 +70,7 @@ func PerformanceSinceKey(key, what string, t time.Time) {
 
 	if tracer.performance {
 		since := time.Since(t)
-		fmt.Fprintf(tracer.w, "performance %s: %.9f s\n", what, since.Seconds())
+		fmt.Fprintf(tracer.w, time.Now().Format("15:04:05.000000 ")+"performance %s: %.9f s\n", what, since.Seconds())
 	}
 }
 

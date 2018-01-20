@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "Git LFS HTTPS Lock Creation API Request",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "ref": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    }
+  },
+  "required": ["path"]
+}

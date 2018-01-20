@@ -2,12 +2,11 @@ package commands
 
 import (
 	"bufio"
-	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -48,83 +47,59 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	if err := git.ValidateRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q", args[0])
+	if err := cfg.SetValidRemote(args[0]); err != nil {
+		Exit("Invalid remote name %q: %s", args[0], err)
 	}
 
-	cfg.CurrentRemote = args[0]
 	ctx := newUploadContext(prePushDryRun)
-
-	gitscanner := lfs.NewGitScanner(nil)
-	if err := gitscanner.RemoteForPush(cfg.CurrentRemote); err != nil {
+	updates := prePushRefs(os.Stdin)
+	if err := uploadForRefUpdates(ctx, updates, false); err != nil {
 		ExitWithError(err)
 	}
+}
 
-	defer gitscanner.Close()
+// prePushRefs parses commit information that the pre-push git hook receives:
+//
+//   <local ref> <local sha1> <remote ref> <remote sha1>
+//
+// Each line describes a proposed update of the remote ref at the remote sha to
+// the local sha. Multiple updates can be received on multiple lines (such as
+// from 'git push --all'). These updates are typically received over STDIN.
+func prePushRefs(r io.Reader) []*git.RefUpdate {
+	scanner := bufio.NewScanner(r)
+	refs := make([]*git.RefUpdate, 0, 1)
 
 	// We can be passed multiple lines of refs
-	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-
 		if len(line) == 0 {
 			continue
 		}
 
 		tracerx.Printf("pre-push: %s", line)
 
-		left, _ := decodeRefs(line)
-		if left == prePushDeleteBranch {
+		left, right := decodeRefs(line)
+		if left.Sha == prePushDeleteBranch {
 			continue
 		}
 
-		pointers, err := scanLeftOrAll(gitscanner, left)
-		if err != nil {
-			Print("Error scanning for Git LFS files in %q", left)
-			ExitWithError(err)
-		}
-		uploadPointers(ctx, pointers)
-	}
-}
-
-func scanLeft(g *lfs.GitScanner, ref string) ([]*lfs.WrappedPointer, error) {
-	var pointers []*lfs.WrappedPointer
-	var multiErr error
-	cb := func(p *lfs.WrappedPointer, err error) {
-		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
-			return
-		}
-
-		pointers = append(pointers, p)
+		refs = append(refs, git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, right))
 	}
 
-	if err := g.ScanLeftToRemote(ref, cb); err != nil {
-		return pointers, err
-	}
-
-	return pointers, multiErr
+	return refs
 }
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
 // hook's stdin.
-func decodeRefs(input string) (string, string) {
+func decodeRefs(input string) (*git.Ref, *git.Ref) {
 	refs := strings.Split(strings.TrimSpace(input), " ")
-	var left, right string
-
-	if len(refs) > 1 {
-		left = refs[1]
+	for len(refs) < 4 {
+		refs = append(refs, "")
 	}
 
-	if len(refs) > 3 {
-		right = "^" + refs[3]
-	}
-
-	return left, right
+	leftRef := git.ParseRef(refs[0], refs[1])
+	rightRef := git.ParseRef(refs[2], refs[3])
+	return leftRef, rightRef
 }
 
 func init() {

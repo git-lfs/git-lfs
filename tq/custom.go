@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/tools"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -26,6 +26,7 @@ type customAdapter struct {
 	args                string
 	concurrent          bool
 	originalConcurrency int
+	standalone          bool
 }
 
 // Struct to capture stderr and write to trace
@@ -52,7 +53,7 @@ func (t *traceWriter) Flush() {
 
 type customAdapterWorkerContext struct {
 	workerNum   int
-	cmd         *exec.Cmd
+	cmd         *subprocess.Cmd
 	stdout      io.ReadCloser
 	bufferedOut *bufio.Reader
 	stdin       io.WriteCloser
@@ -62,15 +63,19 @@ type customAdapterWorkerContext struct {
 type customAdapterInitRequest struct {
 	Event               string `json:"event"`
 	Operation           string `json:"operation"`
+	Remote              string `json:"remote"`
 	Concurrent          bool   `json:"concurrent"`
 	ConcurrentTransfers int    `json:"concurrenttransfers"`
 }
 
-func NewCustomAdapterInitRequest(op string, concurrent bool, concurrentTransfers int) *customAdapterInitRequest {
-	return &customAdapterInitRequest{"init", op, concurrent, concurrentTransfers}
+func NewCustomAdapterInitRequest(
+	op string, remote string, concurrent bool, concurrentTransfers int,
+) *customAdapterInitRequest {
+	return &customAdapterInitRequest{"init", op, remote, concurrent, concurrentTransfers}
 }
 
-type customAdapterTransferRequest struct { // common between upload/download
+type customAdapterTransferRequest struct {
+	// common between upload/download
 	Event  string  `json:"event"`
 	Oid    string  `json:"oid"`
 	Size   int64   `json:"size"`
@@ -86,7 +91,7 @@ func NewCustomAdapterDownloadRequest(oid string, size int64, action *Action) *cu
 }
 
 type customAdapterTerminateRequest struct {
-	MessageType string `json:"type"`
+	Event string `json:"event"`
 }
 
 func NewCustomAdapterTerminateRequest() *customAdapterTerminateRequest {
@@ -111,8 +116,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	}
 
 	// If config says not to launch multiple processes, downgrade incoming value
-	newCfg := &Manifest{concurrentTransfers: 1}
-	return a.adapterBase.Begin(newCfg, cb)
+	return a.adapterBase.Begin(&customAdapterConfig{AdapterConfig: cfg}, cb)
 }
 
 func (a *customAdapter) ClearTempStorage() error {
@@ -121,10 +125,9 @@ func (a *customAdapter) ClearTempStorage() error {
 }
 
 func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
-
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1
-	tracerx.Printf("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
+	a.Trace("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
 	cmd := subprocess.ExecCommand(a.path, a.args)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -146,7 +149,9 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	ctx := &customAdapterWorkerContext{workerNum, cmd, outp, bufio.NewReader(outp), inp, tracer}
 
 	// send initiate message
-	initReq := NewCustomAdapterInitRequest(a.getOperationName(), a.concurrent, a.originalConcurrency)
+	initReq := NewCustomAdapterInitRequest(
+		a.getOperationName(), a.remote, a.concurrent, a.originalConcurrency,
+	)
 	resp, err := a.exchangeMessage(ctx, initReq)
 	if err != nil {
 		a.abortWorkerProcess(ctx)
@@ -157,7 +162,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 		return nil, fmt.Errorf("Error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error)
 	}
 
-	tracerx.Printf("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
+	a.Trace("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
 
 	// Save this process context and use in future callbacks
 	return ctx, nil
@@ -176,7 +181,7 @@ func (a *customAdapter) sendMessage(ctx *customAdapterWorkerContext, req interfa
 	if err != nil {
 		return err
 	}
-	tracerx.Printf("xfer: Custom adapter worker %d sending message: %v", ctx.workerNum, string(b))
+	a.Trace("xfer: Custom adapter worker %d sending message: %v", ctx.workerNum, string(b))
 	// Line oriented JSON
 	b = append(b, '\n')
 	_, err = ctx.stdin.Write(b)
@@ -188,7 +193,7 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 	if err != nil {
 		return nil, err
 	}
-	tracerx.Printf("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, strings.TrimSpace(line))
+	a.Trace("xfer: Custom adapter worker %d received response: %v", ctx.workerNum, strings.TrimSpace(line))
 	resp := &customAdapterResponseMessage{}
 	err = json.Unmarshal([]byte(line), resp)
 	return resp, err
@@ -197,7 +202,6 @@ func (a *customAdapter) readResponse(ctx *customAdapterWorkerContext) (*customAd
 // exchangeMessage sends a message to a process and reads a response if resp != nil
 // Only fatal errors to communicate return an error, errors may be embedded in reply
 func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req interface{}) (*customAdapterResponseMessage, error) {
-
 	err := a.sendMessage(ctx, req)
 	if err != nil {
 		return nil, err
@@ -210,7 +214,7 @@ func (a *customAdapter) exchangeMessage(ctx *customAdapterWorkerContext, req int
 func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) error {
 	defer ctx.errTracer.Flush()
 
-	tracerx.Printf("xfer: Shutting down adapter worker %d", ctx.workerNum)
+	a.Trace("xfer: Shutting down adapter worker %d", ctx.workerNum)
 
 	finishChan := make(chan error, 1)
 	go func() {
@@ -233,7 +237,7 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 
 // abortWorkerProcess terminates & aborts untidily, most probably breakdown of comms or internal error
 func (a *customAdapter) abortWorkerProcess(ctx *customAdapterWorkerContext) {
-	tracerx.Printf("xfer: Aborting worker process: %d", ctx.workerNum)
+	a.Trace("xfer: Aborting worker process: %d", ctx.workerNum)
 	ctx.stdin.Close()
 	ctx.stdout.Close()
 	ctx.cmd.Process.Kill()
@@ -263,10 +267,12 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	}
 	var authCalled bool
 
-	rel, err := t.Actions.Get(a.getOperationName())
+	rel, err := t.Rel(a.getOperationName())
 	if err != nil {
 		return err
-		// return errors.New("Object not found on the server.")
+	}
+	if rel == nil && !a.standalone {
+		return errors.Errorf("Object %s not found on the server.", t.Oid)
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
@@ -314,8 +320,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 					return fmt.Errorf("Failed to copy downloaded file: %v", err)
 				}
 			} else if a.direction == Upload {
-				cli := &lfsapi.Client{}
-				if err = verifyUpload(cli, t); err != nil {
+				if err = verifyUpload(a.apiClient, a.remote, t); err != nil {
 					return err
 				}
 			}
@@ -335,8 +340,8 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 	return nil
 }
 
-func newCustomAdapter(name string, dir Direction, path, args string, concurrent bool) *customAdapter {
-	c := &customAdapter{newAdapterBase(name, dir, nil), path, args, concurrent, 3}
+func newCustomAdapter(f *fs.Filesystem, name string, dir Direction, path, args string, concurrent, standalone bool) *customAdapter {
+	c := &customAdapter{newAdapterBase(f, name, dir, nil), path, args, concurrent, 3, standalone}
 	// self implements impl
 	c.transferImpl = c
 	return c
@@ -345,14 +350,14 @@ func newCustomAdapter(name string, dir Direction, path, args string, concurrent 
 // Initialise custom adapters based on current config
 func configureCustomAdapters(git Env, m *Manifest) {
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
-	for k, v := range git.All() {
+	for k, _ := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
 		}
 
 		name := match[1]
-		path := v
+		path, _ := git.Get(k)
 		// retrieve other values
 		args, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
 		concurrent := git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
@@ -365,7 +370,8 @@ func configureCustomAdapters(git Env, m *Manifest) {
 
 		// Separate closure for each since we need to capture vars above
 		newfunc := func(name string, dir Direction) Adapter {
-			return newCustomAdapter(name, dir, path, args, concurrent)
+			standalone := m.standaloneTransferAgent != ""
+			return newCustomAdapter(m.fs, name, dir, path, args, concurrent, standalone)
 		}
 
 		if direction == "download" || direction == "both" {
@@ -375,4 +381,12 @@ func configureCustomAdapters(git Env, m *Manifest) {
 			m.RegisterNewAdapterFunc(name, Upload, newfunc)
 		}
 	}
+}
+
+type customAdapterConfig struct {
+	AdapterConfig
+}
+
+func (c *customAdapterConfig) ConcurrentTransfers() int {
+	return 1
 }

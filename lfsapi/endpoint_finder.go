@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 )
@@ -36,7 +37,8 @@ type EndpointFinder interface {
 }
 
 type endpointGitFinder struct {
-	git         env
+	gitConfig   *git.Configuration
+	gitEnv      config.Environment
 	gitProtocol string
 
 	aliasMu sync.Mutex
@@ -44,38 +46,49 @@ type endpointGitFinder struct {
 
 	accessMu  sync.Mutex
 	urlAccess map[string]Access
+	urlConfig *config.URLConfig
 }
 
-func NewEndpointFinder(git env) EndpointFinder {
+func NewEndpointFinder(ctx Context) EndpointFinder {
+	if ctx == nil {
+		ctx = NewContext(nil, nil, nil)
+	}
+
 	e := &endpointGitFinder{
+		gitConfig:   ctx.GitConfig(),
+		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
 		urlAccess:   make(map[string]Access),
 	}
 
-	if git != nil {
-		e.git = git
-		if v, ok := git.Get("lfs.gitprotocol"); ok {
-			e.gitProtocol = v
-		}
-		initAliases(e, git)
+	e.urlConfig = config.NewURLConfig(e.gitEnv)
+	if v, ok := e.gitEnv.Get("lfs.gitprotocol"); ok {
+		e.gitProtocol = v
 	}
+	initAliases(e, e.gitEnv)
 
 	return e
 }
 
 func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
-	if e.git == nil {
+	ep := e.getEndpoint(operation, remote)
+	ep.Operation = operation
+	return ep
+}
+
+func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
+	if e.gitEnv == nil {
 		return Endpoint{}
 	}
 
 	if operation == "upload" {
-		if url, ok := e.git.Get("lfs.pushurl"); ok {
+		if url, ok := e.gitEnv.Get("lfs.pushurl"); ok {
 			return e.NewEndpoint(url)
 		}
 	}
 
-	if url, ok := e.git.Get("lfs.url"); ok {
+	if url, ok := e.gitEnv.Get("lfs.url"); ok {
 		return e.NewEndpoint(url)
 	}
 
@@ -89,7 +102,7 @@ func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
 }
 
 func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
-	if e.git == nil {
+	if e.gitEnv == nil {
 		return Endpoint{}
 	}
 
@@ -99,11 +112,11 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
 
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
-		if url, ok := e.git.Get("remote." + remote + ".lfspushurl"); ok {
+		if url, ok := e.gitEnv.Get("remote." + remote + ".lfspushurl"); ok {
 			return e.NewEndpoint(url)
 		}
 	}
-	if url, ok := e.git.Get("remote." + remote + ".lfsurl"); ok {
+	if url, ok := e.gitEnv.Get("remote." + remote + ".lfsurl"); ok {
 		return e.NewEndpoint(url)
 	}
 
@@ -116,14 +129,14 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
 }
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
-	if e.git != nil {
+	if e.gitEnv != nil {
 		if forpush {
-			if u, ok := e.git.Get("remote." + remote + ".pushurl"); ok {
+			if u, ok := e.gitEnv.Get("remote." + remote + ".pushurl"); ok {
 				return u
 			}
 		}
 
-		if u, ok := e.git.Get("remote." + remote + ".url"); ok {
+		if u, ok := e.gitEnv.Get("remote." + remote + ".url"); ok {
 			return u
 		}
 	}
@@ -178,7 +191,7 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
 }
 
 func (e *endpointGitFinder) AccessFor(rawurl string) Access {
-	if e.git == nil {
+	if e.gitEnv == nil {
 		return NoneAccess
 	}
 
@@ -191,8 +204,7 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 		return cached
 	}
 
-	key := fmt.Sprintf("lfs.%s.access", accessurl)
-	e.urlAccess[accessurl] = fetchGitAccess(e.git, key)
+	e.urlAccess[accessurl] = e.fetchGitAccess(accessurl)
 	return e.urlAccess[accessurl]
 }
 
@@ -206,10 +218,10 @@ func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
 
 	switch access {
 	case emptyAccess, NoneAccess:
-		git.Config.UnsetLocalKey("", key)
+		e.gitConfig.UnsetLocalKey(key)
 		e.urlAccess[accessurl] = NoneAccess
 	default:
-		git.Config.SetLocal("", key, string(access))
+		e.gitConfig.SetLocal(key, string(access))
 		e.urlAccess[accessurl] = access
 	}
 }
@@ -229,8 +241,8 @@ func urlWithoutAuth(rawurl string) string {
 	return u.String()
 }
 
-func fetchGitAccess(git env, key string) Access {
-	if v, _ := git.Get(key); len(v) > 0 {
+func (e *endpointGitFinder) fetchGitAccess(rawurl string) Access {
+	if v, _ := e.urlConfig.Get("lfs", rawurl, "access"); len(v) > 0 {
 		access := Access(strings.ToLower(v))
 		if access == PrivateAccess {
 			return BasicAccess
@@ -269,16 +281,16 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	return rawurl
 }
 
-func initAliases(e *endpointGitFinder, git env) {
+func initAliases(e *endpointGitFinder, git config.Environment) {
 	prefix := "url."
 	suffix := ".insteadof"
 	for gitkey, gitval := range git.All() {
-		if !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
+		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
 			continue
 		}
-		if _, ok := e.aliases[gitval]; ok {
+		if _, ok := e.aliases[gitval[len(gitval)-1]]; ok {
 			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
 		}
-		e.aliases[gitval] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+		e.aliases[gitval[len(gitval)-1]] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 	}
 }

@@ -2,13 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -20,17 +21,9 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
-		if err := git.ValidateRemote(args[0]); err != nil {
-			Panic(err, fmt.Sprintf("Invalid remote name '%v'", args[0]))
+		if err := cfg.SetValidRemote(args[0]); err != nil {
+			Exit("Invalid remote name %q: %s", args[0], err)
 		}
-		cfg.CurrentRemote = args[0]
-	} else {
-		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := git.DefaultRemote()
-		if err != nil {
-			Panic(err, "No default remote")
-		}
-		cfg.CurrentRemote = defaultRemote
 	}
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
@@ -45,12 +38,16 @@ func pull(filter *filepathfilter.Filter) {
 	}
 
 	pointers := newPointerMap()
-	meter := progress.NewMeter(progress.WithOSEnv(cfg.Os))
-	singleCheckout := newSingleCheckout()
-	q := newDownloadQueue(tq.WithProgress(meter))
+	logger := tasklog.NewLogger(os.Stdout)
+	meter := tq.NewMeter()
+	meter.Logger = meter.LoggerFromEnv(cfg.Os)
+	logger.Enqueue(meter)
+	remote := cfg.Remote()
+	singleCheckout := newSingleCheckout(cfg.Git, remote)
+	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			LoggedError(err, "Scanner error")
+			LoggedError(err, "Scanner error: %s", err)
 			return
 		}
 
@@ -59,14 +56,13 @@ func pull(filter *filepathfilter.Filter) {
 		}
 
 		// no need to download objects that exist locally already
-		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if cfg.LFSObjectExists(p.Oid, p.Size) {
 			singleCheckout.Run(p)
 			return
 		}
 
 		meter.Add(p.Size)
-		meter.StartTransfer(p.Name)
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 		pointers.Add(p)
 		q.Add(downloadTransfer(p))
@@ -79,8 +75,8 @@ func pull(filter *filepathfilter.Filter) {
 	wg.Add(1)
 
 	go func() {
-		for oid := range dlwatch {
-			for _, p := range pointers.All(oid) {
+		for t := range dlwatch {
+			for _, p := range pointers.All(t.Oid) {
 				singleCheckout.Run(p)
 			}
 		}
@@ -89,6 +85,7 @@ func pull(filter *filepathfilter.Filter) {
 
 	processQueue := time.Now()
 	if err := gitscanner.ScanTree(ref.Sha); err != nil {
+		singleCheckout.Close()
 		ExitWithError(err)
 	}
 
@@ -100,8 +97,20 @@ func pull(filter *filepathfilter.Filter) {
 
 	singleCheckout.Close()
 
+	success := true
 	for _, err := range q.Errors() {
+		success = false
 		FullError(err)
+	}
+
+	if !success {
+		c := getAPIClient()
+		e := c.Endpoints.Endpoint("download", remote)
+		Exit("error: failed to fetch some objects from '%s'", e.Url)
+	}
+
+	if singleCheckout.Skip() {
+		fmt.Println("Skipping object checkout, Git LFS is not installed.")
 	}
 }
 

@@ -1,7 +1,15 @@
 package commands
 
 import (
+	"encoding/json"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -10,33 +18,62 @@ var (
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
-
 	filters, err := locksCmdFlags.Filters()
 	if err != nil {
 		Exit("Error building filters: %v", err)
 	}
 
 	if len(lockRemote) > 0 {
-		cfg.CurrentRemote = lockRemote
+		cfg.SetRemote(lockRemote)
 	}
-	lockClient, err := locking.NewClient(cfg)
-	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
-	}
+
+	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
+	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
-	var lockCount int
+
 	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
 	// Print any we got before exiting
+
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(locks); err != nil {
+			Error(err.Error())
+		}
+		return
+	}
+
+	var maxPathLen int
+	var maxNameLen int
+	lockPaths := make([]string, 0, len(locks))
+	locksByPath := make(map[string]locking.Lock)
 	for _, lock := range locks {
-		Print("%s\t%s <%s>", lock.Path, lock.Name, lock.Email)
-		lockCount++
+		lockPaths = append(lockPaths, lock.Path)
+		locksByPath[lock.Path] = lock
+		maxPathLen = tools.MaxInt(maxPathLen, len(lock.Path))
+		if lock.Owner != nil {
+			maxNameLen = tools.MaxInt(maxNameLen, len(lock.Owner.Name))
+		}
+	}
+
+	sort.Strings(lockPaths)
+	for _, lockPath := range lockPaths {
+		var ownerName string
+		lock := locksByPath[lockPath]
+		if lock.Owner != nil {
+			ownerName = lock.Owner.Name
+		}
+
+		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
+		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
+		Print("%s%s\t%s%s\tID:%s", lock.Path, strings.Repeat(" ", pathPadding),
+			ownerName, strings.Repeat(" ", namePadding),
+			lock.Id,
+		)
 	}
 
 	if err != nil {
-		Exit("Error while retrieving locks: %v", err)
+		Exit("Error while retrieving locks: %v", errors.Cause(err))
 	}
-
-	Print("\n%d lock(s) matched query.", lockCount)
 }
 
 // locksFlags wraps up and holds all of the flags that can be given to the
@@ -54,6 +91,8 @@ type locksFlags struct {
 	// local limits the scope of lock reporting to the locally cached record
 	// of locks for the current user & doesn't query the server
 	Local bool
+	// JSON is an optional parameter to output data in json format.
+	JSON bool
 }
 
 // Filters produces a filter based on locksFlags instance.
@@ -76,15 +115,12 @@ func (l *locksFlags) Filters() (map[string]string, error) {
 }
 
 func init() {
-	if !isCommandEnabled(cfg, "locks") {
-		return
-	}
-
 	RegisterCommand("locks", locksCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

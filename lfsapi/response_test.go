@@ -29,11 +29,11 @@ func TestAuthErrWithBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
-	assert.Equal(t, "Authentication required: http: custom auth error", err.Error())
+	assert.Equal(t, "Authentication required: custom auth error", err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
@@ -55,16 +55,16 @@ func TestFatalWithBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
-	assert.Equal(t, "Fatal error: http: custom fatal error", err.Error())
+	assert.Equal(t, "Fatal error: custom fatal error", err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
 func TestWithNonFatal500WithBody(t *testing.T) {
-	c := &Client{}
+	c, _ := NewClient(nil)
 
 	var called uint32
 
@@ -93,7 +93,7 @@ func TestWithNonFatal500WithBody(t *testing.T) {
 		_, err = c.Do(req)
 		t.Logf("non fatal code %d", nonFatalCode)
 		assert.NotNil(t, err)
-		assert.Equal(t, "http: "+expectedErr, err.Error())
+		assert.Equal(t, expectedErr, err.Error())
 		srv.Close()
 	}
 
@@ -116,7 +116,7 @@ func TestAuthErrWithoutBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
@@ -140,7 +140,7 @@ func TestFatalWithoutBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
@@ -149,7 +149,7 @@ func TestFatalWithoutBody(t *testing.T) {
 }
 
 func TestWithNonFatal500WithoutBody(t *testing.T) {
-	c := &Client{}
+	c, _ := NewClient(nil)
 
 	var called uint32
 

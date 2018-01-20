@@ -20,10 +20,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 )
 
 type RepoType int
@@ -54,6 +55,7 @@ type RepoCallback interface {
 	// Errorf reports error and continues
 	Errorf(format string, args ...interface{})
 }
+
 type Repo struct {
 	// Path to the repo, working copy if non-bare
 	Path string
@@ -66,7 +68,10 @@ type Repo struct {
 	// Previous dir for pushd
 	popDir string
 	// Test callback
-	callback RepoCallback
+	callback  RepoCallback
+	cfg       *config.Configuration
+	gitfilter *lfs.GitFilter
+	fs        *fs.Filesystem
 }
 
 // Change to repo dir but save current dir
@@ -83,7 +88,6 @@ func (r *Repo) Pushd() {
 		r.callback.Fatalf("Can't chdir %v", err)
 	}
 	r.popDir = oldwd
-	localstorage.ResolveDirs()
 }
 
 func (r *Repo) Popd() {
@@ -96,8 +100,23 @@ func (r *Repo) Popd() {
 	}
 }
 
-func (r *Repo) Cleanup() {
+func (r *Repo) Filesystem() *fs.Filesystem {
+	return r.fs
+}
 
+func (r *Repo) GitConfig() *git.Configuration {
+	return r.cfg.GitConfig()
+}
+
+func (r *Repo) GitEnv() config.Environment {
+	return r.cfg.Git
+}
+
+func (r *Repo) OSEnv() config.Environment {
+	return r.cfg.Os
+}
+
+func (r *Repo) Cleanup() {
 	// pop out if necessary
 	r.Popd()
 
@@ -126,15 +145,18 @@ func (r *Repo) Cleanup() {
 
 // NewRepo creates a new git repo in a new temp dir
 func NewRepo(callback RepoCallback) *Repo {
-	return NewCustomRepo(callback, &RepoCreateSettings{RepoType: RepoTypeNormal})
+	return newRepo(callback, &RepoCreateSettings{
+		RepoType: RepoTypeNormal,
+	})
 }
 
-// NewCustomRepo creates a new git repo in a new temp dir with more control over settings
-func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
+// newRepo creates a new git repo in a new temp dir with more control over settings
+func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
 		Settings: settings,
 		Remotes:  make(map[string]*Repo),
-		callback: callback}
+		callback: callback,
+	}
 
 	path, err := ioutil.TempDir("", "lfsRepo")
 	if err != nil {
@@ -157,6 +179,11 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	default:
 		ret.GitDir = filepath.Join(ret.Path, ".git")
 	}
+
+	ret.cfg = config.NewIn(ret.Path, ret.GitDir)
+	ret.fs = ret.cfg.Filesystem()
+	ret.gitfilter = lfs.NewGitFilter(ret.cfg)
+
 	args = append(args, path)
 	cmd := exec.Command("git", args...)
 	err = cmd.Run()
@@ -176,7 +203,18 @@ func NewCustomRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 
 // WrapRepo creates a new Repo instance for an existing git repo
 func WrapRepo(c RepoCallback, path string) *Repo {
-	return &Repo{Path: path, callback: c, Settings: &RepoCreateSettings{RepoType: RepoTypeNormal}}
+	cfg := config.NewIn(path, "")
+	return &Repo{
+		Path:   path,
+		GitDir: cfg.LocalGitDir(),
+		Settings: &RepoCreateSettings{
+			RepoType: RepoTypeNormal,
+		},
+		callback:  c,
+		cfg:       cfg,
+		gitfilter: lfs.NewGitFilter(cfg),
+		fs:        cfg.Filesystem(),
+	}
 }
 
 // Simplistic fire & forget running of git command - returns combined output
@@ -203,7 +241,7 @@ type FileInput struct {
 
 func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
 	inputData := infile.getFileInputReader()
-	pointer, err := infile.writeLFSPointer(inputData)
+	pointer, err := infile.writeLFSPointer(repo, inputData)
 	if err != nil {
 		repo.callback.Errorf("%+v", err)
 		return
@@ -212,16 +250,15 @@ func (infile *FileInput) AddToIndex(output *CommitOutput, repo *Repo) {
 	RunGitCommand(repo.callback, true, "add", infile.Filename)
 }
 
-func (infile *FileInput) writeLFSPointer(inputData io.Reader) (*lfs.Pointer, error) {
-	cleaned, err := lfs.PointerClean(inputData, infile.Filename, infile.Size, nil)
+func (infile *FileInput) writeLFSPointer(repo *Repo, inputData io.Reader) (*lfs.Pointer, error) {
+	cleaned, err := repo.gitfilter.Clean(inputData, infile.Filename, infile.Size, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating pointer file")
 	}
 
 	// this only created the temp file, move to final location
 	tmpfile := cleaned.Filename
-	storageOnce.Do(localstorage.ResolveDirs)
-	mediafile, err := lfs.LocalMediaPath(cleaned.Oid)
+	mediafile, err := repo.fs.ObjectPath(cleaned.Oid)
 	if err != nil {
 		return nil, errors.Wrap(err, "local media path")
 	}
@@ -298,8 +335,10 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 	// set GIT_COMMITTER_DATE environment var e.g. "Fri Jun 21 20:26:41 2013 +0900"
 	if atDate.IsZero() {
 		env = append(env, "GIT_COMMITTER_DATE=")
+		env = append(env, "GIT_AUTHOR_DATE=")
 	} else {
 		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", git.FormatGitDate(atDate)))
+		env = append(env, fmt.Sprintf("GIT_AUTHOR_DATE=%v", git.FormatGitDate(atDate)))
 	}
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
@@ -388,7 +427,9 @@ func (r *Repo) AddRemote(name string) *Repo {
 	if _, exists := r.Remotes[name]; exists {
 		r.callback.Fatalf("Remote %v already exists", name)
 	}
-	remote := NewCustomRepo(r.callback, &RepoCreateSettings{RepoTypeBare})
+	remote := newRepo(r.callback, &RepoCreateSettings{
+		RepoType: RepoTypeBare,
+	})
 	r.Remotes[name] = remote
 	RunGitCommand(r.callback, true, "remote", "add", name, remote.Path)
 	return remote

@@ -1,0 +1,18 @@
+git-lfs-post-merge(1) -- Git post-merge hook implementation
+=================================================================
+
+## SYNOPSIS
+
+`git lfs post-merge` <is_squash>
+
+## DESCRIPTION
+
+Responds to Git post-merge events. It makes sure that any files which are
+marked as lockable by `git lfs track` are read-only in the working copy, if
+not currently locked by the local user.
+
+## SEE ALSO
+
+git-lfs-track(1)
+
+Part of the git-lfs(1) suite.

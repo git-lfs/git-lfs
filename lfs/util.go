@@ -9,7 +9,6 @@ import (
 	"runtime"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -25,8 +24,8 @@ const (
 
 var currentPlatform = PlatformUndetermined
 
-func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.CopyCallback, *os.File, error) {
-	logPath, _ := config.Config.Os.Get("GIT_LFS_PROGRESS")
+func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles int) (tools.CopyCallback, *os.File, error) {
+	logPath, _ := f.cfg.Os.Get("GIT_LFS_PROGRESS")
 	if len(logPath) == 0 || len(filename) == 0 || len(event) == 0 {
 		return nil, nil, nil
 	}
@@ -47,7 +46,7 @@ func CopyCallbackFile(event, filename string, index, totalFiles int) (progress.C
 
 	var prevWritten int64
 
-	cb := progress.CopyCallback(func(total int64, written int64, current int) error {
+	cb := tools.CopyCallback(func(total int64, written int64, current int) error {
 		if written != prevWritten {
 			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
 			file.Sync()
@@ -95,8 +94,8 @@ type PathConverter interface {
 // current working dir. Useful when needing to calling git with results from a rooted command,
 // but the user is in a subdir of their repo
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func NewRepoToCurrentPathConverter() (PathConverter, error) {
-	r, c, p, err := pathConverterArgs()
+func NewRepoToCurrentPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +132,8 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 // relative to the repo root. Useful when calling git with arguments that requires them
 // to be rooted but the user is in a subdir of their repo & expects to use relative args
 // Pass in a channel which you will fill with relative files & receive a channel which will get results
-func NewCurrentToRepoPathConverter() (PathConverter, error) {
-	r, c, p, err := pathConverterArgs()
+func NewCurrentToRepoPathConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -172,13 +171,13 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 	}
 }
 
-func pathConverterArgs() (string, string, bool, error) {
+func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
 	currDir, err := os.Getwd()
 	if err != nil {
 		return "", "", false, fmt.Errorf("Unable to get working dir: %v", err)
 	}
 	currDir = tools.ResolveSymlinks(currDir)
-	return config.LocalWorkingDir, currDir, config.LocalWorkingDir == currDir, nil
+	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil
 }
 
 // Are we running on Windows? Need to handle some extra path shenanigans
@@ -186,8 +185,8 @@ func IsWindows() bool {
 	return GetPlatform() == PlatformWindows
 }
 
-func CopyFileContents(src string, dst string) error {
-	tmp, err := ioutil.TempFile(TempDir(), filepath.Base(dst))
+func CopyFileContents(cfg *config.Configuration, src string, dst string) error {
+	tmp, err := ioutil.TempFile(cfg.TempDir(), filepath.Base(dst))
 	if err != nil {
 		return err
 	}
@@ -211,7 +210,7 @@ func CopyFileContents(src string, dst string) error {
 	return os.Rename(tmp.Name(), dst)
 }
 
-func LinkOrCopy(src string, dst string) error {
+func LinkOrCopy(cfg *config.Configuration, src string, dst string) error {
 	if src == dst {
 		return nil
 	}
@@ -219,5 +218,5 @@ func LinkOrCopy(src string, dst string) error {
 	if err == nil {
 		return err
 	}
-	return CopyFileContents(src, dst)
+	return CopyFileContents(cfg, src, dst)
 }

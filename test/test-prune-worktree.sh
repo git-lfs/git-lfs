@@ -15,7 +15,7 @@ begin_test "prune worktree"
   clone_repo "remote_$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \*.dat" track.log
+  grep "Tracking \"\*.dat\"" track.log
 
   content_head="First checkout HEAD"
   content_worktree1head="Worktree 1 head"
@@ -39,7 +39,7 @@ begin_test "prune worktree"
   },
   {
     \"CommitDate\":\"$(get_date -35d)\",
-    \"NewBranch\":\"branch1\",    
+    \"NewBranch\":\"branch1\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit2}, \"Data\":\"$content_oldcommit2\"}]
   },
@@ -51,7 +51,7 @@ begin_test "prune worktree"
   {
     \"CommitDate\":\"$(get_date -30d)\",
     \"ParentBranches\":[\"master\"],
-    \"NewBranch\":\"branch2\",    
+    \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit3}, \"Data\":\"$content_oldcommit3\"}]
   },
@@ -74,34 +74,34 @@ begin_test "prune worktree"
   # don't keep any recent, just checkouts
   git config lfs.fetchrecentrefsdays 0
   git config lfs.fetchrecentremoterefs true
-  git config lfs.fetchrecentcommitsdays 0 
+  git config lfs.fetchrecentcommitsdays 0
 
   # before worktree, everything except current checkout would be pruned
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "6 local objects, 1 retained" prune.log
-  grep "5 files would be pruned" prune.log
+  grep "prune: 6 local object(s), 1 retained, done" prune.log
+  grep "prune: 5 file(s) would be pruned" prune.log
 
   # now add worktrees on the other branches
   git worktree add "../w1_$reponame" "branch1"
   git worktree add "../w2_$reponame" "branch2"
   # now should retain all 3 heads
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "6 local objects, 3 retained" prune.log
-  grep "3 files would be pruned" prune.log
+  grep "prune: 6 local object(s), 3 retained, done" prune.log
+  grep "prune: 3 file(s) would be pruned" prune.log
 
   # also check that the same result is obtained when inside worktree rather than main
   cd "../w1_$reponame"
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "6 local objects, 3 retained" prune.log
-  grep "3 files would be pruned" prune.log
+  grep "prune: 6 local object(s), 3 retained, done" prune.log
+  grep "prune: 3 file(s) would be pruned" prune.log
 
   # now remove a worktree & prove that frees up 1 head while keeping the other
   cd "../$reponame"
   rm -rf "../w1_$reponame"
   git worktree prune # required to get git to tidy worktree metadata
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "6 local objects, 2 retained" prune.log
-  grep "4 files would be pruned" prune.log
+  grep "prune: 6 local object(s), 2 retained, done" prune.log
+  grep "prune: 4 file(s) would be pruned" prune.log
 
 
 )

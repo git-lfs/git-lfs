@@ -13,6 +13,70 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRefString(t *testing.T) {
+	const sha = "0000000000000000000000000000000000000000"
+	for s, r := range map[string]*Ref{
+		"refs/heads/master": {
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/origin/master": {
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  sha,
+		},
+		"refs/remotes/tags/v1.0.0": {
+			Name: "v1.0.0",
+			Type: RefTypeRemoteTag,
+			Sha:  sha,
+		},
+		"refs/tags/v1.0.0": {
+			Name: "v1.0.0",
+			Type: RefTypeLocalTag,
+			Sha:  sha,
+		},
+		"HEAD": {
+			Name: "HEAD",
+			Type: RefTypeHEAD,
+			Sha:  sha,
+		},
+		"other": {
+			Name: "other",
+			Type: RefTypeOther,
+			Sha:  sha,
+		},
+	} {
+		assert.Equal(t, s, r.Refspec())
+	}
+}
+
+func TestParseRefs(t *testing.T) {
+	tests := map[string]RefType{
+		"refs/heads":        RefTypeLocalBranch,
+		"refs/tags":         RefTypeLocalTag,
+		"refs/remotes/tags": RefTypeRemoteTag,
+		"refs/remotes":      RefTypeRemoteBranch,
+	}
+
+	for prefix, expectedType := range tests {
+		r := ParseRef(prefix+"/branch", "abc123")
+		assert.Equal(t, "abc123", r.Sha, "prefix: "+prefix)
+		assert.Equal(t, "branch", r.Name, "prefix: "+prefix)
+		assert.Equal(t, expectedType, r.Type, "prefix: "+prefix)
+	}
+
+	r := ParseRef("refs/foo/branch", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: refs/foo")
+	assert.Equal(t, "refs/foo/branch", r.Name, "prefix: refs/foo")
+	assert.Equal(t, RefTypeOther, r.Type, "prefix: refs/foo")
+
+	r = ParseRef("HEAD", "abc123")
+	assert.Equal(t, "abc123", r.Sha, "prefix: HEAD")
+	assert.Equal(t, "HEAD", r.Name, "prefix: HEAD")
+	assert.Equal(t, RefTypeHEAD, r.Type, "prefix: HEAD")
+}
+
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 	repo := test.NewRepo(t)
 	repo.Pushd()
@@ -48,33 +112,48 @@ func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
 			},
 		},
 	}
+
 	outputs := repo.AddCommits(inputs)
+
 	// last commit was on branch3
+	gitConf := repo.GitConfig()
 	ref, err := CurrentRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"branch3", RefTypeLocalBranch, outputs[3].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "branch3",
+		Type: RefTypeLocalBranch,
+		Sha:  outputs[3].Sha,
+	}, ref)
 	test.RunGitCommand(t, true, "checkout", "master")
 	ref, err = CurrentRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"master", RefTypeLocalBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "master",
+		Type: RefTypeLocalBranch,
+		Sha:  outputs[2].Sha,
+	}, ref)
 	// Check remote
 	repo.AddRemote("origin")
 	test.RunGitCommand(t, true, "push", "-u", "origin", "master:someremotebranch")
-	ref, err = CurrentRemoteRef()
+	ref, err = gitConf.CurrentRemoteRef()
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{"origin/someremotebranch", RefTypeRemoteBranch, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: "origin/someremotebranch",
+		Type: RefTypeRemoteBranch,
+		Sha:  outputs[2].Sha,
+	}, ref)
 
-	refname, err := RemoteRefNameForCurrentBranch()
+	refname, err := gitConf.RemoteRefNameForCurrentBranch()
 	assert.Nil(t, err)
 	assert.Equal(t, "refs/remotes/origin/someremotebranch", refname)
 
-	remote, err := RemoteForCurrentBranch()
-	assert.Nil(t, err)
-	assert.Equal(t, "origin", remote)
-
 	ref, err = ResolveRef(outputs[2].Sha)
 	assert.Nil(t, err)
-	assert.Equal(t, &Ref{outputs[2].Sha, RefTypeOther, outputs[2].Sha}, ref)
+	assert.Equal(t, &Ref{
+		Name: outputs[2].Sha,
+		Type: RefTypeOther,
+		Sha:  outputs[2].Sha,
+	}, ref)
 }
 
 func TestRecentBranches(t *testing.T) {
@@ -148,9 +227,21 @@ func TestRecentBranches(t *testing.T) {
 	refs, err := RecentBranches(now.AddDate(0, 0, -7), false, "")
 	assert.Equal(t, nil, err)
 	expectedRefs := []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	assert.Equal(t, expectedRefs, refs, "Refs should be correct")
 
@@ -158,13 +249,41 @@ func TestRecentBranches(t *testing.T) {
 	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "")
 	assert.Equal(t, nil, err)
 	expectedRefs = []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
-		&Ref{"upstream/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"upstream/included_branch_2", RefTypeRemoteBranch, outputs[4].Sha},
-		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
+		{
+			Name: "upstream/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "upstream/included_branch_2",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "origin/included_branch",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
@@ -175,11 +294,31 @@ func TestRecentBranches(t *testing.T) {
 	refs, err = RecentBranches(now.AddDate(0, 0, -7), true, "origin")
 	assert.Equal(t, nil, err)
 	expectedRefs = []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[5].Sha},
-		&Ref{"origin/master", RefTypeRemoteBranch, outputs[5].Sha},
-		&Ref{"included_branch_2", RefTypeLocalBranch, outputs[4].Sha},
-		&Ref{"included_branch", RefTypeLocalBranch, outputs[3].Sha},
-		&Ref{"origin/included_branch", RefTypeRemoteBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "origin/master",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[5].Sha,
+		},
+		{
+			Name: "included_branch_2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[4].Sha,
+		},
+		{
+			Name: "included_branch",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
+		{
+			Name: "origin/included_branch",
+			Type: RefTypeRemoteBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
@@ -200,9 +339,8 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 }
 
 func TestWorkTrees(t *testing.T) {
-
 	// Only git 2.5+
-	if !Config.IsGitVersionAtLeast("2.5.0") {
+	if !IsGitVersionAtLeast("2.5.0") {
 		return
 	}
 
@@ -255,9 +393,21 @@ func TestWorkTrees(t *testing.T) {
 	refs, err := GetAllWorkTreeHEADs(filepath.Join(repo.Path, ".git"))
 	assert.Equal(t, nil, err)
 	expectedRefs := []*Ref{
-		&Ref{"master", RefTypeLocalBranch, outputs[0].Sha},
-		&Ref{"branch2", RefTypeLocalBranch, outputs[1].Sha},
-		&Ref{"branch4", RefTypeLocalBranch, outputs[3].Sha},
+		{
+			Name: "master",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[0].Sha,
+		},
+		{
+			Name: "branch2",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[1].Sha,
+		},
+		{
+			Name: "branch4",
+			Type: RefTypeLocalBranch,
+			Sha:  outputs[3].Sha,
+		},
 	}
 	// Need to sort for consistent comparison
 	sort.Sort(test.RefsByName(expectedRefs))
@@ -463,5 +613,101 @@ func TestLocalRefs(t *testing.T) {
 
 	if found != len(expected) {
 		t.Errorf("Unexpected local refs: %v", actual)
+	}
+}
+
+func TestGetFilesChanges(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	commits := repo.AddCommits([]*test.CommitInput{
+		{
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 20},
+			},
+		},
+		{
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 25},
+				{Filename: "file2.txt", Size: 20},
+				{Filename: "folder/file3.txt", Size: 10},
+			},
+			Tags: []string{"tag1"},
+		},
+		{
+			NewBranch:      "abranch",
+			ParentBranches: []string{"master"},
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 30},
+				{Filename: "file4.txt", Size: 40},
+			},
+		},
+	})
+
+	expected0to1 := []string{"file1.txt", "file2.txt", "folder/file3.txt"}
+	expected1to2 := []string{"file1.txt", "file4.txt"}
+	expected0to2 := []string{"file1.txt", "file2.txt", "file4.txt", "folder/file3.txt"}
+	// Test 2 SHAs
+	changes, err := GetFilesChanged(commits[0].Sha, commits[1].Sha)
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	// Test SHA & tag
+	changes, err = GetFilesChanged(commits[0].Sha, "tag1")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	// Test SHA & branch
+	changes, err = GetFilesChanged(commits[0].Sha, "abranch")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to2, changes)
+	// Test tag & branch
+	changes, err = GetFilesChanged("tag1", "abranch")
+	assert.Nil(t, err)
+	assert.Equal(t, expected1to2, changes)
+	// Test fail
+	_, err = GetFilesChanged("tag1", "nonexisting")
+	assert.NotNil(t, err)
+	_, err = GetFilesChanged("nonexisting", "tag1")
+	assert.NotNil(t, err)
+	// Test Single arg version
+	changes, err = GetFilesChanged(commits[1].Sha, "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected0to1, changes)
+	changes, err = GetFilesChanged("abranch", "")
+	assert.Nil(t, err)
+	assert.Equal(t, expected1to2, changes)
+
+}
+
+func TestValidateRemoteURL(t *testing.T) {
+	assert.Nil(t, ValidateRemoteURL("https://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("http://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git://github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("ssh://git@github.com:22/git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@github.com:git-lfs/git-lfs"))
+	assert.Nil(t, ValidateRemoteURL("git@server:/absolute/path.git"))
+	assert.NotNil(t, ValidateRemoteURL("ftp://git@github.com/git-lfs/git-lfs"))
+}
+
+func TestRefTypeKnownPrefixes(t *testing.T) {
+	for typ, expected := range map[RefType]struct {
+		Prefix string
+		Ok     bool
+	}{
+		RefTypeLocalBranch:  {"refs/heads", true},
+		RefTypeRemoteBranch: {"refs/remotes", true},
+		RefTypeLocalTag:     {"refs/tags", true},
+		RefTypeRemoteTag:    {"refs/remotes/tags", true},
+		RefTypeHEAD:         {"", false},
+		RefTypeOther:        {"", false},
+	} {
+		prefix, ok := typ.Prefix()
+
+		assert.Equal(t, expected.Prefix, prefix)
+		assert.Equal(t, expected.Ok, ok)
 	}
 }

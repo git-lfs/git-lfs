@@ -45,11 +45,7 @@ begin_test "clone with reference"
   repo=test_repo
   repo_dir=$TRASHDIR/$repo
   git clone --reference "$ref_repo_dir/.git" \
-      "$GITSERVER/$reponame" "$repo_dir" 2> clone.log
-
-  if grep -q "Downloading a.dat" clone.log; then
-      exit 1
-  fi
+      "$GITSERVER/$reponame" "$repo_dir"
 
   cd "$TRASHDIR/$repo"
 

@@ -2,13 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/httputil"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ var (
 // Each command will initialize the local storage ('.git/lfs') directory when
 // run, unless the PreRun hook is set to nil.
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
-	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
+	return &cobra.Command{Use: name, Run: runFn, PreRun: setupHTTPLogger}
 }
 
 // RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
@@ -49,6 +50,8 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
 func Run() {
+	log.SetOutput(ErrorWriter)
+
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
 
@@ -57,6 +60,8 @@ func Run() {
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
 
+	cfg = config.New()
+
 	for _, f := range commandFuncs {
 		if cmd := f(); cmd != nil {
 			root.AddCommand(cmd)
@@ -64,23 +69,12 @@ func Run() {
 	}
 
 	root.Execute()
-	httputil.LogHttpStats(cfg)
+	closeAPIClient()
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
 	versionCommand(cmd, args)
 	cmd.Usage()
-}
-
-// resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
-// necessary to wire it up via `cobra.Command.PreRun`. When run, this function
-// will resolve the localstorage directories.
-func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs()
-}
-
-func setupLocalStorage(cmd *cobra.Command, args []string) {
-	config.ResolveGitBasicDirs()
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
@@ -98,8 +92,28 @@ func usageCommand(cmd *cobra.Command) error {
 
 func printHelp(commandName string) {
 	if txt, ok := ManPages[commandName]; ok {
-		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(txt))
+		fmt.Fprintf(os.Stdout, "%s\n", strings.TrimSpace(txt))
 	} else {
-		fmt.Fprintf(os.Stderr, "Sorry, no usage text found for %q\n", commandName)
+		fmt.Fprintf(os.Stdout, "Sorry, no usage text found for %q\n", commandName)
+	}
+}
+
+func setupHTTPLogger(cmd *cobra.Command, args []string) {
+	if len(os.Getenv("GIT_LOG_STATS")) < 1 {
+		return
+	}
+
+	logBase := filepath.Join(cfg.LocalLogDir(), "http")
+	if err := os.MkdirAll(logBase, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		return
+	}
+
+	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
+	file, err := os.Create(filepath.Join(logBase, logFile))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+	} else {
+		getAPIClient().LogHTTPStats(file)
 	}
 }

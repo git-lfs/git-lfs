@@ -12,7 +12,7 @@ var (
 )
 
 const (
-	Version = "1.5.0"
+	Version = "2.3.4"
 )
 
 func init() {
@@ -27,5 +27,4 @@ func init() {
 		strings.Replace(runtime.Version(), "go", "", 1),
 		gitCommit,
 	)
-
 }

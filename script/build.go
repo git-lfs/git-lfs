@@ -19,18 +19,21 @@ import (
 )
 
 var (
-	BuildOS    = flag.String("os", runtime.GOOS, "OS to target: darwin, freebsd, linux, windows")
-	BuildArch  = flag.String("arch", "", "Arch to target: 386, amd64")
-	BuildAll   = flag.Bool("all", false, "Builds all architectures")
-	ShowHelp   = flag.Bool("help", false, "Shows help")
-	matrixKeys = map[string]string{
+	BuildOS      = flag.String("os", "", "OS to target: darwin,freebsd,linux,windows")
+	BuildArch    = flag.String("arch", "", "Arch to target: 386,amd64")
+	BuildAll     = flag.Bool("all", false, "Builds all architectures")
+	BuildDwarf   = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
+	BuildLdFlags = flag.String("ldflags", "", "-ldflags to pass to the compiler")
+	BuildGcFlags = flag.String("gcflags", "", "-gcflags to pass to the compiler")
+	ShowHelp     = flag.Bool("help", false, "Shows help")
+	matrixKeys   = map[string]string{
 		"darwin":  "Mac",
 		"freebsd": "FreeBSD",
 		"linux":   "Linux",
 		"windows": "Windows",
 		"amd64":   "AMD64",
 	}
-	LdFlag string
+	LdFlags []string
 )
 
 func mainBuild() {
@@ -50,25 +53,43 @@ func mainBuild() {
 	cmd, _ := exec.Command("git", "rev-parse", "--short", "HEAD").Output()
 
 	if len(cmd) > 0 {
-		LdFlag = strings.TrimSpace("-X github.com/git-lfs/git-lfs/config.GitCommit=" + string(cmd))
+		LdFlags = append(LdFlags, "-X", strings.TrimSpace(
+			"github.com/git-lfs/git-lfs/config.GitCommit="+string(cmd),
+		))
+	}
+	if !*BuildDwarf {
+		LdFlags = append(LdFlags, "-s", "-w")
 	}
 
 	buildMatrix := make(map[string]Release)
 	errored := false
 
+	var platforms, arches []string
+	if len(*BuildOS) > 0 {
+		platforms = strings.Split(*BuildOS, ",")
+	}
+	if len(*BuildArch) > 0 {
+		arches = strings.Split(*BuildArch, ",")
+	}
 	if *BuildAll {
-		for _, buildos := range []string{"linux", "darwin", "freebsd", "windows"} {
-			for _, buildarch := range []string{"amd64", "386"} {
-				if err := build(buildos, buildarch, buildMatrix); err != nil {
-					errored = true
-				}
-			}
-		}
-	} else {
-		if err := build(*BuildOS, *BuildArch, buildMatrix); err != nil {
+		platforms = []string{"linux", "darwin", "freebsd", "windows"}
+		arches = []string{"amd64", "386"}
+	}
+
+	if len(platforms) < 1 || len(arches) < 1 {
+		if err := build("", "", buildMatrix); err != nil {
 			log.Fatalln(err)
 		}
 		return // skip build matrix stuff
+	}
+
+	for _, buildos := range platforms {
+		for _, buildarch := range arches {
+			err := build(strings.TrimSpace(buildos), strings.TrimSpace(buildarch), buildMatrix)
+			if err != nil {
+				errored = true
+			}
+		}
 	}
 
 	if errored {
@@ -133,15 +154,26 @@ func buildCommand(dir, buildos, buildarch string) error {
 
 	bin := filepath.Join(dir, "git-lfs")
 
-	if buildos == "windows" {
+	cmdOS := runtime.GOOS
+	if len(buildos) > 0 {
+		cmdOS = buildos
+	}
+	if cmdOS == "windows" {
 		bin = bin + ".exe"
 	}
 
 	args := make([]string, 1, 6)
 	args[0] = "build"
-	if len(LdFlag) > 0 {
-		args = append(args, "-ldflags", LdFlag)
+	if len(*BuildLdFlags) > 0 {
+		args = append(args, "-ldflags", *BuildLdFlags)
+	} else if len(LdFlags) > 0 {
+		args = append(args, "-ldflags", strings.Join(LdFlags, " "))
 	}
+
+	if len(*BuildGcFlags) > 0 {
+		args = append(args, "-gcflags", *BuildGcFlags)
+	}
+
 	args = append(args, "-o", bin, ".")
 
 	cmd := exec.Command("go", args...)
