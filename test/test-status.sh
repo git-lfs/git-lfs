@@ -2,6 +2,30 @@
 
 . "test/testlib.sh"
 
+begin_test "status with non LFS files"
+(
+  set -e
+
+  mkdir repo-0
+  cd repo-0
+  git init
+
+  echo "some text" > some.txt
+  git add some.txt
+  git commit -m "add text file"
+  echo "changed text" > some.txt
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test
+
 begin_test "status"
 (
   set -e
