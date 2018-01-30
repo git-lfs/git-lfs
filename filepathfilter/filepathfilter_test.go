@@ -277,15 +277,7 @@ func TestFilterAllows(t *testing.T) {
 		filter := New(c.includes, c.excludes)
 
 		r1 := filter.Allows("test/filename.dat")
-		pattern, r2 := filter.AllowsPattern("test/filename.dat")
-
-		assert.Equal(t, r1, r2,
-			"filepathfilter: expected Allows() and AllowsPattern() to return identical result")
-
-		assert.Equal(t, c.expectedResult, r2, "includes: %v excludes: %v", c.includes, c.excludes)
-		assert.Equal(t, c.expectedPattern, pattern,
-			"filepathfilter: expected pattern match of: %q, got: %q",
-			c.expectedPattern, pattern)
+		assert.Equal(t, c.expectedResult, r1, "includes: %v excludes: %v", c.includes, c.excludes)
 
 		if runtime.GOOS == "windows" {
 			// also test with \ path separators, tolerate mixed separators
@@ -299,15 +291,8 @@ func TestFilterAllows(t *testing.T) {
 			filter = New(c.includes, c.excludes)
 
 			r1 = filter.Allows("test/filename.dat")
-			pattern, r2 = filter.AllowsPattern("test/filename.dat")
-
-			assert.Equal(t, r1, r2,
-				"filepathfilter: expected Allows() and AllowsPattern() to return identical result")
 
 			assert.Equal(t, c.expectedResult, r1, c)
-			assert.Equal(t, c.expectedPattern, pattern,
-				"filepathfilter: expected pattern match of: %q, got: %q",
-				c.expectedPattern, pattern)
 		}
 	}
 }
