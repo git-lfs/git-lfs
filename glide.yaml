@@ -26,3 +26,5 @@ import:
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 - package: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
+- package: github.com/git-lfs/wildmatch
+  version: 62fc450048a8e2e2ffe3f0b5b488b41d05c9bf3e
