@@ -175,7 +175,7 @@ func (s *GitScanner) ScanIndex(ref string, cb GitScannerFoundPointer) error {
 	if err != nil {
 		return err
 	}
-	return scanIndex(callback, ref)
+	return scanIndex(callback, ref, s.Filter)
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
