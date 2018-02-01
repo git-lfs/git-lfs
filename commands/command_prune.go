@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
@@ -86,6 +87,8 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	retainChan := make(chan string, 100)
 
 	gitscanner := lfs.NewGitScanner(nil)
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
+
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait)
 	go pruneTaskGetRetainedWorktree(gitscanner, retainChan, errorChan, &taskwait)
