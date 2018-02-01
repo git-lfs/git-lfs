@@ -36,9 +36,9 @@ commands and low level ("plumbing") commands.
 * git lfs clone:
     Efficiently clone a Git LFS-enabled repository.
 * git-lfs-fetch(1):
-    Download git LFS files from a remote.
+    Download Git LFS files from a remote.
 * git-lfs-fsck(1):
-    Check GIT LFS files for consistency.
+    Check Git LFS files for consistency.
 * git-lfs-install(1):
     Install Git LFS configuration.
 * git-lfs-lock(1):
