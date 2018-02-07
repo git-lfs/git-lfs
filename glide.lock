@@ -1,5 +1,5 @@
 hash: e19b925b9eaca9a10a7742b4a4b1dc8047bff437584538dda59f4f10e69fa6ca
-updated: 2017-09-27T12:34:48.032089491-04:00
+updated: 2018-01-29T17:36:52.158516-08:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
@@ -41,6 +41,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/xeipuuv/gojsonpointer
-  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
+  version: 4e3ac2762d5f479393488629ee9370b50873b3a6
 - name: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
+  version: bd5ef7bd5415a7ac448318e64f11a24cd21e594b
