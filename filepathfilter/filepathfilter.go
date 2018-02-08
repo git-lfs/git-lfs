@@ -93,10 +93,11 @@ func (w *wm) String() string {
 func NewPattern(p string) Pattern {
 	p = filepath.Clean(p)
 
-	// Special case: "*" and "*.*" should match everything to match existing
+	// Special case: the below patterns match anything according to existing
 	// behavior.
-	if p == "*" || p == "*.*" {
-		p = "**/*"
+	switch p {
+	case `*`, `*.*`, `.`, `./`, `.\`:
+		p = filepath.Join("**", "*")
 	}
 
 	w := wildmatch.NewWildmatch(p, wildmatch.SystemCase)
