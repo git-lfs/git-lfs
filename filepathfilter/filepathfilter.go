@@ -8,16 +8,6 @@ import (
 )
 
 type Pattern interface {
-	// HasPrefix returns whether the receiving Pattern will match a fullpath
-	// that contains the prefix "prefix".
-	//
-	// For instance, if the receiving pattern were to match 'a/b/c.txt',
-	// HasPrefix() will return true for:
-	//
-	//   - 'a', and 'a/'
-	//   - 'a/b', and 'a/b/'
-	HasPrefix(prefix string) bool
-
 	Match(filename string) bool
 	// String returns a string representation (see: regular expressions) of
 	// the underlying pattern used to match filenames against this Pattern.
@@ -83,40 +73,9 @@ func (f *Filter) Allows(filename string) bool {
 	return true
 }
 
-// HasPrefix returns whether the given prefix "prefix" is a prefix for all
-// included Patterns, and not a prefix for any excluded Patterns.
-func (f *Filter) HasPrefix(prefix string) bool {
-	if f == nil {
-		return true
-	}
-
-	var matched bool
-	for _, inc := range f.include {
-		if matched = inc.HasPrefix(prefix); matched {
-			break
-		}
-	}
-
-	if !matched && len(f.include) != 0 {
-		return false
-	}
-
-	for _, ex := range f.exclude {
-		if ex.HasPrefix(prefix) {
-			return false
-		}
-	}
-
-	return true
-}
-
 type wm struct {
 	w    *wildmatch.Wildmatch
 	dirs bool
-}
-
-func (w *wm) HasPrefix(prefix string) bool {
-	return w.w.HasPrefix(prefix)
 }
 
 func (w *wm) Match(filename string) bool {

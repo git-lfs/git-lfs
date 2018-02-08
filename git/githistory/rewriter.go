@@ -360,9 +360,7 @@ func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
 	switch typ {
 	case odb.BlobObjectType:
 		return r.Filter().Allows(abs)
-	case odb.TreeObjectType:
-		return r.Filter().HasPrefix(abs)
-	case odb.CommitObjectType:
+	case odb.CommitObjectType, odb.TreeObjectType:
 		return true
 	default:
 		panic(fmt.Sprintf("git/githistory: unknown entry type: %s", typ))
