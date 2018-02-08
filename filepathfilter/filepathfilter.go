@@ -83,16 +83,7 @@ func (w *wm) Match(filename string) bool {
 }
 
 func (w *wm) chomp(filename string) string {
-	if !w.dirs {
-		base := filepath.Base(filename)
-		for _, sep := range []string{"/", "\\"} {
-			if strings.HasSuffix(filename, sep) {
-				base = base + sep
-			}
-		}
-		return base
-	}
-	return filename
+	return filepath.Clean(filename)
 }
 
 func (w *wm) String() string {
