@@ -100,8 +100,30 @@ func NewPattern(p string) Pattern {
 		p = filepath.Join("**", "*")
 	}
 
-	w := wildmatch.NewWildmatch(p, wildmatch.SystemCase)
-	dirs := strings.Contains(w.String(), string(filepath.Separator))
+	dirs := strings.Contains(p, string(filepath.Separator))
+
+	var w *wildmatch.Wildmatch
+	if !dirs && !strings.Contains(p, "*") {
+		// Special case: if p is a literal string (optionally including
+		// a character class), assume it is a substring match.
+		w = wildmatch.NewWildmatch(
+			filepath.Join("**", p, "**"),
+			wildmatch.SystemCase)
+	} else {
+		if dirs && !strings.HasPrefix(p, string(filepath.Separator)) {
+			// Special case: if there are any directory separators,
+			// assume "p" is rooted.
+			p = string(filepath.Separator) + p
+		} else {
+			// Special case: if there are not any directory
+			// separators, assume "p" is a substring match.
+			p = filepath.Join("**", p)
+		}
+		w = wildmatch.NewWildmatch(
+			p,
+			wildmatch.SystemCase,
+			wildmatch.MatchPathname)
+	}
 
 	return &wm{
 		w:    w,
