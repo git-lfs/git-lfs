@@ -143,6 +143,12 @@ func (w *wm) String() string {
 func NewPattern(p string) Pattern {
 	p = filepath.Clean(p)
 
+	// Special case: "*" and "*.*" should match everything to match existing
+	// behavior.
+	if p == "*" || p == "*.*" {
+		p = "**/*"
+	}
+
 	w := wildmatch.NewWildmatch(p, wildmatch.SystemCase)
 	dirs := strings.Contains(w.String(), string(filepath.Separator))
 
