@@ -75,6 +75,7 @@ func (f *Filter) Allows(filename string) bool {
 
 type wm struct {
 	w    *wildmatch.Wildmatch
+	p    string
 	dirs bool
 }
 
@@ -87,46 +88,53 @@ func (w *wm) chomp(filename string) string {
 }
 
 func (w *wm) String() string {
-	return w.w.String()
+	return w.p
 }
 
 func NewPattern(p string) Pattern {
-	p = filepath.Clean(p)
+	pp := filepath.Clean(p)
 
 	// Special case: the below patterns match anything according to existing
 	// behavior.
-	switch p {
+	switch pp {
 	case `*`, `*.*`, `.`, `./`, `.\`:
-		p = filepath.Join("**", "*")
+		pp = filepath.Join("**", "*")
 	}
 
-	dirs := strings.Contains(p, string(filepath.Separator))
+	dirs := strings.Contains(pp, string(filepath.Separator))
+	rooted := strings.HasPrefix(pp, string(filepath.Separator))
+	wild := strings.Contains(pp, "*")
 
-	var w *wildmatch.Wildmatch
-	if !dirs && !strings.Contains(p, "*") {
-		// Special case: if p is a literal string (optionally including
+	if !dirs && !wild {
+		// Special case: if pp is a literal string (optionally including
 		// a character class), assume it is a substring match.
-		w = wildmatch.NewWildmatch(
-			filepath.Join("**", p, "**"),
-			wildmatch.SystemCase)
+		pp = filepath.Join("**", pp, "**")
 	} else {
-		if dirs && !strings.HasPrefix(p, string(filepath.Separator)) {
+		if dirs && !rooted {
 			// Special case: if there are any directory separators,
-			// assume "p" is rooted.
-			p = string(filepath.Separator) + p
+			// assume "pp" is rooted.
+			if !wild {
+				pp = filepath.Join("**", pp, "**")
+			}
 		} else {
-			// Special case: if there are not any directory
-			// separators, assume "p" is a substring match.
-			p = filepath.Join("**", p)
+			if rooted {
+				// Special case: if there are not any directory
+				// separators, assume "pp" is a substring match.
+				pp = filepath.Join(pp, "**")
+			} else {
+				// Special case: if there are not any directory
+				// separators, assume "pp" is a substring match.
+				pp = filepath.Join("**", pp)
+			}
 		}
-		w = wildmatch.NewWildmatch(
-			p,
-			wildmatch.SystemCase,
-			wildmatch.MatchPathname)
 	}
 
 	return &wm{
-		w:    w,
+		p: p,
+		w: wildmatch.NewWildmatch(
+			pp,
+			wildmatch.SystemCase,
+		),
 		dirs: dirs,
 	}
 }
