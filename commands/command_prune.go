@@ -347,10 +347,10 @@ func pruneTaskGetPreviousVersionsOfRef(gitscanner *lfs.GitScanner, ref string, s
 		if err != nil {
 			errorChan <- err
 			return
-		} else {
-			retainChan <- p.Oid
-			tracerx.Printf("RETAIN: %v via ref %v >= %v", p.Oid, ref, since)
 		}
+
+		retainChan <- p.Oid
+		tracerx.Printf("RETAIN: %v via ref %v >= %v", p.Oid, ref, since)
 	})
 
 	if err != nil {
