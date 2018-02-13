@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -45,6 +46,13 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 			Panic(err, "Error checking Git LFS files")
 		}
 	})
+
+	// If 'lfs.fetchexclude' is set and 'git lfs fsck' is run after the
+	// initial fetch (i.e., has elected to fetch a subset of Git LFS
+	// objects), the "missing" ones will fail the fsck.
+	//
+	// Attach a filepathfilter to avoid _only_ the excluded paths.
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
 
 	if err := gitscanner.ScanRef(ref.Sha, nil); err != nil {
 		ExitWithError(err)
