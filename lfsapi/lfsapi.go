@@ -72,7 +72,7 @@ func NewClient(ctx Context) (*Client, error) {
 	}
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
-	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
+	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
