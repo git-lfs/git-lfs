@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -71,7 +70,7 @@ func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
 }
 
 type sshAuthClient struct {
-	os config.Environment
+	os  config.Environment
 	git config.Environment
 }
 
