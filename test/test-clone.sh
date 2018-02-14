@@ -4,6 +4,57 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
+
+begin_test "clone (plain)"
+(
+  set -e
+
+  reponame="clone-plain"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.foo"
+  git lfs track "*.bar"
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"folder.foo/file1.txt\",\"Size\":100},
+      {\"Filename\":\"file2.bar\",\"Size\":75}
+      ]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again, test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testclone-plain"
+  git clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee clone-plain.log
+  grep "Cloning into" clone-plain.log
+  # should be no filter errors
+  [ ! $(grep "filter" clone-plain.log) ]
+  [ ! $(grep "error" clone-plain.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+    [ $(wc -c < "folder.foo/file1.txt") -eq 100 ]
+    [ $(wc -c < "file2.bar") -eq 75 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
+  popd
+)
+end_test
+
+
 begin_test "lfs clone (deprecated)"
 (
   set -e
