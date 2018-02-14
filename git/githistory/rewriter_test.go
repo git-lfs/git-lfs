@@ -222,7 +222,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, seen["a.txt"])
-	assert.Equal(t, 0, seen[filepath.Join("subdir", "b.txt")])
+	assert.Equal(t, 0, seen["subdir/b.txt"])
 }
 
 func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
