@@ -4,13 +4,13 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
-begin_test "clone"
+begin_test "lfs clone (deprecated)"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="lfs-clone-deprecated"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" repo
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
@@ -45,7 +45,7 @@ begin_test "clone"
   # Now clone again, test specific clone dir
   cd "$TRASHDIR"
 
-  newclonedir="testclone1"
+  newclonedir="testlfs-clone-deprecated"
   git lfs clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
