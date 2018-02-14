@@ -14,6 +14,8 @@ begin_test "clone"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -55,6 +57,7 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
+    [ -f .gitattributes ]
     [ $(wc -c < "file1.dat") -eq 110 ]
     [ $(wc -c < "file2.dat") -eq 75 ]
     [ $(wc -c < "file3.dat") -eq 66 ]
@@ -75,6 +78,7 @@ begin_test "clone"
   [ -d "$reponame" ]
 
   pushd "$reponame"
+    [ -f .gitattributes ]
     [ $(wc -c < "file1.dat") -eq 110 ]
     [ $(wc -c < "file2.dat") -eq 75 ]
     [ $(wc -c < "file3.dat") -eq 66 ]
@@ -100,6 +104,8 @@ begin_test "cloneSSL"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -160,6 +166,8 @@ begin_test "clone ClientCert"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -218,6 +226,8 @@ begin_test "clone with flags"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
