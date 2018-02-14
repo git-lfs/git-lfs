@@ -193,7 +193,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 	for i, dir := range dirs {
 		os.MkdirAll(dir, 0755)
 		numFiles := smallFolder
-		expectedEntries = append(expectedEntries, filepath.Clean(dir))
+		expectedEntries = append(expectedEntries, dir)
 		if i >= 3 && i <= 5 {
 			// Bulk test to ensure works with > 1 batch
 			numFiles = largeFolder
@@ -201,7 +201,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 		for f := 0; f < numFiles; f++ {
 			filename := join(dir, fmt.Sprintf("file%d.txt", f))
 			ioutil.WriteFile(filename, []byte("TEST"), 0644)
-			expectedEntries = append(expectedEntries, filepath.Clean(filename))
+			expectedEntries = append(expectedEntries, filename)
 		}
 	}
 
