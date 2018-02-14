@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -119,7 +120,7 @@ func TestFastWalkGitRepo(t *testing.T) {
 		"ignoredfrominside/thisone/file1.txt",
 	}
 	for _, f := range ignored {
-		fullPath := filepath.Join(mainDir, f)
+		fullPath := join(mainDir, f)
 		if len(filepath.Ext(f)) > 0 {
 			ioutil.WriteFile(fullPath, []byte("TEST"), 0644)
 		} else {
@@ -133,22 +134,22 @@ func TestFastWalkGitRepo(t *testing.T) {
 # ignore folder
 ignoredfolder
 `
-	ioutil.WriteFile(filepath.Join(mainDir, ".gitignore"), []byte(rootGitIgnore), 0644)
+	ioutil.WriteFile(join(mainDir, ".gitignore"), []byte(rootGitIgnore), 0644)
 	// Subfolder ignore; folder will show up but but subfolder 'thisone' won't
 	subFolderIgnore := `
 thisone
 thisisnot.txt
 `
-	ioutil.WriteFile(filepath.Join(mainDir, "ignoredfrominside", ".gitignore"), []byte(subFolderIgnore), 0644)
+	ioutil.WriteFile(join(mainDir, "ignoredfrominside", ".gitignore"), []byte(subFolderIgnore), 0644)
 
 	// This dir will be walked but content won't be
-	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "foldercontainingignored"))
+	expectedEntries = append(expectedEntries, join(mainDir, "foldercontainingignored"))
 	// This dir will be walked and some of its content but has its own gitignore
-	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside"))
-	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", "thisisok.txt"))
+	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside"))
+	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside", "thisisok.txt"))
 	// Also gitignores
-	expectedEntries = append(expectedEntries, filepath.Join(mainDir, ".gitignore"))
-	expectedEntries = append(expectedEntries, filepath.Join(mainDir, "ignoredfrominside", ".gitignore"))
+	expectedEntries = append(expectedEntries, join(mainDir, ".gitignore"))
+	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside", ".gitignore"))
 	// nothing else should be there
 
 	gotEntries := make([]string, 0, 1000)
@@ -157,7 +158,11 @@ thisisnot.txt
 		if err != nil {
 			gotErrors = append(gotErrors, err)
 		} else {
-			gotEntries = append(gotEntries, filepath.Join(parent, info.Name()))
+			if len(parent) == 0 {
+				gotEntries = append(gotEntries, info.Name())
+			} else {
+				gotEntries = append(gotEntries, join(parent, info.Name()))
+			}
 		}
 	})
 
@@ -194,7 +199,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 			numFiles = largeFolder
 		}
 		for f := 0; f < numFiles; f++ {
-			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", f))
+			filename := join(dir, fmt.Sprintf("file%d.txt", f))
 			ioutil.WriteFile(filename, []byte("TEST"), 0644)
 			expectedEntries = append(expectedEntries, filepath.Clean(filename))
 		}
@@ -210,7 +215,11 @@ func collectFastWalkResults(fchan <-chan fastWalkInfo) ([]string, []error) {
 		if o.Err != nil {
 			gotErrors = append(gotErrors, o.Err)
 		} else {
-			gotEntries = append(gotEntries, filepath.Join(o.ParentDir, o.Info.Name()))
+			if len(o.ParentDir) == 0 {
+				gotEntries = append(gotEntries, o.Info.Name())
+			} else {
+				gotEntries = append(gotEntries, join(o.ParentDir, o.Info.Name()))
+			}
 		}
 	}
 
@@ -268,4 +277,8 @@ func TestSetWriteFlag(t *testing.T) {
 		// should only add back user write
 		assert.EqualValues(t, 0640, getFileMode(filename))
 	}
+}
+
+func join(path ...string) string {
+	return strings.Join(path, "/")
 }
