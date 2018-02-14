@@ -4,16 +4,69 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
-begin_test "clone"
+
+begin_test "clone (plain)"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="clone-plain"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" repo
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.foo"
+  git lfs track "*.bar"
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"folder.foo/file1.txt\",\"Size\":100},
+      {\"Filename\":\"file2.bar\",\"Size\":75}
+      ]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again, test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="testclone-plain"
+  git clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee clone-plain.log
+  grep "Cloning into" clone-plain.log
+  # should be no filter errors
+  [ ! $(grep "filter" clone-plain.log) ]
+  [ ! $(grep "error" clone-plain.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+    [ $(wc -c < "folder.foo/file1.txt") -eq 100 ]
+    [ $(wc -c < "file2.bar") -eq 75 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
+  popd
+)
+end_test
+
+
+begin_test "lfs clone (deprecated)"
+(
+  set -e
+
+  reponame="lfs-clone-deprecated"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -43,7 +96,7 @@ begin_test "clone"
   # Now clone again, test specific clone dir
   cd "$TRASHDIR"
 
-  newclonedir="testclone1"
+  newclonedir="testlfs-clone-deprecated"
   git lfs clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
@@ -55,6 +108,7 @@ begin_test "clone"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
+    [ -f .gitattributes ]
     [ $(wc -c < "file1.dat") -eq 110 ]
     [ $(wc -c < "file2.dat") -eq 75 ]
     [ $(wc -c < "file3.dat") -eq 66 ]
@@ -75,6 +129,7 @@ begin_test "clone"
   [ -d "$reponame" ]
 
   pushd "$reponame"
+    [ -f .gitattributes ]
     [ $(wc -c < "file1.dat") -eq 110 ]
     [ $(wc -c < "file2.dat") -eq 75 ]
     [ $(wc -c < "file3.dat") -eq 66 ]
@@ -100,6 +155,8 @@ begin_test "cloneSSL"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -160,6 +217,8 @@ begin_test "clone ClientCert"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -218,6 +277,8 @@ begin_test "clone with flags"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "setup Git LFS pattern"
 
   # generate some test data & commits with random LFS data
   echo "[
