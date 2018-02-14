@@ -1,7 +1,6 @@
 package filepathfilter
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/wildmatch"
@@ -84,47 +83,56 @@ func (w *wm) Match(filename string) bool {
 }
 
 func (w *wm) chomp(filename string) string {
-	return filepath.Clean(filename)
+	for _, suffix := range []string{`/`, `\`} {
+		if strings.HasSuffix(filename, suffix) {
+			return strings.TrimSuffix(filename, suffix)
+		}
+	}
+	return filename
 }
 
 func (w *wm) String() string {
 	return w.p
 }
 
+const (
+	sep byte = '/'
+)
+
 func NewPattern(p string) Pattern {
-	pp := filepath.Clean(p)
+	pp := p
 
 	// Special case: the below patterns match anything according to existing
 	// behavior.
 	switch pp {
 	case `*`, `*.*`, `.`, `./`, `.\`:
-		pp = filepath.Join("**", "*")
+		pp = join("**", "*")
 	}
 
-	dirs := strings.Contains(pp, string(filepath.Separator))
-	rooted := strings.HasPrefix(pp, string(filepath.Separator))
+	dirs := strings.Contains(pp, string(sep))
+	rooted := strings.HasPrefix(pp, string(sep))
 	wild := strings.Contains(pp, "*")
 
 	if !dirs && !wild {
 		// Special case: if pp is a literal string (optionally including
 		// a character class), assume it is a substring match.
-		pp = filepath.Join("**", pp, "**")
+		pp = join("**", pp, "**")
 	} else {
 		if dirs && !rooted {
 			// Special case: if there are any directory separators,
 			// assume "pp" is rooted.
 			if !wild {
-				pp = filepath.Join("**", pp, "**")
+				pp = join("**", pp, "**")
 			}
 		} else {
 			if rooted {
 				// Special case: if there are not any directory
 				// separators, assume "pp" is a substring match.
-				pp = filepath.Join(pp, "**")
+				pp = join(pp, "**")
 			} else {
 				// Special case: if there are not any directory
 				// separators, assume "pp" is a substring match.
-				pp = filepath.Join("**", pp)
+				pp = join("**", pp)
 			}
 		}
 	}
@@ -137,6 +145,22 @@ func NewPattern(p string) Pattern {
 		),
 		dirs: dirs,
 	}
+}
+
+// join joins path elements together via the separator "sep" and produces valid
+// paths without multiple separators (unless multiple separators were included
+// in the original paths []string).
+func join(paths ...string) string {
+	var joined string
+
+	for i, path := range paths {
+		joined = joined + path
+		if i != len(paths)-1 && !strings.HasSuffix(path, string(sep)) {
+			joined = joined + string(sep)
+		}
+	}
+
+	return joined
 }
 
 func convertToWildmatch(rawpatterns []string) []Pattern {

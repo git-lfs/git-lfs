@@ -1,8 +1,6 @@
 package filepathfilter
 
 import (
-	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,14 +110,14 @@ func TestPatternMatch(t *testing.T) {
 
 func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {
 	p := NewPattern(pattern)
-	for _, filename := range toWindowsPaths(filenames) {
+	for _, filename := range filenames {
 		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
 	}
 }
 
 func refutePatternMatch(t *testing.T, pattern string, filenames ...string) {
 	p := NewPattern(pattern)
-	for _, filename := range toWindowsPaths(filenames) {
+	for _, filename := range filenames {
 		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
 	}
 }
@@ -129,19 +127,6 @@ type filterTest struct {
 	expectedPattern string
 	includes        []string
 	excludes        []string
-}
-
-func toWindowsPaths(paths []string) []string {
-	if runtime.GOOS != "windows" {
-		return paths
-	}
-
-	out := make([]string, len(paths))
-	for i, path := range paths {
-		out[i] = strings.Replace(path, "/", "\\", -1)
-	}
-
-	return out
 }
 
 func TestFilterReportsIncludePatterns(t *testing.T) {
