@@ -3,9 +3,9 @@ package githistory
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -165,7 +165,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, 2, seen["a.txt"])
-	assert.Equal(t, 1, seen[filepath.Join("subdir", "b.txt")])
+	assert.Equal(t, 1, seen["subdir/b.txt"])
 }
 
 func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
@@ -188,6 +188,10 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	assert.Nil(t, err)
 
 	tree := "bbbe0a7676523ae02234bfe874784ca2380c2d4b"
+
+	fmt.Println(hex.EncodeToString(tip))
+	root, _ := db.Root()
+	fmt.Println(root)
 
 	AssertCommitTree(t, db, hex.EncodeToString(tip), tree)
 

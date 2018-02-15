@@ -4,8 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -311,9 +310,14 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 
 	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
-		path := filepath.Join(path, entry.Name)
+		var epath string
+		if len(path) > 0 {
+			epath = strings.Join([]string{path, entry.Name}, "/")
+		} else {
+			epath = entry.Name
+		}
 
-		if !r.allows(entry.Type(), path) {
+		if !r.allows(entry.Type(), epath) {
 			entries = append(entries, entry)
 			continue
 		}
@@ -327,9 +331,9 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 
 		switch entry.Type() {
 		case odb.BlobObjectType:
-			oid, err = r.rewriteBlob(commitOID, entry.Oid, path, fn, perc)
+			oid, err = r.rewriteBlob(commitOID, entry.Oid, epath, fn, perc)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(commitOID, entry.Oid, path, fn, tfn, perc)
+			oid, err = r.rewriteTree(commitOID, entry.Oid, epath, fn, tfn, perc)
 		default:
 			oid = entry.Oid
 
@@ -345,7 +349,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		}))
 	}
 
-	rewritten, err := tfn(string(os.PathSeparator)+path, &odb.Tree{Entries: entries})
+	rewritten, err := tfn("/"+path, &odb.Tree{Entries: entries})
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +363,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
 	switch typ {
 	case odb.BlobObjectType:
-		return r.Filter().Allows(abs)
+		return r.Filter().Allows(strings.TrimPrefix(abs, "/"))
 	case odb.CommitObjectType, odb.TreeObjectType:
 		return true
 	default:
