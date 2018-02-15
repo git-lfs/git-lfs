@@ -7,9 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/errors"
 )
 
@@ -28,25 +26,8 @@ func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, cred
 
 // If the status is 401 then we need to re-authenticate
 func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, creds Creds, retry bool) (*http.Response, error) {
-	body, err := rewoundRequestBody(req)
-	if err != nil {
-		return nil, err
-	}
-	req.Body = body
-
-	chRes, challengeMsg, err := c.ntlmNegotiate(req, ntlmNegotiateMessage)
-	if err != nil {
-		return chRes, err
-	}
-
-	body, err = rewoundRequestBody(req)
-	if err != nil {
-		return nil, err
-	}
-	req.Body = body
-
-	res, err := c.ntlmChallenge(req, challengeMsg, creds)
-	if err != nil {
+	res, err := c.ntlmAuthenticateRequest(req, creds)
+	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
 
@@ -67,9 +48,8 @@ func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, cred
 	return res, nil
 }
 
-func (c *Client) ntlmNegotiate(req *http.Request, message string) (*http.Response, []byte, error) {
-	req.Header.Add("Authorization", message)
-	res, err := c.do(req)
+func (c *Client) ntlmSendType1Message(req *http.Request, message []byte) (*http.Response, []byte, error) {
+	res, err := c.ntlmSendMessage(req, message)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, nil, err
 	}
@@ -81,56 +61,20 @@ func (c *Client) ntlmNegotiate(req *http.Request, message string) (*http.Respons
 	return res, by, err
 }
 
-func (c *Client) ntlmChallenge(req *http.Request, challengeBytes []byte, creds Creds) (*http.Response, error) {
-	challenge, err := ntlm.ParseChallengeMessage(challengeBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	session, err := c.ntlmClientSession(creds)
-	if err != nil {
-		return nil, err
-	}
-
-	session.ProcessChallengeMessage(challenge)
-	authenticate, err := session.GenerateAuthenticateMessage()
-	if err != nil {
-		return nil, err
-	}
-
-	authMsg := base64.StdEncoding.EncodeToString(authenticate.Bytes())
-	req.Header.Set("Authorization", "NTLM "+authMsg)
-	return c.do(req)
+func (c *Client) ntlmSendType3Message(req *http.Request, authenticate []byte) (*http.Response, error) {
+	return c.ntlmSendMessage(req, authenticate)
 }
 
-func (c *Client) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
-	c.ntlmMu.Lock()
-	defer c.ntlmMu.Unlock()
-
-	splits := strings.Split(creds["username"], "\\")
-	if len(splits) != 2 {
-		return nil, fmt.Errorf("Your user name must be of the form DOMAIN\\user. It is currently %s", creds["username"])
-	}
-
-	domain := strings.ToUpper(splits[0])
-	username := splits[1]
-
-	if c.ntlmSessions == nil {
-		c.ntlmSessions = make(map[string]ntlm.ClientSession)
-	}
-
-	if ses, ok := c.ntlmSessions[domain]; ok {
-		return ses, nil
-	}
-
-	session, err := ntlm.CreateClientSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
+func (c *Client) ntlmSendMessage(req *http.Request, message []byte) (*http.Response, error) {
+	body, err := rewoundRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
+	req.Body = body
 
-	session.SetUserInfo(username, creds["password"], strings.ToUpper(splits[0]))
-	c.ntlmSessions[domain] = session
-	return session, nil
+	msg := base64.StdEncoding.EncodeToString(message)
+	req.Header.Set("Authorization", "NTLM "+msg)
+	return c.do(req)
 }
 
 func parseChallengeResponse(res *http.Response) ([]byte, error) {
@@ -162,5 +106,3 @@ func rewoundRequestBody(req *http.Request) (io.ReadCloser, error) {
 	_, err := body.Seek(0, io.SeekStart)
 	return body, err
 }
-
-const ntlmNegotiateMessage = "NTLM TlRMTVNTUAABAAAAB7IIogwADAAzAAAACwALACgAAAAKAAAoAAAAD1dJTExISS1NQUlOTk9SVEhBTUVSSUNB"
