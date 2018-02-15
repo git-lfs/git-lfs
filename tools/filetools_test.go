@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -277,8 +276,4 @@ func TestSetWriteFlag(t *testing.T) {
 		// should only add back user write
 		assert.EqualValues(t, 0640, getFileMode(filename))
 	}
-}
-
-func join(path ...string) string {
-	return strings.Join(path, "/")
 }
