@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/wildmatch"
+	"github.com/rubyist/tracerx"
 )
 
 type Pattern interface {
@@ -59,16 +60,19 @@ func (f *Filter) Allows(filename string) bool {
 		}
 	}
 
+	tracerx.Printf("filepathfilter: rejecting %q via %v", filename, f.include)
 	if !matched && len(f.include) > 0 {
 		return false
 	}
 
 	for _, ex := range f.exclude {
 		if ex.Match(filename) {
+			tracerx.Printf("filepathfilter: rejecting %q via %q", filename, ex.String())
 			return false
 		}
 	}
 
+	tracerx.Printf("filepathfilter: accepting %q", filename)
 	return true
 }
 
@@ -136,6 +140,7 @@ func NewPattern(p string) Pattern {
 			}
 		}
 	}
+	tracerx.Printf("filepathfilter: rewrite %q as %q", p, pp)
 
 	return &wm{
 		p: p,
