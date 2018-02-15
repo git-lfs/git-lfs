@@ -66,7 +66,7 @@ type sshAuthResponse struct {
 }
 
 func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
-	expiresAt := time.Now()
+	expiresAt := time.Time{}
 	if r.ExpiresAt != nil {
 		expiresAt = *r.ExpiresAt
 	}
