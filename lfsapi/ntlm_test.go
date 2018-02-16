@@ -118,28 +118,24 @@ func TestNtlmAuth(t *testing.T) {
 	assert.True(t, credHelper.IsApproved(creds))
 }
 
-func TestNtlmClientSession(t *testing.T) {
-	cli, err := NewClient(nil)
-	require.Nil(t, err)
-
+func TestNtlmGetCredentials(t *testing.T) {
 	creds := Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
-	session1, err := cli.ntlmClientSession(creds)
+	ntmlCreds, err := ntlmGetCredentials(creds)
 	assert.Nil(t, err)
-	assert.NotNil(t, session1)
+	assert.NotNil(t, ntmlCreds)
+	assert.Equal(t, "MOOSEDOMAIN", ntmlCreds.domain)
+	assert.Equal(t, "canadian", ntmlCreds.username)
+	assert.Equal(t, "MooseAntlersYeah", ntmlCreds.password)
 
-	// The second call should ignore creds and give the session we just created.
-	badCreds := Creds{"username": "MOOSEDOMAIN\\badusername", "password": "MooseAntlersYeah"}
-	session2, err := cli.ntlmClientSession(badCreds)
+	creds = Creds{"username": "", "password": ""}
+	ntmlCreds, err = ntlmGetCredentials(creds)
 	assert.Nil(t, err)
-	assert.NotNil(t, session2)
-	assert.EqualValues(t, session1, session2)
+	assert.Nil(t, ntmlCreds)
 }
 
-func TestNtlmClientSessionBadCreds(t *testing.T) {
-	cli, err := NewClient(nil)
-	require.Nil(t, err)
+func TestNtlmGetCredentialsBadCreds(t *testing.T) {
 	creds := Creds{"username": "badusername", "password": "MooseAntlersYeah"}
-	_, err = cli.ntlmClientSession(creds)
+	_, err := ntlmGetCredentials(creds)
 	assert.NotNil(t, err)
 }
 

@@ -7,9 +7,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 )
+
+type ntmlCredentials struct {
+	domain   string
+	username string
+	password string
+}
 
 func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL) (*http.Response, error) {
 	res, err := c.do(req)
@@ -26,7 +33,12 @@ func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, cred
 
 // If the status is 401 then we need to re-authenticate
 func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, creds Creds, retry bool) (*http.Response, error) {
-	res, err := c.ntlmAuthenticateRequest(req, creds)
+	ntmlCreds, err := ntlmGetCredentials(creds)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.ntlmAuthenticateRequest(req, ntmlCreds)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
@@ -105,4 +117,23 @@ func rewoundRequestBody(req *http.Request) (io.ReadCloser, error) {
 
 	_, err := body.Seek(0, io.SeekStart)
 	return body, err
+}
+
+func ntlmGetCredentials(creds Creds) (*ntmlCredentials, error) {
+	username := creds["username"]
+	password := creds["password"]
+
+	if username == "" && password == "" {
+		return nil, nil
+	}
+
+	splits := strings.Split(username, "\\")
+	if len(splits) != 2 {
+		return nil, fmt.Errorf("Your user name must be of the form DOMAIN\\user. It is currently '%s'", username)
+	}
+
+	domain := strings.ToUpper(splits[0])
+	username = splits[1]
+
+	return &ntmlCredentials{domain: domain, username: username, password: password}, nil
 }

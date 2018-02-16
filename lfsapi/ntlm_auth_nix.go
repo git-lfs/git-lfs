@@ -1,15 +1,16 @@
+// +build !windows
+
 package lfsapi
 
 import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 )
 
-func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds Creds) (*http.Response, error) {
+func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds *ntmlCredentials) (*http.Response, error) {
 	negotiate, err := base64.StdEncoding.DecodeString(ntlmNegotiateMessage)
 	if err != nil {
 		return nil, err
@@ -39,23 +40,19 @@ func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds Creds) (*http.
 	return c.ntlmSendType3Message(req, authenticate.Bytes())
 }
 
-func (c *Client) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
+func (c *Client) ntlmClientSession(creds *ntmlCredentials) (ntlm.ClientSession, error) {
 	c.ntlmMu.Lock()
 	defer c.ntlmMu.Unlock()
 
-	splits := strings.Split(creds["username"], "\\")
-	if len(splits) != 2 {
-		return nil, fmt.Errorf("Your user name must be of the form DOMAIN\\user. It is currently %s", creds["username"])
+	if creds == nil {
+		return nil, fmt.Errorf("Your user name must be of the form DOMAIN\\user. Single-sign-on is not supported.")
 	}
-
-	domain := strings.ToUpper(splits[0])
-	username := splits[1]
 
 	if c.ntlmSessions == nil {
 		c.ntlmSessions = make(map[string]ntlm.ClientSession)
 	}
 
-	if ses, ok := c.ntlmSessions[domain]; ok {
+	if ses, ok := c.ntlmSessions[creds.domain]; ok {
 		return ses, nil
 	}
 
@@ -64,8 +61,8 @@ func (c *Client) ntlmClientSession(creds Creds) (ntlm.ClientSession, error) {
 		return nil, err
 	}
 
-	session.SetUserInfo(username, creds["password"], strings.ToUpper(splits[0]))
-	c.ntlmSessions[domain] = session
+	session.SetUserInfo(creds.username, creds.password, creds.domain)
+	c.ntlmSessions[creds.domain] = session
 	return session, nil
 }
 
