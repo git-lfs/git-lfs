@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tools"
@@ -23,6 +24,10 @@ const (
 )
 
 var currentPlatform = PlatformUndetermined
+
+func join(parts ...string) string {
+	return strings.Join(parts, "/")
+}
 
 func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles int) (tools.CopyCallback, *os.File, error) {
 	logPath, _ := f.cfg.Os.Get("GIT_LFS_PROGRESS")
@@ -118,7 +123,7 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 		return filename
 	}
 
-	abs := filepath.Join(p.repoDir, filename)
+	abs := join(p.repoDir, filename)
 	rel, err := filepath.Rel(p.currDir, abs)
 	if err != nil {
 		// Use absolute file instead
@@ -160,7 +165,7 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 	if filepath.IsAbs(filename) {
 		abs = tools.ResolveSymlinks(filename)
 	} else {
-		abs = filepath.Join(p.currDir, filename)
+		abs = join(p.currDir, filename)
 	}
 	reltoroot, err := filepath.Rel(p.repoDir, abs)
 	if err != nil {
