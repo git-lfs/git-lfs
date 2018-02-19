@@ -128,9 +128,8 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 	if err != nil {
 		// Use absolute file instead
 		return abs
-	} else {
-		return rel
 	}
+	return filepath.ToSlash(rel)
 }
 
 // Convert filenames expressed relative to the current directory to be
@@ -171,9 +170,8 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 	if err != nil {
 		// Can't do this, use absolute as best fallback
 		return abs
-	} else {
-		return reltoroot
 	}
+	return filepath.ToSlash(reltoroot)
 }
 
 func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
