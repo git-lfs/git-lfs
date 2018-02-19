@@ -48,7 +48,7 @@ type Wildmatch struct {
 // If the pattern is malformed, for instance, it has an unclosed character
 // group, escape sequence, or character class, NewWildmatch will panic().
 func NewWildmatch(p string, opts ...opt) *Wildmatch {
-	w := &Wildmatch{p: p}
+	w := &Wildmatch{p: slashEscape(p)}
 
 	for _, opt := range opts {
 		opt(w)
@@ -68,6 +68,37 @@ const (
 	// escapes is a constant string containing all escapable characters
 	escapes = "\\[]*?"
 )
+
+// slashEscape converts paths "p" to POSIX-compliant path, independent of which
+// escape character the host machine uses.
+//
+// slashEscape resepcts escapable sequences, and thus will not transform
+// `foo\*bar` to `foo/*bar` on non-Windows operating systems.
+func slashEscape(p string) string {
+	var pp string
+
+	for i := 0; i < len(p); {
+		c := p[i]
+
+		switch c {
+		case '\\':
+			if i+1 < len(p) && escapable(p[i+1]) {
+				pp += `\`
+				pp += string(p[i+1])
+
+				i += 2
+			} else {
+				pp += `/`
+				i += 1
+			}
+		default:
+			pp += string(c)
+			i += 1
+		}
+	}
+
+	return pp
+}
 
 // escapable returns whether the given "c" is escapable.
 func escapable(c byte) bool {

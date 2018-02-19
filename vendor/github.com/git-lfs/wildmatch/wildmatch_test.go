@@ -327,11 +327,6 @@ var Cases = []*Case{
 		Match:   true,
 	},
 	{
-		Pattern: `\a\b\c`,
-		Subject: `abc`,
-		Match:   true,
-	},
-	{
 		Pattern: `''`,
 		Subject: `foo`,
 		Match:   false,
@@ -562,16 +557,6 @@ var Cases = []*Case{
 		Match:   false,
 	},
 	{
-		Pattern: `[\1-\3]`,
-		Subject: `2`,
-		Match:   true,
-	},
-	{
-		Pattern: `[\1-\3]`,
-		Subject: `3`,
-		Match:   true,
-	},
-	{
 		Pattern: `-*-*-*-*-*-*-12-*-*-*-m-*-*-*`,
 		Subject: `-adobe-courier-bold-o-normal--12-120-75-75-m-70-iso8859-1`,
 		Match:   true,
@@ -616,6 +601,37 @@ var Cases = []*Case{
 
 func TestWildmatch(t *testing.T) {
 	for _, c := range Cases {
+		c.Assert(t)
+	}
+}
+
+type SlashCase struct {
+	Given  string
+	Expect string
+}
+
+func (c *SlashCase) Assert(t *testing.T) {
+	got := slashEscape(c.Given)
+
+	if c.Expect != got {
+		t.Errorf("wildmatch: expected slashEscape(\"%s\") -> %s, got: %s",
+			c.Given,
+			c.Expect,
+			got,
+		)
+	}
+}
+
+func TestSlashEscape(t *testing.T) {
+	for _, c := range []*SlashCase{
+		{Given: ``, Expect: ``},
+		{Given: `foo/bar`, Expect: `foo/bar`},
+		{Given: `foo\bar`, Expect: `foo/bar`},
+		{Given: `foo\*bar`, Expect: `foo\*bar`},
+		{Given: `foo\?bar`, Expect: `foo\?bar`},
+		{Given: `foo\[bar`, Expect: `foo\[bar`},
+		{Given: `foo\]bar`, Expect: `foo\]bar`},
+	} {
 		c.Assert(t)
 	}
 }
