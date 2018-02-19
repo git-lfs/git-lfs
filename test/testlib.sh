@@ -31,6 +31,9 @@ failures=0
 
 # this runs at process exit
 atexit () {
+
+  echo "1..$tests"
+
   shutdown
 
   if [ $failures -gt 0 ]; then
@@ -109,22 +112,22 @@ end_test () {
     exec 5>&-
 
     if [ "$test_status" -eq 0 ]; then
-        printf "test: %-60s OK\n" "$test_description ..."
+        printf "ok %d - %s\n" "$tests" "$test_description"
     else
         failures=$(( failures + 1 ))
-        printf "test: %-60s FAILED\n" "$test_description ..."
-        (
-            echo "-- stdout --"
-            sed 's/^/    /' <"$TRASHDIR/out"
-            echo "-- stderr --"
-            grep -v -e '^\+ end_test' -e '^+ set +x' <"$TRASHDIR/err" |
-                sed 's/^/    /'
-            if [ $IS_WINDOWS -eq 0 ]; then
-                echo "-- git trace --"
-                sed 's/^/   /' <"$TRASHDIR/trace"
-            fi
-        ) 1>&2
-        echo
+
+        printf "not ok %d - %s\n" "$tests" "$test_description"
+          echo "# -- stdout --"
+          sed 's/^/#     /' <"$TRASHDIR/out"
+          echo "# -- stderr --"
+          grep -v -e '^\+ end_test' -e '^+ set +x' <"$TRASHDIR/err" \
+              | sed 's/^/#     /'
+
+          if [ $IS_WINDOWS -eq 0 ]; then
+              echo "# -- git trace --"
+              sed 's/^/#     /' <"$TRASHDIR/trace"
+          fi
     fi
+
     unset test_description
 }

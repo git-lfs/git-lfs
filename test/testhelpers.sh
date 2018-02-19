@@ -466,18 +466,18 @@ setup() {
   cd "$ROOTDIR"
 
   rm -rf "$REMOTEDIR"
-  mkdir "$REMOTEDIR"
+  mkdir "$REMOTEDIR" 2>&1 > /dev/null
 
   if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
-    echo "compile git-lfs for $0"
+    echo "# compile git-lfs for $0"
     script/bootstrap || {
       return $?
     }
   fi
 
-  echo "Git LFS: ${LFS_BIN:-$(which git-lfs)}"
-  git lfs version
-  git version
+  echo "# Git LFS: ${LFS_BIN:-$(which git-lfs)}"
+  git lfs version | sed -e 's/^/# /g'
+  git version | sed -e 's/^/# /g'
 
   if [ -z "$SKIPCOMPILE" ]; then
     [ $IS_WINDOWS -eq 1 ] && EXT=".exe"
@@ -503,8 +503,8 @@ setup() {
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
-  mkdir "$HOME"
-  git lfs install --skip-repo
+  mkdir "$HOME" 2>&1 > /dev/null
+  git lfs install --skip-repo | sed -e 's/^/# /g'
   git config --global credential.usehttppath true
   git config --global credential.helper lfstest
   git config --global user.name "Git LFS Tests"
@@ -515,29 +515,29 @@ setup() {
   git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
 
   ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
-    echo "global git config should be set in $REMOTEDIR/home"
+    echo "# global git config should be set in $REMOTEDIR/home"
     ls -al "$REMOTEDIR/home"
     exit 1
   }
 
   # setup the git credential password storage
-  mkdir -p "$CREDSDIR"
+  mkdir -p "$CREDSDIR" 2>&1 > /dev/null
   printf "user:pass" > "$CREDSDIR/127.0.0.1"
 
   echo
-  echo "HOME: $HOME"
-  echo "TMP: $TMPDIR"
-  echo "CREDS: $CREDSDIR"
-  echo "lfstest-gitserver:"
-  echo "  LFSTEST_URL=$LFS_URL_FILE"
-  echo "  LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
-  echo "  LFSTEST_CLIENT_CERT_URL=$LFS_CLIENT_CERT_URL_FILE ($LFS_CLIENT_CERT_URL)"
-  echo "  LFSTEST_CERT=$LFS_CERT_FILE"
-  echo "  LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
-  echo "  LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
-  echo "  LFSTEST_DIR=$REMOTEDIR"
-  echo "GIT:"
-  git config --global --get-regexp "lfs|credential|user"
+  echo "# HOME: $HOME"
+  echo "# TMP: $TMPDIR"
+  echo "# CREDS: $CREDSDIR"
+  echo "# lfstest-gitserver:"
+  echo "#   LFSTEST_URL=$LFS_URL_FILE"
+  echo "#   LFSTEST_SSL_URL=$LFS_SSL_URL_FILE"
+  echo "#   LFSTEST_CLIENT_CERT_URL=$LFS_CLIENT_CERT_URL_FILE ($LFS_CLIENT_CERT_URL)"
+  echo "#   LFSTEST_CERT=$LFS_CERT_FILE"
+  echo "#   LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
+  echo "#   LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
+  echo "#   LFSTEST_DIR=$REMOTEDIR"
+  echo "# GIT:"
+  git config --global --get-regexp "lfs|credential|user" | sed -e 's/^/# /g'
 
   echo
 }
