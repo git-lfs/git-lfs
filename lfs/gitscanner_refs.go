@@ -72,11 +72,16 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLe
 		if name, ok := opt.GetName(p.Sha1); ok {
 			p.Name = name
 		}
-		pointerCb(p, nil)
+
+		if scanner.Filter.Allows(p.Name) {
+			pointerCb(p, nil)
+		}
 	}
 
 	for lockableName := range checkLockableCh {
-		lockableCb(lockableName)
+		if scanner.Filter.Allows(lockableName) {
+			lockableCb(lockableName)
+		}
 	}
 
 	if err := pointers.Wait(); err != nil {

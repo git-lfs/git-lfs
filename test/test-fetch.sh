@@ -64,6 +64,9 @@ begin_test "fetch"
 
   git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -76,6 +79,9 @@ begin_test "fetch with remote"
   git lfs fetch origin 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -92,6 +98,9 @@ begin_test "fetch with remote and branches"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -105,6 +114,9 @@ begin_test "fetch with master commit sha1"
   git lfs fetch origin "$master_sha1"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -118,6 +130,9 @@ begin_test "fetch with newbranch commit sha1"
   git lfs fetch origin "$newbranch_sha1"
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -131,6 +146,9 @@ begin_test "fetch with include filters in gitconfig"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -146,6 +164,9 @@ begin_test "fetch with exclude filters in gitconfig"
   git lfs fetch origin master newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
