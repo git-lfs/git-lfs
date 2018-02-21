@@ -22,13 +22,11 @@ binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
 
 By default, the Git LFS client needs a Git LFS server to sync the large files
 it manages. This works out of the box when using popular git repository
-hosting providers like GitHub*, Atlassian, etc. When you host your own
+hosting providers like GitHub, Atlassian, etc. When you host your own
 vanilla git server, for example, you need to either use a separate
 [Git LFS server instance](https://github.com/git-lfs/git-lfs/wiki/Implementations),
 or use the [custom transfer adapter](docs/custom-transfers.md) with
 a transfer agent in blind mode, without having to use a Git LFS server instance.
-
-Note: The current single file size limit for GitHub is 2GB.
 
 You can install the Git LFS client in several different ways, depending on
 your setup and preferences.
@@ -92,6 +90,10 @@ Total 5 (delta 1), reused 0 (delta 0)
 To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  master -> master
 ```
+
+## Limitations
+
+The current single file size limit for GitHub is 2GB.
 
 ## Need Help?
 
