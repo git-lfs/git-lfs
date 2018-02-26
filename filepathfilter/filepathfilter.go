@@ -53,15 +53,15 @@ func (f *Filter) Allows(filename string) bool {
 		return true
 	}
 
-	var matched bool
+	var included bool
 	for _, inc := range f.include {
-		if matched = inc.Match(filename); matched {
+		if included = inc.Match(filename); included {
 			break
 		}
 	}
 
 	tracerx.Printf("filepathfilter: rejecting %q via %v", filename, f.include)
-	if !matched && len(f.include) > 0 {
+	if !included && len(f.include) > 0 {
 		return false
 	}
 
