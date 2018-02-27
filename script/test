@@ -16,6 +16,7 @@ if [ $# -eq 0 ]; then
                 | grep -v "github.com/stretchr/testify" \
                 | grep -v "github.com/xeipuuv/gojsonreference" \
                 | grep -v "github.com/xeipuuv/gojsonschema" \
+                | grep -v "github.com/alexbrainman/sspi" \
   )"
 else
   PACKAGES="$(echo "$PACKAGES" \

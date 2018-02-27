@@ -1,10 +1,18 @@
-hash: e19b925b9eaca9a10a7742b4a4b1dc8047bff437584538dda59f4f10e69fa6ca
-updated: 2018-01-29T17:36:52.158516-08:00
+hash: 61a26ad942b6cdacffd945003b76991b4caeb6a16baab8e86943f6bbc83410e9
+updated: 2018-02-15T23:41:56.5827516+01:00
 imports:
+- name: github.com/alexbrainman/sspi
+  version: 4729b3d4d8581b2db83864d1018926e4154f9406
+  subpackages:
+  - ntlm
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
   - netrc
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pty
@@ -13,6 +21,10 @@ imports:
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
 - name: github.com/rubyist/tracerx
   version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - name: github.com/spf13/cobra
@@ -32,14 +44,6 @@ imports:
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 testImports:
-- name: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
-  subpackages:
-  - spew
-- name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
-  subpackages:
-  - difflib
 - name: github.com/xeipuuv/gojsonpointer
   version: 4e3ac2762d5f479393488629ee9370b50873b3a6
 - name: github.com/xeipuuv/gojsonreference
