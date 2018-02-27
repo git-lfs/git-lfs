@@ -105,7 +105,7 @@ func NewPattern(p string) Pattern {
 	// Special case: the below patterns match anything according to existing
 	// behavior.
 	switch pp {
-	case `*`, `*.*`, `.`, `./`, `.\`:
+	case `*`, `.`, `./`, `.\`:
 		pp = join("**", "*")
 	}
 
