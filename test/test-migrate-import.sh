@@ -612,6 +612,7 @@ begin_test "migrate import (handle copies of files)"
   assert_local_object "$oid_tree" "$size"
 
   # "a.txt" is not under "foo" and therefore should not be in LFS
-  refute_local_object "$oid_root"
+  oid_root_after_migration="$(calc_oid "$(git cat-file -p :a.txt)")"
+  [ "$oid_root" = "$oid_root_after_migration" ]
 )
 end_test
