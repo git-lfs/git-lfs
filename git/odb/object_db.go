@@ -16,16 +16,19 @@ import (
 // ObjectDatabase enables the reading and writing of objects against a storage
 // backend.
 type ObjectDatabase struct {
-	// s is the storage backend which opens/creates/reads/writes.
-	s storer
-	// packs are the set of packfiles which contain all packed objects
-	// within this repository.
-	packs *pack.Set
+	// members managed via sync/atomic must be aligned at the top of this
+	// structure (see: https://github.com/git-lfs/git-lfs/pull/2880).
 
 	// closed is a uint32 managed by sync/atomic's <X>Uint32 methods. It
 	// yields a value of 0 if the *ObjectDatabase it is stored upon is open,
 	// and a value of 1 if it is closed.
 	closed uint32
+
+	// s is the storage backend which opens/creates/reads/writes.
+	s storer
+	// packs are the set of packfiles which contain all packed objects
+	// within this repository.
+	packs *pack.Set
 
 	// temp directory, defaults to os.TempDir
 	tmp string
