@@ -10,13 +10,16 @@ import (
 // PercentageTask is a task that is performed against a known number of
 // elements.
 type PercentageTask struct {
-	// msg is the task message.
-	msg string
+	// members managed via sync/atomic must be aligned at the top of this
+	// structure (see: https://github.com/git-lfs/git-lfs/pull/2880).
+
 	// n is the number of elements whose work has been completed. It is
 	// managed sync/atomic.
 	n uint64
 	// total is the total number of elements to execute work upon.
 	total uint64
+	// msg is the task message.
+	msg string
 	// ch is a channel which is written to when the task state changes and
 	// is closed when the task is completed.
 	ch chan *Update
