@@ -91,6 +91,10 @@ To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  master -> master
 ```
 
+## Limitations
+
+The current single file size limit for GitHub is 2GB.
+
 ## Need Help?
 
 You can get help on specific commands directly:
