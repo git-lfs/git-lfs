@@ -466,7 +466,7 @@ begin_test "migrate import (prefix include(s))"
 (
   set -e
 
-  includes="foo${PATH_SEPARATOR}bar${PATH_SEPARATOR}baz ${PATH_SEPARATOR}foo foo${PATH_SEPARATOR}**${PATH_SEPARATOR}baz${PATH_SEPARATOR}a.txt *.txt"
+  includes="foo/bar/baz foo/**/baz/a.txt *.txt"
   for include in $includes; do
     setup_single_local_branch_deep_trees
 
@@ -548,5 +548,71 @@ begin_test "migrate import (--everything with --exclude-ref)"
 
   [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/master 2>&1)" = \
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+)
+end_test
+
+begin_test "migrate import (--everything and --include with glob pattern)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
+  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
+  txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
+
+  git lfs migrate import --verbose --everything --include='*.[mM][dD]'
+
+  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "140"
+  assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
+
+  assert_local_object "$md_master_oid" "140"
+  assert_local_object "$md_feature_oid" "30"
+  refute_local_object "$txt_master_oid"
+  refute_local_object "$txt_feature_oid"
+)
+end_test
+
+begin_test "migrate import (nested sub-trees and --include with wildcard)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  oid="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  git lfs migrate import --include="**/*ar/**"
+
+  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid" "$size"
+  assert_local_object "$oid" "$size"
+)
+end_test
+
+begin_test "migrate import (handle copies of files)"
+(
+  set -e
+
+  setup_single_local_branch_deep_trees
+
+  # add the object from the sub-tree to the root directory
+  cp foo/bar/baz/a.txt a.txt
+  git add a.txt
+  git commit -m "duplicated file"
+
+  oid_root="$(calc_oid "$(git cat-file -p :a.txt)")"
+  oid_tree="$(calc_oid "$(git cat-file -p :foo/bar/baz/a.txt)")"
+  size="$(git cat-file -p :foo/bar/baz/a.txt | wc -c | awk '{ print $1 }')"
+
+  # only import objects under "foo"
+  git lfs migrate import --include="foo/**"
+
+  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid_tree" "$size"
+  assert_local_object "$oid_tree" "$size"
+
+  # "a.txt" is not under "foo" and therefore should not be in LFS
+  oid_root_after_migration="$(calc_oid "$(git cat-file -p :a.txt)")"
+  [ "$oid_root" = "$oid_root_after_migration" ]
 )
 end_test

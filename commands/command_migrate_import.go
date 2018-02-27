@@ -58,7 +58,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		},
 
 		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
-			if path != string(os.PathSeparator) {
+			if path != "/" {
 				// Ignore non-root trees.
 				return t, nil
 			}

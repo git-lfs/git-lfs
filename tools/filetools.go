@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -100,7 +99,15 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	for _, part := range strings.Split(paths, delim) {
 		part = strings.TrimSpace(part)
 
-		cleaned = append(cleaned, path.Clean(part))
+		// Remove trailing `/` or `\`, but only the first one.
+		for _, sep := range []string{`/`, `\`} {
+			if strings.HasSuffix(part, sep) {
+				part = strings.TrimSuffix(part, sep)
+				break
+			}
+		}
+
+		cleaned = append(cleaned, part)
 	}
 
 	return cleaned
@@ -177,7 +184,7 @@ type fastWalker struct {
 func fastWalkWithExcludeFiles(rootDir, excludeFilename string) *fastWalker {
 	excludePaths := []filepathfilter.Pattern{
 		filepathfilter.NewPattern(".git"),
-		filepathfilter.NewPattern(filepath.Join("**", ".git")),
+		filepathfilter.NewPattern("**/.git"),
 	}
 
 	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))
@@ -224,11 +231,11 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
 	if isRoot {
 		fullPath = w.rootDir
 	} else {
-		parentWorkDir = filepath.Join(w.rootDir, workDir)
-		fullPath = filepath.Join(parentWorkDir, itemFi.Name())
+		parentWorkDir = join(w.rootDir, workDir)
+		fullPath = join(parentWorkDir, itemFi.Name())
 	}
 
-	workPath := filepath.Join(workDir, itemFi.Name())
+	workPath := join(workDir, itemFi.Name())
 	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(workPath) {
 		return
 	}
@@ -242,11 +249,11 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
 
 	var childWorkDir string
 	if !isRoot {
-		childWorkDir = filepath.Join(workDir, itemFi.Name())
+		childWorkDir = join(workDir, itemFi.Name())
 	}
 
 	if len(w.excludeFilename) > 0 {
-		possibleExcludeFile := filepath.Join(fullPath, w.excludeFilename)
+		possibleExcludeFile := join(fullPath, w.excludeFilename)
 		var err error
 		excludePaths, err = loadExcludeFilename(possibleExcludeFile, childWorkDir, excludePaths)
 		if err != nil {
@@ -339,12 +346,23 @@ func loadExcludeFilename(filename, workDir string, excludePaths []filepathfilter
 		// Allow for both styles of separator at this point
 		if strings.ContainsAny(path, "/\\") ||
 			!strings.Contains(path, "*") {
-			path = filepath.Join(workDir, line)
+			path = join(workDir, line)
 		}
 		retPaths = append(retPaths, filepathfilter.NewPattern(path))
 	}
 
 	return retPaths, nil
+}
+
+func join(paths ...string) string {
+	ne := make([]string, 0, len(paths))
+
+	for _, p := range paths {
+		if len(p) > 0 {
+			ne = append(ne, p)
+		}
+	}
+	return strings.Join(ne, "/")
 }
 
 // SetFileWriteFlag changes write permissions on a file
