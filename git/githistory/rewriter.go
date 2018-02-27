@@ -310,14 +310,14 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 
 	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
-		var epath string
+		var fullpath string
 		if len(path) > 0 {
-			epath = strings.Join([]string{path, entry.Name}, "/")
+			fullpath = strings.Join([]string{path, entry.Name}, "/")
 		} else {
-			epath = entry.Name
+			fullpath = entry.Name
 		}
 
-		if !r.allows(entry.Type(), epath) {
+		if !r.allows(entry.Type(), fullpath) {
 			entries = append(entries, entry)
 			continue
 		}
@@ -331,9 +331,9 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 
 		switch entry.Type() {
 		case odb.BlobObjectType:
-			oid, err = r.rewriteBlob(commitOID, entry.Oid, epath, fn, perc)
+			oid, err = r.rewriteBlob(commitOID, entry.Oid, fullpath, fn, perc)
 		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(commitOID, entry.Oid, epath, fn, tfn, perc)
+			oid, err = r.rewriteTree(commitOID, entry.Oid, fullpath, fn, tfn, perc)
 		default:
 			oid = entry.Oid
 
