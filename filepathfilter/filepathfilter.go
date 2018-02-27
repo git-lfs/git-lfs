@@ -115,23 +115,25 @@ func NewPattern(p string) Pattern {
 
 	if !dirs && !wild {
 		// Special case: if pp is a literal string (optionally including
-		// a character class), assume it is a substring match.
+		// a character class), rewrite it is a substring match.
 		pp = join("**", pp, "**")
 	} else {
 		if dirs && !rooted {
 			// Special case: if there are any directory separators,
-			// assume "pp" is rooted.
+			// rewrite "pp" as a substring match.
 			if !wild {
 				pp = join("**", pp, "**")
 			}
 		} else {
 			if rooted {
 				// Special case: if there are not any directory
-				// separators, assume "pp" is a substring match.
+				// separators, rewrite "pp" as a substring
+				// match.
 				pp = join(pp, "**")
 			} else {
 				// Special case: if there are not any directory
-				// separators, assume "pp" is a substring match.
+				// separators, rewrite "pp" as a substring
+				// match.
 				pp = join("**", pp)
 			}
 		}
