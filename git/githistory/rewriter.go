@@ -318,12 +318,12 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		}
 
 		if !r.allows(entry.Type(), fullpath) {
-			entries = append(entries, entry)
+			entries = append(entries, copyEntry(entry))
 			continue
 		}
 
 		if cached := r.uncacheEntry(entry); cached != nil {
-			entries = append(entries, cached)
+			entries = append(entries, copyEntry(cached))
 			continue
 		}
 
@@ -358,6 +358,21 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		return treeOID, nil
 	}
 	return r.db.WriteTree(rewritten)
+}
+
+func copyEntry(e *odb.TreeEntry) *odb.TreeEntry {
+	if e == nil {
+		return nil
+	}
+
+	oid := make([]byte, len(e.Oid))
+	copy(oid, e.Oid)
+
+	return &odb.TreeEntry{
+		Filemode: e.Filemode,
+		Name:     e.Name,
+		Oid:      oid,
+	}
 }
 
 func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {

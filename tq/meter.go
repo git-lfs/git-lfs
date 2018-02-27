@@ -19,10 +19,6 @@ import (
 // files and bytes transferred as well as the number of files and bytes that
 // get skipped because the transfer is unnecessary.
 type Meter struct {
-	DryRun    bool
-	Logger    *tools.SyncWriter
-	Direction Direction
-
 	finishedFiles     int64 // int64s must come first for struct alignment
 	transferringFiles int64
 	estimatedBytes    int64
@@ -36,6 +32,10 @@ type Meter struct {
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	updates           chan *tasklog.Update
+
+	DryRun    bool
+	Logger    *tools.SyncWriter
+	Direction Direction
 }
 
 type env interface {

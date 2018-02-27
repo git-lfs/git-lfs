@@ -16,9 +16,9 @@ import (
 )
 
 type httpTransfer struct {
-	URL             string
-	Method          string
-	Key             string
+	// members managed via sync/atomic must be aligned at the top of this
+	// structure (see: https://github.com/git-lfs/git-lfs/pull/2880).
+
 	RequestBodySize int64
 	Start           int64
 	ResponseStart   int64
@@ -28,6 +28,9 @@ type httpTransfer struct {
 	DNSEnd          int64
 	TLSStart        int64
 	TLSEnd          int64
+	URL             string
+	Method          string
+	Key             string
 }
 
 type statsContextKey string

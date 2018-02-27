@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNTLMAuth(t *testing.T) {
+func TestNtlmAuth(t *testing.T) {
 	session, err := ntlm.CreateServerSession(ntlm.Version2, ntlm.ConnectionOrientedMode)
 	require.Nil(t, err)
 	session.SetUserInfo("ntlmuser", "ntlmpass", "NTLMDOMAIN")
@@ -36,12 +36,21 @@ func TestNTLMAuth(t *testing.T) {
 			assert.Equal(t, "ntlm", string(by))
 		}
 
-		switch authHeader {
-		case "":
+		switch called {
+		case 1:
 			w.Header().Set("Www-Authenticate", "ntlm")
 			w.WriteHeader(401)
-		case ntlmNegotiateMessage:
+		case 2:
 			assert.True(t, strings.HasPrefix(req.Header.Get("Authorization"), "NTLM "))
+			neg := authHeader[5:] // strip "ntlm " prefix
+			_, err := base64.StdEncoding.DecodeString(neg)
+			if !assert.Nil(t, err) {
+				t.Logf("neg base64 error: %+v", err)
+				w.WriteHeader(500)
+				return
+			}
+
+			// ntlm implementation can't currently parse the negotiate message
 			ch, err := session.GenerateChallengeMessage()
 			if !assert.Nil(t, err) {
 				t.Logf("challenge gen error: %+v", err)
@@ -62,13 +71,21 @@ func TestNTLMAuth(t *testing.T) {
 				return
 			}
 
-			_, err = ntlm.ParseAuthenticateMessage(val, 2)
+			authMsg, err := ntlm.ParseAuthenticateMessage(val, 2)
 			if !assert.Nil(t, err) {
 				t.Logf("auth parse error: %+v", err)
 				w.WriteHeader(500)
 				return
 			}
+
+			err = session.ProcessAuthenticateMessage(authMsg)
+			if !assert.Nil(t, err) {
+				t.Logf("auth process error: %+v", err)
+				w.WriteHeader(500)
+				return
+			}
 			w.WriteHeader(200)
+
 		}
 	}))
 	defer srv.Close()
@@ -101,28 +118,24 @@ func TestNTLMAuth(t *testing.T) {
 	assert.True(t, credHelper.IsApproved(creds))
 }
 
-func TestNtlmClientSession(t *testing.T) {
-	cli, err := NewClient(nil)
-	require.Nil(t, err)
-
+func TestNtlmGetCredentials(t *testing.T) {
 	creds := Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
-	session1, err := cli.ntlmClientSession(creds)
+	ntmlCreds, err := ntlmGetCredentials(creds)
 	assert.Nil(t, err)
-	assert.NotNil(t, session1)
+	assert.NotNil(t, ntmlCreds)
+	assert.Equal(t, "MOOSEDOMAIN", ntmlCreds.domain)
+	assert.Equal(t, "canadian", ntmlCreds.username)
+	assert.Equal(t, "MooseAntlersYeah", ntmlCreds.password)
 
-	// The second call should ignore creds and give the session we just created.
-	badCreds := Creds{"username": "MOOSEDOMAIN\\badusername", "password": "MooseAntlersYeah"}
-	session2, err := cli.ntlmClientSession(badCreds)
+	creds = Creds{"username": "", "password": ""}
+	ntmlCreds, err = ntlmGetCredentials(creds)
 	assert.Nil(t, err)
-	assert.NotNil(t, session2)
-	assert.EqualValues(t, session1, session2)
+	assert.Nil(t, ntmlCreds)
 }
 
-func TestNtlmClientSessionBadCreds(t *testing.T) {
-	cli, err := NewClient(nil)
-	require.Nil(t, err)
+func TestNtlmGetCredentialsBadCreds(t *testing.T) {
 	creds := Creds{"username": "badusername", "password": "MooseAntlersYeah"}
-	_, err = cli.ntlmClientSession(creds)
+	_, err := ntlmGetCredentials(creds)
 	assert.NotNil(t, err)
 }
 
