@@ -1,6 +1,7 @@
 package filepathfilter
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/wildmatch"
@@ -87,12 +88,7 @@ func (w *wm) Match(filename string) bool {
 }
 
 func (w *wm) chomp(filename string) string {
-	for _, suffix := range []string{`/`, `\`} {
-		if strings.HasSuffix(filename, suffix) {
-			return strings.TrimSuffix(filename, suffix)
-		}
-	}
-	return filename
+	return strings.TrimSuffix(filename, string(filepath.Separator))
 }
 
 func (w *wm) String() string {
