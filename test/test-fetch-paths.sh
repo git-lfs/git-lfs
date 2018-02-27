@@ -33,7 +33,7 @@ begin_test "init fetch unclean paths"
   refute_server_object "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"

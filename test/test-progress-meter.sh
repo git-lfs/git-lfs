@@ -24,6 +24,6 @@ begin_test "progress meter displays positive progress"
   git push origin master 2>&1 | tee push.log
   [ "0" -eq "${PIPESTATUS[0]}" ]
 
-  grep "Git LFS: (128 of 128 files) 276 B / 276 B" push.log
+  grep "Uploading LFS objects: 100% (128/128), 276 B" push.log
 )
 end_test

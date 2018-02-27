@@ -24,10 +24,18 @@ begin_test "unlocking a lock by path with tracked ref"
   set -e
 
   reponame="unlock-by-path-tracked-branch-required"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
+  git push origin master
+
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
@@ -43,8 +51,14 @@ begin_test "unlocking a lock by path with bad ref"
   set -e
 
   reponame="unlock-by-path-other-branch-required"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+  git push origin master:other
 
   git checkout -b other
   git lfs lock --json "c.dat" | tee lock.log
@@ -69,8 +83,14 @@ begin_test "unlocking a lock by id with bad ref"
   set -e
 
   reponame="unlock-by-id-other-branch-required"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+  git push origin master:other
 
   git checkout -b other
   git lfs lock --json "c.dat" | tee lock.log

@@ -285,7 +285,7 @@ func callBatchApi(manifest *tq.Manifest, dir tq.Direction, objs []TestObject) ([
 		apiobjs = append(apiobjs, &tq.Transfer{Oid: o.Oid, Size: o.Size})
 	}
 
-	bres, err := tq.Batch(manifest, dir, "origin", apiobjs)
+	bres, err := tq.Batch(manifest, dir, "origin", nil, apiobjs)
 	if err != nil {
 		return nil, err
 	}

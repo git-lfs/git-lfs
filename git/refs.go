@@ -1,22 +1,20 @@
-package commands
+package git
 
 import (
 	"fmt"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/git"
 	"github.com/rubyist/tracerx"
 )
 
-type refUpdate struct {
-	git    config.Environment
+type RefUpdate struct {
+	git    Env
 	remote string
-	left   *git.Ref
-	right  *git.Ref
+	left   *Ref
+	right  *Ref
 }
 
-func newRefUpdate(g config.Environment, remote string, l, r *git.Ref) *refUpdate {
-	return &refUpdate{
+func NewRefUpdate(g Env, remote string, l, r *Ref) *RefUpdate {
+	return &RefUpdate{
 		git:    g,
 		remote: remote,
 		left:   l,
@@ -24,15 +22,15 @@ func newRefUpdate(g config.Environment, remote string, l, r *git.Ref) *refUpdate
 	}
 }
 
-func (u *refUpdate) Left() *git.Ref {
+func (u *RefUpdate) Left() *Ref {
 	return u.left
 }
 
-func (u *refUpdate) LeftCommitish() string {
+func (u *RefUpdate) LeftCommitish() string {
 	return refCommitish(u.Left())
 }
 
-func (u *refUpdate) Right() *git.Ref {
+func (u *RefUpdate) Right() *Ref {
 	if u.right == nil {
 		u.right = defaultRemoteRef(u.git, u.remote, u.Left())
 	}
@@ -43,7 +41,7 @@ func (u *refUpdate) Right() *git.Ref {
 // repository config and local ref being pushed.
 //
 // See push.default rules in https://git-scm.com/docs/git-config
-func defaultRemoteRef(g config.Environment, remote string, left *git.Ref) *git.Ref {
+func defaultRemoteRef(g Env, remote string, left *Ref) *Ref {
 	pushMode, _ := g.Get("push.default")
 	switch pushMode {
 	case "", "simple":
@@ -72,20 +70,25 @@ func defaultRemoteRef(g config.Environment, remote string, left *git.Ref) *git.R
 	}
 }
 
-func trackingRef(g config.Environment, left *git.Ref) *git.Ref {
+func trackingRef(g Env, left *Ref) *Ref {
 	if merge, ok := g.Get(fmt.Sprintf("branch.%s.merge", left.Name)); ok {
-		return git.ParseRef(merge, "")
+		return ParseRef(merge, "")
 	}
 	return left
 }
 
-func (u *refUpdate) RightCommitish() string {
+func (u *RefUpdate) RightCommitish() string {
 	return refCommitish(u.Right())
 }
 
-func refCommitish(r *git.Ref) string {
+func refCommitish(r *Ref) string {
 	if len(r.Sha) > 0 {
 		return r.Sha
 	}
 	return r.Name
+}
+
+// copy of env
+type Env interface {
+	Get(key string) (val string, ok bool)
 }

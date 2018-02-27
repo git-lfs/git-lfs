@@ -233,3 +233,76 @@ a1fff0ffefb9eace7230c24e50731f0a91c62f9cefdfe77121c2f607125dffae * two.tgz")"
   [ "$expected" = "$(git lfs ls-files --long)" ]
 )
 end_test
+
+begin_test "ls-files: history with --all"
+(
+  set -e
+
+  reponame="ls-files-history-with-all"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+  printf "a" > a.dat
+  printf "b" > b.dat
+
+  git add .gitattributes a.dat b.dat
+  git commit -m "initial commit"
+
+  rm b.dat
+  git add b.dat
+  git commit -m "remove b.dat"
+
+  git lfs ls-files 2>&1 | tee ls-files.log
+  [ 1 -eq $(grep -c "a\.dat" ls-files.log) ]
+  [ 0 -eq $(grep -c "b\.dat" ls-files.log) ]
+
+  git lfs ls-files --all 2>&1 | tee ls-files-all.log
+  [ 1 -eq $(grep -c "a\.dat" ls-files-all.log) ]
+  [ 1 -eq $(grep -c "b\.dat" ls-files-all.log) ]
+)
+end_test
+
+begin_test "ls-files: --all with argument(s)"
+(
+  set -e
+
+  reponame="ls-files-all-with-arguments"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs ls-files --all master 2>&1 | tee ls-files.log
+
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: \`git lfs ls-files --all master\` to fail"
+    exit 1
+  fi
+
+  [ "fatal: cannot use --all with explicit reference" = "$(cat ls-files.log)" ]
+)
+end_test
+
+begin_test "ls-files: reference with --deleted"
+(
+  set -e
+
+  reponame="ls-files-reference-with-deleted"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  printf "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  rm a.dat
+  git add a.dat
+  git commit -m "a.dat: remove a.dat"
+
+  git lfs ls-files 2>&1 | tee ls-files.log
+  git lfs ls-files --deleted 2>&1 | tee ls-files-deleted.log
+
+  [ 0 -eq $(grep -c "a\.dat" ls-files.log) ]
+  [ 1 -eq $(grep -c "a\.dat" ls-files-deleted.log) ]
+)
+end_test

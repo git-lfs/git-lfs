@@ -275,6 +275,25 @@ func lfsDeleteHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	w.WriteHeader(200)
 }
 
+type batchReq struct {
+	Transfers []string    `json:"transfers"`
+	Operation string      `json:"operation"`
+	Objects   []lfsObject `json:"objects"`
+	Ref       *Ref        `json:"ref,omitempty"`
+}
+
+func (r *batchReq) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
+}
+
+type batchResp struct {
+	Transfer string      `json:"transfer,omitempty"`
+	Objects  []lfsObject `json:"objects"`
+}
+
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	checkingObject := r.Header.Get("X-Check-Object") == "1"
 	if !checkingObject && repo == "batchunsupported" {
@@ -299,20 +318,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		return
 	}
 
-	type batchReq struct {
-		Transfers []string    `json:"transfers"`
-		Operation string      `json:"operation"`
-		Objects   []lfsObject `json:"objects"`
-	}
-	type batchResp struct {
-		Transfer string      `json:"transfer,omitempty"`
-		Objects  []lfsObject `json:"objects"`
-	}
-
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
-	var objs batchReq
-	err := json.NewDecoder(tee).Decode(&objs)
+	objs := &batchReq{}
+	err := json.NewDecoder(tee).Decode(objs)
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
@@ -321,6 +330,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if strings.HasSuffix(repo, "branch-required") {
+		parts := strings.Split(repo, "-")
+		lenParts := len(parts)
+		if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != objs.RefName() {
+			w.WriteHeader(403)
+			json.NewEncoder(w).Encode(struct {
+				Message string `json:"message"`
+			}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], objs.RefName())})
+			return
+		}
 	}
 
 	res := []lfsObject{}
@@ -858,8 +879,8 @@ type Lock struct {
 }
 
 type LockRequest struct {
-	Ref  *Ref   `json:"ref,omitempty"`
 	Path string `json:"path"`
+	Ref  *Ref   `json:"ref,omitempty"`
 }
 
 func (r *LockRequest) RefName() string {
@@ -875,8 +896,8 @@ type LockResponse struct {
 }
 
 type UnlockRequest struct {
-	Ref   *Ref `json:"ref,omitempty"`
 	Force bool `json:"force"`
+	Ref   *Ref `json:"ref,omitempty"`
 }
 
 func (r *UnlockRequest) RefName() string {
@@ -1040,29 +1061,30 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			return
 		}
 
-		ll := &LockList{}
-		w.Header().Set("Content-Type", "application/json")
-
 		if strings.HasSuffix(repo, "branch-required") {
 			parts := strings.Split(repo, "-")
 			lenParts := len(parts)
 			if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != r.FormValue("refspec") {
-				ll.Message = fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], r.FormValue("refspec"))
+				w.WriteHeader(403)
+				enc.Encode(struct {
+					Message string `json:"message"`
+				}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], r.FormValue("refspec"))})
+				return
 			}
 		}
 
-		if len(ll.Message) < 1 {
-			locks, nextCursor, err := getFilteredLocks(repo,
-				r.FormValue("path"),
-				r.FormValue("cursor"),
-				r.FormValue("limit"))
+		ll := &LockList{}
+		w.Header().Set("Content-Type", "application/json")
+		locks, nextCursor, err := getFilteredLocks(repo,
+			r.FormValue("path"),
+			r.FormValue("cursor"),
+			r.FormValue("limit"))
 
-			if err != nil {
-				ll.Message = err.Error()
-			} else {
-				ll.Locks = locks
-				ll.NextCursor = nextCursor
-			}
+		if err != nil {
+			ll.Message = err.Error()
+		} else {
+			ll.Locks = locks
+			ll.NextCursor = nextCursor
 		}
 
 		enc.Encode(ll)
@@ -1070,8 +1092,6 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	case "POST":
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
-			unlockRequest := &UnlockRequest{}
-
 			var lockId string
 			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
 				lockId = matches[1]
@@ -1081,6 +1101,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
 			}
 
+			unlockRequest := &UnlockRequest{}
 			if err := dec.Decode(unlockRequest); err != nil {
 				enc.Encode(&UnlockResponse{Message: err.Error()})
 				return

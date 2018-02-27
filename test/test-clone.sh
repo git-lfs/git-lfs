@@ -46,7 +46,7 @@ begin_test "clone"
   newclonedir="testclone1"
   git lfs clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
   [ ! $(grep "filter" lfsclone.log) ]
   [ ! $(grep "error" lfsclone.log) ]
@@ -67,7 +67,7 @@ begin_test "clone"
   rm -rf "$reponame"
   git lfs clone "$GITSERVER/$reponame" 2>&1 | tee lfsclone.log
   grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
   [ ! $(grep "filter" lfsclone.log) ]
   [ ! $(grep "error" lfsclone.log) ]
@@ -328,7 +328,7 @@ begin_test "clone (with include/exclude args)"
 
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
-  grep "Git LFS: (2 of 2 files)" push.log
+  grep "Uploading LFS objects: 100% (2/2), 2 B" push.log
 
   cd "$TRASHDIR"
 
@@ -392,7 +392,7 @@ begin_test "clone (with .lfsconfig)"
 
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
-  grep "Git LFS: (2 of 2 files)" push.log
+  grep "Uploading LFS objects: 100% (2/2), 2 B" push.log
 
   pushd "$TRASHDIR"
 
@@ -482,7 +482,7 @@ begin_test "clone (without clean filter)"
 
   git push origin master 2>&1 | tee push.log
   grep "master -> master" push.log
-  grep "Git LFS: (1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   cd "$TRASHDIR"
 
@@ -613,7 +613,7 @@ begin_test "clone in current directory"
     mkdir "$reponame-clone"
     cd "$reponame-clone"
 
-    git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Git LFS"
+    git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Downloading LFS objects: 100% (1/1), 8 B"
 
     assert_local_object "$contents_oid" 8
     assert_hooks "$(dot_git_dir)"

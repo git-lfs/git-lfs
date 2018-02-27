@@ -26,6 +26,8 @@ simplest use case: single branch locking. The API is designed to be extensible
 as we experiment with more advanced locking scenarios, as defined in the
 [original proposal](/docs/proposals/locking.md).
 
+The [Batch API's `ref` property docs](./batch.md#ref-property) describe how the `ref` property can be used to support auth schemes that include the server ref. Locking API implementations should also only use it for authentication, until advanced locking scenarios have been developed. 
+
 ## Create Lock
 
 The client sends the following to create a lock by sending a `POST` to `/locks`
@@ -35,9 +37,8 @@ to one user.
 
 * `path` - String path name of the file that is locked. This should be
 relative to the root of the repository working directory.
-* `ref` - The fully-qualified reference from which the client is locking the
-file. It is the responsibility of the server implementing this specification
-to decide on the semantic meaning of this.
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
 
 ```js
 // POST https://lfs-server.com/locks
@@ -47,7 +48,7 @@ to decide on the semantic meaning of this.
 {
   "path": "foo/bar.zip",
   "ref": {
-    "name": "refs/heads/my-feature
+    "name": "refs/heads/my-feature"
   }
 }
 ```
@@ -157,8 +158,8 @@ The properties are sent as URI query values, instead of through a JSON body:
 should be the `next_cursor` from a previous request.
 * `limit` - The integer limit of the number of locks to return. The server
 should have its own upper and lower bounds on the supported limits.
-* `ref` - Optional reference representing the reference from which the client
-is searching for looks.
+* `ref` - Optional fully qualified server refspec
+from which to search for locks.
 
 ```js
 // GET https://lfs-server.com/locks?path=&id=&cursor=&limit=
@@ -251,8 +252,11 @@ LFS Servers should ensure that users have push access to the repository.
 Clients send the following to list locks for verification by sending a `POST`
 to `/locks/verify` (appended to the LFS server url, as described above):
 
-* `cursor`
-* `limit`
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
+* `cursor` - Optional cursor to allow pagination. Servers can determine how cursors are formatted based on how they are stored internally.
+* `limit` - Optional limit to how many locks to
+return.
 
 ```js
 // POST https://lfs-server.com/locks/verify
@@ -385,9 +389,8 @@ Properties:
 
 * `force` - Optional boolean specifying that the user is deleting another user's
 lock.
-* `ref` - Optional reference object specifying the reference from which the
-client is deleting the lock. It is the responsibility of the server implementing
-this specification to decide upon the semantic meaning of this.
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
 
 ```js
 // POST https://lfs-server.com/locks/:id/unlock
@@ -398,7 +401,7 @@ this specification to decide upon the semantic meaning of this.
 {
   "force": true,
   "ref": {
-    "name": "refs/heads/my-feature
+    "name": "refs/heads/my-feature"
   }
 }
 ```

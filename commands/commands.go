@@ -110,20 +110,20 @@ func newLockClient() *locking.Client {
 
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func newDownloadCheckQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	allOptions := make([]tq.Option, 0, len(options)+1)
-	allOptions = append(allOptions, options...)
-	allOptions = append(allOptions, tq.DryRun(true))
-	return newDownloadQueue(manifest, remote, allOptions...)
+	return newDownloadQueue(manifest, remote, append(options,
+		tq.DryRun(true),
+	)...)
 }
 
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
 func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Download, manifest, remote, options...)
+	return tq.NewTransferQueue(tq.Download, manifest, remote, append(options,
+		tq.RemoteRef(currentRemoteRef()),
+	)...)
 }
 
-// newUploadQueue builds an UploadQueue, allowing `workers` concurrent uploads.
-func newUploadQueue(manifest *tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
-	return tq.NewTransferQueue(tq.Upload, manifest, remote, options...)
+func currentRemoteRef() *git.Ref {
+	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).Right()
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
@@ -435,10 +435,11 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
-func buildProgressMeter(dryRun bool) *tq.Meter {
+func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 	m := tq.NewMeter()
 	m.Logger = m.LoggerFromEnv(cfg.Os)
 	m.DryRun = dryRun
+	m.Direction = d
 	return m
 }
 

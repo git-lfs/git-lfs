@@ -1,10 +1,12 @@
-hash: e19b925b9eaca9a10a7742b4a4b1dc8047bff437584538dda59f4f10e69fa6ca
-updated: 2017-09-27T12:34:48.032089491-04:00
+hash: 3299d17fd40e9b08cb1c098db869c57e7d92a4e9eb60b911bb39e2ab5ff06a05
+updated: 2018-02-19T14:21:42.616565-08:00
 imports:
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
   - netrc
+- name: github.com/git-lfs/wildmatch
+  version: 8a0518641565a619e62a2738c7d4498fc345daf6
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pty
@@ -41,6 +43,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/xeipuuv/gojsonpointer
-  version: 6fe8760cad3569743d51ddbb243b26f8456742dc
+  version: 4e3ac2762d5f479393488629ee9370b50873b3a6
 - name: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
+  version: bd5ef7bd5415a7ac448318e64f11a24cd21e594b

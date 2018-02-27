@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
-	refUpdate := newRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
+	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
 	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()

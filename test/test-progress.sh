@@ -19,7 +19,7 @@ begin_test "GIT_LFS_PROGRESS"
   git add .gitattributes *.dat
   git commit -m "add files"
   git push origin master 2>&1 | tee push.log
-  grep "(5 of 5 files)" push.log
+  grep "Uploading LFS objects: 100% (5/5), 10 B" push.log
 
   cd ..
   GIT_LFS_PROGRESS="$TRASHDIR/progress.log" git lfs clone "$GITSERVER/$reponame" clone

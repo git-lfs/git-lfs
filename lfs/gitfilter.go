@@ -3,6 +3,7 @@ package lfs
 import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/fs"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 // GitFilter provides clean and smudge capabilities
@@ -18,4 +19,8 @@ func NewGitFilter(cfg *config.Configuration) *GitFilter {
 
 func (f *GitFilter) ObjectPath(oid string) (string, error) {
 	return f.fs.ObjectPath(oid)
+}
+
+func (f *GitFilter) RemoteRef() *git.Ref {
+	return git.NewRefUpdate(f.cfg.Git, f.cfg.PushRemote(), f.cfg.CurrentRef(), nil).Right()
 }

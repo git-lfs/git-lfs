@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -103,6 +104,7 @@ type TransferQueue struct {
 	direction         Direction
 	client            *tqClient
 	remote            string
+	ref               *git.Ref
 	adapter           Adapter
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
@@ -183,6 +185,12 @@ func WithProgress(m *Meter) Option {
 	}
 }
 
+func RemoteRef(ref *git.Ref) Option {
+	return func(tq *TransferQueue) {
+		tq.ref = ref
+	}
+}
+
 func WithProgressCallback(cb tools.CopyCallback) Option {
 	return func(tq *TransferQueue) {
 		tq.cb = cb
@@ -222,6 +230,9 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	}
 	if q.bufferDepth <= 0 {
 		q.bufferDepth = q.batchSize
+	}
+	if q.meter != nil {
+		q.meter.Direction = q.direction
 	}
 
 	q.incoming = make(chan *objectTuple, q.bufferDepth)
@@ -418,7 +429,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		// Query the Git LFS server for what transfer method to use and
 		// details such as URLs, authentication, etc.
 		var err error
-		bRes, err = Batch(q.manifest, q.direction, q.remote, batch.ToTransfers())
+		bRes, err = Batch(q.manifest, q.direction, q.remote, q.ref, batch.ToTransfers())
 		if err != nil {
 			// If there was an error making the batch API call, mark all of
 			// the objects for retry, and return them along with the error
@@ -768,7 +779,7 @@ func (q *TransferQueue) Wait() {
 		close(watcher)
 	}
 
-	q.meter.Finish()
+	q.meter.Flush()
 	q.errorwait.Wait()
 }
 
