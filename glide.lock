@@ -1,5 +1,5 @@
-hash: 61a26ad942b6cdacffd945003b76991b4caeb6a16baab8e86943f6bbc83410e9
-updated: 2018-02-15T23:41:56.5827516+01:00
+hash: bad2138ca7787101a7a23af2464319cc580f4285e90c07d11eb9f90ad3bb9604
+updated: 2018-02-27T14:39:39.133796-08:00
 imports:
 - name: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
@@ -13,6 +13,8 @@ imports:
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
+- name: github.com/git-lfs/wildmatch
+  version: 8a0518641565a619e62a2738c7d4498fc345daf6
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pty
