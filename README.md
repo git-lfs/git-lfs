@@ -91,6 +91,11 @@ To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  master -> master
 ```
 
+## Limitations
+
+Git LFS maintains a list of currently known limitations, which you can find and
+edit [here](https://github.com/git-lfs/git-lfs/wiki/Limitations).
+
 ## Need Help?
 
 You can get help on specific commands directly:
