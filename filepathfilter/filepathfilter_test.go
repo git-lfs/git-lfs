@@ -7,7 +7,7 @@ import (
 )
 
 func TestPatternMatch(t *testing.T) {
-	for _, wildcard := range []string{"*", "*.*"} {
+	for _, wildcard := range []string{`*`, `.`, `./`, `.\`} {
 		assertPatternMatch(t, wildcard,
 			"a",
 			"a/",
