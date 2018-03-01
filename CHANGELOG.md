@@ -1,5 +1,126 @@
 # Git LFS Changelog
 
+## 2.4.0 (2 March, 2018)
+
+This release introduces a rewrite of the underlying file matching engine,
+expands the API to include relevant refspecs for individual requests,
+standardizes the progress output among commands, and more.
+
+Please note: in the next MAJOR release (v3.0.0) the semantic meaning behind
+`--include` and `--exclude` flags will change. As the details of exactly which
+existing patterns will no longer function as previously are known, we will
+indicate them here. Any `--include` or `--exclude` patterns used in v2.3.0 or
+earlier are expected to work as previously in this release.
+
+This release would not be possible without the open-source community.
+Specifically, we would like to thank:
+
+- @larsxschneider: for contributing fixes to the filter operation in `git lfs
+  fsck`, and `git lfs prune`, as well as the bug report leading to the
+  filepathfilter changes.
+- @yfronto: for adding new Linux release targets.
+- @stffabi: for adding support for NTLM with SSPI on Windows.
+- @jeffreydwalter: for fixing memory alignment issues with `sync/atomic` on
+  32-bit architectures.
+- @b4mboo: for adding a LFS configuration key to the list of safe configuration
+  options.
+
+Without the aforementioned indviduals, this release would not have been
+possible. Thank you!
+
+### Features
+
+* __Support wildmatch-compliant options in `--include`, `--exclude`__
+  * filepathfilter: implement using wildmatch #2875 (@ttaylorr)
+  * test: add wildmatch migration tests #2888 (@larsxschneider, @ttaylorr)
+* __Expand the specification to include relevant refspecs__
+  * verify locks against each ref being pushed #2706 (@technoweenie)
+  * Batch send refspec take 2 #2809 (@technoweenie)
+  * Run 1 TransferQueue per uploaded ref #2806 (@technoweenie)
+  * Locks/verify: full refspec #2722 (@technoweenie)
+  * send remote refspec for the other lock commands #2773 (@technoweenie)
+* __Standardize progress meter output and implementation__
+  * tq: standardized progress meter formatting #2811 (@ttaylorr)
+  * commands/fetch: unify formatting #2758 (@ttaylorr)
+  * commands/prune: unify formatting #2757 (@ttaylorr)
+  * progress: use git/githistory/log package for formatting #2732 (@ttaylorr)
+  * progress: remove `*progress.Meter` #2762 (@ttaylorr)
+  * tasklog: teach `*Logger` how to enqueue new `*SimpleTask`'s #2767 (@ttaylorr)
+  * progress: remove spinner.go #2759 (@ttaylorr)
+* __Teach new flags, functionality to `git lfs ls-files`__
+  * commands: teach '--all' to `git lfs ls-files` #2796 (@ttaylorr)
+  * commands/ls-files: show cached, tree-less LFS objects #2795 (@ttaylorr)
+  * commands/ls-files: add --include, --exclude #2793 (@ttaylorr)
+  * commands/ls-files: add '--size' flag #2764 (@ttaylorr)
+* __Add new flags, functionality to `git lfs migrate`__
+  * commands/migrate: support '^'-prefix refspec in arguments #2785 (@ttaylorr)
+  * commands/migrate: add '--skip-fetch' for offline migrations #2738 (@ttaylorr)
+  * git: prefer sending revisions over STDIN than arguments #2739 (@ttaylorr)
+* __Release to new operating systems__
+  * release lfs for ubuntu/artful too #2704 (@technoweenie)
+  * Adding Mint Sylvia to packagecloud.rb script #2829 (@yfronto)
+* __New functionality in package `lfsapi`__
+  * NTLM authentication with SSPI on windows #2871 (@stffabi)
+  * lfsapi/auth: teach DoWithAuth to respect http.extraHeaders #2733 (@ttaylorr)
+  * add support for url-specific proxies #2651 (@technoweenie)
+* __Code cleanup in git.Config, package `localstorage`__
+  * Tracked remote #2700 (@technoweenie)
+  * Replace git.Config #2692 (@technoweenie)
+  * Replace localstorage #2689 (@technoweenie)
+  * Remove last global config #2687 (@technoweenie)
+  * Git config refactor #2676 (@technoweenie)
+
+### Bugs
+
+* all: fix 32-bit alignment issues with `sync/atomic` #2883 (@ttaylorr)
+* all: memory alignment issues on 32-bit systems. #2880 (@jeffreydwalter)
+* command/migrate: don't migrate remote references in bare repositories #2769 (@ttaylorr)
+* commands/ls-files: behave correctly before initial commit #2794 (@ttaylorr)
+* commands/migrate: allow for ambiguous references in migrations #2734 (@ttaylorr)
+* commands: fill in missing printf arg #2678 (@technoweenie)
+* config: Add `lfs.locksverify` to safe keys. #2797 (@b4mboo)
+* don't replace pointers with objects if clean filter is not configured #2626 (@technoweenie)
+* fsck: attach a filter to exclude unfetched items from fsck #2847 (@larsxschneider)
+* git/githistory: copy entries from cache, elsewhere #2884 (@ttaylorr)
+* git/githistory: migrate annotated tags correctly #2780 (@ttaylorr)
+* git/odb: don't print extra newline after commit message #2784 (@ttaylorr)
+* git/odb: extract identifiers from commits verbatim #2751 (@wsprent)
+* git/odb: implement parsing for annotated `*Tag`'s #2778 (@ttaylorr)
+* git/odb: retain newlines when parsing commit messages #2786 (@ttaylorr)
+* lfs: PointerScanner is nil after error, so don't close #2699 (@technoweenie)
+* lfsapi: Cred helper improvements #2695 (@technoweenie)
+* lfsapi: retry requests changing access from none IF Auth header is empty #2621 (@technoweenie)
+* prune: always prune excluded paths #2851 (@larsxschneider)
+* status: fix incorrect formatting with unpushed objects #2746 (@ttaylorr)
+* tasklog: don't drop updates in PercentageTask #2755 (@ttaylorr)
+* test: Fix integration test early exit #2735 (@technoweenie)
+* test: generate random repo names with fs-safe characters #2698 (@technoweenie)
+
+### Misc
+
+* all: Nitpicks #2821 (@technoweenie)
+* all: introduce package 'tlog' #2747 (@ttaylorr)
+* all: remove CLA #2870 (@MikeMcQuaid)
+* build: Specify the embedded Windows icon as part of versioninfo.json #2770 (@sschuberth)
+* config,test: Testlib no global config #2709 (@mathstuf)
+* config: add PushRemote() for checking `branch.*.pushRemote` and `remote.pushDefault` first #2715 (@technoweenie)
+* docs: Added documentation for git-lfs-ls-files' `*/-` output. #2719 (@bilke)
+* docs: Uninstall man page improvements #2730 (@dpursehouse)
+* docs: Update usage info for post-checkout #2830 (@proinsias)
+* docs: add 'git lfs prune' to main man page #2849 (@larsxschneider)
+* docs: use consistent casing for Git #2850 (@larsxschneider)
+* git/githistory: have `*RefUpdater` hold `*odb.ObjectDatabase` reference #2779 (@ttaylorr)
+* progress: move CopyCallback (& related) to package 'tools' #2749 (@ttaylorr)
+* progress: move `*progressLogger` implementation to package 'tools' #2750 (@ttaylorr)
+* refspec docs #2820 (@technoweenie)
+* script/test: run 'go tool vet' during testing #2788 (@ttaylorr)
+* tasklog: introduce `*SimpleTask` #2756 (@ttaylorr)
+* test: Ignore comment attr lines #2708 (@mathstuf)
+* test: Wait longer for test lfs server to start. #2716 (@QuLogic)
+* test: ensure commented attr lines are ignored #2736 (@ttaylorr)
+* tools/humanize: add 'FormatByteRate' to format transfer speed #2810 (@ttaylorr)
+* vendor: update 'xeipuuv/gojsonpointer' #2846 (@ttaylorr)
+
 ## 2.3.4 (18 October, 2017)
 
 ### Features
