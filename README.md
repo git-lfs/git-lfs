@@ -140,6 +140,32 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@andyneff](https://github.com/andyneff) | [@rubyist](https://github.com/rubyist) | [@sinbad](https://github.com/sinbad) | [@technoweenie](https://github.com/technoweenie) | [@ttaylorr](https://github.com/ttaylorr) |
-|---|---|---|---|---|
-| [![](https://avatars1.githubusercontent.com/u/7596961?v=3&s=100)](https://github.com/andyneff) | [![](https://avatars1.githubusercontent.com/u/143?v=3&s=100)](https://github.com/rubyist) | [![](https://avatars1.githubusercontent.com/u/142735?v=3&s=100)](https://github.com/sinbad) | [![](https://avatars3.githubusercontent.com/u/21?v=3&s=100)](https://github.com/technoweenie) | [![](https://avatars3.githubusercontent.com/u/443245?v=3&s=100)](https://github.com/ttaylorr) |
+| [@larsxschneider][larsxschneider-user] | [@ttaylorr][ttaylorr-user] |
+|---|---|
+| [![][larsxschneider-img]][larsxschneider-user] | [![][ttaylorr-img]][ttaylorr-user] |
+
+[larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
+[ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
+[larsxschneider-user]: https://github.com/larsxschneider
+[ttaylorr-user]: https://github.com/ttaylorr
+
+### Alumni
+
+These are the humans that have in the past formed the Git LFS core team, or
+have otherwise contributed a significant amount to the project. Git LFS would
+not be possible without them.
+
+In alphabetical order:
+
+| [@andyneff][andyneff-user] | [@rubyist][rubyist-user] | [@sinbad][sinbad-user] | [@technoweenie][technoweenie-user] |
+|---|---|---|---|
+| [![][andyneff-img]][andyneff-user] | [![][rubyist-img]][rubyist-user] | [![][sinbad-img]][sinbad-user] | [![][technoweenie-img]][technoweenie-user] |
+
+[andyneff-img]: https://avatars1.githubusercontent.com/u/7596961?v=3&s=100
+[rubyist-img]: https://avatars1.githubusercontent.com/u/143?v=3&s=100
+[sinbad-img]: https://avatars1.githubusercontent.com/u/142735?v=3&s=100
+[technoweenie-img]: https://avatars3.githubusercontent.com/u/21?v=3&s=100
+[andyneff-user]: https://github.com/andyneff
+[sinbad-user]: https://github.com/sinbad
+[rubyist-user]: https://github.com/rubyist
+[technoweenie-user]: https://github.com/technoweenie
