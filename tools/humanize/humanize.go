@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/rubyist/tracerx"
 )
 
 const (
@@ -107,6 +108,7 @@ func FormatBytes(s uint64) string {
 	}
 
 	unit := uint64(math.Pow(1000, e))
+	tracerx.Printf("humanize.FormatBytes(%v) -> e=%v, unit=%v, index=%v", s, e, unit, int(e))
 	suffix := sizes[int(e)]
 
 	return fmt.Sprintf("%s %s",
