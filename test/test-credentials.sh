@@ -294,9 +294,9 @@ begin_test "credentials from lfs.url"
 (
   set -e
 
-  reponame="requirecreds"
+  reponame="requirecreds-lfsurl"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" requirecreds-lfsurl
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat"
   echo "push a" > a.dat
@@ -335,9 +335,9 @@ begin_test "credentials from remote.origin.url"
 (
   set -e
 
-  reponame="requirecreds"
+  reponame="requirecreds-remoteurl"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" requirecreds-remoteurl
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat"
   echo "push b" > b.dat

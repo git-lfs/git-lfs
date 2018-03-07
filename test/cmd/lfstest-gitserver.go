@@ -1246,7 +1246,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 }
 
 func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
-	if repo != "requirecreds" {
+	if !strings.HasPrefix(repo, "requirecreds") {
 		return false
 	}
 

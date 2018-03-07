@@ -30,7 +30,7 @@ begin_test "http.<url>.extraHeader with authorization"
 (
   set -e
 
-  reponame="requirecreds"
+  reponame="requirecreds-extraHeader"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
