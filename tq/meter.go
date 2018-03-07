@@ -2,6 +2,7 @@ package tq
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -238,8 +239,30 @@ func (m *Meter) str() string {
 		direction,
 		percentage,
 		m.finishedFiles, m.estimatedFiles,
-		humanize.FormatBytes(uint64(m.currentBytes)),
-		humanize.FormatByteRate(uint64(m.avgBytes), time.Second))
+		humanize.FormatBytes(clamp(m.currentBytes)),
+		humanize.FormatByteRate(clampf(m.avgBytes), time.Second))
+}
+
+// clamp clamps the given "x" within the acceptable domain of the uint64 integer
+// type, so as to prevent over- and underflow.
+func clamp(x int64) uint64 {
+	if x < 0 {
+		return 0
+	}
+	if x > math.MaxInt64 {
+		return math.MaxUint64
+	}
+	return uint64(x)
+}
+
+func clampf(x float64) uint64 {
+	if x < 0 {
+		return 0
+	}
+	if x > math.MaxUint64 {
+		return math.MaxUint64
+	}
+	return uint64(x)
 }
 
 func (m *Meter) logBytes(direction, name string, read, total int64) {

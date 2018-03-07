@@ -632,6 +632,7 @@ begin_test "push (with invalid object size)"
   set -e
 
   grep "invalid size (got: -1)" push.log
+  [ "0" -eq "$(grep -c "panic" push.log)" ]
   [ "0" -ne "$res" ]
 
   refute_server_object "$reponame" "$(calc_oid "$contents")"
