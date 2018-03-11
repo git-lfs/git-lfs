@@ -32,6 +32,8 @@ var (
 
 	// migrateVerbose enables verbose logging
 	migrateVerbose bool
+
+	migrateNoRewrite bool
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -281,6 +283,7 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
+	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new commits on top")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
@@ -16,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -29,8 +31,58 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	}
 	defer db.Close()
 
-	rewriter := getHistoryRewriter(cmd, db, l)
+	if migrateNoRewrite {
+		ref, err := git.CurrentRef()
+		if err != nil {
+			ExitWithError(err)
+		}
 
+		tracerx.Printf("finding commit %x", ref.Sha)
+		sha, _ := hex.DecodeString(ref.Sha)
+		commit, err := db.Commit(sha)
+		if err != nil {
+			ExitWithError(err)
+		}
+		tracerx.Printf("found commit")
+
+		root, err := db.Tree(commit.TreeID)
+		if err != nil {
+			ExitWithError(err)
+		}
+		tracerx.Printf("found tree")
+
+		name, email := cfg.CurrentCommitter()
+		author := fmt.Sprintf("%s <%s>", name, email)
+
+		include, _ := getIncludeExcludeArgs(cmd)
+		inc, _ := determineIncludeExcludePaths(cfg, include, nil)
+
+		for _, include := range inc {
+			tree, err := rewriteTree(db, root, include)
+			if err != nil {
+				ExitWithError(errors.Wrapf(err, "migrate: could not rewrite: %s", include))
+			}
+
+			sha, _ := hex.DecodeString(ref.Sha)
+			oid, err := db.WriteCommit(&odb.Commit{
+				Author:    author,
+				Committer: author,
+				ParentIDs: [][]byte{sha},
+				Message:   fmt.Sprintf("%s: convert to LFS", include),
+				TreeID:    tree,
+			})
+
+			if err := git.UpdateRef(ref, oid, fmt.Sprintf("convert %s to LFS", include)); err != nil {
+				ExitWithError(err)
+			}
+
+			ref, _ = git.CurrentRef()
+		}
+
+		return
+	}
+
+	rewriter := getHistoryRewriter(cmd, db, l)
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
 	gitfilter := lfs.NewGitFilter(cfg)
@@ -200,4 +252,74 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 		Contents: &attrs,
 		Size:     int64(attrs.Len()),
 	})
+}
+
+func rewriteTree(db *odb.ObjectDatabase, root *odb.Tree, path string) ([]byte, error) {
+	tracerx.Printf("rewriteTree: %s", path)
+	splits := strings.SplitN(path, "/", 2)
+
+	switch len(splits) {
+	case 1:
+		entry := root.Entries[findEntry(root, splits[0])]
+
+		blob, err := db.Blob(entry.Oid)
+		if err != nil {
+			return nil, err
+		}
+
+		var buf bytes.Buffer
+
+		ptr, err := clean(lfs.NewGitFilter(cfg), &buf, blob.Contents, entry.Name, blob.Size)
+		if err != nil {
+			return nil, err
+		}
+
+		ptrOid, err := db.WriteBlob(&odb.Blob{
+			Contents: strings.NewReader(ptr.Encoded()),
+			Size:     int64(len(ptr.Encoded())),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		tree := root.Merge(&odb.TreeEntry{
+			Name:     splits[0],
+			Filemode: entry.Filemode,
+			Oid:      ptrOid,
+		})
+
+		return db.WriteTree(tree)
+	default:
+		hd, tl := splits[0], splits[1]
+
+		entry := root.Entries[findEntry(root, hd)]
+		if entry.Type() != odb.TreeObjectType {
+			return nil, errors.Errorf("migrate: expected tree, got %s", entry.Type())
+		}
+
+		tree, err := db.Tree(entry.Oid)
+		if err != nil {
+			return nil, err
+		}
+
+		rewritten, err := rewriteTree(db, tree, tl)
+		if err != nil {
+			return nil, err
+		}
+
+		return db.WriteTree(tree.Merge(&odb.TreeEntry{
+			Filemode: entry.Filemode,
+			Name:     entry.Name,
+			Oid:      rewritten,
+		}))
+	}
+}
+
+func findEntry(t *odb.Tree, name string) int {
+	for i := 0; i < len(t.Entries); i++ {
+		if t.Entries[i].Name == name {
+			return i
+		}
+	}
+	return -1
 }
