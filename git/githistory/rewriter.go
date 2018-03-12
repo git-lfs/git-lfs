@@ -465,29 +465,7 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 // refsToMigrate returns a list of references to migrate, or an error if loading
 // those references failed.
 func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
-	var refs []*git.Ref
-	var err error
-
-	if root, ok := r.db.Root(); ok {
-		refs, err = git.AllRefsIn(root)
-	} else {
-		refs, err = git.AllRefs()
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	var local []*git.Ref
-	for _, ref := range refs {
-		if ref.Type == git.RefTypeRemoteBranch || ref.Type == git.RefTypeRemoteTag {
-			continue
-		}
-
-		local = append(local, ref)
-	}
-
-	return local, nil
+	return NewRefFinder(r.db, RefFinderLocalOnly).FindRefs()
 }
 
 // scannerOpts returns a *git.ScanRefsOptions instance to be given to the

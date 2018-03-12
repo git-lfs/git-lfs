@@ -32,54 +32,54 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	defer db.Close()
 
 	if migrateNoRewrite {
-		ref, err := git.CurrentRef()
-		if err != nil {
-			ExitWithError(err)
-		}
-
-		tracerx.Printf("finding commit %x", ref.Sha)
-		sha, _ := hex.DecodeString(ref.Sha)
-		commit, err := db.Commit(sha)
-		if err != nil {
-			ExitWithError(err)
-		}
-		tracerx.Printf("found commit")
-
-		root, err := db.Tree(commit.TreeID)
-		if err != nil {
-			ExitWithError(err)
-		}
-		tracerx.Printf("found tree")
-
 		name, email := cfg.CurrentCommitter()
 		author := fmt.Sprintf("%s <%s>", name, email)
 
 		include, _ := getIncludeExcludeArgs(cmd)
 		inc, _ := determineIncludeExcludePaths(cfg, include, nil)
 
-		for _, include := range inc {
-			tree, err := rewriteTree(db, root, include)
-			if err != nil {
-				ExitWithError(errors.Wrapf(err, "migrate: could not rewrite: %s", include))
+		w := githistory.NewWriter(db, l, func(c *odb.Commit) ([]*githistory.Pending, error) {
+			pendings := make([]*githistory.Pending, 0, len(inc))
+
+			for _, include := range inc {
+				tid, err := rewriteTree(db, c.TreeID, include)
+				if err != nil {
+					return nil, err
+				}
+
+				tree, _ := db.Tree(tid)
+
+				// TODO(@ttaylorr): returning a slice of
+				// []*githistory.Pending is not a useful
+				// interface, since any change will introduce a
+				// diff unless otherwise persisted.
+				//
+				// It may be more suitable to return one pending
+				// commit, instead.
+				//
+				// This would also require that all `--include`
+				// invocations be grouped into a single commit.
+				pendings = append(pendings, &githistory.Pending{
+					Author:    author,
+					Committer: author,
+					Message:   fmt.Sprintf("%s: convert to LFS", include),
+
+					Tree: tree,
+				})
 			}
 
-			sha, _ := hex.DecodeString(ref.Sha)
-			oid, err := db.WriteCommit(&odb.Commit{
-				Author:    author,
-				Committer: author,
-				ParentIDs: [][]byte{sha},
-				Message:   fmt.Sprintf("%s: convert to LFS", include),
-				TreeID:    tree,
-			})
+			return pendings, nil
+		})
 
-			if err := git.UpdateRef(ref, oid, fmt.Sprintf("convert %s to LFS", include)); err != nil {
-				ExitWithError(err)
-			}
-
-			ref, _ = git.CurrentRef()
+		ref, err := git.CurrentRef()
+		if err != nil {
+			ExitWithError(errors.Warp(err, "migrate: could not find starting ref"))
 		}
 
-		return
+		if _, err := w.Write(sha); err != nil {
+			ExitWithError(errors.Warp(err, "migrate: could not commit change"))
+		}
+		ExitWithError
 	}
 
 	rewriter := getHistoryRewriter(cmd, db, l)
@@ -254,9 +254,14 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 	})
 }
 
-func rewriteTree(db *odb.ObjectDatabase, root *odb.Tree, path string) ([]byte, error) {
+func rewriteTree(db *odb.ObjectDatabase, oid []byte, path string) ([]byte, error) {
 	tracerx.Printf("rewriteTree: %s", path)
 	splits := strings.SplitN(path, "/", 2)
+
+	root, err := db.Tree(oid)
+	if err != nil {
+		return nil, err
+	}
 
 	switch len(splits) {
 	case 1:
@@ -297,12 +302,7 @@ func rewriteTree(db *odb.ObjectDatabase, root *odb.Tree, path string) ([]byte, e
 			return nil, errors.Errorf("migrate: expected tree, got %s", entry.Type())
 		}
 
-		tree, err := db.Tree(entry.Oid)
-		if err != nil {
-			return nil, err
-		}
-
-		rewritten, err := rewriteTree(db, tree, tl)
+		rewritten, err := rewriteTree(db, entry.Oid, tl)
 		if err != nil {
 			return nil, err
 		}
