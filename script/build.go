@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -25,6 +27,7 @@ var (
 	BuildDwarf   = flag.Bool("dwarf", false, "Includes DWARF tables in build artifacts")
 	BuildLdFlags = flag.String("ldflags", "", "-ldflags to pass to the compiler")
 	BuildGcFlags = flag.String("gcflags", "", "-gcflags to pass to the compiler")
+	BuildTarball = flag.Bool("tarball", true, "Compress the source directory")
 	ShowHelp     = flag.Bool("help", false, "Shows help")
 	matrixKeys   = map[string]string{
 		"darwin":  "Mac",
@@ -32,6 +35,7 @@ var (
 		"linux":   "Linux",
 		"windows": "Windows",
 		"amd64":   "AMD64",
+		"tar":     "Tarball",
 	}
 	LdFlags []string
 )
@@ -92,6 +96,37 @@ func mainBuild() {
 		}
 	}
 
+	if *BuildTarball {
+		name := fmt.Sprintf("bin/releases/git-lfs-%s.tar.gz", config.Version)
+		os.MkdirAll(filepath.Dir(name), 0755)
+
+		f, err := os.Create(name)
+		if err == nil {
+			gz := gzip.NewWriter(f)
+			sha := sha256.New()
+
+			if err = buildTarball(io.MultiWriter(gz)); err != nil {
+				errored = true
+			}
+
+			if err = gz.Close(); err != nil {
+				errored = true
+			}
+
+			if err = f.Close(); err != nil {
+				errored = true
+			}
+
+			buildMatrix[key("tar")] = Release{
+				Label:    "Tarball",
+				Filename: f.Name(),
+				SHA256:   hex.EncodeToString(sha.Sum(nil)),
+			}
+		} else {
+			errored = true
+		}
+	}
+
 	if errored {
 		os.Exit(1)
 	}
@@ -116,6 +151,71 @@ func mainBuild() {
 	if jsonSize := len(by); written != jsonSize {
 		log.Fatalf("Expected to write %d bytes, actually wrote %d.\n", jsonSize, written)
 	}
+}
+
+func buildTarball(w io.Writer) error {
+	root, err := gitRoot()
+	if err != nil {
+		return err
+	}
+
+	tw := tar.NewWriter(w)
+
+	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, _ := filepath.Rel(root, path)
+		if rel == ".git" {
+			return filepath.SkipDir
+		} else if filepath.Base(rel) == ".DS_Store" {
+			return nil
+		}
+
+		var link string = path
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, err = os.Readlink(path)
+			if err != nil {
+				return err
+			}
+		}
+
+		hdr, err := tar.FileInfoHeader(info, link)
+		if err != nil {
+			return err
+		}
+		hdr.Name, _ = filepath.Rel(root, path)
+
+		if err := tw.WriteHeader(hdr); err != nil {
+			return err
+		}
+
+		if (info.Mode()&os.ModeDir) == 0 && (info.Mode()&os.ModeSymlink) == 0 {
+			f, err := os.OpenFile(link, os.O_RDONLY, 0)
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(tw, f); err != nil {
+				return err
+			}
+			return f.Close()
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return tw.Close()
+}
+
+func gitRoot() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func build(buildos, buildarch string, buildMatrix map[string]Release) error {
