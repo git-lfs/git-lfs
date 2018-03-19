@@ -26,13 +26,13 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
-      GOPATH: ~/go
-      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}
       - run: echo go git gettext | xargs brew link --force
+      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run:
           command: ./script/integration
           environment:
@@ -43,9 +43,7 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
-      GOPATH: ~/go
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
-      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
@@ -56,6 +54,8 @@ jobs:
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
+      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run:
           command: ./script/integration
           environment:
@@ -66,9 +66,7 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
-      GOPATH: ~/go
       GIT_LATEST_SOURCE_BRANCH: master
-      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
@@ -79,6 +77,8 @@ jobs:
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
+      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run:
           command: ./script/integration
           environment:
