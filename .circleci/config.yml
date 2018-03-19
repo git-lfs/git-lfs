@@ -4,7 +4,7 @@ jobs:
   bootstrap:
     macos:
       xcode: "9.2.0"
-    working_directory: /go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/go/src/github.com/git-lfs/git-lfs
     steps:
       - checkout
       - run: brew update
@@ -21,7 +21,7 @@ jobs:
   build_with_system_git:
     macos:
       xcode: "9.2.0"
-    working_directory: /go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
@@ -34,7 +34,7 @@ jobs:
   build_with_earliest_supported_git:
     macos:
       xcode: "9.2.0"
-    working_directory: /go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
@@ -53,7 +53,7 @@ jobs:
   build_with_latest_git:
     macos:
       xcode: "9.2.0"
-    working_directory: /go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_LATEST_SOURCE_BRANCH: master
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
