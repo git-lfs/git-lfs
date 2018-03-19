@@ -4,7 +4,7 @@ jobs:
   bootstrap:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~
     steps:
       - run: git clone https://github.com/git-lfs/git-lfs.git ~/git-lfs
       - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
@@ -13,7 +13,7 @@ jobs:
       - run: brew upgrade go || brew install go
       - run: brew upgrade git || brew install git
       - run: brew upgrade gettext || brew install gettext
-      - run: git clone https://github.com/git/git.git git-source
+      - run: git clone https://github.com/git/git.git ~/git-lfs/git-source
       - run: go get -d -v github.com/spf13/cobra
       - run: go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
       - run: mkdir -p ~/git-lfs/.go/src/github.com/git-lfs
