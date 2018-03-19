@@ -3,7 +3,7 @@ version: 2
 jobs:
   bootstrap:
     macos:
-      xcode: "8.2"
+      xcode: "9.2.0"
     working_directory: /go/src/github.com/git-lfs/git-lfs
     steps:
       - checkout
@@ -20,7 +20,7 @@ jobs:
 
   build_with_system_git:
     macos:
-      xcode: "8.2"
+      xcode: "9.2.0"
     working_directory: /go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
@@ -33,7 +33,7 @@ jobs:
 
   build_with_earliest_supported_git:
     macos:
-      xcode: "8.2"
+      xcode: "9.2.0"
     working_directory: /go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
@@ -52,7 +52,7 @@ jobs:
 
   build_with_latest_git:
     macos:
-      xcode: "8.2"
+      xcode: "9.2.0"
     working_directory: /go/src/github.com/git-lfs/git-lfs
     environment:
       GIT_LATEST_SOURCE_BRANCH: master
