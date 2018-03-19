@@ -27,9 +27,9 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - run:
-          command: script/integration
+          command: ./script/integration
           environment:
-            PATH: "$HOME/bin:$PATH"
+            PATH: "~/go/bin:$PATH"
 
   build_with_earliest_supported_git:
     macos:
@@ -41,14 +41,14 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - run:
-          command: script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
+          command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run:
-          command: script/integration
+          command: ./script/integration
           environment:
-            PATH: "$HOME/bin:$PATH"
+            PATH: "~/go/bin:$PATH"
 
   build_with_latest_git:
     macos:
@@ -60,14 +60,14 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - run:
-          command: script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
+          command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run:
-          command: script/integration
+          command: ./script/integration
           environment:
-            PATH: "$HOME/bin:$PATH"
+            PATH: "~/go/bin:$PATH"
 
 workflows:
   version: 2
