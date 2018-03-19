@@ -34,7 +34,7 @@ jobs:
       - restore_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
       - run: echo go git gettext | xargs brew link --force
-      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
       - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
       - run: pwd && ./script/integration
@@ -55,7 +55,7 @@ jobs:
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
-      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
       - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
       - run: pwd && ./script/integration
@@ -76,7 +76,7 @@ jobs:
           environment:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
-      - run: echo 'export GOPATH=~/go' >> $BASH_ENV
+      - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
       - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
       - run: pwd && ./script/integration
