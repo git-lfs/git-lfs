@@ -32,11 +32,9 @@ jobs:
           key: git-lfs-{{ .Branch }}
       - run: echo go git gettext | xargs brew link --force
       - run: echo 'export GOPATH=~/go' >> $BASH_ENV
-      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
-      - run:
-          command: ./script/integration
-          environment:
-            PATH: "~/go/bin:$PATH"
+      - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
+      - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
+      - run: pwd && ./script/integration
 
   build_with_earliest_supported_git:
     macos:
@@ -55,11 +53,9 @@ jobs:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo 'export GOPATH=~/go' >> $BASH_ENV
-      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
-      - run:
-          command: ./script/integration
-          environment:
-            PATH: "~/go/bin:$PATH"
+      - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
+      - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
+      - run: pwd && ./script/integration
 
   build_with_latest_git:
     macos:
@@ -78,11 +74,9 @@ jobs:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo 'export GOPATH=~/go' >> $BASH_ENV
-      - run: echo 'GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
-      - run:
-          command: ./script/integration
-          environment:
-            PATH: "~/go/bin:$PATH"
+      - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
+      - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
+      - run: pwd && ./script/integration
 
 workflows:
   version: 2
