@@ -18,7 +18,7 @@ jobs:
       - run: go get -d -v github.com/spf13/cobra
       - run: go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
       - save_cache:
-          key: git-lfs-{{ epoch }}
+          key: git-lfs-{{ .Branch }}
           paths:
             - /usr/local/Cellar
             - ~/go
@@ -32,7 +32,7 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ epoch }}
+          key: git-lfs-{{ .Branch }}
       - run:
           command: ./script/integration
           environment:
@@ -48,7 +48,7 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ epoch }}
+          key: git-lfs-{{ .Branch }}
       - run:
           command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
           environment:
@@ -69,7 +69,7 @@ jobs:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ epoch }}
+          key: git-lfs-{{ .Branch }}
       - run:
           command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
           environment:
