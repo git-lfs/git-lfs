@@ -26,6 +26,7 @@ jobs:
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
+      - checkout
       - run:
           command: ./script/integration
           environment:
@@ -40,6 +41,7 @@ jobs:
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
+      - checkout
       - run:
           command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
           environment:
@@ -59,6 +61,7 @@ jobs:
       GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
+      - checkout
       - run:
           command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
           environment:
