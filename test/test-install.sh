@@ -231,6 +231,12 @@ begin_test "install --local outside repository"
 
   has_test_dir || exit 0
 
+  pwd
+
+  echo "$GIT_LFS_TEST_DIR"
+
+  exit 1
+
   git lfs install --local 2> err.log
   res=$?
 
