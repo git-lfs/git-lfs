@@ -6,7 +6,8 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     steps:
-      - checkout
+      - run: git clone https://github.com/git-lfs/git-lfs.git ~/git-lfs
+      - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
       - run: brew update
       - run: brew prune
       - run: brew upgrade go || brew install go
@@ -15,12 +16,12 @@ jobs:
       - run: git clone https://github.com/git/git.git git-source
       - run: go get -d -v github.com/spf13/cobra
       - run: go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
-      - run: ln -s ~/go/src/github.com/git-lfs/git-lfs ~/git-lfs
+      - run: mkdir -p ~/git-lfs/.go/src/github.com/git-lfs
+      - run: ln -s ~/git-lfs ~/git-lfs/.go/src/github.com/git-lfs
       - save_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
           paths:
             - /usr/local/Cellar
-            - ~/go
             - ~/git-lfs
 
   build_with_system_git:
