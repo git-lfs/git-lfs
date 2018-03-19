@@ -15,21 +15,23 @@ jobs:
       - run: git clone https://github.com/git/git.git git-source
       - run: go get -d -v github.com/spf13/cobra
       - run: go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
+      - run: ln -s ~/go/src/github.com/git-lfs/git-lfs ~/git-lfs
       - save_cache:
-          key: git-lfs-{{ .Branch }}
+          key: git-lfs-{{ .Branch }}-{{ .Revision }}
           paths:
             - /usr/local/Cellar
             - ~/go
+            - ~/git-lfs
 
   build_with_system_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/git-lfs
     environment:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ .Branch }}
+          key: git-lfs-{{ .Branch }}-{{ .Revision }}
       - run: echo go git gettext | xargs brew link --force
       - run: echo 'export GOPATH=~/go' >> $BASH_ENV
       - run: echo 'export GIT_LFS_TEST_DIR=~/git-lfs-tests' >> $BASH_ENV
@@ -39,13 +41,13 @@ jobs:
   build_with_earliest_supported_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/git-lfs
     environment:
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ .Branch }}
+          key: git-lfs-{{ .Branch }}-{{ .Revision }}
       - run: echo go git gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
@@ -60,13 +62,13 @@ jobs:
   build_with_latest_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/git-lfs
     environment:
       GIT_LATEST_SOURCE_BRANCH: master
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
-          key: git-lfs-{{ .Branch }}
+          key: git-lfs-{{ .Branch }}-{{ .Revision }}
       - run: echo go git gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
