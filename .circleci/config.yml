@@ -12,7 +12,6 @@ jobs:
       - run: brew upgrade go || brew install go
       - run: brew upgrade git || brew install git
       - run: brew upgrade gettext || brew install gettext
-      - run: brew link --force gettext
       - run: git clone https://github.com/git/git.git git-source
       - run: script/bootstrap
       - run: go get -d -v github.com/spf13/cobra
@@ -33,6 +32,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}
+      - run: echo go git gettext | xargs brew link --force
       - run:
           command: ./script/integration
           environment:
@@ -49,6 +49,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}
+      - run: echo go git gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
           environment:
@@ -70,6 +71,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}
+      - run: echo go git gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
           environment:
