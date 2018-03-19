@@ -26,7 +26,8 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
-      GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
+      GOPATH: ~/go
+      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
@@ -42,8 +43,9 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
+      GOPATH: ~/go
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
-      GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
+      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
@@ -64,8 +66,9 @@ jobs:
       xcode: "9.2.0"
     working_directory: ~/go/src/github.com/git-lfs/git-lfs
     environment:
+      GOPATH: ~/go
       GIT_LATEST_SOURCE_BRANCH: master
-      GIT_LFS_TEST_DIR: $HOME/git-lfs-tests
+      GIT_LFS_TEST_DIR: ~/git-lfs-tests
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
       - restore_cache:
