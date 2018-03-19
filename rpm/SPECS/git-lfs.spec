@@ -36,6 +36,10 @@ ln -s $(pwd) src/github.com/git-lfs/%{name}
 pushd src/github.com/git-lfs/%{name}
   %if %{_arch} == i386
     GOARCH=386 ./script/bootstrap
+  %else if %{_arch} == arm
+    GOARCH=arm ./script/bootstrap
+  %else if %{_arch} == arm64
+    GOARCH=arm64 ./script/bootstrap
   %else
     GOARCH=amd64 ./script/bootstrap
   %endif
