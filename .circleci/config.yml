@@ -72,12 +72,14 @@ jobs:
 workflows:
   version: 2
   build:
-    - build_with_earliest_supported_git:
-        requires:
-          - bootstrap
-    - build_with_latest_git:
-        requires:
-          - bootstrap
-    - build_with_system_git:
-        requires:
-          - bootstrap
+    jobs:
+      - bootstrap
+      - build_with_earliest_supported_git:
+          requires:
+            - bootstrap
+      - build_with_latest_git:
+          requires:
+            - bootstrap
+      - build_with_system_git:
+          requires:
+            - bootstrap
