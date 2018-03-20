@@ -36,7 +36,8 @@ jobs:
       - run: echo go git gettext | xargs brew link --force
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
-      - run: ./script/cibuild
+      - run:
+          command: script/cibuild
           environment:
             GIT_LFS_TEST_DIR: /var/git-lfs/tests
 
@@ -58,7 +59,8 @@ jobs:
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
-      - run: ./script/cibuild
+      - run:
+          command: script/cibuild
           environment:
             GIT_LFS_TEST_DIR: /var/git-lfs/tests
 
@@ -80,7 +82,8 @@ jobs:
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
       - run: echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
-      - run: ./script/cibuild
+      - run:
+          command: script/cibuild
           environment:
             GIT_LFS_TEST_DIR: /var/git-lfs/tests
 
