@@ -13,7 +13,7 @@ jobs:
       - run: brew upgrade git || brew install git
       - run: brew upgrade gettext || brew install gettext
       - run:
-          command: git clone https://github.com/git/git.git git-lfs/git-source
+          command: git clone https://github.com/git/git.git git-source
           working_directory: ~/go/src/github.com/git-lfs/git-lfs
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
       - run: go get -d -v github.com/spf13/cobra
