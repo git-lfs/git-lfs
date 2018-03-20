@@ -35,7 +35,7 @@ jobs:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
       - run: echo go gettext | xargs brew link --force
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
-      - run: echo "export PATH=$GOPATH/bin:$PATH" >> $BASH_ENV
+      - run: echo "export PATH=$HOME/bin:$GOPATH/bin:$PATH" >> $BASH_ENV
       - run: echo "export GIT_LFS_TEST_DIR=$HOME/git-lfs-tests" >> $BASH_ENV
       - run: script/cibuild
 
@@ -56,7 +56,7 @@ jobs:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
-      - run: echo "export PATH=$GOPATH/bin:$PATH" >> $BASH_ENV
+      - run: echo "export PATH=$HOME/bin:$GOPATH/bin:$PATH" >> $BASH_ENV
       - run: echo "export GIT_LFS_TEST_DIR=$HOME/git-lfs-tests" >> $BASH_ENV
       - run: script/cibuild
 
@@ -77,7 +77,7 @@ jobs:
             NO_OPENSSL: YesPlease
             APPLE_COMMON_CRYPTO: YesPlease
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
-      - run: echo "export PATH=$GOPATH/bin:$PATH" >> $BASH_ENV
+      - run: echo "export PATH=$HOME/bin:$GOPATH/bin:$PATH" >> $BASH_ENV
       - run: echo "export GIT_LFS_TEST_DIR=$HOME/git-lfs-tests" >> $BASH_ENV
       - run: script/cibuild
 
