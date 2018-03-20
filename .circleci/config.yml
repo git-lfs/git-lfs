@@ -33,7 +33,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
-      - run: echo go git gettext | xargs brew link --force
+      - run: echo go gettext | xargs brew link --force
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
       - run: echo "export PATH=$GOPATH/bin:$PATH" >> $BASH_ENV
       - run: echo "export GIT_LFS_TEST_DIR=$HOME/git-lfs-tests" >> $BASH_ENV
@@ -49,7 +49,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
-      - run: echo go git gettext | xargs brew link --force
+      - run: echo go gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_EARLIEST_SUPPORTED_VERSION"
           environment:
@@ -70,7 +70,7 @@ jobs:
     steps:
       - restore_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
-      - run: echo go git gettext | xargs brew link --force
+      - run: echo go gettext | xargs brew link --force
       - run:
           command: ./script/install-git-source "$GIT_LATEST_SOURCE_BRANCH"
           environment:
