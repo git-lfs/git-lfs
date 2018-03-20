@@ -7,6 +7,7 @@ jobs:
     working_directory: ~
     steps:
       - run: git clone https://github.com/git-lfs/git-lfs.git ~/git-lfs
+      - run: cd ~/git-lfs && git reset --hard "$CIRCLE_SHA1"
       - run: echo 'export GOPATH=~/git-lfs/.go' >> $BASH_ENV
       - run: brew update
       - run: brew prune
