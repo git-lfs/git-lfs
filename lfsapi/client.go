@@ -23,20 +23,37 @@ import (
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 
 var (
-	UserAgent = "git-lfs"
-	httpRE    = regexp.MustCompile(`\Ahttps?://`)
+	UserAgent                 = "git-lfs"
+	httpRE                    = regexp.MustCompile(`\Ahttps?://`)
+	maxSshAuthenticateRetries = 5
 )
 
-func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
-	sshRes, err := c.SSH.Resolve(e, method)
-	if err != nil {
+func (c *Client) sshResolveWithRetries(e Endpoint, method string) (sshAuthResponse, error) {
+	var sshRes sshAuthResponse
+	var err error
+
+	requests := tools.MaxInt(0, maxSshAuthenticateRetries) + 1
+	for i := 0; i < requests; i++ {
+		sshRes, err = c.SSH.Resolve(e, method)
+		if err == nil {
+			return sshRes, nil
+		}
+
 		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
 			e.SshUserAndHost, err.Error(), sshRes.Message,
 		)
+	}
 
-		if len(sshRes.Message) > 0 {
-			return nil, errors.Wrap(err, sshRes.Message)
-		}
+	if len(sshRes.Message) > 0 {
+		return sshAuthResponse{}, errors.Wrap(err, sshRes.Message)
+	}
+
+	return sshAuthResponse{}, err
+}
+
+func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	sshRes, err := c.sshResolveWithRetries(e, method)
+	if err != nil {
 		return nil, err
 	}
 
