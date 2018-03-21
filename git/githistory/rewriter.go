@@ -268,8 +268,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 				return nil, err
 			}
 			if objectMapFile != nil {
-				_, err := fmt.Fprintf(objectMapFile, "%s,%s\n", hex.EncodeToString(oid), hex.EncodeToString(newSha))
-				if err != nil {
+				if _, err := fmt.Fprintf(objectMapFile, "%x,%x\n", oid, newSha); err != nil {
 					return nil, err
 				}
 			}
