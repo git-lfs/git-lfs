@@ -45,15 +45,15 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	seen := make(map[string]struct{})
 
 	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			Exit("Could not scan for Git LFS tree: %s", err)
+			return
+		}
+
 		if !lsFilesScanAll {
 			if _, ok := seen[p.Name]; ok {
 				return
 			}
-		}
-
-		if err != nil {
-			Exit("Could not scan for Git LFS tree: %s", err)
-			return
 		}
 
 		if debug {
