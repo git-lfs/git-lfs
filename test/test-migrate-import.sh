@@ -616,3 +616,24 @@ begin_test "migrate import (handle copies of files)"
   [ "$oid_root" = "$oid_root_after_migration" ]
 )
 end_test
+
+begin_test "migrate import (--include with space)"
+(
+  set -e
+
+  setup_local_branch_with_space
+
+  oid="$(calc_oid "$(git cat-file -p :"a file.txt")")"
+
+  git lfs migrate import --include "a file.txt"
+
+  assert_pointer "refs/heads/master" "a file.txt" "$oid" 50
+  cat .gitattributes
+  if [ 1 -ne "$(grep -c "a\[\[:space:\]\]file.txt" .gitattributes)" ]; then
+    echo >&2 "fatal: expected \"a[[:space:]]file.txt\" to appear in .gitattributes"
+    echo >&2 "fatal: got"
+    sed -e 's/^/  /g' < .gitattributes >&2
+    exit 1
+  fi
+)
+end_test
