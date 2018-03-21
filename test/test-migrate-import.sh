@@ -630,6 +630,6 @@ begin_test "migrate import (--object-map)"
   git log --all --pretty='format:%H' > "${output_dir}/new_sha.txt"
   paste -d',' "${output_dir}/old_sha.txt" "${output_dir}/new_sha.txt" > "${output_dir}/expected-map.txt"
 
-  diff -u "${output_dir}/expected-map.txt" "${output_dir}/object-map.txt"
+  diff -u <(sort "${output_dir}/expected-map.txt") <(sort "${output_dir}/object-map.txt")
 )
 end_test
