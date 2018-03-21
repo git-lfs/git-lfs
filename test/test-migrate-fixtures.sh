@@ -79,6 +79,27 @@ setup_multiple_local_branches() {
   git checkout master
 }
 
+# setup_local_branch_with_space creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 50 bytes in a file named "a file.txt".
+setup_local_branch_with_space() {
+  set -e
+
+  reponame="migrate-local-branch-with-space"
+  filename="a file.txt"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 50 > "$filename"
+
+  git add "$filename"
+  git commit -m "initial commit"
+}
+
 # setup_single_remote_branch creates a repository as follows:
 #
 #   A---B
