@@ -91,7 +91,9 @@ func mergetoolCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if writeToTemp && !keepTemporaries {
-			os.Remove(common.Name())
+			if common != nil {
+				os.Remove(common.Name())
+			}
 			os.Remove(head.Name())
 			os.Remove(mergeHead.Name())
 		}
@@ -120,10 +122,14 @@ func (m *MergeTool) Cmd(conflict *git.Conflict) *exec.Cmd {
 		cmd.Path = m.Path
 	}
 	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("BASE=%s", conflict.Common),
 		fmt.Sprintf("LOCAL=%s", conflict.Head),
 		fmt.Sprintf("REMOTE=%s", conflict.MergeHead),
 		fmt.Sprintf("MERGE=%s", conflict.Path))
+
+	if conflict.Common != missing {
+		cmd.Env = append(cmd.Env,
+			fmt.Sprintf("BASE=%s", conflict.Common))
+	}
 
 	return cmd
 }
@@ -133,15 +139,20 @@ func findMergeTool(r *gitattributes.Repository, path string) *MergeTool {
 	var tool string = mergeToolTool
 
 	if len(tool) == 0 {
+		fmt.Println("A")
 		tool, configured = cfg.Git.Get("merge.tool")
 		if !configured {
-			tool, _ = r.Applied(path)["merge"]
+			fmt.Println("B")
+			tool, _ = r.Applied(path)["mergetool"]
+			fmt.Println("C", tool)
 		}
 	}
 
 	tpath, _ := cfg.Git.Get(fmt.Sprintf("mergetool.%s.path", tool))
 	name, _ := cfg.Git.Get(fmt.Sprintf("mergetool.%s.cmd", tool))
 	trust := cfg.Git.Bool(fmt.Sprintf("mergetool.%s.trustExitCode", tool), configured)
+
+	panic(fmt.Sprintf("%s %s %s", tpath, name, trust))
 
 	return &MergeTool{
 		Path:  tpath,
@@ -166,9 +177,16 @@ func createMergeBackup(name string) (*os.File, error) {
 		fi.Mode())
 }
 
-func mergeSmudge(db *odb.ObjectDatabase, dirname, oid string) (*os.File, error) {
-	sha, _ := hex.DecodeString(oid)
+var (
+	missing = "0000000000000000000000000000000000000000"
+)
 
+func mergeSmudge(db *odb.ObjectDatabase, dirname, oid string) (*os.File, error) {
+	if oid == missing {
+		return nil, nil
+	}
+
+	sha, _ := hex.DecodeString(oid)
 	blob, err := db.Blob(sha)
 	if err != nil {
 		return nil, err
