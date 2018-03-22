@@ -297,6 +297,13 @@ func requireInRepo() {
 	}
 }
 
+func requireInWorkTree() {
+	if cfg.LocalWorkingDir() == "" {
+		Print("This operation must be run in a work tree.")
+		os.Exit(128)
+	}
+}
+
 func handlePanic(err error) string {
 	if err == nil {
 		return ""
