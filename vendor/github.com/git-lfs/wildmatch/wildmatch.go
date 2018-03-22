@@ -21,6 +21,12 @@ var (
 	// according to whether or not the operating system on which Wildmatch
 	// runs supports case sensitive files or not.
 	SystemCase opt
+
+	// Pathname allows '*' to match across directory separators, similar to
+	// Git's WM_PATHNAME option.
+	Pathname opt = func(w *Wildmatch) {
+		w.pathname = true
+	}
 )
 
 const (
@@ -40,6 +46,9 @@ type Wildmatch struct {
 	// caseFold allows the instance Wildmatch to match patterns with the
 	// same character but different case structures.
 	caseFold bool
+	// pathname indicates that '*' characters are allowed to match through
+	// directory separators.
+	pathname bool
 }
 
 // NewWildmatch constructs a new Wildmatch instance which matches filepaths
@@ -54,12 +63,17 @@ func NewWildmatch(p string, opts ...opt) *Wildmatch {
 		opt(w)
 	}
 
+	var pattern string = w.p
+
 	if w.caseFold {
 		// Before parsing the pattern, convert it to lower-case.
-		w.p = strings.ToLower(w.p)
+		pattern = strings.ToLower(pattern)
+	}
+	if w.pathname {
+		pattern = pathname(pattern)
 	}
 
-	w.ts = parseTokens(strings.Split(w.p, string(sep)))
+	w.ts = parseTokens(strings.Split(pattern, string(sep)))
 
 	return w
 }
@@ -68,6 +82,32 @@ const (
 	// escapes is a constant string containing all escapable characters
 	escapes = "\\[]*?"
 )
+
+// pathname converts patterns of the form "foo*.txt" to "foo/**/*.txt", thus
+// in-effect allowing the "*" operator to match multiple directory levels at
+// once.
+func pathname(p string) string {
+	var pn string
+	for i := 0; i < len(p); {
+		if p[i] == '*' {
+			if i+1 < len(p) && p[i+1] == '*' {
+				pn += "**"
+				i += 2
+			} else {
+				if len(pn) > 0 && !strings.HasSuffix(pn, "/") {
+					pn += "/"
+				}
+				pn += "**/*"
+				i += 1
+			}
+		} else {
+			pn += string(p[i])
+			i += 1
+		}
+	}
+
+	return pn
+}
 
 // slashEscape converts paths "p" to POSIX-compliant path, independent of which
 // escape character the host machine uses.

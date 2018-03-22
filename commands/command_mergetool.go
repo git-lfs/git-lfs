@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/gitattributes"
+	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
@@ -28,6 +30,11 @@ func mergetoolCommand(cmd *cobra.Command, args []string) {
 		keepTemporaries = cfg.Git.Bool("mergetool.keepTemporaries", false)
 	)
 
+	root, err := git.RootDir()
+	if err != nil {
+		ExitWithError(errors.Wrap(err, "fatal: could not find root"))
+	}
+
 	var dirname string
 	if writeToTemp {
 		dirname = cfg.TempDir()
@@ -45,14 +52,7 @@ func mergetoolCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(errors.Wrap(err, "fatal: could not open objects"))
 	}
 
-	root, err := git.RootDir()
-	if err != nil {
-		ExitWithError(errors.Wrap(err, "fatal: could not find root"))
-	}
-
 	attrs := gitattributes.NewRepository(root)
-
-	gf := lfs.NewGitFilter(cfg)
 
 	for _, conflict := range conflicts {
 		backup, err := createMergeBackup(conflict.Path)
@@ -62,22 +62,22 @@ func mergetoolCommand(cmd *cobra.Command, args []string) {
 				conflict.Path))
 		}
 
-		common, err := mergeSmudge(dirname, conflict.Common)
+		common, err := mergeSmudge(db, dirname, conflict.Common)
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "fatal: could not prepare common for merge"))
 		}
 
-		head, err := mergeSmudge(dirname, conflict.Head)
+		head, err := mergeSmudge(db, dirname, conflict.Head)
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "fatal: could not prepare head for merge"))
 		}
 
-		mergeHead, err := mergeSmudge(dirname, conflict.MergeHead)
+		mergeHead, err := mergeSmudge(db, dirname, conflict.MergeHead)
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "fatal: could not prepare merge head for merge"))
 		}
 
-		tool := findMergeTool(r, conflict.Path)
+		tool := findMergeTool(attrs, conflict.Path)
 		cmd := tool.Cmd(conflict)
 
 		if !mergeToolNoPrompt || mergeToolPrompt {
@@ -108,12 +108,12 @@ func mergetoolCommand(cmd *cobra.Command, args []string) {
 
 type MergeTool struct {
 	Path  string
-	Cmd   string
+	Name  string
 	Trust bool
 }
 
 func (m *MergeTool) Cmd(conflict *git.Conflict) *exec.Cmd {
-	fields := tools.QuotedFields(m.Cmd)
+	fields := tools.QuotedFields(m.Name)
 
 	cmd := exec.Command(fields[0], fields[1:]...)
 	if len(m.Path) > 0 {
@@ -128,7 +128,7 @@ func (m *MergeTool) Cmd(conflict *git.Conflict) *exec.Cmd {
 	return cmd
 }
 
-func findMergeTool(r *gitattributes.Repoitory, path string) *MergeTool {
+func findMergeTool(r *gitattributes.Repository, path string) *MergeTool {
 	var configured bool
 	var tool string = mergeToolTool
 
@@ -139,13 +139,13 @@ func findMergeTool(r *gitattributes.Repoitory, path string) *MergeTool {
 		}
 	}
 
-	path := cfg.Git.Get(fmt.Sprintf("mergetool.%s.path", tool))
-	cmd := cfg.Git.Get(fmt.Sprintf("mergetool.%s.cmd", tool))
+	tpath, _ := cfg.Git.Get(fmt.Sprintf("mergetool.%s.path", tool))
+	name, _ := cfg.Git.Get(fmt.Sprintf("mergetool.%s.cmd", tool))
 	trust := cfg.Git.Bool(fmt.Sprintf("mergetool.%s.trustExitCode", tool), configured)
 
 	return &MergeTool{
-		Path:  path,
-		Cmd:   cmd,
+		Path:  tpath,
+		Name:  name,
 		Trust: trust,
 	}
 }
@@ -162,17 +162,20 @@ func createMergeBackup(name string) (*os.File, error) {
 	}
 
 	return os.OpenFile(fmt.Sprintf("%s.orig", f.Name()),
-		os.O_CREATE|os.O_EXCL, os.O_RDWR,
-		int64(fi.Mode()))
+		os.O_CREATE|os.O_EXCL|os.O_RDWR,
+		fi.Mode())
 }
 
-func mergeSmudge(dirname, oid string) (*os.File, error) {
-	blob, err := db.Blob(conflict.Common)
+func mergeSmudge(db *odb.ObjectDatabase, dirname, oid string) (*os.File, error) {
+	sha, _ := hex.DecodeString(oid)
+
+	blob, err := db.Blob(sha)
 	if err != nil {
 		return nil, err
 	}
+	defer blob.Close()
 
-	ptr, err := lfs.DecodePointer(oid)
+	ptr, err := lfs.DecodePointer(blob.Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +185,8 @@ func mergeSmudge(dirname, oid string) (*os.File, error) {
 		return nil, err
 	}
 
-	if err := gf.SmudgeToFile(f, ptr, true, getTransferManifest(), nil); err != nil {
+	gf := lfs.NewGitFilter(cfg)
+	if err := gf.SmudgeToFile(f.Name(), ptr, true, getTransferManifest(), nil); err != nil {
 		return nil, err
 	}
 	return f, nil
@@ -192,8 +196,8 @@ func init() {
 	RegisterCommand("mergetool", mergetoolCommand, func(cmd *cobra.Command) {
 		cmd.Flags().StringVarP(&mergeToolTool, "tool", "t", "", "")
 
-		cmd.Flags().BoolVar(&mergeToolPrompt, "prompt", "", "")
-		cmd.Flags().BoolVarP(&mergeToolNoPrompt, "no-prompt", "y", "")
+		cmd.Flags().BoolVar(&mergeToolPrompt, "prompt", true, "")
+		cmd.Flags().BoolVarP(&mergeToolNoPrompt, "no-prompt", "y", false, "")
 	})
 }
 

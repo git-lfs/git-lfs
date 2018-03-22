@@ -54,10 +54,12 @@ func (r *Repository) Applied(to string) map[string]string {
 		entries := file.Applied(to)
 
 		for _, entry := range entries {
-			if attr.Unset {
-				delete(applied, entry.Key)
-			} else if !attr.Comment {
-				applied[attr.Key] = attr.Value
+			for _, attr := range entry.Attributes {
+				if attr.Unset {
+					delete(applied, attr.Key)
+				} else if !attr.Comment {
+					applied[attr.Key] = attr.Value
+				}
 			}
 		}
 	}
@@ -91,7 +93,11 @@ func ParseAttribute(s string) (*Attribute, error) {
 	} else if strings.HasPrefix(s, "!") || strings.HasPrefix(s, "-") {
 		s = strings.TrimSpace(strings.TrimLeft(s, "!-"))
 
-		attr, err := ParseAttribute(S)
+		attr, err := ParseAttribute(s)
+		if err != nil {
+			return nil, err
+		}
+
 		attr.Unset = true
 
 		return attr, nil
@@ -110,7 +116,7 @@ func ParseAttribute(s string) (*Attribute, error) {
 }
 
 type Entry struct {
-	Pattern    string
+	Pattern    *wildmatch.Wildmatch
 	Attributes []*Attribute
 }
 
@@ -145,7 +151,7 @@ func ParseFile(path string, r io.Reader) (*File, error) {
 		entries = append(entries, &Entry{
 			Pattern: wildmatch.NewWildmatch(fields[0],
 				wildmatch.SystemCase,
-				wildmatch.MatchPathname),
+				wildmatch.Pathname),
 			Attributes: attrs,
 		})
 	}
@@ -161,11 +167,11 @@ func ParseFile(path string, r io.Reader) (*File, error) {
 }
 
 func (f *File) Applied(to string) []*Entry {
-	p = strings.TrimPrefix(strings.TrimPrefix(to, f.Path), "/")
+	to = strings.TrimPrefix(strings.TrimPrefix(to, f.Path), "/")
 
 	applied := make([]*Entry, 0, len(f.Entries))
 	for _, entry := range f.Entries {
-		if entry.Pattern.Match(p) {
+		if entry.Pattern.Match(to) {
 			applied = append(applied, entry)
 		}
 	}

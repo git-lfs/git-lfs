@@ -4,6 +4,26 @@ import (
 	"testing"
 )
 
+type PathnameCase struct {
+	Given  string
+	Expect string
+}
+
+func (c *PathnameCase) Assert(t *testing.T) {
+	if got := pathname(c.Given); got != c.Expect {
+		t.Errorf("pathname: expected %s, got %s", c.Expect, got)
+	}
+}
+
+func TestPathname(t *testing.T) {
+	for _, c := range []*PathnameCase{
+		{Given: "*.txt", Expect: "**/*.txt"},
+		{Given: "foo*.txt", Expect: "foo/**/*.txt"},
+	} {
+		c.Assert(t)
+	}
+}
+
 type Case struct {
 	Pattern string
 	Subject string
