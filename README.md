@@ -11,85 +11,87 @@
 [5]: https://ci.appveyor.com/api/projects/status/46a5yoqc3hk59bl5/branch/master?svg=true
 [6]: https://ci.appveyor.com/project/git-lfs/git-lfs/branch/master
 
-Git LFS is a command line extension and [specification](docs/spec.md) for
-managing large files with Git. The client is written in Go, with pre-compiled
-binaries available for Mac, Windows, Linux, and FreeBSD. Check out the
-[Git LFS website][page] for an overview of features.
+[Git LFS](https://git-lfs.github.com) is a command line extension and
+[specification](docs/spec.md) for managing large files with Git.
 
-[page]: https://git-lfs.github.com/
+The client is written in Go, with pre-compiled binaries available for Mac,
+Windows, Linux, and FreeBSD. Check out the [website](http://git-lfs.github.com)
+for an overview of features.
 
 ## Getting Started
 
-By default, the Git LFS client needs a Git LFS server to sync the large files
-it manages. This works out of the box when using popular git repository
-hosting providers like GitHub, Atlassian, etc. When you host your own
-vanilla git server, for example, you need to either use a separate
-[Git LFS server instance](https://github.com/git-lfs/git-lfs/wiki/Implementations),
-or use the [custom transfer adapter](docs/custom-transfers.md) with
-a transfer agent in blind mode, without having to use a Git LFS server instance.
+### Installation
 
-You can install the Git LFS client in several different ways, depending on
-your setup and preferences.
+You can install the Git LFS client in several different ways, depending on your
+setup and preferences.
 
-* Linux users can install Debian or RPM packages from [PackageCloud](https://packagecloud.io/github/git-lfs/install).  See the [Installation Guide](./INSTALLING.md) for details.
-* Mac users can install from [Homebrew](https://github.com/Homebrew/homebrew) with `brew install git-lfs`, or from [MacPorts](https://www.macports.org) with `port install git-lfs`.
-* Windows users can install from [Chocolatey](https://chocolatey.org/) with `choco install git-lfs`.
-* [Binary packages are available][rel] for Windows, Mac, Linux, and FreeBSD.
-* You can build it with Go 1.8.1+. See the [Contributing Guide](./CONTRIBUTING.md) for instructions.
+* **Linux users**. Debian and RPM packages are available from
+  [PackageCloud](https://packagecloud.io/git-lfs/install).
+* **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
+  be installed via `brew install git-lfs`.
+* **Windows users**. Chocolatey packages are distributed, and can be installed
+  via `choco install git-lfs`.
 
-[rel]: https://github.com/git-lfs/git-lfs/releases
+In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
+available for Linux, macOS, Windows, and FreeBSD. This repository can also be
+built-from-source using the latest version of [Go](https://golang.org).
 
-Note: Git LFS requires Git v1.8.5 or higher.
+### Usage
 
-Once installed, you need to setup the global Git hooks for Git LFS. This only
-needs to be done once per machine.
+Git LFS requires a global installation once per-machine. This can be done by
+running:
 
 ```bash
 $ git lfs install
 ```
 
-Now, it's time to add some large files to a repository. The first step is to
-specify file patterns to store with Git LFS. These file patterns are stored in
-`.gitattributes`.
+To begin using Git LFS within your Git repository, you can indicate which files
+you would like Git LFS to manage. This can be done by running the following
+_from within Git repository_:
 
 ```bash
-$ mkdir large-repo
-$ cd large-repo
-$ git init
-
-# Add all zip files through Git LFS
-$ git lfs track "*.zip"
+$ git lfs track "*.psd"
 ```
 
-Now you're ready to push some commits:
+(Where `*.psd` is the pattern of filenames that you wish to track. You can read
+more about this pattern syntax
+[here](https://git-scm.org/docs/git-attribute://git-scm.com/docs/gitattributes)).
+
+After any invocation of `git-lfs-track(1)` or `git-lfs-untrack(1)`, you _must
+commit changes to your `.gitattributes` file_. This can be done by running:
 
 ```bash
 $ git add .gitattributes
-$ git add my.zip
-$ git commit -m "add zip"
+$ git commit -m "track *.psd files using Git LFS"
 ```
 
-You can confirm that Git LFS is managing your zip file:
+You can now interact with your Git repository as usual, and Git LFS will take
+care of managing your large files. For example, changing a file named `my.psd`
+(tracked above via `*.psd`):
+
+```bash
+$ git add my.psd
+$ git commit -m "add psd"
+```
+
+You can confirm that Git LFS is managing your PSD file:
 
 ```bash
 $ git lfs ls-files
-my.zip
+3c2f7aedfb * my.psd
 ```
 
 Once you've made your commits, push your files to the Git remote:
 
 ```bash
 $ git push origin master
-Sending my.zip
-LFS: 12.58 MB / 12.58 MB  100.00 %
-Counting objects: 2, done.
-Delta compression using up to 8 threads.
-Compressing objects: 100% (5/5), done.
-Writing objects: 100% (5/5), 548 bytes | 0 bytes/s, done.
-Total 5 (delta 1), reused 0 (delta 0)
+Uploading LFS objects: 100% (1/1), 810 B, 1.2 KB/s
+# ...
 To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  master -> master
 ```
+
+Note: Git LFS requires Git v1.8.5 or higher.
 
 ## Limitations
 
@@ -105,34 +107,21 @@ $ git lfs help <subcommand>
 ```
 
 The [official documentation](docs) has command references and specifications for
-the tool. You can ask questions in the [Git LFS chat room][chat], or [file a new
-issue][ish]. Be sure to include details about the problem so we can
-troubleshoot it.
+the tool.
 
-1. Include the output of `git lfs env`, which shows how your Git environment
-is setup.
-2. Include `GIT_TRACE=1` in any bad Git commands to enable debug messages.
-3. If the output includes a message like `Errors logged to /path/to/.git/lfs/objects/logs/*.log`,
-throw the contents in the issue, or as a link to a Gist or paste site.
+You can always [open an issue](https://github.com/git-lfs/git-lfs/issues), and
+one of the Core Team members will respond to you. Please be sure to include:
 
-[chat]: https://gitter.im/git-lfs/git-lfs
-[ish]: https://github.com/git-lfs/git-lfs/issues
+1. The output of `git lfs env`, which displays helpful information about your
+   Git repository useful in debugging.
+2. Any failed commands re-run with `GIT_TRACE=1` in the environment, which
+   displays additional information pertaining to why a command crashed.
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
 sending patches. Related projects are listed on the [Implementations wiki
-page][impl]. You can also join [the project's chat room][chat].
-
-[impl]: https://github.com/git-lfs/git-lfs/wiki/Implementations
-
-### Using LFS from other Go code
-
-At the moment git-lfs is only focussed on the stability of its command line
-interface, and the [server APIs](docs/api/README.md). The contents of the
-source packages is subject to change. We therefore currently discourage other
-Go code from depending on the git-lfs packages directly; an API to be used by
-external Go code may be provided in future.
+page](https://github.com/git-lfs/git-lfs/wiki/Implementations).
 
 ## Core Team
 
