@@ -467,6 +467,28 @@ begin_test "track escaped pattern"
 )
 end_test
 
+begin_test "track unclean pattern"
+(
+  set -e
+
+  reponame="track-unclean-pattern"
+  git init "$reponame"
+  cd "$reponame"
+
+  contents="contents"
+  oid="$(calc_oid "$contents")"
+  len="$(printf "$contents" | wc -c | awk '{ print $1 }')"
+  printf "$contents" > foo.bar
+
+  git lfs track ./foo.bar
+
+  git add .gitattributes foo.bar
+  git commit -m "initial commit"
+
+  assert_pointer "master" "foo.bar" "$oid" "$len"
+)
+end_test
+
 begin_test "track (symlinked repository)"
 (
   set -e

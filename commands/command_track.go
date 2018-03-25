@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -259,23 +260,38 @@ var (
 )
 
 func escapeTrackPattern(unescaped string) string {
-	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
+	escaped := filepath.Clean(unescaped)
+	escaped = strings.Replace(escaped, `\`, "/", -1)
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
 	}
 
+	if beginsAbs(unescaped) {
+		escaped = fmt.Sprintf("/%s", escaped)
+	}
 	return escaped
 }
 
 func unescapeTrackPattern(escaped string) string {
-	var unescaped string = escaped
+
+	var unescaped string = filepath.Clean(escaped)
 
 	for to, from := range trackEscapePatterns {
 		unescaped = strings.Replace(unescaped, from, to, -1)
 	}
 
+	if beginsAbs(escaped) {
+		unescaped = fmt.Sprintf("/%s", unescaped)
+	}
 	return unescaped
+}
+
+func beginsAbs(s string) bool {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	return strings.IndexAny(s, "\\/") > -1
 }
 
 func init() {

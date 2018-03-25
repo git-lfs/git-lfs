@@ -72,3 +72,19 @@ begin_test "untrack removes escape sequences"
   assert_attributes_count "\\#" "filter=lfs" 0
 )
 end_test
+
+begin_test "untrack removes unclean patterns"
+(
+  set -e
+
+  reponame="untrack-removes-unclean-patterns"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track ./foo.bar
+  assert_attributes_count "foo.bar" "filter=lfs" 1
+
+  git lfs untrack ./foo.bar
+  assert_attributes_count "foo.bar" "filter=lfs" 0
+)
+end_test
