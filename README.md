@@ -74,6 +74,16 @@ $ git add my.psd
 $ git commit -m "add psd"
 ```
 
+> _Tip:_ if you have large files already in your repository's history, `git lfs
+> track` will _not_ track them retroactively. To migrate existing large files
+> in your history to use Git LFS, use `git lfs migrate`. For example:
+>
+> ```
+> $ git lfs migrate import --include="*.psd"
+> ```
+>
+> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/master/docs/man/git-lfs-migrate.1.ronn).
+
 You can confirm that Git LFS is managing your PSD file:
 
 ```bash
