@@ -124,11 +124,11 @@ func trackedFromFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
 
 	for _, include := range filter.Include() {
-		tracked.Add(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text", include))
+		tracked.Add(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text", escapeAttrPattern(include)))
 	}
 
 	for _, exclude := range filter.Exclude() {
-		tracked.Add(fmt.Sprintf("%s text -filter -merge -diff", exclude))
+		tracked.Add(fmt.Sprintf("%s text -filter -merge -diff", escapeAttrPattern(exclude)))
 	}
 
 	return tracked

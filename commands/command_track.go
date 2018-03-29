@@ -81,7 +81,7 @@ ArgsLoop:
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := escapeTrackPattern(pattern)
+		encodedArg := escapeAttrPattern(pattern)
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
@@ -95,7 +95,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %q", unescapeTrackPattern(encodedArg))
+		Print("Tracking %q", unescapeAttrPattern(encodedArg))
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -258,7 +258,7 @@ var (
 	}
 )
 
-func escapeTrackPattern(unescaped string) string {
+func escapeAttrPattern(unescaped string) string {
 	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
 
 	for from, to := range trackEscapePatterns {
@@ -268,7 +268,7 @@ func escapeTrackPattern(unescaped string) string {
 	return escaped
 }
 
-func unescapeTrackPattern(escaped string) string {
+func unescapeAttrPattern(escaped string) string {
 	var unescaped string = escaped
 
 	for to, from := range trackEscapePatterns {
