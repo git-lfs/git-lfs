@@ -617,6 +617,23 @@ begin_test "migrate import (handle copies of files)"
 )
 end_test
 
+begin_test "migrate import (--object-map)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  output_dir=$(mktemp -d)
+
+  git log --all --pretty='format:%H' > "${output_dir}/old_sha.txt"
+  git lfs migrate import --everything --object-map "${output_dir}/object-map.txt"
+  git log --all --pretty='format:%H' > "${output_dir}/new_sha.txt"
+  paste -d',' "${output_dir}/old_sha.txt" "${output_dir}/new_sha.txt" > "${output_dir}/expected-map.txt"
+
+  diff -u <(sort "${output_dir}/expected-map.txt") <(sort "${output_dir}/object-map.txt")
+)
+end_test
+
 begin_test "migrate import (--include with space)"
 (
   set -e
@@ -635,5 +652,4 @@ begin_test "migrate import (--include with space)"
     sed -e 's/^/  /g' < .gitattributes >&2
     exit 1
   fi
-)
 end_test

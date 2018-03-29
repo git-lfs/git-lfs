@@ -306,3 +306,26 @@ begin_test "ls-files: reference with --deleted"
   [ 1 -eq $(grep -c "a\.dat" ls-files-deleted.log) ]
 )
 end_test
+
+begin_test "ls-files: invalid --all ordering"
+(
+  set -e
+
+  reponame="ls-files-invalid---all-ordering"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  echo "Hello world" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git lfs ls-files -- --all 2>&1 | tee ls-files.out
+  if [ ${PIPESTATUS[0]} = "0" ]; then
+    echo >&2 "fatal: expected \`git lfs ls-files -- --all\' to fail"
+    exit 1
+  fi
+  grep "Could not scan for Git LFS tree" ls-files.out
+)
+end_test

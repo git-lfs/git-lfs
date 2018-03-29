@@ -80,6 +80,10 @@ options and these additional ones:
 * `--verbose`
     Print the commit oid and filename of migrated files to STDOUT.
 
+* `--object-map=<path>`
+    Write to 'path' a file with the mapping of each rewritten commits. The file
+    format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
+
 If `--include` or `--exclude` (`-I`, `-X`, respectively) are given, the
 .gitattributes will be modified to include any new filepath patterns as given by
 those flags.
