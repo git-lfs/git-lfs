@@ -26,6 +26,10 @@ build_script:
   - mv bin\git-lfs.exe git-lfs-x86.exe
   - bash --login -c 'GOARCH=amd64 script/bootstrap'
   - mv bin\git-lfs.exe git-lfs-x64.exe
+  - cygwin -lic 'GOARCH=386 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x86-cygwin.exe
+  - cygwin -lic 'GOARCH=amd64 script/bootstrap'
+  - mv bin\git-lfs.exe git-lfs-x64-cygwin.exe
 
 after_build:
   - iscc script\windows-installer\inno-setup-git-lfs-installer.iss
@@ -36,4 +40,6 @@ test_script:
 artifacts:
   - path: git-lfs-x86.exe
   - path: git-lfs-x64.exe
+  - path: git-lfs-x86-cygwin.exe
+  - path: git-lfs-x64-cygwin.exe
   - path: git-lfs-windows-*.exe
