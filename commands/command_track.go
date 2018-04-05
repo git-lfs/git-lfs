@@ -67,7 +67,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	var writeablePatterns []string
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
-		pattern := cleanRootPath(unsanitizedPattern)
+		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
 		if !trackNoModifyAttrsFlag {
 			for _, known := range knownPatterns {
 				if known.Path == filepath.Join(relpath, pattern) &&

@@ -540,3 +540,21 @@ begin_test "track (with comments)"
   [ "0" -eq "$(grep -c "\.png" track.log)" ]
 )
 end_test
+
+begin_test "track (with current-directory prefix)"
+(
+  set -e
+
+  reponame="track-with-current-directory-prefix"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "./a.dat"
+  printf "a" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  grep -e "^a.dat" .gitattributes
+)
+end_test
