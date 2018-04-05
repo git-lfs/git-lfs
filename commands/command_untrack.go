@@ -63,8 +63,9 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 }
 
 func removePath(path string, args []string) bool {
+	withoutCurrentDir := trimCurrentPrefix(path)
 	for _, t := range args {
-		if path == escapeAttrPattern(t) {
+		if withoutCurrentDir == escapeAttrPattern(trimCurrentPrefix(t)) {
 			return true
 		}
 	}

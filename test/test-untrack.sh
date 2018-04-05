@@ -72,3 +72,65 @@ begin_test "untrack removes escape sequences"
   assert_attributes_count "\\#" "filter=lfs" 0
 )
 end_test
+
+begin_test "untrack removes prefixed patterns (legacy)"
+(
+  set -e
+
+  reponame="untrack-removes-prefix-patterns-legacy"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "./a.dat filter=lfs diff=lfs merge=lfs" > .gitattributes
+  printf "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git lfs untrack "./a.dat"
+
+  if [ ! -z "$(cat .gitattributes)" ]; then
+    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    exit 1
+  fi
+
+  git checkout -- .gitattributes
+
+  git lfs untrack "a.dat"
+
+  if [ ! -z "$(cat .gitattributes)" ]; then
+    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    exit 1
+  fi
+)
+end_test
+
+begin_test "untrack removes prefixed patterns (modern)"
+(
+  set -e
+
+  reponame="untrack-removes-prefix-patterns-modern"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "a.dat filter=lfs diff=lfs merge=lfs" > .gitattributes
+  printf "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git lfs untrack "./a.dat"
+
+  if [ ! -z "$(cat .gitattributes)" ]; then
+    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    exit 1
+  fi
+
+  git checkout -- .gitattributes
+
+  git lfs untrack "a.dat"
+
+  if [ ! -z "$(cat .gitattributes)" ]; then
+    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    exit 1
+  fi
+)
+end_test

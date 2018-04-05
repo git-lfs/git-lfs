@@ -12,6 +12,18 @@ func gitLineEnding(git env) string {
 	}
 }
 
+const (
+	windowsPrefix = `.\`
+	nixPrefix     = `./`
+)
+
+func trimCurrentPrefix(p string) string {
+	if strings.HasPrefix(p, windowsPrefix) {
+		return strings.TrimPrefix(p, windowsPrefix)
+	}
+	return strings.TrimPrefix(p, nixPrefix)
+}
+
 type env interface {
 	Get(string) (string, bool)
 }
