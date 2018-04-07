@@ -27,7 +27,18 @@ var (
 	httpRE    = regexp.MustCompile(`\Ahttps?://`)
 )
 
+var hintFileUrl = strings.TrimSpace(`
+hint: The remote resolves to a file:// URL, which can only work with a
+hint: standalone transfer agent.  See section "Using a Custom Transfer Type
+hint: without the API server" in custom-transfers.md for details.
+`)
+
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	if strings.HasPrefix(e.Url, "file://") {
+		// Initial `\n` to avoid overprinting `Downloading LFS...`.
+		fmt.Fprintf(os.Stderr, "\n%s\n", hintFileUrl)
+	}
+
 	sshRes, err := c.SSH.Resolve(e, method)
 	if err != nil {
 		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
