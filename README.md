@@ -26,7 +26,7 @@ You can install the Git LFS client in several different ways, depending on your
 setup and preferences.
 
 * **Linux users**. Debian and RPM packages are available from
-  [PackageCloud](https://packagecloud.io/github/install).
+  [PackageCloud](https://packagecloud.io/github/git-lfs/install).
 * **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
   be installed via `brew install git-lfs`.
 * **Windows users**. Chocolatey packages are distributed, and can be installed
