@@ -43,7 +43,12 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		pointers = append(pointers, p)
 	})
 
-	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil)
+	include, exclude := getIncludeExcludeArgs(cmd)
+	if include != nil || exclude != nil {
+		chgitscanner.Filter = buildFilepathFilter(cfg, include, exclude)
+	} else {
+		chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil)
+	}
 
 	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
 		ExitWithError(err)
@@ -81,5 +86,8 @@ func rootedPaths(args []string) []string {
 }
 
 func init() {
-	RegisterCommand("checkout", checkoutCommand, nil)
+	RegisterCommand("checkout", checkoutCommand, func(cmd *cobra.Command) {
+		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
+		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+	})
 }
