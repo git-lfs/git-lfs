@@ -70,9 +70,12 @@ func Run() int {
 		}
 	}
 
-	root.Execute()
+	err := root.Execute()
 	closeAPIClient()
 
+	if err != nil {
+		return 127
+	}
 	return 0
 }
 
