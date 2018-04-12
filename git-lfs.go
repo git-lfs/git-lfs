@@ -32,6 +32,7 @@ func main() {
 		}
 	}()
 
-	commands.Run()
+	code := commands.Run()
 	once.Do(commands.Cleanup)
+	os.Exit(code)
 }

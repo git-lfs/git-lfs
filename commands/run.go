@@ -49,7 +49,9 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
-func Run() {
+//
+// It returns an exit code.
+func Run() int {
 	log.SetOutput(ErrorWriter)
 
 	root := NewCommand("git-lfs", gitlfsCommand)
@@ -70,6 +72,8 @@ func Run() {
 
 	root.Execute()
 	closeAPIClient()
+
+	return 0
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
