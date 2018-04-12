@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +55,10 @@ func Run() {
 
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
+
+	// Set up --version flag to be a synonym of version sub-command.
+	root.SetVersionTemplate("{{ .Version }}\n")
+	root.Version = lfsapi.UserAgent
 
 	// Set up help/usage funcs based on manpage text
 	root.SetHelpTemplate("{{.UsageString}}")
