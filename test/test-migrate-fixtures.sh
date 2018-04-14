@@ -18,7 +18,7 @@ assert_ref_unmoved() {
   fi
 }
 
-# setup_multiple_local_branches creates a repository as follows:
+# setup_local_branch_with_gitattrs creates a repository as follows:
 #
 #   A---B
 #        \
@@ -258,6 +258,27 @@ setup_single_local_branch_deep_trees() {
   base64 < /dev/urandom | head -c 120 > foo/bar/baz/a.txt
 
   git add foo/bar/baz/a.txt
+  git commit -m "initial commit"
+}
+
+# setup_local_branch_with_symlink creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a symbolic link link.txt to a.txt.
+setup_local_branch_with_symlink() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-symlink"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  ln -s a.txt link.txt
+
+  git add a.txt link.txt
   git commit -m "initial commit"
 }
 
