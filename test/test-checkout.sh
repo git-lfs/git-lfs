@@ -155,3 +155,94 @@ begin_test "checkout: outside git repository"
   grep "Not in a git repository" checkout.log
 )
 end_test
+
+begin_test "checkout: with include"
+(
+  set -e
+
+  reponame="checkout-with-include"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo2
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents="something something"
+  contentsize=19
+  contents_oid=$(calc_oid "$contents")
+
+  # Same content everywhere is ok, just one object in lfs db
+  printf "$contents" > file1.dat
+  printf "$contents" > file2.dat
+  printf "$contents" > file3.dat
+  mkdir folder1 folder2
+  printf "$contents" > folder1/nested.dat
+  printf "$contents" > folder2/nested.dat
+  git add file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  git add .gitattributes
+  git commit -m "add files"
+
+  [ "$contents" = "$(cat file1.dat)" ]
+  [ "$contents" = "$(cat file2.dat)" ]
+  [ "$contents" = "$(cat file3.dat)" ]
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  # Remove the working directory
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+
+  echo "checkout should replace only file1.dat"
+  git lfs checkout --include file1.dat
+  [ "$contents" = "$(cat file1.dat)" ]
+  [ ! -f file2.dat ]
+  [ ! -f file3.dat ]
+  [ ! -f folder1/nested.dat ]
+  [ ! -f folder2/nested.dat ]
+)
+
+begin_test "checkout: with exclude"
+(
+  set -e
+
+  reponame="checkout-with-exclude"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo3
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents="something something"
+  contentsize=19
+  contents_oid=$(calc_oid "$contents")
+
+  # Same content everywhere is ok, just one object in lfs db
+  printf "$contents" > file1.dat
+  printf "$contents" > file2.dat
+  printf "$contents" > file3.dat
+  mkdir folder1 folder2
+  printf "$contents" > folder1/nested.dat
+  printf "$contents" > folder2/nested.dat
+  git add file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  git add .gitattributes
+  git commit -m "add files"
+
+  [ "$contents" = "$(cat file1.dat)" ]
+  [ "$contents" = "$(cat file2.dat)" ]
+  [ "$contents" = "$(cat file3.dat)" ]
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  # Remove the working directory
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+
+  echo "checkout should everything but file1.dat"
+  git lfs checkout --exclude file1.dat
+  [ ! -f file1.dat ]
+  [ "$contents" = "$(cat file2.dat)" ]
+  [ "$contents" = "$(cat file3.dat)" ]
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+)
+end_test
