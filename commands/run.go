@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/spf13/cobra"
 )
 
@@ -49,11 +50,17 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
-func Run() {
+//
+// It returns an exit code.
+func Run() int {
 	log.SetOutput(ErrorWriter)
 
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
+
+	// Set up --version flag to be a synonym of version sub-command.
+	root.SetVersionTemplate("{{ .Version }}\n")
+	root.Version = lfsapi.UserAgent
 
 	// Set up help/usage funcs based on manpage text
 	root.SetHelpTemplate("{{.UsageString}}")
@@ -68,8 +75,13 @@ func Run() {
 		}
 	}
 
-	root.Execute()
+	err := root.Execute()
 	closeAPIClient()
+
+	if err != nil {
+		return 127
+	}
+	return 0
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
