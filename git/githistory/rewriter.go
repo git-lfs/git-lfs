@@ -341,6 +341,12 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 			continue
 		}
 
+		// If this is a symlink, skip it
+		if entry.Filemode == 0120000 {
+			entries = append(entries, copyEntry(entry))
+			continue
+		}
+
 		if cached := r.uncacheEntry(entry); cached != nil {
 			entries = append(entries, copyEntry(cached))
 			continue
