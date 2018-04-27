@@ -738,3 +738,14 @@ has_test_dir() {
     exit 0
   fi
 }
+
+add_symlink() {
+  local src=$1
+  local dest=$2
+
+  prefix=`git rev-parse --show-prefix`
+  hashsrc=`printf "$src" | git hash-object -w --stdin`
+
+  git update-index --add --cacheinfo 120000 "$hashsrc" "$prefix$dest"
+  git checkout -- "$dest"
+}

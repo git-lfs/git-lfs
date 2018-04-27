@@ -276,10 +276,12 @@ setup_local_branch_with_symlink() {
   remove_and_create_local_repo "$reponame"
 
   base64 < /dev/urandom | head -c 120 > a.txt
-  ln -s a.txt link.txt
 
-  git add a.txt link.txt
+  git add a.txt
   git commit -m "initial commit"
+
+  add_symlink "a.txt" "link.txt"
+  git commit -m "add symlink"
 }
 
 # make_bare converts the existing full checkout of a repository into a bare one,
