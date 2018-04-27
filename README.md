@@ -55,7 +55,7 @@ $ git lfs track "*.psd"
 
 (Where `*.psd` is the pattern of filenames that you wish to track. You can read
 more about this pattern syntax
-[here](https://git-scm.org/docs/git-attribute://git-scm.com/docs/gitattributes)).
+[here](https://git-scm.com/docs/gitattributes)).
 
 After any invocation of `git-lfs-track(1)` or `git-lfs-untrack(1)`, you _must
 commit changes to your `.gitattributes` file_. This can be done by running:
