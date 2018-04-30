@@ -250,6 +250,22 @@ func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SshPort)
 }
 
+func TestLocalPathEndpointAddsDotGitDir(t *testing.T) {
+	finder := NewEndpointFinder(NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "/local/path",
+	}))
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "file:///local/path/.git/info/lfs", e.Url)
+}
+
+func TestLocalPathEndpointPreservesDotGit(t *testing.T) {
+	finder := NewEndpointFinder(NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "/local/path.git",
+	}))
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "file:///local/path.git/info/lfs", e.Url)
+}
+
 func TestAccessConfig(t *testing.T) {
 	type accessTest struct {
 		Access        string

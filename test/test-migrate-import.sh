@@ -652,4 +652,24 @@ begin_test "migrate import (--include with space)"
     sed -e 's/^/  /g' < .gitattributes >&2
     exit 1
   fi
+)
+end_test
+
+begin_test "migrate import (handle symbolic link)"
+(
+  set -e
+
+  setup_local_branch_with_symlink
+
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  link_oid="$(calc_oid "$(git cat-file -p :link.txt)")"
+
+  git lfs migrate import --include="*.txt"
+
+  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+
+  assert_local_object "$txt_oid" "120"
+  # "link.txt" is a symbolic link so it should be not in LFS
+  refute_local_object "$link_oid" "5"
+)
 end_test
