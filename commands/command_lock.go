@@ -79,6 +79,11 @@ func lockPath(file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	wd, err = filepath.EvalSymlinks(wd)
+	if err != nil {
+		return "", errors.Wrapf(err,
+			"could not follow symlinks for %s", wd)
+	}
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
