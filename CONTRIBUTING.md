@@ -63,7 +63,6 @@ In general, contributors should develop on branches based off of `master` and pu
 0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
 0. Make your change, add tests, and make sure the tests still pass
 0. Push to your fork and [submit a pull request][pr] from your branch to `master`
-0. Accept the [GitHub CLA][cla]
 0. Pat yourself on the back and wait for your pull request to be reviewed
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
@@ -161,4 +160,3 @@ v1.5 just shipped, set the version in master to `1.6-pre`, for example.
 [fork]: https://github.com/git-lfs/git-lfs/fork
 [pr]: https://github.com/git-lfs/git-lfs/compare
 [style]: https://github.com/golang/go/wiki/CodeReviewComments
-[cla]: https://cla.github.com/git-lfs/git-lfs/accept
