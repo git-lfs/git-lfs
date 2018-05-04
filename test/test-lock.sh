@@ -12,7 +12,7 @@ begin_test "lock with good ref"
 
   git lfs lock "a.dat" --json 2>&1 | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
@@ -40,7 +40,7 @@ begin_test "lock with good tracked ref"
 
   git lfs lock "a.dat" --json 2>&1 | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
@@ -65,7 +65,7 @@ begin_test "lock with bad ref"
 
   GIT_CURL_VERBOSE=1 git lfs lock "a.dat" 2>&1 | tee lock.json
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to fail"
     exit 1
   fi
 
@@ -187,7 +187,7 @@ begin_test "creating a lock (within subdirectory)"
 
   git lfs lock --json "a.dat" | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
