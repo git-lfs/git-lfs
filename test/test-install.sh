@@ -4,17 +4,22 @@
 
 begin_test "install again"
 (
-  set -e
+  set -eo pipefail
 
   smudge="$(git config filter.lfs.smudge)"
   clean="$(git config filter.lfs.clean)"
   filter="$(git config filter.lfs.process)"
 
-  printf "$smudge" | grep "git-lfs smudge"
-  printf "$clean" | grep "git-lfs clean"
-  printf "$filter" | grep "git-lfs filter-process"
+  [ "$smudge" = "git-lfs smudge -- %f" ]
+  [ "$clean" = "git-lfs clean -- %f" ]
+  [ "$filter" = "git-lfs filter-process" ]
 
-  git lfs install
+  GIT_TRACE=1 git lfs install --skip-repo 2>&1 | tee install.log
+
+  if grep -q "--replace-all" install.log; then
+    echo >&2 "fatal: unexpected git config --replace-all via 'git lfs install'"
+    exit 1
+  fi
 
   [ "$smudge" = "$(git config filter.lfs.smudge)" ]
   [ "$clean" = "$(git config filter.lfs.clean)" ]
