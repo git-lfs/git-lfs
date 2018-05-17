@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"regexp"
@@ -147,6 +148,13 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 		}
 
 		k, v := parts[0], strings.TrimSpace(parts[1])
+		// If header keys are given in non-canonicalized form (e.g.,
+		// "AUTHORIZATION" as opposed to "Authorization") they will not
+		// be returned in calls to net/http.Header.Get().
+		//
+		// So, we avoid this problem by first canonicalizing header keys
+		// for extra headers.
+		k = textproto.CanonicalMIMEHeaderKey(k)
 
 		m[k] = append(m[k], v)
 	}
