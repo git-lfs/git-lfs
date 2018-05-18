@@ -106,10 +106,3 @@ func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) Endpoint {
 	u.Scheme = e.gitProtocol
 	return Endpoint{Url: u.String()}
 }
-
-func endpointFromLocalPath(path string) Endpoint {
-	if !strings.HasSuffix(path, ".git") {
-		path = fmt.Sprintf("%s/.git", path)
-	}
-	return Endpoint{Url: fmt.Sprintf("file://%s", path)}
-}

@@ -170,9 +170,6 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) Endpoint {
 
 func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
 	rawurl = e.ReplaceUrlAlias(rawurl)
-	if strings.HasPrefix(rawurl, "/") {
-		return endpointFromLocalPath(rawurl)
-	}
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return endpointFromBareSshUrl(rawurl)
