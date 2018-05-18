@@ -73,10 +73,10 @@ begin_test "http.<url>.extraHeader with authorization (casing)"
   pass="pass"
   auth="Basic $(echo -n $user:$pass | base64)"
 
-  git config --add lfs.access basic
+  git config --local --add lfs.access basic
   # N.B.: "AUTHORIZATION" is not the correct casing, and is therefore the
   # subject of this test. See lfsapi.Client.extraHeaders() for more.
-  git config --add "http.extraHeader" "AUTHORIZATION: $auth"
+  git config --local --add "http.extraHeader" "AUTHORIZATION: $auth"
 
   git lfs track "*.dat"
   printf "contents" > a.dat
