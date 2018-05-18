@@ -32,10 +32,6 @@ var (
 
 	// migrateVerbose enables verbose logging
 	migrateVerbose bool
-
-	// objectMapFile is the path to the map of old sha1 to new sha1
-	// commits
-	objectMapFilePath string
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -87,9 +83,8 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 		Include: include,
 		Exclude: exclude,
 
-		UpdateRefs:        opts.UpdateRefs,
-		Verbose:           opts.Verbose,
-		ObjectMapFilePath: opts.ObjectMapFilePath,
+		UpdateRefs: opts.UpdateRefs,
+		Verbose:    opts.Verbose,
 
 		BlobFn:         opts.BlobFn,
 		TreeCallbackFn: opts.TreeCallbackFn,
@@ -286,7 +281,6 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
-	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")

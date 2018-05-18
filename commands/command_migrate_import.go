@@ -36,8 +36,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	gitfilter := lfs.NewGitFilter(cfg)
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
-		Verbose:           migrateVerbose,
-		ObjectMapFilePath: objectMapFilePath,
+		Verbose: migrateVerbose,
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
