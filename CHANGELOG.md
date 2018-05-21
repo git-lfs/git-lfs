@@ -1,5 +1,56 @@
 # Git LFS Changelog
 
+### 2.4.1 (18 May, 2018)
+
+This release fixes a handful of bugs found and fixed since v2.4.0. In
+particular, Git LFS no longer panic()'s after invalid API responses, can
+correctly run 'fetch' on SHAs instead of references, migrates symbolic links
+correctly, and avoids writing to `$HOME/.gitconfig` more than is necessary.
+
+We would like to extend a "thank you" to the following contributors for their
+gracious patches:
+
+- @QuLogic fixed an issue with running tests that require credentials
+- @patrickmarlier made it possible for 'git lfs migrate import' to work
+  correctly with symbolic links.
+- @zackse fixed an inconsistency in `CONTRIBUTING.md`
+- @zanglang fixed an inconsistency in `README.md`
+
+Git LFS would not be possible without generous contributions from the
+open-source community. For these, and many more: thank you!
+
+### Features
+
+* script/packagecloud.rb: release on Ubuntu Bionic #2961 (@ttaylorr)
+
+### Bugs
+
+* lfsapi: canonicalize extra HTTP headers #3010 (@ttaylorr)
+* commands/lock: follow symlinks before locking #2996 (@ttaylorr)
+* lfs/attribute.go: remove default value from upgradeables #2994 (@ttaylorr)
+* git: include SHA1 in ref-less revisions #2982 (@ttaylorr)
+* Do not migrate the symlinks to LFS objects. #2983 (@patrickmarlier)
+* commands/uninstall: do not log about global hooks with --local #2976 (@ttaylorr)
+* commands/run.go: exit 127 on unknown sub-command #2969 (@ttaylorr)
+* commands/{un,}track: perform "prefix-agnostic" comparisons #2955 (@ttaylorr)
+* commands/migrate: escape paths before .gitattributes  #2933 (@ttaylorr)
+* commands/ls-files: do not accept '--all' after '--' #2932 (@ttaylorr)
+* tq: prevent uint64 underflow with invalid API response #2902 (@ttaylorr)
+
+### Misc
+
+* test/test-env: skip comparing GIT_EXEC_PATH #3015 (@ttaylorr)
+* remove reference to CLA from contributor's guide #2997 (@zackse)
+* .gitattributes link is broken #2985 (@zanglang)
+* commands: make --version a synonym for 'version' #2968 (@ttaylorr)
+* test: ensure that git-mergetool(1) works with large files #2939 (@ttaylorr)
+* README.md: note the correct PackageCloud URL #2960 (@ttaylorr)
+* README.md: mention note about `git lfs track` retroactively #2948 (@ttaylorr)
+* README.md: reorganize into Core Team, Alumni #2941 (@ttaylorr)
+* README.md: :nail_care: #2942 (@ttaylorr)
+* circle.yml: upgrade to 'version: 2' syntax #2928 (@ttaylorr)
+* Use unique repo name for tests that require credentials. #2901 (@QuLogic)
+
 ## 2.4.0 (2 March, 2018)
 
 This release introduces a rewrite of the underlying file matching engine,
