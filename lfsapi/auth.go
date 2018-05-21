@@ -270,6 +270,8 @@ func hasScheme(what string) bool {
 }
 
 func requestHasAuth(req *http.Request) bool {
+	// The "Authorization" string constant is safe, since we assume that all
+	// request headers have been canonicalized.
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}
