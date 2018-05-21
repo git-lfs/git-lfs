@@ -46,7 +46,7 @@ UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
-    actual=$(git lfs env)
+    actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 
     worktreename="worktree-2"
@@ -82,7 +82,7 @@ UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
-    actual=$(git lfs env)
+    actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 )
 end_test
