@@ -50,7 +50,7 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
 
   contains_same_elements "$expected" "$actual"
 )
@@ -102,12 +102,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -161,12 +161,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -218,12 +218,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -277,12 +277,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -337,12 +337,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -398,12 +398,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd .git
   expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected2" "$actual2"
 )
 end_test
@@ -466,12 +466,12 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   mkdir a
   cd a
-  actual2=$(git lfs env)
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual2"
 )
 end_test
@@ -522,19 +522,23 @@ UploadTransfers=basic
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
 
-  actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env \
+            | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
   cd $TRASHDIR/$reponame
-  actual2=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  actual2=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env \
+            | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual2"
 
   cd $TRASHDIR/$reponame/.git
-  actual3=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  actual3=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env \
+            | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual3"
 
   cd $TRASHDIR/$reponame/a/b/c
-  actual4=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env)
+  actual4=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env \
+            | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual4"
 
   envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT" | sort)"
@@ -565,7 +569,8 @@ DownloadTransfers=basic
 UploadTransfers=basic
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars")
-  actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env)
+  actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env \
+            | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected5" "$actual5"
 
   cd $TRASHDIR/$reponame/a/b
@@ -598,7 +603,7 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual7=$(GIT_DIR=$gitDir git lfs env)
+  actual7=$(GIT_DIR=$gitDir git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected7" "$actual7"
 
   cd $TRASHDIR/$reponame/a
@@ -631,7 +636,7 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual8=$(GIT_WORK_TREE=$workTree git lfs env)
+  actual8=$(GIT_WORK_TREE=$workTree git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected8" "$actual8"
 )
 end_test
@@ -676,7 +681,7 @@ UploadTransfers=basic
 %s
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
 )
@@ -698,7 +703,8 @@ Endpoint (other)=https://other-git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=git@other-git-server.com:user/repo.git
 GIT_SSH=lfs-ssh-echo'
 
-  contains_same_elements "$expected" "$(git lfs env | grep -e "Endpoint" -e "SSH=")"
+  contains_same_elements "$expected" "$(git lfs env \
+    | grep -v "^GIT_EXEC_PATH=" | grep -e "Endpoint" -e "SSH=")"
 )
 end_test
 
@@ -754,7 +760,7 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled" "$actual"
 
   git config --unset lfs.skipdownloaderrors
@@ -787,11 +793,11 @@ UploadTransfers=basic
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expecteddisabled" "$actual"
 
   # now enable via env var
-  actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env)
+  actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled" "$actual"
 
 
@@ -853,7 +859,7 @@ UploadTransfers=basic,supertransfer,tus
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env)
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled" "$actual"
 
 )
