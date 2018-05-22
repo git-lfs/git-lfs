@@ -2,7 +2,6 @@ package tools
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"hash"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/tools/sha256"
 )
 
 const (

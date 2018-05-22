@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"io/ioutil"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/sha256"
 )
 
 type cleanedAsset struct {

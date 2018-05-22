@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools/sha256"
 )
 
 type pipeRequest struct {

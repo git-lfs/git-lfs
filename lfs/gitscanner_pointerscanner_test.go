@@ -2,13 +2,13 @@ package lfs
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"math/rand"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/sha256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

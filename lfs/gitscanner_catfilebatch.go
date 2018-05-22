@@ -2,11 +2,11 @@ package lfs
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"io"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools/sha256"
 )
 
 // runCatFileBatch uses 'git cat-file --batch' to get the object contents of a
