@@ -16,6 +16,8 @@ import (
 var (
 	commandFuncs []func() *cobra.Command
 	commandMu    sync.Mutex
+
+	rootVersion bool
 )
 
 // NewCommand creates a new 'git-lfs' sub command, given a command name and
@@ -62,6 +64,8 @@ func Run() int {
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
 
+	root.Flags().BoolVarP(&rootVersion, "version", "v", false, "")
+
 	cfg = config.New()
 
 	for _, f := range commandFuncs {
@@ -81,7 +85,9 @@ func Run() int {
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
 	versionCommand(cmd, args)
-	cmd.Usage()
+	if !rootVersion {
+		cmd.Usage()
+	}
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
