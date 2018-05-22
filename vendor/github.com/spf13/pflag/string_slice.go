@@ -1,10 +1,11 @@
 package pflag
 
 import (
-	"bytes"
-	"encoding/csv"
+	"fmt"
 	"strings"
 )
+
+var _ = fmt.Fprint
 
 // -- stringSlice Value
 type stringSliceValue struct {
@@ -19,31 +20,8 @@ func newStringSliceValue(val []string, p *[]string) *stringSliceValue {
 	return ssv
 }
 
-func readAsCSV(val string) ([]string, error) {
-	if val == "" {
-		return []string{}, nil
-	}
-	stringReader := strings.NewReader(val)
-	csvReader := csv.NewReader(stringReader)
-	return csvReader.Read()
-}
-
-func writeAsCSV(vals []string) (string, error) {
-	b := &bytes.Buffer{}
-	w := csv.NewWriter(b)
-	err := w.Write(vals)
-	if err != nil {
-		return "", err
-	}
-	w.Flush()
-	return strings.TrimSuffix(b.String(), "\n"), nil
-}
-
 func (s *stringSliceValue) Set(val string) error {
-	v, err := readAsCSV(val)
-	if err != nil {
-		return err
-	}
+	v := strings.Split(val, ",")
 	if !s.changed {
 		*s.value = v
 	} else {
@@ -57,18 +35,16 @@ func (s *stringSliceValue) Type() string {
 	return "stringSlice"
 }
 
-func (s *stringSliceValue) String() string {
-	str, _ := writeAsCSV(*s.value)
-	return "[" + str + "]"
-}
+func (s *stringSliceValue) String() string { return "[" + strings.Join(*s.value, ",") + "]" }
 
 func stringSliceConv(sval string) (interface{}, error) {
-	sval = sval[1 : len(sval)-1]
+	sval = strings.Trim(sval, "[]")
 	// An empty string would cause a slice with one (empty) string
 	if len(sval) == 0 {
 		return []string{}, nil
 	}
-	return readAsCSV(sval)
+	v := strings.Split(sval, ",")
+	return v, nil
 }
 
 // GetStringSlice return the []string value of a flag with the given name
@@ -82,68 +58,48 @@ func (f *FlagSet) GetStringSlice(name string) ([]string, error) {
 
 // StringSliceVar defines a string flag with specified name, default value, and usage string.
 // The argument p points to a []string variable in which to store the value of the flag.
-// Compared to StringArray flags, StringSlice flags take comma-separated value as arguments and split them accordingly.
-// For example:
-//   --ss="v1,v2" -ss="v3"
-// will result in
-//   []string{"v1", "v2", "v3"}
 func (f *FlagSet) StringSliceVar(p *[]string, name string, value []string, usage string) {
 	f.VarP(newStringSliceValue(value, p), name, "", usage)
 }
 
-// StringSliceVarP is like StringSliceVar, but accepts a shorthand letter that can be used after a single dash.
+// Like StringSliceVar, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) StringSliceVarP(p *[]string, name, shorthand string, value []string, usage string) {
 	f.VarP(newStringSliceValue(value, p), name, shorthand, usage)
 }
 
 // StringSliceVar defines a string flag with specified name, default value, and usage string.
 // The argument p points to a []string variable in which to store the value of the flag.
-// Compared to StringArray flags, StringSlice flags take comma-separated value as arguments and split them accordingly.
-// For example:
-//   --ss="v1,v2" -ss="v3"
-// will result in
-//   []string{"v1", "v2", "v3"}
 func StringSliceVar(p *[]string, name string, value []string, usage string) {
 	CommandLine.VarP(newStringSliceValue(value, p), name, "", usage)
 }
 
-// StringSliceVarP is like StringSliceVar, but accepts a shorthand letter that can be used after a single dash.
+// Like StringSliceVar, but accepts a shorthand letter that can be used after a single dash.
 func StringSliceVarP(p *[]string, name, shorthand string, value []string, usage string) {
 	CommandLine.VarP(newStringSliceValue(value, p), name, shorthand, usage)
 }
 
 // StringSlice defines a string flag with specified name, default value, and usage string.
 // The return value is the address of a []string variable that stores the value of the flag.
-// Compared to StringArray flags, StringSlice flags take comma-separated value as arguments and split them accordingly.
-// For example:
-//   --ss="v1,v2" -ss="v3"
-// will result in
-//   []string{"v1", "v2", "v3"}
 func (f *FlagSet) StringSlice(name string, value []string, usage string) *[]string {
-	p := []string{}
+	p := make([]string, 0)
 	f.StringSliceVarP(&p, name, "", value, usage)
 	return &p
 }
 
-// StringSliceP is like StringSlice, but accepts a shorthand letter that can be used after a single dash.
+// Like StringSlice, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) StringSliceP(name, shorthand string, value []string, usage string) *[]string {
-	p := []string{}
+	p := make([]string, 0)
 	f.StringSliceVarP(&p, name, shorthand, value, usage)
 	return &p
 }
 
 // StringSlice defines a string flag with specified name, default value, and usage string.
 // The return value is the address of a []string variable that stores the value of the flag.
-// Compared to StringArray flags, StringSlice flags take comma-separated value as arguments and split them accordingly.
-// For example:
-//   --ss="v1,v2" -ss="v3"
-// will result in
-//   []string{"v1", "v2", "v3"}
 func StringSlice(name string, value []string, usage string) *[]string {
 	return CommandLine.StringSliceP(name, "", value, usage)
 }
 
-// StringSliceP is like StringSlice, but accepts a shorthand letter that can be used after a single dash.
+// Like StringSlice, but accepts a shorthand letter that can be used after a single dash.
 func StringSliceP(name, shorthand string, value []string, usage string) *[]string {
 	return CommandLine.StringSliceP(name, shorthand, value, usage)
 }

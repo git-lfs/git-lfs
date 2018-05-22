@@ -60,9 +60,6 @@ func TestIS(t *testing.T) {
 		}
 	}
 	getIS, err := f.GetIntSlice("is")
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
 	for i, v := range getIS {
 		d, err := strconv.Atoi(vals[i])
 		if err != nil {
@@ -90,7 +87,7 @@ func TestISDefault(t *testing.T) {
 			t.Fatalf("got error: %v", err)
 		}
 		if d != v {
-			t.Fatalf("expected is[%d] to be %d but got: %d", i, d, v)
+			t.Fatalf("expected is[%d] to be %s but got: %s", i, d, v)
 		}
 	}
 
@@ -104,7 +101,7 @@ func TestISDefault(t *testing.T) {
 			t.Fatal("got an error from GetIntSlice():", err)
 		}
 		if d != v {
-			t.Fatalf("expected is[%d] to be %d from GetIntSlice but got: %d", i, d, v)
+			t.Fatalf("expected is[%d] to be %s from GetIntSlice but got: %s", i, d, v)
 		}
 	}
 }
@@ -125,7 +122,7 @@ func TestISWithDefault(t *testing.T) {
 			t.Fatalf("got error: %v", err)
 		}
 		if d != v {
-			t.Fatalf("expected is[%d] to be %d but got: %d", i, d, v)
+			t.Fatalf("expected is[%d] to be %s but got: %s", i, d, v)
 		}
 	}
 
@@ -139,7 +136,7 @@ func TestISWithDefault(t *testing.T) {
 			t.Fatalf("got error: %v", err)
 		}
 		if d != v {
-			t.Fatalf("expected is[%d] to be %d from GetIntSlice but got: %d", i, d, v)
+			t.Fatalf("expected is[%d] to be %s from GetIntSlice but got: %s", i, d, v)
 		}
 	}
 }
@@ -159,7 +156,7 @@ func TestISCalledTwice(t *testing.T) {
 	}
 	for i, v := range is {
 		if expected[i] != v {
-			t.Fatalf("expected is[%d] to be %d but got: %d", i, expected[i], v)
+			t.Fatalf("expected is[%d] to be %s but got: %s", i, expected[i], v)
 		}
 	}
 }

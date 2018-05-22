@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/spf13/cobra"
 )
 
 var (
 	commandFuncs []func() *cobra.Command
 	commandMu    sync.Mutex
+
+	rootVersion bool
 )
 
 // NewCommand creates a new 'git-lfs' sub command, given a command name and
@@ -58,14 +59,12 @@ func Run() int {
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
 
-	// Set up --version flag to be a synonym of version sub-command.
-	root.SetVersionTemplate("{{ .Version }}\n")
-	root.Version = lfsapi.UserAgent
-
 	// Set up help/usage funcs based on manpage text
 	root.SetHelpTemplate("{{.UsageString}}")
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
+
+	root.Flags().BoolVarP(&rootVersion, "version", "v", false, "")
 
 	cfg = config.New()
 
@@ -86,7 +85,9 @@ func Run() int {
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
 	versionCommand(cmd, args)
-	cmd.Usage()
+	if !rootVersion {
+		cmd.Usage()
+	}
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
