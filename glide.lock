@@ -1,5 +1,5 @@
-hash: 64732f6923719298bded0fd2aa6be97f2028aec75dd989a64021702474894849
-updated: 2018-04-12T11:45:29.473389-07:00
+hash: bad2138ca7787101a7a23af2464319cc580f4285e90c07d11eb9f90ad3bb9604
+updated: 2018-02-27T14:39:39.133796-08:00
 imports:
 - name: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
@@ -30,9 +30,9 @@ imports:
 - name: github.com/rubyist/tracerx
   version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - name: github.com/spf13/cobra
-  version: a1f051bc3eba734da4772d60e2d677f47cf93ef4
+  version: c55cdf33856a08e4822738728b41783292812889
 - name: github.com/spf13/pflag
-  version: 583c0c0531f06d5278b7d917446061adc344b5cd
+  version: 580b9be06c33d8ba9dcc8757ea56b7642472c2f5
 - name: github.com/stretchr/testify
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
   subpackages:

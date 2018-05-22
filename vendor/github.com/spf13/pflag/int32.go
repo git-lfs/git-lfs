@@ -1,6 +1,9 @@
 package pflag
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 // -- int32 Value
 type int32Value int32
@@ -20,7 +23,7 @@ func (i *int32Value) Type() string {
 	return "int32"
 }
 
-func (i *int32Value) String() string { return strconv.FormatInt(int64(*i), 10) }
+func (i *int32Value) String() string { return fmt.Sprintf("%v", *i) }
 
 func int32Conv(sval string) (interface{}, error) {
 	v, err := strconv.ParseInt(sval, 0, 32)
@@ -45,7 +48,7 @@ func (f *FlagSet) Int32Var(p *int32, name string, value int32, usage string) {
 	f.VarP(newInt32Value(value, p), name, "", usage)
 }
 
-// Int32VarP is like Int32Var, but accepts a shorthand letter that can be used after a single dash.
+// Like Int32Var, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) Int32VarP(p *int32, name, shorthand string, value int32, usage string) {
 	f.VarP(newInt32Value(value, p), name, shorthand, usage)
 }
@@ -56,7 +59,7 @@ func Int32Var(p *int32, name string, value int32, usage string) {
 	CommandLine.VarP(newInt32Value(value, p), name, "", usage)
 }
 
-// Int32VarP is like Int32Var, but accepts a shorthand letter that can be used after a single dash.
+// Like Int32Var, but accepts a shorthand letter that can be used after a single dash.
 func Int32VarP(p *int32, name, shorthand string, value int32, usage string) {
 	CommandLine.VarP(newInt32Value(value, p), name, shorthand, usage)
 }
@@ -69,7 +72,7 @@ func (f *FlagSet) Int32(name string, value int32, usage string) *int32 {
 	return p
 }
 
-// Int32P is like Int32, but accepts a shorthand letter that can be used after a single dash.
+// Like Int32, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) Int32P(name, shorthand string, value int32, usage string) *int32 {
 	p := new(int32)
 	f.Int32VarP(p, name, shorthand, value, usage)
@@ -82,7 +85,7 @@ func Int32(name string, value int32, usage string) *int32 {
 	return CommandLine.Int32P(name, "", value, usage)
 }
 
-// Int32P is like Int32, but accepts a shorthand letter that can be used after a single dash.
+// Like Int32, but accepts a shorthand letter that can be used after a single dash.
 func Int32P(name, shorthand string, value int32, usage string) *int32 {
 	return CommandLine.Int32P(name, shorthand, value, usage)
 }
