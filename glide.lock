@@ -1,5 +1,5 @@
-hash: bad2138ca7787101a7a23af2464319cc580f4285e90c07d11eb9f90ad3bb9604
-updated: 2018-02-27T14:39:39.133796-08:00
+hash: 90e874eb06dae1d64d837212941105f8e80bbd6a944bf7215564ace9b94e5648
+updated: 2018-05-22T09:48:41.5162-07:00
 imports:
 - name: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
@@ -19,6 +19,8 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
+- name: github.com/minio/sha256-simd
+  version: ad98a36ba0da87206e3378c556abbfeaeaa98668
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors

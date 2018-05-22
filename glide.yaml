@@ -32,3 +32,5 @@ import:
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
   subpackages:
   - ntlm
+- package: github.com/minio/sha256-simd
+  version: ad98a36ba0da87206e3378c556abbfeaeaa98668
