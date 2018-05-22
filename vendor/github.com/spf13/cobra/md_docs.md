@@ -1,31 +1,5 @@
 # Generating Markdown Docs For Your Own cobra.Command
 
-Generating man pages from a cobra command is incredibly easy. An example is as follows:
-
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
-)
-
-func main() {
-	cmd := &cobra.Command{
-		Use:   "test",
-		Short: "my test program",
-	}
-	err := doc.GenMarkdownTree(cmd, "/tmp")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-```
-
-That will get you a Markdown document `/tmp/test.md`
-
 ## Generate markdown docs for the entire command tree
 
 This program can actually generate docs for the kubectl command in the kubernetes project
@@ -34,22 +8,16 @@ This program can actually generate docs for the kubectl command in the kubernete
 package main
 
 import (
-	"log"
 	"io/ioutil"
 	"os"
 
-	"k8s.io/kubernetes/pkg/kubectl/cmd"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"github.com/spf13/cobra/doc"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	kubectl := cmd.NewKubectlCommand(cmdutil.NewFactory(nil), os.Stdin, ioutil.Discard, ioutil.Discard)
-	err := doc.GenMarkdownTree(kubectl, "./")
-	if err != nil {
-		log.Fatal(err)
-	}
+	kubectl := cmd.NewFactory(nil).NewKubectlCommand(os.Stdin, ioutil.Discard, ioutil.Discard)
+	cobra.GenMarkdownTree(kubectl, "./")
 }
 ```
 
@@ -61,10 +29,7 @@ You may wish to have more control over the output, or only generate for a single
 
 ```go
 	out := new(bytes.Buffer)
-	err := doc.GenMarkdown(cmd, out)
-	if err != nil {
-		log.Fatal(err)
-	}
+	cobra.GenMarkdown(cmd, out)
 ```
 
 This will write the markdown doc for ONLY "cmd" into the out, buffer.
@@ -74,14 +39,14 @@ This will write the markdown doc for ONLY "cmd" into the out, buffer.
 Both `GenMarkdown` and `GenMarkdownTree` have alternate versions with callbacks to get some control of the output:
 
 ```go
-func GenMarkdownTreeCustom(cmd *Command, dir string, filePrepender, linkHandler func(string) string) error {
-	//...
+func GenMarkdownTreeCustom(cmd *Command, dir string, filePrepender func(string) string, linkHandler func(string) string) {
+    //...
 }
 ```
 
 ```go
-func GenMarkdownCustom(cmd *Command, out *bytes.Buffer, linkHandler func(string) string) error {
-	//...
+func GenMarkdownCustom(cmd *Command, out *bytes.Buffer, linkHandler func(string) string) {
+    //...
 }
 ```
 
@@ -113,3 +78,4 @@ linkHandler := func(name string) string {
 	return "/commands/" + strings.ToLower(base) + "/"
 }
 ```
+ 

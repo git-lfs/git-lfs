@@ -1,6 +1,9 @@
 package pflag
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 // -- uint8 Value
 type uint8Value uint8
@@ -20,7 +23,7 @@ func (i *uint8Value) Type() string {
 	return "uint8"
 }
 
-func (i *uint8Value) String() string { return strconv.FormatUint(uint64(*i), 10) }
+func (i *uint8Value) String() string { return fmt.Sprintf("%v", *i) }
 
 func uint8Conv(sval string) (interface{}, error) {
 	v, err := strconv.ParseUint(sval, 0, 8)
@@ -45,7 +48,7 @@ func (f *FlagSet) Uint8Var(p *uint8, name string, value uint8, usage string) {
 	f.VarP(newUint8Value(value, p), name, "", usage)
 }
 
-// Uint8VarP is like Uint8Var, but accepts a shorthand letter that can be used after a single dash.
+// Like Uint8Var, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) Uint8VarP(p *uint8, name, shorthand string, value uint8, usage string) {
 	f.VarP(newUint8Value(value, p), name, shorthand, usage)
 }
@@ -56,7 +59,7 @@ func Uint8Var(p *uint8, name string, value uint8, usage string) {
 	CommandLine.VarP(newUint8Value(value, p), name, "", usage)
 }
 
-// Uint8VarP is like Uint8Var, but accepts a shorthand letter that can be used after a single dash.
+// Like Uint8Var, but accepts a shorthand letter that can be used after a single dash.
 func Uint8VarP(p *uint8, name, shorthand string, value uint8, usage string) {
 	CommandLine.VarP(newUint8Value(value, p), name, shorthand, usage)
 }
@@ -69,7 +72,7 @@ func (f *FlagSet) Uint8(name string, value uint8, usage string) *uint8 {
 	return p
 }
 
-// Uint8P is like Uint8, but accepts a shorthand letter that can be used after a single dash.
+// Like Uint8, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) Uint8P(name, shorthand string, value uint8, usage string) *uint8 {
 	p := new(uint8)
 	f.Uint8VarP(p, name, shorthand, value, usage)
@@ -82,7 +85,7 @@ func Uint8(name string, value uint8, usage string) *uint8 {
 	return CommandLine.Uint8P(name, "", value, usage)
 }
 
-// Uint8P is like Uint8, but accepts a shorthand letter that can be used after a single dash.
+// Like Uint8, but accepts a shorthand letter that can be used after a single dash.
 func Uint8P(name, shorthand string, value uint8, usage string) *uint8 {
 	return CommandLine.Uint8P(name, shorthand, value, usage)
 }

@@ -7,29 +7,31 @@ import (
 )
 
 // IPNet adapts net.IPNet for use as a flag.
-type ipNetValue net.IPNet
+type IPNetValue net.IPNet
 
-func (ipnet ipNetValue) String() string {
+func (ipnet IPNetValue) String() string {
 	n := net.IPNet(ipnet)
 	return n.String()
 }
 
-func (ipnet *ipNetValue) Set(value string) error {
+func (ipnet *IPNetValue) Set(value string) error {
 	_, n, err := net.ParseCIDR(strings.TrimSpace(value))
 	if err != nil {
 		return err
 	}
-	*ipnet = ipNetValue(*n)
+	*ipnet = IPNetValue(*n)
 	return nil
 }
 
-func (*ipNetValue) Type() string {
+func (*IPNetValue) Type() string {
 	return "ipNet"
 }
 
-func newIPNetValue(val net.IPNet, p *net.IPNet) *ipNetValue {
+var _ = strings.TrimSpace
+
+func newIPNetValue(val net.IPNet, p *net.IPNet) *IPNetValue {
 	*p = val
-	return (*ipNetValue)(p)
+	return (*IPNetValue)(p)
 }
 
 func ipNetConv(sval string) (interface{}, error) {
@@ -55,7 +57,7 @@ func (f *FlagSet) IPNetVar(p *net.IPNet, name string, value net.IPNet, usage str
 	f.VarP(newIPNetValue(value, p), name, "", usage)
 }
 
-// IPNetVarP is like IPNetVar, but accepts a shorthand letter that can be used after a single dash.
+// Like IPNetVar, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) IPNetVarP(p *net.IPNet, name, shorthand string, value net.IPNet, usage string) {
 	f.VarP(newIPNetValue(value, p), name, shorthand, usage)
 }
@@ -66,7 +68,7 @@ func IPNetVar(p *net.IPNet, name string, value net.IPNet, usage string) {
 	CommandLine.VarP(newIPNetValue(value, p), name, "", usage)
 }
 
-// IPNetVarP is like IPNetVar, but accepts a shorthand letter that can be used after a single dash.
+// Like IPNetVar, but accepts a shorthand letter that can be used after a single dash.
 func IPNetVarP(p *net.IPNet, name, shorthand string, value net.IPNet, usage string) {
 	CommandLine.VarP(newIPNetValue(value, p), name, shorthand, usage)
 }
@@ -79,7 +81,7 @@ func (f *FlagSet) IPNet(name string, value net.IPNet, usage string) *net.IPNet {
 	return p
 }
 
-// IPNetP is like IPNet, but accepts a shorthand letter that can be used after a single dash.
+// Like IPNet, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) IPNetP(name, shorthand string, value net.IPNet, usage string) *net.IPNet {
 	p := new(net.IPNet)
 	f.IPNetVarP(p, name, shorthand, value, usage)
@@ -92,7 +94,7 @@ func IPNet(name string, value net.IPNet, usage string) *net.IPNet {
 	return CommandLine.IPNetP(name, "", value, usage)
 }
 
-// IPNetP is like IPNet, but accepts a shorthand letter that can be used after a single dash.
+// Like IPNet, but accepts a shorthand letter that can be used after a single dash.
 func IPNetP(name, shorthand string, value net.IPNet, usage string) *net.IPNet {
 	return CommandLine.IPNetP(name, shorthand, value, usage)
 }
