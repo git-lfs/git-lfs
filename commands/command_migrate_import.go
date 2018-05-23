@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
@@ -28,6 +29,59 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 	defer db.Close()
+
+	if migrateNoRewrite {
+		ref, err := git.CurrentRef()
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: unable to find current reference"))
+		}
+
+		sha, _ := hex.DecodeString(ref.Sha)
+		commit, err := db.Commit(sha)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: unable to load commit"))
+		}
+
+		root := commit.TreeID
+
+		include, _ := getIncludeExcludeArgs(cmd)
+		paths, _ := determineIncludeExcludePaths(cfg, include, nil)
+		if len(paths) == 0 {
+			ExitWithError(errors.New("fatal: no matching paths found"))
+		}
+
+		for _, path := range paths {
+			root, err = rewriteTree(db, root, path)
+			if err != nil {
+				ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", path))
+			}
+		}
+
+		name, email := cfg.CurrentCommitter()
+		author := fmt.Sprintf("%s <%s>", name, email)
+
+		oid, err := db.WriteCommit(&odb.Commit{
+			Author:    author,
+			Committer: author,
+			ParentIDs: [][]byte{sha},
+			Message:   generateMigrateCommitMessage(cmd, include),
+			TreeID:    root,
+		})
+
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: unable to write commit"))
+		}
+
+		if err := git.UpdateRef(ref, oid, "git lfs migrate import --no-rewrite"); err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: unable to update ref"))
+		}
+
+		if err := checkoutNonBare(l); err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: could not checkout"))
+		}
+
+		return
+	}
 
 	rewriter := getHistoryRewriter(cmd, db, l)
 
@@ -104,17 +158,36 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		UpdateRefs: true,
 	})
 
-	// Only perform `git-checkout(1) -f` if the repository is
-	// non-bare.
-	if bare, _ := git.IsBare(); !bare {
-		t := l.Waiter("migrate: checkout")
-		err := git.Checkout("", nil, true)
-		t.Complete()
-
-		if err != nil {
-			ExitWithError(err)
-		}
+	if err := checkoutNonBare(l); err != nil {
+		ExitWithError(errors.Wrap(err, "fatal: could not checkout"))
 	}
+}
+
+// generateMigrateCommitMessage generates a commit message used with
+// --no-rewrite, using --message (if given) or generating one if it isn't.
+func generateMigrateCommitMessage(cmd *cobra.Command, patterns *string) string {
+	if cmd.Flag("message").Changed {
+		return migrateCommitMessage
+	}
+	if patterns != nil {
+		return fmt.Sprintf("%s: convert to Git LFS", *patterns)
+	}
+	panic("unexpected")
+}
+
+// checkoutNonBare forces a checkout of the current reference, so long as the
+// repository is non-bare.
+//
+// It returns nil on success, and a non-nil error on failure.
+func checkoutNonBare(l *tasklog.Logger) error {
+	if bare, _ := git.IsBare(); bare {
+		return nil
+	}
+
+	t := l.Waiter("migrate: checkout")
+	defer t.Complete()
+
+	return git.Checkout("", nil, true)
 }
 
 // trackedFromFilter returns an ordered set of strings where each entry is a
@@ -201,4 +274,8 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 		Contents: &attrs,
 		Size:     int64(attrs.Len()),
 	})
+}
+
+func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, error) {
+	return root, nil
 }
