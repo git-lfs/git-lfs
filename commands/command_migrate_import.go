@@ -50,10 +50,18 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(errors.New("fatal: no matching paths found"))
 		}
 
-		for _, path := range paths {
-			root, err = rewriteTree(db, root, path)
-			if err != nil {
-				ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", path))
+		entries, err := listEntries(db, root, "")
+		if err != nil {
+			ExitWithError(errors.Wrap(err, "fatal: unable to list tree entries"))
+		}
+
+		filter := filepathfilter.New(paths, nil)
+		for _, entry := range entries {
+			if filter.Allows(entry) {
+				root, err = rewriteTree(db, root, entry)
+				if err != nil {
+					ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", entry))
+				}
 			}
 		}
 
@@ -276,6 +284,122 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 	})
 }
 
+// rewriteTree replaces the blob at the provided path within the given tree with
+// a git lfs pointer. It will recursively rewrite any subtrees along the path to the
+// blob.
 func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, error) {
-	return root, nil
+	tree, err := db.Tree(root)
+	if err != nil {
+		return nil, err
+	}
+
+	splits := strings.SplitN(path, "/", 2)
+
+	switch len(splits) {
+	case 1:
+		// The path points to an entry at the root of this tree, so it must be a blob.
+		// Try to replace this blob with a git lfs pointer.
+		index := findEntry(tree, splits[0])
+		if index < 0 {
+			return nil, errors.Errorf("unable to find entry %s in tree", splits[0])
+		}
+
+		blobEntry := tree.Entries[index]
+		blob, err := db.Blob(blobEntry.Oid)
+		if err != nil {
+			return nil, err
+		}
+
+		var buf bytes.Buffer
+
+		if _, err := clean(lfs.NewGitFilter(cfg), &buf, blob.Contents, blobEntry.Name, blob.Size); err != nil {
+			return nil, err
+		}
+
+		newBlob := odb.Blob{
+			Contents: &buf,
+			Size:     int64(buf.Len()),
+		}
+
+		newOid, err := db.WriteBlob(&newBlob)
+		if err != nil {
+			return nil, err
+		}
+
+		newEntry := odb.TreeEntry{
+			Name:     splits[0],
+			Filemode: blobEntry.Filemode,
+			Oid:      newOid,
+		}
+		tree = tree.Merge(&newEntry)
+		return db.WriteTree(tree)
+
+	case 2:
+		// The path points to an entry in a subtree contained at the root of the tree.
+		// Recursively rewrite the subtree.
+		head, tail := splits[0], splits[1]
+
+		index := findEntry(tree, head)
+		if index < 0 {
+			return nil, errors.Errorf("unable to find entry %s in tree", head)
+		}
+
+		subtreeEntry := tree.Entries[index]
+		if subtreeEntry.Type() != odb.TreeObjectType {
+			return nil, errors.Errorf("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type())
+		}
+
+		rewrittenSubtree, err := rewriteTree(db, subtreeEntry.Oid, tail)
+		if err != nil {
+			return nil, err
+		}
+
+		tree = tree.Merge(&odb.TreeEntry{
+			Filemode: subtreeEntry.Filemode,
+			Name:     subtreeEntry.Name,
+			Oid:      rewrittenSubtree,
+		})
+
+		return db.WriteTree(tree)
+
+	default:
+		return nil, errors.Errorf("error parsing path %s", path)
+	}
+}
+
+// findEntry searches a tree for the desired entry, and returns the
+// index of that entry within the tree's Entries array
+func findEntry(t *odb.Tree, name string) int {
+	for i, entry := range t.Entries {
+		if entry.Name == name {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// listEntries returns an array with the full paths to all blobs within the provided tree.
+func listEntries(db *odb.ObjectDatabase, id []byte, parent string) ([]string, error) {
+	t, err := db.Tree(id)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, 0, len(t.Entries))
+
+	for _, e := range t.Entries {
+		switch e.Type() {
+		case odb.BlobObjectType:
+			names = append(names, fmt.Sprintf("%s%s", parent, e.Name))
+		case odb.TreeObjectType:
+			sub, err := listEntries(db, e.Oid, fmt.Sprintf("%s%s/", parent, e.Name))
+			if err != nil {
+				return nil, err
+			}
+			names = append(names, sub...)
+		}
+	}
+
+	return names, nil
 }
