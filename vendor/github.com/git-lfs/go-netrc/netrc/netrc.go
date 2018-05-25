@@ -24,6 +24,7 @@ const (
 	tkMacdef
 	tkComment
 	tkWhitespace
+	tkUnknown
 )
 
 var keywords = map[string]tkType{
@@ -70,7 +71,7 @@ func (n *Netrc) MarshalText() (text []byte, err error) {
 	// TODO(bgentry): not safe for concurrency
 	for i := range n.tokens {
 		switch n.tokens[i].kind {
-		case tkComment, tkDefault, tkWhitespace: // always append these types
+		case tkComment, tkDefault, tkWhitespace, tkUnknown: // always append these types
 			text = append(text, n.tokens[i].rawkind...)
 		default:
 			if n.tokens[i].value != "" { // skip empty-value tokens
@@ -391,9 +392,11 @@ func parse(r io.Reader, pos int) (*Netrc, error) {
 		t, err = newToken(rawb)
 		if err != nil {
 			if currentMacro == nil {
-				return nil, &Error{pos, err.Error()}
+				t.kind = tkUnknown
+				nrc.tokens = append(nrc.tokens, t)
+			} else {
+				currentMacro.rawvalue = append(currentMacro.rawvalue, rawb...)
 			}
-			currentMacro.rawvalue = append(currentMacro.rawvalue, rawb...)
 			continue
 		}
 

@@ -18,6 +18,7 @@ var expectedMachines = []*Machine{
 	&Machine{Name: "mail.google.com", Login: "joe@gmail.com", Password: "somethingSecret", Account: "justagmail"},
 	&Machine{Name: "ray", Login: "demo", Password: "mypassword", Account: ""},
 	&Machine{Name: "weirdlogin", Login: "uname", Password: "pass#pass", Account: ""},
+	&Machine{Name: "google.com", Login: "alice@google.com", Password: "secure"},
 	&Machine{Name: "", Login: "anonymous", Password: "joe@example.com", Account: ""},
 }
 var expectedMacros = Macros{
@@ -146,7 +147,7 @@ func TestFindMachine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !eqMachine(m, expectedMachines[3]) {
+	if !eqMachine(m, expectedMachines[4]) {
 		t.Errorf("bad machine; expected %v, got %v\n", expectedMachines[3], m)
 	}
 	if !m.IsDefault() {

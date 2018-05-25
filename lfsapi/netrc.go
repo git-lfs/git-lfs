@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bgentry/go-netrc/netrc"
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/go-netrc/netrc"
 )
 
 type NetrcFinder interface {

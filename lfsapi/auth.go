@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bgentry/go-netrc/netrc"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )
 

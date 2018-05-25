@@ -1,7 +1,7 @@
 package: github.com/git-lfs/git-lfs
 import:
-- package: github.com/bgentry/go-netrc
-  version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
+- package: github.com/git-lfs/go-netrc
+  version: 5affb93432dc700b6b318e739f9c7f09650df90b
   subpackages:
   - netrc
 - package: github.com/kr/pty

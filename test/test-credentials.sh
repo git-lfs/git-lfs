@@ -259,6 +259,39 @@ begin_test "credentials from netrc"
 )
 end_test
 
+begin_test "credentials from netrc with unknown keyword"
+(
+  set -e
+
+  printf "machine localhost\nlogin netrcuser\nnot-a-key something\npassword netrcpass\n" >> "$NETRCFILE"
+  echo $HOME
+  echo "GITSERVER $GITSERVER"
+  cat $NETRCFILE
+
+  # prevent prompts on Windows particularly
+  export SSH_ASKPASS=
+
+  reponame="netrctest"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo2
+
+  # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
+  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+  git lfs env
+
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
+  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
+  echo "any git credential calls:"
+  [ "0" -eq "$(cat push.log | grep "git credential" | wc -l)" ]
+)
+end_test
+
 begin_test "credentials from netrc with bad password"
 (
   set -e
@@ -274,7 +307,7 @@ begin_test "credentials from netrc with bad password"
   reponame="netrctest"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" repo2
+  clone_repo "$reponame" repo3
 
   # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
   git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"

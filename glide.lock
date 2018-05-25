@@ -1,18 +1,18 @@
-hash: bad2138ca7787101a7a23af2464319cc580f4285e90c07d11eb9f90ad3bb9604
-updated: 2018-02-27T14:39:39.133796-08:00
+hash: 3603b2885070c06a5a5b066ffb9f82335dc11e9698c5b9e5c0e782ad58e79af6
+updated: 2018-05-25T12:41:49.056975-07:00
 imports:
 - name: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
   subpackages:
   - ntlm
-- name: github.com/bgentry/go-netrc
-  version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
-  subpackages:
-  - netrc
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
+- name: github.com/git-lfs/go-netrc
+  version: 5affb93432dc700b6b318e739f9c7f09650df90b
+  subpackages:
+  - netrc
 - name: github.com/git-lfs/wildmatch
   version: 8a0518641565a619e62a2738c7d4498fc345daf6
 - name: github.com/inconshreveable/mousetrap
