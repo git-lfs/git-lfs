@@ -31,6 +31,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	defer db.Close()
 
 	if migrateNoRewrite {
+		if len(args) == 0 {
+			ExitWithError(errors.Errorf("fatal: the migrate import command requires a list of files to import when using the --no-rewrite flag"))
+		}
+
 		ref, err := git.CurrentRef()
 		if err != nil {
 			ExitWithError(errors.Wrap(err, "fatal: unable to find current reference"))
@@ -44,35 +48,31 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		root := commit.TreeID
 
-		include, _ := getIncludeExcludeArgs(cmd)
-		paths, _ := determineIncludeExcludePaths(cfg, include, nil)
-		if len(paths) == 0 {
-			ExitWithError(errors.New("fatal: no matching paths found"))
+		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+		if len(filter.Include()) == 0 && len(filter.Exclude()) == 0 {
+			ExitWithError(errors.Errorf("fatal: no git lfs filters setup in .gitattributes"))
 		}
 
-		entries, err := listEntries(db, root, "")
-		if err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: unable to list tree entries"))
-		}
-
-		filter := filepathfilter.New(paths, nil)
-		for _, entry := range entries {
-			if filter.Allows(entry) {
-				root, err = rewriteTree(db, root, entry)
+		for _, file := range args {
+			if filter.Allows(file) {
+				root, err = rewriteTree(db, root, file)
 				if err != nil {
-					ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", entry))
+					ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", file))
 				}
+			} else {
+				ExitWithError(errors.Errorf("fatal: file %s did not match any entries in .gitattributes", file))
 			}
 		}
 
 		name, email := cfg.CurrentCommitter()
 		author := fmt.Sprintf("%s <%s>", name, email)
 
+		filelist := strings.Join(args, ",")
 		oid, err := db.WriteCommit(&odb.Commit{
 			Author:    author,
 			Committer: author,
 			ParentIDs: [][]byte{sha},
-			Message:   generateMigrateCommitMessage(cmd, include),
+			Message:   generateMigrateCommitMessage(cmd, &filelist),
 			TreeID:    root,
 		})
 
@@ -377,29 +377,4 @@ func findEntry(t *odb.Tree, name string) int {
 	}
 
 	return -1
-}
-
-// listEntries returns an array with the full paths to all blobs within the provided tree.
-func listEntries(db *odb.ObjectDatabase, id []byte, parent string) ([]string, error) {
-	t, err := db.Tree(id)
-	if err != nil {
-		return nil, err
-	}
-
-	names := make([]string, 0, len(t.Entries))
-
-	for _, e := range t.Entries {
-		switch e.Type() {
-		case odb.BlobObjectType:
-			names = append(names, fmt.Sprintf("%s%s", parent, e.Name))
-		case odb.TreeObjectType:
-			sub, err := listEntries(db, e.Oid, fmt.Sprintf("%s%s/", parent, e.Name))
-			if err != nil {
-				return nil, err
-			}
-			names = append(names, sub...)
-		}
-	}
-
-	return names, nil
 }
