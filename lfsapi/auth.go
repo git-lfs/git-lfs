@@ -61,7 +61,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
-	return c.do(req, via)
+	return c.do(req, "", via)
 }
 
 // getCreds fills the authorization header for the given request if possible,

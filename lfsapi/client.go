@@ -96,16 +96,16 @@ func joinURL(prefix, suffix string) string {
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 
-	return c.do(req, nil)
+	return c.do(req, "", nil)
 }
 
 // do performs an *http.Request respecting redirects, and handles the response
 // as defined in c.handleResponse. Notably, it does not alter the headers for
 // the request argument in any way.
-func (c *Client) do(req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.httpClient(req.Host), req, via)
+	res, err := c.doWithRedirects(c.httpClient(req.Host), req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -161,7 +161,7 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 	return m
 }
 
-func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	tracedReq, err := c.traceRequest(req)
 	if err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		return res, err
 	}
 
-	return c.doWithRedirects(cli, redirectedReq, via)
+	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
 func (c *Client) httpClient(host string) *http.Client {
