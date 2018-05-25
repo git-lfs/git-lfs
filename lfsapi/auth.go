@@ -31,7 +31,7 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 		return nil, err
 	}
 
-	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access)
+	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, nil)
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := getAuthAccess(res)
@@ -57,11 +57,11 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL, access Access) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
-	return c.do(req)
+	return c.do(req, via)
 }
 
 // getCreds fills the authorization header for the given request if possible,

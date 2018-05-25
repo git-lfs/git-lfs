@@ -19,7 +19,7 @@ type ntmlCredentials struct {
 }
 
 func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL) (*http.Response, error) {
-	res, err := c.do(req)
+	res, err := c.do(req, nil)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
@@ -86,7 +86,7 @@ func (c *Client) ntlmSendMessage(req *http.Request, message []byte) (*http.Respo
 
 	msg := base64.StdEncoding.EncodeToString(message)
 	req.Header.Set("Authorization", "NTLM "+msg)
-	return c.do(req)
+	return c.do(req, nil)
 }
 
 func parseChallengeResponse(res *http.Response) ([]byte, error) {
