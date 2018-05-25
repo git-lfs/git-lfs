@@ -24,6 +24,10 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
+	return c.doWithAuth(remote, req, nil)
+}
+
+func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
@@ -31,7 +35,7 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 		return nil, err
 	}
 
-	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, nil)
+	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := getAuthAccess(res)
@@ -45,6 +49,12 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 					req.Header.Del("Authorization")
 					credHelper.Reject(creds)
 				}
+
+				// This case represents a rejected request that
+				// should have been authenticated but wasn't. Do
+				// not count this against our redirection
+				// maximum, so do not recur through doWithAuth
+				// and instead call DoWithAuth.
 				return c.DoWithAuth(remote, req)
 			}
 		}

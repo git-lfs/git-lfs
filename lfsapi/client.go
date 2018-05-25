@@ -231,6 +231,13 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 		return res, err
 	}
 
+	if len(req.Header.Get("Authorization")) > 0 {
+		// If the original request was authenticated (noted by the
+		// presence of the Authorization header), then recur through
+		// doWithAuth, retaining the requests via but only after
+		// authenticating the redirected request.
+		return c.doWithAuth(remote, redirectedReq, via)
+	}
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
