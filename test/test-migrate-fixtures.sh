@@ -44,6 +44,46 @@ setup_local_branch_with_gitattrs() {
   git commit -m "add .gitattributes"
 }
 
+# setup_local_branch_with_nested_gitattrs creates a repository as follows:
+#
+#   A---B
+#        \
+#         refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a corresponding entry in .gitattributes. There is also
+#   140 in a.md, with no corresponding entry in .gitattributes.
+#   It also has 140 in subtree/a.md, and a corresponding entry in subtree/.gitattributes
+setup_local_branch_with_nested_gitattrs() {
+  set -e
+
+  reponame="migrate-single-remote-branch-with-nested-attrs"
+
+  remove_and_create_local_repo "$reponame"
+
+  mkdir subtree
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 140 > a.md
+  base64 < /dev/urandom | head -c 140 > subtree/a.md
+
+  git add a.txt a.md subtree/a.md
+  git commit -m "initial commit"
+
+  git lfs track "*.txt"
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
+
+  cd subtree
+
+  git lfs track "*.md"
+
+  cd ..
+
+  git add subtree/.gitattributes
+  git commit -m "add nested .gitattributes"
+}
+
 # setup_multiple_local_branches creates a repository as follows:
 #
 #     B
@@ -77,6 +117,21 @@ setup_multiple_local_branches() {
   git commit -m "add an additional 30 bytes to a.md"
 
   git checkout master
+}
+
+# setup_multiple_local_branches_with_gitattrs creates a repository in the same way
+# as setup_multiple_local_branches, but also adds relevant lfs filters to the
+# .gitattributes file in the master branch
+setup_multiple_local_branches_with_gitattrs() {
+  set -e
+
+  setup_multiple_local_branches
+
+  git lfs track *.txt
+  git lfs track *.md
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
 }
 
 # setup_local_branch_with_space creates a repository as follows:
@@ -132,6 +187,18 @@ setup_single_remote_branch() {
 
   git add a.md a.txt
   git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
+}
+
+setup_single_remote_branch_with_gitattrs() {
+  set -e
+
+  setup_single_remote_branch
+
+  git lfs track *.txt
+  git lfs track *.md
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
 }
 
 # setup_multiple_remote_branches creates a repository as follows:
