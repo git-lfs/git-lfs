@@ -1,6 +1,13 @@
 # Git LFS Changelog
 
-### 2.4.1 (18 May, 2018)
+## 2.4.2 (28 May, 2018)
+
+### Bugs
+
+* lfsapi: re-authenticate HTTP redirects when needed #3028 (@ttaylorr)
+* lfsapi: allow unknown keywords in netrc file(s) #3027 (@ttaylorr)
+
+## 2.4.1 (18 May, 2018)
 
 This release fixes a handful of bugs found and fixed since v2.4.0. In
 particular, Git LFS no longer panic()'s after invalid API responses, can
