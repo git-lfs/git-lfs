@@ -91,6 +91,10 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
+	if !c.canExplictlyModify(path) {
+		return Lock{}, fmt.Errorf("unable to lock non-lockable path: %s", path)
+	}
+
 	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{
 		Path: path,
 		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
@@ -124,6 +128,18 @@ func (c *Client) LockFile(path string) (Lock, error) {
 	return lock, nil
 }
 
+// canExplictlyModify returns true iff the given path is explicitly matched by
+// at least one lockable pattern in .gitattributes, and false otherwise.
+func (c *Client) canExplictlyModify(path string) bool {
+	pats := c.GetLockablePatterns()
+	for _, pat := range pats {
+		if filepathfilter.NewPattern(pat).Match(path) {
+			return true
+		}
+	}
+	return false
+}
+
 // getAbsolutePath takes a repository-relative path and makes it absolute.
 //
 // For instance, given a repository in /usr/local/src/my-repo and a file called
@@ -143,6 +159,10 @@ func getAbsolutePath(p string) (string, error) {
 // path must be relative to the root of the repository
 // Force causes the file to be unlocked from other users as well
 func (c *Client) UnlockFile(path string, force bool) error {
+	if !force && !c.canExplictlyModify(path) {
+		return fmt.Errorf("unable to unlock non-lockable path: %s", path)
+	}
+
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
 		return fmt.Errorf("Unable to get lock id: %v", err)

@@ -29,7 +29,7 @@ begin_test "lock with good tracked ref"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git lfs track "*.dat"
+  git lfs track --lockable "*.dat"
   echo "a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
@@ -57,7 +57,7 @@ begin_test "lock with bad ref"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git lfs track "*.dat"
+  git lfs track --lockable "*.dat"
   echo "a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
@@ -123,7 +123,7 @@ begin_test "locking a directory"
   setup_remote_repo "remote_$reponame"
   clone_repo "remote_$reponame" "clone_$reponame"
 
-  git lfs track "*.dat"
+  git lfs track --lockable "*.dat"
   mkdir dir
   echo "a" > dir/a.dat
 
@@ -227,5 +227,24 @@ begin_test "creating a lock (symlinked working directory)"
     id="$(assert_lock lock.json folder1/folder2/a.dat)"
     assert_server_lock "$reponame" "$id" master
   popd > /dev/null
+)
+end_test
+
+begin_test "creating a lock (non-lockable path)"
+(
+  set -eo pipefail
+
+  reponame="lock-non-lockable-path"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  printf a > non_lockable.dat
+  git add non_lockable.dat
+  git commit -m "initial commit"
+
+  git push origin master
+
+  git lfs lock non_lockable.dat 2>&1 | tee lock.log
+  grep "unable to lock non-lockable path: non_lockable.dat" lock.log
 )
 end_test
