@@ -32,7 +32,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 	if migrateNoRewrite {
 		if len(args) == 0 {
-			ExitWithError(errors.Errorf("fatal: the migrate import command requires a list of files to import when using the --no-rewrite flag"))
+			ExitWithError(errors.Errorf("fatal: expected one or more files with --no-rewrite"))
 		}
 
 		ref, err := git.CurrentRef()
@@ -50,12 +50,14 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 		if len(filter.Include()) == 0 && len(filter.Exclude()) == 0 {
-			ExitWithError(errors.Errorf("fatal: no git lfs filters setup in .gitattributes"))
+			ExitWithError(errors.Errorf("fatal: no git lfs filters found in .gitattributes"))
 		}
+
+		gf := lfs.NewGitFilter(cfg)
 
 		for _, file := range args {
 			if filter.Allows(file) {
-				root, err = rewriteTree(db, root, file)
+				root, err = rewriteTree(gf, db, root, file)
 				if err != nil {
 					ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", file))
 				}
@@ -67,12 +69,11 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		name, email := cfg.CurrentCommitter()
 		author := fmt.Sprintf("%s <%s>", name, email)
 
-		filelist := strings.Join(args, ",")
 		oid, err := db.WriteCommit(&odb.Commit{
 			Author:    author,
 			Committer: author,
 			ParentIDs: [][]byte{sha},
-			Message:   generateMigrateCommitMessage(cmd, &filelist),
+			Message:   generateMigrateCommitMessage(cmd, strings.Join(args, ",")),
 			TreeID:    root,
 		})
 
@@ -173,14 +174,11 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 // generateMigrateCommitMessage generates a commit message used with
 // --no-rewrite, using --message (if given) or generating one if it isn't.
-func generateMigrateCommitMessage(cmd *cobra.Command, patterns *string) string {
+func generateMigrateCommitMessage(cmd *cobra.Command, patterns string) string {
 	if cmd.Flag("message").Changed {
 		return migrateCommitMessage
 	}
-	if patterns != nil {
-		return fmt.Sprintf("%s: convert to Git LFS", *patterns)
-	}
-	panic("unexpected")
+	return fmt.Sprintf("%s: convert to Git LFS", patterns)
 }
 
 // checkoutNonBare forces a checkout of the current reference, so long as the
@@ -287,7 +285,7 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 // rewriteTree replaces the blob at the provided path within the given tree with
 // a git lfs pointer. It will recursively rewrite any subtrees along the path to the
 // blob.
-func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, error) {
+func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path string) ([]byte, error) {
 	tree, err := db.Tree(root)
 	if err != nil {
 		return nil, err
@@ -298,7 +296,7 @@ func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, erro
 	switch len(splits) {
 	case 1:
 		// The path points to an entry at the root of this tree, so it must be a blob.
-		// Try to replace this blob with a git lfs pointer.
+		// Try to replace this blob with a Git LFS pointer.
 		index := findEntry(tree, splits[0])
 		if index < 0 {
 			return nil, errors.Errorf("unable to find entry %s in tree", splits[0])
@@ -312,26 +310,24 @@ func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, erro
 
 		var buf bytes.Buffer
 
-		if _, err := clean(lfs.NewGitFilter(cfg), &buf, blob.Contents, blobEntry.Name, blob.Size); err != nil {
+		if _, err := clean(gf, &buf, blob.Contents, blobEntry.Name, blob.Size); err != nil {
 			return nil, err
 		}
 
-		newBlob := odb.Blob{
+		newOid, err := db.WriteBlob(&odb.Blob{
 			Contents: &buf,
 			Size:     int64(buf.Len()),
-		}
+		})
 
-		newOid, err := db.WriteBlob(&newBlob)
 		if err != nil {
 			return nil, err
 		}
 
-		newEntry := odb.TreeEntry{
+		tree = tree.Merge(&odb.TreeEntry{
 			Name:     splits[0],
 			Filemode: blobEntry.Filemode,
 			Oid:      newOid,
-		}
-		tree = tree.Merge(&newEntry)
+		})
 		return db.WriteTree(tree)
 
 	case 2:
@@ -349,7 +345,7 @@ func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, erro
 			return nil, errors.Errorf("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type())
 		}
 
-		rewrittenSubtree, err := rewriteTree(db, subtreeEntry.Oid, tail)
+		rewrittenSubtree, err := rewriteTree(gf, db, subtreeEntry.Oid, tail)
 		if err != nil {
 			return nil, err
 		}
@@ -367,8 +363,8 @@ func rewriteTree(db *odb.ObjectDatabase, root []byte, path string) ([]byte, erro
 	}
 }
 
-// findEntry searches a tree for the desired entry, and returns the
-// index of that entry within the tree's Entries array
+// findEntry searches a tree for the desired entry, and returns the index of that
+// entry within the tree's Entries array
 func findEntry(t *odb.Tree, name string) int {
 	for i, entry := range t.Entries {
 		if entry.Name == name {
