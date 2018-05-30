@@ -105,10 +105,10 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 // gitDir is the root of the git repo
 func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	paths := GetAttributePaths(workingDir, gitDir)
-	patterns := make([]filepathfilter.Pattern, len(paths))
+	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
-	for i, path := range paths {
-		patterns[i] = filepathfilter.NewPattern(path.Path)
+	for _, path := range paths {
+		patterns = append(patterns, filepathfilter.NewPattern(path.Path))
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)
