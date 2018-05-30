@@ -111,7 +111,12 @@ begin_test "migrate import --no-rewrite (no .gitattributes)"
   setup_multiple_local_branches
 
   # Ensure command fails if no .gitattributes files are present
-  [ !"$(git lfs migrate import --no-rewrite *.txt *.md)" ]
+  git lfs migrate import --no-rewrite *.txt *.md 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
+  fi
+
+  grep "no Git LFS filters found in .gitattributes" migrate.log
 )
 end_test
 
@@ -146,7 +151,12 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
 
   # Failure should occur when trying to import a.md as no entry exists in
   # top-level .gitattributes file
-  [ !"$(git lfs migrate import --no-rewrite a.md)" ]
+  git lfs migrate import --no-rewrite a.md 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
+  fi
+
+  grep "a.md did not match any Git LFS filters in .gitattributes" migrate.log
 )
 end_test
 
