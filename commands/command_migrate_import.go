@@ -56,13 +56,15 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		gf := lfs.NewGitFilter(cfg)
 
 		for _, file := range args {
-			if filter.Allows(file) {
-				root, err = rewriteTree(gf, db, root, file)
-				if err != nil {
-					ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", file))
-				}
-			} else {
+			if !filter.Allows(file) {
 				ExitWithError(errors.Errorf("fatal: file %s did not match any entries in .gitattributes", file))
+			}
+		}
+
+		for _, file := range args {
+			root, err = rewriteTree(gf, db, root, file)
+			if err != nil {
+				ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", file))
 			}
 		}
 
