@@ -73,7 +73,7 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 				fields := strings.Fields(line)
 				pattern := fields[0]
 				if len(reldir) > 0 {
-					pattern = filepath.ToSlash(filepath.Join(reldir, pattern))
+					pattern = filepath.Join(reldir, pattern)
 				}
 				// Find lockable flag in any position after pattern to avoid
 				// edge case of matching "lockable" to a file pattern
@@ -108,7 +108,9 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {
-		patterns = append(patterns, filepathfilter.NewPattern(path.Path))
+		// Convert all separators to `/` before creating a pattern to
+		// avoid characters being escaped in situations like `subtree\*.md`
+		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path)))
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)
