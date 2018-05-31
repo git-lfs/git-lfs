@@ -132,18 +132,18 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
   [ !"$(echo "$master_attrs" | grep -q ".md")" ]
 
   # Ensure a .md filter exists in the nested .gitattributes
-  nested_attrs="$(git cat-file -p "$master:subtree/.gitattributes")"
+  nested_attrs="$(git cat-file -p "$master:b/.gitattributes")"
   echo "$nested_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
 
   md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
-  nested_md_oid="$(calc_oid "$(git cat-file -p :subtree/a.md)")"
+  nested_md_oid="$(calc_oid "$(git cat-file -p :b/a.md)")"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
 
-  git lfs migrate import --no-rewrite a.txt subtree/a.md
+  git lfs migrate import --no-rewrite a.txt b/a.md
 
   # Ensure a.txt and subtree/a.md were imported, even though *.md only exists in the
   # nested subtree/.gitattributes file
-  assert_pointer "refs/heads/master" "subtree/a.md" "$nested_md_oid" "140"
+  assert_pointer "refs/heads/master" "b/a.md" "$nested_md_oid" "140"
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
 
   assert_local_object "$nested_md_oid" 140

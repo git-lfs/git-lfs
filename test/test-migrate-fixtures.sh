@@ -56,17 +56,17 @@ setup_local_branch_with_gitattrs() {
 setup_local_branch_with_nested_gitattrs() {
   set -e
 
-  reponame="migrate-single-remote-branch-with-nested-attrs"
+  reponame="nested-attrs"
 
   remove_and_create_local_repo "$reponame"
 
-  mkdir subtree
+  mkdir b
 
   base64 < /dev/urandom | head -c 120 > a.txt
   base64 < /dev/urandom | head -c 140 > a.md
-  base64 < /dev/urandom | head -c 140 > subtree/a.md
+  base64 < /dev/urandom | head -c 140 > b/a.md
 
-  git add a.txt a.md subtree/a.md
+  git add a.txt a.md b/a.md
   git commit -m "initial commit"
 
   git lfs track "*.txt"
@@ -74,13 +74,13 @@ setup_local_branch_with_nested_gitattrs() {
   git add .gitattributes
   git commit -m "add .gitattributes"
 
-  cd subtree
+  cd b
 
   git lfs track "*.md"
 
   cd ..
 
-  git add subtree/.gitattributes
+  git add b/.gitattributes
   git commit -m "add nested .gitattributes"
 }
 
