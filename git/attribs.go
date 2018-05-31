@@ -73,7 +73,7 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 				fields := strings.Fields(line)
 				pattern := fields[0]
 				if len(reldir) > 0 {
-					pattern = filepath.Join(reldir, pattern)
+					pattern = filepath.ToSlash(filepath.Join(reldir, pattern))
 				}
 				// Find lockable flag in any position after pattern to avoid
 				// edge case of matching "lockable" to a file pattern
