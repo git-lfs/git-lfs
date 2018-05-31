@@ -49,7 +49,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		root := commit.TreeID
 
 		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
-		if len(filter.Include()) == 0 && len(filter.Exclude()) == 0 {
+		if len(filter.Include()) == 0 {
 			ExitWithError(errors.Errorf("fatal: no Git LFS filters found in .gitattributes"))
 		}
 

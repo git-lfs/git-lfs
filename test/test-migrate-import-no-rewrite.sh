@@ -114,6 +114,7 @@ begin_test "migrate import --no-rewrite (no .gitattributes)"
   git lfs migrate import --no-rewrite *.txt *.md 2>&1 | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
+    exit 1
   fi
 
   grep "no Git LFS filters found in .gitattributes" migrate.log
@@ -154,6 +155,7 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
   git lfs migrate import --no-rewrite a.md 2>&1 | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
+    exit 1
   fi
 
   grep "a.md did not match any Git LFS filters in .gitattributes" migrate.log
