@@ -29,6 +29,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	var pointers []*lfs.WrappedPointer
 	logger := tasklog.NewLogger(os.Stdout)
 	meter := tq.NewMeter()
+	meter.Direction = tq.Checkout
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)
 	logger.Enqueue(meter)
 	chgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {

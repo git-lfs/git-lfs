@@ -41,65 +41,73 @@ begin_test "checkout"
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
   echo "checkout should replace all"
-  git lfs checkout
+  git lfs checkout 2>&1 | tee checkout.log
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+  grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
 
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
   echo "checkout with filters"
-  git lfs checkout file2.dat
+  git lfs checkout file2.dat 2>&1 | tee checkout.log
   [ "$contents" = "$(cat file2.dat)" ]
   [ ! -f file1.dat ]
   [ ! -f file3.dat ]
   [ ! -f folder1/nested.dat ]
   [ ! -f folder2/nested.dat ]
+  grep "Checking out LFS objects: 100% (1/1), 19 B" checkout.log
 
   echo "quotes to avoid shell globbing"
-  git lfs checkout "file*.dat"
+  git lfs checkout "file*.dat" 2>&1 | tee checkout.log
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ ! -f folder1/nested.dat ]
   [ ! -f folder2/nested.dat ]
+  grep "Checking out LFS objects: 100% (3/3), 57 B" checkout.log
 
   echo "test subdir context"
   pushd folder1
-  git lfs checkout nested.dat
+  git lfs checkout nested.dat 2>&1 | tee checkout.log
+  grep "Checking out LFS objects: 100% (1/1), 19 B" checkout.log
   [ "$contents" = "$(cat nested.dat)" ]
   [ ! -f ../folder2/nested.dat ]
   # test '.' in current dir
   rm nested.dat
-  git lfs checkout .
+  git lfs checkout . 2>&1 | tee checkout.log
   [ "$contents" = "$(cat nested.dat)" ]
+  grep "Checking out LFS objects: 100% (1/1), 19 B" checkout.log
   popd
 
   echo "test folder param"
-  git lfs checkout folder2
+  git lfs checkout folder2 2>&1 | tee checkout.log
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+  grep "Checking out LFS objects: 100% (1/1), 19 B" checkout.log
 
   echo "test '.' in current dir"
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
-  git lfs checkout .
+  git lfs checkout . 2>&1 | tee checkout.log
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+  grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
 
   echo "test checkout with missing data doesn't fail"
   git push origin master
   rm -rf .git/lfs/objects
   rm file*.dat
-  git lfs checkout
+  git lfs checkout 2>&1 | tee checkout.log
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file1.dat)" ]
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file2.dat)" ]
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+  grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
 )
 end_test
 
