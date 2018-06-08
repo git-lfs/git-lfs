@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
@@ -14,6 +15,15 @@ import (
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
+
+	msg := []string{
+		"WARNING: 'git lfs checkout' is deprecated and will be removed in v3.0.0.",
+
+		"'git checkout' has been updated in upstream Git to have comparable speeds",
+		"to 'git lfs checkout'.",
+	}
+	fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
+
 	ref, err := git.CurrentRef()
 	if err != nil {
 		Panic(err, "Could not checkout")
