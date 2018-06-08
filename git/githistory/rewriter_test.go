@@ -369,3 +369,18 @@ func TestHistoryRewriterReturnsFilter(t *testing.T) {
 	assert.Equal(t, expected, got,
 		"git/githistory: expected Rewriter.Filter() to return same *filepathfilter.Filter instance")
 }
+
+// debug is meant to be called from a defer statement to aide in debugging a
+// test failure among any in this file.
+//
+// Callers are expected to call it immediately after calling the Rewrite()
+// function.
+func debug(t *testing.T, db *odb.ObjectDatabase, tip []byte, err error) {
+	root, ok := db.Root()
+
+	t.Log(strings.Repeat("*", 80))
+	t.Logf("* root=%s, ok=%t\n", root, ok)
+	t.Logf("* tip=%x\n", tip)
+	t.Logf("* err=%s\n", err)
+	t.Log(strings.Repeat("*", 80))
+}
