@@ -3,7 +3,6 @@ package githistory
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
@@ -188,10 +187,6 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	assert.Nil(t, err)
 
 	tree := "bbbe0a7676523ae02234bfe874784ca2380c2d4b"
-
-	fmt.Println(hex.EncodeToString(tip))
-	root, _ := db.Root()
-	fmt.Println(root)
 
 	AssertCommitTree(t, db, hex.EncodeToString(tip), tree)
 
