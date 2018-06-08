@@ -71,6 +71,18 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				// include set is the wildcard filepath
 				// extensions of files tracked.
 				ours = exts
+
+				if ours.Cardinality() == 0 {
+					// If it is still the case that we have
+					// no patterns to track, that means that
+					// we are in a tree that does not
+					// require .gitattributes changes.
+					//
+					// We can return early to avoid
+					// comparing and saving an identical
+					// tree.
+					return t, nil
+				}
 			}
 
 			theirs, err := trackedFromAttrs(db, t)
