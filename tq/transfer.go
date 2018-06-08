@@ -16,11 +16,14 @@ type Direction int
 const (
 	Upload   = Direction(iota)
 	Download = Direction(iota)
+	Checkout = Direction(iota)
 )
 
 // Verb returns a string containing the verb form of the receiving action.
 func (d Direction) Verb() string {
 	switch d {
+	case Checkout:
+		return "Checking out"
 	case Download:
 		return "Downloading"
 	case Upload:
@@ -32,6 +35,8 @@ func (d Direction) Verb() string {
 
 func (d Direction) String() string {
 	switch d {
+	case Checkout:
+		return "checkout"
 	case Download:
 		return "download"
 	case Upload:
