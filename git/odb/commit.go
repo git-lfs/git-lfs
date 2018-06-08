@@ -185,7 +185,11 @@ func (c *Commit) Encode(to io.Writer) (n int, err error) {
 		n = n + n3
 	}
 
-	n4, err := fmt.Fprintf(to, "\n%s", c.Message)
+	// c.Message is built from messageParts in the Decode() function.
+	//
+	// Since each entry in messageParts _does not_ contain its trailing LF,
+	// append an empty string to capture the final newline.
+	n4, err := fmt.Fprintf(to, "\n%s\n", c.Message)
 	if err != nil {
 		return n, err
 	}
