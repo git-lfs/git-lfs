@@ -18,6 +18,18 @@ const (
 	Download = Direction(iota)
 )
 
+// Verb returns a string containing the verb form of the receiving action.
+func (d Direction) Verb() string {
+	switch d {
+	case Download:
+		return "Downloading"
+	case Upload:
+		return "Uploading"
+	default:
+		return "<unknown>"
+	}
+}
+
 func (d Direction) String() string {
 	switch d {
 	case Download:
