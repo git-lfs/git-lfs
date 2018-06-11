@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -95,6 +96,24 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 	}
 
 	return paths
+}
+
+// GetAttributeFilter returns a list of entries in .gitattributes which are
+// configured with the filter=lfs attribute as a file path filter which
+// file paths can be matched against
+// workingDir is the root of the working copy
+// gitDir is the root of the git repo
+func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
+	paths := GetAttributePaths(workingDir, gitDir)
+	patterns := make([]filepathfilter.Pattern, 0, len(paths))
+
+	for _, path := range paths {
+		// Convert all separators to `/` before creating a pattern to
+		// avoid characters being escaped in situations like `subtree\*.md`
+		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path)))
+	}
+
+	return filepathfilter.NewFromPatterns(patterns, nil)
 }
 
 // copies bufio.ScanLines(), counting LF vs CRLF in a file
