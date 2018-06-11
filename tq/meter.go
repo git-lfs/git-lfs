@@ -5,7 +5,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -231,12 +230,10 @@ func (m *Meter) skipUpdate() bool {
 
 func (m *Meter) str() string {
 	// (Uploading|Downloading) LFS objects: 100% (10/10) 100 MiB | 10 MiB/s
-
-	direction := strings.Title(m.Direction.String()) + "ing"
 	percentage := 100 * float64(m.finishedFiles) / float64(m.estimatedFiles)
 
 	return fmt.Sprintf("%s LFS objects: %3.f%% (%d/%d), %s | %s",
-		direction,
+		m.Direction.Verb(),
 		percentage,
 		m.finishedFiles, m.estimatedFiles,
 		humanize.FormatBytes(clamp(m.currentBytes)),
