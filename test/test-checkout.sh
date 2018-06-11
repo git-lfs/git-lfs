@@ -69,8 +69,7 @@ begin_test "checkout"
 
   echo "test subdir context"
   pushd folder1
-  git lfs checkout nested.dat 2>&1
-  grep "Checking out LFS objects: 100% (1/1), 19 B" checkout.log
+  git lfs checkout nested.dat
   [ "$contents" = "$(cat nested.dat)" ]
   [ ! -f ../folder2/nested.dat ]
   # test '.' in current dir
