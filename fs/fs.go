@@ -1,15 +1,15 @@
 package fs
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
-	"bytes"
-	"strconv"
 
 	"github.com/git-lfs/git-lfs/tools"
 )
@@ -65,37 +65,38 @@ func (f *Filesystem) ObjectPathname(oid string) string {
 	return filepath.Join(f.localObjectDir(oid), oid)
 }
 
-func (f *Filesystem) DecodePathname(path string) string {	
-	return string(DecodePathBytes([]byte(path)))	
+func (f *Filesystem) DecodePathname(path string) string {
+	return string(DecodePathBytes([]byte(path)))
 }
 
 /**
  * Revert non ascii chracters escaped by git or windows (as octal sequences \000) back to bytes.
  */
-func DecodePathBytes(path []byte) ([]byte) {
+func DecodePathBytes(path []byte) []byte {
 	var expression = regexp.MustCompile(`\\[0-9]{3}`)
 	var buffer bytes.Buffer
-	
+
 	// strip quotes if any
-	if (len(path) > 2 && path[0] == '"' && path[len(path) - 1] == '"') {
-		path = path[1:len(path)-1]
+	if len(path) > 2 && path[0] == '"' && path[len(path)-1] == '"' {
+		path = path[1 : len(path)-1]
 	}
 
 	base := 0
-	for _, submatches := range expression.FindAllSubmatchIndex(path, -1) {		
-		buffer.Write(path[ base : submatches[0]])
-		
-		match := string(path[ submatches[0] + 1 : submatches[0] + 4 ])
+	for _, submatches := range expression.FindAllSubmatchIndex(path, -1) {
+		buffer.Write(path[base:submatches[0]])
+
+		match := string(path[submatches[0]+1 : submatches[0]+4])
 
 		k, err := strconv.ParseUint(match, 8, 64)
-		if err != nil { return path } // abort on error
+		if err != nil {
+			return path
+		} // abort on error
 
-		
-		buffer.Write([]byte{ byte(k)})
+		buffer.Write([]byte{byte(k)})
 		base = submatches[1]
-	}	
-	
-	buffer.Write(path[ base : len(path) ])
+	}
+
+	buffer.Write(path[base:len(path)])
 
 	return buffer.Bytes()
 }
