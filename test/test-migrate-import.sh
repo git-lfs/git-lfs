@@ -691,3 +691,19 @@ begin_test "migrate import (commit --allow-empty)"
   assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
 )
 end_test
+
+begin_test "migrate import (multiple remotes)"
+(
+  set -e
+
+  setup_multiple_remotes
+
+  original_master="$(git rev-parse master)"
+
+  git lfs migrate import
+
+  migrated_master="$(git rev-parse master)"
+
+  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+)
+end_test
