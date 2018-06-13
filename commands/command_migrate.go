@@ -297,6 +297,8 @@ func init() {
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 
+	exportCmd := NewCommand("export", migrateExportCommand)
+
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.PersistentFlags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
@@ -306,6 +308,6 @@ func init() {
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
-		cmd.AddCommand(importCmd, info)
+		cmd.AddCommand(importCmd, info, exportCmd)
 	})
 }
