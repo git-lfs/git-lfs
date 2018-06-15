@@ -23,7 +23,6 @@ func (*TestUtilRepoCallback) Errorf(format string, args ...interface{}) {
 }
 
 func main() {
-
 	commandMap := map[string]func(*test.Repo){
 		"addcommits": AddCommits,
 	}

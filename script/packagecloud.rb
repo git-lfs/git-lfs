@@ -37,6 +37,7 @@ $distro_name_map = {
     fedora/23
     fedora/24
     fedora/25
+    fedora/26
   ),
   "debian/7" => %w(
     debian/wheezy
@@ -55,9 +56,13 @@ $distro_name_map = {
     debian/stretch
     linuxmint/sarah
     linuxmint/serena
+    linuxmint/sonya
+    linuxmint/sylvia
     ubuntu/xenial
     ubuntu/yakkety
     ubuntu/zesty
+    ubuntu/artful
+    ubuntu/bionic
   ),
 }
 

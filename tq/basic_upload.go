@@ -10,7 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 )
 
 const (
@@ -83,7 +83,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return nil
 	}
 
-	cbr := progress.NewBodyWithCallback(f, t.Size, ccb)
+	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)
 	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start
@@ -161,7 +161,7 @@ func configureBasicUploadAdapter(m *Manifest) {
 	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
-			bu := &basicUploadAdapter{newAdapterBase(name, dir, nil)}
+			bu := &basicUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}
 			// self implements impl
 			bu.transferImpl = bu
 			return bu

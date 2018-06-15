@@ -12,6 +12,7 @@ env:
     - GIT_SOURCE_REPO="https://github.com/git/git.git"
     - GIT_EARLIEST_SUPPORTED_VERSION="v2.0.0
     - GIT_LATEST_SOURCE_BRANCH="master"
+    - GIT_ASKPASS=""
 
 matrix:
   fast_finish: true

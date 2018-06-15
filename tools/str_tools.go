@@ -100,3 +100,23 @@ func Longest(strs []string) string {
 
 	return longest
 }
+
+// Indent returns a string which prepends "\t" TAB characters to the beginning
+// of each line in the given string "str".
+func Indent(str string) string {
+	indented := strings.Replace(str, "\n", "\n\t", -1)
+	if len(indented) > 0 {
+		indented = "\t" + indented
+	}
+
+	return indented
+}
+
+var (
+	tabRe = regexp.MustCompile(`(?m)^[ \t]+`)
+)
+
+// Undent removes all leading tabs in the given string "str", line-wise.
+func Undent(str string) string {
+	return tabRe.ReplaceAllString(str, "")
+}

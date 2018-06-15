@@ -37,10 +37,9 @@ func TestVerboseEnabled(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{
-		Verbose:    true,
-		VerboseOut: out,
-	}
+	c, _ := NewClient(nil)
+	c.Verbose = true
+	c.VerboseOut = out
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")
@@ -94,10 +93,9 @@ func TestVerboseWithBinaryBody(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{
-		Verbose:    true,
-		VerboseOut: out,
-	}
+	c, _ := NewClient(nil)
+	c.Verbose = true
+	c.VerboseOut = out
 
 	buf := bytes.NewBufferString("binary-request")
 	req, err := http.NewRequest("POST", srv.URL, buf)
@@ -152,11 +150,10 @@ func TestVerboseEnabledWithDebugging(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{
-		Verbose:          true,
-		VerboseOut:       out,
-		DebuggingVerbose: true,
-	}
+	c, _ := NewClient(nil)
+	c.Verbose = true
+	c.VerboseOut = out
+	c.DebuggingVerbose = true
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")
@@ -211,11 +208,10 @@ func TestVerboseDisabled(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c := &Client{
-		Verbose:          false,
-		VerboseOut:       out,
-		DebuggingVerbose: true,
-	}
+	c, _ := NewClient(nil)
+	c.Verbose = false
+	c.VerboseOut = out
+	c.DebuggingVerbose = true
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")

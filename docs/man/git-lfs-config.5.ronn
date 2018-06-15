@@ -44,17 +44,33 @@ be scoped inside the configuration for a remote.
 
   Sets the maximum time, in seconds, that the HTTP client will wait for the
   next tcp read or write. If < 1, no activity timeout is used at all.
-  Default: 10 seconds
+  Default: 30 seconds
 
 * `lfs.keepalive`
 
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `core.askpass`, GIT_ASKPASS
+
+  Given as a program and its arguments, this is invoked when authentication is
+  needed against the LFS API. The contents of stdout are interpreted as the
+  password.
+
 * `lfs.cachecredentials`
 
   Enables in-memory SSH and Git Credential caching for a single 'git lfs'
-  command. Default: false. This will default to true in v2.1.0.
+  command. Default: enabled.
+
+* `lfs.storage`
+
+  Allow override LFS storage directory. Non-absolute path is relativized to
+  inside of Git repository directory (usually `.git`).
+
+  Note: you should not run `git lfs prune` if you have different repositories
+  sharing the same storage directory.
+
+  Default: `lfs` in Git repository directory (usually `.git/lfs`).
 
 ### Transfer (upload / download) settings
 
@@ -62,7 +78,7 @@ be scoped inside the configuration for a remote.
 
 * `lfs.concurrenttransfers`
 
-  The number of concurrent uploads/downloads. Default 3.
+  The number of concurrent uploads/downloads. Default 8.
 
 * `lfs.basictransfersonly`
 
@@ -80,6 +96,13 @@ be scoped inside the configuration for a remote.
   If set to true, this enables resumable uploads of LFS objects through the
   tus.io API. Once this feature is finalized, this setting will be removed,
   and tus.io uploads will be available for all clients.
+
+* `lfs.standalonetransferagent`
+
+  Allows the specified custom transfer agent to be used directly
+  for transferring files, without asking the server how the transfers
+  should be made. The custom transfer agent has to be defined in a
+  `lfs.customtransfer.<name>` settings group.
 
 * `lfs.customtransfer.<name>.path`
 
@@ -133,7 +156,7 @@ be scoped inside the configuration for a remote.
 * `lfs.allowincompletepush`
 
   When pushing, allow objects to be missing from the local cache without halting
-  a Git push.
+  a Git push. Default: true.
 
 ### Fetch settings
 
@@ -236,7 +259,7 @@ be scoped inside the configuration for a remote.
 
   Supports URL config lookup as described in:
   https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this value
-  per-host: `git config lfs.https://github.com/.locksverify 0`.
+  per-host: `git config --global lfs.https://github.com/.locksverify [true|false]`.
 
 * `lfs.skipdownloaderrors`
 
@@ -279,6 +302,23 @@ be scoped inside the configuration for a remote.
   made read-only in the working copy when not locked by the current user.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
+
+## LFSCONFIG
+
+The .lfsconfig file in a repository is read and interpreted in the same format
+as the file stored in .git/config. It allows a subset of keys to be used,
+including and limited to:
+
+- lfs.fetchexclude
+- lfs.fetchinclude
+- lfs.gitprotocol
+- lfs.pushurl
+- lfs.url
+- lfs.extension.{name}.clean
+- lfs.extension.{name}.smudge
+- lfs.extension.{name}.priority
+- remote.{name}.lfsurl
+- remote.{name}.{*}.access
 
 ## EXAMPLES
 

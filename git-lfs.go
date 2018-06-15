@@ -1,4 +1,4 @@
-//go:generate goversioninfo -icon=script/windows-installer/git-lfs-logo.ico
+//go:generate goversioninfo
 
 package main
 
@@ -32,6 +32,7 @@ func main() {
 		}
 	}()
 
-	commands.Run()
+	code := commands.Run()
 	once.Do(commands.Cleanup)
+	os.Exit(code)
 }

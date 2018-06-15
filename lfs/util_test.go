@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestBodyWithCallback(t *testing.T) {
 		assert.Equal(t, 5, int(total))
 		return nil
 	}
-	reader := progress.NewByteBodyWithCallback([]byte("BOOYA"), 5, cb)
+	reader := tools.NewByteBodyWithCallback([]byte("BOOYA"), 5, cb)
 
 	readBuf := make([]byte, 3)
 	n, err := reader.Read(readBuf)
@@ -39,7 +39,7 @@ func TestReadWithCallback(t *testing.T) {
 	called := 0
 	calledRead := make([]int64, 0, 2)
 
-	reader := &progress.CallbackReader{
+	reader := &tools.CallbackReader{
 		TotalSize: 5,
 		Reader:    bytes.NewBufferString("BOOYA"),
 		C: func(total int64, read int64, current int) error {

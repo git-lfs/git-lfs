@@ -2,6 +2,7 @@ package odb
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"sort"
@@ -149,6 +150,31 @@ func (t *Tree) Merge(others ...*TreeEntry) *Tree {
 	return &Tree{Entries: entries}
 }
 
+// Equal returns whether the receiving and given trees are equal, or in other
+// words, whether they are represented by the same SHA-1 when saved to the
+// object database.
+func (t *Tree) Equal(other *Tree) bool {
+	if (t == nil) != (other == nil) {
+		return false
+	}
+
+	if t != nil {
+		if len(t.Entries) != len(other.Entries) {
+			return false
+		}
+
+		for i := 0; i < len(t.Entries); i++ {
+			e1 := t.Entries[i]
+			e2 := other.Entries[i]
+
+			if !e1.Equal(e2) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // TreeEntry encapsulates information about a single tree entry in a tree
 // listing.
 type TreeEntry struct {
@@ -159,6 +185,21 @@ type TreeEntry struct {
 	Oid []byte
 	// Filemode is the filemode of this tree entry on disk.
 	Filemode int32
+}
+
+// Equal returns whether the receiving and given TreeEntry instances are
+// identical in name, filemode, and OID.
+func (e *TreeEntry) Equal(other *TreeEntry) bool {
+	if (e == nil) != (other == nil) {
+		return false
+	}
+
+	if e != nil {
+		return e.Name == other.Name &&
+			bytes.Equal(e.Oid, other.Oid) &&
+			e.Filemode == other.Filemode
+	}
+	return true
 }
 
 // Type is the type of entry (either blob: BlobObjectType, or a sub-tree:

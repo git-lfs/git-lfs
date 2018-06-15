@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,14 +10,14 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/spf13/cobra"
 )
 
 var (
 	commandFuncs []func() *cobra.Command
 	commandMu    sync.Mutex
+
+	rootVersion bool
 )
 
 // NewCommand creates a new 'git-lfs' sub command, given a command name and
@@ -25,7 +26,7 @@ var (
 // Each command will initialize the local storage ('.git/lfs') directory when
 // run, unless the PreRun hook is set to nil.
 func NewCommand(name string, runFn func(*cobra.Command, []string)) *cobra.Command {
-	return &cobra.Command{Use: name, Run: runFn, PreRun: resolveLocalStorage}
+	return &cobra.Command{Use: name, Run: runFn, PreRun: setupHTTPLogger}
 }
 
 // RegisterCommand creates a direct 'git-lfs' subcommand, given a command name,
@@ -50,7 +51,11 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
-func Run() {
+//
+// It returns an exit code.
+func Run() int {
+	log.SetOutput(ErrorWriter)
+
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
 
@@ -59,32 +64,30 @@ func Run() {
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
 
+	root.Flags().BoolVarP(&rootVersion, "version", "v", false, "")
+
+	cfg = config.New()
+
 	for _, f := range commandFuncs {
 		if cmd := f(); cmd != nil {
 			root.AddCommand(cmd)
 		}
 	}
 
-	root.Execute()
-	getAPIClient().Close()
+	err := root.Execute()
+	closeAPIClient()
+
+	if err != nil {
+		return 127
+	}
+	return 0
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
 	versionCommand(cmd, args)
-	cmd.Usage()
-}
-
-// resolveLocalStorage implements the `func(*cobra.Command, []string)` signature
-// necessary to wire it up via `cobra.Command.PreRun`. When run, this function
-// will resolve the localstorage directories.
-func resolveLocalStorage(cmd *cobra.Command, args []string) {
-	localstorage.ResolveDirs()
-	setupHTTPLogger(getAPIClient())
-}
-
-func setupLocalStorage(cmd *cobra.Command, args []string) {
-	config.ResolveGitBasicDirs()
-	setupHTTPLogger(getAPIClient())
+	if !rootVersion {
+		cmd.Usage()
+	}
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {
@@ -108,12 +111,12 @@ func printHelp(commandName string) {
 	}
 }
 
-func setupHTTPLogger(c *lfsapi.Client) {
-	if c == nil || len(os.Getenv("GIT_LOG_STATS")) < 1 {
+func setupHTTPLogger(cmd *cobra.Command, args []string) {
+	if len(os.Getenv("GIT_LOG_STATS")) < 1 {
 		return
 	}
 
-	logBase := filepath.Join(config.LocalLogDir, "http")
+	logBase := filepath.Join(cfg.LocalLogDir(), "http")
 	if err := os.MkdirAll(logBase, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 		return
@@ -124,6 +127,6 @@ func setupHTTPLogger(c *lfsapi.Client) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 	} else {
-		c.LogHTTPStats(file)
+		getAPIClient().LogHTTPStats(file)
 	}
 }

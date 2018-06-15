@@ -8,9 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -25,15 +23,32 @@ var (
 type Hook struct {
 	Type         string
 	Contents     string
-	Upgradeables []string
+	Dir          string
+	upgradeables []string
+}
+
+func LoadHooks(hookDir string) []*Hook {
+	return []*Hook{
+		NewStandardHook("pre-push", hookDir, []string{
+			"#!/bin/sh\ngit lfs push --stdin $*",
+			"#!/bin/sh\ngit lfs push --stdin \"$@\"",
+			"#!/bin/sh\ngit lfs pre-push \"$@\"",
+			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
+			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
+		}),
+		NewStandardHook("post-checkout", hookDir, []string{}),
+		NewStandardHook("post-commit", hookDir, []string{}),
+		NewStandardHook("post-merge", hookDir, []string{}),
+	}
 }
 
 // NewStandardHook creates a new hook using the template script calling 'git lfs theType'
-func NewStandardHook(theType string, upgradeables []string) *Hook {
+func NewStandardHook(theType, hookDir string, upgradeables []string) *Hook {
 	return &Hook{
 		Type:         theType,
 		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
-		Upgradeables: upgradeables,
+		Dir:          hookDir,
+		upgradeables: upgradeables,
 	}
 }
 
@@ -46,20 +61,7 @@ func (h *Hook) Exists() bool {
 // Path returns the desired (or actual, if installed) location where this hook
 // should be installed. It returns an absolute path in all cases.
 func (h *Hook) Path() string {
-	return filepath.Join(h.Dir(), h.Type)
-}
-
-// Dir returns the directory used by LFS for storing Git hooks. By default, it
-// will return the hooks/ sub-directory of the local repository's .git
-// directory. If `core.hooksPath` is configured and supported (Git verison is
-// greater than "2.9.0"), it will return that instead.
-func (h *Hook) Dir() string {
-	customHooksSupported := git.Config.IsGitVersionAtLeast("2.9.0")
-	if hp, ok := config.Config.Git.Get("core.hooksPath"); ok && customHooksSupported {
-		return hp
-	}
-
-	return filepath.Join(config.LocalGitDir, "hooks")
+	return filepath.Join(h.Dir, h.Type)
 }
 
 // Install installs this Git hook on disk, or upgrades it if it does exist, and
@@ -69,7 +71,7 @@ func (h *Hook) Dir() string {
 func (h *Hook) Install(force bool) error {
 	msg := fmt.Sprintf("Install hook: %s, force=%t, path=%s", h.Type, force, h.Path())
 
-	if err := os.MkdirAll(h.Dir(), 0755); err != nil {
+	if err := os.MkdirAll(h.Dir, 0755); err != nil {
 		return err
 	}
 
@@ -109,10 +111,6 @@ func (h *Hook) Upgrade() error {
 // Uninstall removes the hook on disk so long as it matches the current version,
 // or any of the past versions of this hook.
 func (h *Hook) Uninstall() error {
-	if !InRepo() {
-		return errors.New("Not in a git repository")
-	}
-
 	msg := fmt.Sprintf("Uninstall hook: %s, path=%s", h.Type, h.Path())
 
 	match, err := h.matchesCurrent()
@@ -145,16 +143,16 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		return false, err
 	}
 
-	contents := strings.TrimSpace(string(by))
+	contents := strings.TrimSpace(tools.Undent(string(by)))
 	if contents == h.Contents || len(contents) == 0 {
 		return true, nil
 	}
 
-	for _, u := range h.Upgradeables {
+	for _, u := range h.upgradeables {
 		if u == contents {
 			return true, nil
 		}
 	}
 
-	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), contents)
+	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), tools.Indent(contents))
 }

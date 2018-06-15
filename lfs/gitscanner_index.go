@@ -3,6 +3,8 @@ package lfs
 import (
 	"strings"
 	"sync"
+
+	"github.com/git-lfs/git-lfs/filepathfilter"
 )
 
 // ScanIndex returns a slice of WrappedPointer objects for all Git LFS pointers
@@ -10,7 +12,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerFoundPointer, ref string) error {
+func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
@@ -33,17 +35,6 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 	go func() {
 		seenRevs := make(map[string]bool, 0)
 
-		for rev := range revs.Results {
-			if !seenRevs[rev] {
-				allRevsChan <- rev
-				seenRevs[rev] = true
-			}
-		}
-		err := revs.Wait()
-		if err != nil {
-			allRevsErr <- err
-		}
-
 		for rev := range cachedRevs.Results {
 			if !seenRevs[rev] {
 				allRevsChan <- rev
@@ -51,6 +42,17 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 			}
 		}
 		err = cachedRevs.Wait()
+		if err != nil {
+			allRevsErr <- err
+		}
+
+		for rev := range revs.Results {
+			if !seenRevs[rev] {
+				allRevsChan <- rev
+				seenRevs[rev] = true
+			}
+		}
+		err := revs.Wait()
 		if err != nil {
 			allRevsErr <- err
 		}
@@ -95,7 +97,9 @@ func scanIndex(cb GitScannerFoundPointer, ref string) error {
 	}()
 
 	for result := range ch {
-		cb(result.Pointer, result.Err)
+		if f.Allows(result.Pointer.Name) {
+			cb(result.Pointer, result.Err)
+		}
 	}
 
 	return nil
@@ -120,18 +124,13 @@ func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChan
 				name = scanner.Entry().SrcName
 			}
 
-			var sha string = scanner.Entry().DstSha
-			if scanner.Entry().Status == StatusModification {
-				sha = scanner.Entry().SrcSha
-			}
-
-			indexMap.Add(sha, &indexFile{
+			indexMap.Add(scanner.Entry().DstSha, &indexFile{
 				Name:    name,
 				SrcName: scanner.Entry().SrcName,
 				Status:  string(scanner.Entry().Status),
 			})
 
-			revs <- sha
+			revs <- scanner.Entry().DstSha
 		}
 
 		if err := scanner.Err(); err != nil {

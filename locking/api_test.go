@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,13 +30,14 @@ func TestAPILock(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
 		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
-		assert.Equal(t, "18", r.Header.Get("Content-Length"))
+		assert.Equal(t, "53", r.Header.Get("Content-Length"))
 
 		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		lockReq := &lockRequest{}
 		err := json.NewDecoder(body).Decode(lockReq)
 		r.Body.Close()
 		assert.Nil(t, err)
+		assert.Equal(t, "refs/heads/master", lockReq.Ref.Name)
 		assert.Equal(t, "request", lockReq.Path)
 		assertSchema(t, createReqSchema, reqLoader)
 
@@ -52,13 +54,13 @@ func TestAPILock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
 
 	lc := &lockClient{Client: c}
-	lockRes, res, err := lc.Lock("", &lockRequest{Path: "request"})
+	lockRes, res, err := lc.Lock("", &lockRequest{Path: "request", Ref: &lockRef{Name: "refs/heads/master"}})
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "1", lockRes.Lock.Id)
@@ -100,13 +102,17 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
 
 	lc := &lockClient{Client: c}
-	unlockRes, res, err := lc.Unlock("", "123", true)
+	unlockRes, res, err := lc.Unlock(&git.Ref{
+		Name: "master",
+		Sha:  "6161616161616161616161616161616161616161",
+		Type: git.RefTypeLocalBranch,
+	}, "", "123", true)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 	assert.Equal(t, "123", unlockRes.Lock.Id)
@@ -144,7 +150,7 @@ func TestAPISearch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -199,7 +205,7 @@ func TestAPIVerifiableLocks(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)

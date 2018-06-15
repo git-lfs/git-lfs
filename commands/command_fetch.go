@@ -2,12 +2,13 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/progress"
+	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -39,12 +40,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if len(args) > 0 {
 		// Remote is first arg
-		if err := git.ValidateRemote(args[0]); err != nil {
-			Exit("Invalid remote name %q", args[0])
+		if err := cfg.SetValidRemote(args[0]); err != nil {
+			Exit("Invalid remote name %q: %s", args[0], err)
 		}
-		cfg.CurrentRemote = args[0]
-	} else {
-		cfg.CurrentRemote = ""
 	}
 
 	if len(args) > 1 {
@@ -66,6 +64,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	defer gitscanner.Close()
 
 	include, exclude := getIncludeExcludeArgs(cmd)
+	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
 	if fetchAllArg {
 		if fetchRecentArg || len(args) > 1 {
@@ -84,27 +83,26 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("Fetching %v", ref.Name)
+			Print("fetch: Fetching reference %s", ref.Refspec())
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
 
-		if fetchRecentArg || cfg.FetchPruneConfig().FetchRecentAlways {
-			s := fetchRecent(refs, filter)
+		if fetchRecentArg || fetchPruneCfg.FetchRecentAlways {
+			s := fetchRecent(fetchPruneCfg, refs, filter)
 			success = success && s
 		}
 	}
 
 	if fetchPruneArg {
-		fetchconf := cfg.FetchPruneConfig()
-		verify := fetchconf.PruneVerifyRemoteAlways
+		verify := fetchPruneCfg.PruneVerifyRemoteAlways
 		// no dry-run or verbose options in fetch, assume false
-		prune(fetchconf, verify, false, false)
+		prune(fetchPruneCfg, verify, false, false)
 	}
 
 	if !success {
 		c := getAPIClient()
-		e := c.Endpoints.Endpoint("download", cfg.CurrentRemote)
+		e := c.Endpoints.Endpoint("download", cfg.Remote())
 		Exit("error: failed to fetch some objects from '%s'", e.Url)
 	}
 }
@@ -169,9 +167,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 }
 
 // Fetch recent objects based on config
-func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
-	fetchconf := cfg.FetchPruneConfig()
-
+func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
 	}
@@ -184,9 +180,9 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) b
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print("Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
+		Print("fetch: Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.CurrentRemote)
+		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
 		if err != nil {
 			Panic(err, "Could not scan for recent refs")
 		}
@@ -198,7 +194,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) b
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("Fetching %v", ref.Name)
+				Print("fetch: Fetching reference %s", ref.Name)
 				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
@@ -213,7 +209,7 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) b
 				Error("Couldn't scan commits at %v: %v", refName, err)
 				continue
 			}
-			Print("Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
+			Print("fetch: Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
 			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
@@ -225,14 +221,17 @@ func fetchRecent(alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) b
 
 func fetchAll() bool {
 	pointers := scanAll()
-	Print("Fetching objects...")
+	Print("fetch: Fetching all references...")
 	return fetchAndReportToChan(pointers, nil, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
-	Print("Scanning for all objects ever referenced...")
-	spinner := progress.NewSpinner()
+	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
+	logger := tasklog.NewLogger(OutputWriter)
+	logger.Enqueue(task)
 	var numObjs int64
 
 	// use temp gitscanner to collect pointers
@@ -249,7 +248,7 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		spinner.Print(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
+		task.Logf("fetch: %d object(s) found", numObjs)
 		pointers = append(pointers, p)
 	})
 
@@ -263,25 +262,17 @@ func scanAll() []*lfs.WrappedPointer {
 		Panic(multiErr, "Could not scan for Git LFS files")
 	}
 
-	spinner.Finish(OutputWriter, fmt.Sprintf("%d objects found", numObjs))
 	return pointers
 }
 
 // Fetch and report completion of each OID to a channel (optional, pass nil to skip)
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
-	// Lazily initialize the current remote.
-	if len(cfg.CurrentRemote) == 0 {
-		// Actively find the default remote, don't just assume origin
-		defaultRemote, err := git.DefaultRemote()
-		if err != nil {
-			Exit("No default remote")
-		}
-		cfg.CurrentRemote = defaultRemote
-	}
-
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
-	q := newDownloadQueue(getTransferManifest(), cfg.CurrentRemote, tq.WithProgress(meter))
+	q := newDownloadQueue(
+		getTransferManifestOperationRemote("download", cfg.Remote()),
+		cfg.Remote(), tq.WithProgress(meter),
+	)
 
 	if out != nil {
 		// If we already have it, or it won't be fetched
@@ -301,8 +292,8 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 				oidToPointers[pointer.Oid] = append(plist, pointer)
 			}
 
-			for oid := range dlwatch {
-				plist, ok := oidToPointers[oid]
+			for t := range dlwatch {
+				plist, ok := oidToPointers[t.Oid]
 				if !ok {
 					continue
 				}
@@ -332,8 +323,11 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *progress.ProgressMeter) {
-	meter := buildProgressMeter(false)
+func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *tq.Meter) {
+	logger := tasklog.NewLogger(os.Stdout)
+	meter := buildProgressMeter(false, tq.Download)
+	logger.Enqueue(meter)
+
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -347,8 +341,8 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		seen[p.Oid] = true
 
 		// no need to download objects that exist locally already
-		lfs.LinkOrCopyFromReference(p.Oid, p.Size)
-		if lfs.ObjectExistsOfSize(p.Oid, p.Size) {
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if cfg.LFSObjectExists(p.Oid, p.Size) {
 			ready = append(ready, p)
 			continue
 		}

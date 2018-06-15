@@ -115,7 +115,6 @@ begin_test "smudge with skip"
   env | grep LFS_SKIP
   clone_repo "$reponame" "skip-clone-env"
   [ "$pointer" = "$(cat a.dat)" ]
-  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   git lfs pull
   [ "smudge a" = "$(cat a.dat)" ]
@@ -125,13 +124,11 @@ begin_test "smudge with skip"
   [ "$(env | grep LFS_SKIP)" == "" ]
   clone_repo "$reponame" "no-skip"
   [ "smudge a" = "$(cat a.dat)" ]
-  [ "1" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   echo "test clone with init --skip-smudge"
   git lfs install --skip-smudge
   clone_repo "$reponame" "skip-clone-init"
   [ "$pointer" = "$(cat a.dat)" ]
-  [ "0" = "$(grep -c "Downloading a.dat" clone.log)" ]
 
   git lfs install --force
 )
@@ -166,7 +163,7 @@ begin_test "smudge clone with include/exclude"
   assert_local_object "$contents_oid" 1
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"

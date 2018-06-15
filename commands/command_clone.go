@@ -1,13 +1,12 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/localstorage"
 	"github.com/git-lfs/git-lfs/subprocess"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -23,6 +22,18 @@ var (
 
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
+
+	if git.IsGitVersionAtLeast("2.15.0") {
+		msg := []string{
+			"WARNING: 'git lfs clone' is deprecated and will not be updated",
+			"          with new flags from 'git clone'",
+			"",
+			"'git clone' has been updated in upstream Git to have comparable",
+			"speeds to 'git lfs clone'.",
+		}
+
+		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
+	}
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
@@ -59,30 +70,25 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Make sure we pop back to dir we started in at the end
 	defer os.Chdir(cwd)
 
-	// Also need to derive dirs now
-	localstorage.ResolveDirs()
 	requireInRepo()
 
-	// Now just call pull with default args
 	// Support --origin option to clone
-	var remote string
 	if len(cloneFlags.Origin) > 0 {
-		remote = cloneFlags.Origin
-	} else {
-		remote = "origin"
+		cfg.SetRemote(cloneFlags.Origin)
 	}
 
-	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	filter := buildFilepathFilter(cfg, includeArg, excludeArg)
-	if cloneFlags.NoCheckout || cloneFlags.Bare {
-		// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-		cfg.CurrentRemote = remote
-		fetchRef("HEAD", filter)
-	} else {
-		pull(remote, filter)
-		err := postCloneSubmodules(args)
-		if err != nil {
-			Exit("Error performing 'git lfs pull' for submodules: %v", err)
+	if ref, err := git.CurrentRef(); err == nil {
+		includeArg, excludeArg := getIncludeExcludeArgs(cmd)
+		filter := buildFilepathFilter(cfg, includeArg, excludeArg)
+		if cloneFlags.NoCheckout || cloneFlags.Bare {
+			// If --no-checkout or --bare then we shouldn't check out, just fetch instead
+			fetchRef(ref.Name, filter)
+		} else {
+			pull(filter)
+			err := postCloneSubmodules(args)
+			if err != nil {
+				Exit("Error performing 'git lfs pull' for submodules: %v", err)
+			}
 		}
 	}
 
@@ -90,7 +96,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		// If --skip-repo wasn't given, install repo-level hooks while
 		// we're still in the checkout directory.
 
-		if err := lfs.InstallHooks(false); err != nil {
+		if err := installHooks(false); err != nil {
 			ExitWithError(err)
 		}
 	}
@@ -99,7 +105,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 func postCloneSubmodules(args []string) error {
 	// In git 2.9+ the filter option will have been passed through to submodules
 	// So we need to lfs pull inside each
-	if !git.Config.IsGitVersionAtLeast("2.9.0") {
+	if !git.IsGitVersionAtLeast("2.9.0") {
 		// In earlier versions submodules would have used smudge filter
 		return nil
 	}

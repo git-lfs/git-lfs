@@ -50,17 +50,24 @@ func mainIntegration() {
 	for _, file := range files {
 		tests <- file
 	}
+	close(tests)
 
-	go printOutput(output)
+	outputDone := make(chan bool)
+	go func() {
+		for out := range output {
+			fmt.Println(out)
+		}
+		outputDone <- true
+	}()
+
 	for i := 0; i < maxprocs; i++ {
 		wg.Add(1)
 		go worker(tests, output, &wg)
 	}
 
-	close(tests)
 	wg.Wait()
 	close(output)
-	printOutput(output)
+	<-outputDone
 
 	if erroring {
 		os.Exit(1)
@@ -113,19 +120,6 @@ func sendTestOutput(output chan string, testname string, buf *bytes.Buffer, err 
 		}
 		erroring = true
 		output <- fmt.Sprintf("error: %s => %s\n%s", basetestname, err, cli)
-	}
-}
-
-func printOutput(output <-chan string) {
-	for {
-		select {
-		case out, ok := <-output:
-			if !ok {
-				return
-			}
-
-			fmt.Println(out)
-		}
 	}
 }
 

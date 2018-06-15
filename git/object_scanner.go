@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"strconv"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -53,7 +52,7 @@ type ObjectScanner struct {
 //
 // Otherwise, an `*ObjectScanner` is returned with no error.
 func NewObjectScanner() (*ObjectScanner, error) {
-	cmd := exec.Command("git", "cat-file", "--batch")
+	cmd := gitNoLFS("cat-file", "--batch")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, errors.Wrap(err, "open stdout")
@@ -132,6 +131,10 @@ func (s *ObjectScanner) Scan(oid string) bool {
 // called upon. If there were any errors in freeing that (those) resource(s), it
 // it will be returned, otherwise nil.
 func (s *ObjectScanner) Close() error {
+	if s == nil {
+		return nil
+	}
+
 	if s.closeFn != nil {
 		return s.closeFn()
 	}
@@ -186,6 +189,19 @@ func (s *ObjectScanner) reset() error {
 	return nil
 }
 
+type missingErr struct {
+	oid string
+}
+
+func (m *missingErr) Error() string {
+	return fmt.Sprintf("missing object: %s", m.oid)
+}
+
+func IsMissingObject(err error) bool {
+	_, ok := err.(*missingErr)
+	return ok
+}
+
 // scan scans for and populates a new Git object given an OID.
 func (s *ObjectScanner) scan(oid string) (*object, error) {
 	if _, err := fmt.Fprintln(s.to, oid); err != nil {
@@ -198,19 +214,24 @@ func (s *ObjectScanner) scan(oid string) (*object, error) {
 	}
 
 	fields := bytes.Fields(l)
-	if len(fields) < 3 {
-		return nil, errors.Errorf("invalid line: %q", l)
+	switch len(fields) {
+	case 2:
+		if string(fields[1]) == "missing" {
+			return nil, &missingErr{oid: oid}
+		}
+		break
+	case 3:
+		oid = string(fields[0])
+		typ := string(fields[1])
+		size, _ := strconv.Atoi(string(fields[2]))
+		contents := io.LimitReader(s.from, int64(size))
+
+		return &object{
+			Contents: contents.(*io.LimitedReader),
+			Oid:      oid,
+			Size:     int64(size),
+			Type:     typ,
+		}, nil
 	}
-
-	oid = string(fields[0])
-	typ := string(fields[1])
-	size, _ := strconv.Atoi(string(fields[2]))
-	contents := io.LimitReader(s.from, int64(size))
-
-	return &object{
-		Contents: contents.(*io.LimitedReader),
-		Oid:      oid,
-		Size:     int64(size),
-		Type:     typ,
-	}, nil
+	return nil, errors.Errorf("invalid line: %q", l)
 }

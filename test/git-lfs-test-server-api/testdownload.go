@@ -52,7 +52,7 @@ func downloadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObje
 	for _, o := range retobjs {
 		link, _ := o.Rel("download")
 		if link != nil {
-			errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
+			errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %+v\n", o.Oid, link))
 		}
 		if o.Error == nil {
 			errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s\n", o.Oid))
@@ -96,7 +96,7 @@ func downloadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) e
 		link, _ := o.Rel("download")
 		if missingSet.Contains(o.Oid) {
 			if link != nil {
-				errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %s\n", o.Oid, link))
+				errbuf.WriteString(fmt.Sprintf("Download link should not exist for %s, was %+v\n", o.Oid, link))
 			}
 			if o.Error == nil {
 				errbuf.WriteString(fmt.Sprintf("Download should include an error for missing object %s", o.Oid))

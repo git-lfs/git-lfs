@@ -13,14 +13,17 @@ import (
 // writes data given to it, and keeps track of the SHA1 hash of the data as it
 // is written.
 type ObjectWriter struct {
-	// w is the underling writer that this ObjectWriter is writing to.
-	w io.Writer
-	// sum is the in-progress hash calculation.
-	sum hash.Hash
+	// members managed via sync/atomic must be aligned at the top of this
+	// structure (see: https://github.com/git-lfs/git-lfs/pull/2880).
 
 	// wroteHeader is a uint32 managed by the sync/atomic package. It is 1
 	// if the header was written, and 0 otherwise.
 	wroteHeader uint32
+
+	// w is the underling writer that this ObjectWriter is writing to.
+	w io.Writer
+	// sum is the in-progress hash calculation.
+	sum hash.Hash
 
 	// closeFn supplies an optional function that, when called, frees an
 	// resources (open files, memory, etc) held by this instance of the

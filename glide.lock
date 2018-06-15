@@ -1,24 +1,34 @@
-hash: 53d7484e21e3a93702191bef6c0d8a0f01082c9ab9c9c81fb9884ba31f31002e
-updated: 2017-07-05T09:11:19.970140093-06:00
+hash: 5d2fbd8be4931b982d29c6ac8df833f139b28ffdb44ca062948a2386e2096a4d
+updated: 2018-05-25T13:01:03.220513-07:00
 imports:
-- name: github.com/bgentry/go-netrc
-  version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
+- name: github.com/alexbrainman/sspi
+  version: 4729b3d4d8581b2db83864d1018926e4154f9406
+  subpackages:
+  - ntlm
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
+- name: github.com/git-lfs/go-netrc
+  version: e0e9ca483a183481412e6f5a700ff20a36177503
   subpackages:
   - netrc
+- name: github.com/git-lfs/wildmatch
+  version: 8a0518641565a619e62a2738c7d4498fc345daf6
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- name: github.com/kr/pretty
-  version: 088c856450c08c03eb32f7a6c221e6eefaa10e6f
 - name: github.com/kr/pty
   version: 5cf931ef8f76dccd0910001d74a58a7fca84a83d
-- name: github.com/kr/text
-  version: 6807e777504f54ad073ecef66747de158294b639
 - name: github.com/olekukonko/ts
   version: ecf753e7c962639ab5a1fb46f7da627d4c0a04b8
 - name: github.com/pkg/errors
-  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+  version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
 - name: github.com/rubyist/tracerx
-  version: d7bcc0bc315bed2a841841bee5dbecc8d7d7582f
+  version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - name: github.com/spf13/cobra
   version: c55cdf33856a08e4822738728b41783292812889
 - name: github.com/spf13/pflag
@@ -33,18 +43,10 @@ imports:
   subpackages:
   - ntlm
   - ntlm/md4
-- name: github.com/xeipuuv/gojsonpointer
-  version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
-- name: github.com/xeipuuv/gojsonreference
-  version: e02fc20de94c78484cd5ffb007f8af96be030a45
 - name: github.com/xeipuuv/gojsonschema
   version: 6b67b3fab74d992bd07f72550006ab2c6907c416
 testImports:
-- name: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
-  subpackages:
-  - spew
-- name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
-  subpackages:
-  - difflib
+- name: github.com/xeipuuv/gojsonpointer
+  version: 4e3ac2762d5f479393488629ee9370b50873b3a6
+- name: github.com/xeipuuv/gojsonreference
+  version: bd5ef7bd5415a7ac448318e64f11a24cd21e594b

@@ -27,7 +27,7 @@ func TestAPIBatch(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, "80", r.Header.Get("Content-Length"))
+		assert.Equal(t, "91", r.Header.Get("Content-Length"))
 
 		bodyLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		bReq := &batchRequest{}
@@ -54,7 +54,7 @@ func TestAPIBatch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -110,7 +110,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -128,7 +128,7 @@ func TestAPIBatchOnlyBasic(t *testing.T) {
 }
 
 func TestAPIBatchEmptyObjects(t *testing.T) {
-	c, err := lfsapi.NewClient(nil, nil)
+	c, err := lfsapi.NewClient(nil)
 	require.Nil(t, err)
 
 	tqc := &tqClient{Client: c}

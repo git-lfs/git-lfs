@@ -126,10 +126,11 @@ delete_server_object() {
 assert_server_object() {
   local reponame="$1"
   local oid="$2"
+  local refspec="$3"
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
-    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}]}" \
+    -d "{\"operation\":\"download\",\"objects\":[{\"oid\":\"$oid\"}],\"ref\":{\"name\":\"$refspec\"}}" \
     -H "Accept: application/vnd.git-lfs+json" \
     -H "X-Check-Object: 1" \
     -H "X-Ignore-Retries: true" 2>&1 |
@@ -163,8 +164,9 @@ assert_lock() {
 assert_server_lock() {
   local reponame="$1"
   local id="$2"
+  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 |
@@ -181,8 +183,9 @@ assert_server_lock() {
 refute_server_lock() {
   local reponame="$1"
   local id="$2"
+  local refspec="$3"
 
-  curl -v "$GITSERVER/$reponame.git/info/lfs/locks" \
+  curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
     -u "user:pass" \
     -o http.json \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
@@ -208,11 +211,11 @@ assert_attributes_count() {
   fi
 }
 
-assert_file_writable() {
+assert_file_writeable() {
   ls -l "$1" | grep -e "^-rw"
 }
 
-refute_file_writable() {
+refute_file_writeable() {
   ls -l "$1" | grep -e "^-r-"
 }
 
@@ -238,6 +241,14 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_status() {
+  status="$(git status)"
+  echo "$status" | grep "working tree clean" || {
+    echo $status
+    git lfs status
+  }
+}
+
 # pointer returns a string Git LFS pointer file.
 #
 #   $ pointer abc-some-oid 123 <version>
@@ -258,15 +269,20 @@ size %s
 wait_for_file() {
   local filename="$1"
   n=0
-  while [ $n -lt 10 ]; do
+  wait_time=1
+  while [ $n -lt 17 ]; do
     if [ -s $filename ]; then
       return 0
     fi
 
-    sleep 0.5
+    sleep $wait_time
     n=`expr $n + 1`
+    if [ $wait_time -lt 4 ]; then
+      wait_time=`expr $wait_time \* 2`
+    fi
   done
 
+  echo "$filename did not appear after 60 seconds."
   return 1
 }
 
@@ -324,6 +340,21 @@ clone_repo() {
   echo "$out"
 }
 
+# clone_repo_url clones a Git repository to the subdirectory $dir under $TRASHDIR.
+# setup_remote_repo() needs to be run first. Output is written to clone.log.
+clone_repo_url() {
+  cd "$TRASHDIR"
+
+  local repo="$1"
+  local dir="$2"
+  echo "clone git repository $repo to $dir"
+  out=$(git clone "$repo" "$dir" 2>&1)
+  cd "$dir"
+
+  git config credential.helper lfstest
+  echo "$out" > clone.log
+  echo "$out"
+}
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
 # $dir under $TRASHDIR, using the SSL endpoint.
@@ -381,9 +412,12 @@ clone_repo_clientcert() {
 setup_remote_repo_with_file() {
   local reponame="$1"
   local filename="$2"
+  local dirname="$(dirname "$filename")"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "clone_$reponame"
+
+  mkdir -p "$dirname"
 
   git lfs track "$filename"
   echo "$filename" > "$filename"
@@ -703,4 +737,15 @@ has_test_dir() {
     echo "No GIT_LFS_TEST_DIR. Skipping..."
     exit 0
   fi
+}
+
+add_symlink() {
+  local src=$1
+  local dest=$2
+
+  prefix=`git rev-parse --show-prefix`
+  hashsrc=`printf "$src" | git hash-object -w --stdin`
+
+  git update-index --add --cacheinfo 120000 "$hashsrc" "$prefix$dest"
+  git checkout -- "$dest"
 }

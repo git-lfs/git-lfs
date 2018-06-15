@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,20 +15,9 @@ type GitFetcher struct {
 	vals map[string][]string
 }
 
-type GitConfig struct {
-	Lines        []string
-	OnlySafeKeys bool
-}
-
-func NewGitConfig(gitconfiglines string, onlysafe bool) *GitConfig {
-	return &GitConfig{
-		Lines:        strings.Split(gitconfiglines, "\n"),
-		OnlySafeKeys: onlysafe,
-	}
-}
-
-func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
+func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
+	ignored := make([]string, 0)
 
 	extensions = make(map[string]Extension)
 	uniqRemotes = make(map[string]bool)
@@ -68,11 +56,13 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 				switch prop {
 				case "clean":
 					if gc.OnlySafeKeys {
+						ignored = append(ignored, key)
 						continue
 					}
 					ext.Clean = val
 				case "smudge":
 					if gc.OnlySafeKeys {
+						ignored = append(ignored, key)
 						continue
 					}
 					ext.Smudge = val
@@ -87,6 +77,7 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 				extensions[name] = ext
 			} else if len(parts) > 1 && parts[0] == "remote" {
 				if gc.OnlySafeKeys && (len(parts) == 3 && parts[2] != "lfsurl") {
+					ignored = append(ignored, key)
 					continue
 				}
 
@@ -98,10 +89,18 @@ func ReadGitConfig(configs ...*GitConfig) (gf *GitFetcher, extensions map[string
 			}
 
 			if !allowed && keyIsUnsafe(key) {
+				ignored = append(ignored, key)
 				continue
 			}
 
 			vals[key] = append(vals[key], val)
+		}
+	}
+
+	if len(ignored) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: These unsafe lfsconfig keys were ignored:\n\n")
+		for _, key := range ignored {
+			fmt.Fprintf(os.Stderr, "  %s\n", key)
 		}
 	}
 
@@ -149,39 +148,6 @@ func (g *GitFetcher) All() map[string][]string {
 	return newmap
 }
 
-func getGitConfigs() (sources []*GitConfig) {
-	if lfsconfig := getFileGitConfig(".lfsconfig"); lfsconfig != nil {
-		sources = append(sources, lfsconfig)
-	}
-
-	globalList, err := git.Config.List()
-	if err == nil {
-		sources = append(sources, NewGitConfig(globalList, false))
-	} else {
-		fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
-	}
-
-	return
-}
-
-func getFileGitConfig(basename string) *GitConfig {
-	fullname := filepath.Join(LocalWorkingDir, basename)
-	if _, err := os.Stat(fullname); err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "Error reading %s: %s\n", basename, err)
-		}
-		return nil
-	}
-
-	lines, err := git.Config.ListFromFile(fullname)
-	if err == nil {
-		return NewGitConfig(lines, true)
-	}
-
-	fmt.Fprintf(os.Stderr, "Error reading %s: %s\n", basename, err)
-	return nil
-}
-
 func keyIsUnsafe(key string) bool {
 	for _, safe := range safeKeys {
 		if safe == key {
@@ -195,6 +161,7 @@ var safeKeys = []string{
 	"lfs.fetchexclude",
 	"lfs.fetchinclude",
 	"lfs.gitprotocol",
+	"lfs.locksverify",
 	"lfs.pushurl",
 	"lfs.url",
 }

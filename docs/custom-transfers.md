@@ -8,20 +8,38 @@ returned from the LFS API for a given object. The core client also supports
 extensions to allow resuming of downloads (via `Range` headers) and uploads (via
 the [tus.io](http://tus.io) protocol).
 
-In the LFS API request the client includes a list of transfer types it can
-support. When replying, the API server will pick the best one of these it
-supports, and make any necessary adjustments to the returned object actions so
-they will work with that transfer type.
-
-## Custom Transfer Types
-
 Some people might want to be able to transfer content in other ways, however.
-To enable this, git-lfs has an option to configure Custom Transfers, which are
+To enable this, git-lfs allows configuring Custom Transfers, which are
 simply processes which must adhere to the protocol defined later in this
 document. git-lfs will invoke the process at the start of all transfers,
 and will communicate with the process via stdin/stdout for each transfer.
 
-## Configuration
+## Custom Transfer Type Selection
+
+In the LFS API request, the client includes a list of transfer types it
+supports. When replying, the API server will pick one of these and make any
+necessary adjustments to the returned object actions, in case the the picked
+transfer type needs custom details about how to do each transfer.
+
+## Using a Custom Transfer Type without the API server
+
+In some cases the transfer agent can figure out by itself how and where
+the transfers should be made, without having to query the API server.
+In this case it's possible to use the custom transfer agent directly,
+without querying the server, by using the following config option:
+
+* `lfs.standalonetransferagent`, `lfs.<url>.standalonetransferagent`
+
+  Specifies a custom transfer agent to be used if the API server URL matches as
+  in `git config --get-urlmatch lfs.standalonetransferagent <apiurl>`.
+  `git-lfs` will not contact the API server.  It instead sets stage 2 transfer
+  actions to `null`.  `lfs.<url>.standalonetransferagent` can be used to
+  configure a custom transfer agent for individual remotes.
+  `lfs.standalonetransferagent` unconditionally configures a custom transfer
+  agent for all remotes.  The custom transfer agent must be specified in
+  a `lfs.customtransfer.<name>` settings group.
+
+## Defining a Custom Transfer Type
 
 A custom transfer process is defined under a settings group called
 `lfs.customtransfer.<name>`, where `<name>` is an identifier (see
@@ -104,11 +122,14 @@ the configuration.
 The message will look like this:
 
 ```json
-{ "event": "init", "operation": "download", "concurrent": true, "concurrenttransfers": 3 }
+{ "event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3 }
 ```
 
 * `event`: Always `init` to identify this message
 * `operation`: will be `upload` or `download` depending on transfer direction
+* `remote`: The Git remote.  It can be a remote name like `origin` or an URL
+  like `ssh://git.example.com//path/to/repo`.  A standalone transfer agent can
+  use it to determine the location of remote files.
 * `concurrent`: reflects the value of `lfs.customtransfer.<name>.concurrent`, in
   case the process needs to know
 * `concurrenttransfers`: reflects the value of `lfs.concurrenttransfers`, for if
@@ -154,7 +175,8 @@ like this:
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
   `href` will give the primary connection details, with `header` containing any
-  miscellaneous information needed.
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
 
 The transfer process should post one or more [progress messages](#progress) and
 then a final completion message as follows:
@@ -193,7 +215,8 @@ like this:
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
   `href` will give the primary connection details, with `header` containing any
-  miscellaneous information needed.
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
 
 Note there is no file path included in the download request; the transfer
 process should create a file itself and return the path in the final response

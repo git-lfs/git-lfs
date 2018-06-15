@@ -27,7 +27,7 @@ begin_test "track"
   git lfs track "*.jpg" | grep "\"*.jpg\" already supported"
   assert_attributes_count "jpg" "filter=lfs" 1
 
-  mkdir -p a/b
+  mkdir -p a/b .git/info
 
   echo "*.mov filter=lfs -text" > .git/info/attributes
   echo "*.gif filter=lfs -text" > a/.gitattributes
@@ -93,7 +93,9 @@ begin_test "track directory"
   cd dir
   git init
 
-  git lfs track "foo bar/*"
+  git lfs track "foo bar\\*" | tee track.txt
+  [ "foo[[:space:]]bar/* filter=lfs diff=lfs merge=lfs -text" = "$(cat .gitattributes)" ]
+  [ "Tracking \"foo bar/*\"" = "$(cat track.txt)" ]
 
   mkdir "foo bar"
   echo "a" > "foo bar/a"
@@ -104,6 +106,7 @@ begin_test "track directory"
   assert_pointer "master" "foo bar/a" "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7" 2
   assert_pointer "master" "foo bar/b" "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f" 2
 )
+end_test
 
 begin_test "track without trailing linebreak"
 (
@@ -411,10 +414,10 @@ begin_test "track lockable read-only/read-write"
   echo "sub blah blah" > subfolder/test.bin
   echo "sub foo bar" > subfolder/test.dat
   # should start writeable
-  assert_file_writable test.bin
-  assert_file_writable test.dat
-  assert_file_writable subfolder/test.bin
-  assert_file_writable subfolder/test.dat
+  assert_file_writeable test.bin
+  assert_file_writeable test.dat
+  assert_file_writeable subfolder/test.bin
+  assert_file_writeable subfolder/test.dat
 
   # track *.bin, not lockable yet
   git lfs track "*.bin" | grep "Tracking \"\*.bin\""
@@ -423,28 +426,28 @@ begin_test "track lockable read-only/read-write"
 
   # bin should remain writeable, dat should have been made read-only
 
-  assert_file_writable test.bin
-  refute_file_writable test.dat
-  assert_file_writable subfolder/test.bin
-  refute_file_writable subfolder/test.dat
+  assert_file_writeable test.bin
+  refute_file_writeable test.dat
+  assert_file_writeable subfolder/test.bin
+  refute_file_writeable subfolder/test.dat
 
   git add .gitattributes test.bin test.dat
   git commit -m "First commit"
 
   # bin should still be writeable
-  assert_file_writable test.bin
-  assert_file_writable subfolder/test.bin
+  assert_file_writeable test.bin
+  assert_file_writeable subfolder/test.bin
   # now make bin lockable
   git lfs track --lockable "*.bin" | grep "Tracking \"\*.bin\""
   # bin should now be read-only
-  refute_file_writable test.bin
-  refute_file_writable subfolder/test.bin
+  refute_file_writeable test.bin
+  refute_file_writeable subfolder/test.bin
 
   # remove lockable again
   git lfs track --not-lockable "*.bin" | grep "Tracking \"\*.bin\""
   # bin should now be writeable again
-  assert_file_writable test.bin
-  assert_file_writable subfolder/test.bin
+  assert_file_writeable test.bin
+  assert_file_writeable subfolder/test.bin
 )
 end_test
 
@@ -461,5 +464,97 @@ begin_test "track escaped pattern"
 
   git lfs track "#" | grep "Tracking \"#\""
   assert_attributes_count "\\#" "filter=lfs" 1
+)
+end_test
+
+begin_test "track (symlinked repository)"
+(
+  set -e
+
+  reponame="tracked-symlinked-repository"
+  git init "$reponame"
+  cd "$reponame"
+
+  touch a.dat
+
+  pushd .. > /dev/null
+    dir="tracked-symlinked-repository-tmp"
+
+    mkdir -p "$dir"
+
+    ln -s "../$reponame" "./$dir"
+
+    cd "$dir/$reponame"
+
+    [ "Tracking \"a.dat\"" = "$(git lfs track "a.dat")" ]
+    [ "\"a.dat\" already supported" = "$(git lfs track "a.dat")" ]
+  popd > /dev/null
+)
+end_test
+
+begin_test "track (\$GIT_LFS_TRACK_NO_INSTALL_HOOKS)"
+(
+  set -e
+
+  reponame="track-no-setup-hooks"
+  git init "$reponame"
+  cd "$reponame"
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+
+  GIT_LFS_TRACK_NO_INSTALL_HOOKS=1 git lfs track
+
+  [ ! -f .git/hooks/pre-push ]
+  [ ! -f .git/hooks/post-checkout ]
+  [ ! -f .git/hooks/post-commit ]
+  [ ! -f .git/hooks/post-merge ]
+)
+end_test
+
+begin_test "track (with comments)"
+(
+  set -e
+
+  reponame="track-with=comments"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "*.jpg filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "# *.png filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+  echo "*.pdf filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git lfs track 2>&1 | tee track.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "expected \`git lfs track\` command to exit cleanly, didn't"
+    exit 1
+  fi
+
+  [ "1" -eq "$(grep -c "\.jpg" track.log)" ]
+  [ "1" -eq "$(grep -c "\.pdf" track.log)" ]
+  [ "0" -eq "$(grep -c "\.png" track.log)" ]
+)
+end_test
+
+begin_test "track (with current-directory prefix)"
+(
+  set -e
+
+  reponame="track-with-current-directory-prefix"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "./a.dat"
+  printf "a" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  grep -e "^a.dat" .gitattributes
 )
 end_test

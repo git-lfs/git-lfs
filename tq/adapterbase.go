@@ -3,8 +3,11 @@ package tq
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
@@ -13,6 +16,7 @@ import (
 // process transfers with N workers handling an oid each, and which wait for
 // authentication to succeed on one worker before proceeding
 type adapterBase struct {
+	fs           *fs.Filesystem
 	name         string
 	direction    Direction
 	transferImpl transferImplementation
@@ -47,8 +51,9 @@ type transferImplementation interface {
 	DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error
 }
 
-func newAdapterBase(name string, dir Direction, ti transferImplementation) *adapterBase {
+func newAdapterBase(f *fs.Filesystem, name string, dir Direction, ti transferImplementation) *adapterBase {
 	return &adapterBase{
+		fs:           f,
 		name:         name,
 		direction:    dir,
 		transferImpl: ti,
@@ -185,7 +190,14 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 	a.workerWait.Done()
 }
 
+var httpRE = regexp.MustCompile(`\Ahttps?://`)
+
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
+	if !httpRE.MatchString(rel.Href) {
+		urlfragment := strings.SplitN(rel.Href, "?", 2)[0]
+		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
+	}
+
 	req, err := http.NewRequest(method, rel.Href, nil)
 	if err != nil {
 		return nil, err

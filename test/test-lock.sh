@@ -2,16 +2,74 @@
 
 . "test/testlib.sh"
 
-begin_test "creating a lock"
+begin_test "lock with good ref"
 (
   set -e
 
-  reponame="lock_create_simple"
+  reponame="lock-master-branch-required"
   setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
 
-  git lfs lock --json "a.dat" | tee lock.json
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
+    exit 1
+  fi
+
   id=$(assert_lock lock.json a.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
+)
+end_test
+
+begin_test "lock with good tracked ref"
+(
+  set -e
+
+  reponame="lock-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git push origin master
+
+  git lfs lock "a.dat" --json 2>&1 | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
+)
+end_test
+
+begin_test "lock with bad ref"
+(
+  set -e
+
+  reponame="lock-other-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git push origin master:other
+
+  GIT_CURL_VERBOSE=1 git lfs lock "a.dat" 2>&1 | tee lock.json
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to fail"
+    exit 1
+  fi
+
+  grep 'Lock failed: Expected ref "refs/heads/other", got "refs/heads/master"' lock.json
 )
 end_test
 
@@ -115,5 +173,59 @@ begin_test "locking a nested file"
 
   git lfs locks 2>&1 | tee locks.log
   grep "foo/bar/baz/a.dat" locks.log
+)
+end_test
+
+begin_test "creating a lock (within subdirectory)"
+(
+  set -e
+
+  reponame="lock_create_within_subdirectory"
+  setup_remote_repo_with_file "$reponame" "sub/a.dat"
+
+  cd sub
+
+  git lfs lock --json "a.dat" | tee lock.json
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
+    exit 1
+  fi
+
+  id=$(assert_lock lock.json sub/a.dat)
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "creating a lock (symlinked working directory)"
+(
+  set -eo pipefail
+
+  if [[ $(uname) == *"MINGW"* ]]; then
+    echo >&2 "info: skipped on Windows ..."
+    exit 0
+  fi
+
+  reponame="lock-in-symlinked-working-directory"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track -l "*.dat"
+  mkdir -p folder1 folder2
+  printf "hello" > folder2/a.dat
+  add_symlink "../folder2" "folder1/folder2"
+
+  git add --all .
+  git commit -m "initial commit"
+  git push origin master
+
+  pushd "$TRASHDIR" > /dev/null
+    ln -s "$reponame" "$reponame-symlink"
+    cd "$reponame-symlink"
+
+    git lfs lock --json folder1/folder2/a.dat 2>&1 | tee lock.json
+
+    id="$(assert_lock lock.json folder1/folder2/a.dat)"
+    assert_server_lock "$reponame" "$id" master
+  popd > /dev/null
 )
 end_test

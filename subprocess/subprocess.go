@@ -3,6 +3,7 @@
 package subprocess
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -13,11 +14,44 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+// BufferedExec starts up a command and creates a stdin pipe and a buffered
+// stdout & stderr pipes, wrapped in a BufferedCmd. The stdout buffer will be
+// of stdoutBufSize bytes.
+func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
+	cmd := ExecCommand(name, args...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return &BufferedCmd{
+		cmd,
+		stdin,
+		bufio.NewReaderSize(stdout, stdoutBufSize),
+		bufio.NewReaderSize(stderr, stdoutBufSize),
+	}, nil
+}
+
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
-	tracerx.Printf("run_command: '%s' %s", name, strings.Join(args, " "))
-	cmd := ExecCommand(name, args...)
+	Trace(name, args...)
+	return Output(ExecCommand(name, args...))
+}
 
+func Output(cmd *Cmd) (string, error) {
 	//start copied from Go 1.6 exec.go
 	captureErr := cmd.Stderr == nil
 	if captureErr {
@@ -25,7 +59,7 @@ func SimpleExec(name string, args ...string) (string, error) {
 	}
 	//end copied from Go 1.6 exec.go
 
-	output, err := cmd.Output()
+	out, err := cmd.Output()
 
 	if exitError, ok := err.(*exec.ExitError); ok {
 		// TODO for min Go 1.6+, replace with ExitError.Stderr
@@ -33,15 +67,36 @@ func SimpleExec(name string, args ...string) (string, error) {
 		if errorOutput == "" {
 			// some commands might write nothing to stderr but something to stdout in error-conditions, in which case, we'll use that
 			// in the error string
-			errorOutput = strings.TrimSpace(string(output))
+			errorOutput = strings.TrimSpace(string(out))
 		}
-		formattedErr := fmt.Errorf("Error running %s %s: '%s' '%s'", name, args, errorOutput, strings.TrimSpace(exitError.Error()))
+
+		ran := cmd.Path
+		if len(cmd.Args) > 1 {
+			ran = fmt.Sprintf("%s %s", cmd.Path, quotedArgs(cmd.Args[1:]))
+		}
+		formattedErr := fmt.Errorf("Error running %s: '%s' '%s'", ran, errorOutput, strings.TrimSpace(exitError.Error()))
 
 		// return "" as output in error case, for callers that don't care about errors but rely on "" returned, in-case stdout != ""
 		return "", formattedErr
 	}
 
-	return strings.Trim(string(output), " \n"), err
+	return strings.Trim(string(out), " \n"), err
+}
+
+func Trace(name string, args ...string) {
+	tracerx.Printf("exec: %s %s", name, quotedArgs(args))
+}
+
+func quotedArgs(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	quoted := make([]string, len(args))
+	for i, arg := range args {
+		quoted[i] = fmt.Sprintf("'%s'", arg)
+	}
+	return strings.Join(quoted, " ")
 }
 
 // An env for an exec.Command without GIT_TRACE

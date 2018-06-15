@@ -29,7 +29,7 @@ func TestAuthErrWithBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
@@ -55,7 +55,7 @@ func TestFatalWithBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
@@ -64,7 +64,7 @@ func TestFatalWithBody(t *testing.T) {
 }
 
 func TestWithNonFatal500WithBody(t *testing.T) {
-	c := &Client{}
+	c, _ := NewClient(nil)
 
 	var called uint32
 
@@ -116,7 +116,7 @@ func TestAuthErrWithoutBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
@@ -140,7 +140,7 @@ func TestFatalWithoutBody(t *testing.T) {
 	req, err := http.NewRequest("GET", srv.URL+"/test", nil)
 	assert.Nil(t, err)
 
-	c := &Client{}
+	c, _ := NewClient(nil)
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
@@ -149,7 +149,7 @@ func TestFatalWithoutBody(t *testing.T) {
 }
 
 func TestWithNonFatal500WithoutBody(t *testing.T) {
-	c := &Client{}
+	c, _ := NewClient(nil)
 
 	var called uint32
 

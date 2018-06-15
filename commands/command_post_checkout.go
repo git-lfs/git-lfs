@@ -21,7 +21,7 @@ import (
 // optimising that as best it can based on the available information.
 func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	if len(args) != 3 {
-		Print("This should be run through Git's post-commit hook.  Run `git lfs update` to install it.")
+		Print("This should be run through Git's post-checkout hook.  Run `git lfs update` to install it.")
 		os.Exit(1)
 	}
 
@@ -32,7 +32,7 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 
 	requireGitVersion()
 
-	lockClient := newLockClient(cfg.CurrentRemote)
+	lockClient := newLockClient()
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {

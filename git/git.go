@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	lfserrors "github.com/git-lfs/git-lfs/errors"
@@ -54,13 +54,34 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/tags", true
 	case RefTypeRemoteTag:
 		return "refs/remotes/tags", true
-	case RefTypeHEAD:
-		return "", false
-	case RefTypeOther:
-		return "", false
 	default:
-		panic(fmt.Sprintf("git: unknown RefType %d", t))
+		return "", false
 	}
+}
+
+func ParseRef(absRef, sha string) *Ref {
+	r := &Ref{Sha: sha}
+	if strings.HasPrefix(absRef, "refs/heads/") {
+		r.Name = absRef[11:]
+		r.Type = RefTypeLocalBranch
+	} else if strings.HasPrefix(absRef, "refs/tags/") {
+		r.Name = absRef[10:]
+		r.Type = RefTypeLocalTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/tags/") {
+		r.Name = absRef[18:]
+		r.Type = RefTypeRemoteTag
+	} else if strings.HasPrefix(absRef, "refs/remotes/") {
+		r.Name = absRef[13:]
+		r.Type = RefTypeRemoteBranch
+	} else {
+		r.Name = absRef
+		if absRef == "HEAD" {
+			r.Type = RefTypeHEAD
+		} else {
+			r.Type = RefTypeOther
+		}
+	}
+	return r
 }
 
 // A git reference (branch, tag etc)
@@ -68,6 +89,24 @@ type Ref struct {
 	Name string
 	Type RefType
 	Sha  string
+}
+
+// Refspec returns the fully-qualified reference name (including remote), i.e.,
+// for a remote branch called 'my-feature' on remote 'origin', this function
+// will return:
+//
+//   refs/remotes/origin/my-feature
+func (r *Ref) Refspec() string {
+	if r == nil {
+		return ""
+	}
+
+	prefix, ok := r.Type.Prefix()
+	if ok {
+		return fmt.Sprintf("%s/%s", prefix, r.Name)
+	}
+
+	return r.Name
 }
 
 // Some top level information about a commit (only first line of message)
@@ -84,19 +123,116 @@ type CommitSummary struct {
 	Subject        string
 }
 
+// Prepend Git config instructions to disable Git LFS filter
+func gitConfigNoLFS(args ...string) []string {
+	// Before git 2.8, setting filters to blank causes lots of warnings, so use cat instead (slightly slower)
+	// Also pre 2.2 it failed completely. We used to use it anyway in git 2.2-2.7 and
+	// suppress the messages in stderr, but doing that with standard StderrPipe suppresses
+	// the git clone output (git thinks it's not a terminal) and makes it look like it's
+	// not working. You can get around that with https://github.com/kr/pty but that
+	// causes difficult issues with passing through Stdin for login prompts
+	// This way is simpler & more practical.
+	filterOverride := ""
+	if !IsGitVersionAtLeast("2.8.0") {
+		filterOverride = "cat"
+	}
+
+	return append([]string{
+		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
+		"-c", fmt.Sprintf("filter.lfs.clean=%v", filterOverride),
+		"-c", "filter.lfs.process=",
+		"-c", "filter.lfs.required=false",
+	}, args...)
+}
+
+// Invoke Git with disabled LFS filters
+func gitNoLFS(args ...string) *subprocess.Cmd {
+	return subprocess.ExecCommand("git", gitConfigNoLFS(args...)...)
+}
+
+func gitNoLFSSimple(args ...string) (string, error) {
+	return subprocess.SimpleExec("git", gitConfigNoLFS(args...)...)
+}
+
+func gitNoLFSBuffered(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.BufferedExec("git", gitConfigNoLFS(args...)...)
+}
+
+// Invoke Git with enabled LFS filters
+func git(args ...string) *subprocess.Cmd {
+	return subprocess.ExecCommand("git", args...)
+}
+
+func gitSimple(args ...string) (string, error) {
+	return subprocess.SimpleExec("git", args...)
+}
+
+func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.BufferedExec("git", args...)
+}
+
+func CatFile() (*subprocess.BufferedCmd, error) {
+	return gitNoLFSBuffered("cat-file", "--batch-check")
+}
+
+func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
+	args := []string{"diff-index", "-M"}
+	if cached {
+		args = append(args, "--cached")
+	}
+	args = append(args, ref)
+
+	cmd, err := gitBuffered(args...)
+	if err != nil {
+		return nil, err
+	}
+	if err = cmd.Stdin.Close(); err != nil {
+		return nil, err
+	}
+
+	return bufio.NewScanner(cmd.Stdout), nil
+}
+
+func HashObject(r io.Reader) (string, error) {
+	cmd := gitNoLFS("hash-object", "--stdin")
+	cmd.Stdin = r
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Error building Git blob OID: %s", err)
+	}
+
+	return string(bytes.TrimSpace(out)), nil
+}
+
+func Log(args ...string) (*subprocess.BufferedCmd, error) {
+	logArgs := append([]string{"log"}, args...)
+	return gitNoLFSBuffered(logArgs...)
+}
+
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")
 	}
 	if remoteRef == "" {
-		return subprocess.SimpleExec("git", "ls-remote", remote)
+		return gitNoLFSSimple("ls-remote", remote)
 
 	}
-	return subprocess.SimpleExec("git", "ls-remote", remote, remoteRef)
+	return gitNoLFSSimple("ls-remote", remote, remoteRef)
+}
+
+func LsTree(ref string) (*subprocess.BufferedCmd, error) {
+	return gitNoLFSBuffered(
+		"ls-tree",
+		"-r",          // recurse
+		"-l",          // report object size (we'll need this)
+		"-z",          // null line termination
+		"--full-tree", // start at the root regardless of where we are in it
+		ref,
+	)
 }
 
 func ResolveRef(ref string) (*Ref, error) {
-	outp, err := subprocess.SimpleExec("git", "rev-parse", ref, "--symbolic-full-name", ref)
+	outp, err := gitNoLFSSimple("rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {
 		return nil, fmt.Errorf("Git can't resolve ref: %q", ref)
 	}
@@ -109,7 +245,8 @@ func ResolveRef(ref string) (*Ref, error) {
 
 	if len(lines) == 1 {
 		// ref is a sha1 and has no symbolic-full-name
-		fullref.Name = lines[0] // fullref.Sha
+		fullref.Name = lines[0]
+		fullref.Sha = lines[0]
 		fullref.Type = RefTypeOther
 		return fullref, nil
 	}
@@ -136,8 +273,8 @@ func CurrentRef() (*Ref, error) {
 	return ResolveRef("HEAD")
 }
 
-func CurrentRemoteRef() (*Ref, error) {
-	remoteref, err := RemoteRefNameForCurrentBranch()
+func (c *Configuration) CurrentRemoteRef() (*Ref, error) {
+	remoteref, err := c.RemoteRefNameForCurrentBranch()
 	if err != nil {
 		return nil, err
 	}
@@ -145,22 +282,9 @@ func CurrentRemoteRef() (*Ref, error) {
 	return ResolveRef(remoteref)
 }
 
-// RemoteForCurrentBranch returns the name of the remote that the current branch is tracking
-func RemoteForCurrentBranch() (string, error) {
-	ref, err := CurrentRef()
-	if err != nil {
-		return "", err
-	}
-	remote := RemoteForBranch(ref.Name)
-	if remote == "" {
-		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
-	}
-	return remote, nil
-}
-
 // RemoteRefForCurrentBranch returns the full remote ref (refs/remotes/{remote}/{remotebranch})
 // that the current branch is tracking.
-func RemoteRefNameForCurrentBranch() (string, error) {
+func (c *Configuration) RemoteRefNameForCurrentBranch() (string, error) {
 	ref, err := CurrentRef()
 	if err != nil {
 		return "", err
@@ -170,36 +294,35 @@ func RemoteRefNameForCurrentBranch() (string, error) {
 		return "", errors.New("not on a branch")
 	}
 
-	remote := RemoteForBranch(ref.Name)
+	remote := c.RemoteForBranch(ref.Name)
 	if remote == "" {
 		return "", fmt.Errorf("remote not found for branch %q", ref.Name)
 	}
 
-	remotebranch := RemoteBranchForLocalBranch(ref.Name)
+	remotebranch := c.RemoteBranchForLocalBranch(ref.Name)
 
 	return fmt.Sprintf("refs/remotes/%s/%s", remote, remotebranch), nil
 }
 
 // RemoteForBranch returns the remote name that a given local branch is tracking (blank if none)
-func RemoteForBranch(localBranch string) string {
-	return Config.Find(fmt.Sprintf("branch.%s.remote", localBranch))
+func (c *Configuration) RemoteForBranch(localBranch string) string {
+	return c.Find(fmt.Sprintf("branch.%s.remote", localBranch))
 }
 
 // RemoteBranchForLocalBranch returns the name (only) of the remote branch that the local branch is tracking
 // If no specific branch is configured, returns local branch name
-func RemoteBranchForLocalBranch(localBranch string) string {
+func (c *Configuration) RemoteBranchForLocalBranch(localBranch string) string {
 	// get remote ref to track, may not be same name
-	merge := Config.Find(fmt.Sprintf("branch.%s.merge", localBranch))
+	merge := c.Find(fmt.Sprintf("branch.%s.merge", localBranch))
 	if strings.HasPrefix(merge, "refs/heads/") {
 		return merge[11:]
 	} else {
 		return localBranch
 	}
-
 }
 
 func RemoteList() ([]string, error) {
-	cmd := subprocess.ExecCommand("git", "remote")
+	cmd := gitNoLFS("remote")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -221,7 +344,7 @@ func RemoteList() ([]string, error) {
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
-	cmd := subprocess.ExecCommand("git", "show-ref", "--heads", "--tags")
+	cmd := gitNoLFS("show-ref", "--heads", "--tags")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -265,19 +388,12 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // reflog entry, if a "reason" was provided). It operates within the given
 // working directory "wd". It returns an error if any were encountered.
 func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
-	var refspec string
-	if prefix, ok := ref.Type.Prefix(); ok {
-		refspec = fmt.Sprintf("%s/%s", prefix, ref.Name)
-	} else {
-		refspec = ref.Name
-	}
-
-	args := []string{"update-ref", refspec, hex.EncodeToString(to)}
+	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
 
-	cmd := subprocess.ExecCommand("git", args...)
+	cmd := gitNoLFS(args...)
 	cmd.Dir = wd
 
 	return cmd.Run()
@@ -327,167 +443,8 @@ func ValidateRemoteURL(remote string) error {
 	}
 }
 
-// DefaultRemote returns the default remote based on:
-// 1. The currently tracked remote branch, if present
-// 2. "origin", if defined
-// 3. Any other SINGLE remote defined in .git/config
-// Returns an error if all of these fail, i.e. no tracked remote branch, no
-// "origin", and either no remotes defined or 2+ non-"origin" remotes
-func DefaultRemote() (string, error) {
-	tracked, err := RemoteForCurrentBranch()
-	if err == nil {
-		return tracked, nil
-	}
-
-	// Otherwise, check what remotes are defined
-	remotes, err := RemoteList()
-	if err != nil {
-		return "", err
-	}
-	switch len(remotes) {
-	case 0:
-		return "", errors.New("No remotes defined")
-	case 1: // always use a single remote whether it's origin or otherwise
-		return remotes[0], nil
-	default:
-		for _, remote := range remotes {
-			// Use origin if present
-			if remote == "origin" {
-				return remote, nil
-			}
-		}
-	}
-	return "", errors.New("Unable to pick default remote, too ambiguous")
-}
-
-func UpdateIndex(file string) error {
-	_, err := subprocess.SimpleExec("git", "update-index", "-q", "--refresh", file)
-	return err
-}
-
-type gitConfig struct {
-	gitVersion string
-	mu         sync.Mutex
-}
-
-var Config = &gitConfig{}
-
-// Find returns the git config value for the key
-func (c *gitConfig) Find(val string) string {
-	output, _ := subprocess.SimpleExec("git", "config", val)
-	return output
-}
-
-// FindGlobal returns the git config value global scope for the key
-func (c *gitConfig) FindGlobal(val string) string {
-	output, _ := subprocess.SimpleExec("git", "config", "--global", val)
-	return output
-}
-
-// FindSystem returns the git config value in system scope for the key
-func (c *gitConfig) FindSystem(val string) string {
-	output, _ := subprocess.SimpleExec("git", "config", "--system", val)
-	return output
-}
-
-// Find returns the git config value for the key
-func (c *gitConfig) FindLocal(val string) string {
-	output, _ := subprocess.SimpleExec("git", "config", "--local", val)
-	return output
-}
-
-// SetGlobal sets the git config value for the key in the global config
-func (c *gitConfig) SetGlobal(key, val string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--global", key, val)
-}
-
-// SetSystem sets the git config value for the key in the system config
-func (c *gitConfig) SetSystem(key, val string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--system", key, val)
-}
-
-// UnsetGlobal removes the git config value for the key from the global config
-func (c *gitConfig) UnsetGlobal(key string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--global", "--unset", key)
-}
-
-// UnsetSystem removes the git config value for the key from the system config
-func (c *gitConfig) UnsetSystem(key string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--system", "--unset", key)
-}
-
-// UnsetGlobalSection removes the entire named section from the global config
-func (c *gitConfig) UnsetGlobalSection(key string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--global", "--remove-section", key)
-}
-
-// UnsetSystemSection removes the entire named section from the system config
-func (c *gitConfig) UnsetSystemSection(key string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--system", "--remove-section", key)
-}
-
-// UnsetLocalSection removes the entire named section from the system config
-func (c *gitConfig) UnsetLocalSection(key string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "--local", "--remove-section", key)
-}
-
-// SetLocal sets the git config value for the key in the specified config file
-func (c *gitConfig) SetLocal(file, key, val string) (string, error) {
-	args := make([]string, 1, 5)
-	args[0] = "config"
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	args = append(args, key, val)
-	return subprocess.SimpleExec("git", args...)
-}
-
-// UnsetLocalKey removes the git config value for the key from the specified config file
-func (c *gitConfig) UnsetLocalKey(file, key string) (string, error) {
-	args := make([]string, 1, 5)
-	args[0] = "config"
-	if len(file) > 0 {
-		args = append(args, "--file", file)
-	}
-	args = append(args, "--unset", key)
-	return subprocess.SimpleExec("git", args...)
-}
-
-// List lists all of the git config values
-func (c *gitConfig) List() (string, error) {
-	return subprocess.SimpleExec("git", "config", "-l")
-}
-
-// ListFromFile lists all of the git config values in the given config file
-func (c *gitConfig) ListFromFile(f string) (string, error) {
-	return subprocess.SimpleExec("git", "config", "-l", "-f", f)
-}
-
-// Version returns the git version
-func (c *gitConfig) Version() (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if len(c.gitVersion) == 0 {
-		v, err := subprocess.SimpleExec("git", "version")
-		if err != nil {
-			return v, err
-		}
-		c.gitVersion = v
-	}
-
-	return c.gitVersion, nil
-}
-
-// IsVersionAtLeast returns whether the git version is the one specified or higher
-// argument is plain version string separated by '.' e.g. "2.3.1" but can omit minor/patch
-func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
-	gitver, err := c.Version()
-	if err != nil {
-		tracerx.Printf("Error getting git version: %v", err)
-		return false
-	}
-	return IsVersionAtLeast(gitver, ver)
+func UpdateIndexFromStdin() *subprocess.Cmd {
+	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
 // RecentBranches returns branches with commit dates on or after the given date/time
@@ -496,7 +453,7 @@ func (c *gitConfig) IsGitVersionAtLeast(ver string) bool {
 // includeRemoteBranches: true to include refs on remote branches
 // onlyRemote: set to non-blank to only include remote branches on a single remote
 func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
-	cmd := subprocess.ExecCommand("git", "for-each-ref",
+	cmd := gitNoLFS("for-each-ref",
 		`--sort=-committerdate`,
 		`--format=%(refname) %(objectname) %(committerdate:iso)`,
 		"refs")
@@ -599,7 +556,7 @@ func FormatGitDate(tm time.Time) string {
 
 // Get summary information about a commit
 func GetCommitSummary(commit string) (*CommitSummary, error) {
-	cmd := subprocess.ExecCommand("git", "show", "-s",
+	cmd := gitNoLFS("show", "-s",
 		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
 
 	out, err := cmd.CombinedOutput()
@@ -634,7 +591,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 }
 
 func GitAndRootDirs() (string, string, error) {
-	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir", "--show-toplevel")
+	cmd := gitNoLFS("rev-parse", "--git-dir", "--show-toplevel")
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 
@@ -669,7 +626,7 @@ func GitAndRootDirs() (string, string, error) {
 }
 
 func RootDir() (string, error) {
-	cmd := subprocess.ExecCommand("git", "rev-parse", "--show-toplevel")
+	cmd := gitNoLFS("rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("Failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
@@ -685,7 +642,7 @@ func RootDir() (string, error) {
 }
 
 func GitDir() (string, error) {
-	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir")
+	cmd := gitNoLFS("rev-parse", "--git-dir")
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
@@ -758,48 +715,6 @@ func parseRefFile(filename string) (*Ref, error) {
 		contents = strings.TrimSpace(contents[4:])
 	}
 	return ResolveRef(contents)
-}
-
-// IsVersionAtLeast compares 2 version strings (ok to be prefixed with 'git version', ignores)
-func IsVersionAtLeast(actualVersion, desiredVersion string) bool {
-	// Capture 1-3 version digits, optionally prefixed with 'git version' and possibly
-	// with suffixes which we'll ignore (e.g. unstable builds, MinGW versions)
-	verregex := regexp.MustCompile(`(?:git version\s+)?(\d+)(?:.(\d+))?(?:.(\d+))?.*`)
-
-	var atleast uint64
-	// Support up to 1000 in major/minor/patch digits
-	const majorscale = 1000 * 1000
-	const minorscale = 1000
-
-	if match := verregex.FindStringSubmatch(desiredVersion); match != nil {
-		// Ignore errors as regex won't match anything other than digits
-		major, _ := strconv.Atoi(match[1])
-		atleast += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			atleast += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			atleast += uint64(patch)
-		}
-	}
-
-	var actual uint64
-	if match := verregex.FindStringSubmatch(actualVersion); match != nil {
-		major, _ := strconv.Atoi(match[1])
-		actual += uint64(major * majorscale)
-		if len(match) > 2 {
-			minor, _ := strconv.Atoi(match[2])
-			actual += uint64(minor * minorscale)
-		}
-		if len(match) > 3 {
-			patch, _ := strconv.Atoi(match[3])
-			actual += uint64(patch)
-		}
-	}
-
-	return actual >= atleast
 }
 
 // IsBare returns whether or not a repository is bare. It requires that the
@@ -886,25 +801,7 @@ type CloneFlags struct {
 // so that files in the working copy will be pointers and not real LFS data
 func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
-	// Before git 2.8, setting filters to blank causes lots of warnings, so use cat instead (slightly slower)
-	// Also pre 2.2 it failed completely. We used to use it anyway in git 2.2-2.7 and
-	// suppress the messages in stderr, but doing that with standard StderrPipe suppresses
-	// the git clone output (git thinks it's not a terminal) and makes it look like it's
-	// not working. You can get around that with https://github.com/kr/pty but that
-	// causes difficult issues with passing through Stdin for login prompts
-	// This way is simpler & more practical.
-	filterOverride := ""
-	if !Config.IsGitVersionAtLeast("2.8.0") {
-		filterOverride = "cat"
-	}
-	// Disable the LFS filters while cloning to speed things up
-	// this is especially effective on Windows where even calling git-lfs at all
-	// with --skip-smudge is costly across many files in a checkout
-	cmdargs := []string{
-		"-c", fmt.Sprintf("filter.lfs.smudge=%v", filterOverride),
-		"-c", "filter.lfs.process=",
-		"-c", "filter.lfs.required=false",
-		"clone"}
+	cmdargs := []string{"clone"}
 
 	// flags
 	if flags.Bare {
@@ -1000,7 +897,7 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
 	// Now args
 	cmdargs = append(cmdargs, args...)
-	cmd := subprocess.ExecCommand("git", cmdargs...)
+	cmd := gitNoLFS(cmdargs...)
 
 	// Assign all streams direct
 	cmd.Stdout = os.Stdout
@@ -1039,7 +936,7 @@ func Checkout(treeish string, paths []string, force bool) error {
 		args = append(args, append([]string{"--"}, paths...)...)
 	}
 
-	_, err := subprocess.SimpleExec("git", args...)
+	_, err := gitNoLFSSimple(args...)
 	return err
 }
 
@@ -1047,7 +944,7 @@ func Checkout(treeish string, paths []string, force bool) error {
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
-	cmd := subprocess.ExecCommand("git", "show-ref")
+	cmd := gitNoLFS("show-ref")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1072,11 +969,27 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	return ret, cmd.Wait()
 }
 
+// Fetch performs a fetch with no arguments against the given remotes.
+func Fetch(remotes ...string) error {
+	if len(remotes) == 0 {
+		return nil
+	}
+
+	var args []string
+	if len(remotes) > 1 {
+		args = []string{"--multiple", "--"}
+	}
+	args = append(args, remotes...)
+
+	_, err := gitNoLFSSimple(append([]string{"fetch"}, args...)...)
+	return err
+}
+
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote vir git ls-remote
 func RemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
-	cmd := subprocess.ExecCommand("git", "ls-remote", "--heads", "--tags", "-q", remoteName)
+	cmd := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1115,7 +1028,7 @@ func AllRefs() ([]*Ref, error) {
 // the given working directory "wd", or an error if those references could not
 // be loaded.
 func AllRefsIn(wd string) ([]*Ref, error) {
-	cmd := subprocess.ExecCommand("git",
+	cmd := gitNoLFS(
 		"for-each-ref", "--format=%(objectname)%00%(refname)")
 	cmd.Dir = wd
 
@@ -1161,7 +1074,7 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	rootWildcard := len(safePattern) < len(pattern) && strings.ContainsRune(safePattern, '*')
 
 	var ret []string
-	cmd := subprocess.ExecCommand("git",
+	cmd := gitNoLFS(
 		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
 		"--cached", // include things which are staged but not committed right now
@@ -1220,7 +1133,7 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	}
 	args = append(args, "--") // no ambiguous patterns
 
-	cmd := subprocess.ExecCommand("git", args...)
+	cmd := gitNoLFS(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to call git diff: %v", err)
@@ -1251,7 +1164,7 @@ func IsFileModified(filepath string) (bool, error) {
 		"--", // separator in case filename ambiguous
 		filepath,
 	}
-	cmd := subprocess.ExecCommand("git", args...)
+	cmd := git(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return false, lfserrors.Wrap(err, "Failed to call git status")

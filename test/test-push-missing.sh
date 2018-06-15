@@ -46,6 +46,8 @@ begin_test "push missing objects"
   refute_local_object "$corrupt_oid" "$corrupt_len"
   assert_local_object "$present_oid" "$present_len"
 
+  git config lfs.allowincompletepush false
+
   git push origin master 2>&1 | tee push.log
 
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then

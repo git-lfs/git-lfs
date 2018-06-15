@@ -24,16 +24,6 @@ begin_test "push unusually named files"
   git commit -m "add files"
 
   git push origin master | tee push.log
-  grep "Git LFS: (1 of 1 files)" push.log
-)
-end_test
-
-begin_test "pull unusually named files"
-(
-  set -e
-
-  clone_repo "$reponame" clone
-
-  grep "Downloading $name1" clone.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 )
 end_test

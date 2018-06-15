@@ -2,6 +2,7 @@ package odb
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -99,7 +100,7 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 		text := s.Text()
 		n = n + len(text+"\n")
 
-		if len(s.Text()) == 0 {
+		if len(s.Text()) == 0 && !finishedHeaders {
 			finishedHeaders = true
 			continue
 		}
@@ -119,9 +120,17 @@ func (c *Commit) Decode(from io.Reader, size int64) (n int, err error) {
 				}
 				c.ParentIDs = append(c.ParentIDs, id)
 			case "author":
-				c.Author = strings.Join(fields[1:], " ")
+				if len(text) >= 7 {
+					c.Author = text[7:]
+				} else {
+					c.Author = ""
+				}
 			case "committer":
-				c.Committer = strings.Join(fields[1:], " ")
+				if len(text) >= 10 {
+					c.Committer = text[10:]
+				} else {
+					c.Committer = ""
+				}
 			default:
 				c.ExtraHeaders = append(c.ExtraHeaders, &ExtraHeader{
 					K: fields[0],
@@ -176,10 +185,55 @@ func (c *Commit) Encode(to io.Writer) (n int, err error) {
 		n = n + n3
 	}
 
+	// c.Message is built from messageParts in the Decode() function.
+	//
+	// Since each entry in messageParts _does not_ contain its trailing LF,
+	// append an empty string to capture the final newline.
 	n4, err := fmt.Fprintf(to, "\n%s\n", c.Message)
 	if err != nil {
 		return n, err
 	}
 
 	return n + n4, err
+}
+
+// Equal returns whether the receiving and given commits are equal, or in other
+// words, whether they are represented by the same SHA-1 when saved to the
+// object database.
+func (c *Commit) Equal(other *Commit) bool {
+	if (c == nil) != (other == nil) {
+		return false
+	}
+
+	if c != nil {
+		if len(c.ParentIDs) != len(other.ParentIDs) {
+			return false
+		}
+		for i := 0; i < len(c.ParentIDs); i++ {
+			p1 := c.ParentIDs[i]
+			p2 := other.ParentIDs[i]
+
+			if !bytes.Equal(p1, p2) {
+				return false
+			}
+		}
+
+		if len(c.ExtraHeaders) != len(other.ExtraHeaders) {
+			return false
+		}
+		for i := 0; i < len(c.ExtraHeaders); i++ {
+			e1 := c.ExtraHeaders[i]
+			e2 := other.ExtraHeaders[i]
+
+			if e1.K != e2.K || e1.V != e2.V {
+				return false
+			}
+		}
+
+		return c.Author == other.Author &&
+			c.Committer == other.Committer &&
+			c.Message == other.Message &&
+			bytes.Equal(c.TreeID, other.TreeID)
+	}
+	return true
 }

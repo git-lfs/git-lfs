@@ -1,11 +1,10 @@
 package githistory
 
 import (
+	"bytes"
 	"encoding/hex"
 	"io"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -122,6 +121,32 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	AssertCommitParent(t, db, "ca447959bdcd20253d69b227bcc7c2e1d3126d5c", "9237567f379b3c83ddf53ad9a2ae3755afb62a09")
 }
 
+func TestRewriterVisitsPackedObjects(t *testing.T) {
+	db := DatabaseFromFixture(t, "packed-objects.git")
+	r := NewRewriter(db)
+
+	var contents []byte
+
+	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
+		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+			var err error
+
+			contents, err = ioutil.ReadAll(b.Contents)
+			if err != nil {
+				return nil, err
+			}
+
+			return &odb.Blob{
+				Contents: bytes.NewReader(contents),
+				Size:     int64(len(contents)),
+			}, nil
+		},
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, string(contents), "Hello, world!\n")
+}
+
 func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	db := DatabaseFromFixture(t, "repeated-subtrees.git")
 	r := NewRewriter(db)
@@ -138,8 +163,8 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 2, seen[root("a.txt")])
-	assert.Equal(t, 1, seen[root(filepath.Join("subdir", "b.txt"))])
+	assert.Equal(t, 2, seen["a.txt"])
+	assert.Equal(t, 1, seen["subdir/b.txt"])
 }
 
 func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
@@ -148,7 +173,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
-			if path == root("b.txt") {
+			if path == "b.txt" {
 				return b, nil
 			}
 
@@ -177,7 +202,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 
 func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	include := []string{"*.txt"}
-	exclude := []string{"subdir/**/*.txt"}
+	exclude := []string{"subdir/*.txt"}
 
 	filter := filepathfilter.New(include, exclude)
 
@@ -195,8 +220,8 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, seen[root("a.txt")])
-	assert.Equal(t, 0, seen[root(filepath.Join("subdir", "b.txt"))])
+	assert.Equal(t, 1, seen["a.txt"])
+	assert.Equal(t, 0, seen["subdir/b.txt"])
 }
 
 func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
@@ -345,9 +370,17 @@ func TestHistoryRewriterReturnsFilter(t *testing.T) {
 		"git/githistory: expected Rewriter.Filter() to return same *filepathfilter.Filter instance")
 }
 
-func root(path string) string {
-	if !strings.HasPrefix(path, string(os.PathSeparator)) {
-		path = string(os.PathSeparator) + path
-	}
-	return path
+// debug is meant to be called from a defer statement to aide in debugging a
+// test failure among any in this file.
+//
+// Callers are expected to call it immediately after calling the Rewrite()
+// function.
+func debug(t *testing.T, db *odb.ObjectDatabase, tip []byte, err error) {
+	root, ok := db.Root()
+
+	t.Log(strings.Repeat("*", 80))
+	t.Logf("* root=%s, ok=%t\n", root, ok)
+	t.Logf("* tip=%x\n", tip)
+	t.Logf("* err=%s\n", err)
+	t.Log(strings.Repeat("*", 80))
 }

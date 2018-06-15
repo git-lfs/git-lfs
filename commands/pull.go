@@ -5,20 +5,29 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Handles the process of checking out a single file, and updating the git
 // index.
-func newSingleCheckout() *singleCheckout {
+func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckout {
+	manifest := getTransferManifestOperationRemote("download", remote)
+
+	clean, ok := gitEnv.Get("filter.lfs.clean")
+	if !ok || len(clean) == 0 {
+		return &noOpCheckout{manifest: manifest}
+	}
+
 	// Get a converter from repo-relative to cwd-relative
 	// Since writing data & calling git update-index must be relative to cwd
-	pathConverter, err := lfs.NewRepoToCurrentPathConverter()
+	pathConverter, err := lfs.NewRepoToCurrentPathConverter(cfg)
 	if err != nil {
 		Panic(err, "Could not convert file paths")
 	}
@@ -26,8 +35,15 @@ func newSingleCheckout() *singleCheckout {
 	return &singleCheckout{
 		gitIndexer:    &gitIndexer{},
 		pathConverter: pathConverter,
-		manifest:      getTransferManifest(),
+		manifest:      manifest,
 	}
+}
+
+type abstractCheckout interface {
+	Manifest() *tq.Manifest
+	Skip() bool
+	Run(*lfs.WrappedPointer)
+	Close()
 }
 
 type singleCheckout struct {
@@ -36,9 +52,19 @@ type singleCheckout struct {
 	manifest      *tq.Manifest
 }
 
+func (c *singleCheckout) Manifest() *tq.Manifest {
+	return c.manifest
+}
+
+func (c *singleCheckout) Skip() bool {
+	return false
+}
+
 func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
+	cwdfilepath := c.pathConverter.Convert(p.Name)
+
 	// Check the content - either missing or still this pointer (not exist is ok)
-	filepointer, err := lfs.DecodePointerFromFile(p.Name)
+	filepointer, err := lfs.DecodePointerFromFile(cwdfilepath)
 	if err != nil && !os.IsNotExist(err) {
 		if errors.IsNotAPointerError(err) {
 			// File has non-pointer content, leave it alone
@@ -55,9 +81,8 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		return
 	}
 
-	cwdfilepath := c.pathConverter.Convert(p.Name)
-
-	err = lfs.PointerSmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
+	gitfilter := lfs.NewGitFilter(cfg)
+	err = gitfilter.SmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
 	if err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)
@@ -80,12 +105,27 @@ func (c *singleCheckout) Close() {
 	}
 }
 
+type noOpCheckout struct {
+	manifest *tq.Manifest
+}
+
+func (c *noOpCheckout) Manifest() *tq.Manifest {
+	return c.manifest
+}
+
+func (c *noOpCheckout) Skip() bool {
+	return true
+}
+
+func (c *noOpCheckout) Run(p *lfs.WrappedPointer) {}
+func (c *noOpCheckout) Close()                    {}
+
 // Don't fire up the update-index command until we have at least one file to
 // give it. Otherwise git interprets the lack of arguments to mean param-less update-index
 // which can trigger entire working copy to be re-examined, which triggers clean filters
 // and which has unexpected side effects (e.g. downloading filtered-out files)
 type gitIndexer struct {
-	cmd    *exec.Cmd
+	cmd    *subprocess.Cmd
 	input  io.WriteCloser
 	output bytes.Buffer
 	mu     sync.Mutex
@@ -97,18 +137,18 @@ func (i *gitIndexer) Add(path string) error {
 
 	if i.cmd == nil {
 		// Fire up the update-index command
-		i.cmd = exec.Command("git", "update-index", "-q", "--refresh", "--stdin")
-		i.cmd.Stdout = &i.output
-		i.cmd.Stderr = &i.output
-		stdin, err := i.cmd.StdinPipe()
-		if err == nil {
-			err = i.cmd.Start()
-		}
-
+		cmd := git.UpdateIndexFromStdin()
+		cmd.Stdout = &i.output
+		cmd.Stderr = &i.output
+		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return err
 		}
-
+		err = cmd.Start()
+		if err != nil {
+			return err
+		}
+		i.cmd = cmd
 		i.input = stdin
 	}
 

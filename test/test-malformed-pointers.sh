@@ -75,12 +75,17 @@ begin_test "empty pointers"
     add empty.dat
   git commit -m "add empty pointer"
 
+  [ "0" -eq "$(git cat-file -p :empty.dat | wc -c)" ]
+  [ "0" -eq "$(wc -c < empty.dat)" ]
+
   git push origin master
 
   pushd .. >/dev/null
     clone_repo "$reponame" "$reponame-assert"
 
     [ "0" -eq "$(grep -c "empty.dat" clone.log)" ]
+
+    [ "0" -eq "$(git cat-file -p :empty.dat | wc -c)" ]
     [ "0" -eq "$(wc -c < empty.dat)" ]
   popd >/dev/null
 )

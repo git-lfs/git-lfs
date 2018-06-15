@@ -275,6 +275,25 @@ func lfsDeleteHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	w.WriteHeader(200)
 }
 
+type batchReq struct {
+	Transfers []string    `json:"transfers"`
+	Operation string      `json:"operation"`
+	Objects   []lfsObject `json:"objects"`
+	Ref       *Ref        `json:"ref,omitempty"`
+}
+
+func (r *batchReq) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
+}
+
+type batchResp struct {
+	Transfer string      `json:"transfer,omitempty"`
+	Objects  []lfsObject `json:"objects"`
+}
+
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	checkingObject := r.Header.Get("X-Check-Object") == "1"
 	if !checkingObject && repo == "batchunsupported" {
@@ -299,20 +318,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		return
 	}
 
-	type batchReq struct {
-		Transfers []string    `json:"transfers"`
-		Operation string      `json:"operation"`
-		Objects   []lfsObject `json:"objects"`
-	}
-	type batchResp struct {
-		Transfer string      `json:"transfer,omitempty"`
-		Objects  []lfsObject `json:"objects"`
-	}
-
 	buf := &bytes.Buffer{}
 	tee := io.TeeReader(r.Body, buf)
-	var objs batchReq
-	err := json.NewDecoder(tee).Decode(&objs)
+	objs := &batchReq{}
+	err := json.NewDecoder(tee).Decode(objs)
 	io.Copy(ioutil.Discard, r.Body)
 	r.Body.Close()
 
@@ -321,6 +330,18 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if strings.HasSuffix(repo, "branch-required") {
+		parts := strings.Split(repo, "-")
+		lenParts := len(parts)
+		if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != objs.RefName() {
+			w.WriteHeader(403)
+			json.NewEncoder(w).Encode(struct {
+				Message string `json:"message"`
+			}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], objs.RefName())})
+			return
+		}
 	}
 
 	res := []lfsObject{}
@@ -859,6 +880,14 @@ type Lock struct {
 
 type LockRequest struct {
 	Path string `json:"path"`
+	Ref  *Ref   `json:"ref,omitempty"`
+}
+
+func (r *LockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type LockResponse struct {
@@ -868,6 +897,14 @@ type LockResponse struct {
 
 type UnlockRequest struct {
 	Force bool `json:"force"`
+	Ref   *Ref `json:"ref,omitempty"`
+}
+
+func (r *UnlockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type UnlockResponse struct {
@@ -881,9 +918,21 @@ type LockList struct {
 	Message    string `json:"message,omitempty"`
 }
 
+type Ref struct {
+	Name string `json:"name,omitempty"`
+}
+
 type VerifiableLockRequest struct {
+	Ref    *Ref   `json:"ref,omitempty"`
 	Cursor string `json:"cursor,omitempty"`
 	Limit  int    `json:"limit,omitempty"`
+}
+
+func (r *VerifiableLockRequest) RefName() string {
+	if r.Ref == nil {
+		return ""
+	}
+	return r.Ref.Name
 }
 
 type VerifiableLockList struct {
@@ -1012,6 +1061,18 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 			return
 		}
 
+		if strings.HasSuffix(repo, "branch-required") {
+			parts := strings.Split(repo, "-")
+			lenParts := len(parts)
+			if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != r.FormValue("refspec") {
+				w.WriteHeader(403)
+				enc.Encode(struct {
+					Message string `json:"message"`
+				}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], r.FormValue("refspec"))})
+				return
+			}
+		}
+
 		ll := &LockList{}
 		w.Header().Set("Content-Type", "application/json")
 		locks, nextCursor, err := getFilteredLocks(repo,
@@ -1031,8 +1092,6 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	case "POST":
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "unlock") {
-			var unlockRequest UnlockRequest
-
 			var lockId string
 			if matches := unlockRe.FindStringSubmatch(r.URL.Path); len(matches) > 1 {
 				lockId = matches[1]
@@ -1042,9 +1101,22 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				enc.Encode(&UnlockResponse{Message: "Invalid lock"})
 			}
 
-			if err := dec.Decode(&unlockRequest); err != nil {
+			unlockRequest := &UnlockRequest{}
+			if err := dec.Decode(unlockRequest); err != nil {
 				enc.Encode(&UnlockResponse{Message: err.Error()})
 				return
+			}
+
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != unlockRequest.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], unlockRequest.RefName())})
+					return
+				}
 			}
 
 			if l := delLock(repo, lockId); l != nil {
@@ -1089,6 +1161,18 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 				return
 			}
 
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != reqBody.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], reqBody.RefName())})
+					return
+				}
+			}
+
 			ll := &VerifiableLockList{}
 			locks, nextCursor, err := getFilteredLocks(repo, "",
 				reqBody.Cursor,
@@ -1112,9 +1196,21 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 		}
 
 		if strings.HasSuffix(r.URL.Path, "/locks") {
-			var lockRequest LockRequest
-			if err := dec.Decode(&lockRequest); err != nil {
+			lockRequest := &LockRequest{}
+			if err := dec.Decode(lockRequest); err != nil {
 				enc.Encode(&LockResponse{Message: err.Error()})
+			}
+
+			if strings.HasSuffix(repo, "branch-required") {
+				parts := strings.Split(repo, "-")
+				lenParts := len(parts)
+				if lenParts > 3 && "refs/heads/"+parts[lenParts-3] != lockRequest.RefName() {
+					w.WriteHeader(403)
+					enc.Encode(struct {
+						Message string `json:"message"`
+					}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], lockRequest.RefName())})
+					return
+				}
 			}
 
 			for _, l := range getLocks(repo) {
@@ -1150,7 +1246,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 }
 
 func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) bool {
-	if repo != "requirecreds" {
+	if !strings.HasPrefix(repo, "requirecreds") {
 		return false
 	}
 

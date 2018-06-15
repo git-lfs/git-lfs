@@ -43,7 +43,7 @@ begin_test "multiple revs with same OID get pushed once"
   # Delay the push until here, so the server doesn't have a copy of the OID that
   # we're trying to push.
   git push origin master 2>&1 | tee push.log
-  grep "Git LFS: (1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 8 B" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 )

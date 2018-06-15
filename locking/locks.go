@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/kv"
@@ -36,9 +37,10 @@ type LockCacher interface {
 
 // Client is the main interface object for the locking package
 type Client struct {
-	Remote string
-	client *lockClient
-	cache  LockCacher
+	Remote    string
+	RemoteRef *git.Ref
+	client    *lockClient
+	cache     LockCacher
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -89,7 +91,10 @@ func (c *Client) Close() error {
 // path must be relative to the root of the repository
 // Returns the lock id if successful, or an error
 func (c *Client) LockFile(path string) (Lock, error) {
-	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{Path: path})
+	lockRes, _, err := c.client.Lock(c.Remote, &lockRequest{
+		Path: path,
+		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
+	})
 	if err != nil {
 		return Lock{}, errors.Wrap(err, "api")
 	}
@@ -106,12 +111,32 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, "lock cache")
 	}
 
+	abs, err := getAbsolutePath(path)
+	if err != nil {
+		return Lock{}, errors.Wrap(err, "make lockpath absolute")
+	}
+
 	// Ensure writeable on return
-	if err := tools.SetFileWriteFlag(path, true); err != nil {
+	if err := tools.SetFileWriteFlag(abs, true); err != nil {
 		return Lock{}, err
 	}
 
 	return lock, nil
+}
+
+// getAbsolutePath takes a repository-relative path and makes it absolute.
+//
+// For instance, given a repository in /usr/local/src/my-repo and a file called
+// dir/foo/bar.txt, getAbsolutePath will return:
+//
+//   /usr/local/src/my-repo/dir/foo/bar.txt
+func getAbsolutePath(p string) (string, error) {
+	root, err := git.RootDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, p), nil
 }
 
 // UnlockFile attempts to unlock a file on the current remote
@@ -123,23 +148,13 @@ func (c *Client) UnlockFile(path string, force bool) error {
 		return fmt.Errorf("Unable to get lock id: %v", err)
 	}
 
-	err = c.UnlockFileById(id, force)
-	if err != nil {
-		return err
-	}
-
-	// Make non-writeable if required
-	if c.SetLockableFilesReadOnly && c.IsFileLockable(path) {
-		return tools.SetFileWriteFlag(path, false)
-	}
-	return nil
-
+	return c.UnlockFileById(id, force)
 }
 
 // UnlockFileById attempts to unlock a lock with a given id on the current remote
 // Force causes the file to be unlocked from other users as well
 func (c *Client) UnlockFileById(id string, force bool) error {
-	unlockRes, _, err := c.client.Unlock(c.Remote, id, force)
+	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
 		return errors.Wrap(err, "api")
 	}
@@ -153,6 +168,18 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 
 	if err := c.cache.RemoveById(id); err != nil {
 		return fmt.Errorf("Error caching unlock information: %v", err)
+	}
+
+	if unlockRes.Lock != nil {
+		abs, err := getAbsolutePath(unlockRes.Lock.Path)
+		if err != nil {
+			return errors.Wrap(err, "make lockpath absolute")
+		}
+
+		// Make non-writeable if required
+		if c.SetLockableFilesReadOnly && c.IsFileLockable(unlockRes.Lock.Path) {
+			return tools.SetFileWriteFlag(abs, false)
+		}
 	}
 
 	return nil
@@ -183,12 +210,19 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
-func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err error) {
+func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
+	if ref == nil {
+		ref = c.RemoteRef
+	}
+
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 	body := &lockVerifiableRequest{
+		Ref:   &lockRef{Name: ref.Refspec()},
 		Limit: limit,
 	}
+
+	c.cache.Clear()
 
 	for {
 		list, res, err := c.client.SearchVerifiable(c.Remote, body)
@@ -213,6 +247,7 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 		}
 
 		for _, l := range list.Ours {
+			c.cache.Add(l)
 			ourLocks = append(ourLocks, l)
 			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
 				return ourLocks, theirLocks, nil
@@ -220,6 +255,7 @@ func (c *Client) VerifiableLocks(limit int) (ourLocks, theirLocks []Lock, err er
 		}
 
 		for _, l := range list.Theirs {
+			c.cache.Add(l)
 			theirLocks = append(theirLocks, l)
 			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
 				return ourLocks, theirLocks, nil
@@ -264,7 +300,13 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for k, v := range filter {
 		apifilters = append(apifilters, lockFilter{Property: k, Value: v})
 	}
-	query := &lockSearchRequest{Filters: apifilters, Limit: limit}
+
+	query := &lockSearchRequest{
+		Filters: apifilters,
+		Limit:   limit,
+		Refspec: c.RemoteRef.Refspec(),
+	}
+
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {
@@ -324,23 +366,6 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 	default:
 		return "", ErrLockAmbiguous
 	}
-}
-
-// Fetch locked files for the current user and cache them locally
-// This can be used to sync up locked files when moving machines
-func (c *Client) refreshLockCache() error {
-	ourLocks, _, err := c.VerifiableLocks(0)
-	if err != nil {
-		return err
-	}
-
-	// We're going to overwrite the entire local cache
-	c.cache.Clear()
-	for _, l := range ourLocks {
-		c.cache.Add(l)
-	}
-
-	return nil
 }
 
 // IsFileLockedByCurrentCommitter returns whether a file is locked by the

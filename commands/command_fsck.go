@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ var (
 // NOTE(zeroshirts): Ideally git would have hooks for fsck such that we could
 // chain a lfs-fsck, but I don't think it does.
 func fsckCommand(cmd *cobra.Command, args []string) {
-	lfs.InstallHooks(false)
+	installHooks(false)
 	requireInRepo()
 
 	ref, err := git.CurrentRef()
@@ -47,7 +47,14 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	if err := gitscanner.ScanRefWithDeleted(ref.Sha, nil); err != nil {
+	// If 'lfs.fetchexclude' is set and 'git lfs fsck' is run after the
+	// initial fetch (i.e., has elected to fetch a subset of Git LFS
+	// objects), the "missing" ones will fail the fsck.
+	//
+	// Attach a filepathfilter to avoid _only_ the excluded paths.
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
+
+	if err := gitscanner.ScanRef(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
 
@@ -66,7 +73,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	badDir := filepath.Join(config.LocalGitStorageDir, "lfs", "bad")
+	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
 	Print("Moving corrupt objects to %s", badDir)
 
 	if err := os.MkdirAll(badDir, 0755); err != nil {
@@ -75,14 +82,14 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 
 	for _, oid := range corruptOids {
 		badFile := filepath.Join(badDir, oid)
-		if err := os.Rename(lfs.LocalMediaPathReadOnly(oid), badFile); err != nil {
+		if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
 			ExitWithError(err)
 		}
 	}
 }
 
 func fsckPointer(name, oid string) (bool, error) {
-	path := lfs.LocalMediaPathReadOnly(oid)
+	path := cfg.Filesystem().ObjectPathname(oid)
 
 	Debug("Examining %v (%v)", name, path)
 

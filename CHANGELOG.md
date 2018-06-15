@@ -1,5 +1,292 @@
 # Git LFS Changelog
 
+## 2.4.0 (2 March, 2018)
+
+This release introduces a rewrite of the underlying file matching engine,
+expands the API to include relevant refspecs for individual requests,
+standardizes the progress output among commands, and more.
+
+Please note: in the next MAJOR release (v3.0.0) the semantic meaning behind
+`--include` and `--exclude` flags will change. As the details of exactly which
+existing patterns will no longer function as previously are known, we will
+indicate them here. Any `--include` or `--exclude` patterns used in v2.3.0 or
+earlier are expected to work as previously in this release.
+
+This release would not be possible without the open-source community.
+Specifically, we would like to thank:
+
+- @larsxschneider: for contributing fixes to the filter operation in `git lfs
+  fsck`, and `git lfs prune`, as well as the bug report leading to the
+  filepathfilter changes.
+- @yfronto: for adding new Linux release targets.
+- @stffabi: for adding support for NTLM with SSPI on Windows.
+- @jeffreydwalter: for fixing memory alignment issues with `sync/atomic` on
+  32-bit architectures.
+- @b4mboo: for adding a LFS configuration key to the list of safe configuration
+  options.
+
+Without the aforementioned indviduals, this release would not have been
+possible. Thank you!
+
+### Features
+
+* __Support wildmatch-compliant options in `--include`, `--exclude`__
+  * filepathfilter: implement using wildmatch #2875 (@ttaylorr)
+  * test: add wildmatch migration tests #2888 (@larsxschneider, @ttaylorr)
+* __Expand the specification to include relevant refspecs__
+  * verify locks against each ref being pushed #2706 (@technoweenie)
+  * Batch send refspec take 2 #2809 (@technoweenie)
+  * Run 1 TransferQueue per uploaded ref #2806 (@technoweenie)
+  * Locks/verify: full refspec #2722 (@technoweenie)
+  * send remote refspec for the other lock commands #2773 (@technoweenie)
+* __Standardize progress meter output and implementation__
+  * tq: standardized progress meter formatting #2811 (@ttaylorr)
+  * commands/fetch: unify formatting #2758 (@ttaylorr)
+  * commands/prune: unify formatting #2757 (@ttaylorr)
+  * progress: use git/githistory/log package for formatting #2732 (@ttaylorr)
+  * progress: remove `*progress.Meter` #2762 (@ttaylorr)
+  * tasklog: teach `*Logger` how to enqueue new `*SimpleTask`'s #2767 (@ttaylorr)
+  * progress: remove spinner.go #2759 (@ttaylorr)
+* __Teach new flags, functionality to `git lfs ls-files`__
+  * commands: teach '--all' to `git lfs ls-files` #2796 (@ttaylorr)
+  * commands/ls-files: show cached, tree-less LFS objects #2795 (@ttaylorr)
+  * commands/ls-files: add --include, --exclude #2793 (@ttaylorr)
+  * commands/ls-files: add '--size' flag #2764 (@ttaylorr)
+* __Add new flags, functionality to `git lfs migrate`__
+  * commands/migrate: support '^'-prefix refspec in arguments #2785 (@ttaylorr)
+  * commands/migrate: add '--skip-fetch' for offline migrations #2738 (@ttaylorr)
+  * git: prefer sending revisions over STDIN than arguments #2739 (@ttaylorr)
+* __Release to new operating systems__
+  * release lfs for ubuntu/artful too #2704 (@technoweenie)
+  * Adding Mint Sylvia to packagecloud.rb script #2829 (@yfronto)
+* __New functionality in package `lfsapi`__
+  * NTLM authentication with SSPI on windows #2871 (@stffabi)
+  * lfsapi/auth: teach DoWithAuth to respect http.extraHeaders #2733 (@ttaylorr)
+  * add support for url-specific proxies #2651 (@technoweenie)
+* __Code cleanup in git.Config, package `localstorage`__
+  * Tracked remote #2700 (@technoweenie)
+  * Replace git.Config #2692 (@technoweenie)
+  * Replace localstorage #2689 (@technoweenie)
+  * Remove last global config #2687 (@technoweenie)
+  * Git config refactor #2676 (@technoweenie)
+
+### Bugs
+
+* all: fix 32-bit alignment issues with `sync/atomic` #2883 (@ttaylorr)
+* all: memory alignment issues on 32-bit systems. #2880 (@jeffreydwalter)
+* command/migrate: don't migrate remote references in bare repositories #2769 (@ttaylorr)
+* commands/ls-files: behave correctly before initial commit #2794 (@ttaylorr)
+* commands/migrate: allow for ambiguous references in migrations #2734 (@ttaylorr)
+* commands: fill in missing printf arg #2678 (@technoweenie)
+* config: Add `lfs.locksverify` to safe keys. #2797 (@b4mboo)
+* don't replace pointers with objects if clean filter is not configured #2626 (@technoweenie)
+* fsck: attach a filter to exclude unfetched items from fsck #2847 (@larsxschneider)
+* git/githistory: copy entries from cache, elsewhere #2884 (@ttaylorr)
+* git/githistory: migrate annotated tags correctly #2780 (@ttaylorr)
+* git/odb: don't print extra newline after commit message #2784 (@ttaylorr)
+* git/odb: extract identifiers from commits verbatim #2751 (@wsprent)
+* git/odb: implement parsing for annotated `*Tag`'s #2778 (@ttaylorr)
+* git/odb: retain newlines when parsing commit messages #2786 (@ttaylorr)
+* lfs: PointerScanner is nil after error, so don't close #2699 (@technoweenie)
+* lfsapi: Cred helper improvements #2695 (@technoweenie)
+* lfsapi: retry requests changing access from none IF Auth header is empty #2621 (@technoweenie)
+* prune: always prune excluded paths #2851 (@larsxschneider)
+* status: fix incorrect formatting with unpushed objects #2746 (@ttaylorr)
+* tasklog: don't drop updates in PercentageTask #2755 (@ttaylorr)
+* test: Fix integration test early exit #2735 (@technoweenie)
+* test: generate random repo names with fs-safe characters #2698 (@technoweenie)
+
+### Misc
+
+* all: Nitpicks #2821 (@technoweenie)
+* all: introduce package 'tlog' #2747 (@ttaylorr)
+* all: remove CLA #2870 (@MikeMcQuaid)
+* build: Specify the embedded Windows icon as part of versioninfo.json #2770 (@sschuberth)
+* config,test: Testlib no global config #2709 (@mathstuf)
+* config: add PushRemote() for checking `branch.*.pushRemote` and `remote.pushDefault` first #2715 (@technoweenie)
+* docs: Added documentation for git-lfs-ls-files' `*/-` output. #2719 (@bilke)
+* docs: Uninstall man page improvements #2730 (@dpursehouse)
+* docs: Update usage info for post-checkout #2830 (@proinsias)
+* docs: add 'git lfs prune' to main man page #2849 (@larsxschneider)
+* docs: use consistent casing for Git #2850 (@larsxschneider)
+* git/githistory: have `*RefUpdater` hold `*odb.ObjectDatabase` reference #2779 (@ttaylorr)
+* progress: move CopyCallback (& related) to package 'tools' #2749 (@ttaylorr)
+* progress: move `*progressLogger` implementation to package 'tools' #2750 (@ttaylorr)
+* refspec docs #2820 (@technoweenie)
+* script/test: run 'go tool vet' during testing #2788 (@ttaylorr)
+* tasklog: introduce `*SimpleTask` #2756 (@ttaylorr)
+* test: Ignore comment attr lines #2708 (@mathstuf)
+* test: Wait longer for test lfs server to start. #2716 (@QuLogic)
+* test: ensure commented attr lines are ignored #2736 (@ttaylorr)
+* tools/humanize: add 'FormatByteRate' to format transfer speed #2810 (@ttaylorr)
+* vendor: update 'xeipuuv/gojsonpointer' #2846 (@ttaylorr)
+
+## 2.3.4 (18 October, 2017)
+
+### Features
+
+* 'git lfs install' updates filters with 'skip-smudge' option #2673 (@technoweenie)
+
+### Bugs
+
+* FastWalkGitRepo: limit number of concurrent goroutines #2672 (@technoweenie)
+* handle scenario where multiple configuration values exist in ~/.gitconfig #2659 (@shiftkey)
+
+## 2.3.3 (9 October, 2017)
+
+### Bugs
+
+* invoke lfs for 'git update-index', fixing 'status' issues #2647 (@technoweenie)
+* cache http credential helper output by default #2648 (@technoweenie)
+
+## 2.3.2 (3 October, 2017)
+
+### Features
+
+* bump default activity timeout from 10s -> 30s #2632 (@technoweenie)
+
+### Bugs
+
+* ensure files are marked readonly after unlocking by ID #2642 (@technoweenie)
+* add files to index with path relative to current dir #2641 (@technoweenie)
+* better Netrc errors #2633 (@technoweenie)
+* only use askpass if credential.helper is not configured #2637 (@technoweenie)
+* convert backslash to slash when writing to .gitattributes #2625 (@technoweenie)
+
+### Misc
+
+* only copy req headers if there are git-configured extra headers #2622 (@technoweenie)
+* update tracerx to add timestamps #2620 (@rubyist)
+
+## 2.3.1 (27 September, 2017)
+
+### Features
+
+* add support for SSH_ASKPASS #2609 (@technoweenie)
+* `git lfs migrate --verbose` option #2610 (@technoweenie)
+* Support standalone custom transfer based on API URL prefix match #2590 (@sprohaska)
+
+### Bugs
+
+* Improve invalid URL error messages #2614 (@technoweenie)
+* Fix double counting progress bug #2608 (@technoweenie)
+* trim whitespace from GIT_ASKPASS provided passwords #2607 (@technoweenie)
+* remove mmap usage in Packfile reader #2600 (@technoweenie)
+* `git lfs clone`: don't fetch for unborn repositories #2598 (@shiftkey)
+
+### Misc
+
+* Windows Installer fixes:
+  * Show proper icon in add/remove programs list #2585 (@shiftkey)
+  * Make the Inno Setup installer script explicitly check for the binaries #2588 (@sschuberth)
+  * Improve compile-win-installer-unsigned.bat a bit #2586 (@sschuberth)
+* Update migrate docs example for multiple file types #2596 (@technoweenie)
+
+## 2.3.0 (14 September, 2017)
+
+Git LFS v2.3.0 includes performance optimizations for the `git-lfs-migrate(1)`
+and `git-clone(1)` commands, new features, bug-fixes, and more.
+
+This release was made possible by contributors to Git LFS. Specifically:
+
+- @aleb: added support for "standalone" transfer agents, for using `rsync(1)`
+  and similar with Git LFS.
+- @bozaro: added support for custom `.git/lfs/objects` directories via the
+  `lfs.storage` configuration option.
+- @larsxschneider: fixed a recursive process leak when shelling out to Git,
+  added new features to `git lfs ls-files`, extra information in error
+  messages used for debugging, documentation changes and more.
+- @mathstuf: contributed a documentation change clarifying LFS's handling of
+  empty pointer files.
+- @rudineirk and @andyneff: updated our release process to build packages for
+  fedora/26.
+- @ssgelm: ensured that LFS is able to be released on Ubuntu Universe.
+
+To everyone who has contributed to this or previous releases of Git LFS: Thank
+you!
+
+### Features
+
+* git/odb/pack: improve `git lfs migrate` performance
+  * git/odb/pack: introduce packed object reassembly #2550 #2551 #2552 #2553 #2554 (@ttaylorr)
+  * git/odb/pack: teach packfile index entry lookups #2420 #2421 #2422 #2423 #2437 #2441 #2461 (@ttaylorr)
+  * git/{odb,githistory}: don't write unchanged objects #2541 (@ttaylorr)
+* commands: improve `git clone` performance with 'delay' capability #2511 #2469 #2468 #2471 #2467 #2476 #2483 (@ttaylorr)
+  * commands: mark `git lfs clone` as deprecated #2526 (@ttaylorr)
+* commands: enable `lfs.allowincompletepush` by default #2574 (@technoweenie)
+* commands: teach '--everything' to `git lfs migrate` #2558 (@ttaylorr)
+* commands: teach `git lfs ls-files` a '--debug' option #2540 (@larsxschneider)
+* commands,lfs: warn on 4gb size conversion during clean #2510 #2507 #2459 (@ttaylorr)
+* lfsapi/creds: teach about GIT_ASKPASS and core.askpass #2500 #2578 (@ttaylorr)
+* commands/status: indicate missing objects #2438 (@ttaylorr)
+* Allow using custom transfer agents directly #2429 (@aleb)
+* Add `lfs.storage` parameter for overriding LFS storage location #2023 (@bozaro)
+* lfsapi: enable credential caching by default #2508 (@ttaylorr)
+* commands/install: teach `--manual` to `git-lfs-install(1)` #2410 (@ttaylorr)
+
+### Bugs
+
+* migrate: fix migrations with subdirectories in '--include' or '--exclude' #2485 (@ttaylorr)
+* commands/migrate: fix hardlinking issue when different filesystem is mounted at `/tmp` #2566 (@ttaylorr)
+* commands: make `git lfs migrate` fetch ref updates before migrating #2538 (@ttaylorr)
+* commands: remove '--above=1mb' default from `git lfs migrate info` #2460 (@ttaylorr)
+* filepathfilter: fix `HasPrefix()` when no '--include' filters present #2579 (@technoweenie)
+* git/githistory/log: fix race condition with `git/githistory/log` tests #2495 (@ttaylorr)
+* git/odb: fix closing object database test #2457 (@ttaylorr)
+* git/githistory: only update local refs after migrations #2559 (@ttaylorr)
+* locking: fix unlocking files not removing write flag #2514 (@ttaylorr)
+* locks: fix unlocking files in a symlinked directory #2505 (@ttaylorr)
+* commands: teach `git lfs unlock` to ignore status errs in appropriate conditions #2475 (@ttaylorr)
+* git: expand `GetAttributePaths` check to include non-LFS lockables #2528 (@ttaylorr)
+* fix multiple `git update-index` invocations #2531 (@larsxschneider)
+* tools: fix SSH credential cacher expiration #2530 (@ttaylorr)
+* lfsapi: fix read/write race condition in credential cacher #2493 (@ttaylorr)
+* lfs: fix cleaning contents larger than 1024 bytes over stdin #2488 (@ttaylorr)
+* fsck only scans current version of objects #2049 (@TheJare)
+* progress: fix writing updates to `$GIT_LFS_PROGRESS` #2465 (@ttaylorr)
+* commands/track: resolve symlinks before comparing attr paths #2463 (@ttaylorr)
+* test: ensure that empty pointers are empty #2458 (@ttaylorr)
+* git/githistory/log: prevent 'NaN' showing up in `*PercentageTask` #2455 (@ttaylorr)
+* tq: teach Batch() API to retry itself after io.EOF's #2516 (@ttaylorr)
+
+### Misc
+
+* script/packagecloud: release LFS on Fedora/26 #2443 #2509 (@rudineirk, @andyneff)
+* git/githistory: change "Rewriting commits" when not updating refs #2577 (@ttaylorr)
+* commands: print IP addresses in error logs #2570 (@larsxschneider)
+* commands: print current time in UTC to error logs #2571 (@larsxschneider)
+* commands: Disable lock verification when using a standalone custom-tr… #2499 (@aleb)
+* docs/man: update `git lfs migrate` documentation with EXAMPLES #2580 (@technoweenie)
+* docs/man: recommend global per-host locking config #2546 (@larsxschneider)
+* commands: use transfer queue's batch size instead of constant #2529 (@ttaylorr)
+* add function to invoke Git with disabled LFS filters #2453 (@larsxschneider)
+* config: warn on unsafe keys in `.lfsconfig` #2502 (@ttaylorr)
+* glide: remove unused dependencies #2501 (@ttaylorr)
+* script/build: pass '-{ld,gc}flags' to compiler, if given #2462 (@ttaylorr)
+* spec: mention that an empty file is its own LFS pointer #2449 (@mathstuf)
+* Update to latest version of github.com/pkg/errors #2426 (@ssgelm)
+* Update gitignore to add some temp files that get created when building debs #2425 (@ssgelm)
+* lfs: indent contents of `git lfs install`, `update` #2392 (@ttaylorr)
+* tq: increase default `lfs.concurrenttransfers` to 8 #2506 (@ttaylorr)
+
+## 2.2.1 (10 July, 2017)
+
+### Bugs
+
+* git lfs status --json only includes lfs files #2374 (@asottile)
+* git/odb: remove temporary files after migration #2388 (@ttaylorr)
+* git/githistory: fix hanging on empty set of commits #2383 (@ttaylorr)
+* migrate: don't checkout HEAD on bare repositories #2389 (@ttaylorr)
+* git/odb: prevent cross-volume link error when saving objects #2382 (@ttaylorr)
+* commands: only pass --jobs to `git clone` if set #2369 (@technoweenie)
+
+### Misc
+
+* lfs: trace hook install, uninstall, upgrade #2393 (@ttaylorr)
+* vendor: remove github.com/cheggaaa/pb #2386 (@ttaylorr)
+* Use FormatBytes from git-lfs/tools/humanize instead of cheggaaa/pb #2377 (@ssgelm)
+
+
 ## 2.2.0 (27 June, 2017)
 
 Git LFS v2.2.0 includes bug fixes, minor features, and a brand new `migrate`

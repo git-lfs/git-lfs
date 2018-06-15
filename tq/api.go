@@ -4,18 +4,25 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 
 type tqClient struct {
+	MaxRetries int
 	*lfsapi.Client
+}
+
+type batchRef struct {
+	Name string `json:"name,omitempty"`
 }
 
 type batchRequest struct {
 	Operation            string      `json:"operation"`
 	Objects              []*Transfer `json:"objects"`
 	TransferAdapterNames []string    `json:"transfers,omitempty"`
+	Ref                  *batchRef   `json:"ref"`
 }
 
 type BatchResponse struct {
@@ -24,7 +31,7 @@ type BatchResponse struct {
 	endpoint            lfsapi.Endpoint
 }
 
-func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*BatchResponse, error) {
+func Batch(m *Manifest, dir Direction, remote string, remoteRef *git.Ref, objects []*Transfer) (*BatchResponse, error) {
 	if len(objects) == 0 {
 		return &BatchResponse{}, nil
 	}
@@ -33,6 +40,7 @@ func Batch(m *Manifest, dir Direction, remote string, objects []*Transfer) (*Bat
 		Operation:            dir.String(),
 		Objects:              objects,
 		TransferAdapterNames: m.GetAdapterNames(dir),
+		Ref:                  &batchRef{Name: remoteRef.Refspec()},
 	})
 }
 
@@ -57,7 +65,7 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
 	req = c.LogRequest(req, "lfs.batch")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoWithAuth(remote, lfsapi.WithRetries(req, c.MaxRetries))
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")

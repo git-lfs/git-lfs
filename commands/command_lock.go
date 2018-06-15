@@ -28,7 +28,13 @@ func lockCommand(cmd *cobra.Command, args []string) {
 		Exit(err.Error())
 	}
 
-	lockClient := newLockClient(lockRemote)
+	if len(lockRemote) > 0 {
+		cfg.SetRemote(lockRemote)
+	}
+
+	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
+	lockClient := newLockClient()
+	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
 	lock, err := lockClient.LockFile(path)
@@ -73,6 +79,11 @@ func lockPath(file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	wd, err = filepath.EvalSymlinks(wd)
+	if err != nil {
+		return "", errors.Wrapf(err,
+			"could not follow symlinks for %s", wd)
+	}
 
 	abs := filepath.Join(wd, file)
 	path := strings.TrimPrefix(abs, repo)
@@ -90,7 +101,7 @@ func lockPath(file string) (string, error) {
 
 func init() {
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", cfg.CurrentRemote, lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

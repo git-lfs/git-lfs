@@ -26,7 +26,7 @@ func DatabaseFromFixture(t *testing.T, name string) *odb.ObjectDatabase {
 		t.Fatalf("git/odb: could not copy fixture %s: %v", name, err)
 	}
 
-	db, err := odb.FromFilesystem(filepath.Join(path, "objects"))
+	db, err := odb.FromFilesystem(filepath.Join(path, "objects"), "")
 	if err != nil {
 		t.Fatalf("git/odb: could not create object database: %v", err)
 	}
@@ -44,7 +44,7 @@ func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, conten
 
 	// Then, iterating through each part of the filepath (i.e., a/b/c.txt ->
 	// []string{"a", "b", "c.txt"}).
-	parts := strings.Split(path, string(os.PathSeparator))
+	parts := strings.Split(path, "/")
 	for i := 0; i < len(parts)-1; i++ {
 		part := parts[i]
 

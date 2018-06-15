@@ -48,7 +48,7 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	lfsclient, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
@@ -64,8 +64,7 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
-	// Should load from test data, just Fred's
-	err = client.refreshLockCache()
+	_, _, err = client.VerifiableLocks(nil, 100)
 	assert.Nil(t, err)
 
 	locks, err = client.SearchLocks(nil, 0, true)
@@ -79,6 +78,8 @@ func TestRefreshCache(t *testing.T) {
 		Lock{Path: "folder/test1.dat", Id: "101", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
 		Lock{Path: "folder/test2.dat", Id: "102", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
 		Lock{Path: "root.dat", Id: "103", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
+		Lock{Path: "other/test1.dat", Id: "199", Owner: &User{Name: "Charles"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test3.dat", Id: "99", Owner: &User{Name: "Alice"}, LockedAt: zeroTime},
 	}, locks)
 }
 
@@ -119,7 +120,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 
 	defer srv.Close()
 
-	lfsclient, err := lfsapi.NewClient(nil, lfsapi.UniqTestEnv(map[string]string{
+	lfsclient, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
@@ -129,7 +130,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 	client, err := NewClient("", lfsclient)
 	assert.Nil(t, err)
 
-	ourLocks, theirLocks, err := client.VerifiableLocks(0)
+	ourLocks, theirLocks, err := client.VerifiableLocks(nil, 0)
 	assert.Nil(t, err)
 
 	// Need to include zero time in structure for equal to work

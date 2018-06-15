@@ -16,7 +16,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/progress"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -30,7 +29,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(os.Stdout)
 	errWriter := bufio.NewWriter(os.Stderr)
-	apiClient, err := lfsapi.NewClient(cfg.Os, cfg.Git)
+	apiClient, err := lfsapi.NewClient(cfg)
 	if err != nil {
 		writeToStderr("Error creating api client: "+err.Error(), errWriter)
 		os.Exit(1)
@@ -192,7 +191,7 @@ func performUpload(apiClient *lfsapi.Client, oid string, size int64, a *action, 
 		sendProgress(oid, readSoFar, readSinceLast, writer, errWriter)
 		return nil
 	}
-	req.Body = progress.NewBodyWithCallback(f, size, cb)
+	req.Body = tools.NewBodyWithCallback(f, size, cb)
 
 	res, err := apiClient.DoWithAuth("origin", req)
 	if err != nil {

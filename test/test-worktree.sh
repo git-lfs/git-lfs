@@ -38,6 +38,7 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
@@ -45,7 +46,7 @@ UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
-    actual=$(git lfs env)
+    actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 
     worktreename="worktree-2"
@@ -73,6 +74,7 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
+LfsStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
@@ -80,7 +82,7 @@ UploadTransfers=basic
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
-    actual=$(git lfs env)
+    actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 )
 end_test

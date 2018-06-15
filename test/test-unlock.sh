@@ -2,20 +2,141 @@
 
 . "test/testlib.sh"
 
-begin_test "unlocking a lock by path"
+begin_test "unlocking a lock by path with good ref"
 (
   set -e
 
-  reponame="unlock_by_path"
-  setup_remote_repo_with_file "unlock_by_path" "c.dat"
+  reponame="unlock-by-path-master-branch-required"
+  setup_remote_repo_with_file "$reponame" "c.dat"
 
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id"
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
 
-  git lfs unlock "c.dat" 2>&1 | tee unlock.log
-  refute_server_lock "$reponame" "$id"
+  git lfs unlock --id="$id"
+  refute_server_lock "$reponame" "$id" "refs/heads/master"
+)
+end_test
+
+begin_test "unlocking a lock by path with tracked ref"
+(
+  set -e
+
+  reponame="unlock-by-path-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+
+  git config push.default upstream
+  git config branch.master.merge refs/heads/tracked
+  git push origin master
+
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
+
+  git lfs unlock --id="$id"
+  refute_server_lock "$reponame" "$id" "refs/heads/tracked"
+)
+end_test
+
+begin_test "unlocking a lock by path with bad ref"
+(
+  set -e
+
+  reponame="unlock-by-path-other-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+  git push origin master:other
+
+  git checkout -b other
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
+
+  git checkout master
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
+  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
+)
+end_test
+
+begin_test "unlocking a lock by id with bad ref"
+(
+  set -e
+
+  reponame="unlock-by-id-other-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+  git push origin master:other
+
+  git checkout -b other
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
+
+  git checkout master
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    exit 1
+  fi
+
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
+  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
+)
+end_test
+
+begin_test "unlocking a file makes it readonly"
+(
+  set -e
+
+  reponame="unlock_set_readonly"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat"
+  assert_file_writeable c.dat
+
+  git lfs unlock "c.dat"
+  refute_file_writeable c.dat
+)
+end_test
+
+begin_test "unlocking a file ignores readonly"
+(
+  set -e
+
+  reponame="unlock_set_readonly_ignore"
+  setup_remote_repo_with_file "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat"
+  assert_file_writeable c.dat
+
+  git -c lfs.setlockablereadonly=false lfs unlock "c.dat"
+  assert_file_writeable c.dat
 )
 end_test
 
@@ -69,15 +190,16 @@ begin_test "unlocking a lock by id"
   set -e
 
   reponame="unlock_by_id"
-  setup_remote_repo_with_file "unlock_by_id" "d.dat"
+  setup_remote_repo_with_file "$reponame" "d.dat"
 
   git lfs lock --json "d.dat" | tee lock.log
+  assert_file_writeable d.dat
 
   id=$(assert_lock lock.log d.dat)
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock --id="$id"
-  refute_server_lock "$reponame" "$id"
+  refute_file_writeable d.dat
 )
 end_test
 

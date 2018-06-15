@@ -6,8 +6,8 @@ The File Locking API is used to create, list, and delete locks, as well as
 verify that locks are respected in Git pushes. The locking URLs are built
 by adding a suffix to the LFS Server URL.
 
-Git remote: https://git-server.com/foo/bar  
-LFS server: https://git-server.com/foo/bar.git/info/lfs  
+Git remote: https://git-server.com/foo/bar
+LFS server: https://git-server.com/foo/bar.git/info/lfs
 Locks API: https://git-server.com/foo/bar.git/info/lfs/locks
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS
@@ -26,6 +26,8 @@ simplest use case: single branch locking. The API is designed to be extensible
 as we experiment with more advanced locking scenarios, as defined in the
 [original proposal](/docs/proposals/locking.md).
 
+The [Batch API's `ref` property docs](./batch.md#ref-property) describe how the `ref` property can be used to support auth schemes that include the server ref. Locking API implementations should also only use it for authentication, until advanced locking scenarios have been developed. 
+
 ## Create Lock
 
 The client sends the following to create a lock by sending a `POST` to `/locks`
@@ -35,6 +37,8 @@ to one user.
 
 * `path` - String path name of the file that is locked. This should be
 relative to the root of the repository working directory.
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
 
 ```js
 // POST https://lfs-server.com/locks
@@ -42,7 +46,10 @@ relative to the root of the repository working directory.
 // Content-Type: application/vnd.git-lfs+json
 // Authorization: Basic ...
 {
-  "path": "foo/bar.zip"
+  "path": "foo/bar.zip",
+  "ref": {
+    "name": "refs/heads/my-feature"
+  }
 }
 ```
 
@@ -151,6 +158,8 @@ The properties are sent as URI query values, instead of through a JSON body:
 should be the `next_cursor` from a previous request.
 * `limit` - The integer limit of the number of locks to return. The server
 should have its own upper and lower bounds on the supported limits.
+* `ref` - Optional fully qualified server refspec
+from which to search for locks.
 
 ```js
 // GET https://lfs-server.com/locks?path=&id=&cursor=&limit=
@@ -234,8 +243,8 @@ that can affect a Git push. For a caller, this endpoint is very similar to the
 "List Locks" endpoint above, except:
 
 * Verification requires a `POST` request.
-* The `cursor` and `limit` values are sent as properties in the json request
-body.
+* The `cursor`, `ref` and `limit` values are sent as properties in the json
+request body.
 * The response includes locks partitioned into `ours` and `theirs` properties.
 
 LFS Servers should ensure that users have push access to the repository.
@@ -243,8 +252,11 @@ LFS Servers should ensure that users have push access to the repository.
 Clients send the following to list locks for verification by sending a `POST`
 to `/locks/verify` (appended to the LFS server url, as described above):
 
-* `cursor`
-* `limit`
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
+* `cursor` - Optional cursor to allow pagination. Servers can determine how cursors are formatted based on how they are stored internally.
+* `limit` - Optional limit to how many locks to
+return.
 
 ```js
 // POST https://lfs-server.com/locks/verify
@@ -253,7 +265,10 @@ to `/locks/verify` (appended to the LFS server url, as described above):
 // Authorization: Basic ...
 {
   "cursor": "optional cursor",
-  "limit": 100 // also optional
+  "limit": 100, // also optional
+  "ref": {
+    "name": "refs/heads/my-feature"
+  }
 }
 ```
 
@@ -374,6 +389,8 @@ Properties:
 
 * `force` - Optional boolean specifying that the user is deleting another user's
 lock.
+* `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
+  * `name` - Fully-qualified server refspec.
 
 ```js
 // POST https://lfs-server.com/locks/:id/unlock
@@ -382,7 +399,10 @@ lock.
 // Authorization: Basic ...
 
 {
-  "force": true
+  "force": true,
+  "ref": {
+    "name": "refs/heads/my-feature"
+  }
 }
 ```
 

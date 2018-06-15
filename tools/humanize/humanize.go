@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -23,6 +24,10 @@ const (
 	Gigabyte = 1000 * Megabyte
 	Terabyte = 1000 * Gigabyte
 	Petabyte = 1000 * Terabyte
+
+	// eps is the machine epsilon, or a 64-bit floating point value
+	// reasonably close to zero.
+	eps float64 = 7.0/3 - 4.0/3 - 1.0
 )
 
 var bytesTable = map[string]uint64{
@@ -54,9 +59,15 @@ func ParseBytes(str string) (uint64, error) {
 		sep = sep + 1
 	}
 
-	f, err := strconv.ParseFloat(strings.Replace(str[:sep], ",", "", -1), 64)
-	if err != nil {
-		return 0, err
+	var f float64
+
+	if s := strings.Replace(str[:sep], ",", "", -1); len(s) > 0 {
+		var err error
+
+		f, err = strconv.ParseFloat(s, 64)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	m, err := ParseByteUnit(str[sep:])
@@ -118,6 +129,38 @@ func FormatBytesUnit(s, u uint64) string {
 	}
 
 	return fmt.Sprintf(format, rounded)
+}
+
+// FormatByteRate outputs the given rate of transfer "r" as the quotient of "s"
+// (the number of bytes transferred) over "d" (the duration of time that those
+// bytes were transferred in).
+//
+// It displays the output as a quantity of a "per-unit-time" unit (i.e., B/s,
+// MiB/s) in the most representative fashion possible, as above.
+func FormatByteRate(s uint64, d time.Duration) string {
+	// e is the index of the most representative unit of storage.
+	var e float64
+
+	// f is the floating-point equivalent of "s", so as to avoid more
+	// conversions than necessary.
+	f := float64(s)
+
+	if f != 0 {
+		f = f / d.Seconds()
+		e = math.Floor(log(f, 1000))
+		if e <= eps {
+			// The result of math.Floor(log(r, 1000)) can be
+			// "close-enough" to zero that it should be effectively
+			// considered zero.
+			e = 0
+		}
+	}
+
+	unit := uint64(math.Pow(1000, e))
+	suffix := sizes[int(e)]
+
+	return fmt.Sprintf("%s %s/s",
+		FormatBytesUnit(uint64(math.Ceil(f)), unit), suffix)
 }
 
 // log takes the log base "b" of "n" (\log_b{n})

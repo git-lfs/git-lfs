@@ -36,7 +36,7 @@ begin_test "init for fetch tests"
   refute_server_object "$reponame" "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -62,8 +62,11 @@ begin_test "fetch"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch 2>&1 | grep "(1 of 1 files)"
+  git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -73,9 +76,12 @@ begin_test "fetch with remote"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch origin 2>&1 | grep "(1 of 1 files)"
+  git lfs fetch origin 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -92,6 +98,9 @@ begin_test "fetch with remote and branches"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -105,6 +114,9 @@ begin_test "fetch with master commit sha1"
   git lfs fetch origin "$master_sha1"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -118,6 +130,9 @@ begin_test "fetch with newbranch commit sha1"
   git lfs fetch origin "$newbranch_sha1"
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -131,6 +146,9 @@ begin_test "fetch with include filters in gitconfig"
   git lfs fetch origin master newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -146,6 +164,9 @@ begin_test "fetch with exclude filters in gitconfig"
   git lfs fetch origin master newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -416,7 +437,7 @@ begin_test "fetch with no origin remote"
   refute_server_object "$reponame" "$contents_oid"
 
   git push origin master 2>&1 | tee push.log
-  grep "(1 of 1 files)" push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   grep "master -> master" push.log
 
 
@@ -424,7 +445,7 @@ begin_test "fetch with no origin remote"
   cd ../no-remote-clone
 
   # pull commits & lfs
-  git pull 2>&1 | grep "Downloading a.dat (1 B)"
+  git pull 2>&1
   assert_local_object "$contents_oid" 1
 
   # now checkout detached HEAD so we're not tracking anything on remote
@@ -440,12 +461,6 @@ begin_test "fetch with no origin remote"
   # and no origin, but only 1 remote, should pick the only one as default
   git lfs fetch
   assert_local_object "$contents_oid" 1
-
-  # delete again, now add a second remote, also non-origin
-  rm -rf .git/lfs
-  git remote add something2 "$GITSERVER/$reponame"
-  git lfs fetch 2>&1 | grep "No default remote"
-  refute_local_object "$contents_oid"
 )
 end_test
 

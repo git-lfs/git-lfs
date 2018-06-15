@@ -6,13 +6,12 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git"
 )
 
 var (
@@ -30,9 +29,6 @@ type Client struct {
 	KeepaliveTimeout    int
 	TLSTimeout          int
 	ConcurrentTransfers int
-	HTTPSProxy          string
-	HTTPProxy           string
-	NoProxy             string
 	SkipSSLVerify       bool
 
 	Verbose          bool
@@ -49,41 +45,40 @@ type Client struct {
 
 	LoggingStats bool // DEPRECATED
 
-	// only used for per-host ssl certs
-	gitEnv Env
-	osEnv  Env
-	uc     *config.URLConfig
+	commandCredHelper *commandCredentialHelper
+	askpassCredHelper *AskPassCredentialHelper
+	cachingCredHelper *credentialCacher
+	gitEnv            config.Environment
+	osEnv             config.Environment
+	uc                *config.URLConfig
 }
 
-func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
-	if osEnv == nil {
-		osEnv = make(TestEnv)
+type Context interface {
+	GitConfig() *git.Configuration
+	OSEnv() config.Environment
+	GitEnv() config.Environment
+}
+
+func NewClient(ctx Context) (*Client, error) {
+	if ctx == nil {
+		ctx = NewContext(nil, nil, nil)
 	}
 
-	if gitEnv == nil {
-		gitEnv = make(TestEnv)
-	}
-
-	netrc, err := ParseNetrc(osEnv)
+	gitEnv := ctx.GitEnv()
+	osEnv := ctx.OSEnv()
+	netrc, netrcfile, err := ParseNetrc(osEnv)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
 	}
 
-	httpsProxy, httpProxy, noProxy := getProxyServers(osEnv, gitEnv)
-
-	var creds CredentialHelper = &commandCredentialHelper{
-		SkipPrompt: !osEnv.Bool("GIT_TERMINAL_PROMPT", true),
-	}
+	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
-
-	if gitEnv.Bool("lfs.cachecredentials", false) {
-		creds = withCredentialCache(creds)
+	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
 
 	c := &Client{
-		Endpoints:           NewEndpointFinder(gitEnv),
-		Credentials:         creds,
+		Endpoints:           NewEndpointFinder(ctx),
 		SSH:                 sshResolver,
 		Netrc:               netrc,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
@@ -93,22 +88,39 @@ func NewClient(osEnv Env, gitEnv Env) (*Client, error) {
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		HTTPSProxy:          httpsProxy,
-		HTTPProxy:           httpProxy,
-		NoProxy:             noProxy,
-		gitEnv:              gitEnv,
-		osEnv:               osEnv,
-		uc:                  config.NewURLConfig(gitEnv),
+		commandCredHelper: &commandCredentialHelper{
+			SkipPrompt: osEnv.Bool("GIT_TERMINAL_PROMPT", false),
+		},
+		gitEnv: gitEnv,
+		osEnv:  osEnv,
+		uc:     config.NewURLConfig(gitEnv),
+	}
+
+	askpass, ok := osEnv.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = gitEnv.Get("core.askpass")
+	}
+	if !ok {
+		askpass, _ = osEnv.Get("SSH_ASKPASS")
+	}
+	if len(askpass) > 0 {
+		c.askpassCredHelper = &AskPassCredentialHelper{
+			Program: askpass,
+		}
+	}
+
+	if cacheCreds {
+		c.cachingCredHelper = newCredentialCacher()
 	}
 
 	return c, nil
 }
 
-func (c *Client) GitEnv() Env {
+func (c *Client) GitEnv() config.Environment {
 	return c.gitEnv
 }
 
-func (c *Client) OSEnv() Env {
+func (c *Client) OSEnv() config.Environment {
 	return c.osEnv
 }
 
@@ -143,115 +155,71 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	return nil
 }
 
-// Env is an interface for the config.Environment methods that this package
-// relies on.
-type Env interface {
-	Get(string) (string, bool)
-	GetAll(string) []string
-	Int(string, int) int
-	Bool(string, bool) bool
-	All() map[string][]string
+type testContext struct {
+	gitConfig *git.Configuration
+	osEnv     config.Environment
+	gitEnv    config.Environment
 }
 
-type UniqTestEnv map[string]string
+func (c *testContext) GitConfig() *git.Configuration {
+	return c.gitConfig
+}
 
-func (e UniqTestEnv) Get(key string) (v string, ok bool) {
+func (c *testContext) OSEnv() config.Environment {
+	return c.osEnv
+}
+
+func (c *testContext) GitEnv() config.Environment {
+	return c.gitEnv
+}
+
+func NewContext(gitConf *git.Configuration, osEnv, gitEnv map[string]string) Context {
+	c := &testContext{gitConfig: gitConf}
+	if c.gitConfig == nil {
+		c.gitConfig = git.NewConfig("", "")
+	}
+	if osEnv != nil {
+		c.osEnv = testEnv(osEnv)
+	} else {
+		c.osEnv = make(testEnv)
+	}
+
+	if gitEnv != nil {
+		c.gitEnv = testEnv(gitEnv)
+	} else {
+		c.gitEnv = make(testEnv)
+	}
+	return c
+}
+
+type testEnv map[string]string
+
+func (e testEnv) Get(key string) (v string, ok bool) {
 	v, ok = e[key]
 	return
 }
 
-func (e UniqTestEnv) GetAll(key string) []string {
+func (e testEnv) GetAll(key string) []string {
 	if v, ok := e.Get(key); ok {
 		return []string{v}
 	}
 	return make([]string, 0)
 }
 
-func (e UniqTestEnv) Int(key string, def int) (val int) {
+func (e testEnv) Int(key string, def int) int {
 	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-
-	return i
+	return config.Int(s, def)
 }
 
-func (e UniqTestEnv) Bool(key string, def bool) (val bool) {
+func (e testEnv) Bool(key string, def bool) bool {
 	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
+	return config.Bool(s, def)
 }
 
-func (e UniqTestEnv) All() map[string][]string {
+func (e testEnv) All() map[string][]string {
 	m := make(map[string][]string)
 	for k, _ := range e {
 		m[k] = e.GetAll(k)
 	}
 	return m
-}
-
-// TestEnv is a basic config.Environment implementation. Only used in tests, or
-// as a zero value to NewClient().
-type TestEnv map[string][]string
-
-func (e TestEnv) Get(key string) (string, bool) {
-	all := e.GetAll(key)
-
-	if len(all) == 0 {
-		return "", false
-	}
-	return all[len(all)-1], true
-}
-
-func (e TestEnv) GetAll(key string) []string {
-	return e[key]
-}
-
-func (e TestEnv) Int(key string, def int) (val int) {
-	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-
-	return i
-}
-
-func (e TestEnv) Bool(key string, def bool) (val bool) {
-	s, _ := e.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
-}
-
-func (e TestEnv) All() map[string][]string {
-	return e
 }

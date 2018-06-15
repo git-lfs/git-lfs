@@ -358,3 +358,65 @@ Git LFS objects not staged for commit:"
   popd > /dev/null
 )
 end_test
+
+begin_test "status (missing objects)"
+(
+  set -e
+
+  reponame="status-missing-objects"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  printf "a" > a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  # Remove the original object "a.dat" (ensure '--no-filters' is not given).
+  oid="$(git hash-object -t blob -- a.dat)"
+  rm -rf ".git/objects/${oid:0:2}/${oid:2}"
+
+  # Create an unstaged change against a source file that doesn't exist.
+  printf "b" > a.dat
+  git add a.dat
+
+  git lfs status \
+    | grep "a.dat (?: <missing> -> LFS: $(calc_oid b | head -c 7))"
+)
+end_test
+
+begin_test "status (unpushed objects)"
+(
+  set -e
+
+  reponame="status-unpushed-objects"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git push origin master
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  printf "$contents" > a.dat
+
+  git add a.dat
+  git commit -m "add a large file"
+
+  expected="On branch master
+Git LFS objects to be pushed to origin/master:
+
+	a.dat ($oid)
+
+Git LFS objects to be committed:
+
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test

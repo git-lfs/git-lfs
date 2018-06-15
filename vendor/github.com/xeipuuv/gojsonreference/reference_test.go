@@ -245,6 +245,24 @@ func TestInheritsDifferentHost(t *testing.T) {
 	}
 }
 
+func TestInheritsEmptyFragment(t *testing.T) {
+	in1 := "#a"
+	in2 := ""
+
+	r1, _ := NewJsonReference(in1)
+	r2, _ := NewJsonReference(in2)
+
+	result, err := r1.Inherits(r2)
+
+	if err != nil {
+		t.Errorf("Inherits(%s,%s) should not fail. Error: %s", r1.String(), r2.String(), err.Error())
+	}
+
+	if result.String() != in2 {
+		t.Errorf("Inherits(%s,%s) should be empty but is %s", in1, in2, result)
+	}
+}
+
 func TestFileScheme(t *testing.T) {
 
 	in1 := "file:///Users/mac/1.json#a"
@@ -266,7 +284,7 @@ func TestFileScheme(t *testing.T) {
 	}
 
 	if r1.IsCanonical() != true {
-		t.Errorf("NewJsonReference(%v)::IsCanonical %v expect %v", in1, r1.IsCanonical, true)
+		t.Errorf("NewJsonReference(%v)::IsCanonical %v expect %v", in1, r1.IsCanonical(), true)
 	}
 
 	result, err := r1.Inherits(r2)

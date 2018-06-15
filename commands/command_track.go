@@ -10,9 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -32,33 +30,36 @@ var (
 func trackCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if config.LocalGitDir == "" {
+	if cfg.LocalGitDir() == "" {
 		Print("Not a git repository.")
 		os.Exit(128)
 	}
 
-	if config.LocalWorkingDir == "" {
+	if cfg.LocalWorkingDir() == "" {
 		Print("This operation must be run in a work tree.")
 		os.Exit(128)
 	}
 
-	lfs.InstallHooks(false)
+	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
+		installHooks(false)
+	}
 
 	if len(args) == 0 {
 		listPatterns()
 		return
 	}
 
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
 	}
 
 	wd, _ := tools.Getwd()
-	relpath, err := filepath.Rel(config.LocalWorkingDir, wd)
+	wd = tools.ResolveSymlinks(wd)
+	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
 	if err != nil {
-		Exit("Current directory %q outside of git working directory %q.", wd, config.LocalWorkingDir)
+		Exit("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir())
 	}
 
 	changedAttribLines := make(map[string]string)
@@ -66,7 +67,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	var writeablePatterns []string
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
-		pattern := cleanRootPath(unsanitizedPattern)
+		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
 		if !trackNoModifyAttrsFlag {
 			for _, known := range knownPatterns {
 				if known.Path == filepath.Join(relpath, pattern) &&
@@ -80,7 +81,7 @@ ArgsLoop:
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := escapeTrackPattern(pattern)
+		encodedArg := escapeAttrPattern(pattern)
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
@@ -94,7 +95,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %q", pattern)
+		Print("Tracking %q", unescapeAttrPattern(encodedArg))
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -204,7 +205,7 @@ ArgsLoop:
 	}
 
 	// now flip read-only mode based on lockable / not lockable changes
-	lockClient := newLockClient(cfg.CurrentRemote)
+	lockClient := newLockClient()
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, "Error changing lockable file permissions: %s", err)
@@ -212,7 +213,7 @@ ArgsLoop:
 }
 
 func listPatterns() {
-	knownPatterns := git.GetAttributePaths(config.LocalWorkingDir, config.LocalGitDir)
+	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	if len(knownPatterns) < 1 {
 		return
 	}
@@ -257,8 +258,8 @@ var (
 	}
 )
 
-func escapeTrackPattern(unescaped string) string {
-	var escaped string = unescaped
+func escapeAttrPattern(unescaped string) string {
+	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
@@ -267,7 +268,7 @@ func escapeTrackPattern(unescaped string) string {
 	return escaped
 }
 
-func unescapeTrackPattern(escaped string) string {
+func unescapeAttrPattern(escaped string) string {
 	var unescaped string = escaped
 
 	for to, from := range trackEscapePatterns {

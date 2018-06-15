@@ -65,29 +65,35 @@ func (e *environment) GetAll(key string) []string {
 	return e.Fetcher.GetAll(key)
 }
 
-func (e *environment) Bool(key string, def bool) (val bool) {
+func (e *environment) Bool(key string, def bool) bool {
 	s, _ := e.Fetcher.Get(key)
-	if len(s) == 0 {
-		return def
-	}
-
-	switch strings.ToLower(s) {
-	case "true", "1", "on", "yes", "t":
-		return true
-	case "false", "0", "off", "no", "f":
-		return false
-	default:
-		return false
-	}
+	return Bool(s, def)
 }
 
-func (e *environment) Int(key string, def int) (val int) {
+func (e *environment) Int(key string, def int) int {
 	s, _ := e.Fetcher.Get(key)
-	if len(s) == 0 {
+	return Int(s, def)
+}
+
+func (e *environment) All() map[string][]string {
+	return e.Fetcher.All()
+}
+
+// Int returns the int value associated with the given value, or the value
+// "def", if the value is blank.
+//
+// To convert from a the string value attached to a given key,
+// `strconv.Atoi(val)` is called. If `Atoi` returned a non-nil error,
+// then the value "def" will be returned instead.
+//
+// Otherwise, if the value was converted `string -> int` successfully,
+// then it will be returned wholesale.
+func Int(value string, def int) int {
+	if len(value) == 0 {
 		return def
 	}
 
-	i, err := strconv.Atoi(s)
+	i, err := strconv.Atoi(value)
 	if err != nil {
 		return def
 	}
@@ -95,6 +101,27 @@ func (e *environment) Int(key string, def int) (val int) {
 	return i
 }
 
-func (e *environment) All() map[string][]string {
-	return e.Fetcher.All()
+// Bool returns the boolean state associated with the given value, or the
+// value "def", if the value is blank.
+//
+// The "boolean state associated with a given key" is defined as the
+// case-insensitive string comparison with the following:
+//
+// 1) true if...
+//   "true", "1", "on", "yes", or "t"
+// 2) false if...
+//   "false", "0", "off", "no", "f", or otherwise.
+func Bool(value string, def bool) bool {
+	if len(value) == 0 {
+		return def
+	}
+
+	switch strings.ToLower(value) {
+	case "true", "1", "on", "yes", "t":
+		return true
+	case "false", "0", "off", "no", "f":
+		return false
+	default:
+		return false
+	}
 }
