@@ -43,57 +43,65 @@ func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
 	for _, path := range findAttributeFiles(workingDir, gitDir) {
-		attributes, err := os.Open(path)
-		if err != nil {
+		paths = append(paths, attrPaths(path, workingDir)...)
+	}
+
+	return paths
+}
+
+func attrPaths(path, workingDir string) []AttributePath {
+	attributes, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+
+	var paths []AttributePath
+
+	relfile, _ := filepath.Rel(workingDir, path)
+	reldir := filepath.Dir(relfile)
+	source := &AttributeSource{Path: relfile}
+
+	le := &lineEndingSplitter{}
+	scanner := bufio.NewScanner(attributes)
+	scanner.Split(le.ScanLines)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		relfile, _ := filepath.Rel(workingDir, path)
-		reldir := filepath.Dir(relfile)
-		source := &AttributeSource{Path: relfile}
+		// Check for filter=lfs (signifying that LFS is tracking
+		// this file) or "lockable", which indicates that the
+		// file is lockable (and may or may not be tracked by
+		// Git LFS).
+		if strings.Contains(line, "filter=lfs") ||
+			strings.HasSuffix(line, "lockable") {
 
-		le := &lineEndingSplitter{}
-		scanner := bufio.NewScanner(attributes)
-		scanner.Split(le.ScanLines)
-
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-
-			if strings.HasPrefix(line, "#") {
-				continue
+			fields := strings.Fields(line)
+			pattern := fields[0]
+			if len(reldir) > 0 {
+				pattern = filepath.Join(reldir, pattern)
 			}
-
-			// Check for filter=lfs (signifying that LFS is tracking
-			// this file) or "lockable", which indicates that the
-			// file is lockable (and may or may not be tracked by
-			// Git LFS).
-			if strings.Contains(line, "filter=lfs") ||
-				strings.HasSuffix(line, "lockable") {
-
-				fields := strings.Fields(line)
-				pattern := fields[0]
-				if len(reldir) > 0 {
-					pattern = filepath.Join(reldir, pattern)
+			// Find lockable flag in any position after pattern to avoid
+			// edge case of matching "lockable" to a file pattern
+			lockable := false
+			for _, f := range fields[1:] {
+				if f == LockableAttrib {
+					lockable = true
+					break
 				}
-				// Find lockable flag in any position after pattern to avoid
-				// edge case of matching "lockable" to a file pattern
-				lockable := false
-				for _, f := range fields[1:] {
-					if f == LockableAttrib {
-						lockable = true
-						break
-					}
-				}
-				paths = append(paths, AttributePath{
-					Path:     pattern,
-					Source:   source,
-					Lockable: lockable,
-				})
 			}
+			paths = append(paths, AttributePath{
+				Path:     pattern,
+				Source:   source,
+				Lockable: lockable,
+			})
 		}
-
-		source.LineEnding = le.LineEnding()
 	}
+
+	source.LineEnding = le.LineEnding()
 
 	return paths
 }
