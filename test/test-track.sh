@@ -576,3 +576,22 @@ begin_test "track (global gitattributes)"
   grep "*.dat" track.log
 )
 end_test
+
+begin_test "track (system gitattributes)"
+(
+  set -e
+
+  reponame="track-system-gitattributes"
+  git init "$reponame"
+  cd "$reponame"
+
+  pushd "$TRASHDIR" > /dev/null
+    mkdir -p "prefix/${reponame}/etc"
+    cd "prefix/${reponame}/etc"
+    echo "*.dat filter=lfs diff=lfs merge=lfs -text" > gitattributes
+  popd > /dev/null
+
+  PREFIX="${TRASHDIR}/prefix/${reponame}" git lfs track 2>&1 | tee track.log
+  grep "*.dat" track.log
+)
+end_test
