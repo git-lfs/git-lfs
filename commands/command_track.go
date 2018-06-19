@@ -230,6 +230,7 @@ func listPatterns() {
 
 func getAllKnownPatterns() []git.AttributePath {
 	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	knownPatterns = append(knownPatterns, git.GetRootAttributePaths(cfg.Git)...)
 
 	return knownPatterns
 }

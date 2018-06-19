@@ -35,6 +35,18 @@ func (s *AttributeSource) String() string {
 	return s.Path
 }
 
+// GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
+// only from the global gitattributes file.
+func GetRootAttributePaths(cfg Env) []AttributePath {
+	af, ok := cfg.Get("core.attributesfile")
+	if !ok {
+		return nil
+	}
+
+	// The working directory for the root gitattributes file is blank.
+	return attrPaths(af, "")
+}
+
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
