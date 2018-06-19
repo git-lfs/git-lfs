@@ -47,6 +47,24 @@ func GetRootAttributePaths(cfg Env) []AttributePath {
 	return attrPaths(af, "")
 }
 
+// GetSystemAttributePaths behaves as GetAttributePaths, and loads information
+// only from the system gitattributes file, respecting the $PREFIX environment
+// variable.
+func GetSystemAttributePaths(env Env) []AttributePath {
+	prefix, _ := env.Get("PREFIX")
+	if len(prefix) == 0 {
+		prefix = string(filepath.Separator)
+	}
+
+	path := filepath.Join(prefix, "etc", "gitattributes")
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil
+	}
+
+	return attrPaths(path, "")
+}
+
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
