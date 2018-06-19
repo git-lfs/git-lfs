@@ -49,7 +49,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	knownPatterns := getAllKnownPatterns()
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
@@ -213,7 +213,7 @@ ArgsLoop:
 }
 
 func listPatterns() {
-	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	knownPatterns := getAllKnownPatterns()
 	if len(knownPatterns) < 1 {
 		return
 	}
@@ -226,6 +226,12 @@ func listPatterns() {
 			Print("    %s (%s)", t.Path, t.Source)
 		}
 	}
+}
+
+func getAllKnownPatterns() []git.AttributePath {
+	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+
+	return knownPatterns
 }
 
 func getAttributeLineEnding(attribs []git.AttributePath) string {
