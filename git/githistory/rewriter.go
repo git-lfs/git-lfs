@@ -178,7 +178,7 @@ func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 // ScanForPointers scans through the range of commits given by
 // *RewriteOptions.{Left,Right} and adds any pointers matching the rewrite
 // filter to the transfer queue to be downloaded
-func (r *Rewriter) ScanForPointers(q *tq.TransferQueue, opt *RewriteOptions) error {
+func (r *Rewriter) ScanForPointers(q *tq.TransferQueue, opt *RewriteOptions, gf *lfs.GitFilter) error {
 	// Obtain a list of commits to scan
 	commits, err := r.commitsToMigrate(opt)
 	if err != nil {
@@ -194,7 +194,7 @@ func (r *Rewriter) ScanForPointers(q *tq.TransferQueue, opt *RewriteOptions) err
 			return err
 		}
 
-		if err := r.scanTree(q, commit.TreeID, ""); err != nil {
+		if err := r.scanTree(q, gf, commit.TreeID, ""); err != nil {
 			return err
 		}
 	}
@@ -342,7 +342,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 // scanTree recursively scans through a tree and adds any pointers matching the
 // rewrite filter to the transfer queue to be downloaded
-func (r *Rewriter) scanTree(q *tq.TransferQueue, treeOID []byte, path string) error {
+func (r *Rewriter) scanTree(q *tq.TransferQueue, gf *lfs.GitFilter, treeOID []byte, path string) error {
 	tree, err := r.db.Tree(treeOID)
 	if err != nil {
 		return err
@@ -382,10 +382,15 @@ func (r *Rewriter) scanTree(q *tq.TransferQueue, treeOID []byte, path string) er
 				return err
 			}
 
-			q.Add(entry.Name, fullpath, ptr.Oid, ptr.Size)
+			downloadPath, err := gf.ObjectPath(ptr.Oid)
+			if err != nil {
+				return err
+			}
+
+			q.Add(entry.Name, downloadPath, ptr.Oid, ptr.Size)
 		case odb.TreeObjectType:
 			// Scan all subtrees
-			err = r.scanTree(q, entry.Oid, fullpath)
+			err = r.scanTree(q, gf, entry.Oid, fullpath)
 
 		}
 		if err != nil {

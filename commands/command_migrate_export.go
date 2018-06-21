@@ -104,7 +104,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	// If we have a valid remote, pre-download all objects using the Transfer Queue
 	if remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", cfg.Remote()).Url; remoteURL != "" {
 		q := newDownloadQueue(getTransferManifestOperationRemote("Download", cfg.Remote()), cfg.Remote())
-		if err := rewriter.ScanForPointers(q, opts); err != nil {
+		if err := rewriter.ScanForPointers(q, opts, gitfilter); err != nil {
 			ExitWithError(err)
 		}
 
