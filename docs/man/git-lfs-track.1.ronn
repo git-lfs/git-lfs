@@ -59,6 +59,6 @@ to match paths.
 
 ## SEE ALSO
 
-git-lfs-untrack(1), git-lfs-install(1), gitattributes(5).
+git-lfs-untrack(1), git-lfs-install(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.
