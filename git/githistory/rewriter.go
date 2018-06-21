@@ -8,11 +8,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/lfs"
+
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/git-lfs/tq"
 )
 
 // Rewriter allows rewriting topologically equivalent Git histories
@@ -172,6 +175,33 @@ func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 	return rewriter
 }
 
+// ScanForPointers scans through the range of commits given by
+// *RewriteOptions.{Left,Right} and adds any pointers matching the rewrite
+// filter to the transfer queue to be downloaded
+func (r *Rewriter) ScanForPointers(q *tq.TransferQueue, opt *RewriteOptions) error {
+	// Obtain a list of commits to scan
+	commits, err := r.commitsToMigrate(opt)
+	if err != nil {
+		return err
+	}
+
+	waiter := r.l.Waiter("migrate: Scanning commits")
+	defer waiter.Complete()
+
+	for _, oid := range commits {
+		commit, err := r.db.Commit(oid)
+		if err != nil {
+			return err
+		}
+
+		if err := r.scanTree(q, commit.TreeID, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
 // using the BlobRewriteFn to rewrite the individual blobs.
 func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
@@ -308,6 +338,62 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	}
 
 	return tip, err
+}
+
+// scanTree recursively scans through a tree and adds any pointers matching the
+// rewrite filter to the transfer queue to be downloaded
+func (r *Rewriter) scanTree(q *tq.TransferQueue, treeOID []byte, path string) error {
+	tree, err := r.db.Tree(treeOID)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range tree.Entries {
+		var fullpath string
+		if len(path) > 0 {
+			fullpath = strings.Join([]string{path, entry.Name}, "/")
+		} else {
+			fullpath = entry.Name
+		}
+
+		if !r.allows(entry.Type(), fullpath) {
+			continue
+		}
+
+		// If this is a symlink, skip it
+		if entry.Filemode == 0120000 {
+			continue
+		}
+
+		switch entry.Type() {
+		case odb.BlobObjectType:
+			// Check if the blob is a pointer, and if so,
+			// add it to the transfer queue
+			blob, err := r.db.Blob(entry.Oid)
+			if err != nil {
+				return err
+			}
+
+			ptr, err := lfs.DecodePointer(blob.Contents)
+			if errors.IsNotAPointerError(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+
+			q.Add(entry.Name, fullpath, ptr.Oid, ptr.Size)
+		case odb.TreeObjectType:
+			// Scan all subtrees
+			err = r.scanTree(q, entry.Oid, fullpath)
+
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // rewriteTree is a recursive function which rewrites a tree given by the ID

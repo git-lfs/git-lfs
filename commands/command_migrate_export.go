@@ -37,7 +37,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	tracked := trackedFromExportFilter(filter)
 	gitfilter := lfs.NewGitFilter(cfg)
 
-	migrate(args, rewriter, l, &githistory.RewriteOptions{
+	opts := &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
 		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
@@ -92,7 +92,35 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		},
 
 		UpdateRefs: true,
-	})
+	}
+
+	requireInRepo()
+
+	opts, err = rewriteOptions(args, opts, l)
+	if err != nil {
+		ExitWithError(err)
+	}
+
+	// If we have a valid remote, pre-download all objects using the Transfer Queue
+	if remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", cfg.Remote()).Url; remoteURL != "" {
+		q := newDownloadQueue(getTransferManifestOperationRemote("Download", cfg.Remote()), cfg.Remote())
+		if err := rewriter.ScanForPointers(q, opts); err != nil {
+			ExitWithError(err)
+		}
+
+		q.Wait()
+
+		for _, err := range q.Errors() {
+			if err != nil {
+				ExitWithError(err)
+			}
+		}
+	}
+
+	// Perform the rewrite
+	if _, err := rewriter.Rewrite(opts); err != nil {
+		ExitWithError(err)
+	}
 
 	// Only perform `git-checkout(1) -f` if the repository is
 	// non-bare.

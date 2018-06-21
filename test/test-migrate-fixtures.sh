@@ -201,6 +201,36 @@ setup_single_remote_branch_with_gitattrs() {
   git commit -m "add .gitattributes"
 }
 
+# Creates a repo identical to setup_single_remote_branch, except with *.md and
+# *.txt files tracked by Git LFS, and all commits pushed to master
+setup_single_remote_branch_tracked() {
+  set -e
+
+  reponame="migrate-info-single-remote-branch"
+
+  remove_and_create_remote_repo "$reponame"
+
+  git lfs track "*.md" "*.txt"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 140 > a.md
+
+  git add a.txt a.md
+  git commit -m "add a.{txt,md}"
+
+  git push origin master
+
+  base64 < /dev/urandom | head -c 30 > a.txt
+  base64 < /dev/urandom | head -c 50 > a.md
+
+  git add a.md a.txt
+  git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
+
+  git push origin master
+}
+
 # setup_multiple_remote_branches creates a repository as follows:
 #
 #         C
