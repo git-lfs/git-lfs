@@ -34,7 +34,9 @@ setup and preferences.
 
 In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
 available for Linux, macOS, Windows, and FreeBSD. This repository can also be
-built-from-source using the latest version of [Go](https://golang.org).
+built from source using the latest version of [Go](https://golang.org), and the
+available instructions in our
+[Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
 
 ### Usage
 
