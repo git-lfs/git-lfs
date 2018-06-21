@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -134,7 +135,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		return s.ContentsSha()[:7], from, nil
 	}
 
-	f, err := os.Open(name)
+	f, err := os.Open(filepath.Join(cfg.LocalWorkingDir(), name))
 	if err != nil {
 		return "", "", err
 	}
