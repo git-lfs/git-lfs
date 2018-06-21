@@ -145,6 +145,39 @@ begin_test "pull"
 )
 end_test
 
+begin_test "pull (literal --include)"
+(
+  set -e
+
+  reponame="pull-include-literal"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  mkdir -p a/b/c
+  printf "d" > a/b/c/d.dat
+  printf "e" > a/b/c/e.dat
+
+  git lfs track 'a/b/c/*.dat'
+  git add .gitattributes
+  git add a/b/c/d.dat
+  git add a/b/c/e.dat
+
+  git commit -m "initial commit"
+  git push origin master
+
+  cd ..
+  rm -rf "$reponame"
+  GIT_LFS_SKIP_SMUDGE=1 git clone $GITSERVER/$reponame
+
+  cd "$reponame"
+
+  git lfs pull --include=a/b/c/d.dat
+
+  [ "d" = "$(cat a/b/c/d.dat)" ]
+  [ "e" != "$(cat a/b/c/e.dat)" ]
+)
+end_test
+
 begin_test "pull without clean filter"
 (
   set -e
