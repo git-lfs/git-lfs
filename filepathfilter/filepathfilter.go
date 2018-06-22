@@ -151,7 +151,7 @@ func NewPattern(p string) Pattern {
 
 	msg := fmt.Sprintf("filepathfilter: rewrite %q as %q", p, pp)
 	if useLit {
-		msg = fmt.Sprintf("%s (or fallback)")
+		msg = fmt.Sprintf("%s (or fallback)", msg)
 	}
 	tracerx.Printf(msg)
 
