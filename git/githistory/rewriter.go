@@ -387,7 +387,11 @@ func (r *Rewriter) scanTree(q *tq.TransferQueue, gf *lfs.GitFilter, treeOID []by
 				return err
 			}
 
-			q.Add(entry.Name, downloadPath, ptr.Oid, ptr.Size)
+			// Only add files to the transfer queue that aren't already cached
+			if _, err := os.Stat(downloadPath); os.IsNotExist(err) {
+				q.Add(entry.Name, downloadPath, ptr.Oid, ptr.Size)
+			}
+
 		case odb.TreeObjectType:
 			// Scan all subtrees
 			err = r.scanTree(q, gf, entry.Oid, fullpath)
