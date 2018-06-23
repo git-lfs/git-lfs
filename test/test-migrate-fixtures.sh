@@ -134,6 +134,36 @@ setup_multiple_local_branches_with_gitattrs() {
   git commit -m "add .gitattributes"
 }
 
+# setup_multiple_local_branches_tracked creates a repo with exactly the same
+# structure as in setup_multiple_local_branches, but with all files tracked by
+# Git LFS
+setup_multiple_local_branches_tracked() {
+  set -e
+
+  reponame="migrate-info-multiple-local-branches"
+
+  remove_and_create_local_repo "$reponame"
+
+  git lfs track "*.txt" "*.md"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 140 > a.md
+
+  git add a.txt a.md
+  git commit -m "add a.{txt,md}"
+
+  git checkout -b my-feature
+
+  base64 < /dev/urandom | head -c 30 > a.md
+
+  git add a.md
+  git commit -m "add an additional 30 bytes to a.md"
+
+  git checkout master
+}
+
 # setup_local_branch_with_space creates a repository as follows:
 #
 #   A
@@ -202,7 +232,7 @@ setup_single_remote_branch_with_gitattrs() {
 }
 
 # Creates a repo identical to setup_single_remote_branch, except with *.md and
-# *.txt files tracked by Git LFS, and all commits pushed to master
+# *.txt files tracked by Git LFS
 setup_single_remote_branch_tracked() {
   set -e
 
@@ -227,8 +257,6 @@ setup_single_remote_branch_tracked() {
 
   git add a.md a.txt
   git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
-
-  git push origin master
 }
 
 # setup_multiple_remote_branches creates a repository as follows:
@@ -254,6 +282,41 @@ setup_multiple_remote_branches() {
   reponame="migrate-info-exclude-remote-refs-given-branch"
 
   remove_and_create_remote_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 10 > a.txt
+  base64 < /dev/urandom | head -c 11 > a.md
+  git add a.txt a.md
+  git commit -m "add 10, 11 bytes, a.{txt,md}"
+
+  git push origin master
+
+  base64 < /dev/urandom | head -c 20 > a.txt
+  base64 < /dev/urandom | head -c 21 > a.md
+  git add a.txt a.md
+  git commit -m "add 20, 21 bytes, a.{txt,md}"
+
+  git checkout -b my-feature
+
+  base64 < /dev/urandom | head -c 30 > a.txt
+  base64 < /dev/urandom | head -c 31 > a.md
+  git add a.txt a.md
+  git commit -m "add 30, 31 bytes, a.{txt,md}"
+
+  git checkout master
+}
+
+# Creates a repo identical to that in setup_multiple_remote_branches(), but
+# with all files tracked by Git LFS
+setup_multiple_remote_branches_gitattrs() {
+  set -e
+
+  reponame="migrate-info-exclude-remote-refs-given-branch"
+
+  remove_and_create_remote_repo "$reponame"
+
+  git lfs track "*.txt" "*.md"
+  git add .gitattributes
+  git commit -m "initial commit"
 
   base64 < /dev/urandom | head -c 10 > a.txt
   base64 < /dev/urandom | head -c 11 > a.md
