@@ -1,6 +1,7 @@
 package filepathfilter
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -78,13 +79,20 @@ func (f *Filter) Allows(filename string) bool {
 }
 
 type wm struct {
-	w    *wildmatch.Wildmatch
-	p    string
-	dirs bool
+	w, lit *wildmatch.Wildmatch
+	p      string
+	useLit bool
+	dirs   bool
 }
 
 func (w *wm) Match(filename string) bool {
-	return w.w.Match(w.chomp(filename))
+	filename = w.chomp(filename)
+	if w.useLit {
+		if w.lit.Match(filename) {
+			return true
+		}
+	}
+	return w.w.Match(filename)
 }
 
 func (w *wm) chomp(filename string) string {
@@ -109,6 +117,7 @@ func NewPattern(p string) Pattern {
 		pp = join("**", "*")
 	}
 
+	var useLit bool
 	dirs := strings.Contains(pp, string(sep))
 	rooted := strings.HasPrefix(pp, string(sep))
 	wild := strings.Contains(pp, "*")
@@ -117,6 +126,7 @@ func NewPattern(p string) Pattern {
 		// Special case: if pp is a literal string (optionally including
 		// a character class), rewrite it is a substring match.
 		pp = join("**", pp, "**")
+		useLit = true
 	} else {
 		if dirs && !rooted {
 			// Special case: if there are any directory separators,
@@ -138,15 +148,19 @@ func NewPattern(p string) Pattern {
 			}
 		}
 	}
-	tracerx.Printf("filepathfilter: rewrite %q as %q", p, pp)
+
+	msg := fmt.Sprintf("filepathfilter: rewrite %q as %q", p, pp)
+	if useLit {
+		msg = fmt.Sprintf("%s (or fallback)", msg)
+	}
+	tracerx.Printf(msg)
 
 	return &wm{
-		p: p,
-		w: wildmatch.NewWildmatch(
-			pp,
-			wildmatch.SystemCase,
-		),
-		dirs: dirs,
+		p:      p,
+		useLit: useLit,
+		w:      wildmatch.NewWildmatch(pp, wildmatch.SystemCase),
+		lit:    wildmatch.NewWildmatch(p, wildmatch.SystemCase),
+		dirs:   dirs,
 	}
 }
 
