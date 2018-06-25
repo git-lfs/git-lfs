@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,15 +44,20 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return b, nil
 			}
 
-			var buf bytes.Buffer
-
-			if _, err := smudge(gitfilter, &buf, b.Contents, path, false, rewriter.Filter()); err != nil {
+			ptr, err := lfs.DecodePointer(b.Contents)
+			if errors.IsNotAPointerError(err) {
+				return b, nil
+			}
+			if err != nil {
 				return nil, err
 			}
 
-			return &odb.Blob{
-				Contents: &buf, Size: int64(buf.Len()),
-			}, nil
+			downloadPath, err := gitfilter.ObjectPath(ptr.Oid)
+			if err != nil {
+				return nil, err
+			}
+
+			return odb.NewBlobFromFile(downloadPath)
 		},
 
 		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
