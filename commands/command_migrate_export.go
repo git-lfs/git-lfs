@@ -147,7 +147,7 @@ func trackedFromExportFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
 
 	for _, include := range filter.Include() {
-		tracked.Add(fmt.Sprintf("%s text -filter -merge -diff", escapeAttrPattern(include)))
+		tracked.Add(fmt.Sprintf("%s text !filter !merge !diff", escapeAttrPattern(include)))
 	}
 
 	for _, exclude := range filter.Exclude() {
