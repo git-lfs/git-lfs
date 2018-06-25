@@ -122,8 +122,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	// Only perform `git-checkout(1) -f` if the repository is
-	// non-bare.
+	// Only perform `git-checkout(1) -f` if the repository is non-bare.
 	if bare, _ := git.IsBare(); !bare {
 		t := l.Waiter("migrate: checkout")
 		err := git.Checkout("", nil, true)
@@ -135,11 +134,11 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-// trackedFromExportFilter returns an ordered set of strings where each entry is a
-// line in the .gitattributes file. It adds/removes the fiter/diff/merge=lfs
-// attributes based on patterns included/excluded in the given filter. Since
-// `migrate export` removes files from Git LFS, it will remove attributes for included
-// files, and add attributes for excluded files
+// trackedFromExportFilter returns an ordered set of strings where each entry
+// is a line we intend to place in the .gitattributes file. It adds/removes the
+// filter/diff/merge=lfs attributes based on patterns included/excluded in the
+// given filter. Since `migrate export` removes files from Git LFS, it will
+// remove attributes for included files, and add attributes for excluded files
 func trackedFromExportFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
 
