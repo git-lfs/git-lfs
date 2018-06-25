@@ -33,15 +33,16 @@ func (s *lockableNameSet) Check(blobSha string) (string, bool) {
 
 func noopFoundLockable(name string) {}
 
-// scanRefsToChan takes a ref and returns a channel of WrappedPointer objects
-// for all Git LFS pointers it finds for that ref.
+// scanRefsToChan scans through all commits reachable by refs contained in
+// "include" and not reachable by any refs included in "excluded" and returns
+// a channel of WrappedPointer objects for all Git LFS pointers it finds.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, opt *ScanRefsOptions) error {
+func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic("no scan ref options")
 	}
 
-	revs, err := revListShas([]string{refLeft, refRight}, nil, opt)
+	revs, err := revListShas(include, exclude, opt)
 	if err != nil {
 		return err
 	}
@@ -89,6 +90,13 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLe
 	}
 
 	return nil
+}
+
+// scanLeftRightToChan takes a ref and returns a channel of WrappedPointer objects
+// for all Git LFS pointers it finds for that ref.
+// Reports unique oids once only, not multiple times if >1 file uses the same content
+func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, opt *ScanRefsOptions) error {
+	return scanRefsToChan(scanner, pointerCb, []string{refLeft, refRight}, nil, opt)
 }
 
 // revListShas uses git rev-list to return the list of object sha1s
