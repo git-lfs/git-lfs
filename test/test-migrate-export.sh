@@ -297,3 +297,30 @@ begin_test "migrate export (include/exclude ref)"
   echo "$feature_attrs" | grep -q "*.txt text -filter -merge -diff"
 )
 end_test
+
+begin_test "migrate export (--object-map)"
+(
+  set -e
+
+  setup_multiple_local_branches_tracked
+
+  output_dir=$(mktemp -d)
+
+  git log --all --pretty='format:%H' > "${output_dir}/old_sha.txt"
+  git lfs migrate export --everything --include="*" --object-map "${output_dir}/object-map.txt"
+  git log --all --pretty='format:%H' > "${output_dir}/new_sha.txt"
+  paste -d',' "${output_dir}/old_sha.txt" "${output_dir}/new_sha.txt" > "${output_dir}/expected-map.txt"
+
+  diff -u <(sort "${output_dir}/expected-map.txt") <(sort "${output_dir}/object-map.txt")
+)
+end_test
+
+begin_test "migrate export (--verbose)"
+(
+  set -e
+
+  setup_multiple_local_branches_tracked
+
+  git lfs migrate export --everything --include="*" --verbose 2>&1 | grep -q "migrate: commit "
+)
+end_test

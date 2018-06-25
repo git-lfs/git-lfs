@@ -298,6 +298,8 @@ func init() {
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
+	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
+	exportCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
@@ -308,6 +310,6 @@ func init() {
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
-		cmd.AddCommand(importCmd, info, exportCmd)
+		cmd.AddCommand(exportCmd, importCmd, info)
 	})
 }
