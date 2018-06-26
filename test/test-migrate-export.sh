@@ -61,6 +61,9 @@ begin_test "migrate export (with remote)"
   assert_pointer "refs/remotes/origin/master" "a.md" "$md_oid" "50"
   assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_oid" "30"
 
+  # Flush the cache to ensure all objects have to be downloaded
+  rm -rf .git/lfs/objects
+
   git lfs migrate export --everything --include="*.md, *.txt"
 
   [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
