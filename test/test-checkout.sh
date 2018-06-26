@@ -41,12 +41,13 @@ begin_test "checkout"
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
   echo "checkout should replace all"
-  git lfs checkout
+  git lfs checkout 2>&1 | tee checkout.log
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
+  grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
 
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
@@ -73,7 +74,7 @@ begin_test "checkout"
   [ ! -f ../folder2/nested.dat ]
   # test '.' in current dir
   rm nested.dat
-  git lfs checkout .
+  git lfs checkout . 2>&1 | tee checkout.log
   [ "$contents" = "$(cat nested.dat)" ]
   popd
 

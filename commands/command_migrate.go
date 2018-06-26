@@ -36,6 +36,13 @@ var (
 	// objectMapFile is the path to the map of old sha1 to new sha1
 	// commits
 	objectMapFilePath string
+
+	// migrateNoRewrite is the flag indicating whether or not the
+	// command should rewrite git history
+	migrateNoRewrite bool
+	// migrateCommitMessage is the message to use with the commit generated
+	// by the migrate command
+	migrateCommitMessage string
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -287,6 +294,8 @@ func init() {
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
+	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
+	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")

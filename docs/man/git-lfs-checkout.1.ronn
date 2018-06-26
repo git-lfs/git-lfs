@@ -7,6 +7,8 @@ git-lfs-checkout(1) -- Update working copy with file content if available
 
 ## DESCRIPTION
 
+This command is deprecated, and should be replaced with `git checkout`.
+
 Try to ensure that the working copy contains file content for Git LFS objects
 for the current ref, if the object data is available. Does not download any
 content, see git-lfs-fetch(1) for that. 

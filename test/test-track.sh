@@ -558,3 +558,40 @@ begin_test "track (with current-directory prefix)"
   grep -e "^a.dat" .gitattributes
 )
 end_test
+
+begin_test "track (global gitattributes)"
+(
+  set -e
+
+  reponame="track-global-gitattributes"
+  git init "$reponame"
+  cd "$reponame"
+
+  global="$(cd .. && pwd)/gitattributes-global"
+
+  echo "*.dat filter=lfs diff=lfs merge=lfs -text" > "$global"
+  git config --local core.attributesfile "$global"
+
+  git lfs track 2>&1 | tee track.log
+  grep "*.dat" track.log
+)
+end_test
+
+begin_test "track (system gitattributes)"
+(
+  set -e
+
+  reponame="track-system-gitattributes"
+  git init "$reponame"
+  cd "$reponame"
+
+  pushd "$TRASHDIR" > /dev/null
+    mkdir -p "prefix/${reponame}/etc"
+    cd "prefix/${reponame}/etc"
+    echo "*.dat filter=lfs diff=lfs merge=lfs -text" > gitattributes
+  popd > /dev/null
+
+  PREFIX="${TRASHDIR}/prefix/${reponame}" git lfs track 2>&1 | tee track.log
+  grep "*.dat" track.log
+)
+end_test

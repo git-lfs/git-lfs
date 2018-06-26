@@ -119,6 +119,34 @@ begin_test "status --json"
 )
 end_test
 
+begin_test "status in a sub-directory"
+(
+  set -e
+
+  reponame="status-sub-directory"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  printf "asdf" > file.dat
+  mkdir -p dir
+  git add .gitattributes file.dat
+  git commit -m "initial commit"
+
+  printf "ASDF" > file.dat
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+
+Git LFS objects not staged for commit:
+
+	../file.dat (LFS: f0e4c2f -> File: 99b3bcf)"
+
+	[ "$expected" = "$(cd dir && git lfs status)" ]
+)
+end_test
 
 begin_test "status: outside git repository"
 (

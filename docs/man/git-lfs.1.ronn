@@ -33,7 +33,7 @@ commands and low level ("plumbing") commands.
     Display the Git LFS environment.
 * git-lfs-checkout(1):
     Populate working copy with real content from Git LFS files.
-* git lfs clone:
+* git-lfs-clone(1):
     Efficiently clone a Git LFS-enabled repository.
 * git-lfs-fetch(1):
     Download Git LFS files from a remote.
@@ -46,15 +46,16 @@ commands and low level ("plumbing") commands.
 * git-lfs-locks(1):
     List currently "locked" files from the Git LFS server.
 * git-lfs-logs(1):
-    Show errors from the git-lfs command.
+    Show errors from the Git LFS command.
 * git-lfs-ls-files(1):
     Show information about Git LFS files in the index and working tree.
 * git-lfs-migrate(1):
-    Migrate history to or from git-lfs
+    Migrate history to or from Git LFS
 * git-lfs-prune(1):
     Delete old Git LFS files from local storage
 * git-lfs-pull(1):
-    Fetch LFS changes from the remote & checkout any required working tree files.
+    Fetch Git LFS changes from the remote & checkout any required working tree
+    files.
 * git-lfs-push(1):
     Push queued large files to the Git LFS endpoint.
 * git-lfs-status(1):
@@ -69,7 +70,7 @@ commands and low level ("plumbing") commands.
     Remove Git LFS paths from Git Attributes.
 * git-lfs-update(1):
     Update Git hooks for the current Git repository.
-* git lfs version:
+* git-lfs-version(1):
     Report the version number.
 
 ### Low level commands (plumbing)
@@ -80,5 +81,32 @@ commands and low level ("plumbing") commands.
     Build and compare pointers.
 * git-lfs-pre-push(1):
     Git pre-push hook implementation.
+* git-lfs-filter-process(1):
+    Git process filter that converts between large files and pointers.
 * git-lfs-smudge(1):
     Git smudge filter that converts pointer in blobs to the actual content.
+
+## EXAMPLES
+
+To get started with Git LFS, the following commands can be used.
+
+ 1. Setup Git LFS on your system. You only have to do this once per
+    repository per machine:
+
+        git lfs install
+
+ 2. Choose the type of files you want to track, for examples all `ISO`
+    images, with git-lfs-track(1):
+
+        git lfs track "*.iso"
+
+ 3. The above stores this information in gitattributes(5) files, so
+    that file need to be added to the repository:
+
+        git add .gitattributes
+
+ 3. Commit, push and work with the files normally:
+
+        git add file.iso
+        git commit -m "Add disk image"
+        git push

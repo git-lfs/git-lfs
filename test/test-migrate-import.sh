@@ -673,3 +673,37 @@ begin_test "migrate import (handle symbolic link)"
   refute_local_object "$link_oid" "5"
 )
 end_test
+
+begin_test "migrate import (commit --allow-empty)"
+(
+  set -e
+
+  reponame="migrate---allow-empty"
+  git init "$reponame"
+  cd "$reponame"
+
+  git commit --allow-empty -m "initial commit"
+
+  original_head="$(git rev-parse HEAD)"
+  git lfs migrate import --everything
+  migrated_head="$(git rev-parse HEAD)"
+
+  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate import (multiple remotes)"
+(
+  set -e
+
+  setup_multiple_remotes
+
+  original_master="$(git rev-parse master)"
+
+  git lfs migrate import
+
+  migrated_master="$(git rev-parse master)"
+
+  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+)
+end_test
