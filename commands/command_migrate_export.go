@@ -113,6 +113,10 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return
 			}
 
+			if !filter.Allows(p.Name) {
+				return
+			}
+
 			downloadPath, err := gitfilter.ObjectPath(p.Oid)
 			if err != nil {
 				return
