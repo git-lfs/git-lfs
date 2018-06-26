@@ -26,6 +26,10 @@ begin_test "migrate export (default branch)"
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
+  refute_local_object "$md_oid" "140"
+  refute_local_object "$txt_oid" "120"
+  assert_local_object "$md_feature_oid" "30"
+
   master="$(git rev-parse refs/heads/master)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
@@ -65,6 +69,9 @@ begin_test "migrate export (with remote)"
   [ ! $(assert_pointer "refs/remotes/origin/master" "a.md" "$md_oid" "50") ]
   [ ! $(assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_oid" "30") ]
 
+  refute_local_object "$md_oid" "50"
+  refute_local_object "$txt_oid" "30"
+
   master="$(git rev-parse refs/heads/master)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
 
@@ -88,6 +95,9 @@ begin_test "migrate export (include/exclude args)"
 
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
   assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
+
+  refute_local_object "$txt_oid" "120"
+  assert_local_object "$md_oid" "140"
 
   master="$(git rev-parse refs/heads/master)"
 
@@ -135,6 +145,10 @@ begin_test "migrate export (given branch)"
   [ ! $(assert_pointer "refs/heads/my-feature" "a.txt" "$txt_oid" "120") ]
   [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "140") ]
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
+
+  refute_local_object "$md_feature_oid" "30"
+  refute_local_object "$txt_oid" "120"
+  refute_local_object "$md_oid" "140"
 
   master="$(git rev-parse refs/heads/master)"
   feature="$(git rev-parse refs/heads/my-feature)"
@@ -190,8 +204,14 @@ begin_test "migrate export (exclude remote refs)"
   [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30") ]
 
+  refute_local_object "$md_oid" "50"
+  refute_local_object "$txt_oid" "30"
+
   assert_pointer "refs/remotes/origin/master" "a.md" "$md_remote_oid" "140"
   assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_remote_oid" "120"
+
+  assert_local_object "$md_remote_oid" "140"
+  assert_local_object "$txt_remote_oid" "120"
 
   master="$(git rev-parse refs/heads/master)"
   remote="$(git rev-parse refs/remotes/origin/master)"
@@ -238,6 +258,11 @@ begin_test "migrate export (--skip-fetch)"
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "30") ]
   [ ! $(assert_pointer "pseudo-remote" "a.txt" "$txt_remote_oid" "120") ]
 
+  refute_local_object "$md_master_oid" "50"
+  refute_local_object "$md_remote_oid" "140"
+  refute_local_object "$txt_master_oid" "30"
+  refute_local_object "$txt_remote_oid" "120"
+
   master="$(git rev-parse refs/heads/master)"
   remote="$(git rev-parse pseudo-remote)"
 
@@ -283,6 +308,15 @@ begin_test "migrate export (include/exclude ref)"
 
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
   [ ! $(assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30") ]
+
+  assert_local_object "$md_master_oid" "21"
+  assert_local_object "$txt_master_oid" "20"
+
+  assert_local_object "$md_remote_oid" "11"
+  assert_local_object "$txt_remote_oid" "10"
+
+  assert_local_object "$md_feature_oid" "31"
+  refute_local_object "$txt_feature_oid" "30"
 
   master="$(git rev-parse refs/heads/master)"
   feature="$(git rev-parse refs/heads/my-feature)"

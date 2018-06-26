@@ -36,6 +36,8 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	tracked := trackedFromExportFilter(filter)
 	gitfilter := lfs.NewGitFilter(cfg)
 
+	var exported []string
+
 	opts := &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
@@ -57,7 +59,13 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return nil, err
 			}
 
-			return odb.NewBlobFromFile(downloadPath)
+			newBlob, err := odb.NewBlobFromFile(downloadPath)
+			if err != nil {
+				return nil, err
+			}
+
+			exported = append(exported, downloadPath)
+			return newBlob, nil
 		},
 
 		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
@@ -140,6 +148,18 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	// Perform the rewrite
 	if _, err := rewriter.Rewrite(opts); err != nil {
 		ExitWithError(err)
+	}
+
+	// Prune the cache
+	for _, object := range exported {
+		err := os.Remove(object)
+		if os.IsNotExist(err) {
+			continue
+		}
+
+		if err != nil {
+			ExitWithError(err)
+		}
 	}
 
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
