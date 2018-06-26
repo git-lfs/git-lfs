@@ -32,6 +32,7 @@ override_dh_clean:
 	dh_clean
 
 override_dh_auto_build:
+	cd ${BUILD_DIR}/src/github.com/git-lfs/git-lfs && go generate ./commands
 	dh_auto_build
 	#dh_golang doesn't do anything here in deb 8, and it's needed in both
 	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\

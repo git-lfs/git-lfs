@@ -308,6 +308,31 @@ setup_single_local_branch_with_annotated_tags() {
   git tag "v1.0.0" -m "v1.0.0"
 }
 
+setup_multiple_remotes() {
+  set -e
+
+  reponame="migrate-multiple-remotes"
+  remove_and_create_remote_repo "$reponame"
+
+  forkname="$(git remote -v \
+    | head -n1 \
+    | cut -d ' ' -f 1 \
+    | sed -e 's/^.*\///g')-fork"
+  ( setup_remote_repo "$forkname" )
+
+  git remote add fork "$GITSERVER/$forkname"
+
+  base64 < /dev/urandom | head -c 16 > a.txt
+  git add a.txt
+  git commit -m "initial commit"
+  git push origin master
+
+  base64 < /dev/urandom | head -c 16 > a.txt
+  git add a.txt
+  git commit -m "another commit"
+  git push fork master
+}
+
 # setup_single_local_branch_deep_trees creates a repository as follows:
 #
 #   A
