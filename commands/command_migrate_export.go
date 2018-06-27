@@ -113,9 +113,18 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	remote := cfg.Remote()
+	if cmd.Flag("remote").Changed {
+		remote = exportRemote
+	}
+	remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", remote).Url
+	if remoteURL == "" && cmd.Flag("remote").Changed {
+		ExitWithError(errors.Errorf("fatal: invalid remote %s provided", remote))
+	}
+
 	// If we have a valid remote, pre-download all objects using the Transfer Queue
-	if remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", cfg.Remote()).Url; remoteURL != "" {
-		q := newDownloadQueue(getTransferManifestOperationRemote("Download", cfg.Remote()), cfg.Remote())
+	if remoteURL != "" {
+		q := newDownloadQueue(getTransferManifestOperationRemote("Download", remote), remote)
 		gs := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
 			if err != nil {
 				return

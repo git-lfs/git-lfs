@@ -361,3 +361,51 @@ begin_test "migrate export (--verbose)"
   git lfs migrate export --everything --include="*" --verbose 2>&1 | grep -q "migrate: commit "
 )
 end_test
+
+begin_test "migrate export (--remote)"
+(
+  set -e
+
+  setup_single_remote_branch_tracked
+
+  git push origin master
+
+  md_oid="$(calc_oid "$(cat a.md)")"
+  txt_oid="$(calc_oid "$(cat a.txt)")"
+
+  assert_pointer "refs/heads/master" "a.md" "$md_oid" "50"
+  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
+
+  # Flush the cache to ensure all objects have to be downloaded
+  rm -rf .git/lfs/objects
+
+  # Setup a new remote and invalidate the default
+  remote_url="$(git config --get remote.origin.url)"
+  git remote add zeta "$remote_url"
+  git remote set-url origin ""
+
+  git lfs migrate export --everything --remote="zeta" --include="*.md, *.txt"
+
+  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
+  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30") ]
+
+  refute_local_object "$md_oid" "50"
+  refute_local_object "$txt_oid" "30"
+)
+end_test
+
+begin_test "migrate export (invalid --remote)"
+(
+  set -e
+
+  setup_single_remote_branch_tracked
+
+  git lfs migrate export --include="*" --remote="zz" 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate export to fail, didn't"
+    exit 1
+  fi
+
+  grep "fatal: invalid remote zz provided" migrate.log
+)
+end_test

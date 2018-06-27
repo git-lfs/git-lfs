@@ -43,6 +43,10 @@ var (
 	// migrateCommitMessage is the message to use with the commit generated
 	// by the migrate command
 	migrateCommitMessage string
+
+	// exportRemote is the remote from which to download objects when
+	// performing an export
+	exportRemote string
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -300,6 +304,7 @@ func init() {
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	exportCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
+	exportCmd.Flags().StringVar(&exportRemote, "remote", "", "Remote from which to download objects")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
