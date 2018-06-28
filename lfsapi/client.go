@@ -23,12 +23,11 @@ import (
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
 
 var (
-	UserAgent                 = "git-lfs"
-	httpRE                    = regexp.MustCompile(`\Ahttps?://`)
-	maxSshAuthenticateRetries = 5
+	UserAgent = "git-lfs"
+	httpRE    = regexp.MustCompile(`\Ahttps?://`)
 )
 
-func (c *Client) sshResolveWithRetries(e Endpoint, method string) (sshAuthResponse, error) {
+func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthResponse, error) {
 	var sshRes sshAuthResponse
 	var err error
 
@@ -36,7 +35,7 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (sshAuthRespon
 	for i := 0; i < requests; i++ {
 		sshRes, err = c.SSH.Resolve(e, method)
 		if err == nil {
-			return sshRes, nil
+			return &sshRes, nil
 		}
 
 		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
@@ -45,10 +44,9 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (sshAuthRespon
 	}
 
 	if len(sshRes.Message) > 0 {
-		return sshAuthResponse{}, errors.Wrap(err, sshRes.Message)
+		return nil, errors.Wrap(err, sshRes.Message)
 	}
-
-	return sshAuthResponse{}, err
+	return nil, err
 }
 
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
