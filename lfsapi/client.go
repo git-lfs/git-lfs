@@ -27,30 +27,6 @@ var (
 	httpRE    = regexp.MustCompile(`\Ahttps?://`)
 )
 
-func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthResponse, error) {
-	var sshRes sshAuthResponse
-	var err error
-
-	requests := tools.MaxInt(0, c.sshTries) + 1
-	for i := 0; i < requests; i++ {
-		sshRes, err = c.SSH.Resolve(e, method)
-		if err == nil {
-			return &sshRes, nil
-		}
-
-		tracerx.Printf(
-			"ssh: %s failed, error: %s, message: %s (try: %d/%d)",
-			e.SshUserAndHost, err.Error(), sshRes.Message, i,
-			requests,
-		)
-	}
-
-	if len(sshRes.Message) > 0 {
-		return nil, errors.Wrap(err, sshRes.Message)
-	}
-	return nil, err
-}
-
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	sshRes, err := c.sshResolveWithRetries(e, method)
 	if err != nil {
@@ -121,6 +97,30 @@ func (c *Client) do(req *http.Request) (*http.Response, error) {
 // Close closes any resources that this client opened.
 func (c *Client) Close() error {
 	return c.httpLogger.Close()
+}
+
+func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthResponse, error) {
+	var sshRes sshAuthResponse
+	var err error
+
+	requests := tools.MaxInt(0, c.sshTries) + 1
+	for i := 0; i < requests; i++ {
+		sshRes, err = c.SSH.Resolve(e, method)
+		if err == nil {
+			return &sshRes, nil
+		}
+
+		tracerx.Printf(
+			"ssh: %s failed, error: %s, message: %s (try: %d/%d)",
+			e.SshUserAndHost, err.Error(), sshRes.Message, i,
+			requests,
+		)
+	}
+
+	if len(sshRes.Message) > 0 {
+		return nil, errors.Wrap(err, sshRes.Message)
+	}
+	return nil, err
 }
 
 func (c *Client) extraHeadersFor(req *http.Request) http.Header {
