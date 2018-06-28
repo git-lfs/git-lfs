@@ -47,10 +47,10 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 			}
 
 			ptr, err := lfs.DecodePointer(b.Contents)
-			if errors.IsNotAPointerError(err) {
-				return b, nil
-			}
 			if err != nil {
+				if errors.IsNotAPointerError(err) {
+					return b, nil
+				}
 				return nil, err
 			}
 
@@ -159,17 +159,17 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	// Prune the cache
-	for _, object := range exported {
-		err := os.Remove(object)
-		if os.IsNotExist(err) {
-			continue
-		}
+	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
-		if err != nil {
-			ExitWithError(err)
-		}
-	}
+	// Set our preservation time-window for objects existing on the remote to
+	// 0. Because the newly rewritten commits have not yet been pushed, some
+	// exported objects can still exist on the remote within the time window
+	// and thus will not be pruned from the cache.
+	fetchPruneCfg.PruneOffsetDays = 0
+	fetchPruneCfg.FetchRecentRefsDays = 0
+
+	// Prune our cache
+	prune(fetchPruneCfg, false, false, true)
 
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
 	if bare, _ := git.IsBare(); !bare {

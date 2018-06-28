@@ -9,8 +9,14 @@ begin_test "migrate export (default branch)"
 
   setup_multiple_local_branches_tracked
 
+  # Add b.md, a pointer existing only on master
+  base64 < /dev/urandom | head -c 160 > b.md
+  git add b.md
+  git commit -m "add b.md"
+
   md_oid="$(calc_oid "$(cat a.md)")"
   txt_oid="$(calc_oid "$(cat a.txt)")"
+  b_md_oid="$(calc_oid "$(cat b.md)")"
 
   git checkout my-feature
   md_feature_oid="$(calc_oid "$(cat a.md)")"
@@ -18,16 +24,23 @@ begin_test "migrate export (default branch)"
 
   assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/master" "b.md" "$b_md_oid" "160"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
   git lfs migrate export --include="*.md, *.txt"
 
   [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "140") ]
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
+  [ ! $(assert_pointer "refs/heads/master" "b.md" "$b_md_oid" "160")]
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
-  refute_local_object "$md_oid" "140"
-  refute_local_object "$txt_oid" "120"
+  # b.md should be pruned as no pointer exists to reference it
+  refute_local_object "$b_md_oid" "160"
+
+  # Other objects should not be pruned as they're still referenced in `feature`
+  # by pointers
+  assert_local_object "$md_oid" "140"
+  assert_local_object "$txt_oid" "120"
   assert_local_object "$md_feature_oid" "30"
 
   master="$(git rev-parse refs/heads/master)"
@@ -72,6 +85,7 @@ begin_test "migrate export (with remote)"
   [ ! $(assert_pointer "refs/remotes/origin/master" "a.md" "$md_oid" "50") ]
   [ ! $(assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_oid" "30") ]
 
+  # All pointers have been exported, so all objects should be pruned
   refute_local_object "$md_oid" "50"
   refute_local_object "$txt_oid" "30"
 
@@ -87,12 +101,13 @@ begin_test "migrate export (include/exclude args)"
 (
   set -e
 
-  setup_multiple_local_branches_tracked
+  setup_single_local_branch_tracked
 
   md_oid="$(calc_oid "$(cat a.md)")"
   txt_oid="$(calc_oid "$(cat a.txt)")"
 
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
 
   git lfs migrate export --include="*" --exclude="a.md"
 
@@ -108,7 +123,6 @@ begin_test "migrate export (include/exclude args)"
 
   echo "$master_attrs" | grep -q "* text !filter !merge !diff"
   echo "$master_attrs" | grep -q "a.md filter=lfs diff=lfs merge=lfs"
-
 )
 end_test
 
@@ -149,6 +163,7 @@ begin_test "migrate export (given branch)"
   [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "140") ]
   [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
 
+  # No pointers left, so all objects should be pruned
   refute_local_object "$md_feature_oid" "30"
   refute_local_object "$txt_oid" "120"
   refute_local_object "$md_oid" "140"
@@ -213,8 +228,10 @@ begin_test "migrate export (exclude remote refs)"
   assert_pointer "refs/remotes/origin/master" "a.md" "$md_remote_oid" "140"
   assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_remote_oid" "120"
 
-  assert_local_object "$md_remote_oid" "140"
-  assert_local_object "$txt_remote_oid" "120"
+  # Since these two objects exist on the remote, they should be removed with
+  # our prune operation
+  refute_local_object "$md_remote_oid" "140"
+  refute_local_object "$txt_remote_oid" "120"
 
   master="$(git rev-parse refs/heads/master)"
   remote="$(git rev-parse refs/remotes/origin/master)"
@@ -312,12 +329,16 @@ begin_test "migrate export (include/exclude ref)"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
   [ ! $(assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30") ]
 
+  # Master objects should not be pruned as they exist in unpushed commits
   assert_local_object "$md_master_oid" "21"
   assert_local_object "$txt_master_oid" "20"
 
-  assert_local_object "$md_remote_oid" "11"
-  assert_local_object "$txt_remote_oid" "10"
+  # Remote master objects should be pruned as they exist in the remote
+  refute_local_object "$md_remote_oid" "11"
+  refute_local_object "$txt_remote_oid" "10"
 
+  # txt_feature_oid should be pruned as it's no longer a pointer, but
+  # md_feature_oid should remain as it's still a pointer in unpushed commits
   assert_local_object "$md_feature_oid" "31"
   refute_local_object "$txt_feature_oid" "30"
 
