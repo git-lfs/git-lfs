@@ -38,8 +38,10 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthRespo
 			return &sshRes, nil
 		}
 
-		tracerx.Printf("ssh: %s failed, error: %s, message: %s",
-			e.SshUserAndHost, err.Error(), sshRes.Message,
+		tracerx.Printf(
+			"ssh: %s failed, error: %s, message: %s (try: %d/%d)",
+			e.SshUserAndHost, err.Error(), sshRes.Message, i,
+			requests,
 		)
 	}
 
