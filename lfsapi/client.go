@@ -32,7 +32,7 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (sshAuthRespon
 	var sshRes sshAuthResponse
 	var err error
 
-	requests := tools.MaxInt(0, maxSshAuthenticateRetries) + 1
+	requests := tools.MaxInt(0, c.sshTries) + 1
 	for i := 0; i < requests; i++ {
 		sshRes, err = c.SSH.Resolve(e, method)
 		if err == nil {

@@ -51,6 +51,11 @@ be scoped inside the configuration for a remote.
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `lfs.ssh.retries`
+
+  Specifies the number of times Git LFS will attempt to obtain authorization via
+  SSH before aborting. Default: 5.
+
 * `core.askpass`, GIT_ASKPASS
 
   Given as a program and its arguments, this is invoked when authentication is
