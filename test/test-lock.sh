@@ -12,7 +12,7 @@ begin_test "lock with good ref"
 
   git lfs lock "a.dat" --json 2>&1 | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
@@ -40,7 +40,7 @@ begin_test "lock with good tracked ref"
 
   git lfs lock "a.dat" --json 2>&1 | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
@@ -65,7 +65,7 @@ begin_test "lock with bad ref"
 
   GIT_CURL_VERBOSE=1 git lfs lock "a.dat" 2>&1 | tee lock.json
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to fail"
     exit 1
   fi
 
@@ -187,11 +187,45 @@ begin_test "creating a lock (within subdirectory)"
 
   git lfs lock --json "a.dat" | tee lock.json
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to succeed"
+    echo >&2 "fatal: expected \'git lfs lock \'a.dat\'\' to succeed"
     exit 1
   fi
 
   id=$(assert_lock lock.json sub/a.dat)
   assert_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "creating a lock (symlinked working directory)"
+(
+  set -eo pipefail
+
+  if [[ $(uname) == *"MINGW"* ]]; then
+    echo >&2 "info: skipped on Windows ..."
+    exit 0
+  fi
+
+  reponame="lock-in-symlinked-working-directory"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track -l "*.dat"
+  mkdir -p folder1 folder2
+  printf "hello" > folder2/a.dat
+  add_symlink "../folder2" "folder1/folder2"
+
+  git add --all .
+  git commit -m "initial commit"
+  git push origin master
+
+  pushd "$TRASHDIR" > /dev/null
+    ln -s "$reponame" "$reponame-symlink"
+    cd "$reponame-symlink"
+
+    git lfs lock --json folder1/folder2/a.dat 2>&1 | tee lock.json
+
+    id="$(assert_lock lock.json folder1/folder2/a.dat)"
+    assert_server_lock "$reponame" "$id" master
+  popd > /dev/null
 )
 end_test

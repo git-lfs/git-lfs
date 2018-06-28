@@ -56,7 +56,21 @@ func filterAttribute() *Attribute {
 			"process":  "git-lfs filter-process",
 			"required": "true",
 		},
-		Upgradeables: upgradeables(),
+		Upgradeables: map[string][]string{
+			"clean": []string{
+				"git-lfs clean %f",
+			},
+			"smudge": []string{
+				"git-lfs smudge %f",
+				"git-lfs smudge --skip %f",
+				"git-lfs smudge --skip -- %f",
+			},
+			"process": []string{
+				"git-lfs filter",
+				"git-lfs filter --skip",
+				"git-lfs filter-process --skip",
+			},
+		},
 	}
 }
 
@@ -69,24 +83,20 @@ func skipSmudgeFilterAttribute() *Attribute {
 			"process":  "git-lfs filter-process --skip",
 			"required": "true",
 		},
-		Upgradeables: upgradeables(),
-	}
-}
-
-func upgradeables() map[string][]string {
-	return map[string][]string{
-		"clean": []string{"git-lfs clean %f"},
-		"smudge": []string{
-			"git-lfs smudge %f",
-			"git-lfs smudge --skip %f",
-			"git-lfs smudge -- %f",
-			"git-lfs smudge --skip -- %f",
-		},
-		"process": []string{
-			"git-lfs filter",
-			"git-lfs filter --skip",
-			"git-lfs filter-process",
-			"git-lfs filter-process --skip",
+		Upgradeables: map[string][]string{
+			"clean": []string{
+				"git-lfs clean -- %f",
+			},
+			"smudge": []string{
+				"git-lfs smudge %f",
+				"git-lfs smudge --skip %f",
+				"git-lfs smudge -- %f",
+			},
+			"process": []string{
+				"git-lfs filter",
+				"git-lfs filter --skip",
+				"git-lfs filter-process",
+			},
 		},
 	}
 }

@@ -16,6 +16,8 @@ import (
 var (
 	commandFuncs []func() *cobra.Command
 	commandMu    sync.Mutex
+
+	rootVersion bool
 )
 
 // NewCommand creates a new 'git-lfs' sub command, given a command name and
@@ -49,7 +51,9 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 
 // Run initializes the 'git-lfs' command and runs it with the given stdin and
 // command line args.
-func Run() {
+//
+// It returns an exit code.
+func Run() int {
 	log.SetOutput(ErrorWriter)
 
 	root := NewCommand("git-lfs", gitlfsCommand)
@@ -60,6 +64,8 @@ func Run() {
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
 
+	root.Flags().BoolVarP(&rootVersion, "version", "v", false, "")
+
 	cfg = config.New()
 
 	for _, f := range commandFuncs {
@@ -68,13 +74,20 @@ func Run() {
 		}
 	}
 
-	root.Execute()
+	err := root.Execute()
 	closeAPIClient()
+
+	if err != nil {
+		return 127
+	}
+	return 0
 }
 
 func gitlfsCommand(cmd *cobra.Command, args []string) {
 	versionCommand(cmd, args)
-	cmd.Usage()
+	if !rootVersion {
+		cmd.Usage()
+	}
 }
 
 func helpCommand(cmd *cobra.Command, args []string) {

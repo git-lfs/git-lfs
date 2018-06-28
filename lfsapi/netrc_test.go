@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bgentry/go-netrc/netrc"
+	"github.com/git-lfs/go-netrc/netrc"
 )
 
 func TestNetrcWithHostAndPort(t *testing.T) {

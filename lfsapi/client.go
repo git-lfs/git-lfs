@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"regexp"
@@ -27,7 +28,18 @@ var (
 	httpRE    = regexp.MustCompile(`\Ahttps?://`)
 )
 
+var hintFileUrl = strings.TrimSpace(`
+hint: The remote resolves to a file:// URL, which can only work with a
+hint: standalone transfer agent.  See section "Using a Custom Transfer Type
+hint: without the API server" in custom-transfers.md for details.
+`)
+
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
+	if strings.HasPrefix(e.Url, "file://") {
+		// Initial `\n` to avoid overprinting `Downloading LFS...`.
+		fmt.Fprintf(os.Stderr, "\n%s\n", hintFileUrl)
+	}
+
 	sshRes, err := c.sshResolveWithRetries(e, method)
 	if err != nil {
 		return nil, err
@@ -77,16 +89,16 @@ func joinURL(prefix, suffix string) string {
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 
-	return c.do(req)
+	return c.do(req, "", nil)
 }
 
 // do performs an *http.Request respecting redirects, and handles the response
 // as defined in c.handleResponse. Notably, it does not alter the headers for
 // the request argument in any way.
-func (c *Client) do(req *http.Request) (*http.Response, error) {
+func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
+	res, err := c.doWithRedirects(c.httpClient(req.Host), req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -153,13 +165,20 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 		}
 
 		k, v := parts[0], strings.TrimSpace(parts[1])
+		// If header keys are given in non-canonicalized form (e.g.,
+		// "AUTHORIZATION" as opposed to "Authorization") they will not
+		// be returned in calls to net/http.Header.Get().
+		//
+		// So, we avoid this problem by first canonicalizing header keys
+		// for extra headers.
+		k = textproto.CanonicalMIMEHeaderKey(k)
 
 		m[k] = append(m[k], v)
 	}
 	return m
 }
 
-func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	tracedReq, err := c.traceRequest(req)
 	if err != nil {
 		return nil, err
@@ -229,7 +248,14 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*htt
 		return res, err
 	}
 
-	return c.doWithRedirects(cli, redirectedReq, via)
+	if len(req.Header.Get("Authorization")) > 0 {
+		// If the original request was authenticated (noted by the
+		// presence of the Authorization header), then recur through
+		// doWithAuth, retaining the requests via but only after
+		// authenticating the redirected request.
+		return c.doWithAuth(remote, redirectedReq, via)
+	}
+	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
 func (c *Client) httpClient(host string) *http.Client {

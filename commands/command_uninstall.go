@@ -14,7 +14,9 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 		uninstallHooksCommand(cmd, args)
 	}
 
-	Print("Global Git LFS configuration has been removed.")
+	if !localInstall {
+		Print("Global Git LFS configuration has been removed.")
+	}
 }
 
 // uninstallHooksCmd removes any hooks created by Git LFS.

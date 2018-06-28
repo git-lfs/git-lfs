@@ -169,7 +169,12 @@ begin_test "uninstall --local"
   [ "global clean" = "$(git config --global filter.lfs.clean)" ]
   [ "global filter" = "$(git config --global filter.lfs.process)" ]
 
-  git lfs uninstall --local
+  git lfs uninstall --local 2>&1 | tee uninstall.log
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo >&2 "fatal: expected 'git lfs uninstall --local' to succeed"
+    exit 1
+  fi
+  grep -v "Global Git LFS configuration has been removed." uninstall.log
 
   # global configs
   [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]

@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bgentry/go-netrc/netrc"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )
 
@@ -24,6 +24,10 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
+	return c.doWithAuth(remote, req, nil)
+}
+
+func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
@@ -31,7 +35,7 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 		return nil, err
 	}
 
-	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access)
+	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := getAuthAccess(res)
@@ -45,6 +49,12 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 					req.Header.Del("Authorization")
 					credHelper.Reject(creds)
 				}
+
+				// This case represents a rejected request that
+				// should have been authenticated but wasn't. Do
+				// not count this against our redirection
+				// maximum, so do not recur through doWithAuth
+				// and instead call DoWithAuth.
 				return c.DoWithAuth(remote, req)
 			}
 		}
@@ -57,11 +67,11 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL, access Access) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
-	return c.do(req)
+	return c.do(req, "", via)
 }
 
 // getCreds fills the authorization header for the given request if possible,
@@ -270,6 +280,8 @@ func hasScheme(what string) bool {
 }
 
 func requestHasAuth(req *http.Request) bool {
+	// The "Authorization" string constant is safe, since we assume that all
+	// request headers have been canonicalized.
 	if len(req.Header.Get("Authorization")) > 0 {
 		return true
 	}

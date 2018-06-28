@@ -18,7 +18,7 @@ assert_ref_unmoved() {
   fi
 }
 
-# setup_multiple_local_branches creates a repository as follows:
+# setup_local_branch_with_gitattrs creates a repository as follows:
 #
 #   A---B
 #        \
@@ -42,6 +42,46 @@ setup_local_branch_with_gitattrs() {
 
   git add .gitattributes
   git commit -m "add .gitattributes"
+}
+
+# setup_local_branch_with_nested_gitattrs creates a repository as follows:
+#
+#   A---B
+#        \
+#         refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a corresponding entry in .gitattributes. There is also
+#   140 in a.md, with no corresponding entry in .gitattributes.
+#   It also has 140 in subtree/a.md, and a corresponding entry in subtree/.gitattributes
+setup_local_branch_with_nested_gitattrs() {
+  set -e
+
+  reponame="nested-attrs"
+
+  remove_and_create_local_repo "$reponame"
+
+  mkdir b
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 140 > a.md
+  base64 < /dev/urandom | head -c 140 > b/a.md
+
+  git add a.txt a.md b/a.md
+  git commit -m "initial commit"
+
+  git lfs track "*.txt"
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
+
+  cd b
+
+  git lfs track "*.md"
+
+  cd ..
+
+  git add b/.gitattributes
+  git commit -m "add nested .gitattributes"
 }
 
 # setup_multiple_local_branches creates a repository as follows:
@@ -79,6 +119,42 @@ setup_multiple_local_branches() {
   git checkout master
 }
 
+# setup_multiple_local_branches_with_gitattrs creates a repository in the same way
+# as setup_multiple_local_branches, but also adds relevant lfs filters to the
+# .gitattributes file in the master branch
+setup_multiple_local_branches_with_gitattrs() {
+  set -e
+
+  setup_multiple_local_branches
+
+  git lfs track *.txt
+  git lfs track *.md
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
+}
+
+# setup_local_branch_with_space creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 50 bytes in a file named "a file.txt".
+setup_local_branch_with_space() {
+  set -e
+
+  reponame="migrate-local-branch-with-space"
+  filename="a file.txt"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 50 > "$filename"
+
+  git add "$filename"
+  git commit -m "initial commit"
+}
+
 # setup_single_remote_branch creates a repository as follows:
 #
 #   A---B
@@ -111,6 +187,18 @@ setup_single_remote_branch() {
 
   git add a.md a.txt
   git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
+}
+
+setup_single_remote_branch_with_gitattrs() {
+  set -e
+
+  setup_single_remote_branch
+
+  git lfs track *.txt
+  git lfs track *.md
+
+  git add .gitattributes
+  git commit -m "add .gitattributes"
 }
 
 # setup_multiple_remote_branches creates a repository as follows:
@@ -220,6 +308,31 @@ setup_single_local_branch_with_annotated_tags() {
   git tag "v1.0.0" -m "v1.0.0"
 }
 
+setup_multiple_remotes() {
+  set -e
+
+  reponame="migrate-multiple-remotes"
+  remove_and_create_remote_repo "$reponame"
+
+  forkname="$(git remote -v \
+    | head -n1 \
+    | cut -d ' ' -f 1 \
+    | sed -e 's/^.*\///g')-fork"
+  ( setup_remote_repo "$forkname" )
+
+  git remote add fork "$GITSERVER/$forkname"
+
+  base64 < /dev/urandom | head -c 16 > a.txt
+  git add a.txt
+  git commit -m "initial commit"
+  git push origin master
+
+  base64 < /dev/urandom | head -c 16 > a.txt
+  git add a.txt
+  git commit -m "another commit"
+  git push fork master
+}
+
 # setup_single_local_branch_deep_trees creates a repository as follows:
 #
 #   A
@@ -238,6 +351,29 @@ setup_single_local_branch_deep_trees() {
 
   git add foo/bar/baz/a.txt
   git commit -m "initial commit"
+}
+
+# setup_local_branch_with_symlink creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 120, in a.txt, and a symbolic link link.txt to a.txt.
+setup_local_branch_with_symlink() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-symlink"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  add_symlink "a.txt" "link.txt"
+  git commit -m "add symlink"
 }
 
 # make_bare converts the existing full checkout of a repository into a bare one,

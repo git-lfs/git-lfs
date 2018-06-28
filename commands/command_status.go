@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -52,19 +53,29 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	wd, _ := os.Getwd()
+	repo := cfg.LocalWorkingDir()
+
 	Print("\nGit LFS objects to be committed:\n")
 	for _, entry := range staged {
+		// Find a path from the current working directory to the
+		// absolute path of each side of the entry.
+		src := relativize(wd, filepath.Join(repo, entry.SrcName))
+		dst := relativize(wd, filepath.Join(repo, entry.DstName))
+
 		switch entry.Status {
 		case lfs.StatusRename, lfs.StatusCopy:
-			Print("\t%s -> %s (%s)", entry.SrcName, entry.DstName, formatBlobInfo(scanner, entry))
+			Print("\t%s -> %s (%s)", src, dst, formatBlobInfo(scanner, entry))
 		default:
-			Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
+			Print("\t%s (%s)", src, formatBlobInfo(scanner, entry))
 		}
 	}
 
 	Print("\nGit LFS objects not staged for commit:\n")
 	for _, entry := range unstaged {
-		Print("\t%s (%s)", entry.SrcName, formatBlobInfo(scanner, entry))
+		src := relativize(wd, filepath.Join(repo, entry.SrcName))
+
+		Print("\t%s (%s)", src, formatBlobInfo(scanner, entry))
 	}
 
 	Print("")
@@ -134,7 +145,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		return s.ContentsSha()[:7], from, nil
 	}
 
-	f, err := os.Open(name)
+	f, err := os.Open(filepath.Join(cfg.LocalWorkingDir(), name))
 	if err != nil {
 		return "", "", err
 	}
@@ -309,6 +320,39 @@ func porcelainStatusLine(entry *lfs.DiffIndexEntry) string {
 	}
 
 	return fmt.Sprintf("%s  %s", entry.Status, entry.SrcName)
+}
+
+// relativize relatives a path from "from" to "to". For instance, note that, for
+// any paths "from" and "to", that:
+//
+//   to == filepath.Clean(filepath.Join(from, relativize(from, to)))
+func relativize(from, to string) string {
+	if len(from) == 0 {
+		return to
+	}
+
+	flist := strings.Split(filepath.ToSlash(from), "/")
+	tlist := strings.Split(filepath.ToSlash(to), "/")
+
+	var (
+		divergence int
+		min        int
+	)
+
+	if lf, lt := len(flist), len(tlist); lf < lt {
+		min = lf
+	} else {
+		min = lt
+	}
+
+	for ; divergence < min; divergence++ {
+		if flist[divergence] != tlist[divergence] {
+			break
+		}
+	}
+
+	return strings.Repeat("../", len(flist)-divergence) +
+		strings.Join(tlist[divergence:], "/")
 }
 
 func init() {

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 
@@ -53,6 +54,10 @@ type RewriteOptions struct {
 
 	// Verbose mode prints migrated objects.
 	Verbose bool
+
+	// ObjectMapFilePath is the path to the map of old sha1 to new sha1
+	// commits
+	ObjectMapFilePath string
 
 	// BlobFn specifies a function to rewrite blobs.
 	//
@@ -188,6 +193,15 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		vPerc = perc
 	}
 
+	var objectMapFile *os.File
+	if len(opt.ObjectMapFilePath) > 0 {
+		objectMapFile, err = os.OpenFile(opt.ObjectMapFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil {
+			return nil, fmt.Errorf("Could not create object map file: %v", err)
+		}
+		defer objectMapFile.Close()
+	}
+
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
@@ -252,6 +266,11 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			newSha, err = r.db.WriteCommit(rewrittenCommit)
 			if err != nil {
 				return nil, err
+			}
+			if objectMapFile != nil {
+				if _, err := fmt.Fprintf(objectMapFile, "%x,%x\n", oid, newSha); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -318,6 +337,12 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		}
 
 		if !r.allows(entry.Type(), fullpath) {
+			entries = append(entries, copyEntry(entry))
+			continue
+		}
+
+		// If this is a symlink, skip it
+		if entry.Filemode == 0120000 {
 			entries = append(entries, copyEntry(entry))
 			continue
 		}

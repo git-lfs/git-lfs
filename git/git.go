@@ -245,7 +245,8 @@ func ResolveRef(ref string) (*Ref, error) {
 
 	if len(lines) == 1 {
 		// ref is a sha1 and has no symbolic-full-name
-		fullref.Name = lines[0] // fullref.Sha
+		fullref.Name = lines[0]
+		fullref.Sha = lines[0]
 		fullref.Type = RefTypeOther
 		return fullref, nil
 	}
@@ -974,7 +975,13 @@ func Fetch(remotes ...string) error {
 		return nil
 	}
 
-	_, err := gitNoLFSSimple(append([]string{"fetch"}, remotes...)...)
+	var args []string
+	if len(remotes) > 1 {
+		args = []string{"--multiple", "--"}
+	}
+	args = append(args, remotes...)
+
+	_, err := gitNoLFSSimple(append([]string{"fetch"}, args...)...)
 	return err
 }
 
