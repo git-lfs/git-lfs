@@ -419,7 +419,7 @@ setup_remote_repo_with_file() {
 
   mkdir -p "$dirname"
 
-  git lfs track "$filename"
+  git lfs track --lockable "$filename"
   echo "$filename" > "$filename"
   git add .gitattributes $filename
   git commit -m "add $filename" | tee commit.log
