@@ -308,6 +308,14 @@ be scoped inside the configuration for a remote.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
 
+* `lfs.defaulttokenttl`
+
+  This setting sets a default token TTL when git-lfs-authenticate does not
+  include the TTL in the JSON response but still enforces it.
+
+  Note that this is only necessary for larger repositories hosted on LFS
+  servers that don't include the TTL.
+
 ## LFSCONFIG
 
 The .lfsconfig file in a repository is read and interpreted in the same format
