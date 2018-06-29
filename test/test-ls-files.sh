@@ -329,3 +329,36 @@ begin_test "ls-files: invalid --all ordering"
   grep "Could not scan for Git LFS tree" ls-files.out
 )
 end_test
+
+begin_test "ls-files: list/stat files with escaped runes in path before commit"
+(
+  set -e
+
+  reponame=runes-in-path
+  content="zero"
+  checksum="d3eb539a55"
+  pathWithGermanRunes="german/äöü"
+  fileWithGermanRunes="schüüch.bin"
+  
+  mkdir $reponame
+  git init "$reponame"
+  cd $reponame
+  git lfs track "**/*"
+
+  echo "$content" > regular
+  echo "$content" > "$fileWithGermanRunes"
+
+  mkdir -p "$pathWithGermanRunes"
+  echo "$content" > "$pathWithGermanRunes/regular"
+  echo "$content" > "$pathWithGermanRunes/$fileWithGermanRunes"
+  
+  git add *
+
+  # check short form
+  [ 4 -eq "$(git lfs ls-files | grep -c '*')" ]
+
+  # also check long format
+  [ 4 -eq "$(git lfs ls-files -l | grep -c '*')" ]
+   
+)
+end_test
