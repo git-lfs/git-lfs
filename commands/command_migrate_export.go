@@ -36,8 +36,6 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	tracked := trackedFromExportFilter(filter)
 	gitfilter := lfs.NewGitFilter(cfg)
 
-	var exported []string
-
 	opts := &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
@@ -59,13 +57,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return nil, err
 			}
 
-			newBlob, err := odb.NewBlobFromFile(downloadPath)
-			if err != nil {
-				return nil, err
-			}
-
-			exported = append(exported, downloadPath)
-			return newBlob, nil
+			return odb.NewBlobFromFile(downloadPath)
 		},
 
 		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
@@ -159,18 +151,6 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
-
-	// Set our preservation time-window for objects existing on the remote to
-	// 0. Because the newly rewritten commits have not yet been pushed, some
-	// exported objects can still exist on the remote within the time window
-	// and thus will not be pruned from the cache.
-	fetchPruneCfg.PruneOffsetDays = 0
-	fetchPruneCfg.FetchRecentRefsDays = 0
-
-	// Prune our cache
-	prune(fetchPruneCfg, false, false, true)
-
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
 	if bare, _ := git.IsBare(); !bare {
 		t := l.Waiter("migrate: checkout")
@@ -181,6 +161,17 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(err)
 		}
 	}
+
+	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
+
+	// Set our preservation time-window for objects existing on the remote to
+	// 0. Because the newly rewritten commits have not yet been pushed, some
+	// exported objects can still exist on the remote within the time window
+	// and thus will not be pruned from the cache.
+	fetchPruneCfg.FetchRecentRefsDays = 0
+
+	// Prune our cache
+	prune(fetchPruneCfg, false, false, true)
 }
 
 // trackedFromExportFilter returns an ordered set of strings where each entry

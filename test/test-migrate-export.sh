@@ -129,9 +129,23 @@ begin_test "migrate export (bare repository)"
 
   setup_single_remote_branch_tracked
   git push origin master
+
+  md_oid="$(calc_oid "$(cat a.md)")"
+  txt_oid="$(calc_oid "$(cat a.txt)")"
+  
   make_bare
 
+  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
+  assert_pointer "refs/heads/master" "a.md" "$md_oid" "50"
+
   git lfs migrate export --everything --include="*"
+
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
+
+  # All pointers have been exported, so all objects should be pruned
+  refute_local_object "$md_oid" "50"
+  refute_local_object "$txt_oid" "30"
 )
 end_test
 
