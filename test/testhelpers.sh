@@ -24,6 +24,31 @@ assert_pointer() {
   fi
 }
 
+# refute_pointer confirms that the file in the repository for $path in the
+# given $ref is _not_ a pointer.
+#
+#   $ refute_pointer "master" "path/to/file"
+refute_pointer() {
+  local ref="$1"
+  local path="$2"
+
+  gitblob=$(git ls-tree -lrz "$ref" |
+    while read -r -d $'\0' x; do
+      echo $x
+    done |
+    grep "$path" | cut -f 3 -d " ")
+
+  file=$(git cat-file -p $gitblob)
+  version="version https://git-lfs.github.com/spec/v[0-9]"
+  oid="oid sha256:[0-9a-f]\{32\}"
+  size="size [0-9]*"
+  regex="$version.*$oid.*$size"
+
+  if echo $file | grep -q "$regex"; then
+    exit 1
+  fi
+}
+
 # assert_local_object confirms that an object file is stored for the given oid &
 # has the correct size
 # $ assert_local_object "some-oid" size

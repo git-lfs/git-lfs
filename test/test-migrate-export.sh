@@ -29,9 +29,9 @@ begin_test "migrate export (default branch)"
 
   git lfs migrate export --include="*.md, *.txt"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "140") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
-  [ ! $(assert_pointer "refs/heads/master" "b.md" "$b_md_oid" "160")]
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
+  refute_pointer "refs/heads/master" "b.md"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
   # b.md should be pruned as no pointer exists to reference it
@@ -79,11 +79,8 @@ begin_test "migrate export (with remote)"
 
   git lfs migrate export --everything --include="*.md, *.txt"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30") ]
-
-  [ ! $(assert_pointer "refs/remotes/origin/master" "a.md" "$md_oid" "50") ]
-  [ ! $(assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_oid" "30") ]
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
 
   # All pointers have been exported, so all objects should be pruned
   refute_local_object "$md_oid" "50"
@@ -111,7 +108,7 @@ begin_test "migrate export (include/exclude args)"
 
   git lfs migrate export --include="*" --exclude="a.md"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
+  refute_pointer "refs/heads/master" "a.txt"
   assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
 
   refute_local_object "$txt_oid" "120"
@@ -158,10 +155,10 @@ begin_test "migrate export (given branch)"
 
   git lfs migrate export --include="*.md,*.txt" my-feature
 
-  [ ! $(assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30") ]
-  [ ! $(assert_pointer "refs/heads/my-feature" "a.txt" "$txt_oid" "120") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "140") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120") ]
+  refute_pointer "refs/heads/my-feature" "a.md"
+  refute_pointer "refs/heads/my-feature" "a.txt"
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
 
   # No pointers left, so all objects should be pruned
   refute_local_object "$md_feature_oid" "30"
@@ -219,8 +216,8 @@ begin_test "migrate export (exclude remote refs)"
 
   git lfs migrate export --include="*.md,*.txt"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30") ]
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
 
   refute_local_object "$md_oid" "50"
   refute_local_object "$txt_oid" "30"
@@ -273,10 +270,10 @@ begin_test "migrate export (--skip-fetch)"
 
   git lfs migrate export --skip-fetch --include="*.md,*.txt"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "50") ]
-  [ ! $(assert_pointer "pseudo-remote" "a.md" "$md_remote_oid" "140") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "30") ]
-  [ ! $(assert_pointer "pseudo-remote" "a.txt" "$txt_remote_oid" "120") ]
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "pseudo-remote" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
+  refute_pointer "pseudo-remote" "a.txt"
 
   refute_local_object "$md_master_oid" "50"
   refute_local_object "$md_remote_oid" "140"
@@ -327,7 +324,7 @@ begin_test "migrate export (include/exclude ref)"
   assert_pointer "refs/remotes/origin/master" "a.txt" "$txt_remote_oid" "10"
 
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
-  [ ! $(assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30") ]
+  refute_pointer "refs/heads/my-feature" "a.txt"
 
   # Master objects should not be pruned as they exist in unpushed commits
   assert_local_object "$md_master_oid" "21"
@@ -407,8 +404,8 @@ begin_test "migrate export (--remote)"
 
   git lfs migrate export --everything --remote="zeta" --include="*.md, *.txt"
 
-  [ ! $(assert_pointer "refs/heads/master" "a.md" "$md_oid" "50") ]
-  [ ! $(assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30") ]
+  refute_pointer "refs/heads/master" "a.md"
+  refute_pointer "refs/heads/master" "a.txt"
 
   refute_local_object "$md_oid" "50"
   refute_local_object "$txt_oid" "30"
