@@ -43,6 +43,10 @@ var (
 	// migrateCommitMessage is the message to use with the commit generated
 	// by the migrate command
 	migrateCommitMessage string
+
+	// exportRemote is the remote from which to download objects when
+	// performing an export
+	exportRemote string
 )
 
 // migrate takes the given command and arguments, *odb.ObjectDatabase, as well
@@ -297,6 +301,11 @@ func init() {
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 
+	exportCmd := NewCommand("export", migrateExportCommand)
+	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
+	exportCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
+	exportCmd.Flags().StringVar(&exportRemote, "remote", "", "Remote from which to download objects")
+
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.PersistentFlags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
@@ -306,6 +315,6 @@ func init() {
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
-		cmd.AddCommand(importCmd, info)
+		cmd.AddCommand(exportCmd, importCmd, info)
 	})
 }

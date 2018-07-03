@@ -89,7 +89,20 @@ func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerFoundPointer) er
 	}
 	s.mu.Unlock()
 
-	return scanRefsToChan(s, callback, left, "", s.opts(ScanLeftToRemoteMode))
+	return scanLeftRightToChan(s, callback, left, "", s.opts(ScanLeftToRemoteMode))
+}
+
+// ScanRefs through all commits reachable by refs contained in "include" and
+// not reachable by any refs included in "excluded"
+func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	if err != nil {
+		return err
+	}
+
+	opts := s.opts(ScanRefsMode)
+	opts.SkipDeletedBlobs = false
+	return scanRefsToChan(s, callback, include, exclude, opts)
 }
 
 // ScanRefRange scans through all commits from the given left and right refs,
@@ -102,7 +115,7 @@ func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer)
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(s, callback, left, right, opts)
+	return scanLeftRightToChan(s, callback, left, right, opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
@@ -121,7 +134,7 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanRefsToChan(s, callback, ref, "", opts)
+	return scanLeftRightToChan(s, callback, ref, "", opts)
 }
 
 // ScanAll scans through all objects in the git repository.
@@ -133,7 +146,7 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanRefsToChan(s, callback, "", "", opts)
+	return scanLeftRightToChan(s, callback, "", "", opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that

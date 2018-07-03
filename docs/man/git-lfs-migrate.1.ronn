@@ -123,6 +123,29 @@ If `--message` is given, the new commit will be created with the provided
 message. If no message is given, a commit message will be generated based on the
 file arguments.
 
+### EXPORT
+
+The 'export' mode migrates Git LFS pointer files present in the Git history out
+of Git LFS, converting them into their corresponding object files. It supports
+all the core 'migrate' options and these additional ones:
+
+* `--verbose`
+    Print the commit oid and filename of migrated files to STDOUT.
+
+* `--object-map=<path>`
+    Write to 'path' a file with the mapping of each rewritten commit. The file
+    format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
+
+* `--remote=<git-remote>`
+    Download LFS objects from the provided 'git-remote' during the export. If
+    not provided, defaults to 'origin'.
+
+The 'export' mode requires at minimum a pattern provided with the `--include`
+argument to specify which files to export. Files matching the `--include`
+patterns will be removed from Git LFS, while files matching the `--exclude`
+patterns will retain their Git LFS status. The export command will modify the
+.gitattributes to set/unset any filepath patterns as given by those flags.
+
 ## INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only migrate tree entries whose pathspec matches
