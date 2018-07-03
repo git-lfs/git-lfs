@@ -295,7 +295,8 @@ func (c *Configuration) loadGitDirs() {
 	if err != nil {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
-		if !strings.Contains(errMsg, "Not a git repository") {
+		if !strings.Contains(strings.ToLower(errMsg),
+			"not a git repository") {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
 		c.gitDir = &gitdir
