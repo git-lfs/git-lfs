@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
-script/test
+GOCACHE=off script/test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
-GIT_TRACE=1 script/test git
+GIT_TRACE=1 GOCACHE=off script/test git
 
 VERBOSE_LOGS=1 script/integration
