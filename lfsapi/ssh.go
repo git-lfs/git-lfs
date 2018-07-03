@@ -59,22 +59,15 @@ type sshAuthResponse struct {
 	Message   string            `json:"-"`
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
-	ExpiresAt *time.Time        `json:"expires_at"`
-	ExpiresIn *int              `json:"expires_in"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	ExpiresIn int               `json:"expires_in"`
 
 	createdAt time.Time
 }
 
 func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
-	expiresAt := time.Time{}
-	if r.ExpiresAt != nil {
-		expiresAt = *r.ExpiresAt
-	}
-	expiresIn := 0
-	if r.ExpiresIn != nil {
-		expiresIn = *r.ExpiresIn
-	}
-	return tools.IsExpiredAtOrIn(r.createdAt, d, expiresAt, time.Duration(expiresIn)*time.Second)
+	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt,
+		time.Duration(r.ExpiresIn)*time.Second)
 }
 
 type sshAuthClient struct {
@@ -109,12 +102,12 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
-		if res.ExpiresIn == nil && res.ExpiresAt == nil {
+		if res.ExpiresIn == 0 && res.ExpiresAt.IsZero() {
 			ttl := c.git.Int("lfs.defaulttokenttl", 0)
 			if ttl < 0 {
 				ttl = 0
 			}
-			res.ExpiresIn = &ttl
+			res.ExpiresIn = ttl
 		}
 		res.createdAt = now
 	}
