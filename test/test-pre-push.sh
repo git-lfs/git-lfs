@@ -320,7 +320,7 @@ begin_test "pre-push with missing pointer which is on server"
 )
 end_test
 
-begin_test "pre-push with missing and present pointers"
+begin_test "pre-push with missing and present pointers (lfs.allowincompletepush true)"
 (
   set -e
 
@@ -352,6 +352,8 @@ begin_test "pre-push with missing and present pointers"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
 
+  git config lfs.allowincompletepush true
+
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
@@ -369,7 +371,7 @@ begin_test "pre-push with missing and present pointers"
 )
 end_test
 
-begin_test "pre-push allowincompletepush=f reject missing pointers"
+begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
 (
   set -e
 
@@ -400,8 +402,6 @@ begin_test "pre-push allowincompletepush=f reject missing pointers"
   missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
-
-  git config "lfs.allowincompletepush" "false"
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |

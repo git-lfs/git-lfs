@@ -2,7 +2,7 @@
 
 . "test/testlib.sh"
 
-begin_test "push with missing objects (lfs.allowincompletepush=t)"
+begin_test "push with missing objects (lfs.allowincompletepush true)"
 (
   set -e
 
@@ -34,6 +34,8 @@ begin_test "push with missing objects (lfs.allowincompletepush=t)"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
 
+  git config lfs.allowincompletepush true
+
   git push origin master 2>&1 | tee push.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected \`git push origin master\` to succeed ..."
@@ -48,7 +50,7 @@ begin_test "push with missing objects (lfs.allowincompletepush=t)"
 )
 end_test
 
-begin_test "push reject missing objects (lfs.allowincompletepush=f)"
+begin_test "push reject missing objects (lfs.allowincompletepush false)"
 (
   set -e
 
@@ -80,7 +82,7 @@ begin_test "push reject missing objects (lfs.allowincompletepush=f)"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
 
-  git config "lfs.allowincompletepush" "false"
+  git config lfs.allowincompletepush false
 
   git push origin master 2>&1 | tee push.log
   if [ "1" -ne "${PIPESTATUS[0]}" ]; then
@@ -97,7 +99,7 @@ begin_test "push reject missing objects (lfs.allowincompletepush=f)"
 )
 end_test
 
-begin_test "push missing objects"
+begin_test "push reject missing objects (lfs.allowincompletepush default)"
 (
   set -e
 
@@ -131,8 +133,6 @@ begin_test "push missing objects"
   refute_local_object "$missing_oid"
   assert_local_object "$present_oid" "$present_len"
 
-  git config lfs.allowincompletepush false
-
   git push origin master 2>&1 | tee push.log
 
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
@@ -148,7 +148,7 @@ begin_test "push missing objects"
 )
 end_test
 
-begin_test "push corrupt objects"
+begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
 (
   set -e
 
@@ -181,8 +181,6 @@ begin_test "push corrupt objects"
 
   refute_local_object "$corrupt_oid" "$corrupt_len"
   assert_local_object "$present_oid" "$present_len"
-
-  git config lfs.allowincompletepush false
 
   git push origin master 2>&1 | tee push.log
 
