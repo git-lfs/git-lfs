@@ -11,35 +11,35 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/gitobj"
 	"github.com/stretchr/testify/assert"
 )
 
-// DatabaseFromFixture returns a *git/odb.ObjectDatabase instance that is safely
+// DatabaseFromFixture returns a *gitobj.ObjectDatabase instance that is safely
 // mutable and created from a template equivelant to the fixture that you
 // provided it.
 //
 // If any error was encountered, it will call t.Fatalf() immediately.
-func DatabaseFromFixture(t *testing.T, name string) *odb.ObjectDatabase {
+func DatabaseFromFixture(t *testing.T, name string) *gitobj.ObjectDatabase {
 	path, err := copyToTmp(filepath.Join("fixtures", name))
 	if err != nil {
-		t.Fatalf("git/odb: could not copy fixture %s: %v", name, err)
+		t.Fatalf("gitobj: could not copy fixture %s: %v", name, err)
 	}
 
-	db, err := odb.FromFilesystem(filepath.Join(path, "objects"), "")
+	db, err := gitobj.FromFilesystem(filepath.Join(path, "objects"), "")
 	if err != nil {
-		t.Fatalf("git/odb: could not create object database: %v", err)
+		t.Fatalf("gitobj: could not create object database: %v", err)
 	}
 	return db
 }
 
 // AssertBlobContents asserts that the blob contents given by loading the path
 // starting from the root tree "tree" has the given "contents".
-func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, contents string) {
+func AssertBlobContents(t *testing.T, db *gitobj.ObjectDatabase, tree, path, contents string) {
 	// First, load the root tree.
 	root, err := db.Tree(HexDecode(t, tree))
 	if err != nil {
-		t.Fatalf("git/odb: cannot load tree: %s: %s", tree, err)
+		t.Fatalf("gitobj: cannot load tree: %s: %s", tree, err)
 	}
 
 	// Then, iterating through each part of the filepath (i.e., a/b/c.txt ->
@@ -49,7 +49,7 @@ func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, conten
 		part := parts[i]
 
 		// Load the subtree given by that name.
-		var subtree *odb.Tree
+		var subtree *gitobj.Tree
 		for _, entry := range root.Entries {
 			if entry.Name != part {
 				continue
@@ -57,13 +57,13 @@ func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, conten
 
 			subtree, err = db.Tree(entry.Oid)
 			if err != nil {
-				t.Fatalf("git/odb: cannot load subtree %s: %s", filepath.Join(parts[:i]...), err)
+				t.Fatalf("gitobj: cannot load subtree %s: %s", filepath.Join(parts[:i]...), err)
 			}
 			break
 		}
 
 		if subtree == nil {
-			t.Fatalf("git/odb: subtree %s does not exist", path)
+			t.Fatalf("gitobj: subtree %s does not exist", path)
 		}
 
 		// And re-assign it to root, creating a sort of pseudo-recursion.
@@ -73,25 +73,25 @@ func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, conten
 	filename := parts[len(parts)-1]
 
 	// Find the blob given by the last entry in parts (the filename).
-	var blob *odb.Blob
+	var blob *gitobj.Blob
 	for _, entry := range root.Entries {
 		if entry.Name == filename {
 			blob, err = db.Blob(entry.Oid)
 			if err != nil {
-				t.Fatalf("git/odb: cannot load blob %x: %s", entry.Oid, err)
+				t.Fatalf("gitobj: cannot load blob %x: %s", entry.Oid, err)
 			}
 		}
 	}
 
 	// If we couldn't find the blob, fail immediately.
 	if blob == nil {
-		t.Fatalf("git/odb: blob at %s in %s does not exist", path, tree)
+		t.Fatalf("gitobj: blob at %s in %s does not exist", path, tree)
 	}
 
 	// Perform an assertion on the blob's contents.
 	got, err := ioutil.ReadAll(blob.Contents)
 	if err != nil {
-		t.Fatalf("git/odb: cannot read contents from blob %s: %s", path, err)
+		t.Fatalf("gitobj: cannot read contents from blob %s: %s", path, err)
 	}
 
 	assert.Equal(t, contents, string(got))
@@ -99,41 +99,41 @@ func AssertBlobContents(t *testing.T, db *odb.ObjectDatabase, tree, path, conten
 
 // AssertCommitParent asserts that the given commit has a parent equivalent to
 // the one provided.
-func AssertCommitParent(t *testing.T, db *odb.ObjectDatabase, sha, parent string) {
+func AssertCommitParent(t *testing.T, db *gitobj.ObjectDatabase, sha, parent string) {
 	commit, err := db.Commit(HexDecode(t, sha))
 	if err != nil {
-		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)
+		t.Fatalf("gitobj: expected to read commit: %s, couldn't: %v", sha, err)
 	}
 
 	decoded, err := hex.DecodeString(parent)
 	if err != nil {
-		t.Fatalf("git/odb: expected to decode parent SHA: %s, couldn't: %v", parent, err)
+		t.Fatalf("gitobj: expected to decode parent SHA: %s, couldn't: %v", parent, err)
 	}
 
 	assert.Contains(t, commit.ParentIDs, decoded,
-		"git/odb: expected parents of commit: %s to contain: %s", sha, parent)
+		"gitobj: expected parents of commit: %s to contain: %s", sha, parent)
 }
 
 // AssertCommitTree asserts that the given commit has a tree equivelant to the
 // one provided.
-func AssertCommitTree(t *testing.T, db *odb.ObjectDatabase, sha, tree string) {
+func AssertCommitTree(t *testing.T, db *gitobj.ObjectDatabase, sha, tree string) {
 	commit, err := db.Commit(HexDecode(t, sha))
 	if err != nil {
-		t.Fatalf("git/odb: expected to read commit: %s, couldn't: %v", sha, err)
+		t.Fatalf("gitobj: expected to read commit: %s, couldn't: %v", sha, err)
 	}
 
 	decoded, err := hex.DecodeString(tree)
 	if err != nil {
-		t.Fatalf("git/odb: expected to decode tree SHA: %s, couldn't: %v", tree, err)
+		t.Fatalf("gitobj: expected to decode tree SHA: %s, couldn't: %v", tree, err)
 	}
 
-	assert.Equal(t, decoded, commit.TreeID, "git/odb: expected tree ID: %s (got: %x)", tree, commit.TreeID)
+	assert.Equal(t, decoded, commit.TreeID, "gitobj: expected tree ID: %s (got: %x)", tree, commit.TreeID)
 }
 
 // AssertRef asserts that a given refname points at the expected commit.
-func AssertRef(t *testing.T, db *odb.ObjectDatabase, ref string, expected []byte) {
+func AssertRef(t *testing.T, db *gitobj.ObjectDatabase, ref string, expected []byte) {
 	root, ok := db.Root()
-	assert.True(t, ok, "git/odb: expected *odb.ObjectDatabase to have Root()")
+	assert.True(t, ok, "gitobj: expected *odb.ObjectDatabase to have Root()")
 
 	cmd := exec.Command("git", "rev-parse", ref)
 	cmd.Dir = root
@@ -149,7 +149,7 @@ func AssertRef(t *testing.T, db *odb.ObjectDatabase, ref string, expected []byte
 func HexDecode(t *testing.T, sha string) []byte {
 	b, err := hex.DecodeString(sha)
 	if err != nil {
-		t.Fatalf("git/odb: could not decode string: %q, %v", sha, err)
+		t.Fatalf("gitobj: could not decode string: %q, %v", sha, err)
 	}
 
 	return b

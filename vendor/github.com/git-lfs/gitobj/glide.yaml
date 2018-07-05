@@ -1,0 +1,8 @@
+package: github.com/git-lfs/go-gitobj
+import: []
+testImport:
+- package: github.com/stretchr/testify
+  version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
+  subpackages:
+  - assert
+  - require

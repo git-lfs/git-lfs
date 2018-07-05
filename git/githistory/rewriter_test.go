@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git/odb"
+	"github.com/git-lfs/gitobj"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			contents, err := ioutil.ReadAll(b.Contents)
 			if err != nil {
 				return nil, err
@@ -33,7 +33,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 
 			rewritten := strconv.Itoa(n + 1)
 
-			return &odb.Blob{
+			return &gitobj.Blob{
 				Contents: strings.NewReader(rewritten),
 				Size:     int64(len(rewritten)),
 			}, nil
@@ -81,8 +81,8 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
-			return &odb.Blob{
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+			return &gitobj.Blob{
 				Contents: io.MultiReader(b.Contents, strings.NewReader("_new")),
 				Size:     b.Size + int64(len("_new")),
 			}, nil
@@ -128,7 +128,7 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 	var contents []byte
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			var err error
 
 			contents, err = ioutil.ReadAll(b.Contents)
@@ -136,7 +136,7 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 				return nil, err
 			}
 
-			return &odb.Blob{
+			return &gitobj.Blob{
 				Contents: bytes.NewReader(contents),
 				Size:     int64(len(contents)),
 			}, nil
@@ -154,7 +154,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	seen := make(map[string]int)
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			seen[path] = seen[path] + 1
 
 			return b, nil
@@ -172,12 +172,12 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if path == "b.txt" {
 				return b, nil
 			}
 
-			return &odb.Blob{
+			return &gitobj.Blob{
 				Contents: strings.NewReader("changed"),
 				Size:     int64(len("changed")),
 			}, nil
@@ -212,7 +212,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	seen := make(map[string]int)
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			seen[path] = seen[path] + 1
 
 			return b, nil
@@ -228,20 +228,20 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)
 
-	extra, err := db.WriteBlob(&odb.Blob{
+	extra, err := db.WriteBlob(&gitobj.Blob{
 		Contents: strings.NewReader("extra\n"),
 		Size:     int64(len("extra\n")),
 	})
 	assert.Nil(t, err)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return b, nil
 		},
 
-		TreeCallbackFn: func(path string, tr *odb.Tree) (*odb.Tree, error) {
-			return &odb.Tree{
-				Entries: append(tr.Entries, &odb.TreeEntry{
+		TreeCallbackFn: func(path string, tr *gitobj.Tree) (*gitobj.Tree, error) {
+			return &gitobj.Tree{
+				Entries: append(tr.Entries, &gitobj.TreeEntry{
 					Name:     "extra.txt",
 					Filemode: 0100644,
 					Oid:      extra,
@@ -300,7 +300,7 @@ func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
 		Include: []string{"refs/heads/master"},
 		Exclude: []string{"refs/tags/middle"},
 
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return b, nil
 		},
 	})
@@ -337,10 +337,10 @@ func TestHistoryRewriterUpdatesRefs(t *testing.T) {
 
 		UpdateRefs: true,
 
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			suffix := strings.NewReader("_suffix")
 
-			return &odb.Blob{
+			return &gitobj.Blob{
 				Contents: io.MultiReader(b.Contents, suffix),
 				Size:     b.Size + int64(suffix.Len()),
 			}, nil
@@ -375,7 +375,7 @@ func TestHistoryRewriterReturnsFilter(t *testing.T) {
 //
 // Callers are expected to call it immediately after calling the Rewrite()
 // function.
-func debug(t *testing.T, db *odb.ObjectDatabase, tip []byte, err error) {
+func debug(t *testing.T, db *gitobj.ObjectDatabase, tip []byte, err error) {
 	root, ok := db.Root()
 
 	t.Log(strings.Repeat("*", 80))

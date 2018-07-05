@@ -9,10 +9,10 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/gitobj"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	opts := &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
 			}
@@ -57,10 +57,10 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return nil, err
 			}
 
-			return odb.NewBlobFromFile(downloadPath)
+			return gitobj.NewBlobFromFile(downloadPath)
 		},
 
-		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
+		TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
 			if path != "/" {
 				// Ignore non-root trees.
 				return t, nil
@@ -88,7 +88,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 			// Finally, return a copy of the tree "t" that has the
 			// new .gitattributes file included/replaced.
-			return t.Merge(&odb.TreeEntry{
+			return t.Merge(&gitobj.TreeEntry{
 				Name:     ".gitattributes",
 				Filemode: 0100644,
 				Oid:      blob,

@@ -8,8 +8,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/gitobj"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ var (
 	exportRemote string
 )
 
-// migrate takes the given command and arguments, *odb.ObjectDatabase, as well
+// migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
 func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *githistory.RewriteOptions) {
 	requireInRepo()
@@ -67,12 +67,12 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 
 // getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
 // at the .git directory of the currently checked-out repository.
-func getObjectDatabase() (*odb.ObjectDatabase, error) {
+func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	dir, err := git.GitDir()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
-	return odb.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
+	return gitobj.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a
@@ -281,7 +281,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
 // filter given by the --include and --exclude arguments.
-func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
+func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 

@@ -1,5 +1,5 @@
-hash: 5d2fbd8be4931b982d29c6ac8df833f139b28ffdb44ca062948a2386e2096a4d
-updated: 2018-05-25T13:01:03.220513-07:00
+hash: 28cfce2b07c2f75e13f9347f903b1f5b73379c8c84c5a66c85b6328df7d3540f
+updated: 2018-07-05T11:50:15.501713165-05:00
 imports:
 - name: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
@@ -9,6 +9,10 @@ imports:
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
+- name: github.com/git-lfs/gitobj
+  version: 0fcb9c3796fa00bd974c86dc25b1919da1479007
+  subpackages:
+  - pack
 - name: github.com/git-lfs/go-netrc
   version: e0e9ca483a183481412e6f5a700ff20a36177503
   subpackages:

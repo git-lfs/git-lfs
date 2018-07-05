@@ -13,10 +13,10 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/gitobj"
 	"github.com/spf13/cobra"
 )
 
@@ -71,7 +71,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		name, email := cfg.CurrentCommitter()
 		author := fmt.Sprintf("%s <%s>", name, email)
 
-		oid, err := db.WriteCommit(&odb.Commit{
+		oid, err := db.WriteCommit(&gitobj.Commit{
 			Author:    author,
 			Committer: author,
 			ParentIDs: [][]byte{sha},
@@ -103,7 +103,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
 			}
@@ -118,12 +118,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				exts.Add(fmt.Sprintf("*%s filter=lfs diff=lfs merge=lfs -text", ext))
 			}
 
-			return &odb.Blob{
+			return &gitobj.Blob{
 				Contents: &buf, Size: int64(buf.Len()),
 			}, nil
 		},
 
-		TreeCallbackFn: func(path string, t *odb.Tree) (*odb.Tree, error) {
+		TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
 			if path != "/" {
 				// Ignore non-root trees.
 				return t, nil
@@ -171,7 +171,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			// Finally, return a copy of the tree "t" that has the
 			// new .gitattributes file included/replaced.
-			return t.Merge(&odb.TreeEntry{
+			return t.Merge(&gitobj.TreeEntry{
 				Name:     ".gitattributes",
 				Filemode: 0100644,
 				Oid:      blob,
@@ -238,11 +238,11 @@ var (
 //
 // It returns an empty set if no attributes file could be found, or an error if
 // it could not otherwise be opened.
-func trackedFromAttrs(db *odb.ObjectDatabase, t *odb.Tree) (*tools.OrderedSet, error) {
+func trackedFromAttrs(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*tools.OrderedSet, error) {
 	var oid []byte
 
 	for _, e := range t.Entries {
-		if strings.ToLower(e.Name) == ".gitattributes" && e.Type() == odb.BlobObjectType {
+		if strings.ToLower(e.Name) == ".gitattributes" && e.Type() == gitobj.BlobObjectType {
 			oid = e.Oid
 			break
 		}
@@ -283,14 +283,14 @@ func trackedFromAttrs(db *odb.ObjectDatabase, t *odb.Tree) (*tools.OrderedSet, e
 
 // trackedToBlob writes and returns the OID of a .gitattributes blob based on
 // the patterns given in the ordered set of patterns, "patterns".
-func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, error) {
+func trackedToBlob(db *gitobj.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, error) {
 	var attrs bytes.Buffer
 
 	for pattern := range patterns.Iter() {
 		fmt.Fprintf(&attrs, "%s\n", pattern)
 	}
 
-	return db.WriteBlob(&odb.Blob{
+	return db.WriteBlob(&gitobj.Blob{
 		Contents: &attrs,
 		Size:     int64(attrs.Len()),
 	})
@@ -299,7 +299,7 @@ func trackedToBlob(db *odb.ObjectDatabase, patterns *tools.OrderedSet) ([]byte, 
 // rewriteTree replaces the blob at the provided path within the given tree with
 // a git lfs pointer. It will recursively rewrite any subtrees along the path to the
 // blob.
-func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path string) ([]byte, error) {
+func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path string) ([]byte, error) {
 	tree, err := db.Tree(root)
 	if err != nil {
 		return nil, err
@@ -328,7 +328,7 @@ func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path st
 			return nil, err
 		}
 
-		newOid, err := db.WriteBlob(&odb.Blob{
+		newOid, err := db.WriteBlob(&gitobj.Blob{
 			Contents: &buf,
 			Size:     int64(buf.Len()),
 		})
@@ -337,7 +337,7 @@ func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path st
 			return nil, err
 		}
 
-		tree = tree.Merge(&odb.TreeEntry{
+		tree = tree.Merge(&gitobj.TreeEntry{
 			Name:     splits[0],
 			Filemode: blobEntry.Filemode,
 			Oid:      newOid,
@@ -355,7 +355,7 @@ func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path st
 		}
 
 		subtreeEntry := tree.Entries[index]
-		if subtreeEntry.Type() != odb.TreeObjectType {
+		if subtreeEntry.Type() != gitobj.TreeObjectType {
 			return nil, errors.Errorf("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type())
 		}
 
@@ -364,7 +364,7 @@ func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path st
 			return nil, err
 		}
 
-		tree = tree.Merge(&odb.TreeEntry{
+		tree = tree.Merge(&gitobj.TreeEntry{
 			Filemode: subtreeEntry.Filemode,
 			Name:     subtreeEntry.Name,
 			Oid:      rewrittenSubtree,
@@ -379,7 +379,7 @@ func rewriteTree(gf *lfs.GitFilter, db *odb.ObjectDatabase, root []byte, path st
 
 // findEntry searches a tree for the desired entry, and returns the index of that
 // entry within the tree's Entries array
-func findEntry(t *odb.Tree, name string) int {
+func findEntry(t *gitobj.Tree, name string) int {
 	for i, entry := range t.Entries {
 		if entry.Name == name {
 			return i
