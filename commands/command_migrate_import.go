@@ -18,7 +18,6 @@ import (
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/gitobj"
-	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -127,7 +126,6 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				var ok bool
 				attrs := fixups.Applied(path)
 				for _, attr := range attrs {
-					tracerx.Printf("%+v\n", attr)
 					if attr.K == "filter" && attr.V == "lfs" {
 						ok = !attr.Unspecified
 					}
