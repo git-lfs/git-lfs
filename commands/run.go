@@ -60,6 +60,25 @@ func Run() int {
 	root.PreRun = nil
 
 	// Set up help/usage funcs based on manpage text
+	helpcmd := &cobra.Command{
+		Use:   "help [command]",
+		Short: "Help about any command",
+		Long: `Help provides help for any command in the application.
+Simply type ` + root.Name() + ` help [path to command] for full details.`,
+
+		Run: func(c *cobra.Command, args []string) {
+			cmd, _, e := c.Root().Find(args)
+			if cmd == nil || e != nil {
+				c.Printf("Unknown help topic %#q\n", args)
+				c.Root().Usage()
+			} else {
+				c.HelpFunc()(cmd, args)
+			}
+		},
+	}
+
+	root.SetHelpCommand(helpcmd)
+
 	root.SetHelpTemplate("{{.UsageString}}")
 	root.SetHelpFunc(helpCommand)
 	root.SetUsageFunc(usageCommand)
