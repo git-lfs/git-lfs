@@ -1,9 +1,6 @@
 package pflag
 
-import (
-	"fmt"
-	"strconv"
-)
+import "strconv"
 
 // -- int Value
 type intValue int
@@ -23,7 +20,7 @@ func (i *intValue) Type() string {
 	return "int"
 }
 
-func (i *intValue) String() string { return fmt.Sprintf("%v", *i) }
+func (i *intValue) String() string { return strconv.Itoa(int(*i)) }
 
 func intConv(sval string) (interface{}, error) {
 	return strconv.Atoi(sval)
@@ -44,7 +41,7 @@ func (f *FlagSet) IntVar(p *int, name string, value int, usage string) {
 	f.VarP(newIntValue(value, p), name, "", usage)
 }
 
-// Like IntVar, but accepts a shorthand letter that can be used after a single dash.
+// IntVarP is like IntVar, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) IntVarP(p *int, name, shorthand string, value int, usage string) {
 	f.VarP(newIntValue(value, p), name, shorthand, usage)
 }
@@ -55,7 +52,7 @@ func IntVar(p *int, name string, value int, usage string) {
 	CommandLine.VarP(newIntValue(value, p), name, "", usage)
 }
 
-// Like IntVar, but accepts a shorthand letter that can be used after a single dash.
+// IntVarP is like IntVar, but accepts a shorthand letter that can be used after a single dash.
 func IntVarP(p *int, name, shorthand string, value int, usage string) {
 	CommandLine.VarP(newIntValue(value, p), name, shorthand, usage)
 }
@@ -68,7 +65,7 @@ func (f *FlagSet) Int(name string, value int, usage string) *int {
 	return p
 }
 
-// Like Int, but accepts a shorthand letter that can be used after a single dash.
+// IntP is like Int, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) IntP(name, shorthand string, value int, usage string) *int {
 	p := new(int)
 	f.IntVarP(p, name, shorthand, value, usage)
@@ -81,7 +78,7 @@ func Int(name string, value int, usage string) *int {
 	return CommandLine.IntP(name, "", value, usage)
 }
 
-// Like Int, but accepts a shorthand letter that can be used after a single dash.
+// IntP is like Int, but accepts a shorthand letter that can be used after a single dash.
 func IntP(name, shorthand string, value int, usage string) *int {
 	return CommandLine.IntP(name, shorthand, value, usage)
 }

@@ -13,9 +13,9 @@ import:
 - package: github.com/rubyist/tracerx
   version: 787959303086f44a8c361240dfac53d3e9d53ed2
 - package: github.com/spf13/cobra
-  version: c55cdf33856a08e4822738728b41783292812889
+  version: 0.0.3
 - package: github.com/spf13/pflag
-  version: 580b9be06c33d8ba9dcc8757ea56b7642472c2f5
+  version: 1.0.1
 - package: github.com/stretchr/testify
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
 - package: github.com/ThomsonReutersEikon/go-ntlm
