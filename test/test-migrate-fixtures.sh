@@ -111,6 +111,32 @@ setup_single_local_branch_tracked() {
   git commit -m "add a.{txt,md}"
 }
 
+# setup_single_local_branch_tracked_corrupt creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 120 bytes of random data in a.txt, and tracks *.txt under Git
+#   LFS, but a.txt is not stored as an LFS object.
+setup_single_local_branch_tracked_corrupt() {
+  set -e
+
+  reponame="migrate-single-locla-branch-with-attrs-corrupt"
+
+  remove_and_create_local_repo "$reponame"
+
+  git lfs track "*.txt"
+  git lfs uninstall
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+
+  git add .gitattributes a.txt
+  git commit -m "initial commit"
+
+  git lfs install
+}
+
 # setup_multiple_local_branches creates a repository as follows:
 #
 #     B

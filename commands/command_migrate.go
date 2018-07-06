@@ -47,6 +47,10 @@ var (
 	// exportRemote is the remote from which to download objects when
 	// performing an export
 	exportRemote string
+
+	// migrateFixup is the flag indicating whether or not to infer the
+	// included and excluded filepath patterns.
+	migrateFixup bool
 )
 
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
@@ -281,8 +285,13 @@ func currentRefToMigrate() (*git.Ref, error) {
 }
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
-// filter given by the --include and --exclude arguments.
+// filter given by the --include and --exclude arguments, or no filter if
+// --fixup was given.
 func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
+	if migrateFixup {
+		return githistory.NewRewriter(db, githistory.WithLogger(l))
+	}
+
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 
@@ -301,6 +310,7 @@ func init() {
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
+	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")

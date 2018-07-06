@@ -91,6 +91,13 @@ options and these additional ones:
     become available, and the core `migrate` options will be ignored. See
     [IMPORT (NO REWRITE)].
 
+* `--fixup`
+    Infer `--include` and `--exclude` filters on a per-commit basis based on the
+    .gitattributes files in a repository. In practice, this option ``fixes'' a
+    repository over the commit range specified without requiring guidance from
+    the user. This option is incompatible with explicitly given `--include`,
+    `--exclude` filters.
+
 If `--no-rewrite` is not provided and `--include` or `--exclude` (`-I`, `-X`,
 respectively) are given, the .gitattributes will be modified to include any new
 filepath patterns as given by those flags.
@@ -248,7 +255,7 @@ Note: This will require a force push to any existing Git remotes.
 
 You can also migrate files without modifying the existing history of your respoitory:
 
-Without a specified commit message: 
+Without a specified commit message:
 ```
     git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
 ```

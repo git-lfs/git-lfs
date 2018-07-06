@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+. "test/test-migrate-fixtures.sh"
+. "test/testlib.sh"
+
+begin_test "migrate import (--fixup)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+
+  git lfs migrate import --everything --fixup
+
+  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_local_object "$txt_oid" "120"
+
+  master="$(git rev-parse refs/heads/master)"
+  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+)
+end_test
+
+begin_test "migrate import (--fixup, --include)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  git lfs migrate import --everything --fixup --include="*.txt" 2>&1 \
+    | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: cannot use --fixup with --include, --exclude" migrate.log
+)
+end_test
+
+begin_test "migrate import (--fixup, --exclude)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  git lfs migrate import --everything --fixup --exclude="*.txt" 2>&1 \
+    | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: cannot use --fixup with --include, --exclude" migrate.log
+)
+end_test
+
+begin_test "migrate import (--fixup, --no-rewrite)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  git lfs migrate import --everything --fixup --no-rewrite 2>&1 \
+    | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: --no-rewrite and --fixup cannot be combined" migrate.log
+)
+end_test
