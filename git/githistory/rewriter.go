@@ -67,6 +67,10 @@ type RewriteOptions struct {
 	// each blob for subsequent revisions, so long as each entry remains
 	// unchanged.
 	BlobFn BlobRewriteFn
+	// TreePreCallbackFn specifies a function to be called before opening a
+	// tree for rewriting. It will be called on all trees throughout history
+	// in topological ordering through the tree, starting at the root.
+	TreePreCallbackFn TreePreCallbackFn
 	// TreeCallbackFn specifies a function to rewrite trees after they have
 	// been reassembled by calling the above BlobFn on all existing tree
 	// entries.
@@ -80,6 +84,15 @@ func (r *RewriteOptions) blobFn() BlobRewriteFn {
 		return noopBlobFn
 	}
 	return r.BlobFn
+}
+
+// treePreFn returns a useable TreePreCallbackFn, either the one that was given
+// in the *RewriteOptions, or a noopTreePreFn.
+func (r *RewriteOptions) treePreFn() TreePreCallbackFn {
+	if r.TreePreCallbackFn == nil {
+		return noopTreePreFn
+	}
+	return r.TreePreCallbackFn
 }
 
 // treeFn returns a useable TreeRewriteFn, either the one that was given in the
@@ -107,13 +120,24 @@ func (r *RewriteOptions) treeFn() TreeCallbackFn {
 // of filepath.Join(...) or os.PathSeparator.
 type BlobRewriteFn func(path string, b *gitobj.Blob) (*gitobj.Blob, error)
 
+// TreePreCallbackFn specifies a function to call upon opening a new tree for
+// rewriting.
+//
+// Unlike its sibling TreeCallbackFn, TreePreCallbackFn may not modify the given
+// tree.
+//
+// TreePreCallbackFn can be nil, and will therefore exhibit behavior equivalent
+// to only calling the BlobFn on existing tree entries.
+//
+// If the TreePreCallbackFn returns an error, it will be returned from the
+// Rewrite() invocation.
+type TreePreCallbackFn func(path string, t *gitobj.Tree) error
+
 // TreeCallbackFn specifies a function to call before writing a re-written tree
 // to the object database. The TreeCallbackFn can return a modified tree to be
 // written to the object database instead of one generated from calling BlobFn
 // on all of the tree entries.
 //
-// Trees returned from a TreeCallbackFn MUST have all objects referenced in the
-// entryset already written to the object database.
 //
 // TreeCallbackFn can be nil, and will therefore exhibit behavior equivalent to
 // only calling the BlobFn on existing tree entries.
@@ -151,6 +175,9 @@ var (
 	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
 	// the blob that it was given, and returns no error.
 	noopBlobFn = func(path string, b *gitobj.Blob) (*gitobj.Blob, error) { return b, nil }
+	// noopTreePreFn is a no-op implementation of the TreePreRewriteFn. It
+	// returns the tree that it was given, and returns no error.
+	noopTreePreFn = func(path string, t *gitobj.Tree) error { return nil }
 	// noopTreeFn is a no-op implementation of the TreeRewriteFn. It returns
 	// the tree that it was given, and returns no error.
 	noopTreeFn = func(path string, t *gitobj.Tree) (*gitobj.Tree, error) { return t, nil }
@@ -214,7 +241,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treeFn(), vPerc)
+		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treePreFn(), opt.treeFn(), vPerc)
 		if err != nil {
 			return nil, err
 		}
@@ -321,9 +348,16 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *tasklog.PercentageTask) ([]byte, error) {
+func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
+	fn BlobRewriteFn, tpfn TreePreCallbackFn, tfn TreeCallbackFn,
+	perc *tasklog.PercentageTask) ([]byte, error) {
+
 	tree, err := r.db.Tree(treeOID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := tpfn("/"+path, tree); err != nil {
 		return nil, err
 	}
 
@@ -358,7 +392,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		case gitobj.BlobObjectType:
 			oid, err = r.rewriteBlob(commitOID, entry.Oid, fullpath, fn, perc)
 		case gitobj.TreeObjectType:
-			oid, err = r.rewriteTree(commitOID, entry.Oid, fullpath, fn, tfn, perc)
+			oid, err = r.rewriteTree(commitOID, entry.Oid, fullpath, fn, tpfn, tfn, perc)
 		default:
 			oid = entry.Oid
 
