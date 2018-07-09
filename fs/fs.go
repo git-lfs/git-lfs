@@ -18,6 +18,14 @@ import (
 
 var oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
 
+// Environment is a copy of a subset of the interface
+// github.com/git-lfs/git-lfs/config.Environment.
+//
+// For more information, see config/environment.go.
+type Environment interface {
+	Get(key string) (val string, ok bool)
+}
+
 // Object represents a locally stored LFS object.
 type Object struct {
 	Oid  string
@@ -165,12 +173,12 @@ func (f *Filesystem) Cleanup() error {
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
-func New(gitdir, workdir, lfsdir string) *Filesystem {
+func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
 	fs := &Filesystem{
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
 
-	fs.ReferenceDirs = resolveReferenceDirs(fs.GitStorageDir)
+	fs.ReferenceDirs = resolveReferenceDirs(env, fs.GitStorageDir)
 
 	if len(lfsdir) == 0 {
 		lfsdir = "lfs"
@@ -185,8 +193,18 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 	return fs
 }
 
-func resolveReferenceDirs(gitStorageDir string) []string {
+func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
 	var references []string
+
+	envAlternates, ok := env.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	if ok {
+		splits := strings.Split(envAlternates, string(os.PathListSeparator))
+		for _, split := range splits {
+			if dir, ok := existsAlternate(split); ok {
+				references = append(references, dir)
+			}
+		}
+	}
 
 	cloneReferencePath := filepath.Join(gitStorageDir, "objects", "info", "alternates")
 	if tools.FileExists(cloneReferencePath) {
