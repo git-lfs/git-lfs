@@ -356,6 +356,27 @@ func TestHistoryRewriterCallbacks(t *testing.T) {
 	assert.Equal(t, calls[8], &CallbackCall{Type: "tree-post", Path: "/"})
 }
 
+func TestHistoryRewriterCallbacksSubtrees(t *testing.T) {
+	var calls []*CallbackCall
+
+	db := DatabaseFromFixture(t, "non-repeated-subtrees.git")
+	r := NewRewriter(db)
+
+	_, err := r.Rewrite(collectCalls(&calls))
+
+	assert.Nil(t, err)
+
+	assert.Len(t, calls, 8)
+	assert.Equal(t, calls[0], &CallbackCall{Type: "tree-pre", Path: "/"})
+	assert.Equal(t, calls[1], &CallbackCall{Type: "blob", Path: "a.txt"})
+	assert.Equal(t, calls[2], &CallbackCall{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[3], &CallbackCall{Type: "tree-pre", Path: "/"})
+	assert.Equal(t, calls[4], &CallbackCall{Type: "tree-pre", Path: "/subdir"})
+	assert.Equal(t, calls[5], &CallbackCall{Type: "blob", Path: "subdir/b.txt"})
+	assert.Equal(t, calls[6], &CallbackCall{Type: "tree-post", Path: "/subdir"})
+	assert.Equal(t, calls[7], &CallbackCall{Type: "tree-post", Path: "/"})
+}
+
 func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
 	expected := errors.Errorf("my error")
 
