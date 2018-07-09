@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
@@ -31,6 +32,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	defer db.Close()
 
 	if migrateNoRewrite {
+		if migrateFixup {
+			ExitWithError(errors.Errorf("fatal: --no-rewrite and --fixup cannot be combined"))
+		}
+
 		if len(args) == 0 {
 			ExitWithError(errors.Errorf("fatal: expected one or more files with --no-rewrite"))
 		}
@@ -94,11 +99,20 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	if migrateFixup {
+		include, exclude := getIncludeExcludeArgs(cmd)
+		if include != nil || exclude != nil {
+			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --include, --exclude"))
+		}
+	}
+
 	rewriter := getHistoryRewriter(cmd, db, l)
 
 	tracked := trackedFromFilter(rewriter.Filter())
 	exts := tools.NewOrderedSet()
 	gitfilter := lfs.NewGitFilter(cfg)
+
+	var fixups *gitattr.Tree
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
@@ -106,6 +120,20 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
+			}
+
+			if migrateFixup {
+				var ok bool
+				attrs := fixups.Applied(path)
+				for _, attr := range attrs {
+					if attr.K == "filter" {
+						ok = attr.V == "lfs"
+					}
+				}
+
+				if !ok {
+					return b, nil
+				}
 			}
 
 			var buf bytes.Buffer
@@ -123,9 +151,23 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			}, nil
 		},
 
+		TreePreCallbackFn: func(path string, t *gitobj.Tree) error {
+			if migrateFixup && path == "/" {
+				var err error
+
+				fixups, err = gitattr.New(db, t)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			return nil
+		},
+
 		TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
-			if path != "/" {
-				// Ignore non-root trees.
+			if path != "/" || migrateFixup {
+				// Avoid updating .gitattributes in non-root
+				// trees, or if --fixup is given.
 				return t, nil
 			}
 

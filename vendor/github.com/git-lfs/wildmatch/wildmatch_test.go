@@ -597,6 +597,41 @@ var Cases = []*Case{
 		Subject: `foo-a.txt`,
 		Match:   false,
 	},
+	{
+		Pattern: `*.txt`,
+		Subject: `file.txt`,
+		Opts:    []opt{Basename},
+		Match:   true,
+	},
+	{
+		Pattern: `*.txt`,
+		Subject: `path/to/file.txt`,
+		Opts:    []opt{Basename},
+		Match:   true,
+	},
+	{
+		Pattern: `path/to/*.txt`,
+		Subject: `path/to/file.txt`,
+		Opts:    []opt{Basename},
+		Match:   true,
+	},
+	{
+		Pattern: `path/to/*.txt`,
+		Subject: `path/to/file.txt`,
+		Match:   true,
+	},
+	{
+		Pattern: `path/to/*.txt`,
+		Subject: `outside/of/path/to/file.txt`,
+		Opts:    []opt{Basename},
+		Match:   false,
+	},
+	{
+		Pattern: `path/to/*.txt`,
+		Subject: `path/to/some/intermediaries/to/file.txt`,
+		Opts:    []opt{Basename},
+		Match:   false,
+	},
 }
 
 func TestWildmatch(t *testing.T) {

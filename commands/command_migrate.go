@@ -47,6 +47,10 @@ var (
 	// exportRemote is the remote from which to download objects when
 	// performing an export
 	exportRemote string
+
+	// migrateFixup is the flag indicating whether or not to infer the
+	// included and excluded filepath patterns.
+	migrateFixup bool
 )
 
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
@@ -102,8 +106,9 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 		Verbose:           opts.Verbose,
 		ObjectMapFilePath: opts.ObjectMapFilePath,
 
-		BlobFn:         opts.BlobFn,
-		TreeCallbackFn: opts.TreeCallbackFn,
+		BlobFn:            opts.BlobFn,
+		TreePreCallbackFn: opts.TreePreCallbackFn,
+		TreeCallbackFn:    opts.TreeCallbackFn,
 	}, nil
 }
 
@@ -300,6 +305,7 @@ func init() {
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
+	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
