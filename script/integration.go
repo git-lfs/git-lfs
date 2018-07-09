@@ -20,7 +20,7 @@ var (
 	debugging   = false
 	erroring    = false
 	maxprocs    = 4
-	testPattern = regexp.MustCompile(`test[/\\]test-([a-z\-]+)\.sh$`)
+	testPattern = regexp.MustCompile(`t[/\\]t-([a-z\-]+)\.sh$`)
 )
 
 func mainIntegration() {
@@ -148,7 +148,7 @@ func testFiles() []string {
 
 	files := make([]string, 0, len(os.Args)-3)
 	for _, arg := range os.Args {
-		fullname := "test/test-" + arg + ".sh"
+		fullname := "t/t-" + arg + ".sh"
 		if fileMap[fullname] {
 			files = append(files, fullname)
 		}
@@ -159,7 +159,7 @@ func testFiles() []string {
 
 func allTestFiles() []string {
 	files := make([]string, 0, 100)
-	filepath.Walk("test", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk("t", func(path string, info os.FileInfo, err error) error {
 		if debugging {
 			fmt.Println("FOUND:", path)
 		}

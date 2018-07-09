@@ -8,7 +8,7 @@ man/*
 
 *.test
 tmp
-test/remote
+t/remote
 
 debian/git-lfs/
 debian/*.log

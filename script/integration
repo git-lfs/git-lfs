@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "test/testenv.sh"
+. "t/testenv.sh"
 set -e
 
 SHUTDOWN_LFS=no
