@@ -22,6 +22,31 @@ begin_test "migrate import (--fixup)"
 )
 end_test
 
+begin_test "migrate import (--fixup, complex nested)"
+(
+  set -e
+
+  setup_single_local_branch_complex_tracked
+
+  a_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  b_oid="$(calc_oid "$(git cat-file -p :dir/b.txt)")"
+
+  git lfs migrate import --everything --fixup
+
+  assert_pointer "refs/heads/master" "a.txt" "$a_oid" "1"
+  refute_pointer "refs/heads/master" "b.txt"
+
+  assert_local_object "$a_oid" "1"
+  refute_local_object "$b_oid" "1"
+
+  master="$(git rev-parse refs/heads/master)"
+  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  master_dir_attrs="$(git cat-file -p "$master:dir/.gitattributes")"
+  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$master_dir_attrs" | grep -q "*.txt !filter !diff !merge"
+)
+end_test
+
 begin_test "migrate import (--fixup, --include)"
 (
   set -e

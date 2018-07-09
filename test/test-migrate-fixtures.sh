@@ -111,6 +111,37 @@ setup_single_local_branch_tracked() {
   git commit -m "add a.{txt,md}"
 }
 
+# setup_single_local_branch_complex_tracked creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has 1 byte of text in a.txt and dir/b.txt. According to the
+#   .gitattributes files, a.txt should be tracked using Git LFS, but b.txt should
+#   not be.
+setup_single_local_branch_complex_tracked() {
+  set -e
+
+  reponame="migrate-single-local-branch-complex-tracked"
+
+  remove_and_create_local_repo "$reponame"
+
+  mkdir -p dir
+  echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+  echo "*.txt !filter !diff !merge" > dir/.gitattributes
+
+  printf "a" > a.txt
+  printf "b" > dir/b.txt
+
+  git lfs uninstall
+
+  git add .gitattributes dir/.gitattributes a.txt dir/b.txt
+  git commit -m "initial commit"
+
+  git lfs install
+}
+
 # setup_single_local_branch_tracked_corrupt creates a repository as follows:
 #
 #   A

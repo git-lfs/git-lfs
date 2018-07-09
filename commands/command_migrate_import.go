@@ -126,8 +126,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				var ok bool
 				attrs := fixups.Applied(path)
 				for _, attr := range attrs {
-					if attr.K == "filter" && attr.V == "lfs" {
-						ok = !attr.Unspecified
+					if attr.K == "filter" {
+						ok = attr.V == "lfs"
 					}
 				}
 
