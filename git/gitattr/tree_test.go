@@ -148,6 +148,8 @@ func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
+	assert.Empty(t, tree.Lines)
+	assert.Len(t, tree.Children, 1)
 
 	attrs := tree.Applied("child/foo.dat")
 
@@ -196,6 +198,8 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
+	assert.Empty(t, tree.Lines)
+	assert.Len(t, tree.Children, 1)
 
 	attrs := tree.Applied("child/indirect/foo.dat")
 
