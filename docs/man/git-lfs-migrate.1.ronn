@@ -190,8 +190,8 @@ The following configuration:
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
 
-The presence of flag `--everything` indicates that all local references should be
-migrated.
+The presence of flag `--everything` indicates that all local and remote
+references should be migrated.
 
 ## EXAMPLES
 
