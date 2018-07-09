@@ -202,29 +202,12 @@ func resolveReferenceDirs(gitStorageDir string) []string {
 	L:
 		for scanner.Scan() {
 			text := strings.TrimSpace(scanner.Text())
-			if len(text) == 0 {
+			if len(text) == 0 || strings.StartsWith(text, "#") {
 				continue
 			}
 
-			var objs string
-			switch text[0] {
-			case '#':
-				continue L
-			case '"':
-				unquote := strings.LastIndex(text, "\"")
-				if unquote == 0 {
-					continue L
-				}
-
-				objs, _ = strconv.Unquote(text[:unquote+1])
-			default:
-				objs = text
-			}
-			storage := filepath.Join(filepath.Dir(objs),
-				"lfs", "objects")
-
-			if tools.DirExists(storage) {
-				references = append(references, storage)
+			if dir, ok := existsAlternate(text); ok {
+				references = append(references, dir)
 			}
 		}
 
@@ -234,6 +217,34 @@ func resolveReferenceDirs(gitStorageDir string) []string {
 		}
 	}
 	return references
+}
+
+// existsAlternate takes an object directory given in "objs" (read as a single,
+// line from .git/objects/info/alternates). If that is a satisfiable alternates
+// directory (i.e., it exists), the directory is returned along with "true". If
+// not, the empty string and false is returned instead.
+func existsAlternate(objs string) (string, bool) {
+	objs = strings.TrimSpace(objs)
+	if objs.StartsWith(objs, "#") {
+		var err error
+
+		unquote := strings.LastIndex(text, "\"")
+		if unquote == 0 {
+			continue L
+		}
+
+		objs, err = strconv.Unquote(text[:unquote+1])
+		if err != nil {
+			return "", false
+		}
+	}
+
+	storage := filepath.Join(filepath.Dir(objs), "lfs", "objects")
+
+	if tools.DirExists(storage) {
+		return storage, true
+	}
+	return "", false
 }
 
 // From a git dir, get the location that objects are to be stored (we will store lfs alongside)
