@@ -293,55 +293,67 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	AssertBlobContents(t, db, tree3, "extra.txt", "extra\n")
 }
 
-func TestHistoryRewriterCallbacks(t *testing.T) {
-	type Call struct {
-		Type string
-		Path string
-	}
+// CallbackCall is a structure recording information pertinent to when a
+// *githistory.Rewrite called either BlobFn, TreePreCallbackFn, or
+// TreeCallbackFn.
+type CallbackCall struct {
+	Type string
+	Path string
+}
 
-	var calls []*Call
+var (
+	// collectCalls is a function that returns a *RewriteOptions that
+	// updates a pointer to a slice of `*CallbackCall`'s with each call that
+	// is received.
+	collectCalls = func(calls *[]*CallbackCall) *RewriteOptions {
+		return &RewriteOptions{Include: []string{"refs/heads/master"},
+			BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+				*calls = append(*calls, &CallbackCall{
+					Type: "blob",
+					Path: path,
+				})
+				return b, nil
+			},
+
+			TreePreCallbackFn: func(path string, t *gitobj.Tree) error {
+				*calls = append(*calls, &CallbackCall{
+					Type: "tree-pre",
+					Path: path,
+				})
+				return nil
+			},
+
+			TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
+				*calls = append(*calls, &CallbackCall{
+					Type: "tree-post",
+					Path: path,
+				})
+				return t, nil
+			},
+		}
+	}
+)
+
+func TestHistoryRewriterCallbacks(t *testing.T) {
+	var calls []*CallbackCall
 
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)
 
-	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
-			calls = append(calls, &Call{
-				Type: "blob",
-				Path: path,
-			})
-			return b, nil
-		},
-
-		TreePreCallbackFn: func(path string, t *gitobj.Tree) error {
-			calls = append(calls, &Call{
-				Type: "tree-pre",
-				Path: path,
-			})
-			return nil
-		},
-
-		TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
-			calls = append(calls, &Call{
-				Type: "tree-post",
-				Path: path,
-			})
-			return t, nil
-		},
-	})
+	_, err := r.Rewrite(collectCalls(&calls))
 
 	assert.Nil(t, err)
 
 	assert.Len(t, calls, 9)
-	assert.Equal(t, calls[0], &Call{Type: "tree-pre", Path: "/"})
-	assert.Equal(t, calls[1], &Call{Type: "blob", Path: "hello.txt"})
-	assert.Equal(t, calls[2], &Call{Type: "tree-post", Path: "/"})
-	assert.Equal(t, calls[3], &Call{Type: "tree-pre", Path: "/"})
-	assert.Equal(t, calls[4], &Call{Type: "blob", Path: "hello.txt"})
-	assert.Equal(t, calls[5], &Call{Type: "tree-post", Path: "/"})
-	assert.Equal(t, calls[6], &Call{Type: "tree-pre", Path: "/"})
-	assert.Equal(t, calls[7], &Call{Type: "blob", Path: "hello.txt"})
-	assert.Equal(t, calls[8], &Call{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[0], &CallbackCall{Type: "tree-pre", Path: "/"})
+	assert.Equal(t, calls[1], &CallbackCall{Type: "blob", Path: "hello.txt"})
+	assert.Equal(t, calls[2], &CallbackCall{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[3], &CallbackCall{Type: "tree-pre", Path: "/"})
+	assert.Equal(t, calls[4], &CallbackCall{Type: "blob", Path: "hello.txt"})
+	assert.Equal(t, calls[5], &CallbackCall{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[6], &CallbackCall{Type: "tree-pre", Path: "/"})
+	assert.Equal(t, calls[7], &CallbackCall{Type: "blob", Path: "hello.txt"})
+	assert.Equal(t, calls[8], &CallbackCall{Type: "tree-post", Path: "/"})
 }
 
 func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
