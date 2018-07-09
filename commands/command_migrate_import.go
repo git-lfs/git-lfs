@@ -166,7 +166,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		TreeCallbackFn: func(path string, t *gitobj.Tree) (*gitobj.Tree, error) {
 			if path != "/" || migrateFixup {
-				// Ignore non-root trees.
+				// Avoid updating .gitattributes in non-root
+				// trees, or if --fixup is given.
 				return t, nil
 			}
 
