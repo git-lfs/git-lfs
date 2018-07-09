@@ -257,9 +257,6 @@ func checkoutNonBare(l *tasklog.Logger) error {
 // attributes based on patterns included/excldued in the given filter.
 func trackedFromFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
-	if filter == nil {
-		return tracked
-	}
 
 	for _, include := range filter.Include() {
 		tracked.Add(fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text", escapeAttrPattern(include)))

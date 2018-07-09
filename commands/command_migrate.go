@@ -285,13 +285,8 @@ func currentRefToMigrate() (*git.Ref, error) {
 }
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
-// filter given by the --include and --exclude arguments, or no filter if
-// --fixup was given.
+// filter given by the --include and --exclude arguments.
 func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
-	if migrateFixup {
-		return githistory.NewRewriter(db, githistory.WithLogger(l))
-	}
-
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 
