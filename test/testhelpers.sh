@@ -40,7 +40,7 @@ refute_pointer() {
 
   file=$(git cat-file -p $gitblob)
   version="version https://git-lfs.github.com/spec/v[0-9]"
-  oid="oid sha256:[0-9a-f]\{32\}"
+  oid="oid sha256:[0-9a-f]\{64\}"
   size="size [0-9]*"
   regex="$version.*$oid.*$size"
 
