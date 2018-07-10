@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 ensure_git_version_isnt $VERSION_LOWER "2.5.0"
 

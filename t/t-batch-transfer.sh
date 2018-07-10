@@ -2,7 +2,7 @@
 # This is a sample Git LFS test.  See test/README.md and testhelpers.sh for
 # more documentation.
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 begin_test "batch transfer"
 (

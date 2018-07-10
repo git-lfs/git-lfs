@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 # These tests rely on behavior found in 2.9.0 to perform themselves,
 # specifically:

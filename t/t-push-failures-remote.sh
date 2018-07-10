@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 # push_fail_test preforms a test expecting a `git lfs push` to fail given the
 # contents of a particular file contained within that push. The Git server used

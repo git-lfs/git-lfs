@@ -22,7 +22,7 @@
 
 fullfile="$(pwd)/$0"
 
-. "t/testenv.sh"
+. "$(dirname "$0")/testenv.sh"
 set -e
 
 # keep track of num tests and failures

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 begin_test "push a file with the same name as a branch"
 (

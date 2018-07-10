@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 begin_test "unlocking a lock by path with good ref"
 (

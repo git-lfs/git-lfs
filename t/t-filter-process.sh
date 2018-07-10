@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 # HACK(taylor): git uses ".g<hash>" in the version name to signal that it is
 # from the "next" branch, which is the only (current) version of Git that has

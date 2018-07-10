@@ -137,4 +137,4 @@ if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
 fi
-. "t/testhelpers.sh"
+. "$(dirname "$0")/testhelpers.sh"

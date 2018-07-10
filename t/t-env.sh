@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
 git config filter.lfs.smudge = "git-lfs smudge -- %f"

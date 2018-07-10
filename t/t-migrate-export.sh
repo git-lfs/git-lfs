@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 . "test/test-migrate-fixtures.sh"
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 begin_test "migrate export (default branch)"
 (

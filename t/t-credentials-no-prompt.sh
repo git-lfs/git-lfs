@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 # these tests rely on GIT_TERMINAL_PROMPT to test properly
 ensure_git_version_isnt $VERSION_LOWER "2.3.0"

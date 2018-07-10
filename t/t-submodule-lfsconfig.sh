@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 lfsname="submodule-config-test-lfs"
 reponame="submodule-config-test-repo"
 submodname="submodule-config-test-submodule"
