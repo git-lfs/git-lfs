@@ -504,17 +504,6 @@ setup() {
   git lfs version | sed -e 's/^/# /g'
   git version | sed -e 's/^/# /g'
 
-  if [ -z "$SKIPCOMPILE" ]; then
-    [ $IS_WINDOWS -eq 1 ] && EXT=".exe"
-    for go in t/cmd/*.go; do
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/$(basename $go .go)$EXT" "$go"
-    done
-    if [ -z "$SKIPAPITESTCOMPILE" ]; then
-      # Ensure API test util is built during tests to ensure it stays in sync
-      GO15VENDOREXPERIMENT=1 go build -o "$BINPATH/git-lfs-test-server-api$EXT" "t/git-lfs-test-server-api/main.go" "t/git-lfs-test-server-api/testdownload.go" "t/git-lfs-test-server-api/testupload.go"
-    fi
-  fi
-
   LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
 
   wait_for_file "$LFS_URL_FILE"

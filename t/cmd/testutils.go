@@ -1,4 +1,4 @@
-package t
+package main
 
 // Utility functions for more complex go tests
 // Need to be in a separate test package so they can be imported anywhere

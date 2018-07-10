@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/git-lfs/git-lfs/t"
 )
 
 type TestUtilRepoCallback struct{}
@@ -23,7 +21,7 @@ func (*TestUtilRepoCallback) Errorf(format string, args ...interface{}) {
 }
 
 func main() {
-	commandMap := map[string]func(*t.Repo){
+	commandMap := map[string]func(*Repo){
 		"addcommits": AddCommits,
 	}
 	if len(os.Args) < 2 {
@@ -51,18 +49,18 @@ func main() {
 		os.Exit(2)
 	}
 
-	repo := t.WrapRepo(&TestUtilRepoCallback{}, wd)
+	repo := WrapRepo(&TestUtilRepoCallback{}, wd)
 	f(repo)
 }
 
-func AddCommits(repo *t.Repo) {
-	// Read stdin as JSON []*t.CommitInput
+func AddCommits(repo *Repo) {
+	// Read stdin as JSON []*CommitInput
 	in, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "addcommits: Unable to read input data: %v\n", err)
 		os.Exit(3)
 	}
-	inputs := make([]*t.CommitInput, 0)
+	inputs := make([]*CommitInput, 0)
 	err = json.Unmarshal(in, &inputs)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "addcommits: Unable to unmarshal JSON: %v\n%v\n", string(in), err)

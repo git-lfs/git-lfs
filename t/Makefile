@@ -1,0 +1,31 @@
+RM ?= rm -f
+PROVE ?= prove
+PROVE_EXTRA_ARGS =
+DEFAULT_TEST_TARGET ?= test
+
+GO ?= go
+X =
+
+TEST_CMDS =
+
+TEST_CMDS += ../bin/git-credential-lfsnoop$X
+TEST_CMDS += ../bin/git-credential-lfstest$X
+TEST_CMDS += ../bin/lfs-askpass$X
+TEST_CMDS += ../bin/lfs-ssh-echo$X
+TEST_CMDS += ../bin/lfs-ssh-proxy-test$X
+TEST_CMDS += ../bin/lfstest-customadapter$X
+TEST_CMDS += ../bin/lfstest-gitserver$X
+TEST_CMDS += ../bin/lfstest-standalonecustomadapter$X
+TEST_CMDS += ../bin/lfstest-testutils$X
+
+all : $(DEFAULT_TEST_TARGET)
+
+test : $(TEST_CMDS)
+	prove $(PROVE_EXTRA_ARGS) ./t-*.sh
+
+.PHONY : clean
+clean :
+	$(RM) $(TEST_CMDS)
+
+../bin/%$X : cmd/%.go cmd/testutils.go
+	go build -o $@ $^
