@@ -417,7 +417,7 @@ begin_test "migrate import (existing .gitattributes)"
 
   txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
 
-  git lfs migrate import --include-ref=refs/heads/master --include="*.txt"
+  git lfs migrate import --yes --include-ref=refs/heads/master --include="*.txt"
 
   assert_local_object "$txt_master_oid" "120"
 

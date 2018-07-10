@@ -12,7 +12,7 @@ begin_test "migrate import --no-rewrite (default branch)"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
   prev_commit_oid="$(git rev-parse HEAD)"
 
-  git lfs migrate import --no-rewrite *.txt
+  git lfs migrate import --no-rewrite --yes *.txt
 
   # Ensure our desired files were imported into git-lfs
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
@@ -46,7 +46,7 @@ begin_test "migrate import --no-rewrite (bare repository)"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
   md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
 
-  git lfs migrate import --no-rewrite a.txt a.md
+  git lfs migrate import --no-rewrite --yes a.txt a.md
 
   # Ensure our desired files were imported
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
@@ -78,7 +78,7 @@ begin_test "migrate import --no-rewrite (multiple branches)"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
   md_feature_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
 
-  git lfs migrate import --no-rewrite *.txt *.md
+  git lfs migrate import --no-rewrite --yes *.txt *.md
 
   # Ensure our desired files were imported
   assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
@@ -111,7 +111,7 @@ begin_test "migrate import --no-rewrite (no .gitattributes)"
   setup_multiple_local_branches
 
   # Ensure command fails if no .gitattributes files are present
-  git lfs migrate import --no-rewrite *.txt *.md 2>&1 | tee migrate.log
+  git lfs migrate import --no-rewrite --yes *.txt *.md 2>&1 | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
     exit 1
@@ -139,7 +139,7 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
   nested_md_oid="$(calc_oid "$(git cat-file -p :b/a.md)")"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
 
-  git lfs migrate import --no-rewrite a.txt b/a.md
+  git lfs migrate import --no-rewrite --yes a.txt b/a.md
 
   # Ensure a.txt and subtree/a.md were imported, even though *.md only exists in the
   # nested subtree/.gitattributes file
@@ -152,7 +152,7 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
 
   # Failure should occur when trying to import a.md as no entry exists in
   # top-level .gitattributes file
-  git lfs migrate import --no-rewrite a.md 2>&1 | tee migrate.log
+  git lfs migrate import --no-rewrite --yes a.md 2>&1 | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate import --no-rewrite to fail, didn't"
     exit 1
@@ -171,7 +171,7 @@ begin_test "migrate import --no-rewrite (with commit message)"
   prev_commit_oid="$(git rev-parse HEAD)"
   expected_commit_msg="run git-lfs migrate import --no-rewrite"
 
-  git lfs migrate import --message "$expected_commit_msg" --no-rewrite *.txt
+  git lfs migrate import --message "$expected_commit_msg" --no-rewrite --yes *.txt
 
   # Ensure the git history remained the same
   new_commit_oid="$(git rev-parse HEAD~1)"
@@ -201,7 +201,7 @@ begin_test "migrate import --no-rewrite (with empty commit message)"
 
   prev_commit_oid="$(git rev-parse HEAD)"
 
-  git lfs migrate import -m "" --no-rewrite *.txt
+  git lfs migrate import -m "" --no-rewrite --yes *.txt
 
   # Ensure the git history remained the same
   new_commit_oid="$(git rev-parse HEAD~1)"
