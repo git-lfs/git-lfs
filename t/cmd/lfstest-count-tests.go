@@ -90,7 +90,7 @@ func main() {
 					strings.NewReader(time.Now().String()))
 			}
 
-			return n - 1, err
+			return 0, nil
 		})
 	}
 
@@ -172,7 +172,7 @@ func callWithCount(fn countFn) error {
 }
 
 func path(s string) (string, error) {
-	p := filepath.Join(os.Getenv("LFSTEST_DIR"), s)
+	p := filepath.Join(filepath.Dir(os.Getenv("LFSTEST_DIR")), s)
 	if err := os.MkdirAll(filepath.Dir(p), 0666); err != nil {
 		return "", err
 	}

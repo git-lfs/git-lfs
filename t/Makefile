@@ -22,6 +22,7 @@ TEST_CMDS += ../bin/lfstest-testutils$X
 all : $(DEFAULT_TEST_TARGET)
 
 test : $(TEST_CMDS)
+	$(RM) -r remote test_count{,.lock}
 	prove $(PROVE_EXTRA_ARGS) ./t-*.sh
 
 .PHONY : clean
