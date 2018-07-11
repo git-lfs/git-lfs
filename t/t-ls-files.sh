@@ -334,17 +334,12 @@ begin_test "ls-files: list/stat files with escaped runes in path before commit"
 (
   set -e
 
-  if [ -n "$CIRCLECI" ]; then
-    echo >&2 "info: skipping due to known failure on CircleCI"
-    exit 0
-  fi
-
   reponame=runes-in-path
   content="zero"
   checksum="d3eb539a55"
-  pathWithGermanRunes="german/äöü"
-  fileWithGermanRunes="schüüch.bin"
-  
+  pathWithGermanRunes="german/Ã¤Ã¶Ã¼"
+  fileWithGermanRunes="schÃ¼Ã¼ch.bin"
+
   mkdir $reponame
   git init "$reponame"
   cd $reponame
