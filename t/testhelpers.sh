@@ -490,8 +490,9 @@ repo_endpoint() {
 setup() {
   cd "$ROOTDIR"
 
-  rm -rf "$REMOTEDIR"
-  mkdir "$REMOTEDIR"
+  if [ ! -d "$REMOTEDIR" ]; then
+    mkdir "$REMOTEDIR"
+  fi
 
   # if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
   #   echo "# compile git-lfs for $0"
