@@ -110,6 +110,7 @@ begin_test "pointer --stdin without stdin"
 
   [ "1" = "$status" ]
 )
+end_test
 
 begin_test "pointer --stdin with bad pointer"
 (
@@ -126,6 +127,7 @@ Pointer file error: invalid header"
 
   [ "1" = "$status" ]
 )
+end_test
 
 begin_test "pointer --file --pointer mismatch"
 (
@@ -239,7 +241,7 @@ begin_test "pointer invalid --pointer"
 
   expected="Pointer from some-pointer
 
-Pointer file error: invalid header
+Pointer file error: invalid header"
 
   diff -u <(printf "$expected") <(printf "$output")
 
