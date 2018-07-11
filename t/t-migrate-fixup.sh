@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "test/test-migrate-fixtures.sh"
+. "$(dirname "$0")/t-migrate-fixtures.sh"
 . "$(dirname "$0")/testlib.sh"
 
 begin_test "migrate import (--fixup)"
