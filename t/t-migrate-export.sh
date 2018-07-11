@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "$(dirname "$0")/t-migrate-fixtures.sh"
+. "$(dirname "$0")/fixtures/migrate.sh"
 . "$(dirname "$0")/testlib.sh"
 
 begin_test "migrate export (default branch)"
@@ -132,7 +132,7 @@ begin_test "migrate export (bare repository)"
 
   md_oid="$(calc_oid "$(cat a.md)")"
   txt_oid="$(calc_oid "$(cat a.txt)")"
-  
+
   make_bare
 
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
@@ -330,7 +330,7 @@ begin_test "migrate export (include/exclude ref)"
     --include="*.txt" \
     --include-ref=refs/heads/my-feature \
     --exclude-ref=refs/heads/master
-  
+
   assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "21"
   assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "20"
 

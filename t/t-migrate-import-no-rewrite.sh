@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "$(dirname "$0")/t-migrate-fixtures.sh"
+. "$(dirname "$0")/fixtures/migrate.sh"
 . "$(dirname "$0")/testlib.sh"
 
 begin_test "migrate import --no-rewrite (default branch)"
