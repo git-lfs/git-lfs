@@ -42,7 +42,7 @@ atexit () {
 }
 
 # create the trash dir
-trap "atexit" EXIT
+trap "atexit" SIGKILL SIGINT SIGTERM EXIT
 
 SHUTDOWN_LFS=yes
 GITSERVER=undefined
