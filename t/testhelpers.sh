@@ -493,18 +493,25 @@ setup() {
   rm -rf "$REMOTEDIR"
   mkdir "$REMOTEDIR"
 
-  if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
-    echo "# compile git-lfs for $0"
-    script/bootstrap | sed -e 's/^/# /g' || {
-      return $?
-    }
-  fi
+  # if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
+  #   echo "# compile git-lfs for $0"
+  #   script/bootstrap | sed -e 's/^/# /g' || {
+  #     return $?
+  #   }
+  # fi
 
   echo "# Git LFS: ${LFS_BIN:-$(which git-lfs)}"
   git lfs version | sed -e 's/^/# /g'
   git version | sed -e 's/^/# /g'
 
-  LFSTEST_URL="$LFS_URL_FILE" LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" LFSTEST_DIR="$REMOTEDIR" LFSTEST_CERT="$LFS_CERT_FILE" LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" lfstest-gitserver > "$REMOTEDIR/gitserver.log" 2>&1 &
+  LFSTEST_URL="$LFS_URL_FILE" \
+  LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" \
+  LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" \
+  LFSTEST_DIR="$REMOTEDIR" \
+  LFSTEST_CERT="$LFS_CERT_FILE" \
+  LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
+  LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
+    lfstest-count-tests increment
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
@@ -517,7 +524,9 @@ setup() {
 
   # Set up the initial git config and osx keychain if applicable
   HOME="$TESTHOME"
-  mkdir "$HOME"
+  if [ ! -d "$HOME" ]; then
+    mkdir "$HOME"
+  fi
   (
     git lfs install --skip-repo
     git config --global credential.usehttppath true
@@ -563,20 +572,9 @@ shutdown() {
   # every t/t-*.sh file should cleanup its trashdir
   [ -z "$KEEPTRASH" ] && rm -rf "$TRASHDIR"
 
-  if [ "$SHUTDOWN_LFS" != "no" ]; then
-    # only cleanup t/remote after script/integration done OR a single t/t-*.sh
-    # file is run manually.
-    if [ -s "$LFS_URL_FILE" ]; then
-      curl -s "$(cat "$LFS_URL_FILE")/shutdown"
-    fi
-
-    [ -z "$KEEPTRASH" ] && rm -rf "$REMOTEDIR"
-
-    # delete entire lfs test root if we created it (double check pattern)
-    if [ -z "$KEEPTRASH" ] && [ "$RM_GIT_LFS_TEST_DIR" = "yes" ] && [[ $GIT_LFS_TEST_DIR == *"$TEMPDIR_PREFIX"* ]]; then
-      rm -rf "$GIT_LFS_TEST_DIR"
-    fi
-fi
+  LFSTEST_DIR="$REMOTEDIR" \
+  LFS_URL_FILE="$LFS_URL_FILE" \
+    lfstest-count-tests decrement
 }
 
 tap_show_plan() {

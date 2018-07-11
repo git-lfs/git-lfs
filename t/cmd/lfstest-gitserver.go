@@ -101,6 +101,9 @@ func main() {
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "%s\n", time.Now().String())
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, ok := reqId(w)
 		if !ok {

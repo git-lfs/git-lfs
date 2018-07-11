@@ -47,16 +47,7 @@ trap "atexit" EXIT
 SHUTDOWN_LFS=yes
 GITSERVER=undefined
 
-# if the file exists, assume another process started it, and will clean it up
-# when it's done
-if [ -s $LFS_URL_FILE ]; then
-  SHUTDOWN_LFS=no
-else
-  setup || {
-    failures=$(( failures + 1 ))
-    exit $?
-  }
-fi
+setup
 
 GITSERVER=$(cat "$LFS_URL_FILE")
 SSLGITSERVER=$(cat "$LFS_SSL_URL_FILE")
