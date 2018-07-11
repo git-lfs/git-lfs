@@ -30,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
 	if err := acquire(ctx); err != nil {
 		fatal(err)
