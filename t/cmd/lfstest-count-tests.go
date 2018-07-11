@@ -85,15 +85,12 @@ func main() {
 
 			url, err := ioutil.ReadFile(os.Getenv("LFS_URL_FILE"))
 			if err == nil {
-				_, err = http.Post(string(url), "application/text",
+				_, err = http.Post(string(url)+"/shutdown",
+					"application/text",
 					strings.NewReader(time.Now().String()))
-
-				if err != nil {
-					return n, err
-				}
 			}
 
-			return n - 1, nil
+			return n - 1, err
 		})
 	}
 
