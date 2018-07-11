@@ -164,7 +164,7 @@ begin_test "credentials with useHttpPath, with correct password"
   credcalls="$(grep "creds: git credential" push.log)"
   [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "$credcalls" | grep "test-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "$credcalls" | grep "t-credentials" | wc -l)" ]
 )
 end_test
 
