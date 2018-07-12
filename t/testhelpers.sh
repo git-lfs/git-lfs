@@ -557,10 +557,6 @@ setup() {
   echo "#   LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
   echo "#   LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
   echo "#   LFSTEST_DIR=$REMOTEDIR"
-  echo "# GIT:"
-  git config --global --get-regexp "lfs|credential|user" | sed -e 's/^/# /g'
-
-  echo
 }
 
 # shutdown cleans the $TRASHDIR and shuts the test Git server down.
