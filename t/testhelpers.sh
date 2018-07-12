@@ -528,7 +528,8 @@ setup() {
   if [ ! -d "$HOME" ]; then
     mkdir "$HOME"
   fi
-  (
+
+  if [ ! -f $HOME/.gitconfig ]; then
     git lfs install --skip-repo
     git config --global credential.usehttppath true
     git config --global credential.helper lfstest
@@ -538,13 +539,7 @@ setup() {
     git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
-  ) | sed -e 's/^/# /g'
-
-  ( grep "git-lfs clean" "$REMOTEDIR/home/.gitconfig" > /dev/null && grep "git-lfs filter-process" "$REMOTEDIR/home/.gitconfig" > /dev/null ) || {
-    echo "# global git config should be set in $REMOTEDIR/home"
-    ls -al "$REMOTEDIR/home" | sed -e 's/^/# /g'
-    exit 1
-  }
+  fi | sed -e 's/^/# /g'
 
   # setup the git credential password storage
   mkdir -p "$CREDSDIR"
