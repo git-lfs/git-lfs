@@ -53,7 +53,7 @@ resolve_symlink() {
 
 # The root directory for the git-lfs repository by default.
 if [ -z "$ROOTDIR" ]; then
-  ROOTDIR=$(cd $(dirname "$0")/.. && pwd -P)
+  ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 fi
 
 # Where Git LFS outputs the compiled binaries
@@ -137,4 +137,5 @@ if [ $IS_WINDOWS -eq 1 ]; then
   # prevent Windows OpenSSH from opening GUI prompts
   SSH_ASKPASS=""
 fi
-. "$(dirname "$0")/testhelpers.sh"
+
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/testhelpers.sh"
