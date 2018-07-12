@@ -27,6 +27,10 @@ test : $(TEST_CMDS)
 	prove $(PROVE_EXTRA_ARGS) ./t-*.sh
 	( . ./testenv.sh && shutdown )
 
+./t-%.sh : $(TEST_CMDS)
+	$(RM) -r remote test_count{,.lock}
+	prove -v $(PROVE_EXTRA_ARGS) $@
+
 .PHONY : clean
 clean :
 	$(RM) -r remote
