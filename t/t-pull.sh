@@ -149,7 +149,7 @@ begin_test "pull without clean filter"
 (
   set -e
 
-  GIT_LFS_SKIP_SMUDGE=1 git clone $GITSERVER/test-pull no-clean
+  GIT_LFS_SKIP_SMUDGE=1 git clone $GITSERVER/t-pull no-clean
   cd no-clean
   git lfs uninstall
   git config --list > config.txt
@@ -198,7 +198,7 @@ begin_test "pull with raw remote url"
   git init
   git lfs install --local --skip-smudge
 
-  git remote add origin $GITSERVER/test-pull
+  git remote add origin $GITSERVER/t-pull
   git pull origin master
 
   contents="a"
@@ -208,7 +208,7 @@ begin_test "pull with raw remote url"
   refute_local_object "$contents_oid"
   grep "$contents_oid" a.dat
 
-  git lfs pull "$GITSERVER/test-pull"
+  git lfs pull "$GITSERVER/t-pull"
   echo "pulled!"
 
   # LFS object downloaded and in working directory
