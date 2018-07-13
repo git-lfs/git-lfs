@@ -1,64 +1,87 @@
-# Git LFS Tests
+# `t`
 
-Git LFS uses two form of tests: unit tests for the internals written in Go, and
-integration tests that run `git` and `git-lfs` in a real shell environment.
-You can run them separately:
+This directory contains one of the two types of tests that the Git LFS project
+uses to protect against regression. The first, scattered in `*_test.go` files
+throughout the repository are _unit tests_, and written in Go, designed to
+uncover failures at the unit level.
 
-```
-$ script/test        # Tests the Go packages.
-$ script/integration # Tests the commands in shell scripts.
-```
+The second kind--and the one contained in this directory--are _integration
+tests_, which are designed to exercise Git LFS in an end-to-end fashion,
+running the `git`, and `git-lfs` binaries, along with a mock Git server.
 
-CI servers should always run both:
+You can run all tests in this directory with any of the following:
 
-```
-$ script/cibuild
-```
-
-## Internal Package Tests
-
-The internal tests use Go's builtin [testing][t] package.
-
-You can run individual tests by passing arguments to `script/test`:
-
-```
-# test a specific Go package
-$ script/test lfs
-
-# pass other `go test` arguments
-$ script/test lfs -run TestSuccessStatus -v
-github.com/rubyist/tracerx
-github.com/git-lfs/git-lfs/git
-github.com/technoweenie/assert
-=== RUN TestSuccessStatus
---- PASS: TestSuccessStatus (0.00 seconds)
-PASS
-ok  	_/Users/rick/git-lfs/git-lfs/lfs	0.011s
+```ShellSession
+$ make
+$ make test
+$ make PROVE_EXTRA_ARGS=-j9 test
 ```
 
-[t]: http://golang.org/pkg/testing/
+Or run a single test (for example, `t-checkout.sh`) by any of the following:
 
-## Integration Tests
-
-Git LFS integration tests are shell scripts that test the `git-lfs` command from
-the shell.  Each test file can be run individually, or in parallel through
-`script/integration`. Some tests will change the `pwd`, so it's important that
-they run in separate OS processes.
-
-```
-$ test/test-happy-path.sh
-compile git-lfs for test/test-happy-path.sh
-LFSTEST_URL=/Users/rick/git-lfs/git-lfs/test/remote/url LFSTEST_DIR=/Users/rick/git-lfs/git-lfs/test/remote lfstest-gitserver
-test: happy path ...                                               OK
+```ShellSession
+$ make ./t-checkout.sh
+$ make PROVE_EXTRA_ARGS=-v ./t-checkout.sh
+$ ./t-checkout.sh
 ```
 
-1. The integration tests should not rely on global system or git config.
-2. The tests should be cross platform (Linux, Mac, Windows).
-3. Tests should bootstrap an isolated, clean environment.  See the Test Suite
-section.
-4. Successful test runs should have minimal output.
-5. Failing test runs should dump enough information to diagnose the bug.  This
-includes stdout, stderr, any log files, and even the OS environment.
+Alternatively, one can run a selection of tests (via explicitly listing them or
+making use of the built-in shell globbing) by any of the following:
+
+```ShellSession
+$ make ./t-*.sh
+$ make PROVE_EXTRA_ARGS=-j9 ./t-migrate-*.sh
+$ ./t-migrate-*.sh
+```
+
+## Test File(s)
+
+There are a few important kinds of files to know about in the `t` directory:
+
+- `cmd/`: contains the source code of binaries that are useful during test
+  time, like the mocked Git server, or the test counting binary.
+
+  The file `t/cmd/testutils.go` is automatically linked and included during the
+  build process of each file in `cmd`.
+
+- `fixtures/`: contains shell scripts that load fixture repositories useful for
+  testing against.
+
+- `t-*.sh`: file(s) containing zero or more tests, typically related to
+  a similar topic (c.f,. `t/t-push.sh`, `t/t-pull.sh`, etc.)
+
+- `testenv.sh`: loads environment variables useful during tests. This file is
+  sourced by `testlib.sh`.
+
+- `testhelpers.sh`: loads shell functions useful during tests, like
+  `setup_remote_repo`, and `clone_repo`.
+
+- `testlib.sh`: loads the `begin_test`, `end_test`, and similar functions
+  useful for instantiating a particular test.
+
+## Test Lifecycle
+
+When a test is run, the following occurs, in order:
+
+1. Missing test binaries are compiled into the `bin` directory in the
+   repository root. Note: this does _not_ include the `git-lfs` binary, which
+   is re-compiled via `script/boostrap`.
+
+2. An integration server is started by either (1) the `Makefile` or (2) the
+   `cmd/lfstest-count-test.go` program, which keeps track of the number of
+   running tests and starts an integration server any time the number of active
+   tests goes from `0` to `1`, and stops the server when it goes from `n` to
+   `0`.
+
+3. After sourcing `t/testlib.sh` (& loading `t/testenv.sh`), each test is run
+   in sequence per file. (In other words, multiple test files can be run in
+   parallel, but the tests in a single file are run in sequence.)
+
+4. An individual test will finish, and (if running under `prove`) another will
+   be started in its place. Once all tests are done, `t/test_count` will go to
+   `0`, and the test server will be torn down.
+
+## Test Environment
 
 There are a few environment variables that you can set to change the test suite
 behavior:
@@ -66,72 +89,28 @@ behavior:
 * `GIT_LFS_TEST_DIR=path` - This sets the directory that is used as the current
 working directory of the tests. By default, this will be in your temp dir. It's
 recommended that this is set to a directory outside of any Git repository.
-* `GIT_LFS_TEST_MAXPROCS=N` - This tells `script/integration` how many tests to
-run in parallel.  Default: 4.
+
 * `KEEPTRASH=1` - This will leave the local repository data in a `tmp` directory
 and the remote repository data in `test/remote`.
-* `SKIPCOMPILE=1` - This skips the Git LFS compilation step.  Speeds up the
-tests when you're running the same test script multiple times without changing
-any Go code.
 
 Also ensure that your `noproxy` environment variable contains `127.0.0.1` host,
 to allow git commands to reach the local Git server `lfstest-gitserver`.
 
-### Test Suite
+## Writing new tests
 
-The `testenv.sh` script includes some global variables used in tests.  This
-should be automatically included in every `test/test-*.sh` script and
-`script/integration`.
+A new test file should be named `t/t-*.sh`, where `*` is the topic of Git LFS
+being tested. It should look as follows:
 
-`testhelpers.sh` defines some shell functions.  Most are only used in the test
-scripts themselves.  `script/integration` uses the `setup()` and `shutdown()`
-functions.
-
-`testlib.sh` is a [fork of a lightweight shell testing lib][testlib] that is
-used internally at GitHub.  Only the `test/test-*.sh` scripts should include
-this.
-
-Tests live in this `./test` directory, and must have a unique name like:
-`test-{name}.sh`. All tests should start with a basic template.  See
-`test/test-happy-path.sh` for an example.
-
-```
+```bash
 #!/usr/bin/env bash
 
-. "t/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
-begin_test "template"
+begin_test "my test"
 (
   set -e
 
-  echo "your tests go here"
+  # ...
 )
 end_test
 ```
-
-The `set -e` command will bail on the test at the first command that returns a
-non zero exit status. Use simple shell commands like `grep` as assertions.
-
-The test suite has standard `setup` and `shutdown` functions that should be
-run only once, before/after running the tests.  The `setup` and `shutdown`
-functions are run by `script/integration` and also by individual test scripts
-when they are executed directly. Setup does the following:
-
-* Resets temporary test directories.
-* Compiles git-lfs with the latest code changes.
-* Compiles Go files in `test/cmd` to `bin`, and adds them the PATH.
-* Spins up a test Git and Git LFS server so the entire push/pull flow can be
-exercised.
-* Sets up a git credential helper that always returns a set username and
-password.
-
-The test Git server writes a `test/remote/url` file when it's complete.  This
-file is how individual test scripts detect if `script/integration` is being
-run.  You can fake this by manually spinning up the Git server using the
-`lfstest-gitserver` line that is output after Git LFS is compiled.
-
-By default, temporary directories in `tmp` and the `test/remote` directory are
-cleared after test runs. Send the "KEEPTRASH" if you want to keep these files
-around for debugging failed tests.
-
-[testlib]: https://gist3.github.com/rtomayko/3877539
