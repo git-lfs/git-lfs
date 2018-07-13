@@ -23,9 +23,9 @@ all : $(DEFAULT_TEST_TARGET)
 
 test : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
-	( . ./testenv.sh && setup )
+	bash -c '. ./testenv.sh && setup'
 	prove $(PROVE_EXTRA_ARGS) ./t-*.sh
-	( . ./testenv.sh && shutdown )
+	bash -c '. ./testenv.sh && shutdown'
 
 ./t-%.sh : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
