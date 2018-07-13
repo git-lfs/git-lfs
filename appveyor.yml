@@ -11,6 +11,8 @@ install:
   - cinst golang --version 1.8.3 -y
   - cinst InnoSetup -y
   - cinst make
+  - cpan App::cpanminus
+  - cpanm TAP::Harness::Env
   - refreshenv
   - ps: |
       echo "Go directories in machine PATH environment:"
