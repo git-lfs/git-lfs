@@ -6,5 +6,10 @@ GOCACHE=off script/test
 GIT_TRACE=1 GOCACHE=off script/test git
 
 pushd t >/dev/null
-  VERBOSE_LOGS=1 make clean && make PROVE_EXTRA_ARGS=-j9
+  UNAME=$(uname -s)
+  X=""
+  if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
+    X=".exe"
+  fi
+  VERBOSE_LOGS=1 make X="$X" clean && make X="$X" PROVE_EXTRA_ARGS=-j9
 popd >/dev/null
