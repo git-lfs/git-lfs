@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -61,7 +62,12 @@ func main() {
 				return n, err
 			}
 
-			cmd := exec.Command("lfstest-gitserver")
+			var cmd *exec.Cmd
+			if runtime.GOOS == "windows" {
+				cmd = exec.Command("lfstest-gitserver.exe")
+			} else {
+				cmd = exec.Command("lfstest-gitserver")
+			}
 			cmd.Env = append(os.Environ(),
 				fmt.Sprintf("LFSTEST_URL=%s", os.Getenv("LFSTEST_URL")),
 				fmt.Sprintf("LFSTEST_SSL_URL=%s", os.Getenv("LFSTEST_SSL_URL")),
