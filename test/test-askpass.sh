@@ -120,15 +120,13 @@ begin_test "askpass: defaults to provided credentials"
   # $password is defined from test/cmd/lfstest-gitserver.go (see: skipIfBadAuth)
   export LFS_ASKPASS_USERNAME="fakeuser"
   export LFS_ASKPASS_PASSWORD="fakepass"
-  git config "credential.helper" ""
+  git config --local "credential.helper" ""
 
   url=$(git config --get remote.origin.url)
   newurl=${url/http:\/\//http:\/\/user\:pass@}
   git remote set-url origin "$newurl"
 
-  GIT_ASKPASS="lfs-askpass" SSH_ASKPASS="dont-call-me" GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
-
-  GITSERVER_USER="$(printf $GITSERVER | sed -e 's/http:\/\//http:\/\/user@/')"
+  GIT_ASKPASS="lfs-askpass" GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
   [ ! $(grep "filling with GIT_ASKPASS" push.log) ]
   grep "master -> master" push.log
