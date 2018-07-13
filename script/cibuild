@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+GOCACHE=off script/bootstrap
 GOCACHE=off script/test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
