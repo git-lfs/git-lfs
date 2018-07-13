@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	. "github.com/git-lfs/git-lfs/t/cmd/util"
 )
 
 type TestUtilRepoCallback struct{}

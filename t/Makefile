@@ -36,5 +36,5 @@ clean :
 	$(RM) -r remote
 	$(RM) $(TEST_CMDS)
 
-../bin/%$X : cmd/%.go cmd/testutils.go
+../bin/%$X : cmd/%.go
 	go build -o $@ $^
