@@ -90,74 +90,70 @@ type AskPassCredentialHelper struct {
 // The ASKPASS program is only queried if a credential was not already
 // provided, i.e. through the git URL
 func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
-	var user bytes.Buffer
-	var pass bytes.Buffer
-	var err bytes.Buffer
-
-	var username string
-	var password string
-
 	u := &url.URL{
 		Scheme: what["protocol"],
 		Host:   what["host"],
 		Path:   what["path"],
 	}
 
-	if givenUser, ok := what["username"]; ok {
-		username = givenUser
-	} else {
-		// 'ucmd' will run the GIT_ASKPASS (or core.askpass) command prompting
-		// for a username.
-		ucmd := exec.Command(a.Program, a.args(fmt.Sprintf("Username for %q", u))...)
-		ucmd.Stderr = &err
-		ucmd.Stdout = &user
+	creds := make(Creds)
 
-		tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(ucmd.Args, " "))
-		if err := ucmd.Run(); err != nil {
+	if givenUser, ok := what["username"]; ok {
+		creds["username"] = givenUser
+	} else {
+		username, err := a.getFromProgram("Username", u)
+		if err != nil {
 			return nil, err
 		}
 
-		if err.Len() > 0 {
-			return nil, errors.New(err.String())
-		}
-		username = user.String()
+		creds["username"] = username
 	}
 
-	username = strings.TrimSpace(username)
-	if len(username) > 0 {
+	if len(creds["username"]) > 0 {
 		// If a non-empty username was given, add it to the URL via func
 		// 'net/url.User()'.
-		u.User = url.User(username)
+		u.User = url.User(creds["username"])
 	}
 
 	if givenPass, ok := what["password"]; ok {
-		password = givenPass
+		creds["password"] = givenPass
 	} else {
-		// Create 'pcmd' to run the GIT_ASKPASS (or core.askpass)
-		// command prompting for a password.
-		pcmd := exec.Command(a.Program, a.args(fmt.Sprintf("Password for %q", u))...)
-		pcmd.Stderr = &err
-		pcmd.Stdout = &pass
-
-		tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(pcmd.Args, " "))
-		if err := pcmd.Run(); err != nil {
+		password, err := a.getFromProgram("Password", u)
+		if err != nil {
 			return nil, err
 		}
 
-		if err.Len() > 0 {
-			return nil, errors.New(err.String())
-		}
-
-		password = pass.String()
+		creds["password"] = password
 	}
 
-	// Finally, now that we have the username and password information,
-	// store it in the creds instance that we will return to the caller.
-	creds := make(Creds)
-	creds["username"] = username
-	creds["password"] = strings.TrimSpace(password)
+	creds["username"] = strings.TrimSpace(creds["username"])
+	creds["password"] = strings.TrimSpace(creds["password"])
 
 	return creds, nil
+}
+
+func (a *AskPassCredentialHelper) getFromProgram(valueType string, u *url.URL) (string, error) {
+	var (
+		value bytes.Buffer
+		err   bytes.Buffer
+	)
+
+	// 'ucmd' will run the GIT_ASKPASS (or core.askpass) command prompting
+	// for the desired valueType (`Username` or `Password`)
+	ucmd := exec.Command(a.Program, a.args(fmt.Sprintf("%s for %q", valueType, u))...)
+	ucmd.Stderr = &err
+	ucmd.Stdout = &value
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(ucmd.Args, " "))
+	if err := ucmd.Run(); err != nil {
+		return "", err
+	}
+
+	if err.Len() > 0 {
+		return "", errors.New(err.String())
+	}
+
+	return strings.TrimSpace(value.String()), nil
 }
 
 // Approve implements CredentialHelper.Approve, and returns nil. The ASKPASS
