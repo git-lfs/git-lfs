@@ -730,6 +730,16 @@ native_path_escaped() {
   escape_path "$unescaped"
 }
 
+# native_path_list_separator prints the operating system-specific path list
+# separator.
+native_path_list_separator() {
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    printf ";";
+  else
+    printf ":";
+  fi
+}
+
 cat_end() {
   if [ $IS_WINDOWS -eq 1 ]; then
     printf '^M$'
