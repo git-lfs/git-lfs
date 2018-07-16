@@ -30,8 +30,8 @@ making use of the built-in shell globbing) by any of the following:
 
 ```ShellSession
 $ make ./t-*.sh
-$ make PROVE_EXTRA_ARGS=-j9 ./t-migrate-*.sh
-$ ./t-migrate-*.sh
+$ make PROVE_EXTRA_ARGS=-j9 ./t-*.sh
+$ ./t-*.sh
 ```
 
 ## Test File(s)
