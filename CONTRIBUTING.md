@@ -59,7 +59,7 @@ In general, contributors should develop on branches based off of `master` and pu
 
 0. [Fork][] and clone the repository
 0. Configure and install the dependencies: `script/bootstrap`
-0. Make sure the tests pass on your machine: `script/test`
+0. Make sure the tests pass on your machine: `make test`
 0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
 0. Make your change, add tests, and make sure the tests still pass
 0. Push to your fork and [submit a pull request][pr] from your branch to `master`
@@ -111,7 +111,7 @@ From here, run `script/bootstrap` to build Git LFS in the `./bin` directory.
 Before submitting changes, be sure to run the Go tests and the shell integration
 tests:
 
-    $ script/test        # runs just the Go tests
+    $ make test          # runs just the Go tests
     $ script/integration # runs the shell tests in ./test
     $ script/cibuild     # runs everything, with verbose debug output
 

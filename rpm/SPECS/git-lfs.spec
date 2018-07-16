@@ -66,7 +66,7 @@ export GIT_LFS_TEST_DIR=$(mktemp -d)
 export SKIPAPITESTCOMPILE=1
 
 pushd src/github.com/git-lfs/%{name}
-  ./script/test
+  make test
   go get github.com/ThomsonReutersEikon/go-ntlm/ntlm
   ./script/integration
 popd

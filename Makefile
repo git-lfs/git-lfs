@@ -1,5 +1,7 @@
 GO ?= go
 
+GO_TEST_EXTRA_ARGS =
+
 GLIDE ?= glide
 
 GREP ?= grep
@@ -30,6 +32,17 @@ PKGS += tools/humanize
 PKGS += tools/kv
 PKGS += tq
 endif
+
+TEST_TARGETS := test-bench test-verbose test-race
+.PHONY : $(TEST_TARGETS) test
+$(TEST_TARGETS) : test
+
+test-bench : GO_TEST_EXTRA_ARGS=-run=__nothing__ -bench=.
+test-verbose : GO_TEST_EXTRA_ARGS=-v
+test-race : GO_TEST_EXTRA_ARGS=-race
+
+test : fmt
+	$(GO) test $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS))
 
 glide.lock : glide.yaml
 	$(GLIDE) update
