@@ -178,7 +178,7 @@ setup_single_local_branch_tracked_corrupt() {
 #
 # - Commit 'A' has 120, 140 bytes of data in a.txt, and a.md, respectively.
 #
-# - Commit 'B' has 30 bytes of data in a.txt, and includes commit 'A' as a
+# - Commit 'B' has 30 bytes of data in a.md, and includes commit 'A' as a
 #   parent.
 setup_multiple_local_branches() {
   set -e
