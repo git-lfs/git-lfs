@@ -118,7 +118,7 @@ tests:
 ## Updating 3rd party packages
 
 0. Update `glide.yaml`.
-0. Run `script/vendor` to update the code in the `vendor` directory.
+0. Run `make vendor` to update the code in the `vendor` directory.
 0. Commit the change.  Git LFS vendors the full source code in the repository.
 0. Submit a pull request.
 
