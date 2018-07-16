@@ -218,6 +218,29 @@ setup_multiple_local_branches_with_gitattrs() {
   git commit -m "add .gitattributes"
 }
 
+# setup_multiple_local_branches_non_standard creates a repository as follows:
+#
+#      refs/pull/1/head
+#     /
+#     |
+#     B
+#    / \
+#   A   refs/heads/my-feature
+#   |\
+#   | refs/heads/master
+#    \
+#     refs/pull/1/base
+#
+# With the same contents in 'A' and 'B' as setup_multiple_local_branches.
+setup_multiple_local_branches_non_standard() {
+  set -e
+
+  setup_multiple_local_branches
+
+  git update-ref --create refs/pull/1/head "$(git rev-parse my-feature)"
+  git update-ref --create refs/pull/1/base "$(git rev-parse master)"
+}
+
 # setup_multiple_local_branches_tracked creates a repo with exactly the same
 # structure as in setup_multiple_local_branches, but with all files tracked by
 # Git LFS
