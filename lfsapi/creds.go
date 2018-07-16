@@ -78,6 +78,14 @@ type AskPassCredentialHelper struct {
 	Program string
 }
 
+type credValueType int
+
+const (
+	credValueTypeUnknown credValueType = iota
+	credValueTypeUsername
+	credValueTypePassword
+)
+
 // Fill implements fill by running the ASKPASS program and returning its output
 // as a password encoded in the Creds type given the key "password".
 //
@@ -98,54 +106,72 @@ func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 
 	creds := make(Creds)
 
-	if givenUser, ok := what["username"]; ok {
-		creds["username"] = givenUser
-	} else {
-		username, err := a.getFromProgram("Username", u)
-		if err != nil {
-			return nil, err
-		}
-
-		creds["username"] = username
+	username, err := a.getValue(what, credValueTypeUsername, u)
+	if err != nil {
+		return nil, err
 	}
+	creds["username"] = username
 
-	if len(creds["username"]) > 0 {
+	if len(username) > 0 {
 		// If a non-empty username was given, add it to the URL via func
 		// 'net/url.User()'.
 		u.User = url.User(creds["username"])
 	}
 
-	if givenPass, ok := what["password"]; ok {
-		creds["password"] = givenPass
-	} else {
-		password, err := a.getFromProgram("Password", u)
-		if err != nil {
-			return nil, err
-		}
-
-		creds["password"] = password
+	password, err := a.getValue(what, credValueTypePassword, u)
+	if err != nil {
+		return nil, err
 	}
-
-	creds["username"] = strings.TrimSpace(creds["username"])
-	creds["password"] = strings.TrimSpace(creds["password"])
+	creds["password"] = password
 
 	return creds, nil
 }
 
-func (a *AskPassCredentialHelper) getFromProgram(valueType string, u *url.URL) (string, error) {
+func (a *AskPassCredentialHelper) getValue(what Creds, valueType credValueType, u *url.URL) (string, error) {
+	var valueString string
+
+	switch valueType {
+	case credValueTypeUsername:
+		valueString = "username"
+	case credValueTypePassword:
+		valueString = "password"
+	default:
+		return "", errors.Errorf("Invalid Credential type queried from AskPass")
+	}
+
+	// Return the existing credential if it was already provided, otherwise
+	// query AskPass for it
+	if given, ok := what[valueString]; ok {
+		return given, nil
+	}
+	return a.getFromProgram(valueType, u)
+}
+
+func (a *AskPassCredentialHelper) getFromProgram(valueType credValueType, u *url.URL) (string, error) {
 	var (
 		value bytes.Buffer
 		err   bytes.Buffer
+
+		valueString string
 	)
 
-	// 'ucmd' will run the GIT_ASKPASS (or core.askpass) command prompting
-	// for the desired valueType (`Username` or `Password`)
-	ucmd := exec.Command(a.Program, a.args(fmt.Sprintf("%s for %q", valueType, u))...)
-	ucmd.Stderr = &err
-	ucmd.Stdout = &value
+	switch valueType {
+	case credValueTypeUsername:
+		valueString = "Username"
+	case credValueTypePassword:
+		valueString = "Password"
+	default:
+		return "", errors.Errorf("Invalid Credential type queried from AskPass")
+	}
 
-	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(ucmd.Args, " "))
-	if err := ucmd.Run(); err != nil {
+	// 'cmd' will run the GIT_ASKPASS (or core.askpass) command prompting
+	// for the desired valueType (`Username` or `Password`)
+	cmd := exec.Command(a.Program, a.args(fmt.Sprintf("%s for %q", valueString, u))...)
+	cmd.Stderr = &err
+	cmd.Stdout = &value
+
+	tracerx.Printf("creds: filling with GIT_ASKPASS: %s", strings.Join(cmd.Args, " "))
+	if err := cmd.Run(); err != nil {
 		return "", err
 	}
 
