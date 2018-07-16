@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/rubyist/tracerx"
 )
 
 var oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
@@ -23,9 +25,9 @@ type Object struct {
 }
 
 type Filesystem struct {
-	GitStorageDir string // parent of objects/lfs (may be same as GitDir but may not)
-	LFSStorageDir string // parent of lfs objects and tmp dirs. Default: ".git/lfs"
-	ReferenceDir  string // alternative local media dir (relative to clone reference repo)
+	GitStorageDir string   // parent of objects/lfs (may be same as GitDir but may not)
+	LFSStorageDir string   // parent of lfs objects and tmp dirs. Default: ".git/lfs"
+	ReferenceDirs []string // alternative local media dirs (relative to clone reference repo)
 	lfsobjdir     string
 	tmpdir        string
 	logdir        string
@@ -105,12 +107,16 @@ func (f *Filesystem) localObjectDir(oid string) string {
 	return filepath.Join(f.LFSObjectDir(), oid[0:2], oid[2:4])
 }
 
-func (f *Filesystem) ObjectReferencePath(oid string) string {
-	if len(f.ReferenceDir) == 0 {
-		return f.ReferenceDir
+func (f *Filesystem) ObjectReferencePaths(oid string) []string {
+	if len(f.ReferenceDirs) == 0 {
+		return nil
 	}
 
-	return filepath.Join(f.ReferenceDir, oid[0:2], oid[2:4], oid)
+	var paths []string
+	for _, ref := range f.ReferenceDirs {
+		paths = append(paths, filepath.Join(ref, oid[0:2], oid[2:4], oid))
+	}
+	return paths
 }
 
 func (f *Filesystem) LFSObjectDir() string {
@@ -164,7 +170,7 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
 
-	fs.ReferenceDir = resolveReferenceDir(fs.GitStorageDir)
+	fs.ReferenceDirs = resolveReferenceDirs(fs.GitStorageDir)
 
 	if len(lfsdir) == 0 {
 		lfsdir = "lfs"
@@ -179,19 +185,55 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 	return fs
 }
 
-func resolveReferenceDir(gitStorageDir string) string {
+func resolveReferenceDirs(gitStorageDir string) []string {
+	var references []string
+
 	cloneReferencePath := filepath.Join(gitStorageDir, "objects", "info", "alternates")
 	if tools.FileExists(cloneReferencePath) {
-		buffer, err := ioutil.ReadFile(cloneReferencePath)
-		if err == nil {
-			path := strings.TrimSpace(string(buffer[:]))
-			referenceLfsStoragePath := filepath.Join(filepath.Dir(path), "lfs", "objects")
-			if tools.DirExists(referenceLfsStoragePath) {
-				return referenceLfsStoragePath
+		f, err := os.Open(cloneReferencePath)
+		if err != nil {
+			tracerx.Printf("could not open %s: %s",
+				cloneReferencePath, err)
+			return nil
+		}
+		defer f.Close()
+
+		scanner := bufio.NewScanner(f)
+	L:
+		for scanner.Scan() {
+			text := strings.TrimSpace(scanner.Text())
+			if len(text) == 0 {
+				continue
+			}
+
+			var objs string
+			switch text[0] {
+			case '#':
+				continue L
+			case '"':
+				unquote := strings.LastIndex(text, "\"")
+				if unquote == 0 {
+					continue L
+				}
+
+				objs, _ = strconv.Unquote(text[:unquote+1])
+			default:
+				objs = text
+			}
+			storage := filepath.Join(filepath.Dir(objs),
+				"lfs", "objects")
+
+			if tools.DirExists(storage) {
+				references = append(references, storage)
 			}
 		}
+
+		if err := scanner.Err(); err != nil {
+			tracerx.Printf("could not scan %s: %s",
+				cloneReferencePath, err)
+		}
 	}
-	return ""
+	return references
 }
 
 // From a git dir, get the location that objects are to be stored (we will store lfs alongside)

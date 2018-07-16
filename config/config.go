@@ -311,8 +311,8 @@ func (c *Configuration) LocalGitStorageDir() string {
 	return c.Filesystem().GitStorageDir
 }
 
-func (c *Configuration) LocalReferenceDir() string {
-	return c.Filesystem().ReferenceDir
+func (c *Configuration) LocalReferenceDirs() []string {
+	return c.Filesystem().ReferenceDirs
 }
 
 func (c *Configuration) LFSStorageDir() string {
