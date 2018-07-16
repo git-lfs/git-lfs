@@ -319,13 +319,16 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	L:
 		for {
 			fmt.Fprintf(out, "migrate: override changes in your working copy? [Y/n] ")
-			s, _, err := answer.ReadLine()
+			s, err := answer.ReadString('\n')
 			if err != nil {
+				if err == io.EOF {
+					break L
+				}
 				ExitWithError(errors.Wrap(err,
 					"fatal: could not read answer"))
 			}
 
-			switch strings.TrimSpace(string(s)) {
+			switch strings.TrimSpace(s) {
 			case "n", "N":
 				proceed = false
 				break L
@@ -333,7 +336,10 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 				proceed = true
 				break L
 			}
-			fmt.Fprintf(out, "\n")
+
+			if !strings.HasSuffix(s, "\n") {
+				fmt.Fprintf(out, "\n")
+			}
 		}
 	}
 
