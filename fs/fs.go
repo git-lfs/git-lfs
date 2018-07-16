@@ -242,7 +242,7 @@ func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
 // not, the empty string and false is returned instead.
 func existsAlternate(objs string) (string, bool) {
 	objs = strings.TrimSpace(objs)
-	if strings.HasPrefix(objs, "#") {
+	if strings.HasPrefix(objs, "\"") {
 		var err error
 
 		unquote := strings.LastIndex(objs, "\"")
