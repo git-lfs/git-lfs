@@ -18,6 +18,14 @@ import (
 
 var oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
 
+// Environment is a copy of a subset of the interface
+// github.com/git-lfs/git-lfs/config.Environment.
+//
+// For more information, see config/environment.go.
+type Environment interface {
+	Get(key string) (val string, ok bool)
+}
+
 // Object represents a locally stored LFS object.
 type Object struct {
 	Oid  string
@@ -165,12 +173,12 @@ func (f *Filesystem) Cleanup() error {
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
-func New(gitdir, workdir, lfsdir string) *Filesystem {
+func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
 	fs := &Filesystem{
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
 
-	fs.ReferenceDirs = resolveReferenceDirs(fs.GitStorageDir)
+	fs.ReferenceDirs = resolveReferenceDirs(env, fs.GitStorageDir)
 
 	if len(lfsdir) == 0 {
 		lfsdir = "lfs"
@@ -185,8 +193,18 @@ func New(gitdir, workdir, lfsdir string) *Filesystem {
 	return fs
 }
 
-func resolveReferenceDirs(gitStorageDir string) []string {
+func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
 	var references []string
+
+	envAlternates, ok := env.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	if ok {
+		splits := strings.Split(envAlternates, string(os.PathListSeparator))
+		for _, split := range splits {
+			if dir, ok := existsAlternate(split); ok {
+				references = append(references, dir)
+			}
+		}
+	}
 
 	cloneReferencePath := filepath.Join(gitStorageDir, "objects", "info", "alternates")
 	if tools.FileExists(cloneReferencePath) {
@@ -199,32 +217,14 @@ func resolveReferenceDirs(gitStorageDir string) []string {
 		defer f.Close()
 
 		scanner := bufio.NewScanner(f)
-	L:
 		for scanner.Scan() {
 			text := strings.TrimSpace(scanner.Text())
-			if len(text) == 0 {
+			if len(text) == 0 || strings.HasPrefix(text, "#") {
 				continue
 			}
 
-			var objs string
-			switch text[0] {
-			case '#':
-				continue L
-			case '"':
-				unquote := strings.LastIndex(text, "\"")
-				if unquote == 0 {
-					continue L
-				}
-
-				objs, _ = strconv.Unquote(text[:unquote+1])
-			default:
-				objs = text
-			}
-			storage := filepath.Join(filepath.Dir(objs),
-				"lfs", "objects")
-
-			if tools.DirExists(storage) {
-				references = append(references, storage)
+			if dir, ok := existsAlternate(text); ok {
+				references = append(references, dir)
 			}
 		}
 
@@ -234,6 +234,34 @@ func resolveReferenceDirs(gitStorageDir string) []string {
 		}
 	}
 	return references
+}
+
+// existsAlternate takes an object directory given in "objs" (read as a single,
+// line from .git/objects/info/alternates). If that is a satisfiable alternates
+// directory (i.e., it exists), the directory is returned along with "true". If
+// not, the empty string and false is returned instead.
+func existsAlternate(objs string) (string, bool) {
+	objs = strings.TrimSpace(objs)
+	if strings.HasPrefix(objs, "\"") {
+		var err error
+
+		unquote := strings.LastIndex(objs, "\"")
+		if unquote == 0 {
+			return "", false
+		}
+
+		objs, err = strconv.Unquote(objs[:unquote+1])
+		if err != nil {
+			return "", false
+		}
+	}
+
+	storage := filepath.Join(filepath.Dir(objs), "lfs", "objects")
+
+	if tools.DirExists(storage) {
+		return storage, true
+	}
+	return "", false
 }
 
 // From a git dir, get the location that objects are to be stored (we will store lfs alongside)
