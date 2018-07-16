@@ -217,10 +217,9 @@ func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
 		defer f.Close()
 
 		scanner := bufio.NewScanner(f)
-	L:
 		for scanner.Scan() {
 			text := strings.TrimSpace(scanner.Text())
-			if len(text) == 0 || strings.StartsWith(text, "#") {
+			if len(text) == 0 || strings.HasPrefix(text, "#") {
 				continue
 			}
 
@@ -243,15 +242,15 @@ func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
 // not, the empty string and false is returned instead.
 func existsAlternate(objs string) (string, bool) {
 	objs = strings.TrimSpace(objs)
-	if objs.StartsWith(objs, "#") {
+	if strings.HasPrefix(objs, "#") {
 		var err error
 
-		unquote := strings.LastIndex(text, "\"")
+		unquote := strings.LastIndex(objs, "\"")
 		if unquote == 0 {
-			continue L
+			return "", false
 		}
 
-		objs, err = strconv.Unquote(text[:unquote+1])
+		objs, err = strconv.Unquote(objs[:unquote+1])
 		if err != nil {
 			return "", false
 		}
