@@ -32,6 +32,10 @@ var (
 	// errCouldNotAcquire indicates that the program could not acquire the
 	// lock needed to modify the test_count. It is a fatal error.
 	errCouldNotAcquire = fmt.Errorf("could not acquire lock, dying")
+	// errNegativeCount indicates that the count in test_count was negative,
+	// which is unexpected and makes this script behave in an undefined
+	// fashion
+	errNegativeCount = fmt.Errorf("unexpected negative count")
 )
 
 // countFn is a type signature that all functions who wish to modify the
@@ -222,6 +226,10 @@ func callWithCount(fn countFn) error {
 		n, err = strconv.Atoi(string(contents))
 		if err != nil {
 			return err
+		}
+
+		if n < 0 {
+			return errNegativeCount
 		}
 	}
 
