@@ -22,6 +22,6 @@ if uname -s | grep -q "_NT-"; then
   go generate
 fi
 
-script/fmt
+make fmt
 rm -rf bin/*
 GO15VENDOREXPERIMENT=1 go run script/*.go -cmd build "$@"

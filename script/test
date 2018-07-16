@@ -24,7 +24,7 @@ else
                 | sed -e 's/^\([^\.]\)/.\/\1/g')"
 fi
 
-script/fmt
+make fmt
 
 GO15VENDOREXPERIMENT=1 go test $PACKAGES
 GO15VENDOREXPERIMENT=1 go tool vet $(
