@@ -156,3 +156,29 @@ begin_test "checkout: outside git repository"
   grep "Not in a git repository" checkout.log
 )
 end_test
+
+begin_test "checkout: write-only file"
+(
+  set -e
+
+  reponame="checkout-locked"
+  filename="a.txt"
+
+  setup_remote_repo_with_file "$reponame" "$filename"
+
+  pushd "$TRASHDIR" > /dev/null
+    GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}_checkout"
+
+    chmod -w "$filename"
+
+    refute_file_writeable "$filename"
+    assert_pointer "refs/heads/master" "$filename" "$(calc_oid "$filename\n")" 6
+
+    git lfs fetch
+    git lfs checkout "$filename"
+
+    refute_file_writeable "$filename"
+    [ "$filename" = "$(cat "$filename")" ]
+  popd > /dev/null
+)
+end_test

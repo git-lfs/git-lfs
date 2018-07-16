@@ -16,6 +16,18 @@ import (
 
 func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb tools.CopyCallback) error {
 	os.MkdirAll(filepath.Dir(filename), 0755)
+
+	if stat, _ := os.Stat(filename); stat != nil && stat.Mode()&0200 == 0 {
+		if err := os.Chmod(filename, stat.Mode()|0200); err != nil {
+			return errors.Wrap(err,
+				"Could not restore write permission")
+		}
+
+		// When we're done, return the file back to its normal
+		// permission bits.
+		defer os.Chmod(filename, stat.Mode())
+	}
+
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
