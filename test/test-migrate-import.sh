@@ -746,3 +746,20 @@ begin_test "migrate import (dirty copy, unknown then negative answer)"
   assert_ref_unmoved "master" "$original_master" "$migrated_master"
 )
 end_test
+
+begin_test "migrate import (dirty copy, positive answer)"
+(
+  set -e
+
+  setup_local_branch_with_dirty_copy
+
+  oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+
+  echo "y" | git lfs migrate import --everything 2>&1 | tee migrate.log
+  grep "migrate: changes in your working copy will be overridden ..." \
+    migrate.log
+
+  assert_pointer "refs/heads/master" "a.txt" "$oid" "5"
+  assert_local_object "$oid" "5"
+)
+end_test
