@@ -9,25 +9,27 @@ XARGS ?= xargs
 GOIMPORTS ?= goimports
 GOIMPORTS_EXTRA_OPTS ?= -w -l
 
-LFS_PACKAGES =
-LFS_PACKAGES += commands
-LFS_PACKAGES += config
-LFS_PACKAGES += errors
-LFS_PACKAGES += filepathfilter
-LFS_PACKAGES += fs
-LFS_PACKAGES += git
-LFS_PACKAGES += git/gitattr
-LFS_PACKAGES += git/githistory
-LFS_PACKAGES += git
-LFS_PACKAGES += lfs
-LFS_PACKAGES += lfsapi
-LFS_PACKAGES += locking
-LFS_PACKAGES += subprocess
-LFS_PACKAGES += tasklog
-LFS_PACKAGES += tools
-LFS_PACKAGES += tools/humanize
-LFS_PACKAGES += tools/kv
-LFS_PACKAGES += tq
+ifndef PKGS
+PKGS =
+PKGS += commands
+PKGS += config
+PKGS += errors
+PKGS += filepathfilter
+PKGS += fs
+PKGS += git
+PKGS += git/gitattr
+PKGS += git/githistory
+PKGS += git
+PKGS += lfs
+PKGS += lfsapi
+PKGS += locking
+PKGS += subprocess
+PKGS += tasklog
+PKGS += tools
+PKGS += tools/humanize
+PKGS += tools/kv
+PKGS += tq
+endif
 
 glide.lock : glide.yaml
 	$(GLIDE) update
@@ -38,10 +40,10 @@ vendor : glide.lock
 	$(RM) -r vendor/github.com/davecgh/go-spew
 	$(RM) -r vendor/github.com/pmezard/go-difflib
 
-fmt : $(LFS_PACKAGES) | lint
+fmt : $(PKGS) | lint
 	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?
 
-lint : $(LFS_PACKAGES)
+lint : $(PKGS)
 	$(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
