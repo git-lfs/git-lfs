@@ -39,7 +39,8 @@ $ ./t-*.sh
 There are a few important kinds of files to know about in the `t` directory:
 
 - `cmd/`: contains the source code of binaries that are useful during test
-  time, like the mocked Git server, or the test counting binary.
+  time, like the mocked Git server, or the test counting binary. For more about
+  the contents of this directory, see [test lifecycle](#test-lifecycle) below.
 
   The file `t/cmd/testutils.go` is automatically linked and included during the
   build process of each file in `cmd`.
