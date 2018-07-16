@@ -124,7 +124,7 @@ func main() {
 			if err := cmd.Start(); err != nil {
 				return n, err
 			}
-			return n + 1, nil
+			return 1, nil
 		})
 	case "decrement":
 		err = callWithCount(func(n int) (int, error) {
