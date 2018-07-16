@@ -707,3 +707,42 @@ begin_test "migrate import (multiple remotes)"
   assert_ref_unmoved "master" "$original_master" "$migrated_master"
 )
 end_test
+
+begin_test "migrate import (dirty copy, negative answer)"
+(
+  set -e
+
+  setup_local_branch_with_dirty_copy
+
+  original_master="$(git rev-parse master)"
+
+  echo "n" | git lfs migrate import --everything 2>&1 | tee migrate.log
+  grep "migrate: working copy must not be dirty" migrate.log
+
+  migrated_master="$(git rev-parse master)"
+
+  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+)
+end_test
+
+begin_test "migrate import (dirty copy, unknown then negative answer)"
+(
+  set -e
+
+  setup_local_branch_with_dirty_copy
+
+  original_master="$(git rev-parse master)"
+
+  echo "x\nn" | git lfs migrate import --everything 2>&1 | tee migrate.log
+
+  cat migrate.log
+
+  [ "2" -eq "$(grep -o "override changes in your working copy" migrate.log \
+    | wc -l | awk '{ print $1 }')" ]
+  grep "migrate: working copy must not be dirty" migrate.log
+
+  migrated_master="$(git rev-parse master)"
+
+  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+)
+end_test
