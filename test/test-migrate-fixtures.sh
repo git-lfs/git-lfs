@@ -559,7 +559,7 @@ setup_local_branch_with_symlink() {
 #    \
 #     refs/heads/master
 #
-# - Commit 'A' has the contents "a.txt\n" in a.txt, and marks a.txt as unclean
+# - Commit 'A' has the contents "a.txt in a.txt, and marks a.txt as unclean
 #   in the working copy.
 setup_local_branch_with_dirty_copy() {
   set -e
@@ -567,12 +567,12 @@ setup_local_branch_with_dirty_copy() {
   reponame="migrate-single-local-branch-with-dirty-copy"
   remove_and_create_local_repo "$reponame"
 
-  echo "a.txt" > a.txt
+  printf "a.txt" > a.txt
 
   git add a.txt
   git commit -m "initial commit"
 
-  echo "2" >> a.txt
+  printf "2" >> a.txt
 }
 
 # make_bare converts the existing full checkout of a repository into a bare one,
