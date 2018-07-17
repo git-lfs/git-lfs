@@ -237,8 +237,8 @@ setup_multiple_local_branches_non_standard() {
 
   setup_multiple_local_branches
 
-  git update-ref --create refs/pull/1/head "$(git rev-parse my-feature)"
-  git update-ref --create refs/pull/1/base "$(git rev-parse master)"
+  git update-ref refs/pull/1/head "$(git rev-parse my-feature)"
+  git update-ref refs/pull/1/base "$(git rev-parse master)"
 }
 
 # setup_multiple_local_branches_tracked creates a repo with exactly the same
