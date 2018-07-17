@@ -505,14 +505,16 @@ setup() {
   git lfs version | sed -e 's/^/# /g'
   git version | sed -e 's/^/# /g'
 
-  LFSTEST_URL="$LFS_URL_FILE" \
-  LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" \
-  LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" \
-  LFSTEST_DIR="$REMOTEDIR" \
-  LFSTEST_CERT="$LFS_CERT_FILE" \
-  LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
-  LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
-    lfstest-count-tests increment
+  if [ -z "$GIT_LFS_NO_TEST_COUNT" ]; then
+    LFSTEST_URL="$LFS_URL_FILE" \
+    LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" \
+    LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" \
+    LFSTEST_DIR="$REMOTEDIR" \
+    LFSTEST_CERT="$LFS_CERT_FILE" \
+    LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
+    LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
+      lfstest-count-tests increment
+  fi
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
@@ -564,9 +566,11 @@ shutdown() {
   # every t/t-*.sh file should cleanup its trashdir
   [ -z "$KEEPTRASH" ] && rm -rf "$TRASHDIR"
 
-  LFSTEST_DIR="$REMOTEDIR" \
-  LFS_URL_FILE="$LFS_URL_FILE" \
-    lfstest-count-tests decrement
+  if [ -z "$GIT_LFS_NO_TEST_COUNT" ]; then
+    LFSTEST_DIR="$REMOTEDIR" \
+    LFS_URL_FILE="$LFS_URL_FILE" \
+      lfstest-count-tests decrement
+  fi
 }
 
 tap_show_plan() {

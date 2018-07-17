@@ -12,5 +12,15 @@ pushd t >/dev/null
   if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
     X=".exe"
   fi
-  VERBOSE_LOGS=1 make X="$X" clean && make X="$X" PROVE_EXTRA_ARGS=-j9
+
+  PROVE="prove"
+  PROVE_EXTRA_ARGS="-j9"
+  if [ -n "$APPVEYOR" ]; then
+    export PATH="/c/Strawberry/perl/bin:.:$PATH"
+    PROVE="prove.bat"
+    PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS --exec bash"
+  fi
+
+  VERBOSE_LOGS=1 make X="$X" clean
+  VERBOSE_LOGS=1 make X="$X" PROVE="$PROVE" PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS"
 popd >/dev/null

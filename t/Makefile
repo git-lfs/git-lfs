@@ -23,13 +23,13 @@ all : $(DEFAULT_TEST_TARGET)
 
 test : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
-	bash -c '. ./testenv.sh && setup'
-	prove $(PROVE_EXTRA_ARGS) ./t-*.sh
-	bash -c '. ./testenv.sh && shutdown'
+	@GIT_LFS_NO_TEST_COUNT= bash -c '. ./testenv.sh && setup'
+	$(PROVE) $(PROVE_EXTRA_ARGS) ./t-*.sh
+	@GIT_LFS_NO_TEST_COUNT= bash -c '. ./testenv.sh && shutdown'
 
 ./t-%.sh : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
-	prove -v $(PROVE_EXTRA_ARGS) $@
+	$(PROVE) -v $(PROVE_EXTRA_ARGS) $@
 
 .PHONY : clean
 clean :
