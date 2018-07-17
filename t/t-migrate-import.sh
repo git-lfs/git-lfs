@@ -707,3 +707,29 @@ begin_test "migrate import (multiple remotes)"
   assert_ref_unmoved "master" "$original_master" "$migrated_master"
 )
 end_test
+
+begin_test "migrate import (non-standard refs)"
+(
+  set -e
+
+  setup_multiple_local_branches_non_standard
+
+  md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  md_feature_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
+
+  git lfs migrate import --everything
+
+  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/pull/1/base" "a.md" "$md_oid" "140"
+  assert_pointer "refs/pull/1/base" "a.txt" "$txt_oid" "120"
+
+  assert_pointer "refs/heads/my-feature" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/pull/1/head" "a.txt" "$txt_oid" "120"
+
+  assert_local_object "$md_oid" "140"
+  assert_local_object "$txt_oid" "120"
+  assert_local_object "$md_feature_oid" "30"
+)
+end_test

@@ -190,8 +190,8 @@ The following configuration:
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
 
-The presence of flag `--everything` indicates that all local references should be
-migrated.
+The presence of flag `--everything` indicates that all local and remote
+references should be migrated.
 
 ## EXAMPLES
 
@@ -253,16 +253,20 @@ Note: This will require a force push to any existing Git remotes.
 
 ### Migrate without rewriting local history
 
-You can also migrate files without modifying the existing history of your respoitory:
+You can also migrate files without modifying the existing history of your
+repository:
 
 Without a specified commit message:
+
 ```
-    git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
+$ git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
 ```
+
 With a specified commit message:
+
 ```
-    git lfs migrate import --no-rewrite -m "Import .zip, .mp3, .psd files" \
-      test.zip *.mpd *.psd
+$ git lfs migrate import --no-rewrite -m "Import .zip, .mp3, .psd files" \
+  test.zip *.mpd *.psd
 ```
 
 ## SEE ALSO
