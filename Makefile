@@ -27,6 +27,7 @@ XARGS ?= xargs
 GOIMPORTS ?= goimports
 GOIMPORTS_EXTRA_OPTS ?= -w -l
 
+SOURCES = $(shell find . -type f -name '*.go')
 ifndef PKGS
 PKGS =
 PKGS += commands
@@ -87,10 +88,10 @@ bin/git-lfs-windows-amd64.exe : version-info fmt
 bin/git-lfs-windows-386.exe : version-info fmt
 	$(call BUILD,windows,386,-windows-386.exe)
 
-bin/git-lfs : git-lfs.go $(PKGS)
+bin/git-lfs : $(SOURCES)
 	$(call BUILD,$(GOOS),$(GOARCH),)
 
-bin/git-lfs.exe : git-lfs.go $(PKGS) version-info
+bin/git-lfs.exe : $(SOURCES) version-info
 	$(call BUILD,$(GOOS),$(GOARCH),.exe)
 
 .PHONY : version-info
@@ -142,11 +143,11 @@ vendor : glide.lock
 	$(RM) -r vendor/github.com/pmezard/go-difflib
 
 .PHONY : fmt
-fmt : $(PKGS) | lint
+fmt : $(SOURCES) | lint
 	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?
 
 .PHONY : lint
-lint : $(PKGS)
+lint : $(SOURCES)
 	$(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
