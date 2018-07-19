@@ -145,9 +145,6 @@ pushd ${CURDIR}/..
   #(that yes, I could have gotten from git myself)
   LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')
   sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
-  #LFS_SHA=$(git rev-parse --short HEAD)
-  #sed -i 's|\(^commit=*\).*|\1'"${LFS_SHA}"'|' ./script/run
-  #Not needed thanks to #549
 popd
 
 #Prep the SOURCES dir for git-lfs
