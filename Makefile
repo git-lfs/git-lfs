@@ -20,6 +20,9 @@ GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
 GLIDE ?= glide
 
+RONN ?= ronn
+RONN_EXTRA_ARGS ?=
+
 GREP ?= grep
 RM ?= rm -f
 XARGS ?= xargs
@@ -151,3 +154,76 @@ lint : $(SOURCES)
 	$(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
+
+MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
+  man/git-lfs-clean.1 \
+  man/git-lfs-clone.1 \
+  man/git-lfs-config.5 \
+  man/git-lfs-env.1 \
+  man/git-lfs-ext.1 \
+  man/git-lfs-fetch.1 \
+  man/git-lfs-filter-process.1 \
+  man/git-lfs-fsck.1 \
+  man/git-lfs-install.1 \
+  man/git-lfs-lock.1 \
+  man/git-lfs-locks.1 \
+  man/git-lfs-logs.1 \
+  man/git-lfs-ls-files.1 \
+  man/git-lfs-migrate.1 \
+  man/git-lfs-pointer.1 \
+  man/git-lfs-post-checkout.1 \
+  man/git-lfs-post-merge.1 \
+  man/git-lfs-pre-push.1 \
+  man/git-lfs-prune.1 \
+  man/git-lfs-pull.1 \
+  man/git-lfs-push.1 \
+  man/git-lfs-smudge.1 \
+  man/git-lfs-status.1 \
+  man/git-lfs-track.1 \
+  man/git-lfs-uninstall.1 \
+  man/git-lfs-unlock.1 \
+  man/git-lfs-untrack.1 \
+  man/git-lfs-update.1 \
+  man/git-lfs.1
+
+MAN_HTML_TARGETS = man/git-lfs-checkout.1.html \
+  man/git-lfs-clean.1.html \
+  man/git-lfs-clone.1.html \
+  man/git-lfs-config.5.html \
+  man/git-lfs-env.1.html \
+  man/git-lfs-ext.1.html \
+  man/git-lfs-fetch.1.html \
+  man/git-lfs-filter-process.1.html \
+  man/git-lfs-fsck.1.html \
+  man/git-lfs-install.1.html \
+  man/git-lfs-lock.1.html \
+  man/git-lfs-locks.1.html \
+  man/git-lfs-logs.1.html \
+  man/git-lfs-ls-files.1.html \
+  man/git-lfs-migrate.1.html \
+  man/git-lfs-pointer.1.html \
+  man/git-lfs-post-checkout.1.html \
+  man/git-lfs-post-merge.1.html \
+  man/git-lfs-pre-push.1.html \
+  man/git-lfs-prune.1.html \
+  man/git-lfs-pull.1.html \
+  man/git-lfs-push.1.html \
+  man/git-lfs-smudge.1.html \
+  man/git-lfs-status.1.html \
+  man/git-lfs-track.1.html \
+  man/git-lfs-uninstall.1.html \
+  man/git-lfs-unlock.1.html \
+  man/git-lfs-untrack.1.html \
+  man/git-lfs-update.1.html \
+  man/git-lfs.1.html
+
+.PHONY : man
+man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
+
+man/% : docs/man/%.ronn
+	@mkdir -p man
+	$(RONN) $(RONN_EXTRA_ARGS) -r --pipe < $^ > $@
+
+man/%.html : docs/man/%.ronn
+	@mkdir -p man
+	$(RONN) $(RONN_EXTRA_ARGS) -5 --pipe < $^ > $@

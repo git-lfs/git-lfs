@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#/usr/bin/env bash
 ronn=`which ronn`
 
 if [ -x "$ronn" ]; then

@@ -40,7 +40,7 @@ pushd src/github.com/git-lfs/%{name}
     GOARCH=amd64 make
   %endif
 popd
-./script/man
+make man
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT

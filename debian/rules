@@ -41,7 +41,7 @@ override_dh_auto_build:
 	fi
 	rm $(BUILD_DIR)/bin/script
 	rm $(BUILD_DIR)/bin/man
-	./script/man
+	make man
 
 override_dh_strip:
 	# strip disabled as golang upstream doesn't support it and it makes go
