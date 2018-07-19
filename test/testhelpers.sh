@@ -493,13 +493,6 @@ setup() {
   rm -rf "$REMOTEDIR"
   mkdir "$REMOTEDIR"
 
-  if [ -z "$SKIPCOMPILE" ] && [ -z "$LFS_BIN" ]; then
-    echo "compile git-lfs for $0"
-    script/bootstrap || {
-      return $?
-    }
-  fi
-
   echo "Git LFS: ${LFS_BIN:-$(which git-lfs)}"
   git lfs version
   git version

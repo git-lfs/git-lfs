@@ -140,7 +140,7 @@ fi
 
 pushd ${CURDIR}/..
   #Yes, compile lfs before compiling lfs...
-  ./script/bootstrap
+  make
   #Use the version output to grab the version number and short sha
   #(that yes, I could have gotten from git myself)
   LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')

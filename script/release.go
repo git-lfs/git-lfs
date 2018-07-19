@@ -25,7 +25,7 @@ func mainRelease() {
 	file, err := os.Open("bin/releases/build_matrix.json")
 	if err != nil {
 		log.Println("Error opening build_matrix.json:", err)
-		log.Fatalln("Ensure `script/bootstrap -all` has completed successfully")
+		log.Fatalln("Ensure `make release` has completed successfully")
 	}
 
 	defer file.Close()

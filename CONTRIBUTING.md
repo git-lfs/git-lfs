@@ -58,7 +58,7 @@ In general, contributors should develop on branches based off of `master` and pu
 ## Submitting a pull request
 
 0. [Fork][] and clone the repository
-0. Configure and install the dependencies: `script/bootstrap`
+0. Configure and install the dependencies: `make`
 0. Make sure the tests pass on your machine: `make test`
 0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
 0. Make your change, add tests, and make sure the tests still pass
@@ -107,8 +107,8 @@ your projects in a specific directory, you can symlink it from `$GOPATH`:
     $ cd ~/path/to/your/projects
     $ ln -s $GOPATH/src/github.com/git-lfs/git-lfs
 
-From here, run `script/bootstrap` to build Git LFS in the `./bin` directory.
-Before submitting changes, be sure to run the Go tests and the shell integration
+From here, run `make` to build Git LFS in the `./bin` directory. Before
+submitting changes, be sure to run the Go tests and the shell integration
 tests:
 
     $ make test          # runs just the Go tests
@@ -128,11 +128,11 @@ If you are the current maintainer:
 
 * Create a [new draft Release](https://github.com/git-lfs/git-lfs/releases/new).
 List any changes with links to related PRs.
-* Make sure your local dependencies are up to date: `script/bootstrap`
+* Make sure your local dependencies are up to date: `make vendor`
 * Ensure that tests are green: `script/cibuild`
 * Bump the version in `lfs/lfs.go`, [like this](https://github.com/git-lfs/git-lfs/commit/dd17828e4a6f2394cbba8621037199dc28f046e8).
 * Add the new version to the top of CHANGELOG.md
-* Build for all platforms with `script/bootstrap -all` (you need Go setup for
+* Build for all platforms with `make release` (you need Go setup for
 cross compiling with Mac, Linux, FreeBSD, and Windows support).
 * Test the command locally.  The compiled version will be in `bin/releases/{os}-{arch}/git-lfs-{version}/git-lfs`
 * Get the draft Release ID from the GitHub API: `curl -in https://api.github.com/repos/git-lfs/git-lfs/releases`
