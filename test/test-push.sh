@@ -61,6 +61,27 @@ begin_test "push with bad ref"
 )
 end_test
 
+begin_test "push with given remote, configured pushRemote"
+(
+  set -e
+  reponame="push-given-and-config"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git remote add bad-remote "invalid-url"
+
+  git config branch.master.pushRemote bad-remote
+
+  git lfs push --all origin
+)
+end_test
+
 begin_test "push"
 (
   set -e
