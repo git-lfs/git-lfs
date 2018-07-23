@@ -3,6 +3,8 @@
 # Usage: script/test          # run all non-vendored tests
 #        script/test <subpkg> # run just a package's tests
 
+set -e
+
 PACKAGES="$@"
 if [ $# -eq 0 ]; then
   # The following vendor test-exclusion grep-s typically need to match the same

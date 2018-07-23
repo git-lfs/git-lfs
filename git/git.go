@@ -1192,3 +1192,21 @@ func IsFileModified(filepath string) (bool, error) {
 
 	return matched, nil
 }
+
+// IsWorkingCopyDirty returns true if and only if the working copy in which the
+// command was executed is dirty as compared to the index.
+//
+// If the status of the working copy could not be determined, an error will be
+// returned instead.
+func IsWorkingCopyDirty() (bool, error) {
+	bare, err := IsBare()
+	if bare || err != nil {
+		return false, err
+	}
+
+	out, err := gitSimple("status", "--porcelain")
+	if err != nil {
+		return false, err
+	}
+	return len(out) != 0, nil
+}

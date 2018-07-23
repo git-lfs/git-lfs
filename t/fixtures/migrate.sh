@@ -576,6 +576,28 @@ setup_local_branch_with_symlink() {
   git commit -m "add symlink"
 }
 
+# setup_local_branch_with_dirty_copy creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/master
+#
+# - Commit 'A' has the contents "a.txt in a.txt, and marks a.txt as unclean
+#   in the working copy.
+setup_local_branch_with_dirty_copy() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-dirty-copy"
+  remove_and_create_local_repo "$reponame"
+
+  printf "a.txt" > a.txt
+
+  git add a.txt
+  git commit -m "initial commit"
+
+  printf "2" >> a.txt
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {
@@ -610,4 +632,6 @@ remove_and_create_remote_repo() {
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
+
+  rm clone.log
 }
