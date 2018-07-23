@@ -232,8 +232,20 @@ func (c *Configuration) SetValidRemote(name string) error {
 	return nil
 }
 
+func (c *Configuration) SetValidPushRemote(name string) error {
+	if err := git.ValidateRemote(name); err != nil {
+		return err
+	}
+	c.SetPushRemote(name)
+	return nil
+}
+
 func (c *Configuration) SetRemote(name string) {
 	c.currentRemote = &name
+}
+
+func (c *Configuration) SetPushRemote(name string) {
+	c.pushRemote = &name
 }
 
 func (c *Configuration) Remotes() []string {

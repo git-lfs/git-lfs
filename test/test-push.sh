@@ -2,10 +2,11 @@
 
 . "test/testlib.sh"
 
-begin_test "push with good ref"
-(
-  set -e
-  reponame="push-master-branch-required"
+# sets up the repos for the first few push tests. The passed argument is the
+# name of the repo to setup. The resuling repo will have a local file tracked
+# with LFS and committed, but not yet pushed to the remote
+push_repo_setup() {
+  reponame="$1"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -14,6 +15,12 @@ begin_test "push with good ref"
   echo "push a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
+}
+
+begin_test "push with good ref"
+(
+  set -e
+  push_repo_setup "push-master-branch-required"
 
   git lfs push origin master
 )
@@ -22,15 +29,8 @@ end_test
 begin_test "push with tracked ref"
 (
   set -e
-  reponame="push-tracked-branch-required"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame"
 
-  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
-  git lfs track "*.dat"
-  echo "push a" > a.dat
-  git add .gitattributes a.dat
-  git commit -m "add a.dat"
+  push_repo_setup "push-tracked-branch-required"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
@@ -41,15 +41,7 @@ end_test
 begin_test "push with bad ref"
 (
   set -e
-  reponame="push-other-branch-required"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame"
-
-  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
-  git lfs track "*.dat"
-  echo "push a" > a.dat
-  git add .gitattributes a.dat
-  git commit -m "add a.dat"
+  push_repo_setup "push-other-branch-required"
 
   git lfs push origin master 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
@@ -58,6 +50,19 @@ begin_test "push with bad ref"
   fi
 
   grep 'batch response: Expected ref "refs/heads/other", got "refs/heads/master"' push.log
+)
+end_test
+
+begin_test "push with given remote, configured pushRemote"
+(
+  set -e
+  push_repo_setup "push-given-and-config"
+
+  git remote add bad-remote "invalid-url"
+
+  git config branch.master.pushRemote bad-remote
+
+  git lfs push --all origin
 )
 end_test
 
