@@ -11,7 +11,7 @@ begin_test "migrate import (--fixup)"
 
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
 
-  git lfs migrate import --everything --fixup
+  git lfs migrate import --everything --fixup --yes
 
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
   assert_local_object "$txt_oid" "120"
@@ -31,7 +31,7 @@ begin_test "migrate import (--fixup, complex nested)"
   a_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
   b_oid="$(calc_oid "$(git cat-file -p :dir/b.txt)")"
 
-  git lfs migrate import --everything --fixup
+  git lfs migrate import --everything --fixup --yes
 
   assert_pointer "refs/heads/master" "a.txt" "$a_oid" "1"
   refute_pointer "refs/heads/master" "b.txt"
@@ -53,7 +53,7 @@ begin_test "migrate import (--fixup, --include)"
 
   setup_single_local_branch_tracked_corrupt
 
-  git lfs migrate import --everything --fixup --include="*.txt" 2>&1 \
+  git lfs migrate import --everything --fixup --yes --include="*.txt" 2>&1 \
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then
@@ -71,7 +71,7 @@ begin_test "migrate import (--fixup, --exclude)"
 
   setup_single_local_branch_tracked_corrupt
 
-  git lfs migrate import --everything --fixup --exclude="*.txt" 2>&1 \
+  git lfs migrate import --everything --fixup --yes --exclude="*.txt" 2>&1 \
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then
@@ -89,7 +89,7 @@ begin_test "migrate import (--fixup, --no-rewrite)"
 
   setup_single_local_branch_tracked_corrupt
 
-  git lfs migrate import --everything --fixup --no-rewrite 2>&1 \
+  git lfs migrate import --everything --fixup --yes --no-rewrite 2>&1 \
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then

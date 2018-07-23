@@ -132,7 +132,7 @@ begin_test "migrate export (bare repository)"
 
   md_oid="$(calc_oid "$(cat a.md)")"
   txt_oid="$(calc_oid "$(cat a.txt)")"
-  
+
   make_bare
 
   assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
@@ -198,7 +198,7 @@ begin_test "migrate export (no filter)"
 
   setup_multiple_local_branches_tracked
 
-  git lfs migrate export 2>&1 | tee migrate.log
+  git lfs migrate export --yes 2>&1 | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate export to fail, didn't"
     exit 1
@@ -330,7 +330,7 @@ begin_test "migrate export (include/exclude ref)"
     --include="*.txt" \
     --include-ref=refs/heads/my-feature \
     --exclude-ref=refs/heads/master
-  
+
   assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "21"
   assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "20"
 
@@ -432,7 +432,8 @@ begin_test "migrate export (invalid --remote)"
 
   setup_single_remote_branch_tracked
 
-  git lfs migrate export --include="*" --remote="zz" 2>&1 | tee migrate.log
+  git lfs migrate export --include="*" --remote="zz" --yes 2>&1 \
+    | tee migrate.log
   if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo >&2 "fatal: expected git lfs migrate export to fail, didn't"
     exit 1
