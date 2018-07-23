@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfs"
-	"github.com/git-lfs/git-lfs/test"
+	test "github.com/git-lfs/git-lfs/t/cmd/util"
 	"github.com/stretchr/testify/assert"
 )
 

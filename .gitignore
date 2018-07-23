@@ -8,7 +8,9 @@ man/*
 
 *.test
 tmp
-test/remote
+t/remote
+t/test_count
+t/test_count.lock
 
 debian/git-lfs/
 debian/*.log

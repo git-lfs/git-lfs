@@ -20,8 +20,6 @@ func main() {
 		mainBuild()
 	case "release":
 		mainRelease()
-	case "integration":
-		mainIntegration()
 	default:
 		log.Fatalln("Unknown command:", *SubCommand)
 	}
