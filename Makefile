@@ -178,7 +178,7 @@ bin/git-lfs.exe : $(SOURCES) resource.syso
 # Windows installer.
 resource.syso:
 	go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
-	PATH="$$PATH:$$GOPATH/bin/windows_386" $(GO) generate
+	$(GO) generate
 
 # RELEASE_TARGETS is the set of all release artifacts that we generate over a
 # particular release. They each have a corresponding entry in BUILD_TARGETS as
