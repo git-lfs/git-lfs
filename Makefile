@@ -140,8 +140,8 @@ all build : $(BUILD_TARGETS)
 # They function by translating target names into arguments for the above BUILD
 # builtin, and appending the appropriate suffix to the build target.
 #
-# On Windows, they also depend on the .PHONY version-info target, which installs
-# and embeds the versioninfo into the binary.
+# On Windows, they also depend on the resource.syso target, which installs and
+# embeds the versioninfo into the binary.
 bin/git-lfs-darwin-amd64 : $(SOURCES)
 	$(call BUILD,darwin,amd64,-darwin-amd64)
 bin/git-lfs-darwin-386 : $(SOURCES)
@@ -154,9 +154,9 @@ bin/git-lfs-freebsd-amd64 : $(SOURCES)
 	$(call BUILD,freebsd,amd64,-freebsd-amd64)
 bin/git-lfs-freebsd-386 : $(SOURCES)
 	$(call BUILD,freebsd,386,-freebsd-386)
-bin/git-lfs-windows-amd64.exe : version-info $(SOURCES)
+bin/git-lfs-windows-amd64.exe : resource.syso $(SOURCES)
 	$(call BUILD,windows,amd64,-windows-amd64.exe)
-bin/git-lfs-windows-386.exe : version-info $(SOURCES)
+bin/git-lfs-windows-386.exe : resource.syso $(SOURCES)
 	$(call BUILD,windows,386,-windows-386.exe)
 
 # .DEFAULT_GOAL sets the operating system-appropriate Git LFS binary as the
@@ -170,16 +170,15 @@ bin/git-lfs : $(SOURCES) fmt
 
 # bin/git-lfs targets the default output of Git LFS on Windows systems, and
 # respects the build knobs as above.
-bin/git-lfs.exe : $(SOURCES) version-info
+bin/git-lfs.exe : $(SOURCES) resource.syso
 	$(call BUILD,$(GOOS),$(GOARCH),.exe)
 
-# version-info installs the 'goversioninfo' command and uses it in order to
+# resource.syso install the 'goversioninfo' command and uses it in order to
 # generate a binary that has information included necessary to create the
 # Windows installer.
-.PHONY : version-info
-version-info:
+resource.syso:
 	go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
-	PATH=$$PATH:$$GOPATH/bin/windows_386 $(GO) generate
+	PATH="$$PATH:$$GOPATH/bin/windows_386" $(GO) generate
 
 # RELEASE_TARGETS is the set of all release artifacts that we generate over a
 # particular release. They each have a corresponding entry in BUILD_TARGETS as
