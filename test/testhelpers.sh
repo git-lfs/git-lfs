@@ -40,7 +40,7 @@ refute_pointer() {
 
   file=$(git cat-file -p $gitblob)
   version="version https://git-lfs.github.com/spec/v[0-9]"
-  oid="oid sha256:[0-9a-f]\{32\}"
+  oid="oid sha256:[0-9a-f]\{64\}"
   size="size [0-9]*"
   regex="$version.*$oid.*$size"
 
@@ -728,6 +728,16 @@ escape_path() {
 native_path_escaped() {
   local unescaped=$(native_path "$1")
   escape_path "$unescaped"
+}
+
+# native_path_list_separator prints the operating system-specific path list
+# separator.
+native_path_list_separator() {
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    printf ";";
+  else
+    printf ":";
+  fi
 }
 
 cat_end() {

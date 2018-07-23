@@ -179,13 +179,31 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
 	} else if migrateEverything {
-		localRefs, err := git.LocalRefs()
+		refs, err := git.AllRefsIn("")
 		if err != nil {
 			return nil, nil, err
 		}
 
-		for _, ref := range localRefs {
-			include = append(include, ref.Refspec())
+		for _, ref := range refs {
+			switch ref.Type {
+			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
+				git.RefTypeRemoteBranch, git.RefTypeRemoteTag:
+
+				include = append(include, ref.Refspec())
+			case git.RefTypeOther:
+				parts := strings.SplitN(ref.Refspec(), "/", 3)
+				if len(parts) < 2 {
+					continue
+				}
+
+				switch parts[1] {
+				// The following are GitLab-, GitHub-, VSTS-,
+				// and BitBucket-specific reference naming
+				// conventions.
+				case "merge-requests", "pull", "pull-requests":
+					include = append(include, ref.Refspec())
+				}
+			}
 		}
 	} else {
 		bare, err := git.IsBare()

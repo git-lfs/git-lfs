@@ -178,7 +178,7 @@ setup_single_local_branch_tracked_corrupt() {
 #
 # - Commit 'A' has 120, 140 bytes of data in a.txt, and a.md, respectively.
 #
-# - Commit 'B' has 30 bytes of data in a.txt, and includes commit 'A' as a
+# - Commit 'B' has 30 bytes of data in a.md, and includes commit 'A' as a
 #   parent.
 setup_multiple_local_branches() {
   set -e
@@ -216,6 +216,29 @@ setup_multiple_local_branches_with_gitattrs() {
 
   git add .gitattributes
   git commit -m "add .gitattributes"
+}
+
+# setup_multiple_local_branches_non_standard creates a repository as follows:
+#
+#      refs/pull/1/head
+#     /
+#     |
+#     B
+#    / \
+#   A   refs/heads/my-feature
+#   |\
+#   | refs/heads/master
+#    \
+#     refs/pull/1/base
+#
+# With the same contents in 'A' and 'B' as setup_multiple_local_branches.
+setup_multiple_local_branches_non_standard() {
+  set -e
+
+  setup_multiple_local_branches
+
+  git update-ref refs/pull/1/head "$(git rev-parse my-feature)"
+  git update-ref refs/pull/1/base "$(git rev-parse master)"
 }
 
 # setup_multiple_local_branches_tracked creates a repo with exactly the same

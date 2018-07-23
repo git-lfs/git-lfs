@@ -311,8 +311,8 @@ func (c *Configuration) LocalGitStorageDir() string {
 	return c.Filesystem().GitStorageDir
 }
 
-func (c *Configuration) LocalReferenceDir() string {
-	return c.Filesystem().ReferenceDir
+func (c *Configuration) LocalReferenceDirs() []string {
+	return c.Filesystem().ReferenceDirs
 }
 
 func (c *Configuration) LFSStorageDir() string {
@@ -346,7 +346,12 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 
 	if c.fs == nil {
 		lfsdir, _ := c.Git.Get("lfs.storage")
-		c.fs = fs.New(c.LocalGitDir(), c.LocalWorkingDir(), lfsdir)
+		c.fs = fs.New(
+			c.Os,
+			c.LocalGitDir(),
+			c.LocalWorkingDir(),
+			lfsdir,
+		)
 	}
 
 	return c.fs
