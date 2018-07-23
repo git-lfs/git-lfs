@@ -20,7 +20,7 @@ func TestHttpsProxyFromGitConfig(t *testing.T) {
 	require.Nil(t, err)
 
 	proxyURL, err := proxyFromClient(c)(req)
-	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
+	assert.Equal(t, "proxy-from-git-config:8080", proxyURL.Host)
 	assert.Nil(t, err)
 }
 
