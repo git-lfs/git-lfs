@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -20,6 +22,10 @@ var (
 	// migrateExcludeRefs is a set of Git references to explicitly exclude
 	// in the migration.
 	migrateExcludeRefs []string
+
+	// migrateYes indicates that an answer of 'yes' should be presumed
+	// whenever 'git lfs migrate' asks for user input.
+	migrateYes bool
 
 	// migrateSkipFetch assumes that the client has the latest copy of
 	// remote references, and thus should not contact the remote for a set
@@ -173,13 +179,31 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
 	} else if migrateEverything {
-		localRefs, err := git.LocalRefs()
+		refs, err := git.AllRefsIn("")
 		if err != nil {
 			return nil, nil, err
 		}
 
-		for _, ref := range localRefs {
-			include = append(include, ref.Refspec())
+		for _, ref := range refs {
+			switch ref.Type {
+			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
+				git.RefTypeRemoteBranch, git.RefTypeRemoteTag:
+
+				include = append(include, ref.Refspec())
+			case git.RefTypeOther:
+				parts := strings.SplitN(ref.Refspec(), "/", 3)
+				if len(parts) < 2 {
+					continue
+				}
+
+				switch parts[1] {
+				// The following are GitLab-, GitHub-, VSTS-,
+				// and BitBucket-specific reference naming
+				// conventions.
+				case "merge-requests", "pull", "pull-requests":
+					include = append(include, ref.Refspec())
+				}
+			}
 		}
 	} else {
 		bare, err := git.IsBare()
@@ -294,6 +318,56 @@ func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklo
 		githistory.WithFilter(filter), githistory.WithLogger(l))
 }
 
+func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
+	dirty, err := git.IsWorkingCopyDirty()
+	if err != nil {
+		ExitWithError(errors.Wrap(err,
+			"fatal: could not determine if working copy is dirty"))
+	}
+
+	if !dirty {
+		return
+	}
+
+	var proceed bool
+	if migrateYes {
+		proceed = true
+	} else {
+		answer := bufio.NewReader(in)
+	L:
+		for {
+			fmt.Fprintf(out, "migrate: override changes in your working copy? [Y/n] ")
+			s, err := answer.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					break L
+				}
+				ExitWithError(errors.Wrap(err,
+					"fatal: could not read answer"))
+			}
+
+			switch strings.TrimSpace(s) {
+			case "n", "N":
+				proceed = false
+				break L
+			case "y", "Y":
+				proceed = true
+				break L
+			}
+
+			if !strings.HasSuffix(s, "\n") {
+				fmt.Fprintf(out, "\n")
+			}
+		}
+	}
+
+	if proceed {
+		fmt.Fprintf(out, "migrate: changes in your working copy will be overridden ...\n")
+	} else {
+		Exit("migrate: working copy must not be dirty")
+	}
+}
+
 func init() {
 	info := NewCommand("info", migrateInfoCommand)
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
@@ -320,6 +394,8 @@ func init() {
 		cmd.PersistentFlags().StringSliceVar(&migrateExcludeRefs, "exclude-ref", nil, "An explicit list of refs to exclude")
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
+
+		cmd.PersistentFlags().BoolVarP(&migrateYes, "yes", "y", false, "Don't prompt for answers.")
 
 		cmd.AddCommand(exportCmd, importCmd, info)
 	})

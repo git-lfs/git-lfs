@@ -1,8 +1,12 @@
+image: Visual Studio 2017
+
 skip_branch_with_pr: true
 
 environment:
   CYGWIN: "$(CYGWIN) winsymlinks:nativestrict"
   MSYS: "$(MSYS) winsymlinks:nativestrict"
+  GIT_LFS_NO_TEST_COUNT: 1
+  GIT_LFS_LOCK_ACQUIRE_DISABLED: 1
   GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
   MSYSTEM: MINGW64
 
@@ -10,8 +14,13 @@ clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
   - rd C:\Go /s /q
+  - rd C:\Perl /s /q
+  - refreshenv
   - cinst golang --version 1.8.3 -y
   - cinst InnoSetup -y
+  - cinst strawberryperl -y
+  - refreshenv
+  - cinst make
   - refreshenv
   - ps: |
       echo "Go directories in machine PATH environment:"

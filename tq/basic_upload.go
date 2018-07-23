@@ -3,6 +3,7 @@ package tq
 import (
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,7 +15,8 @@ import (
 )
 
 const (
-	BasicAdapterName = "basic"
+	BasicAdapterName   = "basic"
+	defaultContentType = "application/octet-stream"
 )
 
 // Adapter for basic uploads (non resumable)
@@ -56,10 +58,6 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return err
 	}
 
-	if len(req.Header.Get("Content-Type")) == 0 {
-		req.Header.Set("Content-Type", "application/octet-stream")
-	}
-
 	if req.Header.Get("Transfer-Encoding") == "chunked" {
 		req.TransferEncoding = []string{"chunked"}
 	} else {
@@ -73,6 +71,10 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return errors.Wrap(err, "basic upload")
 	}
 	defer f.Close()
+
+	if err := setContentTypeFor(req, f); err != nil {
+		return err
+	}
 
 	// Ensure progress callbacks made while uploading
 	// Wrap callback to give name context
@@ -170,4 +172,28 @@ func configureBasicUploadAdapter(m *Manifest) {
 		}
 		return nil
 	})
+}
+
+func setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
+	if len(req.Header.Get("Content-Type")) != 0 {
+		return nil
+	}
+
+	buffer := make([]byte, 512)
+	n, err := r.Read(buffer)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "content type detect")
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+	if _, err := r.Seek(0, 0); err != nil {
+		return errors.Wrap(err, "content type rewind")
+	}
+
+	if contentType == "" {
+		contentType = defaultContentType
+	}
+
+	req.Header.Set("Content-Type", contentType)
+	return nil
 }

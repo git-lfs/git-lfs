@@ -18,8 +18,6 @@ func main() {
 	switch *SubCommand {
 	case "release":
 		mainRelease()
-	case "integration":
-		mainIntegration()
 	default:
 		log.Fatalln("Unknown command:", *SubCommand)
 	}

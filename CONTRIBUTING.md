@@ -112,7 +112,7 @@ submitting changes, be sure to run the Go tests and the shell integration
 tests:
 
     $ make test          # runs just the Go tests
-    $ script/integration # runs the shell tests in ./test
+    $ cd t && make test  # runs the shell tests in ./test
     $ script/cibuild     # runs everything, with verbose debug output
 
 ## Updating 3rd party packages

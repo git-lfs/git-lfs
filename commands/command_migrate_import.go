@@ -22,6 +22,8 @@ import (
 )
 
 func migrateImportCommand(cmd *cobra.Command, args []string) {
+	ensureWorkingCopyClean(os.Stdin, os.Stderr)
+
 	l := tasklog.NewLogger(os.Stderr)
 	defer l.Close()
 
