@@ -101,10 +101,18 @@ endif
 # X is the platform-specific extension for Git LFS binaries. It is automatically
 # set to .exe on Windows, and the empty string on all other platforms. It may be
 # overridden.
+#
+# BUILD_MAIN is the main ".go" file that contains func main() for Git LFS. On
+# macOS and other non-Windows platforms, it is required that a specific
+# entrypoint be given, hence the below conditional. On Windows, it is required
+# that an entrypoint not be given so that goversioninfo can successfully embed
+# the resource.syso file (for more, see below).
 ifeq ($(OS),Windows_NT)
 X ?= .exe
+BUILD_MAIN ?=
 else
 X ?=
+BUILD_MAIN ?= ./git-lfs.go
 endif
 
 # BUILD is a macro used to build a single binary of Git LFS using the above
@@ -116,11 +124,14 @@ endif
 # 	$(2) - a valid GOARCH value, or empty-string
 # 	$(3) - an optional program extension. If $(3) is given as '-foo', then the
 # 	       program will be written to bin/git-lfs-foo.
+#
+# It uses BUILD_MAIN as defined above to specify the entrypoint for building Git
+# LFS.
 BUILD = GOOS=$(1) GOARCH=$(2) \
 	$(GO) build \
 	-ldflags="$(LD_FLAGS)" \
 	-gcflags="$(GC_FLAGS)" \
-	-o ./bin/git-lfs$(3) ./git-lfs.go
+	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
 # built for.
