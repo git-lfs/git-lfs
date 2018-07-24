@@ -188,7 +188,7 @@ bin/git-lfs.exe : $(SOURCES) resource.syso
 # generate a binary that has information included necessary to create the
 # Windows installer.
 resource.syso:
-	go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+	@$(GO) get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 	$(GO) generate
 
 # RELEASE_TARGETS is the set of all release artifacts that we generate over a
@@ -288,6 +288,7 @@ vendor : glide.lock
 # and replaces their contents with a formatted one in-place.
 .PHONY : fmt
 fmt : $(SOURCES) | lint
+	@$(GO) get golang.org/x/tools/cmd/goimports
 	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?
 
 # lint ensures that there are all dependencies outside of the standard library
