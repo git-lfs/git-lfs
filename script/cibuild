@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+GOIMPORTS="goimports"
 if [ "appveyor" = "$USERNAME" ]; then
   GOIMPORTS="C:\\Users\\appveyor\\go\\bin\\goimports"
 fi
