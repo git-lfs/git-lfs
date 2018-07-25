@@ -179,7 +179,7 @@ bin/git-lfs-windows-386.exe : resource.syso $(SOURCES)
 bin/git-lfs : $(SOURCES) fmt
 	$(call BUILD,$(GOOS),$(GOARCH),)
 
-# bin/git-lfs targets the default output of Git LFS on Windows systems, and
+# bin/git-lfs.exe targets the default output of Git LFS on Windows systems, and
 # respects the build knobs as above.
 bin/git-lfs.exe : $(SOURCES) resource.syso
 	$(call BUILD,$(GOOS),$(GOARCH),.exe)
