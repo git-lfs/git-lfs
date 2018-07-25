@@ -77,6 +77,7 @@ begin_test "credentials with url-specific useHttpPath, with bad path password"
 
   clone_repo "$reponame" with-url-specific-path
   git config credential.$GITSERVER.useHttpPath false
+  git config lfs.locksverify false
   git checkout -b without-path
 
   git lfs track "*.dat" 2>&1 | tee track.log
