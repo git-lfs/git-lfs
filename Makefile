@@ -184,7 +184,7 @@ bin/git-lfs : $(SOURCES) fmt
 bin/git-lfs.exe : $(SOURCES) resource.syso
 	$(call BUILD,$(GOOS),$(GOARCH),.exe)
 
-# resource.syso install the 'goversioninfo' command and uses it in order to
+# resource.syso installs the 'goversioninfo' command and uses it in order to
 # generate a binary that has information included necessary to create the
 # Windows installer.
 resource.syso:
