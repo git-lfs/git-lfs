@@ -198,6 +198,14 @@ resource.syso:
 # Unlike BUILD_TARGETS above, each of the below create a compressed directory
 # containing the matching binary, as well as the contents of RELEASE_INCLUDES
 # below.
+#
+# To build a specific release, execute the following:
+#
+# 	make bin/releases/git-lfs-darwin-amd64-$(git describe HEAD).tar.gz
+#
+# To build a specific release with a custom VERSION suffix, run the following:
+#
+# 	make VERSION=my-version bin/releases/git-lfs-darwin-amd64-my-version.tar.gz
 RELEASE_TARGETS = bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
@@ -213,6 +221,10 @@ RELEASE_INCLUDES = README.md CHANGELOG.md
 
 # release is a phony target that builds all of the release artifacts, and then
 # shows the SHA 256 signature of each.
+#
+# To build all of the release binaries for a given Git LFS release:
+#
+# 	make release
 .PHONY : release
 release : $(RELEASE_TARGETS)
 	shasum -a 256 $(RELEASE_TARGETS)
