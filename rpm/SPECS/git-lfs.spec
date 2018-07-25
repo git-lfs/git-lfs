@@ -68,7 +68,7 @@ export SKIPAPITESTCOMPILE=1
 pushd src/github.com/git-lfs/%{name}
   make test
   go get github.com/ThomsonReutersEikon/go-ntlm/ntlm
-  cd t && make test
+  make -C t PROVE_EXTRA_ARGS=-j4 test
 popd
 
 rmdir ${GIT_LFS_TEST_DIR}
