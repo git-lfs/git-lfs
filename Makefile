@@ -286,10 +286,18 @@ vendor : glide.lock
 
 # fmt runs goimports over all files in Git LFS (as defined by $(SOURCES) above),
 # and replaces their contents with a formatted one in-place.
+#
+# If $(GOIMPORTS) does not exist, or isn't otherwise executable, this recipe
+# still performs the linting sequence, but gracefully skips over running a
+# non-existent command.
 .PHONY : fmt
+ifeq ($(shell test -x "`which $(GOIMPORTS)`"; echo $$?),0)
 fmt : $(SOURCES) | lint
-	@$(GO) get golang.org/x/tools/cmd/goimports
-	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?
+	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
+else
+fmt : $(SOURCES) | lint
+	@echo "git-lfs: skipping fmt, no goimports found at \`$(GOIMPORTS)\` ..."
+endif
 
 # lint ensures that there are all dependencies outside of the standard library
 # are vendored in via vendor (see: above).
