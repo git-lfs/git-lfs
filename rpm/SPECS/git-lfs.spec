@@ -71,7 +71,7 @@ pushd src/github.com/git-lfs/%{name}
   make -C t PROVE_EXTRA_ARGS=-j4 test
 popd
 
-rmdir ${GIT_LFS_TEST_DIR}
+rm -rf ${GIT_LFS_TEST_DIR}
 
 %clean
 rm -rf %{buildroot}
