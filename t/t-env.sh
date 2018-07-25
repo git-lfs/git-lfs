@@ -542,12 +542,17 @@ UploadTransfers=basic
   contains_same_elements "$expected" "$actual4"
 
   envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT" | sort)"
+
+  # `a/b` is an invalid relative path from where we are now and results in an
+  # error, so resulting output will have many fields blank or invalid
+  mediaDir5=$(native_path "lfs/objects")
+  tempDir5=$(native_path "lfs/tmp")
   expected5=$(printf '%s
 %s
 
-LocalWorkingDir=%s
-LocalGitDir=%s
-LocalGitStorageDir=%s
+LocalWorkingDir=
+LocalGitDir=
+LocalGitStorageDir=
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
@@ -562,13 +567,16 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
-LfsStorageDir=%s
+LfsStorageDir=lfs
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic
 UploadTransfers=basic
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars")
+git config filter.lfs.process = ""
+git config filter.lfs.smudge = ""
+git config filter.lfs.clean = ""
+' "$(git lfs version)" "$(git version)" "$mediaDir5" "$tempDir5" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env \
             | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected5" "$actual5"
@@ -777,7 +785,7 @@ TempDir=%s
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
-SkipDownloadErrors=true
+SkipDownloadErrors=false
 FetchRecentAlways=false
 FetchRecentRefsDays=7
 FetchRecentCommitsDays=0
@@ -797,8 +805,37 @@ UploadTransfers=basic
   contains_same_elements "$expecteddisabled" "$actual"
 
   # now enable via env var
+  envVarsEnabled=$(printf "%s" "$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 env | grep "^GIT")")
+  expectedenabled2=$(printf '%s
+%s
+
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDirs=
+TempDir=%s
+ConcurrentTransfers=3
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=true
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=%s
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVarsEnabled" "$envInitConfig")
   actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env | grep -v "^GIT_EXEC_PATH=")
-  contains_same_elements "$expectedenabled" "$actual"
+  contains_same_elements "$expectedenabled2" "$actual"
 
 
 

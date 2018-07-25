@@ -742,15 +742,7 @@ cat_end() {
 # Compare 2 lists which are newline-delimited in a string, ignoring ordering and blank lines
 contains_same_elements() {
   # Remove blank lines then sort
-  printf '%s' "$1" | grep -v '^$' | sort > a.txt
-  printf '%s' "$2" | grep -v '^$' | sort > b.txt
-
-  set +e
-  diff -u a.txt b.txt 1>&2
-  res=$?
-  set -e
-  rm a.txt b.txt
-  exit $res
+  diff -u <(printf '%s' "$1" | grep -v '^$' | sort) <(printf '%s' "$2" | grep -v '^$' | sort)
 }
 
 is_stdin_attached() {
