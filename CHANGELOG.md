@@ -1,5 +1,126 @@
 # Git LFS Changelog
 
+## 2.5.0 (26 July, 2018)
+
+This release adds three new migration modes, updated developer ergonomics, and
+a handful of bug fixes to Git LFS.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @calavera for fixing a broken Go test and adding support for custom
+  Content-Type headers in #3137 and #3138.
+* @cbuehlmann for adding support for encoded character names in filepaths via
+  #3093.
+* @larsxschneider for changing the default value of lfs.allowincompletepush in
+  #3109.
+* @NoEffex for supporting TTL in SSH-based authentication tokens via #2867.
+* @ssgelm for adding 'go generate' to our Debian packages via #3083.
+
+### Features
+
+* Makefile: replace many scripts with make targets #3144 (@ttaylorr)
+* {.travis,appveyor}.yml: upgrade to Go 1.10.3 #3146 (@ttaylorr)
+* t: run tests using prove #3125 (@ttaylorr)
+* commands/migrate: infer wildmatches with --fixup #3114 (@ttaylorr)
+* Retry SSH resolution 5 times #2934 (@stanhu)
+* Implement `migrate export` subcommand #3084 (@PastelMobileSuit)
+* Add `--no-rewrite` flag to `migrate import` command #3029 (@PastelMobileSuit)
+
+### Bugs
+
+* t: fix contains_same_elements() fn #3145 (@PastelMobileSuit)
+* commands: warn if working copy is dirty #3124 (@ttaylorr)
+* Ensure provided remote takes precedence over configured pushRemote #3139 (@PastelMobileSuit)
+* Fix proxy unit tests. #3138 (@calavera)
+* commands/command_migrate.go: loosen meaning of '--everything' #3121 (@ttaylorr)
+* lfsapi: don't query askpass for given creds #3126 (@PastelMobileSuit)
+* config/git_fetcher.go: mark 'lfs.allowincompletepush' as safe #3113 (@ttaylorr)
+* fs: support multiple object alternates #3116 (@ttaylorr)
+* commands/checkout: checkout over read-only files #3120 (@ttaylorr)
+* test/testhelpers.sh: look for 64 character SHA-256's #3119 (@ttaylorr)
+* config/config.go: case-insensitive error search #3098 (@ttaylorr)
+* Encoded characters in pathnames #3093 (@cbuehlmann)
+* Support default TTL for authentication tokens acquired via SSH #2867 (@NoEffex)
+* commands/status.go: relative paths outside of root #3080 (@ttaylorr)
+* Run `go generate` on commands in deb build #3083 (@ssgelm)
+* lfsapi: prefer proxying from gitconfig before environment #3062 (@ttaylorr)
+* commands/track: respect global- and system-level gitattributes #3076 (@ttaylorr)
+* git/git.go: pass --multiple to git-fetch(1) when appropriate #3063 (@ttaylorr)
+* commands/checkout: fix inaccurate messaging #3055 (@ttaylorr)
+* commands/migrate: do not migrate empty commits #3054 (@ttaylorr)
+* git/odb: retain trailing newlines in commit messages #3053 (@ttaylorr)
+
+### Misc
+
+* Set original file content type on basic upload. #3137 (@calavera)
+* README.md: Git for Windows ships LFS by default #3112 (@larsxschneider)
+* change lfs.allowincompletepush default from true to false  #3109 (@larsxschneider)
+* *: replace git/odb with vendored copy #3108 (@ttaylorr)
+* test/test-ls-files.sh: skip on CircleCI #3101 (@ttaylorr)
+* lfsapi/ssh.go: use zero-value sentinels #3099 (@ttaylorr)
+* README.md: add link to installation wiki page #3075 (@ttaylorr)
+* docs/man/git-lfs.1.ronn: update casing and missing commands #3059 (@ttaylorr)
+* commands/checkout: mark 'git lfs checkout' as deprecated #3056 (@ttaylorr)
+
+## 2.4.2 (28 May, 2018)
+
+### Bugs
+
+* lfsapi: re-authenticate HTTP redirects when needed #3028 (@ttaylorr)
+* lfsapi: allow unknown keywords in netrc file(s) #3027 (@ttaylorr)
+
+## 2.4.1 (18 May, 2018)
+
+This release fixes a handful of bugs found and fixed since v2.4.0. In
+particular, Git LFS no longer panic()'s after invalid API responses, can
+correctly run 'fetch' on SHAs instead of references, migrates symbolic links
+correctly, and avoids writing to `$HOME/.gitconfig` more than is necessary.
+
+We would like to extend a "thank you" to the following contributors for their
+gracious patches:
+
+- @QuLogic fixed an issue with running tests that require credentials
+- @patrickmarlier made it possible for 'git lfs migrate import' to work
+  correctly with symbolic links.
+- @zackse fixed an inconsistency in `CONTRIBUTING.md`
+- @zanglang fixed an inconsistency in `README.md`
+
+Git LFS would not be possible without generous contributions from the
+open-source community. For these, and many more: thank you!
+
+### Features
+
+* script/packagecloud.rb: release on Ubuntu Bionic #2961 (@ttaylorr)
+
+### Bugs
+
+* lfsapi: canonicalize extra HTTP headers #3010 (@ttaylorr)
+* commands/lock: follow symlinks before locking #2996 (@ttaylorr)
+* lfs/attribute.go: remove default value from upgradeables #2994 (@ttaylorr)
+* git: include SHA1 in ref-less revisions #2982 (@ttaylorr)
+* Do not migrate the symlinks to LFS objects. #2983 (@patrickmarlier)
+* commands/uninstall: do not log about global hooks with --local #2976 (@ttaylorr)
+* commands/run.go: exit 127 on unknown sub-command #2969 (@ttaylorr)
+* commands/{un,}track: perform "prefix-agnostic" comparisons #2955 (@ttaylorr)
+* commands/migrate: escape paths before .gitattributes  #2933 (@ttaylorr)
+* commands/ls-files: do not accept '--all' after '--' #2932 (@ttaylorr)
+* tq: prevent uint64 underflow with invalid API response #2902 (@ttaylorr)
+
+### Misc
+
+* test/test-env: skip comparing GIT_EXEC_PATH #3015 (@ttaylorr)
+* remove reference to CLA from contributor's guide #2997 (@zackse)
+* .gitattributes link is broken #2985 (@zanglang)
+* commands: make --version a synonym for 'version' #2968, #3017 (@ttaylorr)
+* test: ensure that git-mergetool(1) works with large files #2939 (@ttaylorr)
+* README.md: note the correct PackageCloud URL #2960 (@ttaylorr)
+* README.md: mention note about `git lfs track` retroactively #2948 (@ttaylorr)
+* README.md: reorganize into Core Team, Alumni #2941 (@ttaylorr)
+* README.md: :nail_care: #2942 (@ttaylorr)
+* circle.yml: upgrade to 'version: 2' syntax #2928 (@ttaylorr)
+* Use unique repo name for tests that require credentials. #2901 (@QuLogic)
+
 ## 2.4.0 (2 March, 2018)
 
 This release introduces a rewrite of the underlying file matching engine,
