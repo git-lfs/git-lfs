@@ -14,7 +14,9 @@ install:
   - rd C:\Go /s /q
   - rd C:\Perl /s /q
   - refreshenv
-  - cinst golang --version 1.8.3 -y
+  - curl -sL -o go1.10.3.windows-amd64.zip https://storage.googleapis.com/golang/go1.10.3.windows-amd64.zip
+  - 7z x go1.10.3.windows-amd64.zip -oC:\ >nul
+  - C:\go\bin\go version
   - cinst InnoSetup -y
   - cinst strawberryperl -y
   - refreshenv

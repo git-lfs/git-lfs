@@ -102,7 +102,6 @@ begin_test "custom-transfer-upload-download"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-customadapter\]:" fetchcustom.log
-  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 
