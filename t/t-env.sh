@@ -901,3 +901,61 @@ UploadTransfers=basic,supertransfer,tus
 
 )
 end_test
+
+begin_test "env with multiple remotes and ref"
+(
+  set -e
+  reponame="env-multiple-remotes-ref"
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin "$GITSERVER/env-origin-remote"
+  git remote add other "$GITSERVER/env-other-remote"
+
+  touch a.txt
+  git add a.txt
+  git commit -m "initial commit"
+
+  endpoint="$GITSERVER/env-origin-remote.git/info/lfs (auth=none)"
+  endpoint2="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  expected=$(printf '%s
+%s
+
+Endpoint=%s
+Endpoint (other)=%s
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDirs=
+TempDir=%s
+ConcurrentTransfers=3
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=%s
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
+  contains_same_elements "$expected" "$actual"
+)
+end_test

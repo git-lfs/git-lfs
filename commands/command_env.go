@@ -19,8 +19,10 @@ func envCommand(cmd *cobra.Command, args []string) {
 	Print(gitV)
 	Print("")
 
+	defaultRemote := ""
 	if cfg.IsDefaultRemote() {
-		endpoint := getAPIClient().Endpoints.Endpoint("download", cfg.Remote())
+		defaultRemote = cfg.Remote()
+		endpoint := getAPIClient().Endpoints.Endpoint("download", defaultRemote)
 		if len(endpoint.Url) > 0 {
 			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
 			Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
@@ -31,6 +33,9 @@ func envCommand(cmd *cobra.Command, args []string) {
 	}
 
 	for _, remote := range cfg.Remotes() {
+		if remote == defaultRemote {
+			continue
+		}
 		remoteEndpoint := getAPIClient().Endpoints.RemoteEndpoint("download", remote)
 		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess)
