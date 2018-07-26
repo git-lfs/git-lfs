@@ -15,6 +15,7 @@ var (
 	lsFilesScanAll     = false
 	lsFilesScanDeleted = false
 	lsFilesShowSize    = false
+	lsFilesSkipIndex   = false
 	debug              = false
 )
 
@@ -88,8 +89,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg)
 
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
-		Exit("Could not scan for Git LFS index: %s", err)
+	if (!lsFilesSkipIndex) {
+		if err := gitscanner.ScanIndex(ref, nil); err != nil {
+			Exit("Could not scan for Git LFS index: %s", err)
+		}
 	}
 	if lsFilesScanAll {
 		if err := gitscanner.ScanAll(nil); err != nil {
@@ -129,6 +132,7 @@ func init() {
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
+		cmd.Flags().BoolVar(&lsFilesSkipIndex, "skip-index", false, "")
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
