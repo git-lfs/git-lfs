@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -e
-GOCACHE=off script/bootstrap
-GOCACHE=off script/test
+
+GOIMPORTS="goimports"
+if [ "appveyor" = "$USERNAME" ]; then
+  GOIMPORTS="C:\\Users\\appveyor\\go\\bin\\goimports"
+fi
+
+GOCACHE=off make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
-GIT_TRACE=1 GOCACHE=off script/test git
+GIT_TRACE=1 GOCACHE=off make GOIMPORTS="$GOIMPORTS" PKGS=git test
 
 pushd t >/dev/null
   UNAME=$(uname -s)
@@ -15,7 +20,7 @@ pushd t >/dev/null
 
   PROVE="prove"
   PROVE_EXTRA_ARGS="-j9"
-  if [ -n "$APPVEYOR" ]; then
+  if [ "appveyor" = "$USERNAME" ]; then
     export PATH="/c/Strawberry/perl/bin:.:$PATH"
     PROVE="prove.bat"
     PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS --exec bash"

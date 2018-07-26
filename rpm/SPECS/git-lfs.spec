@@ -35,12 +35,12 @@ ln -s $(pwd) src/github.com/git-lfs/%{name}
 
 pushd src/github.com/git-lfs/%{name}
   %if %{_arch} == i386
-    GOARCH=386 ./script/bootstrap
+    GOARCH=386 make
   %else
-    GOARCH=amd64 ./script/bootstrap
+    GOARCH=amd64 make
   %endif
 popd
-./script/man
+make man
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -66,12 +66,12 @@ export GIT_LFS_TEST_DIR=$(mktemp -d)
 export SKIPAPITESTCOMPILE=1
 
 pushd src/github.com/git-lfs/%{name}
-  ./script/test
+  make test
   go get github.com/ThomsonReutersEikon/go-ntlm/ntlm
-  cd t && make test
+  make -C t PROVE_EXTRA_ARGS=-j4 test
 popd
 
-rmdir ${GIT_LFS_TEST_DIR}
+rm -rf ${GIT_LFS_TEST_DIR}
 
 %clean
 rm -rf %{buildroot}
