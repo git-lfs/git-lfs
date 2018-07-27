@@ -187,7 +187,13 @@ bin/git-lfs.exe : $(SOURCES) resource.syso
 # resource.syso installs the 'goversioninfo' command and uses it in order to
 # generate a binary that has information included necessary to create the
 # Windows installer.
-resource.syso:
+#
+# Generating a new resource.syso is a pure function of the contents in the
+# prerequisites listed below.
+resource.syso : \
+versioninfo.json script/windows-installer/git-lfs-logo.bmp \
+script/windows-installer/git-lfs-logo.ico \
+script/windows-installer/git-lfs-wizard-image.bmp
 	@$(GO) get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 	$(GO) generate
 
