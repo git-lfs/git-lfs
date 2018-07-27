@@ -218,6 +218,36 @@ begin_test "pull with raw remote url"
 )
 end_test
 
+begin_test "pull with multiple remotes"
+(
+  set -e
+  mkdir multiple
+  cd multiple
+  git init
+  git lfs install --local --skip-smudge
+
+  git remote add origin "$GITSERVER/t-pull"
+  git remote add bad-remote "invalid-url"
+  git pull origin master
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  # LFS object not downloaded, pointer in working directory
+  refute_local_object "$contents_oid"
+  grep "$contents_oid" a.dat
+
+  # pull should default to origin instead of bad-remote
+  git lfs pull
+  echo "pulled!"
+
+  # LFS object downloaded and in working directory
+  assert_local_object "$contents_oid" 1
+  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ "a" = "$(cat a.dat)" ]
+)
+end_test
+
 begin_test "pull: with missing object"
 (
   set -e

@@ -82,10 +82,7 @@ func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) En
 	gf, extensions, uniqRemotes := readGitConfig(gitconfigs...)
 	c.extensions = extensions
 	c.remotes = make([]string, 0, len(uniqRemotes))
-	for remote, isOrigin := range uniqRemotes {
-		if isOrigin {
-			continue
-		}
+	for remote := range uniqRemotes {
 		c.remotes = append(c.remotes, remote)
 	}
 
