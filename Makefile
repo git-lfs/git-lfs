@@ -311,7 +311,7 @@ vendor : glide.lock
 .PHONY : fmt
 ifeq ($(shell test -x "`which $(GOIMPORTS)`"; echo $$?),0)
 fmt : $(SOURCES) | lint
-	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
+	@$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
 else
 fmt : $(SOURCES) | lint
 	@echo "git-lfs: skipping fmt, no goimports found at \`$(GOIMPORTS)\` ..."
@@ -321,7 +321,7 @@ endif
 # are vendored in via vendor (see: above).
 .PHONY : lint
 lint : $(SOURCES)
-	$(GO) list -f '{{ join .Deps "\n" }}' . \
+	@$(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
 
