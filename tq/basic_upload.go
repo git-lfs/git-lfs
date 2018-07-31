@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
@@ -72,7 +73,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 	defer f.Close()
 
-	if err := setContentTypeFor(req, f); err != nil {
+	if err := a.setContentTypeFor(req, f); err != nil {
 		return err
 	}
 
@@ -135,8 +136,10 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	return verifyUpload(a.apiClient, a.remote, t)
 }
 
-func setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
-	if len(req.Header.Get("Content-Type")) != 0 {
+func (a *adapterBase) setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
+	uc := config.NewURLConfig(a.apiClient.GitEnv())
+	disabled := !uc.Bool("lfs", req.URL.String(), "contenttype", true)
+	if len(req.Header.Get("Content-Type")) != 0 || disabled {
 		return nil
 	}
 

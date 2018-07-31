@@ -266,6 +266,12 @@ be scoped inside the configuration for a remote.
   https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this value
   per-host: `git config --global lfs.https://github.com/.locksverify [true|false]`.
 
+* `lfs.<url>.contenttype`
+
+  Determines whether Git LFS should attempt to detect an appropriate HTTP
+  `Content-Type` header when uploading using the 'basic' upload adapter.
+  Default: 'true'.
+
 * `lfs.skipdownloaderrors`
 
   Causes Git LFS not to abort the smudge filter when a download error is
