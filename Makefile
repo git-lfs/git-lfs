@@ -311,7 +311,7 @@ vendor : glide.lock
 .PHONY : fmt
 ifeq ($(shell test -x "`which $(GOIMPORTS)`"; echo $$?),0)
 fmt : $(SOURCES) | lint
-	$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
+	@$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
 else
 fmt : $(SOURCES) | lint
 	@echo "git-lfs: skipping fmt, no goimports found at \`$(GOIMPORTS)\` ..."
