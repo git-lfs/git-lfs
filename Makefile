@@ -321,7 +321,7 @@ endif
 # are vendored in via vendor (see: above).
 .PHONY : lint
 lint : $(SOURCES)
-	$(GO) list -f '{{ join .Deps "\n" }}' . \
+	@$(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
 
