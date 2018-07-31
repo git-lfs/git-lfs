@@ -102,6 +102,17 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	req = a.apiClient.LogRequest(req, "lfs.data.upload")
 	res, err := a.doHTTP(t, req)
 	if err != nil {
+		if errors.IsUnprocessableEntityError(err) {
+			// If we got an HTTP 422, we do _not_ want to retry the
+			// request later below, because it is likely that the
+			// implementing server does not support non-standard
+			// Content-Type headers.
+			//
+			// Instead, return immediately and wait for the
+			// *tq.TransferQueue to report an error message.
+			return err
+		}
+
 		// We're about to return a retriable error, meaning that this
 		// transfer will either be retried, or it will fail.
 		//

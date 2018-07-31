@@ -44,3 +44,24 @@ begin_test "content-type: is disabled by configuration"
   [ 1 -eq "$(grep -c "Content-Type: application/zip" push.log)" ]
 )
 end_test
+
+begin_test "content-type: warning message"
+(
+  set -e
+
+  reponame="content-type-warning-message"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.txt"
+  printf "status-storage-422" > a.txt
+
+  git add .gitattributes a.txt
+  git commit -m "initial commit"
+  git push origin master 2>&1 | tee push.log
+
+  grep "info: Uploading failed due to unsupported Content-Type header(s)." push.log
+  grep "info: Consider disabling Content-Type detection with:" push.log
+  grep "info:   $ git config lfs.contenttype false" push.log
+)
+end_test
