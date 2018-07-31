@@ -140,6 +140,12 @@ BUILD_TARGETS = bin/git-lfs-darwin-amd64 bin/git-lfs-darwin-386 \
 	bin/git-lfs-freebsd-amd64 bin/git-lfs-freebsd-386 \
 	bin/git-lfs-windows-amd64.exe bin/git-lfs-windows-386.exe
 
+.PHONY : mangen
+mangen : $(GOPATH)/src/github.com/git-lfs/git-lfs/commands/mancontent_gen.go
+
+$(GOPATH)/src/github.com/git-lfs/git-lfs/commands/mancontent_gen.go :
+	@$(GO) generate github.com/git-lfs/git-lfs/commands
+
 # Targets 'all' and 'build' build binaries of Git LFS for the above release
 # matrix.
 .PHONY : all build
@@ -153,21 +159,21 @@ all build : $(BUILD_TARGETS)
 #
 # On Windows, they also depend on the resource.syso target, which installs and
 # embeds the versioninfo into the binary.
-bin/git-lfs-darwin-amd64 : $(SOURCES)
+bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
 	$(call BUILD,darwin,amd64,-darwin-amd64)
-bin/git-lfs-darwin-386 : $(SOURCES)
+bin/git-lfs-darwin-386 : $(SOURCES) mangen
 	$(call BUILD,darwin,386,-darwin-386)
-bin/git-lfs-linux-amd64 : $(SOURCES)
+bin/git-lfs-linux-amd64 : $(SOURCES) mangen
 	$(call BUILD,linux,amd64,-linux-amd64)
-bin/git-lfs-linux-386 : $(SOURCES)
+bin/git-lfs-linux-386 : $(SOURCES) mangen
 	$(call BUILD,linux,386,-linux-386)
-bin/git-lfs-freebsd-amd64 : $(SOURCES)
+bin/git-lfs-freebsd-amd64 : $(SOURCES) mangen
 	$(call BUILD,freebsd,amd64,-freebsd-amd64)
-bin/git-lfs-freebsd-386 : $(SOURCES)
+bin/git-lfs-freebsd-386 : $(SOURCES) mangen
 	$(call BUILD,freebsd,386,-freebsd-386)
-bin/git-lfs-windows-amd64.exe : resource.syso $(SOURCES)
+bin/git-lfs-windows-amd64.exe : resource.syso $(SOURCES) mangen
 	$(call BUILD,windows,amd64,-windows-amd64.exe)
-bin/git-lfs-windows-386.exe : resource.syso $(SOURCES)
+bin/git-lfs-windows-386.exe : resource.syso $(SOURCES) mangen
 	$(call BUILD,windows,386,-windows-386.exe)
 
 # .DEFAULT_GOAL sets the operating system-appropriate Git LFS binary as the
@@ -176,12 +182,12 @@ bin/git-lfs-windows-386.exe : resource.syso $(SOURCES)
 
 # bin/git-lfs targets the default output of Git LFS on non-Windows operating
 # systems, and respects the build knobs as above.
-bin/git-lfs : $(SOURCES) fmt
+bin/git-lfs : $(SOURCES) fmt mangen
 	$(call BUILD,$(GOOS),$(GOARCH),)
 
 # bin/git-lfs.exe targets the default output of Git LFS on Windows systems, and
 # respects the build knobs as above.
-bin/git-lfs.exe : $(SOURCES) resource.syso
+bin/git-lfs.exe : $(SOURCES) resource.syso mangen
 	$(call BUILD,$(GOOS),$(GOARCH),.exe)
 
 # resource.syso installs the 'goversioninfo' command and uses it in order to
