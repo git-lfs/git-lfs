@@ -135,6 +135,30 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	return verifyUpload(a.apiClient, a.remote, t)
 }
 
+func setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
+	if len(req.Header.Get("Content-Type")) != 0 {
+		return nil
+	}
+
+	buffer := make([]byte, 512)
+	n, err := r.Read(buffer)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "content type detect")
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+	if _, err := r.Seek(0, 0); err != nil {
+		return errors.Wrap(err, "content type rewind")
+	}
+
+	if contentType == "" {
+		contentType = defaultContentType
+	}
+
+	req.Header.Set("Content-Type", contentType)
+	return nil
+}
+
 // startCallbackReader is a reader wrapper which calls a function as soon as the
 // first Read() call is made. This callback is only made once
 type startCallbackReader struct {
@@ -172,28 +196,4 @@ func configureBasicUploadAdapter(m *Manifest) {
 		}
 		return nil
 	})
-}
-
-func setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
-	if len(req.Header.Get("Content-Type")) != 0 {
-		return nil
-	}
-
-	buffer := make([]byte, 512)
-	n, err := r.Read(buffer)
-	if err != nil && err != io.EOF {
-		return errors.Wrap(err, "content type detect")
-	}
-
-	contentType := http.DetectContentType(buffer[:n])
-	if _, err := r.Seek(0, 0); err != nil {
-		return errors.Wrap(err, "content type rewind")
-	}
-
-	if contentType == "" {
-		contentType = defaultContentType
-	}
-
-	req.Header.Set("Content-Type", contentType)
-	return nil
 }
