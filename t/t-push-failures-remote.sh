@@ -65,14 +65,6 @@ begin_test "push: upload file with storage 410"
 )
 end_test
 
-begin_test "push: upload file with storage 422"
-(
-  set -e
-
-  push_fail_test "status-storage-422"
-)
-end_test
-
 begin_test "push: upload file with storage 500"
 (
   set -e

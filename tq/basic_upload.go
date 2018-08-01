@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/tools"
@@ -72,7 +73,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	}
 	defer f.Close()
 
-	if err := setContentTypeFor(req, f); err != nil {
+	if err := a.setContentTypeFor(req, f); err != nil {
 		return err
 	}
 
@@ -101,6 +102,17 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	req = a.apiClient.LogRequest(req, "lfs.data.upload")
 	res, err := a.doHTTP(t, req)
 	if err != nil {
+		if errors.IsUnprocessableEntityError(err) {
+			// If we got an HTTP 422, we do _not_ want to retry the
+			// request later below, because it is likely that the
+			// implementing server does not support non-standard
+			// Content-Type headers.
+			//
+			// Instead, return immediately and wait for the
+			// *tq.TransferQueue to report an error message.
+			return err
+		}
+
 		// We're about to return a retriable error, meaning that this
 		// transfer will either be retried, or it will fail.
 		//
@@ -133,6 +145,32 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	res.Body.Close()
 
 	return verifyUpload(a.apiClient, a.remote, t)
+}
+
+func (a *adapterBase) setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
+	uc := config.NewURLConfig(a.apiClient.GitEnv())
+	disabled := !uc.Bool("lfs", req.URL.String(), "contenttype", true)
+	if len(req.Header.Get("Content-Type")) != 0 || disabled {
+		return nil
+	}
+
+	buffer := make([]byte, 512)
+	n, err := r.Read(buffer)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "content type detect")
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+	if _, err := r.Seek(0, 0); err != nil {
+		return errors.Wrap(err, "content type rewind")
+	}
+
+	if contentType == "" {
+		contentType = defaultContentType
+	}
+
+	req.Header.Set("Content-Type", contentType)
+	return nil
 }
 
 // startCallbackReader is a reader wrapper which calls a function as soon as the
@@ -172,28 +210,4 @@ func configureBasicUploadAdapter(m *Manifest) {
 		}
 		return nil
 	})
-}
-
-func setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
-	if len(req.Header.Get("Content-Type")) != 0 {
-		return nil
-	}
-
-	buffer := make([]byte, 512)
-	n, err := r.Read(buffer)
-	if err != nil && err != io.EOF {
-		return errors.Wrap(err, "content type detect")
-	}
-
-	contentType := http.DetectContentType(buffer[:n])
-	if _, err := r.Seek(0, 0); err != nil {
-		return errors.Wrap(err, "content type rewind")
-	}
-
-	if contentType == "" {
-		contentType = defaultContentType
-	}
-
-	req.Header.Set("Content-Type", contentType)
-	return nil
 }
