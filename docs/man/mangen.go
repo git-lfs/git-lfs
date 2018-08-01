@@ -13,6 +13,9 @@ import (
 )
 
 func infof(w io.Writer, format string, a ...interface{}) {
+	if !verbose {
+		return
+	}
 	fmt.Fprintf(w, format, a...)
 }
 
