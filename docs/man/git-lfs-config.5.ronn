@@ -269,8 +269,9 @@ be scoped inside the configuration for a remote.
 * `lfs.<url>.contenttype`
 
   Determines whether Git LFS should attempt to detect an appropriate HTTP
-  `Content-Type` header when uploading using the 'basic' upload adapter.
-  Default: 'true'.
+  `Content-Type` header when uploading using the 'basic' upload adapter. If set
+  to false, the default header of `Content-Type: application/octet-stream` is
+  chosen instead. Default: 'true'.
 
 * `lfs.skipdownloaderrors`
 
