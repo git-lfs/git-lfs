@@ -143,7 +143,7 @@ BUILD_TARGETS = bin/git-lfs-darwin-amd64 bin/git-lfs-darwin-386 \
 .PHONY : mangen
 mangen : commands/mancontent_gen.go
 
-commands/mancontent_gen.go :
+commands/mancontent_gen.go : $(wildcard docs/man/*.ronn)
 	$(GO) generate github.com/git-lfs/git-lfs/commands
 
 # Targets 'all' and 'build' build binaries of Git LFS for the above release
