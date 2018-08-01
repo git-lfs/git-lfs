@@ -141,10 +141,10 @@ BUILD_TARGETS = bin/git-lfs-darwin-amd64 bin/git-lfs-darwin-386 \
 	bin/git-lfs-windows-amd64.exe bin/git-lfs-windows-386.exe
 
 .PHONY : mangen
-mangen : $(GOPATH)/src/github.com/git-lfs/git-lfs/commands/mancontent_gen.go
+mangen : commands/mancontent_gen.go
 
-$(GOPATH)/src/github.com/git-lfs/git-lfs/commands/mancontent_gen.go :
-	@$(GO) generate github.com/git-lfs/git-lfs/commands
+commands/mancontent_gen.go :
+	$(GO) generate github.com/git-lfs/git-lfs/commands
 
 # Targets 'all' and 'build' build binaries of Git LFS for the above release
 # matrix.
