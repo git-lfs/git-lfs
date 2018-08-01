@@ -38,10 +38,10 @@ begin_test "content-type: is disabled by configuration"
 
   git add .gitattributes a.zip
   git commit -m "initial commit"
-  git config "lfs.$GITSERVER/$reponame.git.contenttype" 0
+  git config "lfs.$GITSERVER.contenttype" 0
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
-  [ 1 -eq "$(grep -c "Content-Type: application/zip" push.log)" ]
+  [ 0 -eq "$(grep -c "Content-Type: application/zip" push.log)" ]
 )
 end_test
 
