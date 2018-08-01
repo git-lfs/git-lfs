@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,12 +39,18 @@ func readManDir() (string, []os.FileInfo) {
 	return "", nil
 }
 
+var (
+	verbose = flag.Bool("verbose", false, "Show verbose output.")
+)
+
 // Reads all .ronn files & and converts them to string literals
 // triggered by "go generate" comment
 // Literals are inserted into a map using an init function, this means
 // that there are no compilation errors if 'go generate' hasn't been run, just
 // blank man files.
 func main() {
+	flag.Parse()
+
 	infof(os.Stderr, "Converting man pages into code...\n")
 	rootDir, fs := readManDir()
 	manDir := filepath.Join(rootDir, "docs", "man")
