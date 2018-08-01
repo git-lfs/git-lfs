@@ -10,16 +10,16 @@ begin_test "content-type: is enabled by default"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git lfs track "*.zip"
+  git lfs track "*.tar.gz"
   printf "aaaaaaaaaa" > a.txt
-  zip -j a.zip a.txt
+  tar -czf a.tar.gz a.txt
   rm a.txt
 
-  git add .gitattributes a.zip
+  git add .gitattributes a.tar.gz
   git commit -m "initial commit"
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
-  [ 1 -eq "$(grep -c "Content-Type: application/zip" push.log)" ]
+  [ 1 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
 )
 end_test
 
@@ -31,17 +31,17 @@ begin_test "content-type: is disabled by configuration"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  git lfs track "*.zip"
+  git lfs track "*.tar.gz"
   printf "aaaaaaaaaa" > a.txt
-  zip -j a.zip a.txt
+  tar -czf a.tar.gz a.txt
   rm a.txt
 
-  git add .gitattributes a.zip
+  git add .gitattributes a.tar.gz
   git commit -m "initial commit"
   git config "lfs.$GITSERVER.contenttype" 0
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
-  [ 0 -eq "$(grep -c "Content-Type: application/zip" push.log)" ]
+  [ 0 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
 )
 end_test
 
