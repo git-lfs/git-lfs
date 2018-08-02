@@ -1,5 +1,29 @@
 # Git LFS Changelog
 
+## 2.5.1 (2 August, 2018)
+
+This release contains miscellaneous bug fixes since v2.5.0. Most notably,
+release v2.5.1 allows a user to disable automatic Content-Type detection
+(released in v2.5.0) via `git config lfs.contenttype false` for hosts that do
+not support it.
+
+### Features
+
+* tq: make Content-Type detection disable-able #3163 (@ttaylorr)
+
+### Bugs
+
+* Makefile: add explicit rule for commands/mancontent_gen.go #3160 (@jj1bdx)
+* script/install.sh: mark as executable #3155 (@ttaylorr)
+* config: add origin to remote list #3152 (@PastelMobileSuit)
+
+### Misc
+
+* docs/man/mangen.go: don't show non-fatal output without --verbose #3168 (@ttaylorr)
+* LICENSE.md: update copyright year #3156 (@IMJ355)
+* Makefile: silence some output #3164 (@ttaylorr)
+* Makefile: list prerequisites for resource.syso #3153 (@ttaylorr)
+
 ## 2.5.0 (26 July, 2018)
 
 This release adds three new migration modes, updated developer ergonomics, and
