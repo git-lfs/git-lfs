@@ -15,6 +15,7 @@ var (
 	lsFilesScanAll     = false
 	lsFilesScanDeleted = false
 	lsFilesShowSize    = false
+	lsFilesSkipIndex   = false
 	debug              = false
 )
 
@@ -22,12 +23,21 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	var ref string
+	var otherRef string
+	var scanRange = false
 
-	if len(args) == 1 {
+	if len(args) > 0 {
 		if lsFilesScanAll {
 			Exit("fatal: cannot use --all with explicit reference")
 		}
 		ref = args[0]
+		if len(args) > 1 {
+			if lsFilesScanDeleted {
+				Exit("fatal: cannot use --deleted with reference range")
+			}
+			otherRef = args[1]
+			scanRange = true
+		}
 	} else {
 		fullref, err := git.CurrentRef()
 		if err != nil {
@@ -50,7 +60,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		if !lsFilesScanAll {
+		if !lsFilesScanAll && !scanRange {
 			if _, ok := seen[p.Name]; ok {
 				return
 			}
@@ -88,8 +98,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg)
 
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
-		Exit("Could not scan for Git LFS index: %s", err)
+	if (!lsFilesSkipIndex) {
+		if err := gitscanner.ScanIndex(ref, nil); err != nil {
+			Exit("Could not scan for Git LFS index: %s", err)
+		}
 	}
 	if lsFilesScanAll {
 		if err := gitscanner.ScanAll(nil); err != nil {
@@ -99,6 +111,8 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		var err error
 		if lsFilesScanDeleted {
 			err = gitscanner.ScanRefWithDeleted(ref, nil)
+		} else if scanRange {
+			err = gitscanner.ScanRefRange(ref, otherRef, nil)
 		} else {
 			err = gitscanner.ScanTree(ref)
 		}
@@ -129,6 +143,7 @@ func init() {
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
+		cmd.Flags().BoolVar(&lsFilesSkipIndex, "skip-index", false, "")
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
