@@ -234,12 +234,13 @@ type getCredsExpected struct {
 }
 
 type getCredsTest struct {
-	Remote   string
-	Method   string
-	Href     string
-	Header   map[string]string
-	Config   map[string]string
-	Expected getCredsExpected
+	Remote    string
+	Method    string
+	Href      string
+	Header    map[string]string
+	Config    map[string]string
+	Expected  getCredsExpected
+	SkipNetrc bool
 }
 
 func TestGetCreds(t *testing.T) {
@@ -364,6 +365,27 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
+		"ignore ntlm with netrc": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://netrc-host.com/repo/lfs",
+				"lfs.https://netrc-host.com/repo/lfs.access": "ntlm",
+			},
+			Expected: getCredsExpected{
+				Access:   NTLMAccess,
+				Endpoint: "https://netrc-host.com/repo/lfs",
+				CredsURL: "https://netrc-host.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "netrc-host.com",
+					"username": "netrc-host.com",
+					"password": "monkey",
+				},
+			},
+			SkipNetrc: true,
+		},
 		"custom auth": getCredsTest{
 			Remote: "origin",
 			Method: "GET",
@@ -394,6 +416,28 @@ func TestGetCreds(t *testing.T) {
 				Endpoint:      "https://netrc-host.com/repo/lfs",
 				Authorization: basicAuth("abc", "def"),
 			},
+		},
+		"ignore netrc": getCredsTest{
+			Remote: "origin",
+			Method: "GET",
+			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Config: map[string]string{
+				"lfs.url": "https://user@netrc-host.com/repo/lfs",
+				"lfs.https://netrc-host.com/repo/lfs.access": "basic",
+			},
+			Expected: getCredsExpected{
+				Access:        BasicAccess,
+				Endpoint:      "https://user@netrc-host.com/repo/lfs",
+				Authorization: basicAuth("user", "monkey"),
+				CredsURL:      "https://user@netrc-host.com/repo/lfs",
+				Creds: map[string]string{
+					"protocol": "https",
+					"host":     "netrc-host.com",
+					"username": "user",
+					"password": "monkey",
+				},
+			},
+			SkipNetrc: true,
 		},
 		"username in url": getCredsTest{
 			Remote: "origin",
@@ -572,7 +616,7 @@ func TestGetCreds(t *testing.T) {
 		client.Credentials = &fakeCredentialFiller{}
 		client.Netrc = &fakeNetrc{}
 		client.Endpoints = NewEndpointFinder(ctx)
-		endpoint, access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
+		endpoint, access, _, credsURL, creds, _, err := client.getCreds(test.Remote, req, test.SkipNetrc)
 		if !assert.Nil(t, err) {
 			continue
 		}

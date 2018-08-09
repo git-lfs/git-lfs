@@ -24,13 +24,13 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
 func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
-	return c.doWithAuth(remote, req, nil)
+	return c.doWithAuth(remote, req, nil, false)
 }
 
-func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request, ignoreNetRc bool) (*http.Response, error) {
 	req.Header = c.extraHeadersFor(req)
 
-	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
+	apiEndpoint, access, credHelper, credsURL, creds, fromNetRc, err := c.getCreds(remote, req, ignoreNetRc)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +57,12 @@ func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Reques
 				// and instead call DoWithAuth.
 				return c.DoWithAuth(remote, req)
 			}
+		}
+
+		if fromNetRc && (res.StatusCode == 401 || res.StatusCode == 403) {
+			tracerx.Printf("api: netrc credentials were rejected. Trying again with new credentials...")
+			req.Header.Del("Authorization")
+			return c.doWithAuth(remote, req, nil, true)
 		}
 	}
 
@@ -94,7 +100,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, req *http.Request) (Endpoint, Access, CredentialHelper, *url.URL, Creds, error) {
+func (c *Client) getCreds(remote string, req *http.Request, ignoreNetRc bool) (Endpoint, Access, CredentialHelper, *url.URL, Creds, bool, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -110,17 +116,25 @@ func (c *Client) getCreds(remote string, req *http.Request) (Endpoint, Access, C
 	access := ef.AccessFor(apiEndpoint.Url)
 
 	if access != NTLMAccess {
-		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+		if requestHasAuth(req) {
+			return apiEndpoint, access, nullCreds, nil, nil, false, nil
+		}
+
+		if !ignoreNetRc && setAuthFromNetrc(netrcFinder, req) {
+			return apiEndpoint, access, nullCreds, nil, nil, true, nil
+		}
+
+		if access == NoneAccess {
+			return apiEndpoint, access, nullCreds, nil, nil, false, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+			return apiEndpoint, access, nullCreds, nil, nil, false, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+			return apiEndpoint, access, nullCreds, nil, nil, false, nil
 		}
 
 		credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
@@ -128,31 +142,33 @@ func (c *Client) getCreds(remote string, req *http.Request) (Endpoint, Access, C
 			tracerx.Printf("Filled credentials for %s", credsURL)
 			setRequestAuth(req, creds["username"], creds["password"])
 		}
-		return apiEndpoint, access, credHelper, credsURL, creds, err
+		return apiEndpoint, access, credHelper, credsURL, creds, false, err
 	}
 
 	// NTLM ONLY
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+		return apiEndpoint, access, nullCreds, nil, nil, false, errors.Wrap(err, "creds")
 	}
 
-	if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
-		creds := Creds{
-			"protocol": credsURL.Scheme,
-			"host":     credsURL.Host,
-			"username": netrcMachine.Login,
-			"password": netrcMachine.Password,
-			"source":   "netrc",
-		}
+	if !ignoreNetRc {
+		if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
+			creds := Creds{
+				"protocol": credsURL.Scheme,
+				"host":     credsURL.Host,
+				"username": netrcMachine.Login,
+				"password": netrcMachine.Password,
+				"source":   "netrc",
+			}
 
-		return apiEndpoint, access, nullCreds, credsURL, creds, nil
+			return apiEndpoint, access, nullCreds, credsURL, creds, true, nil
+		}
 	}
 
 	// NTLM uses creds to create the session
 	credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
-	return apiEndpoint, access, credHelper, credsURL, creds, err
+	return apiEndpoint, access, credHelper, credsURL, creds, false, err
 }
 
 func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (CredentialHelper, Creds, error) {

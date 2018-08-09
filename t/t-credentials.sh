@@ -311,16 +311,20 @@ begin_test "credentials from netrc with bad password"
   clone_repo "$reponame" repo3
 
   # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
-  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+  gitserverhost=$(echo "$GITSERVER" | sed s/127.0.0.1/localhost/ | cut -d'/' -f3)
+  git remote add "netrc" "http://netrcuser:netrcpass@$gitserverhost/$reponame.git"
   git lfs env
 
   git lfs track "*.dat"
   echo "push a" > a.dat
   git add .gitattributes a.dat
   git commit -m "add a.dat"
-
-  git push netrc master 2>&1 | tee push.log
-  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
+  
+  # netrc credentials should fail, and a subsequent request should be made with
+  # the URL credentials
+  GIT_TRACE=1 git push netrc master 2>&1 | tee push.log
+  [ "1" = "$(grep -c "netrc credentials were rejected" push.log)" ]
+  [ "1" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
 )
 end_test
 
