@@ -1,15 +1,17 @@
 package commands
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/gitobj"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +22,10 @@ var (
 	// migrateExcludeRefs is a set of Git references to explicitly exclude
 	// in the migration.
 	migrateExcludeRefs []string
+
+	// migrateYes indicates that an answer of 'yes' should be presumed
+	// whenever 'git lfs migrate' asks for user input.
+	migrateYes bool
 
 	// migrateSkipFetch assumes that the client has the latest copy of
 	// remote references, and thus should not contact the remote for a set
@@ -43,9 +49,17 @@ var (
 	// migrateCommitMessage is the message to use with the commit generated
 	// by the migrate command
 	migrateCommitMessage string
+
+	// exportRemote is the remote from which to download objects when
+	// performing an export
+	exportRemote string
+
+	// migrateFixup is the flag indicating whether or not to infer the
+	// included and excluded filepath patterns.
+	migrateFixup bool
 )
 
-// migrate takes the given command and arguments, *odb.ObjectDatabase, as well
+// migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
 func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *githistory.RewriteOptions) {
 	requireInRepo()
@@ -63,12 +77,12 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 
 // getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
 // at the .git directory of the currently checked-out repository.
-func getObjectDatabase() (*odb.ObjectDatabase, error) {
+func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	dir, err := git.GitDir()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
-	return odb.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
+	return gitobj.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a
@@ -98,8 +112,9 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 		Verbose:           opts.Verbose,
 		ObjectMapFilePath: opts.ObjectMapFilePath,
 
-		BlobFn:         opts.BlobFn,
-		TreeCallbackFn: opts.TreeCallbackFn,
+		BlobFn:            opts.BlobFn,
+		TreePreCallbackFn: opts.TreePreCallbackFn,
+		TreeCallbackFn:    opts.TreeCallbackFn,
 	}, nil
 }
 
@@ -164,13 +179,31 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
 	} else if migrateEverything {
-		localRefs, err := git.LocalRefs()
+		refs, err := git.AllRefsIn("")
 		if err != nil {
 			return nil, nil, err
 		}
 
-		for _, ref := range localRefs {
-			include = append(include, ref.Refspec())
+		for _, ref := range refs {
+			switch ref.Type {
+			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
+				git.RefTypeRemoteBranch, git.RefTypeRemoteTag:
+
+				include = append(include, ref.Refspec())
+			case git.RefTypeOther:
+				parts := strings.SplitN(ref.Refspec(), "/", 3)
+				if len(parts) < 2 {
+					continue
+				}
+
+				switch parts[1] {
+				// The following are GitLab-, GitHub-, VSTS-,
+				// and BitBucket-specific reference naming
+				// conventions.
+				case "merge-requests", "pull", "pull-requests":
+					include = append(include, ref.Refspec())
+				}
+			}
 		}
 	} else {
 		bare, err := git.IsBare()
@@ -277,12 +310,62 @@ func currentRefToMigrate() (*git.Ref, error) {
 
 // getHistoryRewriter returns a history rewriter that includes the filepath
 // filter given by the --include and --exclude arguments.
-func getHistoryRewriter(cmd *cobra.Command, db *odb.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
+func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, include, exclude)
 
 	return githistory.NewRewriter(db,
 		githistory.WithFilter(filter), githistory.WithLogger(l))
+}
+
+func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
+	dirty, err := git.IsWorkingCopyDirty()
+	if err != nil {
+		ExitWithError(errors.Wrap(err,
+			"fatal: could not determine if working copy is dirty"))
+	}
+
+	if !dirty {
+		return
+	}
+
+	var proceed bool
+	if migrateYes {
+		proceed = true
+	} else {
+		answer := bufio.NewReader(in)
+	L:
+		for {
+			fmt.Fprintf(out, "migrate: override changes in your working copy? [Y/n] ")
+			s, err := answer.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					break L
+				}
+				ExitWithError(errors.Wrap(err,
+					"fatal: could not read answer"))
+			}
+
+			switch strings.TrimSpace(s) {
+			case "n", "N":
+				proceed = false
+				break L
+			case "y", "Y":
+				proceed = true
+				break L
+			}
+
+			if !strings.HasSuffix(s, "\n") {
+				fmt.Fprintf(out, "\n")
+			}
+		}
+	}
+
+	if proceed {
+		fmt.Fprintf(out, "migrate: changes in your working copy will be overridden ...\n")
+	} else {
+		Exit("migrate: working copy must not be dirty")
+	}
 }
 
 func init() {
@@ -296,6 +379,12 @@ func init() {
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
+	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
+
+	exportCmd := NewCommand("export", migrateExportCommand)
+	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
+	exportCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
+	exportCmd.Flags().StringVar(&exportRemote, "remote", "", "Remote from which to download objects")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
@@ -306,6 +395,8 @@ func init() {
 		cmd.PersistentFlags().BoolVar(&migrateEverything, "everything", false, "Migrate all local references")
 		cmd.PersistentFlags().BoolVar(&migrateSkipFetch, "skip-fetch", false, "Assume up-to-date remote references.")
 
-		cmd.AddCommand(importCmd, info)
+		cmd.PersistentFlags().BoolVarP(&migrateYes, "yes", "y", false, "Don't prompt for answers.")
+
+		cmd.AddCommand(exportCmd, importCmd, info)
 	})
 }

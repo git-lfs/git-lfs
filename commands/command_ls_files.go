@@ -111,7 +111,8 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 // Returns true if a pointer appears to be properly smudge on checkout
 func fileExistsOfSize(p *lfs.WrappedPointer) bool {
-	info, err := os.Stat(p.Name)
+	path := cfg.Filesystem().DecodePathname(p.Name)
+	info, err := os.Stat(path)
 	return err == nil && info.Size() == p.Size
 }
 

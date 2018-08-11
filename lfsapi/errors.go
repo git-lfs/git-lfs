@@ -58,6 +58,10 @@ func (c *Client) handleResponse(res *http.Response) error {
 		return errors.NewAuthError(err)
 	}
 
+	if res.StatusCode == 422 {
+		return errors.NewUnprocessableEntityError(err)
+	}
+
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 507 && res.StatusCode != 509 {
 		return errors.NewFatalError(err)
 	}
@@ -92,6 +96,7 @@ var (
 		401: "Authorization error: %s\nCheck that you have proper access to the repository",
 		403: "Authorization error: %s\nCheck that you have proper access to the repository",
 		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
+		422: "Unprocessable entity: %s",
 		429: "Rate limit exceeded: %s",
 		500: "Server error: %s",
 		501: "Not Implemented: %s",

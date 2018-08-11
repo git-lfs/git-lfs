@@ -49,13 +49,6 @@ func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 }
 
 func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environment) (httpsProxy string, httpProxy string, noProxy string) {
-	if urlCfg != nil {
-		httpProxy, _ = urlCfg.Get("http", u.String(), "proxy")
-		if strings.HasPrefix(httpProxy, "https://") {
-			httpsProxy = httpProxy
-		}
-	}
-
 	if osEnv == nil {
 		return
 	}
@@ -74,6 +67,16 @@ func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environm
 
 	if len(httpProxy) == 0 {
 		httpProxy, _ = osEnv.Get("http_proxy")
+	}
+
+	if urlCfg != nil {
+		gitProxy, ok := urlCfg.Get("http", u.String(), "proxy")
+		if len(gitProxy) > 0 && ok {
+			if strings.HasPrefix(gitProxy, "https://") {
+				httpsProxy = gitProxy
+			}
+			httpProxy = gitProxy
+		}
 	}
 
 	noProxy, _ = osEnv.Get("NO_PROXY")

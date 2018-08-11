@@ -7,9 +7,9 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/gitobj"
 )
 
 // refUpdater is a type responsible for moving references from one point in the
@@ -27,7 +27,7 @@ type refUpdater struct {
 	// located.
 	Root string
 
-	db *odb.ObjectDatabase
+	db *gitobj.ObjectDatabase
 }
 
 // UpdateRefs performs the reference update(s) from existing locations (see:
@@ -57,7 +57,7 @@ func (r *refUpdater) UpdateRefs() error {
 
 		if ref.Type == git.RefTypeLocalTag {
 			tag, _ := r.db.Tag(sha1)
-			if tag != nil && tag.ObjectType == odb.CommitObjectType {
+			if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
 				// Assume that a non-nil error is an indication
 				// that the tag is bare (without annotation).
 
@@ -66,7 +66,7 @@ func (r *refUpdater) UpdateRefs() error {
 					continue
 				}
 
-				newTag, err := r.db.WriteTag(&odb.Tag{
+				newTag, err := r.db.WriteTag(&gitobj.Tag{
 					Object:     toObj,
 					ObjectType: tag.ObjectType,
 					Name:       tag.Name,

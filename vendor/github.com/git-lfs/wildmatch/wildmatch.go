@@ -2,6 +2,7 @@ package wildmatch
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -11,6 +12,16 @@ import (
 type opt func(w *Wildmatch)
 
 var (
+	// Basename allows the receiving Wildmatch to match paths where the
+	// pattern matches only the basename of the path when the pattern does
+	// not contain directory separators.
+	//
+	// If the pattern contains directory separators, or if this option is
+	// not given, the entire path will be matched.
+	Basename opt = func(w *Wildmatch) {
+		w.basename = true
+	}
+
 	// CaseFold allows the receiving Wildmatch to match paths with
 	// different case structuring as in the pattern.
 	CaseFold opt = func(w *Wildmatch) {
@@ -37,6 +48,10 @@ type Wildmatch struct {
 	// p is the raw pattern used to derive the token set.
 	p string
 
+	// basename indicates that this Wildmatch instance matches basenames
+	// when possible (i.e., when there are no directory separators in the
+	// pattern).
+	basename bool
 	// caseFold allows the instance Wildmatch to match patterns with the
 	// same character but different case structures.
 	caseFold bool
@@ -59,7 +74,11 @@ func NewWildmatch(p string, opts ...opt) *Wildmatch {
 		w.p = strings.ToLower(w.p)
 	}
 
-	w.ts = parseTokens(strings.Split(w.p, string(sep)))
+	parts := strings.Split(w.p, string(sep))
+	if len(parts) > 1 {
+		w.basename = false
+	}
+	w.ts = parseTokens(parts)
 
 	return w
 }
@@ -164,6 +183,12 @@ func (w *Wildmatch) Match(t string) bool {
 // returns a slice of remaining directory paths, and whether or not there was a
 // disagreement while matching.
 func (w *Wildmatch) consume(t string) ([]string, bool) {
+	if w.basename {
+		// If the receiving Wildmatch has basename set, the pattern
+		// matches only the basename of the given "t".
+		t = filepath.Base(t)
+	}
+
 	if w.caseFold {
 		// If the receiving Wildmatch is case insensitive, the pattern
 		// "w.p" will be lower-case.

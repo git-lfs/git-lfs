@@ -1,8 +1,31 @@
 #!/usr/bin/env bash
 set -e
-script/test
+
+GOIMPORTS="goimports"
+if [ "appveyor" = "$USERNAME" ]; then
+  GOIMPORTS="C:\\Users\\appveyor\\go\\bin\\goimports"
+fi
+
+GOCACHE=off make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
-GIT_TRACE=1 script/test git
+GIT_TRACE=1 GOCACHE=off make GOIMPORTS="$GOIMPORTS" PKGS=git test
 
-VERBOSE_LOGS=1 script/integration
+pushd t >/dev/null
+  UNAME=$(uname -s)
+  X=""
+  if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
+    X=".exe"
+  fi
+
+  PROVE="prove"
+  PROVE_EXTRA_ARGS="-j9"
+  if [ "appveyor" = "$USERNAME" ]; then
+    export PATH="/c/Strawberry/perl/bin:.:$PATH"
+    PROVE="prove.bat"
+    PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS --exec bash"
+  fi
+
+  VERBOSE_LOGS=1 make X="$X" clean
+  VERBOSE_LOGS=1 make X="$X" PROVE="$PROVE" PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS"
+popd >/dev/null

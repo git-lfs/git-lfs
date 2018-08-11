@@ -51,6 +51,8 @@ type Client struct {
 	gitEnv            config.Environment
 	osEnv             config.Environment
 	uc                *config.URLConfig
+
+	sshTries int
 }
 
 type Context interface {
@@ -72,7 +74,7 @@ func NewClient(ctx Context) (*Client, error) {
 	}
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
-	var sshResolver SSHResolver = &sshAuthClient{os: osEnv}
+	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
@@ -91,9 +93,10 @@ func NewClient(ctx Context) (*Client, error) {
 		commandCredHelper: &commandCredentialHelper{
 			SkipPrompt: osEnv.Bool("GIT_TERMINAL_PROMPT", false),
 		},
-		gitEnv: gitEnv,
-		osEnv:  osEnv,
-		uc:     config.NewURLConfig(gitEnv),
+		gitEnv:   gitEnv,
+		osEnv:    osEnv,
+		uc:       config.NewURLConfig(gitEnv),
+		sshTries: gitEnv.Int("lfs.ssh.retries", 5),
 	}
 
 	askpass, ok := osEnv.Get("GIT_ASKPASS")

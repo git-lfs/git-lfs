@@ -2,13 +2,26 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
+
+func infof(w io.Writer, format string, a ...interface{}) {
+	if !*verbose {
+		return
+	}
+	fmt.Fprintf(w, format, a...)
+}
+
+func warnf(w io.Writer, format string, a ...interface{}) {
+	fmt.Fprintf(w, format, a...)
+}
 
 func readManDir() (string, []os.FileInfo) {
 	rootDirs := []string{
@@ -24,10 +37,14 @@ func readManDir() (string, []os.FileInfo) {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Failed to open man dir: %v\n", err)
+	warnf(os.Stderr, "Failed to open man dir: %v\n", err)
 	os.Exit(2)
 	return "", nil
 }
+
+var (
+	verbose = flag.Bool("verbose", false, "Show verbose output.")
+)
 
 // Reads all .ronn files & and converts them to string literals
 // triggered by "go generate" comment
@@ -35,12 +52,14 @@ func readManDir() (string, []os.FileInfo) {
 // that there are no compilation errors if 'go generate' hasn't been run, just
 // blank man files.
 func main() {
-	fmt.Fprintf(os.Stderr, "Converting man pages into code...\n")
+	flag.Parse()
+
+	infof(os.Stderr, "Converting man pages into code...\n")
 	rootDir, fs := readManDir()
 	manDir := filepath.Join(rootDir, "docs", "man")
 	out, err := os.Create(filepath.Join(rootDir, "commands", "mancontent_gen.go"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create go file: %v\n", err)
+		warnf(os.Stderr, "Failed to create go file: %v\n", err)
 		os.Exit(2)
 	}
 	out.WriteString("package commands\n\nfunc init() {\n")
@@ -55,7 +74,7 @@ func main() {
 	count := 0
 	for _, f := range fs {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", f.Name())
+			infof(os.Stderr, "%v\n", f.Name())
 			cmd := match[1]
 			if len(cmd) == 0 {
 				// This is git-lfs.1.ronn
@@ -64,7 +83,7 @@ func main() {
 			out.WriteString("ManPages[\"" + cmd + "\"] = `")
 			contentf, err := os.Open(filepath.Join(manDir, f.Name()))
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
+				warnf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)
 			}
 			// Process the ronn to make it nicer as help text
@@ -145,6 +164,6 @@ func main() {
 		}
 	}
 	out.WriteString("}\n")
-	fmt.Fprintf(os.Stderr, "Successfully processed %d man pages.\n", count)
+	infof(os.Stderr, "Successfully processed %d man pages.\n", count)
 
 }

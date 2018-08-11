@@ -66,11 +66,13 @@ type sshAuthResponse struct {
 }
 
 func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
-	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt, time.Duration(r.ExpiresIn)*time.Second)
+	return tools.IsExpiredAtOrIn(r.createdAt, d, r.ExpiresAt,
+		time.Duration(r.ExpiresIn)*time.Second)
 }
 
 type sshAuthClient struct {
-	os config.Environment
+	os  config.Environment
+	git config.Environment
 }
 
 func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
@@ -100,6 +102,13 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		res.Message = strings.TrimSpace(errbuf.String())
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
+		if res.ExpiresIn == 0 && res.ExpiresAt.IsZero() {
+			ttl := c.git.Int("lfs.defaulttokenttl", 0)
+			if ttl < 0 {
+				ttl = 0
+			}
+			res.ExpiresIn = ttl
+		}
 		res.createdAt = now
 	}
 

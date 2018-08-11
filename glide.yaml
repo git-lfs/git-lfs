@@ -27,8 +27,10 @@ import:
 - package: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - package: github.com/git-lfs/wildmatch
-  version: 8a0518641565a619e62a2738c7d4498fc345daf6
+  version: b31c34466d64fcd421b503261f815a303e74296e
 - package: github.com/alexbrainman/sspi
   version: 4729b3d4d8581b2db83864d1018926e4154f9406
   subpackages:
   - ntlm
+- package: github.com/git-lfs/gitobj
+  version: 0fcb9c3796fa00bd974c86dc25b1919da1479007

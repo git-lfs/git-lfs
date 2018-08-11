@@ -91,6 +91,13 @@ options and these additional ones:
     become available, and the core `migrate` options will be ignored. See
     [IMPORT (NO REWRITE)].
 
+* `--fixup`
+    Infer `--include` and `--exclude` filters on a per-commit basis based on the
+    .gitattributes files in a repository. In practice, this option imports any
+    filepaths which should be tracked by Git LFS according to the repository's
+    .gitattributes file(s), but aren't already pointers. This option is
+    incompatible with explicitly given `--include`, `--exclude` filters.
+
 If `--no-rewrite` is not provided and `--include` or `--exclude` (`-I`, `-X`,
 respectively) are given, the .gitattributes will be modified to include any new
 filepath patterns as given by those flags.
@@ -122,6 +129,29 @@ The `--no-rewrite` sub-mode supports the following options and arguments:
 If `--message` is given, the new commit will be created with the provided
 message. If no message is given, a commit message will be generated based on the
 file arguments.
+
+### EXPORT
+
+The 'export' mode migrates Git LFS pointer files present in the Git history out
+of Git LFS, converting them into their corresponding object files. It supports
+all the core 'migrate' options and these additional ones:
+
+* `--verbose`
+    Print the commit oid and filename of migrated files to STDOUT.
+
+* `--object-map=<path>`
+    Write to 'path' a file with the mapping of each rewritten commit. The file
+    format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
+
+* `--remote=<git-remote>`
+    Download LFS objects from the provided 'git-remote' during the export. If
+    not provided, defaults to 'origin'.
+
+The 'export' mode requires at minimum a pattern provided with the `--include`
+argument to specify which files to export. Files matching the `--include`
+patterns will be removed from Git LFS, while files matching the `--exclude`
+patterns will retain their Git LFS status. The export command will modify the
+.gitattributes to set/unset any filepath patterns as given by those flags.
 
 ## INCLUDE AND EXCLUDE
 
@@ -160,8 +190,8 @@ The following configuration:
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
 
-The presence of flag `--everything` indicates that all local references should be
-migrated.
+The presence of flag `--everything` indicates that all local and remote
+references should be migrated.
 
 ## EXAMPLES
 
@@ -223,16 +253,20 @@ Note: This will require a force push to any existing Git remotes.
 
 ### Migrate without rewriting local history
 
-You can also migrate files without modifying the existing history of your respoitory:
+You can also migrate files without modifying the existing history of your
+repository:
 
-Without a specified commit message: 
+Without a specified commit message:
+
 ```
-    git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
+$ git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
 ```
+
 With a specified commit message:
+
 ```
-    git lfs migrate import --no-rewrite -m "Import .zip, .mp3, .psd files" \
-      test.zip *.mpd *.psd
+$ git lfs migrate import --no-rewrite -m "Import .zip, .mp3, .psd files" \
+  test.zip *.mpd *.psd
 ```
 
 ## SEE ALSO

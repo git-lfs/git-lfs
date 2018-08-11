@@ -10,10 +10,10 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/githistory"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
+	"github.com/git-lfs/gitobj"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +69,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	migrateInfoAbove = above
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
-		BlobFn: func(path string, b *odb.Blob) (*odb.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
 			if len(ext) > 1 {

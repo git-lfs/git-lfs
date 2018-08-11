@@ -29,12 +29,15 @@ setup and preferences.
   [PackageCloud](https://packagecloud.io/github/git-lfs/install).
 * **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
   be installed via `brew install git-lfs`.
-* **Windows users**. Chocolatey packages are distributed, and can be installed
-  via `choco install git-lfs`.
+* **Windows users**. Git LFS is included in the distribution of 
+  [Git for Windows](https://gitforwindows.org/). Alternatively, you can 
+  install a recent version of Git LFS from the Chocolatey package manager.
 
 In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
 available for Linux, macOS, Windows, and FreeBSD. This repository can also be
-built-from-source using the latest version of [Go](https://golang.org).
+built from source using the latest version of [Go](https://golang.org), and the
+available instructions in our
+[Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
 
 ### Usage
 

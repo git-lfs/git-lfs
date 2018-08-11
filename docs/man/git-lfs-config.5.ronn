@@ -51,6 +51,11 @@ be scoped inside the configuration for a remote.
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `lfs.ssh.retries`
+
+  Specifies the number of times Git LFS will attempt to obtain authorization via
+  SSH before aborting. Default: 5.
+
 * `core.askpass`, GIT_ASKPASS
 
   Given as a program and its arguments, this is invoked when authentication is
@@ -156,7 +161,7 @@ be scoped inside the configuration for a remote.
 * `lfs.allowincompletepush`
 
   When pushing, allow objects to be missing from the local cache without halting
-  a Git push. Default: true.
+  a Git push. Default: false.
 
 ### Fetch settings
 
@@ -261,6 +266,13 @@ be scoped inside the configuration for a remote.
   https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this value
   per-host: `git config --global lfs.https://github.com/.locksverify [true|false]`.
 
+* `lfs.<url>.contenttype`
+
+  Determines whether Git LFS should attempt to detect an appropriate HTTP
+  `Content-Type` header when uploading using the 'basic' upload adapter. If set
+  to false, the default header of `Content-Type: application/octet-stream` is
+  chosen instead. Default: 'true'.
+
 * `lfs.skipdownloaderrors`
 
   Causes Git LFS not to abort the smudge filter when a download error is
@@ -302,6 +314,14 @@ be scoped inside the configuration for a remote.
   made read-only in the working copy when not locked by the current user.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
+
+* `lfs.defaulttokenttl`
+
+  This setting sets a default token TTL when git-lfs-authenticate does not
+  include the TTL in the JSON response but still enforces it.
+
+  Note that this is only necessary for larger repositories hosted on LFS
+  servers that don't include the TTL.
 
 ## LFSCONFIG
 

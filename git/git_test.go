@@ -9,7 +9,7 @@ import (
 	"time"
 
 	. "github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/test"
+	test "github.com/git-lfs/git-lfs/t/cmd/util"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,16 +1,28 @@
+image: Visual Studio 2017
+
 skip_branch_with_pr: true
 
 environment:
-  GOPATH: $(HOMEDRIVE)$(HOMEPATH)\go
+  GIT_LFS_NO_TEST_COUNT: 1
+  GIT_LFS_LOCK_ACQUIRE_DISABLED: 1
+  GOPATH: C:\Users\appveyor\go
   MSYSTEM: MINGW64
 
 clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
 
 install:
   - rd C:\Go /s /q
-  - cinst golang --version 1.8.3 -y
-  - cinst InnoSetup -y
+  - rd C:\Perl /s /q
   - refreshenv
+  - curl -sL -o go1.10.3.windows-amd64.zip https://storage.googleapis.com/golang/go1.10.3.windows-amd64.zip
+  - 7z x go1.10.3.windows-amd64.zip -oC:\ >nul
+  - C:\go\bin\go version
+  - cinst InnoSetup -y
+  - cinst strawberryperl -y
+  - refreshenv
+  - cinst make
+  - refreshenv
+  - set PATH=%GOPATH%\bin\windows_386;%PATH%
   - ps: |
       echo "Go directories in machine PATH environment:"
       [environment]::GetEnvironmentVariable("PATH","Machine").split(";") | Select-String -Pattern "\\go\\"
@@ -22,9 +34,9 @@ install:
       go version
 
 build_script:
-  - bash --login -c 'GOARCH=386 script/bootstrap'
+  - bash --login -c 'make GOARCH=386 -B'
   - mv bin\git-lfs.exe git-lfs-x86.exe
-  - bash --login -c 'GOARCH=amd64 script/bootstrap'
+  - bash --login -c 'make GOARCH=amd64 -B'
   - mv bin\git-lfs.exe git-lfs-x64.exe
 
 after_build:

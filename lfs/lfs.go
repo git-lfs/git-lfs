@@ -35,12 +35,14 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 
 	fetchPruneConfig := NewFetchPruneConfig(cfg.Git)
 
+	references := strings.Join(cfg.LocalReferenceDirs(), ", ")
+
 	env = append(env,
 		fmt.Sprintf("LocalWorkingDir=%s", cfg.LocalWorkingDir()),
 		fmt.Sprintf("LocalGitDir=%s", cfg.LocalGitDir()),
 		fmt.Sprintf("LocalGitStorageDir=%s", cfg.LocalGitStorageDir()),
 		fmt.Sprintf("LocalMediaDir=%s", cfg.LFSObjectDir()),
-		fmt.Sprintf("LocalReferenceDir=%s", cfg.LocalReferenceDir()),
+		fmt.Sprintf("LocalReferenceDirs=%s", references),
 		fmt.Sprintf("TempDir=%s", cfg.TempDir()),
 		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
@@ -98,13 +100,19 @@ func LinkOrCopyFromReference(cfg *config.Configuration, oid string, size int64) 
 	if cfg.LFSObjectExists(oid, size) {
 		return nil
 	}
-	altMediafile := cfg.Filesystem().ObjectReferencePath(oid)
+	altMediafiles := cfg.Filesystem().ObjectReferencePaths(oid)
 	mediafile, err := cfg.Filesystem().ObjectPath(oid)
 	if err != nil {
 		return err
 	}
-	if altMediafile != "" && tools.FileExistsOfSize(altMediafile, size) {
-		return LinkOrCopy(cfg, altMediafile, mediafile)
+	for _, altMediafile := range altMediafiles {
+		tracerx.Printf("altMediafile: %s", altMediafile)
+		if altMediafile != "" && tools.FileExistsOfSize(altMediafile, size) {
+			err = LinkOrCopy(cfg, altMediafile, mediafile)
+			if err == nil {
+				break
+			}
+		}
 	}
-	return nil
+	return err
 }

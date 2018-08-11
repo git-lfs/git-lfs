@@ -127,6 +127,20 @@ func IsDownloadDeclinedError(err error) bool {
 	return false
 }
 
+// IsDownloadDeclinedError indicates that the upload operation failed because of
+// an HTTP 422 response code.
+func IsUnprocessableEntityError(err error) bool {
+	if e, ok := err.(interface {
+		UnprocessableEntityError() bool
+	}); ok {
+		return e.UnprocessableEntityError()
+	}
+	if parent := parentOf(err); parent != nil {
+		return IsUnprocessableEntityError(parent)
+	}
+	return false
+}
+
 // IsRetriableError indicates the low level transfer had an error but the
 // caller may retry the operation.
 func IsRetriableError(err error) bool {
@@ -319,6 +333,20 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 
 func NewDownloadDeclinedError(err error, msg string) error {
 	return downloadDeclinedError{newWrappedError(err, msg)}
+}
+
+// Definitions for IsUnprocessableEntityError()
+
+type unprocessableEntityError struct {
+	*wrappedError
+}
+
+func (e unprocessableEntityError) UnprocessableEntityError() bool {
+	return true
+}
+
+func NewUnprocessableEntityError(err error) error {
+	return unprocessableEntityError{newWrappedError(err, "")}
 }
 
 // Definitions for IsRetriableError()

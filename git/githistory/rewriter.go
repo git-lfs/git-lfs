@@ -11,8 +11,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/odb"
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/gitobj"
 )
 
 // Rewriter allows rewriting topologically equivalent Git histories
@@ -23,7 +23,7 @@ type Rewriter struct {
 	// entries is a mapping of old tree entries to new (rewritten) ones.
 	// Since TreeEntry contains a []byte (and is therefore not a key-able
 	// type), a unique TreeEntry -> string function is used for map keys.
-	entries map[string]*odb.TreeEntry
+	entries map[string]*gitobj.TreeEntry
 	// commits is a mapping of old commit SHAs to new ones, where the ASCII
 	// hex encoding of the SHA1 values are used as map keys.
 	commits map[string][]byte
@@ -33,7 +33,7 @@ type Rewriter struct {
 	filter *filepathfilter.Filter
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
 	// loaded from.
-	db *odb.ObjectDatabase
+	db *gitobj.ObjectDatabase
 	// l is the *tasklog.Logger to which updates are written.
 	l *tasklog.Logger
 }
@@ -67,6 +67,10 @@ type RewriteOptions struct {
 	// each blob for subsequent revisions, so long as each entry remains
 	// unchanged.
 	BlobFn BlobRewriteFn
+	// TreePreCallbackFn specifies a function to be called before opening a
+	// tree for rewriting. It will be called on all trees throughout history
+	// in topological ordering through the tree, starting at the root.
+	TreePreCallbackFn TreePreCallbackFn
 	// TreeCallbackFn specifies a function to rewrite trees after they have
 	// been reassembled by calling the above BlobFn on all existing tree
 	// entries.
@@ -80,6 +84,15 @@ func (r *RewriteOptions) blobFn() BlobRewriteFn {
 		return noopBlobFn
 	}
 	return r.BlobFn
+}
+
+// treePreFn returns a useable TreePreCallbackFn, either the one that was given
+// in the *RewriteOptions, or a noopTreePreFn.
+func (r *RewriteOptions) treePreFn() TreePreCallbackFn {
+	if r.TreePreCallbackFn == nil {
+		return noopTreePreFn
+	}
+	return r.TreePreCallbackFn
 }
 
 // treeFn returns a useable TreeRewriteFn, either the one that was given in the
@@ -96,7 +109,7 @@ func (r *RewriteOptions) treeFn() TreeCallbackFn {
 // and instead the error will be returned from the Rewrite() function.
 //
 // Invocations of an instance of BlobRewriteFn are not expected to store the
-// returned blobs in the *git/odb.ObjectDatabase.
+// returned blobs in the *git/gitobj.ObjectDatabase.
 //
 // The path argument is given to be an absolute path to the tree entry being
 // rewritten, where the repository root is the root of the path given. For
@@ -105,22 +118,33 @@ func (r *RewriteOptions) treeFn() TreeCallbackFn {
 //
 // As above, the path separators are OS specific, and equivalent to the result
 // of filepath.Join(...) or os.PathSeparator.
-type BlobRewriteFn func(path string, b *odb.Blob) (*odb.Blob, error)
+type BlobRewriteFn func(path string, b *gitobj.Blob) (*gitobj.Blob, error)
+
+// TreePreCallbackFn specifies a function to call upon opening a new tree for
+// rewriting.
+//
+// Unlike its sibling TreeCallbackFn, TreePreCallbackFn may not modify the given
+// tree.
+//
+// TreePreCallbackFn can be nil, and will therefore exhibit behavior equivalent
+// to only calling the BlobFn on existing tree entries.
+//
+// If the TreePreCallbackFn returns an error, it will be returned from the
+// Rewrite() invocation.
+type TreePreCallbackFn func(path string, t *gitobj.Tree) error
 
 // TreeCallbackFn specifies a function to call before writing a re-written tree
 // to the object database. The TreeCallbackFn can return a modified tree to be
 // written to the object database instead of one generated from calling BlobFn
 // on all of the tree entries.
 //
-// Trees returned from a TreeCallbackFn MUST have all objects referenced in the
-// entryset already written to the object database.
 //
 // TreeCallbackFn can be nil, and will therefore exhibit behavior equivalent to
 // only calling the BlobFn on existing tree entries.
 //
 // If the TreeCallbackFn returns an error, it will be returned from the
 // Rewrite() invocation.
-type TreeCallbackFn func(path string, t *odb.Tree) (*odb.Tree, error)
+type TreeCallbackFn func(path string, t *gitobj.Tree) (*gitobj.Tree, error)
 
 type rewriterOption func(*Rewriter)
 
@@ -150,17 +174,20 @@ var (
 
 	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
 	// the blob that it was given, and returns no error.
-	noopBlobFn = func(path string, b *odb.Blob) (*odb.Blob, error) { return b, nil }
+	noopBlobFn = func(path string, b *gitobj.Blob) (*gitobj.Blob, error) { return b, nil }
+	// noopTreePreFn is a no-op implementation of the TreePreRewriteFn. It
+	// returns the tree that it was given, and returns no error.
+	noopTreePreFn = func(path string, t *gitobj.Tree) error { return nil }
 	// noopTreeFn is a no-op implementation of the TreeRewriteFn. It returns
 	// the tree that it was given, and returns no error.
-	noopTreeFn = func(path string, t *odb.Tree) (*odb.Tree, error) { return t, nil }
+	noopTreeFn = func(path string, t *gitobj.Tree) (*gitobj.Tree, error) { return t, nil }
 )
 
 // NewRewriter constructs a *Rewriter from the given *ObjectDatabase instance.
-func NewRewriter(db *odb.ObjectDatabase, opts ...rewriterOption) *Rewriter {
+func NewRewriter(db *gitobj.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 	rewriter := &Rewriter{
 		mu:      new(sync.Mutex),
-		entries: make(map[string]*odb.TreeEntry),
+		entries: make(map[string]*gitobj.TreeEntry),
 		commits: make(map[string][]byte),
 
 		db: db,
@@ -214,7 +241,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		// Rewrite the tree given at that commit.
-		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treeFn(), vPerc)
+		rewrittenTree, err := r.rewriteTree(oid, original.TreeID, "", opt.blobFn(), opt.treePreFn(), opt.treeFn(), vPerc)
 		if err != nil {
 			return nil, err
 		}
@@ -247,7 +274,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Construct a new commit using the original header information,
 		// but the rewritten set of parents as well as root tree.
-		rewrittenCommit := &odb.Commit{
+		rewrittenCommit := &gitobj.Commit{
 			Author:       original.Author,
 			Committer:    original.Committer,
 			ExtraHeaders: original.ExtraHeaders,
@@ -321,13 +348,20 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 //
 // It returns the new SHA of the rewritten tree, or an error if the tree was
 // unable to be rewritten.
-func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn BlobRewriteFn, tfn TreeCallbackFn, perc *tasklog.PercentageTask) ([]byte, error) {
+func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
+	fn BlobRewriteFn, tpfn TreePreCallbackFn, tfn TreeCallbackFn,
+	perc *tasklog.PercentageTask) ([]byte, error) {
+
 	tree, err := r.db.Tree(treeOID)
 	if err != nil {
 		return nil, err
 	}
 
-	entries := make([]*odb.TreeEntry, 0, len(tree.Entries))
+	if err := tpfn("/"+path, tree); err != nil {
+		return nil, err
+	}
+
+	entries := make([]*gitobj.TreeEntry, 0, len(tree.Entries))
 	for _, entry := range tree.Entries {
 		var fullpath string
 		if len(path) > 0 {
@@ -355,10 +389,10 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 		var oid []byte
 
 		switch entry.Type() {
-		case odb.BlobObjectType:
+		case gitobj.BlobObjectType:
 			oid, err = r.rewriteBlob(commitOID, entry.Oid, fullpath, fn, perc)
-		case odb.TreeObjectType:
-			oid, err = r.rewriteTree(commitOID, entry.Oid, fullpath, fn, tfn, perc)
+		case gitobj.TreeObjectType:
+			oid, err = r.rewriteTree(commitOID, entry.Oid, fullpath, fn, tpfn, tfn, perc)
 		default:
 			oid = entry.Oid
 
@@ -367,14 +401,14 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 			return nil, err
 		}
 
-		entries = append(entries, r.cacheEntry(entry, &odb.TreeEntry{
+		entries = append(entries, r.cacheEntry(entry, &gitobj.TreeEntry{
 			Filemode: entry.Filemode,
 			Name:     entry.Name,
 			Oid:      oid,
 		}))
 	}
 
-	rewritten, err := tfn("/"+path, &odb.Tree{Entries: entries})
+	rewritten, err := tfn("/"+path, &gitobj.Tree{Entries: entries})
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +419,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string, fn
 	return r.db.WriteTree(rewritten)
 }
 
-func copyEntry(e *odb.TreeEntry) *odb.TreeEntry {
+func copyEntry(e *gitobj.TreeEntry) *gitobj.TreeEntry {
 	if e == nil {
 		return nil
 	}
@@ -393,18 +427,18 @@ func copyEntry(e *odb.TreeEntry) *odb.TreeEntry {
 	oid := make([]byte, len(e.Oid))
 	copy(oid, e.Oid)
 
-	return &odb.TreeEntry{
+	return &gitobj.TreeEntry{
 		Filemode: e.Filemode,
 		Name:     e.Name,
 		Oid:      oid,
 	}
 }
 
-func (r *Rewriter) allows(typ odb.ObjectType, abs string) bool {
+func (r *Rewriter) allows(typ gitobj.ObjectType, abs string) bool {
 	switch typ {
-	case odb.BlobObjectType:
+	case gitobj.BlobObjectType:
 		return r.Filter().Allows(strings.TrimPrefix(abs, "/"))
-	case odb.CommitObjectType, odb.TreeObjectType:
+	case gitobj.CommitObjectType, gitobj.TreeObjectType:
 		return true
 	default:
 		panic(fmt.Sprintf("git/githistory: unknown entry type: %s", typ))
@@ -546,7 +580,7 @@ func (r *Rewriter) Filter() *filepathfilter.Filter {
 
 // cacheEntry caches then given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
-func (r *Rewriter) cacheEntry(from, to *odb.TreeEntry) *odb.TreeEntry {
+func (r *Rewriter) cacheEntry(from, to *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -558,7 +592,7 @@ func (r *Rewriter) cacheEntry(from, to *odb.TreeEntry) *odb.TreeEntry {
 // uncacheEntry returns a *TreeEntry that is cached from the given *TreeEntry
 // "from". That is to say, it returns the *TreeEntry that "from" should be
 // rewritten to, or nil if none could be found.
-func (r *Rewriter) uncacheEntry(from *odb.TreeEntry) *odb.TreeEntry {
+func (r *Rewriter) uncacheEntry(from *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -566,12 +600,12 @@ func (r *Rewriter) uncacheEntry(from *odb.TreeEntry) *odb.TreeEntry {
 }
 
 // entryKey returns a unique key for a given *TreeEntry "e".
-func (r *Rewriter) entryKey(e *odb.TreeEntry) string {
+func (r *Rewriter) entryKey(e *gitobj.TreeEntry) string {
 	return fmt.Sprintf("%s:%x", e.Name, e.Oid)
 }
 
 // cacheEntry caches then given "from" commit so that it is always rewritten as
-// a *git/odb.Commit equivalent to "to".
+// a *git/gitobj.Commit equivalent to "to".
 func (r *Rewriter) cacheCommit(from, to []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -579,8 +613,8 @@ func (r *Rewriter) cacheCommit(from, to []byte) {
 	r.commits[hex.EncodeToString(from)] = to
 }
 
-// uncacheCommit returns a *git/odb.Commit that is cached from the given
-// *git/odb.Commit "from". That is to say, it returns the *git/odb.Commit that
+// uncacheCommit returns a *git/gitobj.Commit that is cached from the given
+// *git/gitobj.Commit "from". That is to say, it returns the *git/gitobj.Commit that
 // "from" should be rewritten to and true, or nil and false if none could be
 // found.
 func (r *Rewriter) uncacheCommit(from []byte) ([]byte, bool) {

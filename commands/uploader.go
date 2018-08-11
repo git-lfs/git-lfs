@@ -100,7 +100,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 		uploadedOids: tools.NewStringSet(),
 		gitfilter:    lfs.NewGitFilter(cfg),
 		lockVerifier: newLockVerifier(manifest),
-		allowMissing: cfg.Git.Bool("lfs.allowincompletepush", true),
+		allowMissing: cfg.Git.Bool("lfs.allowincompletepush", false),
 		missing:      make(map[string]string),
 		corrupt:      make(map[string]string),
 		otherErrs:    make([]error, 0),
@@ -289,6 +289,11 @@ func (c *uploadContext) ReportErrors() {
 		}
 
 		if !c.allowMissing {
+			pushMissingHint := []string{
+				"hint: Your push was rejected due to missing or corrupt local objects.",
+				"hint: You can disable this check with: 'git config lfs.allowincompletepush true'",
+			}
+			Print(strings.Join(pushMissingHint, "\n"))
 			os.Exit(2)
 		}
 	}
