@@ -61,6 +61,9 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
 		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)
+	if len(cfg.FetchExcludeOIDs()) > 0 {
+		env = append(env, fmt.Sprintf("FetchExcludeOIDs=%s", strings.Join(cfg.FetchExcludeOIDs(), ", ")))
+	}
 	if len(cfg.FetchExcludePaths()) > 0 {
 		env = append(env, fmt.Sprintf("FetchExclude=%s", strings.Join(cfg.FetchExcludePaths(), ", ")))
 	}
