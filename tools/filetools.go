@@ -155,6 +155,13 @@ func FastWalkGitRepo(rootDir string, cb FastWalkCallback) {
 	fastWalkCallback(fastWalkWithExcludeFiles(rootDir, ".gitignore"), cb)
 }
 
+// FastWalkGitRepoAll behaves as FastWalkGitRepo, with the additional caveat
+// that it does not ignore paths and directories found in .gitignore file(s)
+// throughout the repository.
+func FastWalkGitRepoAll(rootDir string, cb FastWalkCallback) {
+	fastWalkCallback(fastWalkWithExcludeFiles(rootDir, ""), cb)
+}
+
 // fastWalkCallback calls the FastWalkCallback "cb" for all files found by the
 // given *fastWalker, "walker".
 func fastWalkCallback(walker *fastWalker, cb FastWalkCallback) {
