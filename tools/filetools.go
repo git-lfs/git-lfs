@@ -152,7 +152,12 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 //
 // rootDir - Absolute path to the top of the repository working directory
 func FastWalkGitRepo(rootDir string, cb FastWalkCallback) {
-	walker := fastWalkWithExcludeFiles(rootDir, ".gitignore")
+	fastWalkCallback(fastWalkWithExcludeFiles(rootDir, ".gitignore"), cb)
+}
+
+// fastWalkCallback calls the FastWalkCallback "cb" for all files found by the
+// given *fastWalker, "walker".
+func fastWalkCallback(walker *fastWalker, cb FastWalkCallback) {
 	for file := range walker.ch {
 		cb(file.ParentDir, file.Info, file.Err)
 	}
