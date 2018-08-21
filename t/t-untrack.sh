@@ -134,3 +134,28 @@ begin_test "untrack removes prefixed patterns (modern)"
   fi
 )
 end_test
+
+begin_test "untrack removes escaped pattern in .gitattributes"
+(
+  set -e
+
+  reponame="untrack-escaped"
+  git init "$reponame"
+  cd "$reponame"
+
+  filename="file with spaces.#"
+
+  # emulate multiple instances of the same file in gitattributes
+  echo 'file[[:space:]]with[[:space:]]spaces.\# filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
+  echo 'file[[:space:]]with[[:space:]]spaces.\# filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
+  echo 'file[[:space:]]with[[:space:]]spaces.\# filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
+
+  git lfs untrack "$filename"
+
+  if [ ! -z "$(cat .gitattributes)" ]; then
+    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes even if the file name was escaped"
+    exit 1
+  fi
+)
+end_test
+
