@@ -72,7 +72,7 @@ ArgsLoop:
 		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
 		if !trackNoModifyAttrsFlag {
 			for _, known := range knownPatterns {
-				if known.Path == filepath.Join(relpath, pattern) &&
+				if unescapeAttrPattern(known.Path) == filepath.Join(relpath, pattern) &&
 					((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 						(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 						(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
@@ -132,7 +132,7 @@ ArgsLoop:
 					continue
 				}
 
-				pattern := fields[0]
+				pattern := unescapeAttrPattern(fields[0])
 				if newline, ok := changedAttribLines[pattern]; ok {
 					// Replace this line (newline already embedded)
 					attributesFile.WriteString(newline)
