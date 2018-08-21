@@ -20,7 +20,7 @@ for an overview of features.
 
 ## Getting Started
 
-### Installation
+### Downloading
 
 You can install the Git LFS client in several different ways, depending on your
 setup and preferences.
@@ -31,30 +31,35 @@ setup and preferences.
   be installed via `brew install git-lfs`.
 * **Windows users**. Git LFS is included in the distribution of 
   [Git for Windows](https://gitforwindows.org/). Alternatively, you can 
-  install a recent version of Git LFS from the Chocolatey package manager.
-
-In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
-available for Linux, macOS, Windows, and FreeBSD. This repository can also be
+  install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
+* **Binary packages**. In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
+available for Linux, macOS, Windows, and FreeBSD.
+* **Building from source**. [This repository](https://github.com/git-lfs/git-lfs.git) can also be
 built from source using the latest version of [Go](https://golang.org), and the
 available instructions in our
 [Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
 
-#### Installing from a [binary package](https://github.com/git-lfs/git-lfs/releases)
+### Installing
 
-The included script will install Git LFS binaries. It also runs `git lfs install` to
+#### From binary
+
+The [binary packages](https://github.com/git-lfs/git-lfs/releases) include a script which will:
+
+- Install Git LFS binaries onto the system `$PATH`
+- Run `git lfs install` to
 perform required global configuration changes.
 
-```bash
+```ShellSession
 $ ./install.sh
 ```
 
-#### Installing manually
+#### From source
 
-- Place the `git-lfs` binary on your system’s executable `PATH` or equivalent.
+- Place the `git-lfs` binary on your system’s executable `$PATH` or equivalent.
 - Git LFS requires global configuration changes once per-machine. This can be done by
 running:
 
-```bash
+```ShellSession
 $ git lfs install
 ```
 
@@ -62,7 +67,7 @@ $ git lfs install
 
 To begin using Git LFS within a Git repository that is not already configured
 for Git LFS, you can indicate which files you would like Git LFS to manage.
-This can be done by running the following _from within Git repository_:
+This can be done by running the following _from within a Git repository_:
 
 ```bash
 $ git lfs track "*.psd"
