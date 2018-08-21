@@ -158,4 +158,3 @@ begin_test "untrack removes escaped pattern in .gitattributes"
   fi
 )
 end_test
-
