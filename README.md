@@ -39,18 +39,30 @@ built from source using the latest version of [Go](https://golang.org), and the
 available instructions in our
 [Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
 
-### Usage
+#### Installing from a [binary package](https://github.com/git-lfs/git-lfs/releases)
 
-Git LFS requires a global installation once per-machine. This can be done by
+The included script will install Git LFS binaries. It also runs `git lfs install` to
+perform required global configuration changes.
+
+```bash
+$ ./install.sh
+```
+
+#### Installing manually
+
+- Place the `git-lfs` binary on your system’s executable `PATH` or equivalent.
+- Git LFS requires global configuration changes once per-machine. This can be done by
 running:
 
 ```bash
 $ git lfs install
 ```
 
-To begin using Git LFS within your Git repository, you can indicate which files
-you would like Git LFS to manage. This can be done by running the following
-_from within Git repository_:
+## Example Usage
+
+To begin using Git LFS within a Git repository that is not already configured
+for Git LFS, you can indicate which files you would like Git LFS to manage.
+This can be done by running the following _from within Git repository_:
 
 ```bash
 $ git lfs track "*.psd"
