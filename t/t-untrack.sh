@@ -89,7 +89,7 @@ begin_test "untrack removes prefixed patterns (legacy)"
   git lfs untrack "./a.dat"
 
   if [ ! -z "$(cat .gitattributes)" ]; then
-    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    echo >&2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
     exit 1
   fi
 
@@ -98,7 +98,7 @@ begin_test "untrack removes prefixed patterns (legacy)"
   git lfs untrack "a.dat"
 
   if [ ! -z "$(cat .gitattributes)" ]; then
-    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    echo >&2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
     exit 1
   fi
 )
@@ -120,7 +120,7 @@ begin_test "untrack removes prefixed patterns (modern)"
   git lfs untrack "./a.dat"
 
   if [ ! -z "$(cat .gitattributes)" ]; then
-    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    echo >&2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
     exit 1
   fi
 
@@ -129,7 +129,7 @@ begin_test "untrack removes prefixed patterns (modern)"
   git lfs untrack "a.dat"
 
   if [ ! -z "$(cat .gitattributes)" ]; then
-    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
+    echo >&2 "fatal: expected 'git lfs untrack' to clear .gitattributes"
     exit 1
   fi
 )
@@ -153,7 +153,7 @@ begin_test "untrack removes escaped pattern in .gitattributes"
   git lfs untrack "$filename"
 
   if [ ! -z "$(cat .gitattributes)" ]; then
-    echo &>2 "fatal: expected 'git lfs untrack' to clear .gitattributes even if the file name was escaped"
+    echo >&2 "fatal: expected 'git lfs untrack' to clear .gitattributes even if the file name was escaped"
     exit 1
   fi
 )
