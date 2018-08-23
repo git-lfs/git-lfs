@@ -171,6 +171,32 @@ thisisnot.txt
 	sort.Strings(gotEntries)
 	assert.Equal(t, expectedEntries, gotEntries)
 
+	// Go again using FastWalkGitRepoAll instead of FastWalkGitRepo to
+	// ensure that .gitingore'd files and directories are seen and
+	// traversed, respectively.
+	for _, ignore := range ignored {
+		expectedEntries = append(expectedEntries, join(mainDir, ignore))
+	}
+	gotEntries = make([]string, 0, 1000)
+
+	FastWalkGitRepoAll(mainDir, func(parent string, info os.FileInfo, err error) {
+		if err != nil {
+			gotErrors = append(gotErrors, err)
+		} else {
+			if len(parent) == 0 {
+				gotEntries = append(gotEntries, info.Name())
+			} else {
+				gotEntries = append(gotEntries, join(parent, info.Name()))
+			}
+		}
+	})
+
+	expectedEntries = uniq(expectedEntries)
+	gotEntries = uniq(gotEntries)
+
+	sort.Strings(expectedEntries)
+	sort.Strings(gotEntries)
+	assert.Equal(t, expectedEntries, gotEntries)
 }
 
 // Make test data - ensure you've Chdir'ed into a temp dir first
@@ -231,6 +257,22 @@ func getFileMode(filename string) os.FileMode {
 		return 0000
 	}
 	return s.Mode()
+}
+
+// uniq creates an element-wise copy of "xs" containing only unique elements in
+// the same order.
+func uniq(xs []string) []string {
+	seen := make(map[string]struct{})
+	uniq := make([]string, 0, len(xs))
+
+	for _, x := range xs {
+		if _, ok := seen[x]; !ok {
+			seen[x] = struct{}{}
+			uniq = append(uniq, x)
+		}
+	}
+
+	return uniq
 }
 
 func TestSetWriteFlag(t *testing.T) {

@@ -229,3 +229,27 @@ begin_test "creating a lock (symlinked working directory)"
   popd > /dev/null
 )
 end_test
+
+begin_test "lock with .gitignore"
+(
+  set -e
+
+  reponame="lock-with-gitignore"
+  setup_remote_repo_with_file "$reponame" "a.txt"
+  clone_repo "$reponame" "$reponame"
+
+  echo "*.txt filter=lfs diff=lfs merge=lfs -text lockable" > .gitattributes
+
+  git add .gitattributes
+  git commit -m ".gitattributes: mark 'a.txt' as lockable"
+
+  rm -f a.txt && git checkout a.txt
+  refute_file_writeable a.txt
+
+  echo "*.txt" > .gitignore
+  git add .gitignore
+  git commit -m ".gitignore: ignore 'a.txt'"
+  rm -f a.txt && git checkout a.txt
+  refute_file_writeable a.txt
+)
+end_test
