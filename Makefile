@@ -173,6 +173,8 @@ bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
 	$(call BUILD,darwin,amd64,-darwin-amd64)
 bin/git-lfs-darwin-386 : $(SOURCES) mangen
 	$(call BUILD,darwin,386,-darwin-386)
+bin/git-lfs-linux-arm64 : $(SOURCES) mangen
+	$(call BUILD,linux,arm64,-linux-arm64)
 bin/git-lfs-linux-amd64 : $(SOURCES) mangen
 	$(call BUILD,linux,amd64,-linux-amd64)
 bin/git-lfs-linux-386 : $(SOURCES) mangen
