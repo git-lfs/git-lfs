@@ -138,6 +138,7 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 BUILD_TARGETS = \
 	bin/git-lfs-darwin-amd64 \
 	bin/git-lfs-darwin-386 \
+	bin/git-lfs-linux-arm64 \
 	bin/git-lfs-linux-amd64 \
 	bin/git-lfs-linux-386 \
 	bin/git-lfs-freebsd-amd64 \
@@ -232,6 +233,7 @@ script/windows-installer/git-lfs-wizard-image.bmp
 RELEASE_TARGETS = \
 	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-freebsd-amd64-$(VERSION).tar.gz \
