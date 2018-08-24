@@ -60,6 +60,9 @@ GOIMPORTS ?= goimports
 # program.
 GOIMPORTS_EXTRA_OPTS ?= -w -l
 
+TAR_XFORM_ARG ?= $(shell tar --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
+TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
+
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -249,7 +252,7 @@ release : $(RELEASE_TARGETS)
 bin/releases/git-lfs-%-$(VERSION).tar.gz : \
 $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 	@mkdir -p bin/releases
-	tar -s '!bin/git-lfs-.*!git-lfs!' -s '!script/!!' -czf $@ $^
+	tar $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
 
 # bin/releases/git-lfs-%-$(VERSION).zip generates a ZIP compression of all of
 # the Windows release artifacts.
