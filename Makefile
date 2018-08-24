@@ -135,10 +135,15 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
 # built for.
-BUILD_TARGETS = bin/git-lfs-darwin-amd64 bin/git-lfs-darwin-386 \
-	bin/git-lfs-linux-amd64 bin/git-lfs-linux-386 \
-	bin/git-lfs-freebsd-amd64 bin/git-lfs-freebsd-386 \
-	bin/git-lfs-windows-amd64.exe bin/git-lfs-windows-386.exe
+BUILD_TARGETS = \
+	bin/git-lfs-darwin-amd64 \
+	bin/git-lfs-darwin-386 \
+	bin/git-lfs-linux-amd64 \
+	bin/git-lfs-linux-386 \
+	bin/git-lfs-freebsd-amd64 \
+	bin/git-lfs-freebsd-386 \
+	bin/git-lfs-windows-amd64.exe \
+	bin/git-lfs-windows-386.exe
 
 # mangen is a shorthand for ensuring that commands/mancontent_gen.go is kept
 # up-to-date with the contents of docs/man/*.ronn.
@@ -222,7 +227,8 @@ script/windows-installer/git-lfs-wizard-image.bmp
 # To build a specific release with a custom VERSION suffix, run the following:
 #
 # 	make VERSION=my-version bin/releases/git-lfs-darwin-amd64-my-version.tar.gz
-RELEASE_TARGETS = bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
+RELEASE_TARGETS = \
+	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-386-$(VERSION).tar.gz \
