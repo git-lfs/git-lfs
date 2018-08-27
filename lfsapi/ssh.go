@@ -115,17 +115,29 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	return res, err
 }
 
+func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string) {
+	if !needShell {
+		return cmd, args
+	}
+
+	joined := cmd + " " + strings.Join(tools.ShellQuote(args), " ")
+	return "sh", []string{"-c", joined}
+}
+
 func sshGetLFSExeAndArgs(osEnv config.Environment, e Endpoint, method string) (string, []string) {
-	exe, args := sshGetExeAndArgs(osEnv, e)
+	exe, args, needShell := sshGetExeAndArgs(osEnv, e)
 	operation := endpointOperation(e, method)
 	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
+	exe, args = sshFormatArgs(exe, args, needShell)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args
 }
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, baseargs []string) {
+func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, baseargs []string, needShell bool) {
+	var cmd string
+
 	isPlink := false
 	isTortoise := false
 
@@ -133,12 +145,17 @@ func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, basearg
 	sshCmd, _ := osEnv.Get("GIT_SSH_COMMAND")
 	cmdArgs := tools.QuotedFields(sshCmd)
 	if len(cmdArgs) > 0 {
+		needShell = true
 		ssh = cmdArgs[0]
-		cmdArgs = cmdArgs[1:]
+		cmd = sshCmd
 	}
 
 	if ssh == "" {
 		ssh = defaultSSHCmd
+	}
+
+	if cmd == "" {
+		cmd = ssh
 	}
 
 	basessh := filepath.Base(ssh)
@@ -152,10 +169,7 @@ func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, basearg
 		isTortoise = strings.EqualFold(basessh, "tortoiseplink")
 	}
 
-	args := make([]string, 0, 5+len(cmdArgs))
-	if len(cmdArgs) > 0 {
-		args = append(args, cmdArgs...)
-	}
+	args := make([]string, 0, 7)
 
 	if isTortoise {
 		// TortoisePlink requires the -batch argument to behave like ssh/plink
@@ -185,7 +199,7 @@ func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, basearg
 		args = append(args, sshOptPrefixRE.ReplaceAllString(e.SshUserAndHost, ""))
 	}
 
-	return ssh, args
+	return cmd, args, needShell
 }
 
 const defaultSSHCmd = "ssh"

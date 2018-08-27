@@ -265,7 +265,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "user@foo.com"}, args)
 }
@@ -281,7 +281,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
 }
@@ -298,7 +298,7 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"user@foo.com"}, args)
 }
@@ -316,7 +316,7 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-P", "8888", "user@foo.com"}, args)
 }
@@ -333,7 +333,7 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-batch", "user@foo.com"}, args)
 }
@@ -351,7 +351,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-batch", "-P", "8888", "user@foo.com"}, args)
 }
@@ -366,9 +366,9 @@ func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, "sshcmd", exe)
-	assert.Equal(t, []string{"user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
@@ -380,9 +380,9 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, "sshcmd", exe)
-	assert.Equal(t, []string{"--args", "1", "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd --args 1 user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
@@ -394,9 +394,9 @@ func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, "sshcmd", exe)
-	assert.Equal(t, []string{"foo", `bar "baz"`, "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
@@ -409,9 +409,9 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, "sshcmd", exe)
-	assert.Equal(t, []string{"-p", "8888", "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd -p 8888 user@foo.com"}, args)
 }
 
 func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
@@ -485,9 +485,10 @@ func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), e)
+	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), e)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator"}, args)
+	assert.Equal(t, false, needShell)
 }
 
 func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
@@ -503,9 +504,10 @@ func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
 	assert.Equal(t, "git@git-host.com", e.SshUserAndHost)
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshPath)
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), e)
+	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), e)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "git@git-host.com"}, args)
+	assert.Equal(t, false, needShell)
 }
 
 func TestParseBareSSHUrl(t *testing.T) {
@@ -541,9 +543,9 @@ func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, plink, exe)
-	assert.Equal(t, []string{"user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", plink + " user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
@@ -558,9 +560,9 @@ func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, plink, exe)
-	assert.Equal(t, []string{"-P", "8888", "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", plink + " -P 8888 user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
@@ -574,9 +576,9 @@ func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, plink, exe)
-	assert.Equal(t, []string{"-batch", "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", plink + " -batch user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
@@ -591,7 +593,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshGetExeAndArgs(cli.OSEnv(), endpoint)
-	assert.Equal(t, plink, exe)
-	assert.Equal(t, []string{"-batch", "-P", "8888", "user@foo.com"}, args)
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", plink + " -batch -P 8888 user@foo.com"}, args)
 }
