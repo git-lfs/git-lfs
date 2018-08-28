@@ -332,9 +332,10 @@ endif
 # are vendored in via vendor (see: above).
 .PHONY : lint
 lint : $(SOURCES)
-	@$(GO) list -f '{{ join .Deps "\n" }}' . \
+	@! $(GO) list -f '{{ join .Deps "\n" }}' . \
 	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
-	| $(GREP) -v "github.com/git-lfs/git-lfs" || exit 0
+	| $(GREP) -v "github.com/git-lfs/git-lfs" \
+	| $(GREP) "."
 
 # MAN_ROFF_TARGETS is a list of all ROFF-style targets in the man pages.
 MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
