@@ -4,7 +4,7 @@ jobs:
   bootstrap:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/src/git-lfs
     steps:
       - checkout
       - run: brew update
@@ -14,20 +14,19 @@ jobs:
       - run: brew upgrade gettext || brew install gettext
       - run:
           command: git clone https://github.com/git/git.git git-source
-          working_directory: ~/go/src/github.com/git-lfs/git-lfs
+          working_directory: ~/src/git-lfs
       - run: echo "export GOPATH=$HOME/go" >> $BASH_ENV
-      - run: go get -d -v github.com/spf13/cobra
-      - run: go get -d -v github.com/ThomsonReutersEikon/go-ntlm/ntlm
       - save_cache:
           key: git-lfs-{{ .Branch }}-{{ .Revision }}
           paths:
             - /usr/local/Cellar
+            - ~/src/git-lfs
             - ~/go
 
   build_with_system_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/src/git-lfs
     environment:
       GIT_SOURCE_REPO: https://github.com/git/git.git
     steps:
@@ -42,7 +41,7 @@ jobs:
   build_with_earliest_supported_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/src/git-lfs
     environment:
       GIT_EARLIEST_SUPPORTED_VERSION: v2.0.0
       GIT_SOURCE_REPO: https://github.com/git/git.git
@@ -63,7 +62,7 @@ jobs:
   build_with_latest_git:
     macos:
       xcode: "9.2.0"
-    working_directory: ~/go/src/github.com/git-lfs/git-lfs
+    working_directory: ~/src/git-lfs
     environment:
       GIT_LATEST_SOURCE_BRANCH: master
       GIT_SOURCE_REPO: https://github.com/git/git.git

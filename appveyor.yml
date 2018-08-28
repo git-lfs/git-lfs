@@ -8,7 +8,7 @@ environment:
   GOPATH: C:\Users\appveyor\go
   MSYSTEM: MINGW64
 
-clone_folder: $(GOPATH)\src\github.com\git-lfs\git-lfs
+clone_folder: $(USERPROFILE)\src\git-lfs
 
 install:
   - rd C:\Go /s /q

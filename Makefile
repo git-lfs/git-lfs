@@ -40,9 +40,6 @@ EXTRA_GC_FLAGS =
 # GC_FLAGS are the union of the above two BUILTIN_GC_FLAGS and EXTRA_GC_FLAGS.
 GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
-# GLIDE is the name of the 'glide' binary used to manage vendored dependencies.
-GLIDE ?= glide
-
 # RONN is the name of the 'ronn' program used to generate man pages.
 RONN ?= ronn
 # RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
@@ -298,17 +295,16 @@ test : fmt
 integration : bin/git-lfs$(X)
 	make -C t test
 
-# glide.lock is the permanent record of the glide.yaml file, and it is built by
-# running 'glide update'.
-glide.lock : glide.yaml
-	$(GLIDE) update
+# go.sum is a lockfile based on the contents of go.mod.
+go.sum : go.mod
+	$(GO) mod verify >/dev/null
 
-# vendor updates the glide.lock-file, and installs vendored dependencies into
+# vendor updates the go.sum-file, and installs vendored dependencies into
 # the vendor/ sub-tree, removing sub-packages (listed below) that are unused by
-# Git LFS.
+# Git LFS as well as test code.
 .PHONY : vendor
-vendor : glide.lock
-	$(GLIDE) install
+vendor : go.mod
+	$(GO) mod vendor -v
 	$(RM) -r vendor/github.com/ThomsonReutersEikon/go-ntlm/utils
 	$(RM) -r vendor/github.com/davecgh/go-spew
 	$(RM) -r vendor/github.com/pmezard/go-difflib
@@ -333,7 +329,10 @@ endif
 .PHONY : lint
 lint : $(SOURCES)
 	@! $(GO) list -f '{{ join .Deps "\n" }}' . \
-	| $(XARGS) $(GO) list -f '{{ if not .Standard }}{{ .ImportPath }}{{ end }}' \
+	| $(XARGS) $(GO) list -f \
+		'{{ if and (not .Standard) (not .Module) }} \
+			{{ .ImportPath }} \
+		{{ end }}' \
 	| $(GREP) -v "github.com/git-lfs/git-lfs" \
 	| $(GREP) "."
 

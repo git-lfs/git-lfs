@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 export DH_OPTIONS
+export GO111MODULE=on
 
 #dh_golang doesn't do this for you
 ifeq ($(DEB_HOST_ARCH), i386)

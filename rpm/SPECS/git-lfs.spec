@@ -24,7 +24,6 @@ Enterprise.
 
 %prep
 %setup -q -n %{name}-%{version}
-export GOPATH=`pwd`
 mkdir -p src/github.com/git-lfs
 ln -s $(pwd) src/github.com/git-lfs/%{name}
 
@@ -57,7 +56,6 @@ git lfs install --system
 git lfs uninstall
 
 %check
-export GOPATH=`pwd`
 export GIT_LFS_TEST_DIR=$(mktemp -d)
 
 # test/git-lfs-server-api/main.go does not compile because github.com/spf13/cobra
