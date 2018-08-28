@@ -20,6 +20,7 @@ begin_test "content-type: is enabled by default"
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
   [ 1 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
+  [ 0 -eq "$(grep -c "Content-Type: application/octet-stream" push.log)" ]
 )
 end_test
 
@@ -42,6 +43,7 @@ begin_test "content-type: is disabled by configuration"
   GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
 
   [ 0 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
+  [ 1 -eq "$(grep -c "Content-Type: application/octet-stream" push.log)" ]
 )
 end_test
 
