@@ -161,7 +161,7 @@ func (a *adapterBase) setContentTypeFor(req *http.Request, r io.ReadSeeker) erro
 	}
 
 	contentType := http.DetectContentType(buffer[:n])
-	if _, err := r.Seek(0, 0); err != nil {
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return errors.Wrap(err, "content type rewind")
 	}
 
