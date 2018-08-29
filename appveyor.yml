@@ -17,12 +17,15 @@ install:
   - curl -sL -o go1.11.windows-amd64.zip https://storage.googleapis.com/golang/go1.11.windows-amd64.zip
   - 7z x go1.11.windows-amd64.zip -oC:\ >nul
   - C:\go\bin\go version
+  - cd %USERPROFILE%\src
+  - C:\go\bin\go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+  - cd %USERPROFILE%\src\git-lfs
   - cinst InnoSetup -y
   - cinst strawberryperl -y
   - refreshenv
   - cinst make
   - refreshenv
-  - set PATH=%GOPATH%\bin\windows_386;%PATH%
+  - set PATH=%GOPATH%\bin;%PATH%
   - ps: |
       echo "Go directories in machine PATH environment:"
       [environment]::GetEnvironmentVariable("PATH","Machine").split(";") | Select-String -Pattern "\\go\\"

@@ -202,7 +202,6 @@ resource.syso : \
 versioninfo.json script/windows-installer/git-lfs-logo.bmp \
 script/windows-installer/git-lfs-logo.ico \
 script/windows-installer/git-lfs-wizard-image.bmp
-	@$(GO) get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
 	$(GO) generate
 
 # RELEASE_TARGETS is the set of all release artifacts that we generate over a
