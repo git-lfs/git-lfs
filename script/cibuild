@@ -6,10 +6,10 @@ if [ "appveyor" = "$USERNAME" ]; then
   GOIMPORTS="C:\\Users\\appveyor\\go\\bin\\goimports"
 fi
 
-GOCACHE=off make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
+make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 
 # re-run test to ensure GIT_TRACE output doesn't leak into the git package
-GIT_TRACE=1 GOCACHE=off make GOIMPORTS="$GOIMPORTS" PKGS=git test
+GIT_TRACE=1 make GOIMPORTS="$GOIMPORTS" PKGS=git test
 
 pushd t >/dev/null
   UNAME=$(uname -s)
