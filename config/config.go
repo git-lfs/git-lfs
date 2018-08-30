@@ -268,11 +268,14 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 	return c.Os.Bool("GIT_LFS_SET_LOCKABLE_READONLY", true) && c.Git.Bool("lfs.setlockablereadonly", true)
 }
 
+// HookDir returns the location of the hooks owned by this repository. If the
+// core.hooksPath configuration variable is supported, we prefer that and expand
+// paths appropriately.
 func (c *Configuration) HookDir() (string, error) {
 	if git.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
-			return hp, nil
+			return tools.ExpandPath(hp, false)
 		}
 	}
 	return filepath.Join(c.LocalGitDir(), "hooks"), nil
