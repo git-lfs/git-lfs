@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -21,6 +22,103 @@ func TestCleanPathsCleansPaths(t *testing.T) {
 func TestCleanPathsReturnsNoResultsWhenGivenNoPaths(t *testing.T) {
 	cleaned := CleanPaths("", ",")
 	assert.Empty(t, cleaned)
+}
+
+type ExpandPathTestCase struct {
+	Path   string
+	Expand bool
+
+	Want    string
+	WantErr string
+
+	currentUser func() (*user.User, error)
+	lookupUser  func(who string) (*user.User, error)
+}
+
+func (c *ExpandPathTestCase) Assert(t *testing.T) {
+	if c.currentUser != nil {
+		oldCurrentUser := currentUser
+		currentUser = c.currentUser
+		defer func() { currentUser = oldCurrentUser }()
+	}
+
+	if c.lookupUser != nil {
+		oldLookupUser := lookupUser
+		lookupUser = c.lookupUser
+		defer func() { lookupUser = oldLookupUser }()
+	}
+
+	got, err := ExpandPath(c.Path, c.Expand)
+	if err != nil || len(c.WantErr) > 0 {
+		assert.EqualError(t, err, c.WantErr)
+	}
+	assert.Equal(t, filepath.ToSlash(c.Want), filepath.ToSlash(got))
+}
+
+func TestExpandPath(t *testing.T) {
+	for desc, c := range map[string]*ExpandPathTestCase{
+		"no expand": {
+			Path: "/path/to/hooks",
+			Want: "/path/to/hooks",
+		},
+		"current": {
+			Path: "~/path/to/hooks",
+			Want: "/home/jane/path/to/hooks",
+			currentUser: func() (*user.User, error) {
+				return &user.User{
+					HomeDir: "/home/jane",
+				}, nil
+			},
+		},
+		"current, slash": {
+			Path: "~/",
+			Want: "/home/jane",
+			currentUser: func() (*user.User, error) {
+				return &user.User{
+					HomeDir: "/home/jane",
+				}, nil
+			},
+		},
+		"current, no slash": {
+			Path: "~",
+			Want: "/home/jane",
+			currentUser: func() (*user.User, error) {
+				return &user.User{
+					HomeDir: "/home/jane",
+				}, nil
+			},
+		},
+		"non-current": {
+			Path: "~other/path/to/hooks",
+			Want: "/home/special/path/to/hooks",
+			lookupUser: func(who string) (*user.User, error) {
+				assert.Equal(t, "other", who)
+				return &user.User{
+					HomeDir: "/home/special",
+				}, nil
+			},
+		},
+		"non-current, no slash": {
+			Path: "~other",
+			Want: "/home/special",
+			lookupUser: func(who string) (*user.User, error) {
+				assert.Equal(t, "other", who)
+				return &user.User{
+					HomeDir: "/home/special",
+				}, nil
+			},
+		},
+		"non-current (missing)": {
+			Path:    "~other/path/to/hooks",
+			WantErr: "could not find user other: missing",
+			lookupUser: func(who string) (*user.User, error) {
+				assert.Equal(t, "other", who)
+				return nil, fmt.Errorf("missing")
+			},
+		},
+	} {
+		t.Run(desc, c.Assert)
+	}
 }
 
 func TestFastWalkBasic(t *testing.T) {
