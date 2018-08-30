@@ -33,11 +33,11 @@ $distro_name_map = {
   ),
   "centos/7" => %w(
     el/7
-    fedora/22
-    fedora/23
-    fedora/24
-    fedora/25
-    fedora/26
+    fedora/27
+    fedora/28
+    opensuse/42.3
+    sles/11.4
+    sles/12.3
   ),
   "debian/7" => %w(
     debian/wheezy
@@ -58,6 +58,7 @@ $distro_name_map = {
     linuxmint/serena
     linuxmint/sonya
     linuxmint/sylvia
+    linuxmint/tara
     ubuntu/xenial
     ubuntu/yakkety
     ubuntu/zesty
