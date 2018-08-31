@@ -60,6 +60,9 @@ GOIMPORTS ?= goimports
 # program.
 GOIMPORTS_EXTRA_OPTS ?= -w -l
 
+TAR_XFORM_ARG ?= $(shell tar --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
+TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
+
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -132,10 +135,16 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
 # built for.
-BUILD_TARGETS = bin/git-lfs-darwin-amd64 bin/git-lfs-darwin-386 \
-	bin/git-lfs-linux-amd64 bin/git-lfs-linux-386 \
-	bin/git-lfs-freebsd-amd64 bin/git-lfs-freebsd-386 \
-	bin/git-lfs-windows-amd64.exe bin/git-lfs-windows-386.exe
+BUILD_TARGETS = \
+	bin/git-lfs-darwin-amd64 \
+	bin/git-lfs-darwin-386 \
+	bin/git-lfs-linux-arm64 \
+	bin/git-lfs-linux-amd64 \
+	bin/git-lfs-linux-386 \
+	bin/git-lfs-freebsd-amd64 \
+	bin/git-lfs-freebsd-386 \
+	bin/git-lfs-windows-amd64.exe \
+	bin/git-lfs-windows-386.exe
 
 # mangen is a shorthand for ensuring that commands/mancontent_gen.go is kept
 # up-to-date with the contents of docs/man/*.ronn.
@@ -165,6 +174,8 @@ bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
 	$(call BUILD,darwin,amd64,-darwin-amd64)
 bin/git-lfs-darwin-386 : $(SOURCES) mangen
 	$(call BUILD,darwin,386,-darwin-386)
+bin/git-lfs-linux-arm64 : $(SOURCES) mangen
+	$(call BUILD,linux,arm64,-linux-arm64)
 bin/git-lfs-linux-amd64 : $(SOURCES) mangen
 	$(call BUILD,linux,amd64,-linux-amd64)
 bin/git-lfs-linux-386 : $(SOURCES) mangen
@@ -219,8 +230,10 @@ script/windows-installer/git-lfs-wizard-image.bmp
 # To build a specific release with a custom VERSION suffix, run the following:
 #
 # 	make VERSION=my-version bin/releases/git-lfs-darwin-amd64-my-version.tar.gz
-RELEASE_TARGETS = bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
+RELEASE_TARGETS = \
+	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-freebsd-amd64-$(VERSION).tar.gz \
@@ -249,7 +262,7 @@ release : $(RELEASE_TARGETS)
 bin/releases/git-lfs-%-$(VERSION).tar.gz : \
 $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 	@mkdir -p bin/releases
-	tar -s '!bin/git-lfs-.*!git-lfs!' -s '!script/!!' -czf $@ $^
+	tar $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
 
 # bin/releases/git-lfs-%-$(VERSION).zip generates a ZIP compression of all of
 # the Windows release artifacts.
