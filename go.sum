@@ -10,6 +10,8 @@ github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJN
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/wildmatch v0.0.0-20180706170425-b31c34466d64 h1:ZPW4Gapp3/5fc/LDTp0A/C+s74yZg9jVZBoVan0GSmM=
 github.com/git-lfs/wildmatch v0.0.0-20180706170425-b31c34466d64/go.mod h1:SdHAGnApDpnFYQ0vAxbniWR0sn7yLJ3QXo9RRfhn2ew=
+github.com/git-lfs/wildmatch v1.0.0 h1:TKsxqSrEXWj73N4xGcN/ISal8/JJOiAcOv9LH6Zprxw=
+github.com/git-lfs/wildmatch v1.0.0/go.mod h1:SdHAGnApDpnFYQ0vAxbniWR0sn7yLJ3QXo9RRfhn2ew=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76 h1:i5TIRQpbCg4aJMUtVHIhkQnSw++Z405Z5pzqHqeNkdU=
