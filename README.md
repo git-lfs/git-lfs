@@ -159,13 +159,15 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@larsxschneider][larsxschneider-user] | [@ttaylorr][ttaylorr-user] |
-|---|---|
-| [![][larsxschneider-img]][larsxschneider-user] | [![][ttaylorr-img]][ttaylorr-user] |
+| [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@ttaylorr][ttaylorr-user] |
+|---|---|---|
+| [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][ttaylorr-img]][ttaylorr-user] |
 
 [larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
+[PastelMobileSuit-img]: https://avatars2.githubusercontent.com/u/37254014?s=100&v=4
 [ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
 [larsxschneider-user]: https://github.com/larsxschneider
+[PastelMobileSuit-user]: https://github.com/PastelMobileSuit
 [ttaylorr-user]: https://github.com/ttaylorr
 
 ### Alumni
