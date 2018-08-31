@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 )
 
@@ -111,6 +113,70 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	}
 
 	return cleaned
+}
+
+var (
+	// currentUser is a wrapper over user.Current(), but instead uses the
+	// value of os.Getenv("HOME") for the returned *user.User's "HomeDir"
+	// member.
+	currentUser func() (*user.User, error) = func() (*user.User, error) {
+		u, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		u.HomeDir = os.Getenv("HOME")
+		return u, nil
+	}
+	lookupUser func(who string) (*user.User, error) = user.Lookup
+)
+
+// ExpandPath returns a copy of path with any references to the current user's
+// home directory (spelled "~"), or a named user's home directory (spelled
+// "~user") in the path, sanitized to the calling filesystem's path separator
+// preference.
+//
+// If the "expand" argument is given as true, the resolved path to the named
+// user's home directory will expanded with filepath.EvalSymlinks.
+//
+// If either the current or named user does not have a home directory, an error
+// will be returned.
+//
+// Otherwise, the error returned will be nil, and the string returned will be
+// the expanded path.
+func ExpandPath(path string, expand bool) (string, error) {
+	if len(path) == 0 || path[0] != '~' {
+		return path, nil
+	}
+
+	var username string
+	if slash := strings.Index(path[1:], "/"); slash > -1 {
+		username = path[1 : slash+1]
+	} else {
+		username = path[1:]
+	}
+
+	var (
+		who *user.User
+		err error
+	)
+	if len(username) == 0 {
+		who, err = currentUser()
+	} else {
+		who, err = lookupUser(username)
+	}
+
+	if err != nil {
+		return "", errors.Wrapf(err, "could not find user %s", username)
+	}
+
+	homedir := who.HomeDir
+	if expand {
+		homedir, err = filepath.EvalSymlinks(homedir)
+		if err != nil {
+			return "", errors.Wrapf(err, "cannot eval symlinks for %s", homedir)
+		}
+	}
+	return filepath.Join(homedir, path[len(username)+1:]), nil
 }
 
 // VerifyFileHash reads a file and verifies whether the SHA is correct
