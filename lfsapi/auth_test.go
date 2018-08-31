@@ -443,7 +443,7 @@ func TestGetCreds(t *testing.T) {
 			Method: "GET",
 			Href:   "https://git-server.com/repo/locks",
 			Config: map[string]string{
-				"lfs.url": "https://user:pass@git-server.com/repo",
+				"lfs.url":                                "https://user:pass@git-server.com/repo",
 				"lfs.https://git-server.com/repo.access": "basic",
 			},
 			Expected: getCredsExpected{
@@ -457,7 +457,7 @@ func TestGetCreds(t *testing.T) {
 			Method: "GET",
 			Href:   "https://git-server.com/repo/locks",
 			Config: map[string]string{
-				"lfs.url": "https://git-server.com/repo",
+				"lfs.url":                                "https://git-server.com/repo",
 				"lfs.https://git-server.com/repo.access": "basic",
 				"remote.origin.url":                      "https://user:pass@git-server.com/repo",
 			},
