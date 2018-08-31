@@ -159,13 +159,15 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@ttaylorr][ttaylorr-user] |
-|---|---|---|
-| [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][ttaylorr-img]][ttaylorr-user] |
+| [@bk2204][bk2204-user] | [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@ttaylorr][ttaylorr-user] |
+|---|---|---|---|
+| [![][bk2204-img]][bk2204-user] | [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][ttaylorr-img]][ttaylorr-user] |
 
+[bk2204-img]: https://avatars1.githubusercontent.com/u/497054?s=100&v=4
 [larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
 [PastelMobileSuit-img]: https://avatars2.githubusercontent.com/u/37254014?s=100&v=4
 [ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
+[bk2204-user]: https://github.com/bk2204
 [larsxschneider-user]: https://github.com/larsxschneider
 [PastelMobileSuit-user]: https://github.com/PastelMobileSuit
 [ttaylorr-user]: https://github.com/ttaylorr
