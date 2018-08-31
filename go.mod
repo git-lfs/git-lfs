@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v0.0.0-20151105211317-5215b55f46b2 // indirect
 	github.com/git-lfs/gitobj v0.0.0-20180705162808-0fcb9c3796fa
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
-	github.com/git-lfs/wildmatch v0.0.0-20180706170425-b31c34466d64
+	github.com/git-lfs/wildmatch v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
 	github.com/olekukonko/ts v0.0.0-20140412220145-ecf753e7c962
