@@ -29,8 +29,8 @@ setup and preferences.
   [PackageCloud](https://packagecloud.io/github/git-lfs/install).
 * **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
   be installed via `brew install git-lfs`.
-* **Windows users**. Git LFS is included in the distribution of 
-  [Git for Windows](https://gitforwindows.org/). Alternatively, you can 
+* **Windows users**. Git LFS is included in the distribution of
+  [Git for Windows](https://gitforwindows.org/). Alternatively, you can
   install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
 * **Binary packages**. In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
 available for Linux, macOS, Windows, and FreeBSD.
