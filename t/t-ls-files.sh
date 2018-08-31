@@ -326,7 +326,7 @@ begin_test "ls-files: invalid --all ordering"
     echo >&2 "fatal: expected \`git lfs ls-files -- --all\' to fail"
     exit 1
   fi
-  grep "Could not scan for Git LFS tree" ls-files.out
+  grep "fatal: did you mean \"git lfs ls-files --all --\" ?" ls-files.out
 )
 end_test
 
