@@ -150,19 +150,23 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 func (a *adapterBase) setContentTypeFor(req *http.Request, r io.ReadSeeker) error {
 	uc := config.NewURLConfig(a.apiClient.GitEnv())
 	disabled := !uc.Bool("lfs", req.URL.String(), "contenttype", true)
-	if len(req.Header.Get("Content-Type")) != 0 || disabled {
+	if len(req.Header.Get("Content-Type")) != 0 {
 		return nil
 	}
 
-	buffer := make([]byte, 512)
-	n, err := r.Read(buffer)
-	if err != nil && err != io.EOF {
-		return errors.Wrap(err, "content type detect")
-	}
+	var contentType string
 
-	contentType := http.DetectContentType(buffer[:n])
-	if _, err := r.Seek(0, 0); err != nil {
-		return errors.Wrap(err, "content type rewind")
+	if !disabled {
+		buffer := make([]byte, 512)
+		n, err := r.Read(buffer)
+		if err != nil && err != io.EOF {
+			return errors.Wrap(err, "content type detect")
+		}
+
+		contentType = http.DetectContentType(buffer[:n])
+		if _, err := r.Seek(0, io.SeekStart); err != nil {
+			return errors.Wrap(err, "content type rewind")
+		}
 	}
 
 	if contentType == "" {
