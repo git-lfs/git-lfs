@@ -46,6 +46,22 @@ func QuotedFields(s string) []string {
 	return out
 }
 
+// ShellQuote returns a copied string slice where each element is quoted
+// suitably for sh.
+func ShellQuote(strs []string) []string {
+	dup := make([]string, 0, len(strs))
+
+	for _, str := range strs {
+		// Quote anything that looks slightly complicated.
+		if shellWordRe.FindStringIndex(str) == nil {
+			dup = append(dup, "'"+strings.Replace(str, "'", "'\\''", -1)+"'")
+		} else {
+			dup = append(dup, str)
+		}
+	}
+	return dup
+}
+
 // Ljust returns a copied string slice where each element is left justified to
 // match the width of the longest element in the set.
 func Ljust(strs []string) []string {
@@ -113,7 +129,8 @@ func Indent(str string) string {
 }
 
 var (
-	tabRe = regexp.MustCompile(`(?m)^[ \t]+`)
+	tabRe       = regexp.MustCompile(`(?m)^[ \t]+`)
+	shellWordRe = regexp.MustCompile(`\A[A-Za-z0-9_@.-]+\z`)
 )
 
 // Undent removes all leading tabs in the given string "str", line-wise.
