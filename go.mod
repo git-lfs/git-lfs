@@ -9,7 +9,7 @@ require (
 	github.com/git-lfs/wildmatch v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
-	github.com/olekukonko/ts v0.0.0-20140412220145-ecf753e7c962
+	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 	github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0 // indirect
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
@@ -19,4 +19,5 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
+	golang.org/x/sys v0.0.0-20180831094639-fa5fdf94c789 // indirect
 )

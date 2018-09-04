@@ -17,7 +17,7 @@ github.com/git-lfs/wildmatch
 github.com/inconshreveable/mousetrap
 # github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
 github.com/kr/pty
-# github.com/olekukonko/ts v0.0.0-20140412220145-ecf753e7c962
+# github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 github.com/olekukonko/ts
 # github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 github.com/pkg/errors
@@ -38,3 +38,5 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
 github.com/xeipuuv/gojsonschema
+# golang.org/x/sys v0.0.0-20180831094639-fa5fdf94c789
+golang.org/x/sys/unix
