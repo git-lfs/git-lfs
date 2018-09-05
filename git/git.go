@@ -654,6 +654,26 @@ func GitDir() (string, error) {
 	return "", nil
 }
 
+func GitCommonDir() (string, error) {
+	// Versions before 2.5.0 don't have the --git-common-dir option, since
+	// it came in with worktrees, so just fall back to the main Git
+	// directory.
+	if !IsGitVersionAtLeast("2.5.0") {
+		return GitDir()
+	}
+
+	cmd := gitNoLFS("rev-parse", "--git-common-dir")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
+	}
+	path := strings.TrimSpace(string(out))
+	if len(path) > 0 {
+		return filepath.Abs(path)
+	}
+	return "", nil
+}
+
 // GetAllWorkTreeHEADs returns the refs that all worktrees are using as HEADs
 // This returns all worktrees plus the master working copy, and works even if
 // working dir is actually in a worktree right now

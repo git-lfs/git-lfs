@@ -78,7 +78,7 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 // getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
 // at the .git directory of the currently checked-out repository.
 func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
-	dir, err := git.GitDir()
+	dir, err := git.GitCommonDir()
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
