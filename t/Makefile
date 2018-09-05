@@ -29,6 +29,7 @@ test : $(TEST_CMDS)
 	$(PROVE) $(PROVE_EXTRA_ARGS) ./t-*.sh
 	@GIT_LFS_NO_TEST_COUNT= bash -c '. ./testenv.sh && shutdown'
 
+.PHONY : $(TEST_SRCS)
 $(TEST_SRCS) : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
 	$(PROVE) -v $(PROVE_EXTRA_ARGS) $@
