@@ -19,6 +19,8 @@ TEST_CMDS += ../bin/lfstest-gitserver$X
 TEST_CMDS += ../bin/lfstest-standalonecustomadapter$X
 TEST_CMDS += ../bin/lfstest-testutils$X
 
+TEST_SRCS = $(wildcard t-*.sh)
+
 all : $(DEFAULT_TEST_TARGET)
 
 test : $(TEST_CMDS)
@@ -27,7 +29,8 @@ test : $(TEST_CMDS)
 	$(PROVE) $(PROVE_EXTRA_ARGS) ./t-*.sh
 	@GIT_LFS_NO_TEST_COUNT= bash -c '. ./testenv.sh && shutdown'
 
-./t-%.sh : $(TEST_CMDS)
+.PHONY : $(TEST_SRCS)
+$(TEST_SRCS) : $(TEST_CMDS)
 	$(RM) -r remote test_count{,.lock}
 	$(PROVE) -v $(PROVE_EXTRA_ARGS) $@
 
