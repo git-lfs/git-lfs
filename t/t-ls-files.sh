@@ -113,6 +113,62 @@ begin_test "ls-files: indexed file with tree"
 )
 end_test
 
+begin_test "ls-files: historical reference ignores index"
+(
+  set -e
+
+  reponame="ls-files-historical-reference-ignores-index"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.txt"
+  echo "a.txt" > a.txt
+  echo "b.txt" > b.txt
+  echo "c.txt" > c.txt
+
+  git add .gitattributes a.txt
+  git commit -m "a.txt: initial commit"
+
+  git add b.txt
+  git commit -m "b.txt: initial commit"
+
+  git add c.txt
+
+  git lfs ls-files "$(git rev-parse HEAD~1)" 2>&1 | tee ls-files.log
+
+  [ 1 -eq "$(grep -c "a.txt" ls-files.log)" ]
+  [ 0 -eq "$(grep -c "b.txt" ls-files.log)" ]
+  [ 0 -eq "$(grep -c "c.txt" ls-files.log)" ]
+)
+end_test
+
+begin_test "ls-files: non-HEAD reference referring to HEAD ignores index"
+(
+  set -e
+
+  reponame="ls-files-HEAD-ish-ignores-index"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.txt"
+  echo "a.txt" > a.txt
+  echo "b.txt" > b.txt
+
+  git add .gitattributes a.txt
+  git commit -m "a.txt: initial commit"
+
+  tagname="v1.0.0"
+  git tag "$tagname"
+
+  git add b.txt
+
+  git lfs ls-files "$tagname" 2>&1 | tee ls-files.log
+
+  [ 1 -eq "$(grep -c "a.txt" ls-files.log)" ]
+  [ 0 -eq "$(grep -c "b.txt" ls-files.log)" ]
+)
+end_test
+
 begin_test "ls-files: outside git repository"
 (
   set +e
@@ -326,7 +382,7 @@ begin_test "ls-files: invalid --all ordering"
     echo >&2 "fatal: expected \`git lfs ls-files -- --all\' to fail"
     exit 1
   fi
-  grep "Could not scan for Git LFS tree" ls-files.out
+  grep "fatal: did you mean \"git lfs ls-files --all --\" ?" ls-files.out
 )
 end_test
 

@@ -26,7 +26,16 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 1 {
 		if lsFilesScanAll {
 			Exit("fatal: cannot use --all with explicit reference")
+		} else if args[0] == "--all" {
+			// Since --all is a valid argument to "git rev-parse",
+			// if we try to give it to git.ResolveRef below, we'll
+			// get an unexpected result.
+			//
+			// So, let's check early that the caller invoked the
+			// command correctly.
+			Exit("fatal: did you mean \"git lfs ls-files --all --\" ?")
 		}
+
 		ref = args[0]
 	} else {
 		fullref, err := git.CurrentRef()
@@ -88,8 +97,15 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg)
 
-	if err := gitscanner.ScanIndex(ref, nil); err != nil {
-		Exit("Could not scan for Git LFS index: %s", err)
+	if len(args) == 0 {
+		// Only scan the index when "git lfs ls-files" was invoked with
+		// no arguments.
+		//
+		// Do so to avoid showing "mixed" results, e.g., ls-files output
+		// from a specific historical revision, and the index.
+		if err := gitscanner.ScanIndex(ref, nil); err != nil {
+			Exit("Could not scan for Git LFS index: %s", err)
+		}
 	}
 	if lsFilesScanAll {
 		if err := gitscanner.ScanAll(nil); err != nil {
