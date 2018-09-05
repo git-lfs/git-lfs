@@ -33,6 +33,11 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	}
 	defer db.Close()
 
+	// To avoid confusion later, let's make sure that we've installed the
+	// necessary hooks so that a newly migrated repository is `git
+	// push`-able immediately following a `git lfs migrate import`.
+	installHooks(false)
+
 	if migrateNoRewrite {
 		if migrateFixup {
 			ExitWithError(errors.Errorf("fatal: --no-rewrite and --fixup cannot be combined"))

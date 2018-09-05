@@ -30,6 +30,10 @@ begin_test "migrate import (default branch)"
 
   echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+
+  # Ensure that hooks are installed. If we find 'git-lfs' somewhere in
+  # .git/hooks/pre-push we assume that the rest went correctly, too.
+  grep -q "git-lfs" .git/hooks/pre-push
 )
 end_test
 
