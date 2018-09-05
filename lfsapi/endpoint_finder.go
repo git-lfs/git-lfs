@@ -188,8 +188,16 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
 	case "":
 		return endpointFromBareSshUrl(u.String())
 	default:
-		// Just passthrough to preserve
-		return Endpoint{Url: rawurl}
+		if strings.HasPrefix(rawurl, u.Scheme+"::") {
+			// Looks like a remote helper; just pass it through.
+			return Endpoint{Url: rawurl}
+		}
+		// We probably got here because the "scheme" that was parsed is
+		// a hostname (whether FQDN or single word) and the URL parser
+		// didn't know what to do with it.  Do what Git does and treat
+		// it as an SSH URL.  This ensures we handle SSH config aliases
+		// properly.
+		return endpointFromBareSshUrl(u.String())
 	}
 }
 
