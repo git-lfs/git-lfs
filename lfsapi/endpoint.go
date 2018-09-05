@@ -33,7 +33,8 @@ func endpointOperation(e Endpoint, method string) string {
 
 // endpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
 //
-//   user@host.com:path/to/repo.git
+//   user@host.com:path/to/repo.git or
+//   [user@host.com:port]:path/to/repo.git
 //
 func endpointFromBareSshUrl(rawurl string) Endpoint {
 	parts := strings.Split(rawurl, ":")
@@ -45,6 +46,9 @@ func endpointFromBareSshUrl(rawurl string) Endpoint {
 	// Treat presence of ':' as a bare URL
 	var newPath string
 	if len(parts) > 2 { // port included; really should only ever be 3 parts
+		// Correctly handle [host:port]:path URLs
+		parts[0] = strings.TrimPrefix(parts[0], "[")
+		parts[1] = strings.TrimSuffix(parts[1], "]")
 		newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
 	} else {
 		newPath = strings.Join(parts, "/")
