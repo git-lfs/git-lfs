@@ -1,5 +1,18 @@
 # Git LFS Changelog
 
+## 2.5.2 (17 September, 2018)
+
+### Bugs
+
+* config: Treat [host:port]:path URLs correctly #3226 (@saschpe)
+* tq: Always provide a Content-Type when uploading files #3201 (@bk2204)
+* commands/track: Properly `lfs track` files with escaped characters in their
+  name #3192 (@leonid-s-usov)
+
+### Misc
+
+* packagecloud.rb: remove older versions #3210 (@andyneff)
+
 ## 2.5.1 (2 August, 2018)
 
 This release contains miscellaneous bug fixes since v2.5.0. Most notably,
