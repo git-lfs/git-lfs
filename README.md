@@ -29,8 +29,8 @@ setup and preferences.
   [PackageCloud](https://packagecloud.io/github/git-lfs/install).
 * **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
   be installed via `brew install git-lfs`.
-* **Windows users**. Git LFS is included in the distribution of 
-  [Git for Windows](https://gitforwindows.org/). Alternatively, you can 
+* **Windows users**. Git LFS is included in the distribution of
+  [Git for Windows](https://gitforwindows.org/). Alternatively, you can
   install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
 * **Binary packages**. In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
 available for Linux, macOS, Windows, and FreeBSD.
@@ -159,13 +159,17 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@larsxschneider][larsxschneider-user] | [@ttaylorr][ttaylorr-user] |
-|---|---|
-| [![][larsxschneider-img]][larsxschneider-user] | [![][ttaylorr-img]][ttaylorr-user] |
+| [@bk2204][bk2204-user] | [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@ttaylorr][ttaylorr-user] |
+|---|---|---|---|
+| [![][bk2204-img]][bk2204-user] | [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][ttaylorr-img]][ttaylorr-user] |
 
+[bk2204-img]: https://avatars1.githubusercontent.com/u/497054?s=100&v=4
 [larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
+[PastelMobileSuit-img]: https://avatars2.githubusercontent.com/u/37254014?s=100&v=4
 [ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
+[bk2204-user]: https://github.com/bk2204
 [larsxschneider-user]: https://github.com/larsxschneider
+[PastelMobileSuit-user]: https://github.com/PastelMobileSuit
 [ttaylorr-user]: https://github.com/ttaylorr
 
 ### Alumni
