@@ -376,3 +376,85 @@ func TestDeleteAccessWithEmptyString(t *testing.T) {
 	finder.SetAccess("http://example.com", Access(""))
 	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
 }
+
+type EndpointParsingTestCase struct {
+	Given    string
+	Expected Endpoint
+}
+
+func (c *EndpointParsingTestCase) Assert(t *testing.T) {
+	finder := NewEndpointFinder(NewContext(nil, nil, map[string]string{
+		"url.https://github.com/.insteadof": "gh:",
+	}))
+	actual := finder.NewEndpoint(c.Given)
+	assert.Equal(t, c.Expected, actual, "lfsapi: expected endpoint for %q to be %#v (was %#v)", c.Given, c.Expected, actual)
+}
+
+func TestEndpointParsing(t *testing.T) {
+	// Note that many of these tests will produce silly or completely broken
+	// values for the Url, and that's okay: they work nevertheless.
+	for desc, c := range map[string]EndpointParsingTestCase{
+		"simple bare ssh": {
+			"git@github.com:git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "https://github.com/git-lfs/git-lfs.git",
+				SshUserAndHost: "git@github.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "",
+			},
+		},
+		"port bare ssh": {
+			"[git@ssh.github.com:443]:git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "https://ssh.github.com/git-lfs/git-lfs.git",
+				SshUserAndHost: "git@ssh.github.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "443",
+				Operation:      "",
+			},
+		},
+		"no user bare ssh": {
+			"github.com:git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "https://github.com/git-lfs/git-lfs.git",
+				SshUserAndHost: "github.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "",
+			},
+		},
+		"bare word bare ssh": {
+			"github:git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "https://github/git-lfs/git-lfs.git",
+				SshUserAndHost: "github",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "",
+			},
+		},
+		"insteadof alias": {
+			"gh:git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "https://github.com/git-lfs/git-lfs.git",
+				SshUserAndHost: "",
+				SshPath:        "",
+				SshPort:        "",
+				Operation:      "",
+			},
+		},
+		"remote helper": {
+			"remote::git-lfs/git-lfs.git",
+			Endpoint{
+				Url:            "remote::git-lfs/git-lfs.git",
+				SshUserAndHost: "",
+				SshPath:        "",
+				SshPort:        "",
+				Operation:      "",
+			},
+		},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}

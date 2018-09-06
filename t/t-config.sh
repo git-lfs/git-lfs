@@ -137,7 +137,7 @@ begin_test "url alias must be prefix"
   git config url."http://actual-url/".insteadOf alias:
   git config lfs.url badalias:rest
   git lfs env | tee env.log
-  grep "Endpoint=badalias:rest (auth=none)" env.log
+  grep "SSH=badalias:rest" env.log
 )
 end_test
 
