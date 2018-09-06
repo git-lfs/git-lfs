@@ -1,4 +1,4 @@
-package lfsapi
+package lfshttp
 
 import (
 	"fmt"

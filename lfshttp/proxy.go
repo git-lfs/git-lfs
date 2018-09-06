@@ -1,13 +1,12 @@
-package lfsapi
+package lfshttp
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
-
-	"fmt"
 )
 
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.

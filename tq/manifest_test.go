@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestManifestIsConfigurable(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "3",
 	}))
 	require.Nil(t, err)
@@ -19,7 +20,7 @@ func TestManifestIsConfigurable(t *testing.T) {
 }
 
 func TestManifestChecksNTLM(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":                 "http://foo",
 		"lfs.http://foo.access":   "ntlm",
 		"lfs.concurrenttransfers": "3",
@@ -31,7 +32,7 @@ func TestManifestChecksNTLM(t *testing.T) {
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "-1",
 	}))
 	require.Nil(t, err)
@@ -41,7 +42,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "not_an_int",
 	}))
 	require.Nil(t, err)

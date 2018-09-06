@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )
@@ -28,7 +29,7 @@ func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, e
 }
 
 func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request) (*http.Response, error) {
-	req.Header = c.extraHeadersFor(req)
+	req.Header = c.client.ExtraHeadersFor(req)
 
 	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
 	if err != nil {
@@ -94,7 +95,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, req *http.Request) (Endpoint, Access, CredentialHelper, *url.URL, Creds, error) {
+func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, Access, CredentialHelper, *url.URL, Creds, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -198,7 +199,7 @@ func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
 	return false
 }
 
-func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint Endpoint, req *http.Request) (*url.URL, error) {
+func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint lfshttp.Endpoint, req *http.Request) (*url.URL, error) {
 	apiURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -537,7 +538,7 @@ func (q *TransferQueue) makeBatch() batch { return make(batch, 0, q.batchSize) }
 // closed.
 //
 // addToAdapter returns immediately, and does not block.
-func (q *TransferQueue) addToAdapter(e lfsapi.Endpoint, pending []*Transfer) <-chan *objectTuple {
+func (q *TransferQueue) addToAdapter(e lfshttp.Endpoint, pending []*Transfer) <-chan *objectTuple {
 	retries := make(chan *objectTuple, len(pending))
 
 	if err := q.ensureAdapterBegun(e); err != nil {
@@ -729,7 +730,7 @@ func (q *TransferQueue) Skip(size int64) {
 	q.meter.Skip(size)
 }
 
-func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
+func (q *TransferQueue) ensureAdapterBegun(e lfshttp.Endpoint) error {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
 
@@ -760,7 +761,7 @@ func (q *TransferQueue) ensureAdapterBegun(e lfsapi.Endpoint) error {
 	return nil
 }
 
-func (q *TransferQueue) toAdapterCfg(e lfsapi.Endpoint) AdapterConfig {
+func (q *TransferQueue) toAdapterCfg(e lfshttp.Endpoint) AdapterConfig {
 	apiClient := q.manifest.APIClient()
 	concurrency := q.manifest.ConcurrentTransfers()
 	if apiClient.Endpoints.AccessFor(e.Url) == lfsapi.NTLMAccess {

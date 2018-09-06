@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,7 @@ func TestVerifySuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxverifies": "1",
 	}))
 	require.Nil(t, err)

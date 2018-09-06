@@ -89,6 +89,7 @@ PKGS += git/githistory
 PKGS += git
 PKGS += lfs
 PKGS += lfsapi
+PKGS += lfshttp
 PKGS += locking
 PKGS += subprocess
 PKGS += tasklog

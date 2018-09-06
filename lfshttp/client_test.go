@@ -1,13 +1,11 @@
-package lfsapi
+package lfshttp
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -177,80 +175,6 @@ func TestClientRedirect(t *testing.T) {
 	assert.EqualError(t, err, "lfsapi/client: refusing insecure redirect, https->http")
 }
 
-func TestClientRedirectReauthenticate(t *testing.T) {
-	var srv1, srv2 *httptest.Server
-	var called1, called2 uint32
-	var creds1, creds2 Creds
-
-	srv1 = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddUint32(&called1, 1)
-
-		if hdr := r.Header.Get("Authorization"); len(hdr) > 0 {
-			parts := strings.SplitN(hdr, " ", 2)
-			typ, b64 := parts[0], parts[1]
-
-			auth, err := base64.URLEncoding.DecodeString(b64)
-			assert.Nil(t, err)
-			assert.Equal(t, "Basic", typ)
-			assert.Equal(t, "user1:pass1", string(auth))
-
-			http.Redirect(w, r, srv2.URL+r.URL.Path, http.StatusMovedPermanently)
-			return
-		}
-		w.WriteHeader(http.StatusUnauthorized)
-	}))
-
-	srv2 = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddUint32(&called2, 1)
-
-		parts := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
-		typ, b64 := parts[0], parts[1]
-
-		auth, err := base64.URLEncoding.DecodeString(b64)
-		assert.Nil(t, err)
-		assert.Equal(t, "Basic", typ)
-		assert.Equal(t, "user2:pass2", string(auth))
-	}))
-
-	// Change the URL of srv2 to make it appears as if it is a different
-	// host.
-	srv2.URL = strings.Replace(srv2.URL, "127.0.0.1", "0.0.0.0", 1)
-
-	creds1 = Creds(map[string]string{
-		"protocol": "http",
-		"host":     strings.TrimPrefix(srv1.URL, "http://"),
-
-		"username": "user1",
-		"password": "pass1",
-	})
-	creds2 = Creds(map[string]string{
-		"protocol": "http",
-		"host":     strings.TrimPrefix(srv2.URL, "http://"),
-
-		"username": "user2",
-		"password": "pass2",
-	})
-
-	defer srv1.Close()
-	defer srv2.Close()
-
-	c, err := NewClient(NewContext(nil, nil, nil))
-	creds := newCredentialCacher()
-	creds.Approve(creds1)
-	creds.Approve(creds2)
-	c.Credentials = creds
-
-	req, err := http.NewRequest("GET", srv1.URL, nil)
-	require.Nil(t, err)
-
-	_, err = c.DoWithAuth("", req)
-	assert.Nil(t, err)
-
-	// called1 is 2 since LFS tries an unauthenticated request first
-	assert.EqualValues(t, 2, called1)
-	assert.EqualValues(t, 1, called2)
-}
-
 func TestNewClient(t *testing.T) {
 	c, err := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.dialtimeout":         "151",
@@ -323,12 +247,10 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := NewClient(NewContext(nil, nil, map[string]string{
-			"lfs.url": test[0],
-		}))
+		c, err := NewClient(NewContext(nil, nil, nil))
 		require.Nil(t, err)
 
-		req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), test[1], nil)
+		req, err := c.NewRequest("POST", Endpoint{Url: test[0]}, test[1], nil)
 		require.Nil(t, err)
 		assert.Equal(t, "POST", req.Method)
 		assert.Equal(t, test[2], req.URL.String(), fmt.Sprintf("endpoint: %s, suffix: %s, expected: %s", test[0], test[1], test[2]))
@@ -336,15 +258,13 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequestWithBody(t *testing.T) {
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
-		"lfs.url": "https://example.com",
-	}))
+	c, err := NewClient(NewContext(nil, nil, nil))
 	require.Nil(t, err)
 
 	body := struct {
 		Test string
 	}{Test: "test"}
-	req, err := c.NewRequest("POST", c.Endpoints.Endpoint("", ""), "body", body)
+	req, err := c.NewRequest("POST", Endpoint{Url: "https://example.com"}, "body", body)
 	require.Nil(t, err)
 
 	assert.NotNil(t, req.Body)

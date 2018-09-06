@@ -44,7 +44,7 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("LocalMediaDir=%s", cfg.LFSObjectDir()),
 		fmt.Sprintf("LocalReferenceDirs=%s", references),
 		fmt.Sprintf("TempDir=%s", cfg.TempDir()),
-		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers),
+		fmt.Sprintf("ConcurrentTransfers=%d", api.ConcurrentTransfers()),
 		fmt.Sprintf("TusTransfers=%v", cfg.TusTransfersAllowed()),
 		fmt.Sprintf("BasicTransfersOnly=%v", cfg.BasicTransfersOnly()),
 		fmt.Sprintf("SkipDownloadErrors=%v", cfg.SkipDownloadErrors()),

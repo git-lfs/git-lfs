@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
@@ -28,8 +29,8 @@ func TestAPILock(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
 		assert.Equal(t, "53", r.Header.Get("Content-Length"))
 
 		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
@@ -54,7 +55,7 @@ func TestAPILock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -78,8 +79,8 @@ func TestAPIUnlock(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
 
 		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		unlockReq := &unlockRequest{}
@@ -102,7 +103,7 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -129,7 +130,7 @@ func TestAPISearch(t *testing.T) {
 		}
 
 		assert.Equal(t, "GET", r.Method)
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
 		assert.Equal(t, "", r.Header.Get("Content-Type"))
 
 		q := r.URL.Query()
@@ -150,7 +151,7 @@ func TestAPISearch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
@@ -180,8 +181,8 @@ func TestAPIVerifiableLocks(t *testing.T) {
 		}
 
 		assert.Equal(t, "POST", r.Method)
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfsapi.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
+		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
 
 		body := lockVerifiableRequest{}
 		if assert.Nil(t, json.NewDecoder(r.Body).Decode(&body)) {
@@ -205,7 +206,7 @@ func TestAPIVerifiableLocks(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
 	require.Nil(t, err)
