@@ -133,6 +133,19 @@ func sshGetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e 
 	return exe, args
 }
 
+// Parse command, and if it looks like a valid command, return the ssh binary
+// name, the command to run, and whether we need a shell.  If not, return
+// existing as the ssh binary name.
+func sshParseShellCommand(command string, existing string) (ssh string, cmd string, needShell bool) {
+	ssh = existing
+	if cmdArgs := tools.QuotedFields(command); len(cmdArgs) > 0 {
+		needShell = true
+		ssh = cmdArgs[0]
+		cmd = command
+	}
+	return
+}
+
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
 func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint) (exe string, baseargs []string, needShell bool) {
@@ -143,12 +156,7 @@ func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e End
 
 	ssh, _ := osEnv.Get("GIT_SSH")
 	sshCmd, _ := osEnv.Get("GIT_SSH_COMMAND")
-	cmdArgs := tools.QuotedFields(sshCmd)
-	if len(cmdArgs) > 0 {
-		needShell = true
-		ssh = cmdArgs[0]
-		cmd = sshCmd
-	}
+	ssh, cmd, needShell = sshParseShellCommand(sshCmd, ssh)
 
 	if ssh == "" {
 		ssh = defaultSSHCmd
