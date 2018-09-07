@@ -414,6 +414,50 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	assert.Equal(t, []string{"-c", "sshcmd -p 8888 user@foo.com"}, args)
 }
 
+func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSH_COMMAND": "sshcmd --args 2",
+	}, map[string]string{
+		"core.sshcommand": "sshcmd --args 1",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd --args 2 user@foo.com"}, args)
+}
+
+func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, nil, map[string]string{
+		"core.sshcommand": "sshcmd foo 'bar \"baz\"'",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' user@foo.com"}, args)
+}
+
+func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, nil, map[string]string{
+		"core.sshcommand": "sshcmd --args 1",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd --args 1 user@foo.com"}, args)
+}
+
 func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
 	cli, err := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSH": "not-ssh",

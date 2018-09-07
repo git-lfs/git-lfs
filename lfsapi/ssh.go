@@ -159,7 +159,8 @@ func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e End
 	ssh, cmd, needShell = sshParseShellCommand(sshCmd, ssh)
 
 	if ssh == "" {
-		ssh = defaultSSHCmd
+		sshCmd, _ := gitEnv.Get("core.sshcommand")
+		ssh, cmd, needShell = sshParseShellCommand(sshCmd, defaultSSHCmd)
 	}
 
 	if cmd == "" {
