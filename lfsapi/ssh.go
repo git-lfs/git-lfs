@@ -81,7 +81,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		return res, nil
 	}
 
-	exe, args := sshGetLFSExeAndArgs(c.os, e, method)
+	exe, args := sshGetLFSExeAndArgs(c.os, c.git, e, method)
 	cmd := exec.Command(exe, args...)
 
 	// Save stdout and stderr in separate buffers
@@ -124,8 +124,8 @@ func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string)
 	return "sh", []string{"-c", joined}
 }
 
-func sshGetLFSExeAndArgs(osEnv config.Environment, e Endpoint, method string) (string, []string) {
-	exe, args, needShell := sshGetExeAndArgs(osEnv, e)
+func sshGetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint, method string) (string, []string) {
+	exe, args, needShell := sshGetExeAndArgs(osEnv, gitEnv, e)
 	operation := endpointOperation(e, method)
 	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
 	exe, args = sshFormatArgs(exe, args, needShell)
@@ -135,7 +135,7 @@ func sshGetLFSExeAndArgs(osEnv config.Environment, e Endpoint, method string) (s
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(osEnv config.Environment, e Endpoint) (exe string, baseargs []string, needShell bool) {
+func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint) (exe string, baseargs []string, needShell bool) {
 	var cmd string
 
 	isPlink := false
