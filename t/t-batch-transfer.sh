@@ -31,7 +31,7 @@ begin_test "batch transfer"
   contents="a"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
@@ -79,11 +79,11 @@ begin_test "batch transfers occur in reverse order by size"
 
   small_contents="small"
   small_oid="$(calc_oid "$small_contents")"
-  printf "$small_contents" > small.dat
+  printf "%s" "$small_contents" > small.dat
 
   bigger_contents="bigger"
   bigger_oid="$(calc_oid "$bigger_contents")"
-  printf "$bigger_contents" > bigger.dat
+  printf "%s" "$bigger_contents" > bigger.dat
 
   git add *.dat
   git commit -m "add small and large objects"
@@ -116,7 +116,7 @@ begin_test "batch transfers with ssh endpoint"
   contents="test"
   oid="$(calc_oid "$contents")"
   git lfs track "*.dat"
-  printf "$contents" > test.dat
+  printf "%s" "$contents" > test.dat
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
@@ -138,7 +138,7 @@ begin_test "batch transfers with ntlm server"
   contents="test"
   oid="$(calc_oid "$contents")"
   git lfs track "*.dat"
-  printf "$contents" > test.dat
+  printf "%s" "$contents" > test.dat
   git add .gitattributes test.dat
   git commit -m "initial commit"
 

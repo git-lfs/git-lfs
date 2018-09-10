@@ -17,7 +17,7 @@ begin_test "verify with retries"
   contents="send-verify-action"
   contents_oid="$(calc_oid "$contents")"
   contents_short_oid="$(echo "$contents_oid" | head -c 7)"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"
@@ -46,7 +46,7 @@ begin_test "verify with retries (success without retry)"
   contents="send-verify-action"
   contents_oid="$(calc_oid "$contents")"
   contents_short_oid="$(echo "$contents_oid" | head -c 7)"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"
@@ -75,7 +75,7 @@ begin_test "verify with retries (insufficient retries)"
   contents="send-verify-action"
   contents_oid="$(calc_oid "$contents")"
   contents_short_oid="$(echo "$contents_oid" | head -c 7)"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"
@@ -110,7 +110,7 @@ begin_test "verify with retries (bad .gitconfig)"
   contents="send-verify-action"
   contents_oid="$(calc_oid "$contents")"
   contents_short_oid="$(echo "$contents_oid" | head -c 7)"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"

@@ -22,7 +22,7 @@ begin_test "filter process: checking out a branch"
 
   contents_a="contents_a"
   contents_a_oid="$(calc_oid $contents_a)"
-  printf "$contents_a" > a.dat
+  printf "%s" "$contents_a" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"
@@ -31,7 +31,7 @@ begin_test "filter process: checking out a branch"
 
   contents_b="contents_b"
   contents_b_oid="$(calc_oid $contents_b)"
-  printf "$contents_b" > b.dat
+  printf "%s" "$contents_b" > b.dat
 
   git add b.dat
   git commit -m "add b.dat"
@@ -79,7 +79,7 @@ begin_test "filter process: adding a file"
 
   contents="contents"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
 

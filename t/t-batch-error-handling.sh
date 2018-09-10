@@ -29,7 +29,7 @@ begin_test "batch error handling"
   contents="a"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log

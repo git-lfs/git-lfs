@@ -123,7 +123,7 @@ begin_test "pointer --stdin with bad pointer"
 
 Pointer file error: invalid header"
 
-  diff -u <(printf "$expected") <(printf "$output")
+  diff -u <(printf "%s" "$expected") <(printf "%s" "$output")
 
   [ "1" = "$status" ]
 )
@@ -243,7 +243,7 @@ begin_test "pointer invalid --pointer"
 
 Pointer file error: invalid header"
 
-  diff -u <(printf "$expected") <(printf "$output")
+  diff -u <(printf "%s" "$expected") <(printf "%s" "$output")
 
   [ "$expected" = "$output" ]
 )

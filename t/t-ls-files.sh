@@ -50,8 +50,8 @@ begin_test "ls-files: --size"
   git commit -m "initial commit"
 
   contents="contents"
-  size="$(printf "$contents" | wc -c | awk '{ print $1 }')"
-  printf "$contents" > a.dat
+  size="$(printf "%s" "$contents" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a.dat"
@@ -74,7 +74,7 @@ begin_test "ls-files: indexed files without tree"
 
   contents="a"
   oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   [ "" = "$(git lfs ls-files)" ]
 
@@ -99,14 +99,14 @@ begin_test "ls-files: indexed file with tree"
   tree_contents="a"
   tree_oid="$(calc_oid "$tree_contents")"
 
-  printf "$tree_contents" > a.dat
+  printf "%s" "$tree_contents" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 
   index_contents="b"
   index_oid="$(calc_oid "$index_contents")"
 
-  printf "$index_contents" > a.dat
+  printf "%s" "$index_contents" > a.dat
   git add a.dat
 
   [ "${index_oid:0:10} * a.dat" = "$(git lfs ls-files)" ]

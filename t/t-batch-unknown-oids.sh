@@ -15,7 +15,7 @@ begin_test "transfer queue rejects unknown OIDs"
   git commit -m "initial commit"
 
   contents="unknown-oid"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add objects"

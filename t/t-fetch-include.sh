@@ -17,13 +17,13 @@ begin_test "fetch: setup for include test"
   mkdir -p big/a
   mkdir -p big/b
 
-  printf "$contents" > big/a/a1.big
-  printf "$contents" > big/b/b1.big
+  printf "%s" "$contents" > big/a/a1.big
+  printf "%s" "$contents" > big/b/b1.big
 
   contents2="big file 2"
-  printf "$contents2" > big/big1.big
-  printf "$contents2" > big/big2.big
-  printf "$contents2" > big/big3.big
+  printf "%s" "$contents2" > big/big1.big
+  printf "%s" "$contents2" > big/big2.big
+  printf "%s" "$contents2" > big/big3.big
 
   git add .gitattributes big
   git commit -m "commit" | tee commit.log

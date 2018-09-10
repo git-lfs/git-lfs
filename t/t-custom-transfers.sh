@@ -21,7 +21,7 @@ begin_test "custom-transfer-wrong-path"
   contents="jksgdfljkgsdlkjafg lsjdgf alkjgsd lkfjag sldjkgf alkjsgdflkjagsd kljfg asdjgf kalsd"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log

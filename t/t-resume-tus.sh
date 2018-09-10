@@ -19,7 +19,7 @@ begin_test "tus-upload-uninterrupted"
   contents="send-verify-action"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
@@ -54,8 +54,8 @@ begin_test "tus-upload-interrupted-resume"
   contents="234587134187634598o634857619384765b747qcvtuedvoaicwtvseudtvcoqi7280r7qvow4i7r8c46pr9q6v9pri6ioq2r8"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
-  printf "$contents_verify" > verify.dat
+  printf "%s" "$contents" > a.dat
+  printf "%s" "$contents_verify" > verify.dat
   git add a.dat verify.dat
   git add .gitattributes
   git commit -m "add a.dat, verify.dat" 2>&1 | tee commit.log

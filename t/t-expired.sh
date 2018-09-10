@@ -20,7 +20,7 @@ for typ in "${expiration_types[@]}"; do
     git add .gitattributes
     git commit -m "initial commit"
 
-    printf "$contents" > a.dat
+    printf "%s" "$contents" > a.dat
 
     git add a.dat
     git commit -m "add a.dat"
@@ -55,7 +55,7 @@ for typ in "${expiration_types[@]}"; do
     git add .gitattributes
     git commit -m "initial commit"
 
-    printf "$contents" > a.dat
+    printf "%s" "$contents" > a.dat
 
     git add a.dat
     git commit -m "add a.dat"

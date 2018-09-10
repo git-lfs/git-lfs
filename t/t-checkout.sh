@@ -19,12 +19,12 @@ begin_test "checkout"
   contents_oid=$(calc_oid "$contents")
 
   # Same content everywhere is ok, just one object in lfs db
-  printf "$contents" > file1.dat
-  printf "$contents" > file2.dat
-  printf "$contents" > file3.dat
+  printf "%s" "$contents" > file1.dat
+  printf "%s" "$contents" > file2.dat
+  printf "%s" "$contents" > file3.dat
   mkdir folder1 folder2
-  printf "$contents" > folder1/nested.dat
-  printf "$contents" > folder2/nested.dat
+  printf "%s" "$contents" > folder1/nested.dat
+  printf "%s" "$contents" > folder2/nested.dat
   git add file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
   git add .gitattributes
   git commit -m "add files"

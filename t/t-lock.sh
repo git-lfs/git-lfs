@@ -160,7 +160,7 @@ begin_test "locking a nested file"
   contents="contents"
   contents_oid="$(calc_oid "$contents")"
 
-  printf "$contents" > foo/bar/baz/a.dat
+  printf "%s" "$contents" > foo/bar/baz/a.dat
   git add foo/bar/baz/a.dat
   git commit -m "add a.dat"
 

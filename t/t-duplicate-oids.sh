@@ -21,7 +21,7 @@ begin_test "multiple revs with same OID get pushed once"
   object_dir="$(echo $contents_oid \
     | awk '{ print substr($0, 0, 2) "/" substr($0, 3, 2) }')"
   mkdir -p ".git/lfs/objects/$object_dir"
-  printf "$contents" > ".git/lfs/objects/$object_dir/$contents_oid"
+  printf "%s" "$contents" > ".git/lfs/objects/$object_dir/$contents_oid"
 
   # Create a pointer with the old "http://git-media.io" spec
   legacy_pointer="$(pointer $contents_oid 8 http://git-media.io/v/2)"
@@ -30,13 +30,13 @@ begin_test "multiple revs with same OID get pushed once"
   latest_pointer="$(pointer $contents_oid 8)"
 
   # Commit the legacy pointer
-  printf "$legacy_pointer" > a.dat
+  printf "%s" "$legacy_pointer" > a.dat
   git add a.dat
   git commit -m "commit legacy"
 
   # Commit the new pointer, causing a diff on a.dat, but leaving the OID
   # unchanged.
-  printf "$latest_pointer" > a.dat
+  printf "%s" "$latest_pointer" > a.dat
   git add a.dat
   git commit -m "commit latest"
 

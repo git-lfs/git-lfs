@@ -20,7 +20,7 @@ begin_test "init for fetch tests"
   grep "Tracking \"\*.dat\"" track.log
 
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
@@ -43,7 +43,7 @@ begin_test "init for fetch tests"
 
   # Add a file in a different branch
   git checkout -b newbranch
-  printf "$b" > b.dat
+  printf "%s" "$b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
   assert_local_object "$b_oid" 1
@@ -421,7 +421,7 @@ begin_test "fetch with no origin remote"
   contents="a"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log

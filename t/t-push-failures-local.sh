@@ -16,11 +16,11 @@ begin_test "push with missing objects (lfs.allowincompletepush true)"
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  printf "$present" > present.dat
+  printf "%s" "$present" > present.dat
 
   missing="missing"
   missing_oid="$(calc_oid "$missing")"
-  printf "$missing" > missing.dat
+  printf "%s" "$missing" > missing.dat
 
   git add missing.dat present.dat
   git commit -m "add objects"
@@ -64,11 +64,11 @@ begin_test "push reject missing objects (lfs.allowincompletepush false)"
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  printf "$present" > present.dat
+  printf "%s" "$present" > present.dat
 
   missing="missing"
   missing_oid="$(calc_oid "$missing")"
-  printf "$missing" > missing.dat
+  printf "%s" "$missing" > missing.dat
 
   git add missing.dat present.dat
   git commit -m "add objects"
@@ -113,15 +113,15 @@ begin_test "push reject missing objects (lfs.allowincompletepush default)"
 
   missing="missing"
   missing_oid="$(calc_oid "$missing")"
-  missing_len="$(printf "$missing" | wc -c | awk '{ print $1 }')"
-  printf "$missing" > missing.dat
+  missing_len="$(printf "%s" "$missing" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$missing" > missing.dat
   git add missing.dat
   git commit -m "add missing.dat"
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  present_len="$(printf "$present" | wc -c | awk '{ print $1 }')"
-  printf "$present" > present.dat
+  present_len="$(printf "%s" "$present" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$present" > present.dat
   git add present.dat
   git commit -m "add present.dat"
 
@@ -162,15 +162,15 @@ begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
 
   corrupt="corrupt"
   corrupt_oid="$(calc_oid "$corrupt")"
-  corrupt_len="$(printf "$corrupt" | wc -c | awk '{ print $1 }')"
-  printf "$corrupt" > corrupt.dat
+  corrupt_len="$(printf "%s" "$corrupt" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$corrupt" > corrupt.dat
   git add corrupt.dat
   git commit -m "add corrupt.dat"
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  present_len="$(printf "$present" | wc -c | awk '{ print $1 }')"
-  printf "$present" > present.dat
+  present_len="$(printf "%s" "$present" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$present" > present.dat
   git add present.dat
   git commit -m "add present.dat"
 

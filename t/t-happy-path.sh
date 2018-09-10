@@ -30,7 +30,7 @@ begin_test "happy path"
   contents_oid=$(calc_oid "$contents")
 
   # Regular Git commands can be used.
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log

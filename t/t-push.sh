@@ -563,8 +563,8 @@ begin_test "push (retry with expired actions)"
   git lfs track "*.dat"
   contents="return-expired-action"
   contents_oid="$(calc_oid "$contents")"
-  contents_size="$(printf "$contents" | wc -c | awk '{ print $1 }')"
-  printf "$contents" > a.dat
+  contents_size="$(printf "%s" "$contents" | wc -c | awk '{ print $1 }')"
+  printf "%s" "$contents" > a.dat
   git add .gitattributes a.dat
 
   git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
@@ -596,7 +596,7 @@ begin_test "push to raw remote url"
   contents="raw"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > raw.dat
+  printf "%s" "$contents" > raw.dat
   git add raw.dat .gitattributes
   git commit -m "add" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log
@@ -622,7 +622,7 @@ begin_test "push (with invalid object size)"
 
   git lfs track "*.dat"
   contents="return-invalid-size"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat .gitattributes
   git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
@@ -658,7 +658,7 @@ begin_test "push with deprecated _links"
 
   contents="send-deprecated-links"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 

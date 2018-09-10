@@ -14,31 +14,31 @@ begin_test "status"
   file_1="some data"
   file_1_oid="$(calc_oid "$file_1")"
   file_1_oid_short="$(echo "$file_1_oid" | head -c 7)"
-  printf "$file_1" > file1.dat
+  printf "%s" "$file_1" > file1.dat
   git add file1.dat
   git commit -m "file1.dat"
 
   file_1_new="other data"
   file_1_new_oid="$(calc_oid "$file_1_new")"
   file_1_new_oid_short="$(echo "$file_1_new_oid" | head -c 7)"
-  printf "$file_1_new" > file1.dat
+  printf "%s" "$file_1_new" > file1.dat
 
   file_2="file2 data"
   file_2_oid="$(calc_oid "$file_2")"
   file_2_oid_short="$(echo "$file_2_oid" | head -c 7)"
-  printf "$file_2" > file2.dat
+  printf "%s" "$file_2" > file2.dat
   git add file2.dat
 
   file_3="file3 data"
   file_3_oid="$(calc_oid "$file_3")"
   file_3_oid_short="$(echo "$file_3_oid" | head -c 7)"
-  printf "$file_3" > file3.dat
+  printf "%s" "$file_3" > file3.dat
   git add file3.dat
 
   file_3_new="file3 other data"
   file_3_new_oid="$(calc_oid "$file_3_new")"
   file_3_new_oid_short="$(echo "$file_3_new_oid" | head -c 7)"
-  printf "$file_3_new" > file3.dat
+  printf "%s" "$file_3_new" > file3.dat
 
   expected="On branch master
 
@@ -179,7 +179,7 @@ begin_test "status - before initial commit"
   contents_oid="$(calc_oid "$contents")"
   contents_oid_short="$(echo "$contents_oid" | head -c 7)"
 
-  printf "$contents" > file1.dat
+  printf "%s" "$contents" > file1.dat
   git add file1.dat
 
   expected="
@@ -205,8 +205,8 @@ begin_test "status shows multiple files with identical contents"
   git lfs track "*.dat"
 
   contents="contents"
-  printf "$contents" > a.dat
-  printf "$contents" > b.dat
+  printf "%s" "$contents" > a.dat
+  printf "%s" "$contents" > b.dat
 
   git add --all .
 
@@ -232,7 +232,7 @@ begin_test "status shows multiple copies of partially staged files"
   contents_1="part 1"
   contents_1_oid="$(calc_oid "$contents_1")"
   contents_1_oid_short="$(echo "$contents_1_oid" | head -c 7)"
-  printf "$contents_1" > a.dat
+  printf "%s" "$contents_1" > a.dat
 
   # "$contents_1" changes are staged
   git add a.dat
@@ -241,7 +241,7 @@ begin_test "status shows multiple copies of partially staged files"
   contents_2="part 2"
   contents_2_oid="$(calc_oid "$contents_2")"
   contents_2_oid_short="$(echo "$contents_2_oid" | head -c 7)"
-  printf "$contents_2" > a.dat
+  printf "%s" "$contents_2" > a.dat
 
   expected="On branch master
 
@@ -274,7 +274,7 @@ begin_test "status: LFS to LFS change"
   git add .gitattributes
   git commit -m "track *.dat files"
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 
@@ -282,7 +282,7 @@ begin_test "status: LFS to LFS change"
   contents_new_oid="$(calc_oid "$contents_new")"
   contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
 
-  printf "$contents_new" > a.dat
+  printf "%s" "$contents_new" > a.dat
   git add a.dat
 
   expected="On branch master
@@ -310,7 +310,7 @@ begin_test "status: Git to LFS change"
   contents_oid="$(calc_oid "$contents")"
   contents_oid_short="$(echo "$contents_oid" | head -c 7)"
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 
@@ -322,7 +322,7 @@ begin_test "status: Git to LFS change"
   contents_new_oid="$(calc_oid "$contents_new")"
   contents_new_oid_short="$(echo $contents_new_oid | head -c 7)"
 
-  printf "$contents_new" > a.dat
+  printf "%s" "$contents_new" > a.dat
   git add a.dat
 
   expected="On branch master
@@ -350,7 +350,7 @@ begin_test "status: Git to LFS conversion"
   contents_oid="$(calc_oid "$contents")"
   contents_oid_short="$(echo "$contents_oid" | head -c 7)"
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 
@@ -430,7 +430,7 @@ begin_test "status (unpushed objects)"
 
   contents="a"
   oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add a.dat
   git commit -m "add a large file"

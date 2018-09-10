@@ -12,7 +12,7 @@ begin_test "batch storage upload causes retries"
 
   contents="storage-upload-retry"
   oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git lfs track "*.dat"
   git add .gitattributes a.dat
@@ -43,7 +43,7 @@ begin_test "batch storage download causes retries"
 
   contents="storage-download-retry"
   oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git lfs track "*.dat"
   git add .gitattributes a.dat

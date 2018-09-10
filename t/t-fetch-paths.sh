@@ -17,7 +17,7 @@ begin_test "init fetch unclean paths"
   grep "Tracking \"\*.dat\"" track.log
 
   mkdir dir
-  printf "$contents" > dir/a.dat
+  printf "%s" "$contents" > dir/a.dat
 
   git add dir/a.dat
   git add .gitattributes
