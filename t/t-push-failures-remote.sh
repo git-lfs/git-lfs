@@ -21,7 +21,7 @@ push_fail_test() {
 
   git lfs track "*.dat"
   printf "hi" > good.dat
-  printf "$contents" > bad.dat
+  printf "%s" "$contents" > bad.dat
   git add .gitattributes good.dat bad.dat
   git commit -m "welp"
 

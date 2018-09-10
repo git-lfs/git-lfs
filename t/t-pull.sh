@@ -24,9 +24,9 @@ begin_test "pull"
 
   mkdir dir
   echo "*.log" > .gitignore
-  printf "$contents" > a.dat
-  printf "$contents2" > á.dat
-  printf "$contents3" > dir/dir.dat
+  printf "%s" "$contents" > a.dat
+  printf "%s" "$contents2" > á.dat
+  printf "%s" "$contents3" > dir/dir.dat
   git add .
   git commit -m "add files" 2>&1 | tee commit.log
   grep "master (root-commit)" commit.log

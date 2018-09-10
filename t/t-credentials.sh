@@ -62,7 +62,7 @@ begin_test "credentials without useHttpPath, with bad path password"
   credcalls="$(grep "creds: git credential" push.log)"
   [ "0" -eq "$(echo "$credcalls" | grep "no-httppath-bad-password" | wc -l)" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "$credcalls" | grep '", "")' | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep '", "")' | wc -l)" ]
 )
 end_test
 
@@ -116,7 +116,7 @@ begin_test "credentials with useHttpPath, with wrong password"
   contents="a"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat"
@@ -150,7 +150,7 @@ begin_test "credentials with useHttpPath, with correct password"
   contents="b"
   contents_oid=$(calc_oid "$contents")
 
-  printf "$contents" > b.dat
+  printf "%s" "$contents" > b.dat
   git add b.dat
   git add .gitattributes
   git commit -m "add b.dat"
@@ -165,7 +165,7 @@ begin_test "credentials with useHttpPath, with correct password"
   credcalls="$(grep "creds: git credential" push.log)"
   [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
 )
 end_test
 

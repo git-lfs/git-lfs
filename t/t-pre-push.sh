@@ -292,7 +292,7 @@ begin_test "pre-push with missing pointer which is on server"
   contents="common data"
   contents_oid=$(calc_oid "$contents")
   git lfs track "*.dat"
-  printf "$contents" > common1.dat
+  printf "%s" "$contents" > common1.dat
   git add common1.dat
   git add .gitattributes
   git commit -m "add first file"
@@ -307,7 +307,7 @@ begin_test "pre-push with missing pointer which is on server"
   assert_server_object "$reponame" "$contents_oid"
 
   # create another commit referencing same oid, then delete local data & push
-  printf "$contents" > common2.dat
+  printf "%s" "$contents" > common2.dat
   git add common2.dat
   git commit -m "add second file, same content"
   rm -rf .git/lfs/objects
@@ -334,11 +334,11 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  printf "$present" > present.dat
+  printf "%s" "$present" > present.dat
 
   missing="missing"
   missing_oid="$(calc_oid "$missing")"
-  printf "$missing" > missing.dat
+  printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
   git commit -m "add present.dat and missing.dat"
@@ -385,11 +385,11 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
 
   present="present"
   present_oid="$(calc_oid "$present")"
-  printf "$present" > present.dat
+  printf "%s" "$present" > present.dat
 
   missing="missing"
   missing_oid="$(calc_oid "$missing")"
-  printf "$missing" > missing.dat
+  printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
   git commit -m "add present.dat and missing.dat"
@@ -646,7 +646,7 @@ begin_test "pre-push with our lock"
   git commit -m "initial commit"
 
   contents="locked contents"
-  printf "$contents" > locked.dat
+  printf "%s" "$contents" > locked.dat
   git add locked.dat
   git commit -m "add locked.dat"
 
@@ -684,7 +684,7 @@ begin_test "pre-push with their lock on lfs file"
   contents="locked contents"
 
   # any lock path with "theirs" is returned as "their" lock by /locks/verify
-  printf "$contents" > locked_theirs.dat
+  printf "%s" "$contents" > locked_theirs.dat
   git add locked_theirs.dat
   git commit -m "add locked_theirs.dat"
 
@@ -789,7 +789,7 @@ begin_test "pre-push locks verify 5xx with verification enabled"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -816,7 +816,7 @@ begin_test "pre-push disable locks verify on exact url"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -842,7 +842,7 @@ begin_test "pre-push disable locks verify on partial url"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -866,7 +866,7 @@ begin_test "pre-push locks verify 403 with good ref"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -888,7 +888,7 @@ begin_test "pre-push locks verify 403 with good tracked ref"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -912,7 +912,7 @@ begin_test "pre-push locks verify 403 with explicit ref"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -934,7 +934,7 @@ begin_test "pre-push locks verify 403 with bad ref"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -958,7 +958,7 @@ begin_test "pre-push locks verify 5xx with verification unset"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -984,7 +984,7 @@ begin_test "pre-push locks verify 501 with verification enabled"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1011,7 +1011,7 @@ begin_test "pre-push locks verify 501 with verification disabled"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1037,7 +1037,7 @@ begin_test "pre-push locks verify 501 with verification unset"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1064,7 +1064,7 @@ begin_test "pre-push locks verify 200"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1089,7 +1089,7 @@ begin_test "pre-push locks verify 403 with verification enabled"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1116,7 +1116,7 @@ begin_test "pre-push locks verify 403 with verification disabled"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"
@@ -1142,7 +1142,7 @@ begin_test "pre-push locks verify 403 with verification unset"
 
   contents="example"
   contents_oid="$(calc_oid "$contents")"
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git lfs track "*.dat"
   git add .gitattributes a.dat
   git commit --message "initial commit"

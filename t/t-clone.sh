@@ -308,13 +308,13 @@ begin_test "clone (with include/exclude args)"
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
-  printf "$contents_a" > "a.dat"
-  printf "$contents_a" > "a-dupe.dat"
-  printf "$contents_a" > "dupe-a.dat"
+  printf "%s" "$contents_a" > "a.dat"
+  printf "%s" "$contents_a" > "a-dupe.dat"
+  printf "%s" "$contents_a" > "dupe-a.dat"
 
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
-  printf "$contents_b" > "b.dat"
+  printf "%s" "$contents_b" > "b.dat"
 
   git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
@@ -369,11 +369,11 @@ begin_test "clone (with .lfsconfig)"
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
-  printf "$contents_a" > "a.dat"
+  printf "%s" "$contents_a" > "a.dat"
 
   contents_b="b"
   contents_b_oid=$(calc_oid "$contents_b")
-  printf "$contents_b" > "b.dat"
+  printf "%s" "$contents_b" > "b.dat"
 
   git add a.dat b.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
@@ -474,7 +474,7 @@ begin_test "clone (without clean filter)"
 
   contents_a="a"
   contents_a_oid=$(calc_oid "$contents_a")
-  printf "$contents_a" > "a.dat"
+  printf "%s" "$contents_a" > "a.dat"
 
   git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
@@ -527,7 +527,7 @@ begin_test "clone with submodules"
 
   contents_sub2="Inception. Now, before you bother telling me it's impossible..."
   contents_sub2_oid=$(calc_oid "$contents_sub2")
-  printf "$contents_sub2" > "sub2.dat"
+  printf "%s" "$contents_sub2" > "sub2.dat"
   git add sub2.dat .gitattributes
   git commit -m "Nested submodule level 2"
   git push origin master
@@ -538,7 +538,7 @@ begin_test "clone with submodules"
 
   contents_sub1="We're dreaming?"
   contents_sub1_oid=$(calc_oid "$contents_sub1")
-  printf "$contents_sub1" > "sub1.dat"
+  printf "%s" "$contents_sub1" > "sub1.dat"
   # add submodule2 as submodule of submodule1
   git submodule add "$GITSERVER/$submodname2" sub2
   git submodule update
@@ -552,7 +552,7 @@ begin_test "clone with submodules"
 
   contents_root="Downwards is the only way forwards."
   contents_root_oid=$(calc_oid "$contents_root")
-  printf "$contents_root" > "root.dat"
+  printf "%s" "$contents_root" > "root.dat"
   # add submodule1 as submodule of root
   git submodule add "$GITSERVER/$submodname1" sub1
   git submodule update
@@ -597,7 +597,7 @@ begin_test "clone in current directory"
   contents="contents"
   contents_oid="$(calc_oid "$contents")"
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
 
   git add .gitattributes a.dat
 

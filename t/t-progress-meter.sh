@@ -15,7 +15,7 @@ begin_test "progress meter displays positive progress"
   git commit -m "initial commit"
 
   for i in `seq 1 128`; do
-    printf "$i" > "$i.dat"
+    printf "%s" "$i" > "$i.dat"
   done
 
   git add *.dat

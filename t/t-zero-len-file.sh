@@ -17,7 +17,7 @@ begin_test "push zero len file"
 
   contents="full"
   contents_oid=$(calc_oid "$contents")
-  printf "$contents" > full.dat
+  printf "%s" "$contents" > full.dat
   git add .gitattributes *.dat
   git commit -m "add files" | tee commit.log
 

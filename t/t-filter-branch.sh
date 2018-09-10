@@ -11,17 +11,17 @@ begin_test "filter-branch (git-lfs/git-lfs#1773)"
   clone_repo "$reponame" "$reponame"
 
   contents_a="contents (a)"
-  printf "$contents_a" > a.dat
+  printf "%s" "$contents_a" > a.dat
   git add a.dat
   git commit -m "add a.dat"
 
   contents_b="contents (b)"
-  printf "$contents_b" > b.dat
+  printf "%s" "$contents_b" > b.dat
   git add b.dat
   git commit -m "add b.dat"
 
   contents_c="contents (c)"
-  printf "$contents_c" > c.dat
+  printf "%s" "$contents_c" > c.dat
   git add c.dat
   git commit -m "add c.dat"
 

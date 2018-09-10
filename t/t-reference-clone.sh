@@ -34,7 +34,7 @@ begin_test "clone with reference"
   contents="a"
   oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1
@@ -75,7 +75,7 @@ begin_test "fetch from clone reference"
   contents="a"
   oid=$(calc_oid "$contents")
 
-  printf "$contents" > a.dat
+  printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1

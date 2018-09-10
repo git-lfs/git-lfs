@@ -22,7 +22,7 @@ begin_test "submodule env with .lfsconfig"
   git lfs track "*.dat"
   submodcontent="submodule lfs file"
   submodoid=$(calc_oid "$submodcontent")
-  printf "$submodcontent" > dir/test.dat
+  printf "%s" "$submodcontent" > dir/test.dat
   git add .lfsconfig .gitattributes dir
   git commit -m "create submodule"
   git push origin master
@@ -39,7 +39,7 @@ begin_test "submodule env with .lfsconfig"
   mkdir dir
   repocontent="repository lfs file"
   repooid=$(calc_oid "$repocontent")
-  printf "$repocontent" > dir/test.dat
+  printf "%s" "$repocontent" > dir/test.dat
   git add .gitattributes .lfsconfig .gitmodules dir sub
   git commit -m "create repo"
   git push origin master

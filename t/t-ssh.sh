@@ -17,7 +17,7 @@ begin_test "ssh with proxy command in lfs.url"
   contents="test"
   oid="$(calc_oid "$contents")"
   git lfs track "*.dat"
-  printf "$contents" > test.dat
+  printf "%s" "$contents" > test.dat
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
