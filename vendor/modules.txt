@@ -4,11 +4,13 @@ github.com/ThomsonReutersEikon/go-ntlm/ntlm/md4
 # github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
 github.com/alexbrainman/sspi
 github.com/alexbrainman/sspi/ntlm
-# github.com/davecgh/go-spew v0.0.0-20151105211317-5215b55f46b2
+# github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/git-lfs/gitobj v0.0.0-20180705162808-0fcb9c3796fa
+# github.com/git-lfs/gitobj v0.0.0-20180907143119-1e97572956c1
 github.com/git-lfs/gitobj
+github.com/git-lfs/gitobj/errors
 github.com/git-lfs/gitobj/pack
+github.com/git-lfs/gitobj/storage
 # github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 github.com/git-lfs/go-netrc/netrc
 # github.com/git-lfs/wildmatch v1.0.0
@@ -21,7 +23,7 @@ github.com/kr/pty
 github.com/olekukonko/ts
 # github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 github.com/pkg/errors
-# github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0
+# github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
 github.com/rubyist/tracerx
@@ -29,7 +31,7 @@ github.com/rubyist/tracerx
 github.com/spf13/cobra
 # github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33
 github.com/spf13/pflag
-# github.com/stretchr/testify v0.0.0-20160504130155-6cb3b85ef5a0
+# github.com/stretchr/testify v1.2.2
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f

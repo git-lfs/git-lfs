@@ -7,7 +7,7 @@ import "io"
 type storer interface {
 	// Open returns a handle on an existing object keyed by the given SHA.
 	// It returns an error if that file does not already exist.
-	Open(sha []byte) (f io.ReadWriteCloser, err error)
+	Open(sha []byte) (f io.ReadCloser, err error)
 
 	// Store copies the data given in "r" to the unique object path given by
 	// "sha". It returns an error if that file already exists (acting as if
