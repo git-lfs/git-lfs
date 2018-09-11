@@ -117,7 +117,11 @@ func performDownload(apiClient *lfsapi.Client, oid string, size int64, a *action
 
 	res, err := apiClient.DoWithAuth("origin", req)
 	if err != nil {
-		sendTransferError(oid, res.StatusCode, err.Error(), writer, errWriter)
+		statusCode := 6
+		if res != nil {
+			statusCode = res.StatusCode
+		}
+		sendTransferError(oid, statusCode, err.Error(), writer, errWriter)
 		return
 	}
 	defer res.Body.Close()
