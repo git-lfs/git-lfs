@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"sync"
+
+	"github.com/git-lfs/gitobj/errors"
 )
 
 // memoryStorer is an implementation of the storer interface that holds data for
@@ -51,15 +52,25 @@ func (ms *memoryStorer) Store(sha []byte, r io.Reader) (n int64, err error) {
 // Open implements the storer.Open function, and returns a io.ReadWriteCloser
 // for the given SHA. If a reader for the given SHA does not exist an error will
 // be returned.
-func (ms *memoryStorer) Open(sha []byte) (f io.ReadWriteCloser, err error) {
+func (ms *memoryStorer) Open(sha []byte) (f io.ReadCloser, err error) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
 	key := fmt.Sprintf("%x", sha)
 	if _, ok := ms.fs[key]; !ok {
-		return nil, os.ErrNotExist
+		return nil, errors.NoSuchObject(sha)
 	}
 	return ms.fs[key], nil
+}
+
+// Close closes the memory storer.
+func (ms *memoryStorer) Close() error {
+	return nil
+}
+
+// IsCompressed returns true, because the memory storer returns compressed data.
+func (ms *memoryStorer) IsCompressed() bool {
+	return true
 }
 
 // bufCloser wraps a type satisfying the io.ReadWriter interface with a no-op

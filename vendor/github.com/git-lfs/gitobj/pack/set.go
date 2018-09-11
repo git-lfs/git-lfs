@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+
+	"github.com/git-lfs/gitobj/errors"
 )
 
 // Set allows access of objects stored across a set of packfiles.
@@ -162,8 +164,8 @@ type iterFn func(p *Packfile) (o *Object, err error)
 // returned immediately, if the error is not ErrIsNotFound, or b) continued
 // immediately, if the error is ErrNotFound.
 //
-// If no packfiles match the given file, return ErrIsNotFound, along with no
-// object.
+// If no packfiles match the given file, return errors.NoSuchObject, along with
+// no object.
 func (s *Set) each(name []byte, fn iterFn) (*Object, error) {
 	var key byte
 	if len(name) > 0 {
@@ -181,5 +183,5 @@ func (s *Set) each(name []byte, fn iterFn) (*Object, error) {
 		return o, nil
 	}
 
-	return nil, errNotFound
+	return nil, errors.NoSuchObject(name)
 }
