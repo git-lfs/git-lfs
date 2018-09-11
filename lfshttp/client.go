@@ -168,7 +168,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.httpClient(req.Host), req, remote, via)
+	res, err := c.doWithRedirects(c.HttpClient(req.Host), req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -248,10 +248,10 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 	return m
 }
 
-func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
+func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Request, *http.Response, error) {
 	tracedReq, err := c.traceRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var retries int
@@ -279,11 +279,11 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 
 	if err != nil {
 		c.traceResponse(req, tracedReq, nil)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if res == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	c.traceResponse(req, tracedReq, res)
@@ -298,7 +298,7 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 		// how to handle below. If the status code contained in
 		// the HTTP response was none of them, return the (res,
 		// err) tuple as-is, otherwise handle the redirect.
-		return res, err
+		return nil, res, c.handleResponse(res)
 	}
 
 	redirectTo := res.Header.Get("Location")
@@ -310,25 +310,31 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 
 	via = append(via, req)
 	if len(via) >= 3 {
-		return res, errors.New("too many redirects")
+		return nil, res, errors.New("too many redirects")
 	}
 
 	redirectedReq, err := newRequestForRetry(req, redirectTo)
 	if err != nil {
+		return nil, res, err
+	}
+
+	return redirectedReq, nil, nil
+}
+
+func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
+	redirectedReq, res, err := c.DoWithRedirect(cli, req, remote, via)
+	if err != nil || res != nil {
 		return res, err
 	}
 
-	if len(req.Header.Get("Authorization")) > 0 {
-		// If the original request was authenticated (noted by the
-		// presence of the Authorization header), then recur through
-		// doWithAuth, retaining the requests via but only after
-		// authenticating the redirected request.
-		return c.doWithAuth(remote, redirectedReq, via)
+	if redirectedReq == nil {
+		return nil, errors.New("failed to redirect request")
 	}
+
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
-func (c *Client) httpClient(host string) *http.Client {
+func (c *Client) HttpClient(host string) *http.Client {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
 

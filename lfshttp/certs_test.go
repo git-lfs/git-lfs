@@ -158,7 +158,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 
 func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 	empty, _ := NewClient(nil)
-	httpClient := empty.httpClient("anyhost.com")
+	httpClient := empty.HttpClient("anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -170,7 +170,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	httpClient = c.httpClient("anyhost.com")
+	httpClient = c.HttpClient("anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -179,7 +179,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 
 func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 	def, _ := NewClient(nil)
-	httpClient := def.httpClient("anyhost.com")
+	httpClient := def.HttpClient("anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -190,7 +190,7 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 	}))
 	assert.Nil(t, err)
 
-	httpClient = c.httpClient("anyhost.com")
+	httpClient = c.HttpClient("anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -199,13 +199,13 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 
 func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	def, _ := NewClient(nil)
-	httpClient := def.httpClient("specifichost.com")
+	httpClient := def.HttpClient("specifichost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	httpClient = def.httpClient("otherhost.com")
+	httpClient = def.HttpClient("otherhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -216,13 +216,13 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	}))
 	assert.Nil(t, err)
 
-	httpClient = c.httpClient("specifichost.com")
+	httpClient = c.HttpClient("specifichost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	httpClient = c.httpClient("otherhost.com")
+	httpClient = c.HttpClient("otherhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)

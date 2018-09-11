@@ -72,7 +72,19 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
-	return c.do(req, "", via)
+
+	req.Header.Set("User-Agent", lfshttp.UserAgent)
+
+	redirectedReq, res, err := c.client.DoWithRedirect(c.client.HttpClient(req.Host), req, "", via)
+	if err != nil || res != nil {
+		return res, err
+	}
+
+	if redirectedReq == nil {
+		return res, errors.New("failed to redirect request")
+	}
+
+	return c.doWithAuth("", redirectedReq, via)
 }
 
 // getCreds fills the authorization header for the given request if possible,
