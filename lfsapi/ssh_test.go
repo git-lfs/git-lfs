@@ -220,7 +220,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPath = "user/repo"
 
-	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "GET")
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint, "GET")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
 		"--",
@@ -228,7 +228,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 		"git-lfs-authenticate user/repo download",
 	}, args)
 
-	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "HEAD")
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint, "HEAD")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
 		"--",
@@ -237,7 +237,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	}, args)
 
 	// this is going by endpoint.Operation, implicitly set by Endpoint() on L15.
-	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint, "POST")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
 		"--",
@@ -246,7 +246,7 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	}, args)
 
 	endpoint.Operation = "upload"
-	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), endpoint, "POST")
+	exe, args = sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint, "POST")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
 		"--",
@@ -265,7 +265,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "user@foo.com"}, args)
 }
@@ -281,7 +281,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
 }
@@ -298,7 +298,7 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"user@foo.com"}, args)
 }
@@ -316,7 +316,7 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-P", "8888", "user@foo.com"}, args)
 }
@@ -333,7 +333,7 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-batch", "user@foo.com"}, args)
 }
@@ -351,7 +351,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-batch", "-P", "8888", "user@foo.com"}, args)
 }
@@ -366,7 +366,7 @@ func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", "sshcmd user@foo.com"}, args)
 }
@@ -380,7 +380,7 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", "sshcmd --args 1 user@foo.com"}, args)
 }
@@ -394,7 +394,7 @@ func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' user@foo.com"}, args)
 }
@@ -409,9 +409,53 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", "sshcmd -p 8888 user@foo.com"}, args)
+}
+
+func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSH_COMMAND": "sshcmd --args 2",
+	}, map[string]string{
+		"core.sshcommand": "sshcmd --args 1",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd --args 2 user@foo.com"}, args)
+}
+
+func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, nil, map[string]string{
+		"core.sshcommand": "sshcmd foo 'bar \"baz\"'",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' user@foo.com"}, args)
+}
+
+func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
+	cli, err := NewClient(NewContext(nil, nil, map[string]string{
+		"core.sshcommand": "sshcmd --args 1",
+	}))
+	require.Nil(t, err)
+
+	endpoint := cli.Endpoints.Endpoint("download", "")
+	endpoint.SshUserAndHost = "user@foo.com"
+
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
+	assert.Equal(t, "sh", exe)
+	assert.Equal(t, []string{"-c", "sshcmd --args 1 user@foo.com"}, args)
 }
 
 func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
@@ -429,7 +473,7 @@ func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
 	assert.Equal(t, "git@host.com", e.SshUserAndHost)
 	assert.Equal(t, "repo", e.SshPath)
 
-	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), e, "GET")
 	assert.Equal(t, "not-ssh", exe)
 	assert.Equal(t, []string{"-p", "12345", "git@host.com", "git-lfs-authenticate repo download"}, args)
 }
@@ -447,7 +491,7 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshUserAndHost)
 	assert.Equal(t, "repo", e.SshPath)
 
-	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), e, "GET")
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
 }
@@ -467,7 +511,7 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
 	assert.Equal(t, "--oProxyCommand=gnome-calculator", e.SshUserAndHost)
 	assert.Equal(t, "repo", e.SshPath)
 
-	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), e, "GET")
+	exe, args := sshGetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), e, "GET")
 	assert.Equal(t, "not-ssh", exe)
 	assert.Equal(t, []string{"oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
 }
@@ -485,7 +529,7 @@ func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshUserAndHost)
 	assert.Equal(t, "", e.SshPath)
 
-	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), e)
+	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), e)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator"}, args)
 	assert.Equal(t, false, needShell)
@@ -504,7 +548,7 @@ func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
 	assert.Equal(t, "git@git-host.com", e.SshUserAndHost)
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SshPath)
 
-	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), e)
+	exe, args, needShell := sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), e)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{"--", "git@git-host.com"}, args)
 	assert.Equal(t, false, needShell)
@@ -543,7 +587,7 @@ func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", plink + " user@foo.com"}, args)
 }
@@ -560,7 +604,7 @@ func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", plink + " -P 8888 user@foo.com"}, args)
 }
@@ -576,7 +620,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 	endpoint := cli.Endpoints.Endpoint("download", "")
 	endpoint.SshUserAndHost = "user@foo.com"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", plink + " -batch user@foo.com"}, args)
 }
@@ -593,7 +637,7 @@ func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 	endpoint.SshUserAndHost = "user@foo.com"
 	endpoint.SshPort = "8888"
 
-	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), endpoint))
+	exe, args := sshFormatArgs(sshGetExeAndArgs(cli.OSEnv(), cli.GitEnv(), endpoint))
 	assert.Equal(t, "sh", exe)
 	assert.Equal(t, []string{"-c", plink + " -batch -P 8888 user@foo.com"}, args)
 }
