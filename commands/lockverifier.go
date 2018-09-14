@@ -9,7 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/git-lfs/git-lfs/locking"
 	"github.com/git-lfs/git-lfs/tq"
 )
@@ -30,7 +30,7 @@ func verifyLocksForUpdates(lv *lockVerifier, updates []*git.RefUpdate) {
 
 // lockVerifier verifies locked files before updating one or more refs.
 type lockVerifier struct {
-	endpoint     lfsapi.Endpoint
+	endpoint     lfshttp.Endpoint
 	verifyState  verifyState
 	verifiedRefs map[string]bool
 

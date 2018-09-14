@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +49,7 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
@@ -120,7 +121,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 
 	defer srv.Close()
 
-	lfsclient, err := lfsapi.NewClient(lfsapi.NewContext(nil, nil, map[string]string{
+	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",

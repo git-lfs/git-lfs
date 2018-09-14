@@ -1,4 +1,4 @@
-package lfsapi
+package lfshttp
 
 import (
 	"bytes"
@@ -15,7 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStatsWithKey(t *testing.T) {
+type verboseTest struct {
+	Test string
+}
+
+func TestVerboseEnabled(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -34,11 +38,10 @@ func TestStatsWithKey(t *testing.T) {
 
 	out := &bytes.Buffer{}
 	c, _ := NewClient(nil)
-	c.ConcurrentTransfers = 5
-	c.LogHTTPStats(nopCloser(out))
+	c.Verbose = true
+	c.VerboseOut = out
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
-	req = c.LogRequest(req, "stats-test")
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -46,42 +49,90 @@ func TestStatsWithKey(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
-	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
 
-	stats := strings.TrimSpace(out.String())
-	t.Log(stats)
-	lines := strings.Split(stats, "\n")
-	require.Equal(t, 3, len(lines))
-	assert.True(t, strings.Contains(lines[0], "concurrent=5"))
+	s := out.String()
+	t.Log(s)
+
 	expected := []string{
-		"key=stats-test",
-		"event=request",
-		"body=18",
-		"url=" + srv.URL,
+		"> Host: 127.0.0.1:",
+		"\n> Authorization: Basic * * * * *\n",
+		"\n> Content-Type: application/json\n",
+		"\n> \n" + `{"Test":"Verbose"}` + "\n\n",
+
+		"\n< HTTP/1.1 200 OK\n",
+		"\n< Content-Type: application/json\n",
+		"\n< \n" + `{"Status":"Ok"}`,
 	}
 
 	for _, substr := range expected {
-		assert.True(t, strings.Contains(lines[1], substr), "missing: "+substr)
-	}
-
-	expected = []string{
-		"key=stats-test",
-		"event=response",
-		"url=" + srv.URL,
-	}
-
-	for _, substr := range expected {
-		assert.True(t, strings.Contains(lines[2], substr), "missing: "+substr)
+		if !assert.True(t, strings.Contains(s, substr)) {
+			t.Logf("missing: %q", substr)
+		}
 	}
 }
 
-func TestStatsWithoutKey(t *testing.T) {
+func TestVerboseWithBinaryBody(t *testing.T) {
+	var called uint32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called, 1)
+		t.Logf("srv req %s %s", r.Method, r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+
+		assert.Equal(t, "Basic ABC", r.Header.Get("Authorization"))
+		by, err := ioutil.ReadAll(r.Body)
+		assert.Nil(t, err)
+		assert.Equal(t, "binary-request", string(by))
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write([]byte(`binary-response`))
+	}))
+	defer srv.Close()
+
+	out := &bytes.Buffer{}
+	c, _ := NewClient(nil)
+	c.Verbose = true
+	c.VerboseOut = out
+
+	buf := bytes.NewBufferString("binary-request")
+	req, err := http.NewRequest("POST", srv.URL, buf)
+	req.Header.Set("Authorization", "Basic ABC")
+	req.Header.Set("Content-Type", "application/octet-stream")
+	require.Nil(t, err)
+
+	res, err := c.Do(req)
+	require.Nil(t, err)
+	io.Copy(ioutil.Discard, res.Body)
+	res.Body.Close()
+
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+
+	s := out.String()
+	t.Log(s)
+
+	expected := []string{
+		"> Host: 127.0.0.1:",
+		"\n> Authorization: Basic * * * * *\n",
+		"\n> Content-Type: application/octet-stream\n",
+
+		"\n< HTTP/1.1 200 OK\n",
+		"\n< Content-Type: application/octet-stream\n",
+	}
+
+	for _, substr := range expected {
+		if !assert.True(t, strings.Contains(s, substr)) {
+			t.Logf("missing: %q", substr)
+		}
+	}
+
+	assert.False(t, strings.Contains(s, "binary"), "contains binary request or response body")
+}
+
+func TestVerboseEnabledWithDebugging(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -100,8 +151,9 @@ func TestStatsWithoutKey(t *testing.T) {
 
 	out := &bytes.Buffer{}
 	c, _ := NewClient(nil)
-	c.ConcurrentTransfers = 5
-	c.LogHTTPStats(nopCloser(out))
+	c.Verbose = true
+	c.VerboseOut = out
+	c.DebuggingVerbose = true
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	req.Header.Set("Authorization", "Basic ABC")
@@ -113,18 +165,32 @@ func TestStatsWithoutKey(t *testing.T) {
 	require.Nil(t, err)
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
-	assert.Nil(t, c.Close())
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
 
-	stats := strings.TrimSpace(out.String())
-	t.Log(stats)
-	assert.True(t, strings.Contains(stats, "concurrent=5"))
-	assert.Equal(t, 1, len(strings.Split(stats, "\n")))
+	s := out.String()
+	t.Log(s)
+
+	expected := []string{
+		"> Host: 127.0.0.1:",
+		"\n> Authorization: Basic ABC\n",
+		"\n> Content-Type: application/json\n",
+		"\n> \n" + `{"Test":"Verbose"}` + "\n\n",
+
+		"\n< HTTP/1.1 200 OK\n",
+		"\n< Content-Type: application/json\n",
+		"\n< \n" + `{"Status":"Ok"}`,
+	}
+
+	for _, substr := range expected {
+		if !assert.True(t, strings.Contains(s, substr)) {
+			t.Logf("missing: %q", substr)
+		}
+	}
 }
 
-func TestStatsDisabled(t *testing.T) {
+func TestVerboseDisabled(t *testing.T) {
 	var called uint32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called, 1)
@@ -141,12 +207,13 @@ func TestStatsDisabled(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	out := &bytes.Buffer{}
 	c, _ := NewClient(nil)
-	c.ConcurrentTransfers = 5
+	c.Verbose = false
+	c.VerboseOut = out
+	c.DebuggingVerbose = true
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
-	req = c.LogRequest(req, "stats-test")
-
 	req.Header.Set("Authorization", "Basic ABC")
 	req.Header.Set("Content-Type", "application/json")
 	require.Nil(t, err)
@@ -154,26 +221,10 @@ func TestStatsDisabled(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, called)
-
-	out := &bytes.Buffer{}
-	c.LogStats(out)
-	assert.Equal(t, 0, out.Len())
-}
-
-func nopCloser(w io.Writer) io.WriteCloser {
-	return nopWCloser{w}
-}
-
-type nopWCloser struct {
-	io.Writer
-}
-
-func (w nopWCloser) Close() error {
-	return nil
+	assert.EqualValues(t, 0, out.Len(), out.String())
 }

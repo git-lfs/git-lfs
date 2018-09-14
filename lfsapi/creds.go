@@ -49,7 +49,7 @@ func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
-	if c.uc.Bool("credential", rawurl, "usehttppath", false) {
+	if c.client.URLConfig().Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
@@ -62,7 +62,7 @@ func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
 		helpers = append(helpers, c.cachingCredHelper)
 	}
 	if c.askpassCredHelper != nil {
-		helper, _ := c.uc.Get("credential", rawurl, "helper")
+		helper, _ := c.client.URLConfig().Get("credential", rawurl, "helper")
 		if len(helper) == 0 {
 			helpers = append(helpers, c.askpassCredHelper)
 		}

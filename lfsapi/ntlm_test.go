@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -94,7 +95,7 @@ func TestNtlmAuth(t *testing.T) {
 	require.Nil(t, err)
 
 	credHelper := newMockCredentialHelper()
-	cli, err := NewClient(NewContext(nil, nil, map[string]string{
+	cli, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":                         srv.URL + "/ntlm",
 		"lfs." + srv.URL + "/ntlm.access": "ntlm",
 	}))

@@ -1,4 +1,4 @@
-package lfsapi
+package lfshttp
 
 import (
 	"fmt"
@@ -31,39 +31,8 @@ func endpointOperation(e Endpoint, method string) string {
 	}
 }
 
-// endpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
-//
-//   user@host.com:path/to/repo.git or
-//   [user@host.com:port]:path/to/repo.git
-//
-func endpointFromBareSshUrl(rawurl string) Endpoint {
-	parts := strings.Split(rawurl, ":")
-	partsLen := len(parts)
-	if partsLen < 2 {
-		return Endpoint{Url: rawurl}
-	}
-
-	// Treat presence of ':' as a bare URL
-	var newPath string
-	if len(parts) > 2 { // port included; really should only ever be 3 parts
-		// Correctly handle [host:port]:path URLs
-		parts[0] = strings.TrimPrefix(parts[0], "[")
-		parts[1] = strings.TrimSuffix(parts[1], "]")
-		newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
-	} else {
-		newPath = strings.Join(parts, "/")
-	}
-	newrawurl := fmt.Sprintf("ssh://%v", newPath)
-	newu, err := url.Parse(newrawurl)
-	if err != nil {
-		return Endpoint{Url: UrlUnknown}
-	}
-
-	return endpointFromSshUrl(newu)
-}
-
-// endpointFromSshUrl constructs a new endpoint from an ssh:// URL
-func endpointFromSshUrl(u *url.URL) Endpoint {
+// EndpointFromSshUrl constructs a new endpoint from an ssh:// URL
+func EndpointFromSshUrl(u *url.URL) Endpoint {
 	var endpoint Endpoint
 	// Pull out port now, we need it separately for SSH
 	regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
@@ -100,18 +69,44 @@ func endpointFromSshUrl(u *url.URL) Endpoint {
 	return endpoint
 }
 
+// EndpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
+//
+//   user@host.com:path/to/repo.git or
+//   [user@host.com:port]:path/to/repo.git
+//
+func EndpointFromBareSshUrl(rawurl string) Endpoint {
+	parts := strings.Split(rawurl, ":")
+	partsLen := len(parts)
+	if partsLen < 2 {
+		return Endpoint{Url: rawurl}
+	}
+
+	// Treat presence of ':' as a bare URL
+	var newPath string
+	if len(parts) > 2 { // port included; really should only ever be 3 parts
+		// Correctly handle [host:port]:path URLs
+		parts[0] = strings.TrimPrefix(parts[0], "[")
+		parts[1] = strings.TrimSuffix(parts[1], "]")
+		newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
+	} else {
+		newPath = strings.Join(parts, "/")
+	}
+	newrawurl := fmt.Sprintf("ssh://%v", newPath)
+	newu, err := url.Parse(newrawurl)
+	if err != nil {
+		return Endpoint{Url: UrlUnknown}
+	}
+
+	return EndpointFromSshUrl(newu)
+}
+
 // Construct a new endpoint from a HTTP URL
-func endpointFromHttpUrl(u *url.URL) Endpoint {
+func EndpointFromHttpUrl(u *url.URL) Endpoint {
 	// just pass this straight through
 	return Endpoint{Url: u.String()}
 }
 
-func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) Endpoint {
-	u.Scheme = e.gitProtocol
-	return Endpoint{Url: u.String()}
-}
-
-func endpointFromLocalPath(path string) Endpoint {
+func EndpointFromLocalPath(path string) Endpoint {
 	if !strings.HasSuffix(path, ".git") {
 		path = fmt.Sprintf("%s/.git", path)
 	}

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/spf13/cobra"
 )
 
@@ -10,7 +10,7 @@ var (
 )
 
 func versionCommand(cmd *cobra.Command, args []string) {
-	Print(lfsapi.UserAgent)
+	Print(lfshttp.UserAgent)
 
 	if lovesComics {
 		Print("Nothing may see Gah Lak Tus and survive!")

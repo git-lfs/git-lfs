@@ -10,6 +10,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/rubyist/tracerx"
 )
 
@@ -26,10 +27,10 @@ const (
 )
 
 type EndpointFinder interface {
-	NewEndpointFromCloneURL(rawurl string) Endpoint
-	NewEndpoint(rawurl string) Endpoint
-	Endpoint(operation, remote string) Endpoint
-	RemoteEndpoint(operation, remote string) Endpoint
+	NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint
+	NewEndpoint(rawurl string) lfshttp.Endpoint
+	Endpoint(operation, remote string) lfshttp.Endpoint
+	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
 	AccessFor(rawurl string) Access
 	SetAccess(rawurl string, access Access)
@@ -49,9 +50,9 @@ type endpointGitFinder struct {
 	urlConfig *config.URLConfig
 }
 
-func NewEndpointFinder(ctx Context) EndpointFinder {
+func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 	if ctx == nil {
-		ctx = NewContext(nil, nil, nil)
+		ctx = lfshttp.NewContext(nil, nil, nil)
 	}
 
 	e := &endpointGitFinder{
@@ -71,15 +72,15 @@ func NewEndpointFinder(ctx Context) EndpointFinder {
 	return e
 }
 
-func (e *endpointGitFinder) Endpoint(operation, remote string) Endpoint {
+func (e *endpointGitFinder) Endpoint(operation, remote string) lfshttp.Endpoint {
 	ep := e.getEndpoint(operation, remote)
 	ep.Operation = operation
 	return ep
 }
 
-func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
+func (e *endpointGitFinder) getEndpoint(operation, remote string) lfshttp.Endpoint {
 	if e.gitEnv == nil {
-		return Endpoint{}
+		return lfshttp.Endpoint{}
 	}
 
 	if operation == "upload" {
@@ -101,9 +102,9 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) Endpoint {
 	return e.RemoteEndpoint(operation, defaultRemote)
 }
 
-func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
+func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.Endpoint {
 	if e.gitEnv == nil {
-		return Endpoint{}
+		return lfshttp.Endpoint{}
 	}
 
 	if len(remote) == 0 {
@@ -125,7 +126,7 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) Endpoint {
 		return e.NewEndpointFromCloneURL(url)
 	}
 
-	return Endpoint{}
+	return lfshttp.Endpoint{}
 }
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
@@ -148,9 +149,9 @@ func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 	return ""
 }
 
-func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) Endpoint {
+func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint {
 	ep := e.NewEndpoint(rawurl)
-	if ep.Url == UrlUnknown {
+	if ep.Url == lfshttp.UrlUnknown {
 		return ep
 	}
 
@@ -168,36 +169,36 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) Endpoint {
 	return ep
 }
 
-func (e *endpointGitFinder) NewEndpoint(rawurl string) Endpoint {
+func (e *endpointGitFinder) NewEndpoint(rawurl string) lfshttp.Endpoint {
 	rawurl = e.ReplaceUrlAlias(rawurl)
 	if strings.HasPrefix(rawurl, "/") {
-		return endpointFromLocalPath(rawurl)
+		return lfshttp.EndpointFromLocalPath(rawurl)
 	}
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		return endpointFromBareSshUrl(rawurl)
+		return lfshttp.EndpointFromBareSshUrl(rawurl)
 	}
 
 	switch u.Scheme {
 	case "ssh":
-		return endpointFromSshUrl(u)
+		return lfshttp.EndpointFromSshUrl(u)
 	case "http", "https":
-		return endpointFromHttpUrl(u)
+		return lfshttp.EndpointFromHttpUrl(u)
 	case "git":
 		return endpointFromGitUrl(u, e)
 	case "":
-		return endpointFromBareSshUrl(u.String())
+		return lfshttp.EndpointFromBareSshUrl(u.String())
 	default:
 		if strings.HasPrefix(rawurl, u.Scheme+"::") {
 			// Looks like a remote helper; just pass it through.
-			return Endpoint{Url: rawurl}
+			return lfshttp.Endpoint{Url: rawurl}
 		}
 		// We probably got here because the "scheme" that was parsed is
 		// a hostname (whether FQDN or single word) and the URL parser
 		// didn't know what to do with it.  Do what Git does and treat
 		// it as an SSH URL.  This ensures we handle SSH config aliases
 		// properly.
-		return endpointFromBareSshUrl(u.String())
+		return lfshttp.EndpointFromBareSshUrl(u.String())
 	}
 }
 
@@ -304,4 +305,9 @@ func initAliases(e *endpointGitFinder, git config.Environment) {
 		}
 		e.aliases[gitval[len(gitval)-1]] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 	}
+}
+
+func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) lfshttp.Endpoint {
+	u.Scheme = e.gitProtocol
+	return lfshttp.Endpoint{Url: u.String()}
 }

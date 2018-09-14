@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +74,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/repo/lfs",
 	}))
 	require.Nil(t, err)
@@ -143,7 +144,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c, _ := NewClient(nil)
 	c.Credentials = creds
-	c.Endpoints = NewEndpointFinder(NewContext(nil, nil, map[string]string{
+	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL,
 	}))
 
@@ -567,7 +568,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ctx := NewContext(git.NewConfig("", ""), nil, test.Config)
+		ctx := lfshttp.NewContext(git.NewConfig("", ""), nil, test.Config)
 		client, _ := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
 		client.Netrc = &fakeNetrc{}
@@ -616,4 +617,78 @@ func (f *fakeCredentialFiller) Approve(creds Creds) error {
 
 func (f *fakeCredentialFiller) Reject(creds Creds) error {
 	return errors.New("Not implemented")
+}
+
+func TestClientRedirectReauthenticate(t *testing.T) {
+	var srv1, srv2 *httptest.Server
+	var called1, called2 uint32
+	var creds1, creds2 Creds
+
+	srv1 = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called1, 1)
+
+		if hdr := r.Header.Get("Authorization"); len(hdr) > 0 {
+			parts := strings.SplitN(hdr, " ", 2)
+			typ, b64 := parts[0], parts[1]
+
+			auth, err := base64.URLEncoding.DecodeString(b64)
+			assert.Nil(t, err)
+			assert.Equal(t, "Basic", typ)
+			assert.Equal(t, "user1:pass1", string(auth))
+
+			http.Redirect(w, r, srv2.URL+r.URL.Path, http.StatusMovedPermanently)
+			return
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+
+	srv2 = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called2, 1)
+
+		parts := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+		typ, b64 := parts[0], parts[1]
+
+		auth, err := base64.URLEncoding.DecodeString(b64)
+		assert.Nil(t, err)
+		assert.Equal(t, "Basic", typ)
+		assert.Equal(t, "user2:pass2", string(auth))
+	}))
+
+	// Change the URL of srv2 to make it appears as if it is a different
+	// host.
+	srv2.URL = strings.Replace(srv2.URL, "127.0.0.1", "0.0.0.0", 1)
+
+	creds1 = Creds(map[string]string{
+		"protocol": "http",
+		"host":     strings.TrimPrefix(srv1.URL, "http://"),
+
+		"username": "user1",
+		"password": "pass1",
+	})
+	creds2 = Creds(map[string]string{
+		"protocol": "http",
+		"host":     strings.TrimPrefix(srv2.URL, "http://"),
+
+		"username": "user2",
+		"password": "pass2",
+	})
+
+	defer srv1.Close()
+	defer srv2.Close()
+
+	c, err := NewClient(lfshttp.NewContext(nil, nil, nil))
+	creds := newCredentialCacher()
+	creds.Approve(creds1)
+	creds.Approve(creds2)
+	c.Credentials = creds
+
+	req, err := http.NewRequest("GET", srv1.URL, nil)
+	require.Nil(t, err)
+
+	_, err = c.DoWithAuth("", req)
+	assert.Nil(t, err)
+
+	// called1 is 2 since LFS tries an unauthenticated request first
+	assert.EqualValues(t, 2, called1)
+	assert.EqualValues(t, 1, called2)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/rubyist/tracerx"
 )
 
@@ -28,7 +29,7 @@ type batchRequest struct {
 type BatchResponse struct {
 	Objects             []*Transfer `json:"objects"`
 	TransferAdapterName string      `json:"transfer"`
-	endpoint            lfsapi.Endpoint
+	endpoint            lfshttp.Endpoint
 }
 
 func Batch(m *Manifest, dir Direction, remote string, remoteRef *git.Ref, objects []*Transfer) (*BatchResponse, error) {
@@ -64,19 +65,19 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
-	req = c.LogRequest(req, "lfs.batch")
-	res, err := c.DoWithAuth(remote, lfsapi.WithRetries(req, c.MaxRetries))
+	req = c.Client.LogRequest(req, "lfs.batch")
+	res, err := c.DoWithAuth(remote, lfshttp.WithRetries(req, c.MaxRetries))
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")
 	}
 
-	if err := lfsapi.DecodeJSON(res, bRes); err != nil {
+	if err := lfshttp.DecodeJSON(res, bRes); err != nil {
 		return bRes, errors.Wrap(err, "batch response")
 	}
 
 	if res.StatusCode != 200 {
-		return nil, lfsapi.NewStatusCodeError(res)
+		return nil, lfshttp.NewStatusCodeError(res)
 	}
 
 	for _, obj := range bRes.Objects {
