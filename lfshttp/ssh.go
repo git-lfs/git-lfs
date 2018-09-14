@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -120,7 +121,7 @@ func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string)
 		return cmd, args
 	}
 
-	joined := cmd + " " + strings.Join(tools.ShellQuote(args), " ")
+	joined := cmd + " " + strings.Join(subprocess.ShellQuote(args), " ")
 	return "sh", []string{"-c", joined}
 }
 
