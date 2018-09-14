@@ -29,7 +29,7 @@ begin_test "custom-transfer-wrong-path"
   # use PIPESTATUS otherwise we get exit code from tee
   res=${PIPESTATUS[0]}
   grep "xfer: adapter \"testcustom\" Begin()" pushcustom.log
-  grep "Failed to start custom transfer command" pushcustom.log
+  grep "xfer: Aborting worker process" pushcustom.log
   if [ "$res" = "0" ]; then
     echo "Push should have failed because of an incorrect custom transfer path."
     exit 1
@@ -123,6 +123,7 @@ begin_test "custom-transfer-standalone"
 
   # set up custom transfer adapter to use a specific transfer agent
   git config lfs.customtransfer.testcustom.path lfstest-standalonecustomadapter
+  git config lfs.customtransfer.testcustom.args "--arg1 '--arg2 --arg3' --arg4"
   git config lfs.customtransfer.testcustom.concurrent false
   git config lfs.standalonetransferagent testcustom
   export TEST_STANDALONE_BACKUP_PATH="$(pwd)/test-custom-transfer-standalone-backup"
@@ -186,6 +187,11 @@ begin_test "custom-transfer-standalone"
   grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
+
+  # Test argument parsing.
+  grep 'Saw argument "--arg1"' fetchcustom.log
+  grep 'Saw argument "--arg2 --arg3"' fetchcustom.log
+  grep 'Saw argument "--arg4"' fetchcustom.log
 
   objectlist=`find .git/lfs/objects -type f`
   [ "$(echo "$objectlist" | wc -l)" -eq 12 ]

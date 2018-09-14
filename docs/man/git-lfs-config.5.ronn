@@ -128,7 +128,7 @@ be scoped inside the configuration for a remote.
 * `lfs.customtransfer.<name>.args`
 
   If the custom transfer process requires any arguments, these can be provided
-  here.
+  here.  This string will be expanded by the shell.
 
 * `lfs.customtransfer.<name>.concurrent`
 
