@@ -84,7 +84,7 @@ func Output(cmd *Cmd) (string, error) {
 	return strings.Trim(string(out), " \n"), err
 }
 
-var shellWordRe = regexp.MustCompile(`\A[A-Za-z0-9_@.-]+\z`)
+var shellWordRe = regexp.MustCompile(`\A[A-Za-z0-9_@/.-]+\z`)
 
 // ShellQuote returns a copied string slice where each element is quoted
 // suitably for sh.
