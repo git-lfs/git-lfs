@@ -102,6 +102,21 @@ func ShellQuote(strs []string) []string {
 	return dup
 }
 
+// FormatForShell takes a command name and an argument string and returns a
+// command and arguments that pass this command to the shell.  Note that neither
+// the command nor the arguments are quoted.  Consider FormatForShellQuoted
+// instead.
+func FormatForShell(name string, args string) (string, []string) {
+	return "sh", []string{"-c", name + " " + args}
+}
+
+// FormatForShellQuotedArgs takes a command name and an argument string and
+// returns a command and arguments that pass this command to the shell.  The
+// arguments are escaped, but the name of the command is not.
+func FormatForShellQuotedArgs(name string, args []string) (string, []string) {
+	return FormatForShell(name, strings.Join(ShellQuote(args), " "))
+}
+
 func Trace(name string, args ...string) {
 	tracerx.Printf("exec: %s %s", name, quotedArgs(args))
 }

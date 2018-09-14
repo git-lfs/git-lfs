@@ -33,3 +33,59 @@ func TestShellQuote(t *testing.T) {
 		t.Run(desc, c.Assert)
 	}
 }
+
+type FormatForShellQuotedArgsTestCase struct {
+	GivenCmd     string
+	GivenArgs    []string
+	ExpectedArgs []string
+}
+
+func (c *FormatForShellQuotedArgsTestCase) Assert(t *testing.T) {
+	actualCmd, actualArgs := FormatForShellQuotedArgs(c.GivenCmd, c.GivenArgs)
+
+	assert.Equal(t, "sh", actualCmd,
+		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		actualCmd)
+	assert.Equal(t, c.ExpectedArgs, actualArgs,
+		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
+	)
+}
+
+func TestFormatForShellQuotedArgs(t *testing.T) {
+	for desc, c := range map[string]FormatForShellQuotedArgsTestCase{
+		"simple":      {"foo", []string{"bar", "baz"}, []string{"-c", "foo bar baz"}},
+		"spaces":      {"foo quux", []string{" bar", "baz "}, []string{"-c", "foo quux ' bar' 'baz '"}},
+		"backslashes": {"bin/foo", []string{"\\bar", "b\\az"}, []string{"-c", "bin/foo '\\bar' 'b\\az'"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+type FormatForShellTestCase struct {
+	GivenCmd     string
+	GivenArgs    string
+	ExpectedArgs []string
+}
+
+func (c *FormatForShellTestCase) Assert(t *testing.T) {
+	actualCmd, actualArgs := FormatForShell(c.GivenCmd, c.GivenArgs)
+
+	assert.Equal(t, "sh", actualCmd,
+		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		actualCmd)
+	assert.Equal(t, c.ExpectedArgs, actualArgs,
+		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
+	)
+}
+
+func TestFormatForShell(t *testing.T) {
+	for desc, c := range map[string]FormatForShellTestCase{
+		"simple": {"foo", "bar", []string{"-c", "foo bar"}},
+		"spaces": {"foo quux", "bar baz", []string{"-c", "foo quux bar baz"}},
+		"quotes": {"bin/foo", "bar \"baz quux\" 'fred wilma'", []string{"-c", "bin/foo bar \"baz quux\" 'fred wilma'"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}

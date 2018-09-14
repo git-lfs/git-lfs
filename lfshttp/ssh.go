@@ -121,8 +121,7 @@ func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string)
 		return cmd, args
 	}
 
-	joined := cmd + " " + strings.Join(subprocess.ShellQuote(args), " ")
-	return "sh", []string{"-c", joined}
+	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
 func sshGetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint, method string) (string, []string) {
