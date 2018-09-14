@@ -86,18 +86,22 @@ func Output(cmd *Cmd) (string, error) {
 
 var shellWordRe = regexp.MustCompile(`\A[A-Za-z0-9_@/.-]+\z`)
 
+// ShellQuoteSingle returns a string which is quoted suitably for sh.
+func ShellQuoteSingle(str string) string {
+	// Quote anything that looks slightly complicated.
+	if shellWordRe.FindStringIndex(str) == nil {
+		return "'" + strings.Replace(str, "'", "'\\''", -1) + "'"
+	}
+	return str
+}
+
 // ShellQuote returns a copied string slice where each element is quoted
 // suitably for sh.
 func ShellQuote(strs []string) []string {
 	dup := make([]string, 0, len(strs))
 
 	for _, str := range strs {
-		// Quote anything that looks slightly complicated.
-		if shellWordRe.FindStringIndex(str) == nil {
-			dup = append(dup, "'"+strings.Replace(str, "'", "'\\''", -1)+"'")
-		} else {
-			dup = append(dup, str)
-		}
+		dup = append(dup, ShellQuoteSingle(str))
 	}
 	return dup
 }
