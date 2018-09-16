@@ -62,11 +62,11 @@ func TestParseLinesManyLines(t *testing.T) {
 	assert.Equal(t, lines[1].Attrs[2], &Attr{K: "merge", V: "lfs"})
 	assert.Equal(t, lines[1].Attrs[3], &Attr{K: "text", V: "false"})
 
-	assert.Len(t, lines[1].Attrs, 4)
-	assert.Equal(t, lines[1].Attrs[0], &Attr{K: "filter", V: "lfs"})
-	assert.Equal(t, lines[1].Attrs[1], &Attr{K: "diff", V: "lfs"})
-	assert.Equal(t, lines[1].Attrs[2], &Attr{K: "merge", V: "lfs"})
-	assert.Equal(t, lines[1].Attrs[3], &Attr{K: "text", V: "false"})
+	assert.Len(t, lines[2].Attrs, 4)
+	assert.Equal(t, lines[2].Attrs[0], &Attr{K: "filter", V: "lfs"})
+	assert.Equal(t, lines[2].Attrs[1], &Attr{K: "diff", V: "lfs"})
+	assert.Equal(t, lines[2].Attrs[2], &Attr{K: "merge", V: "lfs"})
+	assert.Equal(t, lines[2].Attrs[3], &Attr{K: "text", V: "false"})
 }
 
 func TestParseLinesUnset(t *testing.T) {
