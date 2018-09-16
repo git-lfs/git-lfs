@@ -22,18 +22,19 @@ func TestParseLines(t *testing.T) {
 
 func TestParseLinesManyAttrs(t *testing.T) {
 	lines, err := ParseLines(strings.NewReader(
-		"*.dat filter=lfs diff=lfs merge=lfs -text"))
+		"*.dat filter=lfs diff=lfs merge=lfs -text crlf"))
 
 	assert.NoError(t, err)
 
 	assert.Len(t, lines, 1)
 	assert.Equal(t, lines[0].Pattern.String(), "*.dat")
 
-	assert.Len(t, lines[0].Attrs, 4)
+	assert.Len(t, lines[0].Attrs, 5)
 	assert.Equal(t, lines[0].Attrs[0], &Attr{K: "filter", V: "lfs"})
 	assert.Equal(t, lines[0].Attrs[1], &Attr{K: "diff", V: "lfs"})
 	assert.Equal(t, lines[0].Attrs[2], &Attr{K: "merge", V: "lfs"})
 	assert.Equal(t, lines[0].Attrs[3], &Attr{K: "text", V: "false"})
+	assert.Equal(t, lines[0].Attrs[4], &Attr{K: "crlf", V: "true"})
 }
 
 func TestParseLinesManyLines(t *testing.T) {
@@ -41,14 +42,16 @@ func TestParseLinesManyLines(t *testing.T) {
 		"*.dat filter=lfs diff=lfs merge=lfs -text",
 		"*.jpg filter=lfs diff=lfs merge=lfs -text",
 		"# *.pdf filter=lfs diff=lfs merge=lfs -text",
-		"*.png filter=lfs diff=lfs merge=lfs -text"}, "\n")))
+		"*.png filter=lfs diff=lfs merge=lfs -text",
+		"*.txt text"}, "\n")))
 
 	assert.NoError(t, err)
 
-	assert.Len(t, lines, 3)
+	assert.Len(t, lines, 4)
 	assert.Equal(t, lines[0].Pattern.String(), "*.dat")
 	assert.Equal(t, lines[1].Pattern.String(), "*.jpg")
 	assert.Equal(t, lines[2].Pattern.String(), "*.png")
+	assert.Equal(t, lines[3].Pattern.String(), "*.txt")
 
 	assert.Len(t, lines[0].Attrs, 4)
 	assert.Equal(t, lines[0].Attrs[0], &Attr{K: "filter", V: "lfs"})
@@ -67,6 +70,9 @@ func TestParseLinesManyLines(t *testing.T) {
 	assert.Equal(t, lines[2].Attrs[1], &Attr{K: "diff", V: "lfs"})
 	assert.Equal(t, lines[2].Attrs[2], &Attr{K: "merge", V: "lfs"})
 	assert.Equal(t, lines[2].Attrs[3], &Attr{K: "text", V: "false"})
+
+	assert.Len(t, lines[3].Attrs, 1)
+	assert.Equal(t, lines[3].Attrs[0], &Attr{K: "text", V: "true"})
 }
 
 func TestParseLinesUnset(t *testing.T) {

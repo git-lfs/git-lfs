@@ -105,6 +105,9 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 			} else if eq := strings.Index(s, "="); eq > -1 {
 				attr.K = s[:eq]
 				attr.V = s[eq+1:]
+			} else {
+				attr.K = s
+				attr.V = "true"
 			}
 
 			attrs = append(attrs, &attr)
