@@ -102,13 +102,9 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 			} else if strings.HasPrefix(s, "!") {
 				attr.K = strings.TrimPrefix(s, "!")
 				attr.Unspecified = true
-			} else {
-				splits := strings.SplitN(s, "=", 2)
-				if len(splits) != 2 {
-					return nil, errors.Errorf("git/gitattr: malformed attribute: %s", s)
-				}
-				attr.K = splits[0]
-				attr.V = splits[1]
+			} else if eq := strings.Index(s, "="); eq > -1 {
+				attr.K = s[:eq]
+				attr.V = s[eq+1:]
 			}
 
 			attrs = append(attrs, &attr)
