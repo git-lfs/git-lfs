@@ -73,7 +73,7 @@ func main() {
 
 	//setup Client Cert server
 	rootKey, rootCert := generateCARootCertificates()
-	_, clientCertPEM, clientKeyPEM := generateClientCertificates(rootCert, rootKey)
+	_, clientCertPEM, clientKeyPEM, clientKeyEncPEM := generateClientCertificates(rootCert, rootKey)
 
 	certPool := x509.NewCertPool()
 	certPool.AddCert(rootCert)
@@ -144,6 +144,9 @@ func main() {
 
 	ckcertname := writeTestStateFile(clientKeyPEM, "LFSTEST_CLIENT_KEY", "lfstest-gitserver-client-key")
 	defer os.RemoveAll(ckcertname)
+
+	ckecertname := writeTestStateFile(clientKeyEncPEM, "LFSTEST_CLIENT_KEY_ENCRYPTED", "lfstest-gitserver-client-key-enc")
+	defer os.RemoveAll(ckecertname)
 
 	debug("init", "server url: %s", server.URL)
 	debug("init", "server tls url: %s", serverTLS.URL)
@@ -1538,7 +1541,7 @@ func generateCARootCertificates() (rootKey *rsa.PrivateKey, rootCert *x509.Certi
 	return
 }
 
-func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{}) (clientKey *rsa.PrivateKey, clientCertPEM []byte, clientKeyPEM []byte) {
+func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{}) (clientKey *rsa.PrivateKey, clientCertPEM []byte, clientKeyPEM []byte, clientKeyEncPEM []byte) {
 
 	// create a key-pair for the client
 	clientKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -1560,10 +1563,18 @@ func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{})
 		log.Fatalf("error creating cert: %v", err2)
 	}
 
+	privKey := x509.MarshalPKCS1PrivateKey(clientKey)
+
 	// encode and load the cert and private key for the client
 	clientKeyPEM = pem.EncodeToMemory(&pem.Block{
-		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientKey),
+		Type: "RSA PRIVATE KEY", Bytes: privKey,
 	})
+
+	clientKeyEnc, err := x509.EncryptPEMBlock(bytes.NewBuffer(privKey), "RSA PRIVATE KEY", privKey, ([]byte)("pass"), x509.PEMCipherAES128)
+	if err != nil {
+		log.Fatalf("creating encrypted private key: %v", err)
+	}
+	clientKeyEncPEM = pem.EncodeToMemory(clientKeyEnc)
 
 	return
 }

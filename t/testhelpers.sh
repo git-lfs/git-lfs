@@ -506,6 +506,7 @@ setup() {
     LFSTEST_CERT="$LFS_CERT_FILE" \
     LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
     LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
+    LFSTEST_CLIENT_KEY_ENCRYPTED="$LFS_CLIENT_KEY_FILE_ENCRYPTED" \
       lfstest-count-tests increment
   fi
 
@@ -515,6 +516,7 @@ setup() {
   wait_for_file "$LFS_CERT_FILE"
   wait_for_file "$LFS_CLIENT_CERT_FILE"
   wait_for_file "$LFS_CLIENT_KEY_FILE"
+  wait_for_file "$LFS_CLIENT_KEY_FILE_ENCRYPTED"
 
   LFS_CLIENT_CERT_URL=`cat $LFS_CLIENT_CERT_URL_FILE`
 
@@ -537,8 +539,12 @@ setup() {
   fi | sed -e 's/^/# /g'
 
   # setup the git credential password storage
+  local certpath="$(echo "$LFS_CLIENT_CERT_FILE" | tr / -)"
+  local keypath="$(echo "$LFS_CLIENT_KEY_FILE_ENCRYPTED" | tr / -)"
   mkdir -p "$CREDSDIR"
   printf "user:pass" > "$CREDSDIR/127.0.0.1"
+  printf ":pass" > "$CREDSDIR/--$certpath"
+  printf ":pass" > "$CREDSDIR/--$keypath"
 
   echo "#"
   echo "# HOME: $HOME"
@@ -551,6 +557,7 @@ setup() {
   echo "#   LFSTEST_CERT=$LFS_CERT_FILE"
   echo "#   LFSTEST_CLIENT_CERT=$LFS_CLIENT_CERT_FILE"
   echo "#   LFSTEST_CLIENT_KEY=$LFS_CLIENT_KEY_FILE"
+  echo "#   LFSTEST_CLIENT_KEY_ENCRYPTED=$LFS_CLIENT_KEY_FILE_ENCRYPTED"
   echo "#   LFSTEST_DIR=$REMOTEDIR"
 }
 
