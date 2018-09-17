@@ -89,7 +89,17 @@ func fill() {
 }
 
 func credsForHostAndPath(host, path string) (string, string, error) {
-	hostFilename := filepath.Join(credsDir, host)
+	var hostFilename string
+
+	// We need hostFilename to end in a slash so that our credentials all
+	// end up in the same directory.  credsDir will come in from the
+	// testsuite with a slash, but filepath.Join will strip it off if host
+	// is empty, such as when we have a file:/// or cert:/// URL.
+	if host != "" {
+		hostFilename = filepath.Join(credsDir, host)
+	} else {
+		hostFilename = credsDir
+	}
 
 	if len(path) > 0 {
 		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))

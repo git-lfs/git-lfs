@@ -90,7 +90,7 @@ REMOTEDIR="$ROOTDIR/t/remote"
 #   # stores the credentials for http://git-server.com
 #   $CREDSDIR/git-server.com
 #
-CREDSDIR="$REMOTEDIR/creds"
+CREDSDIR="$REMOTEDIR/creds/"
 
 # This is the prefix for Git config files.  See the "Test Suite" section in
 # t/README.md
