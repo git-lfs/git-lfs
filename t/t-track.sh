@@ -595,3 +595,28 @@ begin_test "track (system gitattributes)"
   grep "*.dat" track.log
 )
 end_test
+
+begin_test "track: escaped pattern in .gitattributes"
+(
+  set -e
+
+  reponame="track-escaped"
+  git init "$reponame"
+  cd "$reponame"
+
+  filename="file with spaces.#"
+
+  echo "I need escaping" > "$filename"
+
+  [ "Tracking \"$filename\"" = "$(git lfs track "$filename")" ]
+  [ "\"$filename\" already supported" = "$(git lfs track "$filename")" ]
+  
+  #changing flags should track the file again
+  [ "Tracking \"$filename\"" = "$(git lfs track -l "$filename")" ]
+
+  if [ 1 -ne "$(wc -l .gitattributes | awk '{ print $1 }')" ]; then
+    echo >&2 "changing flag for an existing tracked file shouldn't add another line"
+    exit 1
+  fi
+)
+end_test
