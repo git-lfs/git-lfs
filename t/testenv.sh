@@ -130,6 +130,12 @@ export GIT_CONFIG_NOSYSTEM
 export GIT_SSH
 export APPVEYOR_REPO_COMMIT_MESSAGE
 
+# Don't fail if run under git rebase -x.
+unset GIT_DIR
+unset GIT_WORK_TREE
+unset GIT_EXEC_PATH
+unset GIT_CHERRY_PICK_HELP
+
 mkdir -p "$TMPDIR"
 mkdir -p "$TRASHDIR"
 

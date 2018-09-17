@@ -301,7 +301,8 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 #
 # And so on.
 test : fmt
-	$(GO) test $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS))
+	(unset GIT_DIR; unset GIT_WORK_TREE; \
+	$(GO) test $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)))
 
 # integration is a shorthand for running 'make' in the 't' directory.
 .PHONY : integration
