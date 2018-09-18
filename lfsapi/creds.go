@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -230,13 +231,16 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	cmd.Stdin = bufferCreds(input)
 	cmd.Stdout = output
 	/*
-	   There is a reason we don't hook up stderr here:
+	   There is a reason we don't read from stderr here:
 	   Git's credential cache daemon helper does not close its stderr, so if this
 	   process is the process that fires up the daemon, it will wait forever
 	   (until the daemon exits, really) trying to read from stderr.
 
+	   Instead, we simply pass it through to our stderr.
+
 	   See https://github.com/git-lfs/git-lfs/issues/117 for more details.
 	*/
+	cmd.Stderr = os.Stderr
 
 	err := cmd.Start()
 	if err == nil {
