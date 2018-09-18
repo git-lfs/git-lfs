@@ -96,7 +96,7 @@ begin_test "pre-push"
   git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
-    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    git lfs pre-push origin "$GITSERVER/$reponame" |
     tee push.log
   # no output if nothing to do
   [ "$(du -k push.log | cut -f 1)" == "0" ]
@@ -134,7 +134,7 @@ begin_test "pre-push dry-run"
   git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
-    git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
+    git lfs pre-push --dry-run origin "$GITSERVER/$reponame" |
     tee push.log
 
   [ "" = "$(cat push.log)" ]
@@ -148,7 +148,7 @@ begin_test "pre-push dry-run"
   refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
 
   echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
-    git lfs pre-push --dry-run origin "$GITSERVER/$reponame" 2>&1 |
+    git lfs pre-push --dry-run origin "$GITSERVER/$reponame" |
     tee push.log
   grep "push 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b => hi.dat" push.log
   cat push.log

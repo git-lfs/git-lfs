@@ -14,8 +14,8 @@ import (
 var (
 	commands = map[string]func(){
 		"get":   fill,
-		"store": noop,
-		"erase": noop,
+		"store": log,
+		"erase": log,
 	}
 
 	delim    = '\n'
@@ -111,4 +111,6 @@ func credsFromFilename(file string) (string, string, error) {
 	return credsPieces[0], credsPieces[1], nil
 }
 
-func noop() {}
+func log() {
+	fmt.Fprintf(os.Stderr, "CREDS received command: %s (ignored)\n", os.Args[1])
+}

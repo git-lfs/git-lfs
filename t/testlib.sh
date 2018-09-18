@@ -100,11 +100,17 @@ end_test () {
     # close fd 5 (GIT_TRACE)
     exec 5>&-
 
+    local dump_output="$LFS_DUMP_TEST_OUTPUT"
     if [ "$test_status" -eq 0 ]; then
         printf "ok %d - %-60s\n" "$tests" "$test_description ..."
     else
         failures=$(( failures + 1 ))
         printf "not ok %d - %-60s\n" "$tests" "$test_description ..."
+        dump_output=1
+    fi
+
+    if [ -n "$dump_output" ]
+    then
         (
             echo "# -- stdout --"
             sed 's/^/#     /' <"$TRASHDIR/out"
