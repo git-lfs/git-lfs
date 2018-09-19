@@ -186,24 +186,32 @@ begin_test "clone ClientCert"
   # Now clone again with 'git lfs clone', test specific clone dir
   cd "$TRASHDIR"
 
-  newclonedir="testcloneClietCert1"
-  git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
-  grep "Cloning into" lfsclone.log
-  # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
-  # should be cloned into location as per arg
-  [ -d "$newclonedir" ]
+  for i in "$LFS_CLIENT_KEY_FILE" "$LFS_CLIENT_KEY_FILE_ENCRYPTED"
+  do
+    export GIT_SSL_CERT_PASSWORD_PROTECTED=1
+    git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$i"
 
-  # check a few file sizes to make sure pulled
-  pushd "$newclonedir"
-    [ $(wc -c < "file1.dat") -eq 100 ]
-    [ $(wc -c < "file2.dat") -eq 75 ]
-    [ $(wc -c < "file3.dat") -eq 30 ]
-    assert_hooks "$(dot_git_dir)"
-    assert_clean_status
-  popd
+    newclonedir="testcloneClietCert1"
+    rm -fr "$newclonedir"
+    git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+    grep "Cloning into" lfsclone.log
+    # should be no filter errors
+    [ ! $(grep "filter" lfsclone.log) ]
+    [ ! $(grep "error" lfsclone.log) ]
+    # should be cloned into location as per arg
+    [ -d "$newclonedir" ]
 
+    # check a few file sizes to make sure pulled
+    pushd "$newclonedir"
+      [ $(wc -c < "file1.dat") -eq 100 ]
+      [ $(wc -c < "file2.dat") -eq 75 ]
+      [ $(wc -c < "file3.dat") -eq 30 ]
+      assert_hooks "$(dot_git_dir)"
+      assert_clean_status
+    popd
+  done
+
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"

@@ -87,7 +87,7 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
-	if ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
+	if u.Scheme == "cert" || ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
