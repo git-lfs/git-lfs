@@ -81,32 +81,32 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
+func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper, u *url.URL) (CredentialHelper, Creds) {
 	rawurl := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	input := Creds{"protocol": u.Scheme, "host": u.Host}
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
-	if c.client.URLConfig().Bool("credential", rawurl, "usehttppath", false) {
+	if ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
-	if c.Credentials != nil {
-		return c.Credentials, input
+	if helper != nil {
+		return helper, input
 	}
 
 	helpers := make([]CredentialHelper, 0, 3)
-	if c.credContext.cachingCredHelper != nil {
-		helpers = append(helpers, c.credContext.cachingCredHelper)
+	if ctxt.cachingCredHelper != nil {
+		helpers = append(helpers, ctxt.cachingCredHelper)
 	}
-	if c.credContext.askpassCredHelper != nil {
-		helper, _ := c.client.URLConfig().Get("credential", rawurl, "helper")
+	if ctxt.askpassCredHelper != nil {
+		helper, _ := ctxt.urlConfig.Get("credential", rawurl, "helper")
 		if len(helper) == 0 {
-			helpers = append(helpers, c.credContext.askpassCredHelper)
+			helpers = append(helpers, ctxt.askpassCredHelper)
 		}
 	}
 
-	return NewCredentialHelpers(append(helpers, c.credContext.commandCredHelper)), input
+	return NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), input
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS

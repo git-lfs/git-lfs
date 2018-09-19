@@ -168,7 +168,7 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 }
 
 func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (CredentialHelper, Creds, error) {
-	credHelper, input := c.getCredentialHelper(u)
+	credHelper, input := c.credContext.GetCredentialHelper(c.Credentials, u)
 	creds, err := credHelper.Fill(input)
 	if creds == nil || len(creds) < 1 {
 		errmsg := fmt.Sprintf("Git credentials for %s not found", u)
