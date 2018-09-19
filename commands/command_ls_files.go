@@ -23,7 +23,6 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	var ref string
-    Print("Hellow ");
 	if len(args) == 1 {
 		if lsFilesScanAll {
 			Exit("fatal: cannot use --all with explicit reference")
