@@ -16,9 +16,8 @@ import (
 )
 
 var (
-	defaultCredentialHelper = &commandCredentialHelper{}
-	defaultNetrcFinder      = &noFinder{}
-	defaultEndpointFinder   = NewEndpointFinder(nil)
+	defaultNetrcFinder    = &noFinder{}
+	defaultEndpointFinder = NewEndpointFinder(nil)
 )
 
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
