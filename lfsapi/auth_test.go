@@ -677,7 +677,7 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	defer srv2.Close()
 
 	c, err := NewClient(lfshttp.NewContext(nil, nil, nil))
-	creds := newCredentialCacher()
+	creds := NewCredentialCacher()
 	creds.Approve(creds1)
 	creds.Approve(creds2)
 	c.Credentials = creds

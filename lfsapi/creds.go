@@ -66,7 +66,7 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
 	if cacheCreds {
-		c.cachingCredHelper = newCredentialCacher()
+		c.cachingCredHelper = NewCredentialCacher()
 	}
 
 	c.commandCredHelper = &commandCredentialHelper{
@@ -318,7 +318,7 @@ type credentialCacher struct {
 	mu    sync.Mutex
 }
 
-func newCredentialCacher() *credentialCacher {
+func NewCredentialCacher() *credentialCacher {
 	return &credentialCacher{creds: make(map[string]Creds)}
 }
 
