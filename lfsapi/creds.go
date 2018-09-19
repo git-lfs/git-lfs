@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
@@ -39,6 +40,42 @@ func bufferCreds(c Creds) *bytes.Buffer {
 	return buf
 }
 
+type CredentialHelperContext struct {
+	commandCredHelper *commandCredentialHelper
+	askpassCredHelper *AskPassCredentialHelper
+	cachingCredHelper *credentialCacher
+
+	urlConfig *config.URLConfig
+}
+
+func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
+	c := &CredentialHelperContext{urlConfig: config.NewURLConfig(gitEnv)}
+
+	askpass, ok := osEnv.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = gitEnv.Get("core.askpass")
+	}
+	if !ok {
+		askpass, _ = osEnv.Get("SSH_ASKPASS")
+	}
+	if len(askpass) > 0 {
+		c.askpassCredHelper = &AskPassCredentialHelper{
+			Program: askpass,
+		}
+	}
+
+	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+	if cacheCreds {
+		c.cachingCredHelper = newCredentialCacher()
+	}
+
+	c.commandCredHelper = &commandCredentialHelper{
+		SkipPrompt: osEnv.Bool("GIT_TERMINAL_PROMPT", false),
+	}
+
+	return c
+}
+
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
@@ -59,17 +96,17 @@ func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
 	}
 
 	helpers := make([]CredentialHelper, 0, 3)
-	if c.cachingCredHelper != nil {
-		helpers = append(helpers, c.cachingCredHelper)
+	if c.credContext.cachingCredHelper != nil {
+		helpers = append(helpers, c.credContext.cachingCredHelper)
 	}
-	if c.askpassCredHelper != nil {
+	if c.credContext.askpassCredHelper != nil {
 		helper, _ := c.client.URLConfig().Get("credential", rawurl, "helper")
 		if len(helper) == 0 {
-			helpers = append(helpers, c.askpassCredHelper)
+			helpers = append(helpers, c.credContext.askpassCredHelper)
 		}
 	}
 
-	return NewCredentialHelpers(append(helpers, c.commandCredHelper)), input
+	return NewCredentialHelpers(append(helpers, c.credContext.commandCredHelper)), input
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
