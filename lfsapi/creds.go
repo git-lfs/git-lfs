@@ -493,7 +493,7 @@ type nullCredentialHelper struct{}
 
 var (
 	nullCredError = errors.New("No credential helper configured")
-	nullCreds     = &nullCredentialHelper{}
+	NullCreds     = &nullCredentialHelper{}
 )
 
 func (h *nullCredentialHelper) Fill(input Creds) (Creds, error) {

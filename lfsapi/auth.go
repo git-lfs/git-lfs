@@ -123,16 +123,16 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 
 	if access != NTLMAccess {
 		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+			return apiEndpoint, access, NullCreds, nil, nil, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+			return apiEndpoint, access, NullCreds, nil, nil, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+			return apiEndpoint, access, NullCreds, nil, nil, nil
 		}
 
 		credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
@@ -147,7 +147,7 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+		return apiEndpoint, access, NullCreds, nil, nil, errors.Wrap(err, "creds")
 	}
 
 	if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
@@ -159,7 +159,7 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 			"source":   "netrc",
 		}
 
-		return apiEndpoint, access, nullCreds, credsURL, creds, nil
+		return apiEndpoint, access, NullCreds, credsURL, creds, nil
 	}
 
 	// NTLM uses creds to create the session
