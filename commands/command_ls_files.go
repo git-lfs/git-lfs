@@ -82,9 +82,9 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 				p.Version)
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
-            if lsFilesShowFileOnly {
-                msg = []string{p.Name}
-            }
+			if lsFilesShowFileOnly {
+				msg = []string{p.Name}
+			}
 			if lsFilesShowSize {
 				size := humanize.FormatBytes(uint64(p.Size))
 				msg = append(msg, "("+size+")")
