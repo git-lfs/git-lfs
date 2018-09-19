@@ -221,8 +221,11 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 				return nil, nil, err
 			}
 
-			for _, rr := range remoteRefs {
-				exclude = append(exclude, rr.Refspec())
+			for remote, refs := range remoteRefs {
+				for _, ref := range refs {
+					formatted := formatRefName(ref, remote)
+					exclude = append(exclude, formatted)
+				}
 			}
 		}
 	}
@@ -233,8 +236,8 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
-	var refs []*git.Ref
+func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
+	remoteRefs := make(map[string][]*git.Ref)
 
 	remotes, err := git.RemoteList()
 	if err != nil {
@@ -261,16 +264,10 @@ func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
 			return nil, err
 		}
 
-		for _, rr := range refsForRemote {
-			// HACK(@ttaylorr): add remote name to fully-qualify
-			// references:
-			rr.Name = fmt.Sprintf("%s/%s", remote, rr.Name)
-
-			refs = append(refs, rr)
-		}
+		remoteRefs[remote] = refsForRemote
 	}
 
-	return refs, nil
+	return remoteRefs, nil
 }
 
 // formatRefName returns the fully-qualified name for the given Git reference
