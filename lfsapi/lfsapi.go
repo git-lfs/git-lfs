@@ -5,19 +5,20 @@ import (
 	"sync"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
 )
 
 type Client struct {
 	Endpoints   EndpointFinder
-	Credentials CredentialHelper
+	Credentials creds.CredentialHelper
 	Netrc       NetrcFinder
 
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
 
-	credContext *CredentialHelperContext
+	credContext *creds.CredentialHelperContext
 
 	client *lfshttp.Client
 }
@@ -43,7 +44,7 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 		Endpoints:   NewEndpointFinder(ctx),
 		Netrc:       netrc,
 		client:      httpClient,
-		credContext: NewCredentialHelperContext(gitEnv, osEnv),
+		credContext: creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
 
 	return c, nil

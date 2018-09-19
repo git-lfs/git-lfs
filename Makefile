@@ -80,6 +80,7 @@ ifndef PKGS
 PKGS =
 PKGS += commands
 PKGS += config
+PKGS += creds
 PKGS += errors
 PKGS += filepathfilter
 PKGS += fs

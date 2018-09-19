@@ -1,4 +1,4 @@
-package lfsapi
+package creds
 
 import (
 	"bytes"

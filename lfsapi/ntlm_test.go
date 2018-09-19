@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -105,38 +106,38 @@ func TestNtlmAuth(t *testing.T) {
 	// ntlm support pulls domain and login info from git credentials
 	srvURL, err := url.Parse(srv.URL)
 	require.Nil(t, err)
-	creds := Creds{
+	cred := creds.Creds{
 		"protocol": srvURL.Scheme,
 		"host":     srvURL.Host,
 		"username": "ntlmdomain\\ntlmuser",
 		"password": "ntlmpass",
 	}
-	credHelper.Approve(creds)
+	credHelper.Approve(cred)
 
 	res, err := cli.DoWithAuth("remote", req)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
-	assert.True(t, credHelper.IsApproved(creds))
+	assert.True(t, credHelper.IsApproved(cred))
 }
 
 func TestNtlmGetCredentials(t *testing.T) {
-	creds := Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
-	ntmlCreds, err := ntlmGetCredentials(creds)
+	cred := creds.Creds{"username": "MOOSEDOMAIN\\canadian", "password": "MooseAntlersYeah"}
+	ntmlCreds, err := ntlmGetCredentials(cred)
 	assert.Nil(t, err)
 	assert.NotNil(t, ntmlCreds)
 	assert.Equal(t, "MOOSEDOMAIN", ntmlCreds.domain)
 	assert.Equal(t, "canadian", ntmlCreds.username)
 	assert.Equal(t, "MooseAntlersYeah", ntmlCreds.password)
 
-	creds = Creds{"username": "", "password": ""}
-	ntmlCreds, err = ntlmGetCredentials(creds)
+	cred = creds.Creds{"username": "", "password": ""}
+	ntmlCreds, err = ntlmGetCredentials(cred)
 	assert.Nil(t, err)
 	assert.Nil(t, ntmlCreds)
 }
 
 func TestNtlmGetCredentialsBadCreds(t *testing.T) {
-	creds := Creds{"username": "badusername", "password": "MooseAntlersYeah"}
-	_, err := ntlmGetCredentials(creds)
+	cred := creds.Creds{"username": "badusername", "password": "MooseAntlersYeah"}
+	_, err := ntlmGetCredentials(cred)
 	assert.NotNil(t, err)
 }
 

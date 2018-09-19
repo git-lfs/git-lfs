@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 )
 
@@ -18,7 +19,7 @@ type ntmlCredentials struct {
 	password string
 }
 
-func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL) (*http.Response, error) {
+func (c *Client) doWithNTLM(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL) (*http.Response, error) {
 	res, err := c.do(req, "", nil)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
@@ -32,7 +33,7 @@ func (c *Client) doWithNTLM(req *http.Request, credHelper CredentialHelper, cred
 }
 
 // If the status is 401 then we need to re-authenticate
-func (c *Client) ntlmReAuth(req *http.Request, credHelper CredentialHelper, creds Creds, retry bool) (*http.Response, error) {
+func (c *Client) ntlmReAuth(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, retry bool) (*http.Response, error) {
 	ntmlCreds, err := ntlmGetCredentials(creds)
 	if err != nil {
 		return nil, err
@@ -119,7 +120,7 @@ func rewoundRequestBody(req *http.Request) (io.ReadCloser, error) {
 	return body, err
 }
 
-func ntlmGetCredentials(creds Creds) (*ntmlCredentials, error) {
+func ntlmGetCredentials(creds creds.Creds) (*ntmlCredentials, error) {
 	username := creds["username"]
 	password := creds["password"]
 
