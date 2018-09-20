@@ -14,16 +14,16 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-type Access string
+type AccessMode string
 
 const (
-	NoneAccess      Access = "none"
-	BasicAccess     Access = "basic"
-	PrivateAccess   Access = "private"
-	NegotiateAccess Access = "negotiate"
-	NTLMAccess      Access = "ntlm"
-	emptyAccess     Access = ""
-	defaultRemote          = "origin"
+	NoneAccess      AccessMode = "none"
+	BasicAccess     AccessMode = "basic"
+	PrivateAccess   AccessMode = "private"
+	NegotiateAccess AccessMode = "negotiate"
+	NTLMAccess      AccessMode = "ntlm"
+	emptyAccess     AccessMode = ""
+	defaultRemote              = "origin"
 )
 
 type EndpointFinder interface {
@@ -32,8 +32,8 @@ type EndpointFinder interface {
 	Endpoint(operation, remote string) lfshttp.Endpoint
 	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
-	AccessFor(rawurl string) Access
-	SetAccess(rawurl string, access Access)
+	AccessFor(rawurl string) AccessMode
+	SetAccess(rawurl string, access AccessMode)
 	GitProtocol() string
 }
 
@@ -46,7 +46,7 @@ type endpointGitFinder struct {
 	aliases map[string]string
 
 	accessMu  sync.Mutex
-	urlAccess map[string]Access
+	urlAccess map[string]AccessMode
 	urlConfig *config.URLConfig
 }
 
@@ -60,7 +60,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
-		urlAccess:   make(map[string]Access),
+		urlAccess:   make(map[string]AccessMode),
 	}
 
 	e.urlConfig = config.NewURLConfig(e.gitEnv)
@@ -202,7 +202,7 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) lfshttp.Endpoint {
 	}
 }
 
-func (e *endpointGitFinder) AccessFor(rawurl string) Access {
+func (e *endpointGitFinder) AccessFor(rawurl string) AccessMode {
 	if e.gitEnv == nil {
 		return NoneAccess
 	}
@@ -220,7 +220,7 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 	return e.urlAccess[accessurl]
 }
 
-func (e *endpointGitFinder) SetAccess(rawurl string, access Access) {
+func (e *endpointGitFinder) SetAccess(rawurl string, access AccessMode) {
 	accessurl := urlWithoutAuth(rawurl)
 	key := fmt.Sprintf("lfs.%s.access", accessurl)
 	tracerx.Printf("setting repository access to %s", access)
@@ -253,9 +253,9 @@ func urlWithoutAuth(rawurl string) string {
 	return u.String()
 }
 
-func (e *endpointGitFinder) fetchGitAccess(rawurl string) Access {
+func (e *endpointGitFinder) fetchGitAccess(rawurl string) AccessMode {
 	if v, _ := e.urlConfig.Get("lfs", rawurl, "access"); len(v) > 0 {
-		access := Access(strings.ToLower(v))
+		access := AccessMode(strings.ToLower(v))
 		if access == PrivateAccess {
 			return BasicAccess
 		}

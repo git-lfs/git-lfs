@@ -281,7 +281,7 @@ func TestLocalPathEndpointPreservesDotGit(t *testing.T) {
 
 func TestAccessConfig(t *testing.T) {
 	type accessTest struct {
-		Access        string
+		AccessMode    string
 		PrivateAccess bool
 	}
 
@@ -304,11 +304,11 @@ func TestAccessConfig(t *testing.T) {
 		dl := finder.Endpoint("upload", "")
 		ul := finder.Endpoint("download", "")
 
-		if access := finder.AccessFor(dl.Url); access != Access(expected.Access) {
-			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		if access := finder.AccessFor(dl.Url); access != AccessMode(expected.AccessMode) {
+			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
-		if access := finder.AccessFor(ul.Url); access != Access(expected.Access) {
-			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		if access := finder.AccessFor(ul.Url); access != AccessMode(expected.AccessMode) {
+			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
 	}
 
@@ -325,11 +325,11 @@ func TestAccessConfig(t *testing.T) {
 		dl := finder.Endpoint("upload", "")
 		ul := finder.Endpoint("download", "")
 
-		if access := finder.AccessFor(dl.Url); access != Access(expected.Access) {
-			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		if access := finder.AccessFor(dl.Url); access != AccessMode(expected.AccessMode) {
+			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
-		if access := finder.AccessFor(ul.Url); access != Access(expected.Access) {
-			t.Errorf("Expected Access() with value %q to be %v, got %v", value, expected.Access, access)
+		if access := finder.AccessFor(ul.Url); access != AccessMode(expected.AccessMode) {
+			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
 	}
 }
@@ -374,7 +374,7 @@ func TestDeleteAccessWithEmptyString(t *testing.T) {
 	}))
 
 	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
-	finder.SetAccess("http://example.com", Access(""))
+	finder.SetAccess("http://example.com", AccessMode(""))
 	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
 }
 

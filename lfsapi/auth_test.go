@@ -23,7 +23,7 @@ type authRequest struct {
 }
 
 func TestAuthenticateHeaderAccess(t *testing.T) {
-	tests := map[string]Access{
+	tests := map[string]AccessMode{
 		"":                BasicAccess,
 		"basic 123":       BasicAccess,
 		"basic":           BasicAccess,
@@ -229,7 +229,7 @@ func basicAuth(user, pass string) string {
 
 type getCredsExpected struct {
 	Endpoint      string
-	Access        Access
+	Access        AccessMode
 	Creds         creds.Creds
 	CredsURL      string
 	Authorization string
