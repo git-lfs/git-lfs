@@ -206,7 +206,10 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
 
      And publish the release on GitHub.
 
-  8. Update the `_config.yml` file in
+  8. Move any remaining items out of the milestone for the current release to a
+     future release and close the milestone.
+
+  9. Update the `_config.yml` file in
      [`git-lfs/git-lfs.github.com`](https://github.com/git-lfs/git-lfs.github.com),
      similar to the following:
 
