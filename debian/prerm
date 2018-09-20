@@ -1,2 +1,2 @@
 #!/bin/sh
-git lfs uninstall
+git lfs uninstall --system
