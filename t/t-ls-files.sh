@@ -419,7 +419,7 @@ begin_test "ls-files: list/stat files with escaped runes in path before commit"
 )
 end_test
 
-begin_test "ls-files: --name"
+begin_test "ls-files: --name-only"
 (
   set -e
 
@@ -437,7 +437,7 @@ begin_test "ls-files: --name"
   git add a.dat
   git commit -m "add a.dat"
 
-  git lfs ls-files --name 2>&1 | tee ls.log
+  git lfs ls-files --name-only 2>&1 | tee ls.log
   [ "a.dat" = "$(cat ls.log)" ]
 )
 end_test

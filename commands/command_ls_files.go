@@ -15,7 +15,7 @@ var (
 	lsFilesScanAll      = false
 	lsFilesScanDeleted  = false
 	lsFilesShowSize     = false
-	lsFilesShowFileOnly = false
+	lsFilesShowNameOnly = false
 	debug               = false
 )
 
@@ -82,7 +82,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 				p.Version)
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
-			if lsFilesShowFileOnly {
+			if lsFilesShowNameOnly {
 				msg = []string{p.Name}
 			}
 			if lsFilesShowSize {
@@ -146,7 +146,7 @@ func init() {
 	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
-		cmd.Flags().BoolVarP(&lsFilesShowFileOnly, "name", "n", false, "")
+		cmd.Flags().BoolVarP(&lsFilesShowNameOnly, "name-only", "n", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
