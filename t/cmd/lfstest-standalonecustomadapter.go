@@ -28,6 +28,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	for _, arg := range os.Args {
+		writeToStderr(fmt.Sprintf("Saw argument %q\n", arg), errWriter)
+	}
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		var req request

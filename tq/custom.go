@@ -128,7 +128,8 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1
 	a.Trace("xfer: starting up custom transfer process %q for worker %d", a.name, workerNum)
-	cmd := subprocess.ExecCommand(a.path, a.args)
+	cmdName, cmdArgs := subprocess.FormatForShell(subprocess.ShellQuoteSingle(a.path), a.args)
+	cmd := subprocess.ExecCommand(cmdName, cmdArgs...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get stdout for custom transfer command %q remote: %v", a.path, err)

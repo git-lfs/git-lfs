@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,43 @@ func Output(cmd *Cmd) (string, error) {
 	}
 
 	return strings.Trim(string(out), " \n"), err
+}
+
+var shellWordRe = regexp.MustCompile(`\A[A-Za-z0-9_@/.-]+\z`)
+
+// ShellQuoteSingle returns a string which is quoted suitably for sh.
+func ShellQuoteSingle(str string) string {
+	// Quote anything that looks slightly complicated.
+	if shellWordRe.FindStringIndex(str) == nil {
+		return "'" + strings.Replace(str, "'", "'\\''", -1) + "'"
+	}
+	return str
+}
+
+// ShellQuote returns a copied string slice where each element is quoted
+// suitably for sh.
+func ShellQuote(strs []string) []string {
+	dup := make([]string, 0, len(strs))
+
+	for _, str := range strs {
+		dup = append(dup, ShellQuoteSingle(str))
+	}
+	return dup
+}
+
+// FormatForShell takes a command name and an argument string and returns a
+// command and arguments that pass this command to the shell.  Note that neither
+// the command nor the arguments are quoted.  Consider FormatForShellQuoted
+// instead.
+func FormatForShell(name string, args string) (string, []string) {
+	return "sh", []string{"-c", name + " " + args}
+}
+
+// FormatForShellQuotedArgs takes a command name and an argument string and
+// returns a command and arguments that pass this command to the shell.  The
+// arguments are escaped, but the name of the command is not.
+func FormatForShellQuotedArgs(name string, args []string) (string, []string) {
+	return FormatForShell(name, strings.Join(ShellQuote(args), " "))
 }
 
 func Trace(name string, args ...string) {

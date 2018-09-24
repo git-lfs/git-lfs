@@ -56,7 +56,8 @@ A custom transfer process is defined under a settings group called
 
   If the custom transfer process requires any arguments, these can be provided
   here. Typically you would only need this if your process was multi-purpose or
-  particularly flexible, most of the time you won't need it.
+  particularly flexible, most of the time you won't need it.  Note that this
+  string will be expanded by the shell.
 
 * `lfs.customtransfer.<name>.concurrent`
 
