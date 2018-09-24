@@ -114,7 +114,7 @@ func TestNtlmAuth(t *testing.T) {
 	}
 	credHelper.Approve(cred)
 
-	res, err := cli.DoWithAuth("remote", req)
+	res, err := cli.DoWithAuth("remote", cli.Endpoints.AccessFor(srv.URL+"/ntlm"), req)
 	require.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 	assert.True(t, credHelper.IsApproved(cred))

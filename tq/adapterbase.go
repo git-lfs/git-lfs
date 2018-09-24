@@ -214,7 +214,7 @@ func (a *adapterBase) doHTTP(t *Transfer, req *http.Request) (*http.Response, er
 	if t.Authenticated {
 		return a.apiClient.Do(req)
 	}
-	return a.apiClient.DoWithAuth(a.remote, req)
+	return a.apiClient.DoAPIRequestWithAuth(a.remote, req)
 }
 
 func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {

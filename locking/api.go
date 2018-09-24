@@ -58,7 +58,7 @@ func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.lock")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
 	}
@@ -103,7 +103,7 @@ func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unloc
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.unlock")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
 	}
@@ -193,7 +193,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 	req.URL.RawQuery = q.Encode()
 
 	req = c.Client.LogRequest(req, "lfs.locks.search")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
 	}
@@ -253,7 +253,7 @@ func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.verify")
-	res, err := c.DoWithAuth(remote, req)
+	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
 		return nil, res, err
 	}
