@@ -1,4 +1,4 @@
-package lfsapi
+package creds
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/rubyist/tracerx"
 )
@@ -39,37 +40,73 @@ func bufferCreds(c Creds) *bytes.Buffer {
 	return buf
 }
 
+type CredentialHelperContext struct {
+	commandCredHelper *commandCredentialHelper
+	askpassCredHelper *AskPassCredentialHelper
+	cachingCredHelper *credentialCacher
+
+	urlConfig *config.URLConfig
+}
+
+func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
+	c := &CredentialHelperContext{urlConfig: config.NewURLConfig(gitEnv)}
+
+	askpass, ok := osEnv.Get("GIT_ASKPASS")
+	if !ok {
+		askpass, ok = gitEnv.Get("core.askpass")
+	}
+	if !ok {
+		askpass, _ = osEnv.Get("SSH_ASKPASS")
+	}
+	if len(askpass) > 0 {
+		c.askpassCredHelper = &AskPassCredentialHelper{
+			Program: askpass,
+		}
+	}
+
+	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+	if cacheCreds {
+		c.cachingCredHelper = NewCredentialCacher()
+	}
+
+	c.commandCredHelper = &commandCredentialHelper{
+		SkipPrompt: osEnv.Bool("GIT_TERMINAL_PROMPT", false),
+	}
+
+	return c
+}
+
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func (c *Client) getCredentialHelper(u *url.URL) (CredentialHelper, Creds) {
+func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper, u *url.URL) (CredentialHelper, Creds) {
 	rawurl := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	input := Creds{"protocol": u.Scheme, "host": u.Host}
 	if u.User != nil && u.User.Username() != "" {
 		input["username"] = u.User.Username()
 	}
-	if c.client.URLConfig().Bool("credential", rawurl, "usehttppath", false) {
+	if u.Scheme == "cert" || ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = strings.TrimPrefix(u.Path, "/")
 	}
 
-	if c.Credentials != nil {
-		return c.Credentials, input
+	if helper != nil {
+		return helper, input
 	}
 
 	helpers := make([]CredentialHelper, 0, 3)
-	if c.cachingCredHelper != nil {
-		helpers = append(helpers, c.cachingCredHelper)
+	if ctxt.cachingCredHelper != nil {
+		helpers = append(helpers, ctxt.cachingCredHelper)
 	}
-	if c.askpassCredHelper != nil {
-		helper, _ := c.client.URLConfig().Get("credential", rawurl, "helper")
+	if ctxt.askpassCredHelper != nil {
+		helper, _ := ctxt.urlConfig.Get("credential", rawurl, "helper")
 		if len(helper) == 0 {
-			helpers = append(helpers, c.askpassCredHelper)
+			helpers = append(helpers, ctxt.askpassCredHelper)
 		}
 	}
 
-	return NewCredentialHelpers(append(helpers, c.commandCredHelper)), input
+	return NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), input
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
@@ -281,7 +318,7 @@ type credentialCacher struct {
 	mu    sync.Mutex
 }
 
-func newCredentialCacher() *credentialCacher {
+func NewCredentialCacher() *credentialCacher {
 	return &credentialCacher{creds: make(map[string]Creds)}
 }
 
@@ -456,7 +493,7 @@ type nullCredentialHelper struct{}
 
 var (
 	nullCredError = errors.New("No credential helper configured")
-	nullCreds     = &nullCredentialHelper{}
+	NullCreds     = &nullCredentialHelper{}
 )
 
 func (h *nullCredentialHelper) Fill(input Creds) (Creds, error) {

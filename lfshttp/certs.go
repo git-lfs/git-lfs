@@ -3,8 +3,10 @@ package lfshttp
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -31,16 +33,70 @@ func isClientCertEnabledForHost(c *Client, host string) bool {
 	return hostSslKeyOk && hostSslCertOk
 }
 
+// decryptPEMBlock decrypts an encrypted PEM block representing a private key,
+// prompting for credentials using the credential helper, and returns a
+// decrypted PEM block representing that same private key.
+func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]byte, error) {
+	fileurl := fmt.Sprintf("cert:///%s", filepath.ToSlash(path))
+	url, err := url.Parse(fileurl)
+	if err != nil {
+		return nil, err
+	}
+	credHelper, input := c.credHelperContext.GetCredentialHelper(nil, url)
+
+	input["username"] = ""
+
+	creds, err := credHelper.Fill(input)
+	if err != nil {
+		tracerx.Printf("Error filling credentials for %q: %v", fileurl, err)
+		return nil, err
+	}
+	pass := creds["password"]
+	decrypted, err := x509.DecryptPEMBlock(block, []byte(pass))
+	if err != nil {
+		credHelper.Reject(creds)
+		return nil, err
+	}
+	credHelper.Approve(creds)
+
+	// decrypted is a DER blob, but we need a PEM-encoded block.
+	toEncode := &pem.Block{Type: block.Type, Headers: nil, Bytes: decrypted}
+	buf := pem.EncodeToMemory(toEncode)
+	return buf, nil
+}
+
 // getClientCertForHost returns a client certificate for a specific host (which may
 // be "host:port" loaded from the gitconfig
-func getClientCertForHost(c *Client, host string) tls.Certificate {
+func getClientCertForHost(c *Client, host string) *tls.Certificate {
 	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
-	cert, err := tls.LoadX509KeyPair(hostSslCert, hostSslKey)
+
+	cert, err := ioutil.ReadFile(hostSslCert)
+	if err != nil {
+		tracerx.Printf("Error reading client cert file %q: %v", hostSslCert, err)
+		return nil
+	}
+	key, err := ioutil.ReadFile(hostSslKey)
+	if err != nil {
+		tracerx.Printf("Error reading client key file %q: %v", hostSslKey, err)
+		return nil
+	}
+
+	block, _ := pem.Decode(key)
+	if x509.IsEncryptedPEMBlock(block) {
+		key, err = decryptPEMBlock(c, block, hostSslKey, key)
+		if err != nil {
+			tracerx.Printf("Unable to decrypt client key file %q: %v", hostSslKey, err)
+			return nil
+		}
+	}
+
+	certobj, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		tracerx.Printf("Error reading client cert/key %v", err)
+		return nil
 	}
-	return cert
+	return &certobj
 }
 
 // getRootCAsForHost returns a certificate pool for that specific host (which may

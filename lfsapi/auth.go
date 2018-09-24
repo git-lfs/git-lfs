@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/git-lfs/go-netrc/netrc"
@@ -16,9 +17,8 @@ import (
 )
 
 var (
-	defaultCredentialHelper = &commandCredentialHelper{}
-	defaultNetrcFinder      = &noFinder{}
-	defaultEndpointFinder   = NewEndpointFinder(nil)
+	defaultNetrcFinder    = &noFinder{}
+	defaultEndpointFinder = NewEndpointFinder(nil)
 )
 
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
@@ -68,7 +68,7 @@ func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Reques
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, creds Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
 	if access == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
@@ -107,7 +107,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper CredentialHelper, cre
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, Access, CredentialHelper, *url.URL, Creds, error) {
+func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, Access, creds.CredentialHelper, *url.URL, creds.Creds, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -124,16 +124,16 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 
 	if access != NTLMAccess {
 		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+			return apiEndpoint, access, creds.NullCreds, nil, nil, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+			return apiEndpoint, access, creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			return apiEndpoint, access, nullCreds, nil, nil, nil
+			return apiEndpoint, access, creds.NullCreds, nil, nil, nil
 		}
 
 		credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
@@ -148,11 +148,11 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return apiEndpoint, access, nullCreds, nil, nil, errors.Wrap(err, "creds")
+		return apiEndpoint, access, creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
 	}
 
 	if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
-		creds := Creds{
+		cred := creds.Creds{
 			"protocol": credsURL.Scheme,
 			"host":     credsURL.Host,
 			"username": netrcMachine.Login,
@@ -160,7 +160,7 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 			"source":   "netrc",
 		}
 
-		return apiEndpoint, access, nullCreds, credsURL, creds, nil
+		return apiEndpoint, access, creds.NullCreds, credsURL, cred, nil
 	}
 
 	// NTLM uses creds to create the session
@@ -168,8 +168,8 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 	return apiEndpoint, access, credHelper, credsURL, creds, err
 }
 
-func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (CredentialHelper, Creds, error) {
-	credHelper, input := c.getCredentialHelper(u)
+func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (creds.CredentialHelper, creds.Creds, error) {
+	credHelper, input := c.credContext.GetCredentialHelper(c.Credentials, u)
 	creds, err := credHelper.Fill(input)
 	if creds == nil || len(creds) < 1 {
 		errmsg := fmt.Sprintf("Git credentials for %s not found", u)

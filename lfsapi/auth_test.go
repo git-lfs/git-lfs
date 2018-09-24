@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfshttp"
@@ -73,12 +74,12 @@ func TestDoWithAuthApprove(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	creds := newMockCredentialHelper()
+	cred := newMockCredentialHelper()
 	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/repo/lfs",
 	}))
 	require.Nil(t, err)
-	c.Credentials = creds
+	c.Credentials = cred
 
 	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
 
@@ -92,7 +93,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.True(t, creds.IsApproved(Creds(map[string]string{
+	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
 		"username": "user",
 		"password": "pass",
 		"protocol": "http",
@@ -130,7 +131,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	invalidCreds := Creds(map[string]string{
+	invalidCreds := creds.Creds(map[string]string{
 		"username": "user",
 		"password": "wrong_pass",
 		"path":     "",
@@ -138,12 +139,12 @@ func TestDoWithAuthReject(t *testing.T) {
 		"host":     srv.Listener.Addr().String(),
 	})
 
-	creds := newMockCredentialHelper()
-	creds.Approve(invalidCreds)
-	assert.True(t, creds.IsApproved(invalidCreds))
+	cred := newMockCredentialHelper()
+	cred.Approve(invalidCreds)
+	assert.True(t, cred.IsApproved(invalidCreds))
 
 	c, _ := NewClient(nil)
-	c.Credentials = creds
+	c.Credentials = cred
 	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL,
 	}))
@@ -158,8 +159,8 @@ func TestDoWithAuthReject(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.False(t, creds.IsApproved(invalidCreds))
-	assert.True(t, creds.IsApproved(Creds(map[string]string{
+	assert.False(t, cred.IsApproved(invalidCreds))
+	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
 		"username": "user",
 		"password": "pass",
 		"path":     "",
@@ -170,21 +171,21 @@ func TestDoWithAuthReject(t *testing.T) {
 }
 
 type mockCredentialHelper struct {
-	Approved map[string]Creds
+	Approved map[string]creds.Creds
 }
 
 func newMockCredentialHelper() *mockCredentialHelper {
 	return &mockCredentialHelper{
-		Approved: make(map[string]Creds),
+		Approved: make(map[string]creds.Creds),
 	}
 }
 
-func (m *mockCredentialHelper) Fill(input Creds) (Creds, error) {
+func (m *mockCredentialHelper) Fill(input creds.Creds) (creds.Creds, error) {
 	if found, ok := m.Approved[credsToKey(input)]; ok {
 		return found, nil
 	}
 
-	output := make(Creds)
+	output := make(creds.Creds)
 	for key, value := range input {
 		output[key] = value
 	}
@@ -195,24 +196,24 @@ func (m *mockCredentialHelper) Fill(input Creds) (Creds, error) {
 	return output, nil
 }
 
-func (m *mockCredentialHelper) Approve(creds Creds) error {
+func (m *mockCredentialHelper) Approve(creds creds.Creds) error {
 	m.Approved[credsToKey(creds)] = creds
 	return nil
 }
 
-func (m *mockCredentialHelper) Reject(creds Creds) error {
+func (m *mockCredentialHelper) Reject(creds creds.Creds) error {
 	delete(m.Approved, credsToKey(creds))
 	return nil
 }
 
-func (m *mockCredentialHelper) IsApproved(creds Creds) bool {
+func (m *mockCredentialHelper) IsApproved(creds creds.Creds) bool {
 	if found, ok := m.Approved[credsToKey(creds)]; ok {
 		return found["password"] == creds["password"]
 	}
 	return false
 }
 
-func credsToKey(creds Creds) string {
+func credsToKey(creds creds.Creds) string {
 	var kvs []string
 	for _, k := range []string{"protocol", "host", "path"} {
 		kvs = append(kvs, fmt.Sprintf("%s:%s", k, creds[k]))
@@ -229,7 +230,7 @@ func basicAuth(user, pass string) string {
 type getCredsExpected struct {
 	Endpoint      string
 	Access        Access
-	Creds         Creds
+	Creds         creds.Creds
 	CredsURL      string
 	Authorization string
 }
@@ -599,8 +600,8 @@ func TestGetCreds(t *testing.T) {
 
 type fakeCredentialFiller struct{}
 
-func (f *fakeCredentialFiller) Fill(input Creds) (Creds, error) {
-	output := make(Creds)
+func (f *fakeCredentialFiller) Fill(input creds.Creds) (creds.Creds, error) {
+	output := make(creds.Creds)
 	for key, value := range input {
 		output[key] = value
 	}
@@ -611,18 +612,18 @@ func (f *fakeCredentialFiller) Fill(input Creds) (Creds, error) {
 	return output, nil
 }
 
-func (f *fakeCredentialFiller) Approve(creds Creds) error {
+func (f *fakeCredentialFiller) Approve(creds creds.Creds) error {
 	return errors.New("Not implemented")
 }
 
-func (f *fakeCredentialFiller) Reject(creds Creds) error {
+func (f *fakeCredentialFiller) Reject(creds creds.Creds) error {
 	return errors.New("Not implemented")
 }
 
 func TestClientRedirectReauthenticate(t *testing.T) {
 	var srv1, srv2 *httptest.Server
 	var called1, called2 uint32
-	var creds1, creds2 Creds
+	var creds1, creds2 creds.Creds
 
 	srv1 = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddUint32(&called1, 1)
@@ -658,14 +659,14 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	// host.
 	srv2.URL = strings.Replace(srv2.URL, "127.0.0.1", "0.0.0.0", 1)
 
-	creds1 = Creds(map[string]string{
+	creds1 = creds.Creds(map[string]string{
 		"protocol": "http",
 		"host":     strings.TrimPrefix(srv1.URL, "http://"),
 
 		"username": "user1",
 		"password": "pass1",
 	})
-	creds2 = Creds(map[string]string{
+	creds2 = creds.Creds(map[string]string{
 		"protocol": "http",
 		"host":     strings.TrimPrefix(srv2.URL, "http://"),
 
@@ -677,10 +678,10 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	defer srv2.Close()
 
 	c, err := NewClient(lfshttp.NewContext(nil, nil, nil))
-	creds := newCredentialCacher()
-	creds.Approve(creds1)
-	creds.Approve(creds2)
-	c.Credentials = creds
+	cred := creds.NewCredentialCacher()
+	cred.Approve(creds1)
+	cred.Approve(creds2)
+	c.Credentials = cred
 
 	req, err := http.NewRequest("GET", srv1.URL, nil)
 	require.Nil(t, err)

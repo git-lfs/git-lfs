@@ -90,7 +90,7 @@ REMOTEDIR="$ROOTDIR/t/remote"
 #   # stores the credentials for http://git-server.com
 #   $CREDSDIR/git-server.com
 #
-CREDSDIR="$REMOTEDIR/creds"
+CREDSDIR="$REMOTEDIR/creds/"
 
 # This is the prefix for Git config files.  See the "Test Suite" section in
 # t/README.md
@@ -116,6 +116,9 @@ LFS_CLIENT_CERT_FILE="$REMOTEDIR/client.crt"
 
 # This file contains the client key of the client cert endpoint of the test Git server.
 LFS_CLIENT_KEY_FILE="$REMOTEDIR/client.key"
+
+# This file contains the client key of the client cert endpoint of the test Git server.
+LFS_CLIENT_KEY_FILE_ENCRYPTED="$REMOTEDIR/client.enc.key"
 
 # the fake home dir used for the initial setup
 TESTHOME="$REMOTEDIR/home"

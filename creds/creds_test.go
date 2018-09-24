@@ -1,4 +1,4 @@
-package lfsapi
+package creds
 
 import (
 	"errors"
@@ -40,7 +40,7 @@ func (h *testCredHelper) Reject(creds Creds) error {
 }
 
 func TestCredHelperSetNoErrors(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})
@@ -96,7 +96,7 @@ func TestCredHelperSetNoErrors(t *testing.T) {
 }
 
 func TestCredHelperSetFillError(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})
@@ -135,7 +135,7 @@ func TestCredHelperSetFillError(t *testing.T) {
 }
 
 func TestCredHelperSetApproveError(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})
@@ -166,7 +166,7 @@ func TestCredHelperSetApproveError(t *testing.T) {
 }
 
 func TestCredHelperSetFillAndApproveError(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})
@@ -196,7 +196,7 @@ func TestCredHelperSetFillAndApproveError(t *testing.T) {
 }
 
 func TestCredHelperSetRejectError(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})
@@ -234,7 +234,7 @@ func TestCredHelperSetRejectError(t *testing.T) {
 }
 
 func TestCredHelperSetAllFillErrors(t *testing.T) {
-	cache := newCredentialCacher()
+	cache := NewCredentialCacher()
 	helper1 := newTestCredHelper()
 	helper2 := newTestCredHelper()
 	helpers := NewCredentialHelpers([]CredentialHelper{cache, helper1, helper2})

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -57,6 +58,8 @@ type Client struct {
 	osEnv  config.Environment
 	uc     *config.URLConfig
 
+	credHelperContext *creds.CredentialHelperContext
+
 	sshTries int
 }
 
@@ -87,6 +90,7 @@ func NewClient(ctx Context) (*Client, error) {
 		osEnv:               osEnv,
 		uc:                  config.NewURLConfig(gitEnv),
 		sshTries:            gitEnv.Int("lfs.ssh.retries", 5),
+		credHelperContext:   creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
 
 	return c, nil
@@ -416,8 +420,11 @@ func (c *Client) HttpClient(host string) *http.Client {
 
 	if isClientCertEnabledForHost(c, host) {
 		tracerx.Printf("http: client cert for %s", host)
-		tr.TLSClientConfig.Certificates = []tls.Certificate{getClientCertForHost(c, host)}
-		tr.TLSClientConfig.BuildNameToCertificate()
+		cert := getClientCertForHost(c, host)
+		if cert != nil {
+			tr.TLSClientConfig.Certificates = []tls.Certificate{*cert}
+			tr.TLSClientConfig.BuildNameToCertificate()
+		}
 	}
 
 	if isCertVerificationDisabledForHost(c, host) {
