@@ -20,6 +20,32 @@ commit_summary() {
   echo "* $title #$id (@$author)"
 }
 
+revisions_in () {
+  git rev-list --merges --first-parent $1
+}
+
+noninteractive () {
+  local range="$1"
+
+  printf '### Uncategorized\n'
+  for rev in $(revisions_in "$range"); do
+    commit_summary $rev
+  done
+  cat <<-EOF
+
+### Features
+
+### Bugs
+
+### Misc
+EOF
+}
+
+if [ "$1" = "--noninteractive" ]; then
+  noninteractive=1
+  shift
+fi
+
 range=$1
 
 if [ "$range" = "" ]; then
@@ -27,11 +53,17 @@ if [ "$range" = "" ]; then
   exit 1
 fi
 
+if [ -n "$noninteractive" ]
+then
+  noninteractive "$range"
+  exit
+fi
+
 features=""
 bugs=""
 misc=""
 
-for rev in $(git rev-list --merges --first-parent $range); do
+for rev in $(revisions_in "$range"); do
   git show $rev
 
   processed=0
