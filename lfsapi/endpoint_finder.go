@@ -26,14 +26,28 @@ const (
 	defaultRemote              = "origin"
 )
 
+type Access struct {
+	mode AccessMode
+	url  string
+}
+
+// Returns a copy of an AccessMode with the mode upgraded to newMode
+func (a *Access) Upgrade(newMode AccessMode) Access {
+	return Access{url: a.url, mode: newMode}
+}
+
+func (a *Access) GetMode() AccessMode {
+	return a.mode
+}
+
 type EndpointFinder interface {
 	NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint
 	NewEndpoint(rawurl string) lfshttp.Endpoint
 	Endpoint(operation, remote string) lfshttp.Endpoint
 	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
-	AccessFor(rawurl string) AccessMode
-	SetAccess(rawurl string, access AccessMode)
+	AccessFor(rawurl string) Access
+	SetAccess(access Access)
 	GitProtocol() string
 }
 
@@ -202,39 +216,38 @@ func (e *endpointGitFinder) NewEndpoint(rawurl string) lfshttp.Endpoint {
 	}
 }
 
-func (e *endpointGitFinder) AccessFor(rawurl string) AccessMode {
-	if e.gitEnv == nil {
-		return NoneAccess
-	}
-
+func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 	accessurl := urlWithoutAuth(rawurl)
+
+	if e.gitEnv == nil {
+		return Access{mode: NoneAccess, url: accessurl}
+	}
 
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
 	if cached, ok := e.urlAccess[accessurl]; ok {
-		return cached
+		return Access{mode: cached, url: accessurl}
 	}
 
 	e.urlAccess[accessurl] = e.fetchGitAccess(accessurl)
-	return e.urlAccess[accessurl]
+	return Access{mode: e.urlAccess[accessurl], url: accessurl}
 }
 
-func (e *endpointGitFinder) SetAccess(rawurl string, access AccessMode) {
-	accessurl := urlWithoutAuth(rawurl)
-	key := fmt.Sprintf("lfs.%s.access", accessurl)
-	tracerx.Printf("setting repository access to %s", access)
+func (e *endpointGitFinder) SetAccess(access Access) {
+	key := fmt.Sprintf("lfs.%s.access", access.url)
+	tracerx.Printf("setting repository access to %s", access.mode)
 
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
-	switch access {
+	switch access.mode {
 	case emptyAccess, NoneAccess:
 		e.gitConfig.UnsetLocalKey(key)
-		e.urlAccess[accessurl] = NoneAccess
+		e.urlAccess[access.url] = NoneAccess
 	default:
-		e.gitConfig.SetLocal(key, string(access))
-		e.urlAccess[accessurl] = access
+		e.gitConfig.SetLocal(key, string(access.mode))
+		e.urlAccess[access.url] = access.mode
 	}
 }
 

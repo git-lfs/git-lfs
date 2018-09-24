@@ -304,10 +304,10 @@ func TestAccessConfig(t *testing.T) {
 		dl := finder.Endpoint("upload", "")
 		ul := finder.Endpoint("download", "")
 
-		if access := finder.AccessFor(dl.Url); access != AccessMode(expected.AccessMode) {
+		if access := finder.AccessFor(dl.Url); access.mode != AccessMode(expected.AccessMode) {
 			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
-		if access := finder.AccessFor(ul.Url); access != AccessMode(expected.AccessMode) {
+		if access := finder.AccessFor(ul.Url); access.mode != AccessMode(expected.AccessMode) {
 			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
 	}
@@ -325,10 +325,10 @@ func TestAccessConfig(t *testing.T) {
 		dl := finder.Endpoint("upload", "")
 		ul := finder.Endpoint("download", "")
 
-		if access := finder.AccessFor(dl.Url); access != AccessMode(expected.AccessMode) {
+		if access := finder.AccessFor(dl.Url); access.mode != AccessMode(expected.AccessMode) {
 			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
-		if access := finder.AccessFor(ul.Url); access != AccessMode(expected.AccessMode) {
+		if access := finder.AccessFor(ul.Url); access.mode != AccessMode(expected.AccessMode) {
 			t.Errorf("Expected AccessMode() with value %q to be %v, got %v", value, expected.AccessMode, access)
 		}
 	}
@@ -336,16 +336,23 @@ func TestAccessConfig(t *testing.T) {
 
 func TestAccessAbsentConfig(t *testing.T) {
 	finder := NewEndpointFinder(nil)
-	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("download", "").Url))
-	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("upload", "").Url))
+	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("download", "").Url).mode)
+	assert.Equal(t, NoneAccess, finder.AccessFor(finder.Endpoint("upload", "").Url).mode)
 }
 
 func TestSetAccess(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{}))
+	url := "http://example.com"
+	access := finder.AccessFor(url)
 
-	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
-	finder.SetAccess("http://example.com", NTLMAccess)
-	assert.Equal(t, NTLMAccess, finder.AccessFor("http://example.com"))
+	assert.Equal(t, NoneAccess, access.mode)
+	assert.Equal(t, url, access.url)
+
+	finder.SetAccess(access.Upgrade(NTLMAccess))
+
+	newAccess := finder.AccessFor(url)
+	assert.Equal(t, NTLMAccess, newAccess.mode)
+	assert.Equal(t, url, newAccess.url)
 }
 
 func TestChangeAccess(t *testing.T) {
@@ -353,9 +360,16 @@ func TestChangeAccess(t *testing.T) {
 		"lfs.http://example.com.access": "basic",
 	}))
 
-	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
-	finder.SetAccess("http://example.com", NTLMAccess)
-	assert.Equal(t, NTLMAccess, finder.AccessFor("http://example.com"))
+	url := "http://example.com"
+	access := finder.AccessFor(url)
+	assert.Equal(t, BasicAccess, access.mode)
+	assert.Equal(t, url, access.url)
+
+	finder.SetAccess(access.Upgrade(NTLMAccess))
+
+	newAccess := finder.AccessFor(url)
+	assert.Equal(t, NTLMAccess, newAccess.mode)
+	assert.Equal(t, url, newAccess.url)
 }
 
 func TestDeleteAccessWithNone(t *testing.T) {
@@ -363,9 +377,17 @@ func TestDeleteAccessWithNone(t *testing.T) {
 		"lfs.http://example.com.access": "basic",
 	}))
 
-	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
-	finder.SetAccess("http://example.com", NoneAccess)
-	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
+	url := "http://example.com"
+
+	access := finder.AccessFor(url)
+	assert.Equal(t, BasicAccess, access.mode)
+	assert.Equal(t, url, access.url)
+
+	finder.SetAccess(access.Upgrade(NoneAccess))
+
+	newAccess := finder.AccessFor(url)
+	assert.Equal(t, NoneAccess, newAccess.mode)
+	assert.Equal(t, url, newAccess.url)
 }
 
 func TestDeleteAccessWithEmptyString(t *testing.T) {
@@ -373,9 +395,17 @@ func TestDeleteAccessWithEmptyString(t *testing.T) {
 		"lfs.http://example.com.access": "basic",
 	}))
 
-	assert.Equal(t, BasicAccess, finder.AccessFor("http://example.com"))
-	finder.SetAccess("http://example.com", AccessMode(""))
-	assert.Equal(t, NoneAccess, finder.AccessFor("http://example.com"))
+	url := "http://example.com"
+
+	access := finder.AccessFor(url)
+	assert.Equal(t, BasicAccess, access.mode)
+	assert.Equal(t, url, access.url)
+
+	finder.SetAccess(access.Upgrade(AccessMode("")))
+
+	newAccess := finder.AccessFor(url)
+	assert.Equal(t, NoneAccess, newAccess.mode)
+	assert.Equal(t, url, newAccess.url)
 }
 
 type EndpointParsingTestCase struct {

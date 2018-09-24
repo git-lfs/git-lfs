@@ -81,7 +81,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	require.Nil(t, err)
 	c.Credentials = cred
 
-	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -99,7 +99,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 		"protocol": "http",
 		"host":     srv.Listener.Addr().String(),
 	})))
-	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
 	assert.EqualValues(t, 2, called)
 }
 
@@ -407,7 +407,7 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://user@git-server.com/repo/lfs",
+				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("user", "monkey"),
 				CredsURL:      "https://user@git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -450,7 +450,7 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://user:pass@git-server.com/repo",
+				Endpoint:      "https://git-server.com/repo",
 				Authorization: basicAuth("user", "pass"),
 			},
 		},
@@ -574,12 +574,12 @@ func TestGetCreds(t *testing.T) {
 		client.Credentials = &fakeCredentialFiller{}
 		client.Netrc = &fakeNetrc{}
 		client.Endpoints = NewEndpointFinder(ctx)
-		endpoint, access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
+		access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
 		if !assert.Nil(t, err) {
 			continue
 		}
-		assert.Equal(t, test.Expected.Endpoint, endpoint.Url, "endpoint")
-		assert.Equal(t, test.Expected.Access, access, "access")
+		assert.Equal(t, test.Expected.Endpoint, access.url, "endpoint")
+		assert.Equal(t, test.Expected.Access, access.mode, "access")
 		assert.Equal(t, test.Expected.Authorization, req.Header.Get("Authorization"), "authorization")
 
 		if test.Expected.Creds != nil {
