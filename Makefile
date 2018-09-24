@@ -288,6 +288,12 @@ bin/releases/git-lfs-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-%.exe
 bin/releases/git-lfs-$(VERSION).tar.gz :
 	git archive -o $@ --prefix=git-lfs-$(patsubst v%,%,$(VERSION))/ --format tar.gz $(VERSION)
 
+# release-linux is a target that builds Linux packages. It must be run on a
+# system with Docker that can run Linux containers.
+.PHONY : release-linux
+release-linux:
+	./docker/run_dockers.bsh
+
 # release-windows is a target that builds and signs Windows binaries.  It must
 # be run on a Windows machine under Git Bash.
 #
