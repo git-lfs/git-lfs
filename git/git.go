@@ -30,7 +30,6 @@ const (
 	RefTypeLocalBranch  = RefType(iota)
 	RefTypeRemoteBranch = RefType(iota)
 	RefTypeLocalTag     = RefType(iota)
-	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
 
@@ -52,8 +51,6 @@ func (t RefType) Prefix() (string, bool) {
 		return "refs/remotes", true
 	case RefTypeLocalTag:
 		return "refs/tags", true
-	case RefTypeRemoteTag:
-		return "refs/remotes/tags", true
 	default:
 		return "", false
 	}
@@ -67,9 +64,6 @@ func ParseRef(absRef, sha string) *Ref {
 	} else if strings.HasPrefix(absRef, "refs/tags/") {
 		r.Name = absRef[10:]
 		r.Type = RefTypeLocalTag
-	} else if strings.HasPrefix(absRef, "refs/remotes/tags/") {
-		r.Name = absRef[18:]
-		r.Type = RefTypeRemoteTag
 	} else if strings.HasPrefix(absRef, "refs/remotes/") {
 		r.Name = absRef[13:]
 		r.Type = RefTypeRemoteBranch
@@ -480,7 +474,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 			fullref := match[1]
 			sha := match[2]
 			reftype, ref := ParseRefToTypeAndName(fullref)
-			if reftype == RefTypeRemoteBranch || reftype == RefTypeRemoteTag {
+			if reftype == RefTypeRemoteBranch {
 				if !includeRemoteBranches {
 					continue
 				}
@@ -511,7 +505,6 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 func ParseRefToTypeAndName(fullref string) (t RefType, name string) {
 	const localPrefix = "refs/heads/"
 	const remotePrefix = "refs/remotes/"
-	const remoteTagPrefix = "refs/remotes/tags/"
 	const localTagPrefix = "refs/tags/"
 
 	if fullref == "HEAD" {
@@ -523,9 +516,6 @@ func ParseRefToTypeAndName(fullref string) (t RefType, name string) {
 	} else if strings.HasPrefix(fullref, remotePrefix) {
 		name = fullref[len(remotePrefix):]
 		t = RefTypeRemoteBranch
-	} else if strings.HasPrefix(fullref, remoteTagPrefix) {
-		name = fullref[len(remoteTagPrefix):]
-		t = RefTypeRemoteTag
 	} else if strings.HasPrefix(fullref, localTagPrefix) {
 		name = fullref[len(localTagPrefix):]
 		t = RefTypeLocalTag
@@ -1028,11 +1018,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 
 			sha := match[1]
-			if match[2] == "heads" {
-				ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
-			} else {
-				ret = append(ret, &Ref{name, RefTypeRemoteTag, sha})
-			}
+			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
 	return ret, cmd.Wait()

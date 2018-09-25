@@ -26,11 +26,6 @@ func TestRefString(t *testing.T) {
 			Type: RefTypeRemoteBranch,
 			Sha:  sha,
 		},
-		"refs/remotes/tags/v1.0.0": {
-			Name: "v1.0.0",
-			Type: RefTypeRemoteTag,
-			Sha:  sha,
-		},
 		"refs/tags/v1.0.0": {
 			Name: "v1.0.0",
 			Type: RefTypeLocalTag,
@@ -53,10 +48,9 @@ func TestRefString(t *testing.T) {
 
 func TestParseRefs(t *testing.T) {
 	tests := map[string]RefType{
-		"refs/heads":        RefTypeLocalBranch,
-		"refs/tags":         RefTypeLocalTag,
-		"refs/remotes/tags": RefTypeRemoteTag,
-		"refs/remotes":      RefTypeRemoteBranch,
+		"refs/heads":   RefTypeLocalBranch,
+		"refs/tags":    RefTypeLocalTag,
+		"refs/remotes": RefTypeRemoteBranch,
 	}
 
 	for prefix, expectedType := range tests {
@@ -594,8 +588,6 @@ func TestLocalRefs(t *testing.T) {
 			t.Errorf("Local HEAD ref: %v", r)
 		case RefTypeOther:
 			t.Errorf("Stash or unknown ref: %v", r)
-		case RefTypeRemoteBranch, RefTypeRemoteTag:
-			t.Errorf("Remote ref: %v", r)
 		default:
 			actual[r.Name] = true
 		}
@@ -701,7 +693,6 @@ func TestRefTypeKnownPrefixes(t *testing.T) {
 		RefTypeLocalBranch:  {"refs/heads", true},
 		RefTypeRemoteBranch: {"refs/remotes", true},
 		RefTypeLocalTag:     {"refs/tags", true},
-		RefTypeRemoteTag:    {"refs/remotes/tags", true},
 		RefTypeHEAD:         {"", false},
 		RefTypeOther:        {"", false},
 	} {

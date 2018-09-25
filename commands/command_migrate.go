@@ -187,7 +187,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		for _, ref := range refs {
 			switch ref.Type {
 			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
-				git.RefTypeRemoteBranch, git.RefTypeRemoteTag:
+				git.RefTypeRemoteBranch:
 
 				include = append(include, ref.Refspec())
 			case git.RefTypeOther:
@@ -221,9 +221,9 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 				return nil, nil, err
 			}
 
-			for _, remote := range remoteRefs {
-				for _, rr := range remote {
-					exclude = append(exclude, rr.Refspec())
+			for _, refs := range remoteRefs {
+				for _, ref := range refs {
+					exclude = append(exclude, ref.Refspec())
 				}
 			}
 		}
@@ -284,8 +284,6 @@ func formatRefName(ref *git.Ref, remote string) string {
 	switch ref.Type {
 	case git.RefTypeRemoteBranch:
 		name = []string{"refs", "remotes", remote, ref.Name}
-	case git.RefTypeRemoteTag:
-		name = []string{"refs", "tags", ref.Name}
 	default:
 		return ref.Name
 	}
@@ -303,8 +301,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 	}
 
 	if current.Type == git.RefTypeOther ||
-		current.Type == git.RefTypeRemoteBranch ||
-		current.Type == git.RefTypeRemoteTag {
+		current.Type == git.RefTypeRemoteBranch {
 
 		return nil, errors.Errorf("fatal: cannot migrate non-local ref: %s", current.Name)
 	}
