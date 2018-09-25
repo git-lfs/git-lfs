@@ -221,8 +221,10 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 				return nil, nil, err
 			}
 
-			for _, rr := range remoteRefs {
-				exclude = append(exclude, rr.Refspec())
+			for _, remote := range remoteRefs {
+				for _, rr := range remote {
+					exclude = append(exclude, rr.Refspec())
+				}
 			}
 		}
 	}
@@ -233,8 +235,8 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
-	var refs []*git.Ref
+func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
+	refs := make(map[string][]*git.Ref)
 
 	remotes, err := git.RemoteList()
 	if err != nil {
@@ -261,13 +263,14 @@ func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
 			return nil, err
 		}
 
-		for _, rr := range refsForRemote {
+		for i, rr := range refsForRemote {
 			// HACK(@ttaylorr): add remote name to fully-qualify
 			// references:
-			rr.Name = fmt.Sprintf("%s/%s", remote, rr.Name)
-
-			refs = append(refs, rr)
+			refsForRemote[i].Name =
+				fmt.Sprintf("%s/%s", remote, rr.Name)
 		}
+
+		refs[remote] = refsForRemote
 	}
 
 	return refs, nil
