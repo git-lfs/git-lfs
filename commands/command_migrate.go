@@ -279,15 +279,11 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 // formatRefName returns the fully-qualified name for the given Git reference
 // "ref".
 func formatRefName(ref *git.Ref, remote string) string {
-	var name []string
-
-	switch ref.Type {
-	case git.RefTypeRemoteBranch:
-		name = []string{"refs", "remotes", remote, ref.Name}
-	default:
-		return ref.Refspec()
+	if ref.Type == git.RefTypeRemoteBranch {
+		return strings.Join([]string{
+			"refs", "remotes", remote, ref.Name}, "/")
 	}
-	return strings.Join(name, "/")
+	return ref.Refspec()
 
 }
 
