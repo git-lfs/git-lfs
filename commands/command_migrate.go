@@ -285,7 +285,7 @@ func formatRefName(ref *git.Ref, remote string) string {
 	case git.RefTypeRemoteBranch:
 		name = []string{"refs", "remotes", remote, ref.Name}
 	default:
-		return ref.Name
+		return ref.Refspec()
 	}
 	return strings.Join(name, "/")
 
