@@ -221,9 +221,10 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 				return nil, nil, err
 			}
 
-			for _, refs := range remoteRefs {
+			for remote, refs := range remoteRefs {
 				for _, ref := range refs {
-					exclude = append(exclude, ref.Refspec())
+					exclude = append(exclude,
+						formatRefName(ref, remote))
 				}
 			}
 		}
@@ -261,13 +262,6 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 
 		if err != nil {
 			return nil, err
-		}
-
-		for i, rr := range refsForRemote {
-			// HACK(@ttaylorr): add remote name to fully-qualify
-			// references:
-			refsForRemote[i].Name =
-				fmt.Sprintf("%s/%s", remote, rr.Name)
 		}
 
 		refs[remote] = refsForRemote
