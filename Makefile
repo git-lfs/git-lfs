@@ -241,7 +241,8 @@ RELEASE_TARGETS = \
 	bin/releases/git-lfs-freebsd-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-freebsd-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-windows-amd64-$(VERSION).zip \
-	bin/releases/git-lfs-windows-386-$(VERSION).zip
+	bin/releases/git-lfs-windows-386-$(VERSION).zip \
+	bin/releases/git-lfs-$(VERSION).tar.gz
 
 # RELEASE_INCLUDES are the names of additional files that are added to each
 # release artifact.
@@ -274,6 +275,13 @@ $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 bin/releases/git-lfs-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-%.exe
 	@mkdir -p bin/releases
 	zip -j -l $@ $^
+
+# bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
+#
+# This is useful for third parties who wish to have a bit-for-bit identical
+# source archive to download and verify cryptographically.
+bin/releases/git-lfs-$(VERSION).tar.gz :
+	git archive -o $@ --prefix=git-lfs-$(patsubst v%,%,$(VERSION))/ --format tar.gz $(VERSION)
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.
