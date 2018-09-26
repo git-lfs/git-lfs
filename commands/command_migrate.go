@@ -187,7 +187,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		for _, ref := range refs {
 			switch ref.Type {
 			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
-				git.RefTypeRemoteBranch, git.RefTypeRemoteTag:
+				git.RefTypeRemoteBranch:
 
 				include = append(include, ref.Refspec())
 			case git.RefTypeOther:
@@ -221,8 +221,11 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 				return nil, nil, err
 			}
 
-			for _, rr := range remoteRefs {
-				exclude = append(exclude, rr.Refspec())
+			for remote, refs := range remoteRefs {
+				for _, ref := range refs {
+					exclude = append(exclude,
+						formatRefName(ref, remote))
+				}
 			}
 		}
 	}
@@ -233,8 +236,8 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
-	var refs []*git.Ref
+func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
+	refs := make(map[string][]*git.Ref)
 
 	remotes, err := git.RemoteList()
 	if err != nil {
@@ -261,13 +264,7 @@ func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
 			return nil, err
 		}
 
-		for _, rr := range refsForRemote {
-			// HACK(@ttaylorr): add remote name to fully-qualify
-			// references:
-			rr.Name = fmt.Sprintf("%s/%s", remote, rr.Name)
-
-			refs = append(refs, rr)
-		}
+		refs[remote] = refsForRemote
 	}
 
 	return refs, nil
@@ -276,17 +273,11 @@ func getRemoteRefs(l *tasklog.Logger) ([]*git.Ref, error) {
 // formatRefName returns the fully-qualified name for the given Git reference
 // "ref".
 func formatRefName(ref *git.Ref, remote string) string {
-	var name []string
-
-	switch ref.Type {
-	case git.RefTypeRemoteBranch:
-		name = []string{"refs", "remotes", remote, ref.Name}
-	case git.RefTypeRemoteTag:
-		name = []string{"refs", "tags", ref.Name}
-	default:
-		return ref.Name
+	if ref.Type == git.RefTypeRemoteBranch {
+		return strings.Join([]string{
+			"refs", "remotes", remote, ref.Name}, "/")
 	}
-	return strings.Join(name, "/")
+	return ref.Refspec()
 
 }
 
@@ -300,8 +291,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 	}
 
 	if current.Type == git.RefTypeOther ||
-		current.Type == git.RefTypeRemoteBranch ||
-		current.Type == git.RefTypeRemoteTag {
+		current.Type == git.RefTypeRemoteBranch {
 
 		return nil, errors.Errorf("fatal: cannot migrate non-local ref: %s", current.Name)
 	}

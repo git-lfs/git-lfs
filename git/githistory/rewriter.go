@@ -539,7 +539,7 @@ func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
 
 	var local []*git.Ref
 	for _, ref := range refs {
-		if ref.Type == git.RefTypeRemoteBranch || ref.Type == git.RefTypeRemoteTag {
+		if ref.Type == git.RefTypeRemoteBranch {
 			continue
 		}
 
