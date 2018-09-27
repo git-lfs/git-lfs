@@ -346,7 +346,10 @@ begin_test "credentials from lfs.url"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
   git lfs env
-  git lfs push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push origin master 2>&1 | tee push.log
+  # A 401 indicates URL access mode for the /storage endpoint
+  # was used instead of for the lfsapi endpoint
+  grep "HTTP: 401" push.log
   grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "bad fetch"
@@ -387,7 +390,10 @@ begin_test "credentials from remote.origin.url"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
   git lfs env
-  git lfs push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push origin master 2>&1 | tee push.log
+  # A 401 indicates URL access mode for the /storage endpoint
+  # was used instead of for the lfsapi endpoint
+  grep "HTTP: 401" push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   echo "bad fetch"
