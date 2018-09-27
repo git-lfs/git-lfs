@@ -89,7 +89,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req, true)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -155,7 +155,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL), req)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL), req, true)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -168,6 +168,54 @@ func TestDoWithAuthReject(t *testing.T) {
 		"host":     srv.Listener.Addr().String(),
 	})))
 	assert.EqualValues(t, 3, called)
+}
+
+func TestDoWithAuthNoRetries(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
+		w.Header().Set("Lfs-Authenticate", "Basic")
+		actual := req.Header.Get("Authorization")
+		if len(actual) == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		expected := "Basic " + strings.TrimSpace(
+			base64.StdEncoding.EncodeToString([]byte("user:pass")),
+		)
+		assert.Equal(t, expected, actual)
+	}))
+	defer srv.Close()
+
+	creds := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+		"lfs.url": srv.URL + "/repo/lfs",
+	}))
+	require.Nil(t, err)
+	c.Credentials = creds
+
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req, false)
+	assert.True(t, errors.IsAuthError(err))
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+	assert.EqualValues(t, 1, called)
 }
 
 func TestDoAPIRequestWithAuth(t *testing.T) {

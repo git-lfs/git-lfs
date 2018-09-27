@@ -24,8 +24,22 @@ var (
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
-func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*http.Response, error) {
-	return c.doWithAuth(remote, access, req, nil)
+func (c *Client) DoWithAuth(remote string, access Access, req *http.Request, allowRetry bool) (*http.Response, error) {
+	res, err := c.doWithAuth(remote, access, req, nil)
+
+	if allowRetry && errors.IsAuthError(err) {
+		if len(req.Header.Get("Authorization")) == 0 {
+			// This case represents a rejected request that
+			// should have been authenticated but wasn't. Do
+			// not count this against our redirection
+			// maximum.
+			newAccess := c.Endpoints.AccessFor(access.url)
+			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.GetMode())
+			return c.DoWithAuth(remote, newAccess, req, allowRetry)
+		}
+	}
+
+	return res, err
 }
 
 // DoAPIRequestWithAuth sends an HTTP request to get an HTTP response similarly
@@ -35,7 +49,7 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 	operation := getReqOperation(req)
 	apiEndpoint := c.Endpoints.Endpoint(operation, remote)
 	access := c.Endpoints.AccessFor(apiEndpoint.Url)
-	return c.doWithAuth(remote, access, req, nil)
+	return c.DoWithAuth(remote, access, req, true)
 }
 
 func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via []*http.Request) (*http.Response, error) {
@@ -54,19 +68,9 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 				c.Endpoints.SetAccess(newAccess)
 			}
 
-			if creds != nil || (access.GetMode() == NoneAccess && len(req.Header.Get("Authorization")) == 0) {
-				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.GetMode())
-				if creds != nil {
-					req.Header.Del("Authorization")
-					credHelper.Reject(creds)
-				}
-
-				// This case represents a rejected request that
-				// should have been authenticated but wasn't. Do
-				// not count this against our redirection
-				// maximum, so do not recur through doWithAuth
-				// and instead call DoWithAuth.
-				return c.DoWithAuth(remote, newAccess, req)
+			if creds != nil {
+				req.Header.Del("Authorization")
+				credHelper.Reject(creds)
 			}
 		}
 	}
