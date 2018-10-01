@@ -182,3 +182,43 @@ begin_test "checkout: write-only file"
   popd > /dev/null
 )
 end_test
+
+begin_test "checkout: conflicts"
+(
+  set -e
+
+  reponame="checkout-conflicts"
+  filename="file1.dat"
+
+  setup_remote_repo_with_file "$reponame" "$filename"
+
+  pushd "$TRASHDIR" > /dev/null
+    clone_repo "$reponame" "${reponame}_checkout"
+
+    git tag base
+    git checkout -b first
+    echo "abc123" > file1.dat
+    git add -u
+    git commit -m "first"
+
+    git lfs checkout --to base.txt --base file1.dat 2>&1 | tee output.txt
+    grep 'Could not checkout.*not in the middle of a merge' output.txt
+
+    git checkout -b second master
+    echo "def456" > file1.dat
+    git add -u
+    git commit -m "second"
+
+    # This will cause a conflict.
+    ! git merge first
+
+    git lfs checkout --to base.txt --base file1.dat
+    git lfs checkout --to ours.txt --ours file1.dat
+    git lfs checkout --to theirs.txt --theirs file1.dat
+
+    echo "file1.dat" | cmp - base.txt
+    echo "abc123" | cmp - theirs.txt
+    echo "def456" | cmp - ours.txt
+  popd > /dev/null
+)
+end_test
