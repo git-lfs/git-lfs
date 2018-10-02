@@ -24,10 +24,10 @@ var (
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
-func (c *Client) DoWithAuth(remote string, access Access, req *http.Request, allowRetry bool) (*http.Response, error) {
+func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*http.Response, error) {
 	res, err := c.doWithAuth(remote, access, req, nil)
 
-	if allowRetry && errors.IsAuthError(err) {
+	if errors.IsAuthError(err) {
 		if len(req.Header.Get("Authorization")) == 0 {
 			// This case represents a rejected request that
 			// should have been authenticated but wasn't. Do
@@ -35,11 +35,18 @@ func (c *Client) DoWithAuth(remote string, access Access, req *http.Request, all
 			// maximum.
 			newAccess := c.Endpoints.AccessFor(access.url)
 			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
-			return c.DoWithAuth(remote, newAccess, req, allowRetry)
+			return c.DoWithAuth(remote, newAccess, req)
 		}
 	}
 
 	return res, err
+}
+
+// DoWithAuthNoRetry sends an HTTP request to get an HTTP response. It works in
+// the same way as DoWithAuth, but will not retry the request if it fails with
+// an authorization error.
+func (c *Client) DoWithAuthNoRetry(remote string, access Access, req *http.Request) (*http.Response, error) {
+	return c.doWithAuth(remote, access, req, nil)
 }
 
 // DoAPIRequestWithAuth sends an HTTP request to get an HTTP response similarly
@@ -49,7 +56,7 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 	operation := getReqOperation(req)
 	apiEndpoint := c.Endpoints.Endpoint(operation, remote)
 	access := c.Endpoints.AccessFor(apiEndpoint.Url)
-	return c.DoWithAuth(remote, access, req, true)
+	return c.DoWithAuth(remote, access, req)
 }
 
 func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via []*http.Request) (*http.Response, error) {

@@ -215,7 +215,7 @@ func (a *adapterBase) doHTTP(t *Transfer, req *http.Request) (*http.Response, er
 		return a.apiClient.Do(req)
 	}
 	endpoint := endpointURL(req.URL.String(), t.Oid)
-	return a.apiClient.DoWithAuth(a.remote, a.apiClient.Endpoints.AccessFor(endpoint), req, false)
+	return a.apiClient.DoWithAuthNoRetry(a.remote, a.apiClient.Endpoints.AccessFor(endpoint), req)
 }
 
 func advanceCallbackProgress(cb ProgressCallback, t *Transfer, numBytes int64) {

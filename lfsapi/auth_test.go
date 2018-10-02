@@ -89,7 +89,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req, true)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -155,7 +155,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL), req, true)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL), req)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -170,7 +170,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	assert.EqualValues(t, 3, called)
 }
 
-func TestDoWithAuthNoRetries(t *testing.T) {
+func TestDoWithAuthNoRetry(t *testing.T) {
 	var called uint32
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -211,7 +211,7 @@ func TestDoWithAuthNoRetries(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req, false)
+	res, err := c.DoWithAuthNoRetry("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
 	assert.True(t, errors.IsAuthError(err))
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
