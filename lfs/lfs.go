@@ -56,8 +56,8 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
 		fmt.Sprintf("LfsStorageDir=%s", cfg.LFSStorageDir()),
-		fmt.Sprintf("AccessDownload=%s", download.GetMode()),
-		fmt.Sprintf("AccessUpload=%s", upload.GetMode()),
+		fmt.Sprintf("AccessDownload=%s", download.Mode()),
+		fmt.Sprintf("AccessUpload=%s", upload.Mode()),
 		fmt.Sprintf("DownloadTransfers=%s", strings.Join(dltransfers, ",")),
 		fmt.Sprintf("UploadTransfers=%s", strings.Join(ultransfers, ",")),
 	)

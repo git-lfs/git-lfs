@@ -34,7 +34,7 @@ func (c *Client) DoWithAuth(remote string, access Access, req *http.Request, all
 			// not count this against our redirection
 			// maximum.
 			newAccess := c.Endpoints.AccessFor(access.url)
-			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.GetMode())
+			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
 			return c.DoWithAuth(remote, newAccess, req, allowRetry)
 		}
 	}
@@ -64,7 +64,7 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := access.Upgrade(getAuthAccess(res))
-			if newAccess.GetMode() != access.GetMode() {
+			if newAccess.Mode() != access.Mode() {
 				c.Endpoints.SetAccess(newAccess)
 			}
 
@@ -83,7 +83,7 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 }
 
 func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
-	if access.GetMode() == NTLMAccess {
+	if access.Mode() == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
 
@@ -135,8 +135,8 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 
-	if access.GetMode() != NTLMAccess {
-		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access.GetMode() == NoneAccess {
+	if access.Mode() != NTLMAccess {
+		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access.Mode() == NoneAccess {
 			return creds.NullCreds, nil, nil, nil
 		}
 

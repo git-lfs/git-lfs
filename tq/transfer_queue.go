@@ -765,7 +765,7 @@ func (q *TransferQueue) toAdapterCfg(e lfshttp.Endpoint) AdapterConfig {
 	apiClient := q.manifest.APIClient()
 	concurrency := q.manifest.ConcurrentTransfers()
 	access := apiClient.Endpoints.AccessFor(e.Url)
-	if access.GetMode() == lfsapi.NTLMAccess {
+	if access.Mode() == lfsapi.NTLMAccess {
 		concurrency = 1
 	}
 

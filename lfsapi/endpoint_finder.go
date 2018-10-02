@@ -36,7 +36,7 @@ func (a *Access) Upgrade(newMode AccessMode) Access {
 	return Access{url: a.url, mode: newMode}
 }
 
-func (a *Access) GetMode() AccessMode {
+func (a *Access) Mode() AccessMode {
 	return a.mode
 }
 
@@ -236,18 +236,18 @@ func (e *endpointGitFinder) AccessFor(rawurl string) Access {
 
 func (e *endpointGitFinder) SetAccess(access Access) {
 	key := fmt.Sprintf("lfs.%s.access", access.url)
-	tracerx.Printf("setting repository access to %s", access.mode)
+	tracerx.Printf("setting repository access to %s", access.Mode())
 
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
-	switch access.mode {
+	switch access.Mode() {
 	case emptyAccess, NoneAccess:
 		e.gitConfig.UnsetLocalKey(key)
 		e.urlAccess[access.url] = NoneAccess
 	default:
-		e.gitConfig.SetLocal(key, string(access.mode))
-		e.urlAccess[access.url] = access.mode
+		e.gitConfig.SetLocal(key, string(access.Mode()))
+		e.urlAccess[access.url] = access.Mode()
 	}
 }
 
