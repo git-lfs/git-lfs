@@ -20,10 +20,10 @@ wheezy.  On wheezy it requires `wheezy-backports` versions of `dh-golang`,
 
 ## Building an rpm
 
-An rpm package can be built by running ```./rpm/build_rpms.bsh```. All 
+An rpm package can be built by running ```./rpm/build_rpms.bsh```. All
 dependencies will be downloaded, compiled, and installed for you, provided
 you have sudo/root permissions. The resulting ./rpm/RPMS/x86_64/git-lfs*.rpm
-Can be installed using ```yum install``` or distributed. 
+Can be installed using ```yum install``` or distributed.
 
 - CentOS 7 - build_rpms.bsh will take care of everything. You only need the
 git-lfs rpm

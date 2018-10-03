@@ -44,7 +44,7 @@ begin_test "post-commit"
 
   # files should remain writeable since locked
   assert_file_writeable pcfile1.dat
-  assert_file_writeable pcfile2.dat 
+  assert_file_writeable pcfile2.dat
 
 )
 end_test

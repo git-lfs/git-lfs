@@ -5,7 +5,7 @@ Summary:        Packges for git-lfs for Enterprise Linux repository configuratio
 
 Group:          System Environment/Base
 License:        MIT
-%if 0%{?fedora} 
+%if 0%{?fedora}
 URL:            https://git-lfs.github.com/fedora/%{fedora}/
 %elseif 0%{?rhel}
 URL:            https://git-lfs.github.com/centos/%{rhel}/

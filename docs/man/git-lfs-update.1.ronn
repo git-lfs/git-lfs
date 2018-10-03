@@ -14,7 +14,7 @@ options below.
 ## OPTIONS
 
 * `--manual` `-m`
-    Print instructions for manually updating your hooks to include git-lfs 
+    Print instructions for manually updating your hooks to include git-lfs
     functionality. Use this option if `git lfs update` fails because of existing
     hooks and you want to retain their functionality.
 

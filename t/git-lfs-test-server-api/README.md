@@ -1,32 +1,32 @@
 # Git LFS Server API compliance test utility
 
-This package exists to provide automated testing of server API implementations, 
+This package exists to provide automated testing of server API implementations,
 to ensure that they conform to the behaviour expected by the client. You can
-run this utility against any server that implements the Git LFS API. 
+run this utility against any server that implements the Git LFS API.
 
 ## Automatic or data-driven testing
 
 This utility is primarily intended to test the API implementation, but in order
 to correctly test the responses, the tests have to know what objects exist on
-the server already and which don't. 
+the server already and which don't.
 
 In 'automatic' mode, the tests require that both the API and the content server
-it links to via upload and download links are both available & free to use. 
+it links to via upload and download links are both available & free to use.
 The content server must be empty at the start of the tests, and the tests will
 upload some data as part of the tests. Therefore obviously this cannot be a
 production system.
 
-Alternatively, in 'data-driven' mode, the tests must be provided with a list of 
+Alternatively, in 'data-driven' mode, the tests must be provided with a list of
 object IDs that already exist on the server (minimum 10), and a list of other
-object IDs that are known to not exist. The test will use these IDs to 
+object IDs that are known to not exist. The test will use these IDs to
 construct its data sets, will only call the API (not the content server), and
-thus will not update any data - meaning you can in theory run this against a 
-production system. 
+thus will not update any data - meaning you can in theory run this against a
+production system.
 
 ## Calling the test tool
 
 ```
-git-lfs-test-server-api [--url=<apiurl> | --clone=<cloneurl>] 
+git-lfs-test-server-api [--url=<apiurl> | --clone=<cloneurl>]
                         [<oid-exists-file> <oid-missing-file>]
                         [--save=<fileprefix>]
 ```
