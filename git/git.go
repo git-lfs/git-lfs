@@ -38,6 +38,15 @@ const (
 	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
+type IndexStage int
+
+const (
+	IndexStageDefault IndexStage = iota
+	IndexStageBase
+	IndexStageOurs
+	IndexStageTheirs
+)
+
 // Prefix returns the given RefType's prefix, "refs/heads", "ref/remotes",
 // etc. It returns an additional value of either true/false, whether or not this
 // given ref type has a prefix.

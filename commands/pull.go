@@ -43,6 +43,7 @@ type abstractCheckout interface {
 	Manifest() *tq.Manifest
 	Skip() bool
 	Run(*lfs.WrappedPointer)
+	RunToPath(*lfs.WrappedPointer, string) error
 	Close()
 }
 
@@ -81,9 +82,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		return
 	}
 
-	gitfilter := lfs.NewGitFilter(cfg)
-	err = gitfilter.SmudgeToFile(cwdfilepath, p.Pointer, false, c.manifest, nil)
-	if err != nil {
+	if err := c.RunToPath(p, cwdfilepath); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)
 			LoggedError(err, "Skipped checkout for %q, content not local. Use fetch to download.", p.Name)
@@ -97,6 +96,13 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 	if err := c.gitIndexer.Add(cwdfilepath); err != nil {
 		Panic(err, "Could not update the index")
 	}
+}
+
+// RunToPath checks out the pointer specified by p to the given path.  It does
+// not perform any sort of sanity checking or add the path to the index.
+func (c *singleCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
+	gitfilter := lfs.NewGitFilter(cfg)
+	return gitfilter.SmudgeToFile(path, p.Pointer, false, c.manifest, nil)
 }
 
 func (c *singleCheckout) Close() {
@@ -115,6 +121,10 @@ func (c *noOpCheckout) Manifest() *tq.Manifest {
 
 func (c *noOpCheckout) Skip() bool {
 	return true
+}
+
+func (c *noOpCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
+	return nil
 }
 
 func (c *noOpCheckout) Run(p *lfs.WrappedPointer) {}
