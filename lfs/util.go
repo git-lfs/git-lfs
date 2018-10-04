@@ -223,3 +223,27 @@ func LinkOrCopy(cfg *config.Configuration, src string, dst string) error {
 	}
 	return CopyFileContents(cfg, src, dst)
 }
+
+// TempFile creates a temporary file in the temporary directory specified by the
+// configuration that has the proper permissions for the repository.  On
+// success, it returns an open, non-nil *os.File, and the caller is responsible
+// for closing and/or removing it.  On failure, the temporary file is
+// automatically cleaned up and an error returned.
+//
+// This function is designed to handle only temporary files that will be renamed
+// into place later somewhere within the Git repository.
+func TempFile(cfg *config.Configuration, pattern string) (*os.File, error) {
+	tmp, err := ioutil.TempFile(cfg.TempDir(), pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	perms := cfg.RepositoryPermissions(false)
+	err = os.Chmod(tmp.Name(), perms)
+	if err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name())
+		return nil, err
+	}
+	return tmp, nil
+}

@@ -48,6 +48,8 @@ type Configuration struct {
 	loadingGit sync.Mutex // guards initialization of local git and working dirs
 	remotes    []string
 	extensions map[string]Extension
+	mask       int
+	maskOnce   sync.Once
 }
 
 func New() *Configuration {
@@ -76,6 +78,13 @@ func NewIn(workdir, gitdir string) *Configuration {
 		},
 	}
 	return c
+}
+
+func (c *Configuration) getMask() int {
+	c.maskOnce.Do(func() {
+		c.mask = umask()
+	})
+	return c.mask
 }
 
 func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
@@ -451,4 +460,10 @@ func (c *Configuration) CurrentCommitter() (name, email string) {
 	name, _ = c.Git.Get("user.name")
 	email, _ = c.Git.Get("user.email")
 	return
+}
+
+// RepositoryPermissions returns the permissions that should be used to write
+// files in the repository.
+func (c *Configuration) RepositoryPermissions() os.FileMode {
+	return os.FileMode(0666 & ^c.getMask())
 }
