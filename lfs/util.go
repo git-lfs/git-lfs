@@ -189,7 +189,7 @@ func IsWindows() bool {
 }
 
 func CopyFileContents(cfg *config.Configuration, src string, dst string) error {
-	tmp, err := ioutil.TempFile(cfg.TempDir(), filepath.Base(dst))
+	tmp, err := TempFile(cfg, filepath.Base(dst))
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func TempFile(cfg *config.Configuration, pattern string) (*os.File, error) {
 		return nil, err
 	}
 
-	perms := cfg.RepositoryPermissions(false)
+	perms := cfg.RepositoryPermissions()
 	err = os.Chmod(tmp.Name(), perms)
 	if err != nil {
 		tmp.Close()
