@@ -81,7 +81,7 @@ BUILD_LOCAL=1 ./build_rpms.bsh
 
 ### Troubleshooting ###
 
-**Q**) I ran build_rpms.bsh as root and now there are root owned files in the 
+**Q**) I ran build_rpms.bsh as root and now there are root owned files in the
 rpm dir
 
 **A**) That happens. Either run build_rpms.bsh as a user with sudo permissions

@@ -13,6 +13,6 @@ CONTAINER_NAME=git-lfs-gpg
 if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME})" != "true" ]; then
   OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
   OTHER_OPTIONS+=("-e" "GPG_MAX_CACHE=${GPG_MAX_CACHE:-31536000}")
-  
+
   ${SUDO} docker run -d -t "${OTHER_OPTIONS[@]}" --name ${CONTAINER_NAME} ${IMAGE_NAME}
 fi
