@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -81,8 +82,33 @@ func NewIn(workdir, gitdir string) *Configuration {
 }
 
 func (c *Configuration) getMask() int {
+	// This logic is necessarily complex because Git's logic is complex.
 	c.maskOnce.Do(func() {
-		c.mask = umask()
+		val, ok := c.Git.Get("core.sharedrepository")
+		if !ok {
+			val = "umask"
+		} else if Bool(val, false) {
+			val = "group"
+		}
+
+		switch strings.ToLower(val) {
+		case "group", "true", "1":
+			c.mask = 007
+		case "all", "world", "everybody", "2":
+			c.mask = 002
+		case "umask", "false", "0":
+			c.mask = umask()
+		default:
+			if mode, err := strconv.ParseInt(val, 8, 16); err != nil {
+				// If this doesn't look like an octal number, then it
+				// could be a falsy value, in which case we should use
+				// the umask, or it's just invalid, in which case the
+				// umask is a safe bet.
+				c.mask = umask()
+			} else {
+				c.mask = 0666 & ^int(mode)
+			}
+		}
 	})
 	return c.mask
 }
