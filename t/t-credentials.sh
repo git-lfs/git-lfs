@@ -352,7 +352,7 @@ begin_test "credentials from lfs.url"
   grep "HTTP: 401" push.log
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
-  [ ! $(grep "tq: retrying object" push.log) ]
+  [ ! "$(grep "tq: retrying object" push.log)" ]
   grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "bad fetch"
@@ -369,7 +369,7 @@ begin_test "credentials from lfs.url"
   GIT_TRACE=1 git lfs fetch --all 2>&1 | tee fetch.log
   # No 401 should occur as we've already set an access mode for the
   # storage endpoint during the push
-  [ ! $(grep "HTTP: 401" fetch.log) ]
+  [ ! "$(grep "HTTP: 401" fetch.log)" ]
   grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 
   echo "good fetch, setting access mode"
@@ -383,7 +383,7 @@ begin_test "credentials from lfs.url"
   grep "HTTP: 401" fetch.log
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
-  [ ! $(grep "tq: retrying object" fetch.log) ]
+  [ ! "$(grep "tq: retrying object" fetch.log)" ]
   grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 )
 end_test
@@ -416,7 +416,7 @@ begin_test "credentials from remote.origin.url"
   grep "HTTP: 401" push.log
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
-  [ ! $(grep "tq: retrying object" push.log) ]
+  [ ! "$(grep "tq: retrying object" push.log)" ]
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   echo "bad fetch"
@@ -434,7 +434,7 @@ begin_test "credentials from remote.origin.url"
   GIT_TRACE=1 git lfs fetch --all 2>&1 | tee fetch.log
   # No 401 should occur as we've already set an access mode for the
   # storage endpoint during the push
-  [ ! $(grep "HTTP: 401" fetch.log) ]
+  [ ! "$(grep "HTTP: 401" fetch.log)" ]
   grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 
   echo "good fetch, setting access mode"
@@ -448,7 +448,7 @@ begin_test "credentials from remote.origin.url"
   grep "HTTP: 401" fetch.log
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
-  [ ! $(grep "tq: retrying object" fetch.log) ]
+  [ ! "$(grep "tq: retrying object" fetch.log)" ]
   grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
 )
 end_test
