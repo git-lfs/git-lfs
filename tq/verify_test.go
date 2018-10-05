@@ -45,8 +45,13 @@ func TestVerifySuccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Set auth on the server URL but not on the /verify endpoint. Since auth
+	// will cause the request to fail, this will test that the correct access
+	// mode is being passed to `DoWithAuth()`
 	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.transfer.maxverifies": "1",
+		"lfs.transfer.maxverifies":          "1",
+		"lfs." + srv.URL + ".access":        "Basic",
+		"lfs." + srv.URL + "/verify.access": "None",
 	}))
 	require.Nil(t, err)
 	tr := &Transfer{

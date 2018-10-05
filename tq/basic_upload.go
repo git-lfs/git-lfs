@@ -100,7 +100,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	req.Body = reader
 
 	req = a.apiClient.LogRequest(req, "lfs.data.upload")
-	res, err := a.doHTTP(t, req)
+	res, err := a.makeRequest(t, req)
 	if err != nil {
 		if errors.IsUnprocessableEntityError(err) {
 			// If we got an HTTP 422, we do _not_ want to retry the
@@ -214,4 +214,22 @@ func configureBasicUploadAdapter(m *Manifest) {
 		}
 		return nil
 	})
+}
+
+func (a *basicUploadAdapter) makeRequest(t *Transfer, req *http.Request) (*http.Response, error) {
+	res, err := a.doHTTP(t, req)
+	if errors.IsAuthError(err) && len(req.Header.Get("Authorization")) == 0 {
+		// Construct a new body with just the raw file and no callbacks. Since
+		// all progress tracking happens when the net.http code copies our
+		// request body into a new request, we can safely make this request
+		// outside of the flow of the transfer adapter, and if it fails, the
+		// transfer progress will be rewound at the top level
+		f, _ := os.OpenFile(t.Path, os.O_RDONLY, 0644)
+		defer f.Close()
+
+		req.Body = tools.NewBodyWithCallback(f, t.Size, nil)
+		return a.makeRequest(t, req)
+	}
+
+	return res, err
 }

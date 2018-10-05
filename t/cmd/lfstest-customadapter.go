@@ -115,7 +115,7 @@ func performDownload(apiClient *lfsapi.Client, oid string, size int64, a *action
 		req.Header.Set(k, a.Header[k])
 	}
 
-	res, err := apiClient.DoWithAuth("origin", req)
+	res, err := apiClient.DoAPIRequestWithAuth("origin", req)
 	if err != nil {
 		statusCode := 6
 		if res != nil {
@@ -197,7 +197,7 @@ func performUpload(apiClient *lfsapi.Client, oid string, size int64, a *action, 
 	}
 	req.Body = tools.NewBodyWithCallback(f, size, cb)
 
-	res, err := apiClient.DoWithAuth("origin", req)
+	res, err := apiClient.DoAPIRequestWithAuth("origin", req)
 	if err != nil {
 		sendTransferError(oid, res.StatusCode, fmt.Sprintf("Error uploading data for %s: %v", oid, err), writer, errWriter)
 		return

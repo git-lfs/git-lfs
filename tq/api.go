@@ -66,7 +66,7 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
 	req = c.Client.LogRequest(req, "lfs.batch")
-	res, err := c.DoWithAuth(remote, lfshttp.WithRetries(req, c.MaxRetries))
+	res, err := c.DoAPIRequestWithAuth(remote, lfshttp.WithRetries(req, c.MaxRetries))
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
 		return nil, errors.Wrap(err, "batch response")

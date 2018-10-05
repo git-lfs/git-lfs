@@ -25,7 +25,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		endpoint := getAPIClient().Endpoints.Endpoint("download", defaultRemote)
 		if len(endpoint.Url) > 0 {
 			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
-			Print("Endpoint=%s (auth=%s)", endpoint.Url, access)
+			Print("Endpoint=%s (auth=%s)", endpoint.Url, access.Mode())
 			if len(endpoint.SshUserAndHost) > 0 {
 				Print("  SSH=%s:%s", endpoint.SshUserAndHost, endpoint.SshPath)
 			}
@@ -38,7 +38,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		}
 		remoteEndpoint := getAPIClient().Endpoints.RemoteEndpoint("download", remote)
 		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
-		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess)
+		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess.Mode())
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SshUserAndHost, remoteEndpoint.SshPath)
 		}

@@ -23,7 +23,7 @@ type authRequest struct {
 }
 
 func TestAuthenticateHeaderAccess(t *testing.T) {
-	tests := map[string]Access{
+	tests := map[string]AccessMode{
 		"":                BasicAccess,
 		"basic 123":       BasicAccess,
 		"basic":           BasicAccess,
@@ -81,7 +81,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	require.Nil(t, err)
 	c.Credentials = cred
 
-	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -89,7 +89,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", req)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -99,7 +99,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 		"protocol": "http",
 		"host":     srv.Listener.Addr().String(),
 	})))
-	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs"))
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
 	assert.EqualValues(t, 2, called)
 }
 
@@ -155,7 +155,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
 	require.Nil(t, err)
 
-	res, err := c.DoWithAuth("", req)
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL), req)
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -168,6 +168,109 @@ func TestDoWithAuthReject(t *testing.T) {
 		"host":     srv.Listener.Addr().String(),
 	})))
 	assert.EqualValues(t, 3, called)
+}
+
+func TestDoWithAuthNoRetry(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
+		w.Header().Set("Lfs-Authenticate", "Basic")
+		actual := req.Header.Get("Authorization")
+		if len(actual) == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		expected := "Basic " + strings.TrimSpace(
+			base64.StdEncoding.EncodeToString([]byte("user:pass")),
+		)
+		assert.Equal(t, expected, actual)
+	}))
+	defer srv.Close()
+
+	creds := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+		"lfs.url": srv.URL + "/repo/lfs",
+	}))
+	require.Nil(t, err)
+	c.Credentials = creds
+
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuthNoRetry("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	assert.True(t, errors.IsAuthError(err))
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+	assert.EqualValues(t, 1, called)
+}
+
+func TestDoAPIRequestWithAuth(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
+		w.Header().Set("Lfs-Authenticate", "Basic")
+		actual := req.Header.Get("Authorization")
+		if len(actual) == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		expected := "Basic " + strings.TrimSpace(
+			base64.StdEncoding.EncodeToString([]byte("user:pass")),
+		)
+		assert.Equal(t, expected, actual)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+		"lfs.url": srv.URL + "/repo/lfs",
+	}))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	assert.Equal(t, NoneAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	res, err := c.DoAPIRequestWithAuth("", req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
+		"username": "user",
+		"password": "pass",
+		"protocol": "http",
+		"host":     srv.Listener.Addr().String(),
+	})))
+	assert.Equal(t, BasicAccess, c.Endpoints.AccessFor(srv.URL+"/repo/lfs").mode)
+	assert.EqualValues(t, 2, called)
 }
 
 type mockCredentialHelper struct {
@@ -228,8 +331,7 @@ func basicAuth(user, pass string) string {
 }
 
 type getCredsExpected struct {
-	Endpoint      string
-	Access        Access
+	Access        AccessMode
 	Creds         creds.Creds
 	CredsURL      string
 	Authorization string
@@ -239,6 +341,7 @@ type getCredsTest struct {
 	Remote   string
 	Method   string
 	Href     string
+	Endpoint string
 	Header   map[string]string
 	Config   map[string]string
 	Expected getCredsExpected
@@ -247,28 +350,28 @@ type getCredsTest struct {
 func TestGetCreds(t *testing.T) {
 	tests := map[string]getCredsTest{
 		"no access": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 			},
 			Expected: getCredsExpected{
-				Access:   NoneAccess,
-				Endpoint: "https://git-server.com/repo/lfs",
+				Access: NoneAccess,
 			},
 		},
 		"basic access": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -280,9 +383,10 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"basic access with usehttppath": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
@@ -290,7 +394,6 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -303,9 +406,10 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"basic access with url-specific usehttppath": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access":    "basic",
@@ -313,7 +417,6 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -326,16 +429,16 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"ntlm": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "ntlm",
 			},
 			Expected: getCredsExpected{
 				Access:   NTLMAccess,
-				Endpoint: "https://git-server.com/repo/lfs",
 				CredsURL: "https://git-server.com/repo/lfs",
 				Creds: map[string]string{
 					"protocol": "https",
@@ -346,16 +449,16 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"ntlm with netrc": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://netrc-host.com/repo/lfs/locks",
+			Endpoint: "https://netrc-host.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://netrc-host.com/repo/lfs",
 				"lfs.https://netrc-host.com/repo/lfs.access": "ntlm",
 			},
 			Expected: getCredsExpected{
 				Access:   NTLMAccess,
-				Endpoint: "https://netrc-host.com/repo/lfs",
 				CredsURL: "https://netrc-host.com/repo/lfs",
 				Creds: map[string]string{
 					"protocol": "https",
@@ -367,9 +470,10 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"custom auth": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Header: map[string]string{
 				"Authorization": "custom",
 			},
@@ -379,35 +483,34 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: "custom",
 			},
 		},
 		"netrc": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://netrc-host.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://netrc-host.com/repo/lfs/locks",
+			Endpoint: "https://netrc-host.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://netrc-host.com/repo/lfs",
 				"lfs.https://netrc-host.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://netrc-host.com/repo/lfs",
 				Authorization: basicAuth("abc", "def"),
 			},
 		},
 		"username in url": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://user@git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://user@git-server.com/repo/lfs",
 				Authorization: basicAuth("user", "monkey"),
 				CredsURL:      "https://user@git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -419,9 +522,10 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"different remote url, basic access": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
@@ -429,7 +533,6 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo",
 				Creds: map[string]string{
@@ -441,23 +544,24 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"api url auth": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/locks",
+			Endpoint: "https://git-server.com/repo",
 			Config: map[string]string{
 				"lfs.url":                                "https://user:pass@git-server.com/repo",
 				"lfs.https://git-server.com/repo.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://user:pass@git-server.com/repo",
 				Authorization: basicAuth("user", "pass"),
 			},
 		},
 		"git url auth": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com/repo/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com/repo/locks",
+			Endpoint: "https://git-server.com/repo",
 			Config: map[string]string{
 				"lfs.url":                                "https://git-server.com/repo",
 				"lfs.https://git-server.com/repo.access": "basic",
@@ -465,21 +569,20 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo",
 				Authorization: basicAuth("user", "pass"),
 			},
 		},
 		"scheme mismatch": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "http://git-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "http://git-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "http://git-server.com/repo/lfs/locks",
 				Creds: map[string]string{
@@ -491,16 +594,16 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"host mismatch": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://lfs-server.com/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://lfs-server.com/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("lfs-server.com", "monkey"),
 				CredsURL:      "https://lfs-server.com/repo/lfs/locks",
 				Creds: map[string]string{
@@ -512,16 +615,16 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"port mismatch": getCredsTest{
-			Remote: "origin",
-			Method: "GET",
-			Href:   "https://git-server.com:8080/repo/lfs/locks",
+			Remote:   "origin",
+			Method:   "GET",
+			Href:     "https://git-server.com:8080/repo/lfs/locks",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com:8080", "monkey"),
 				CredsURL:      "https://git-server.com:8080/repo/lfs/locks",
 				Creds: map[string]string{
@@ -533,9 +636,10 @@ func TestGetCreds(t *testing.T) {
 			},
 		},
 		"bare ssh URI": getCredsTest{
-			Remote: "origin",
-			Method: "POST",
-			Href:   "https://git-server.com/repo/lfs/objects/batch",
+			Remote:   "origin",
+			Method:   "POST",
+			Href:     "https://git-server.com/repo/lfs/objects/batch",
+			Endpoint: "https://git-server.com/repo/lfs",
 			Config: map[string]string{
 				"lfs.url": "https://git-server.com/repo/lfs",
 				"lfs.https://git-server.com/repo/lfs.access": "basic",
@@ -544,7 +648,6 @@ func TestGetCreds(t *testing.T) {
 			},
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
-				Endpoint:      "https://git-server.com/repo/lfs",
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
 				Creds: map[string]string{
@@ -574,12 +677,11 @@ func TestGetCreds(t *testing.T) {
 		client.Credentials = &fakeCredentialFiller{}
 		client.Netrc = &fakeNetrc{}
 		client.Endpoints = NewEndpointFinder(ctx)
-		endpoint, access, _, credsURL, creds, err := client.getCreds(test.Remote, req)
+		_, credsURL, creds, err := client.getCreds(test.Remote, client.Endpoints.AccessFor(test.Endpoint), req)
 		if !assert.Nil(t, err) {
 			continue
 		}
-		assert.Equal(t, test.Expected.Endpoint, endpoint.Url, "endpoint")
-		assert.Equal(t, test.Expected.Access, access, "access")
+
 		assert.Equal(t, test.Expected.Authorization, req.Header.Get("Authorization"), "authorization")
 
 		if test.Expected.Creds != nil {
@@ -686,7 +788,7 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	req, err := http.NewRequest("GET", srv1.URL, nil)
 	require.Nil(t, err)
 
-	_, err = c.DoWithAuth("", req)
+	_, err = c.DoAPIRequestWithAuth("", req)
 	assert.Nil(t, err)
 
 	// called1 is 2 since LFS tries an unauthenticated request first

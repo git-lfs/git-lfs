@@ -1257,6 +1257,11 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	}
 
 	auth := r.Header.Get("Authorization")
+	if len(auth) == 0 {
+		writeLFSError(w, 401, "Error: Authorization Required")
+		return true
+	}
+
 	user, pass, err := extractAuth(auth)
 	if err != nil {
 		writeLFSError(w, 403, err.Error())

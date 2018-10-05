@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -109,7 +110,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	}
 
 	req = a.apiClient.LogRequest(req, "lfs.data.download")
-	res, err := a.doHTTP(t, req)
+	res, err := a.makeRequest(t, req)
 	if err != nil {
 		// Special-case status code 416 () - fall back
 		if fromByte > 0 && dlFile != nil && (res != nil && res.StatusCode == 416) {
@@ -230,4 +231,13 @@ func configureBasicDownloadAdapter(m *Manifest) {
 		}
 		return nil
 	})
+}
+
+func (a *basicDownloadAdapter) makeRequest(t *Transfer, req *http.Request) (*http.Response, error) {
+	res, err := a.doHTTP(t, req)
+	if errors.IsAuthError(err) && len(req.Header.Get("Authorization")) == 0 {
+		return a.makeRequest(t, req)
+	}
+
+	return res, err
 }

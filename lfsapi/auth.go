@@ -24,14 +24,45 @@ var (
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
-func (c *Client) DoWithAuth(remote string, req *http.Request) (*http.Response, error) {
-	return c.doWithAuth(remote, req, nil)
+func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*http.Response, error) {
+	res, err := c.doWithAuth(remote, access, req, nil)
+
+	if errors.IsAuthError(err) {
+		if len(req.Header.Get("Authorization")) == 0 {
+			// This case represents a rejected request that
+			// should have been authenticated but wasn't. Do
+			// not count this against our redirection
+			// maximum.
+			newAccess := c.Endpoints.AccessFor(access.url)
+			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
+			return c.DoWithAuth(remote, newAccess, req)
+		}
+	}
+
+	return res, err
 }
 
-func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Request) (*http.Response, error) {
+// DoWithAuthNoRetry sends an HTTP request to get an HTTP response. It works in
+// the same way as DoWithAuth, but will not retry the request if it fails with
+// an authorization error.
+func (c *Client) DoWithAuthNoRetry(remote string, access Access, req *http.Request) (*http.Response, error) {
+	return c.doWithAuth(remote, access, req, nil)
+}
+
+// DoAPIRequestWithAuth sends an HTTP request to get an HTTP response similarly
+// to DoWithAuth, but using the LFS API endpoint for the provided remote and
+// operation to determine the access mode.
+func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.Response, error) {
+	operation := getReqOperation(req)
+	apiEndpoint := c.Endpoints.Endpoint(operation, remote)
+	access := c.Endpoints.AccessFor(apiEndpoint.Url)
+	return c.DoWithAuth(remote, access, req)
+}
+
+func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.client.ExtraHeadersFor(req)
 
-	apiEndpoint, access, credHelper, credsURL, creds, err := c.getCreds(remote, req)
+	credHelper, credsURL, creds, err := c.getCreds(remote, access, req)
 	if err != nil {
 		return nil, err
 	}
@@ -39,24 +70,14 @@ func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Reques
 	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
-			newAccess := getAuthAccess(res)
-			if newAccess != access {
-				c.Endpoints.SetAccess(apiEndpoint.Url, newAccess)
+			newAccess := access.Upgrade(getAuthAccess(res))
+			if newAccess.Mode() != access.Mode() {
+				c.Endpoints.SetAccess(newAccess)
 			}
 
-			if creds != nil || (access == NoneAccess && len(req.Header.Get("Authorization")) == 0) {
-				tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess)
-				if creds != nil {
-					req.Header.Del("Authorization")
-					credHelper.Reject(creds)
-				}
-
-				// This case represents a rejected request that
-				// should have been authenticated but wasn't. Do
-				// not count this against our redirection
-				// maximum, so do not recur through doWithAuth
-				// and instead call DoWithAuth.
-				return c.DoWithAuth(remote, req)
+			if creds != nil {
+				req.Header.Del("Authorization")
+				credHelper.Reject(creds)
 			}
 		}
 	}
@@ -69,7 +90,7 @@ func (c *Client) doWithAuth(remote string, req *http.Request, via []*http.Reques
 }
 
 func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
-	if access == NTLMAccess {
+	if access.Mode() == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
 
@@ -84,7 +105,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelpe
 		return res, errors.New("failed to redirect request")
 	}
 
-	return c.doWithAuth("", redirectedReq, via)
+	return c.doWithAuth("", access, redirectedReq, via)
 }
 
 // getCreds fills the authorization header for the given request if possible,
@@ -107,7 +128,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelpe
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, Access, creds.CredentialHelper, *url.URL, creds.Creds, error) {
+func (c *Client) getCreds(remote string, access Access, req *http.Request) (creds.CredentialHelper, *url.URL, creds.Creds, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -120,20 +141,19 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
-	access := ef.AccessFor(apiEndpoint.Url)
 
-	if access != NTLMAccess {
-		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access == NoneAccess {
-			return apiEndpoint, access, creds.NullCreds, nil, nil, nil
+	if access.Mode() != NTLMAccess {
+		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access.Mode() == NoneAccess {
+			return creds.NullCreds, nil, nil, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return apiEndpoint, access, creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
+			return creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			return apiEndpoint, access, creds.NullCreds, nil, nil, nil
+			return creds.NullCreds, nil, nil, nil
 		}
 
 		credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
@@ -141,14 +161,14 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 			tracerx.Printf("Filled credentials for %s", credsURL)
 			setRequestAuth(req, creds["username"], creds["password"])
 		}
-		return apiEndpoint, access, credHelper, credsURL, creds, err
+		return credHelper, credsURL, creds, err
 	}
 
 	// NTLM ONLY
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return apiEndpoint, access, creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
+		return creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
 	}
 
 	if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
@@ -160,12 +180,12 @@ func (c *Client) getCreds(remote string, req *http.Request) (lfshttp.Endpoint, A
 			"source":   "netrc",
 		}
 
-		return apiEndpoint, access, creds.NullCreds, credsURL, cred, nil
+		return creds.NullCreds, credsURL, cred, nil
 	}
 
 	// NTLM uses creds to create the session
 	credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
-	return apiEndpoint, access, credHelper, credsURL, creds, err
+	return credHelper, credsURL, creds, err
 }
 
 func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (creds.CredentialHelper, creds.Creds, error) {
@@ -339,7 +359,7 @@ var (
 	authenticateHeaders = []string{"Lfs-Authenticate", "Www-Authenticate"}
 )
 
-func getAuthAccess(res *http.Response) Access {
+func getAuthAccess(res *http.Response) AccessMode {
 	for _, headerName := range authenticateHeaders {
 		for _, auth := range res.Header[headerName] {
 			pieces := strings.SplitN(strings.ToLower(auth), " ", 2)
@@ -347,7 +367,7 @@ func getAuthAccess(res *http.Response) Access {
 				continue
 			}
 
-			switch Access(pieces[0]) {
+			switch AccessMode(pieces[0]) {
 			case NegotiateAccess, NTLMAccess:
 				// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTLM.
 				// Since git-lfs current does not support Kerberos, we will return NTLM in this case.

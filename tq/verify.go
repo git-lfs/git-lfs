@@ -51,7 +51,7 @@ func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 		if t.Authenticated {
 			res, err = c.Do(req)
 		} else {
-			res, err = c.DoWithAuth(remote, req)
+			res, err = c.DoWithAuth(remote, c.Endpoints.AccessFor(action.Href), req)
 		}
 
 		if err != nil {
