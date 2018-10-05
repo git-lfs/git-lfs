@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
@@ -34,14 +33,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	} else if checkoutTo != "" || stage != git.IndexStageDefault {
 		Exit("--to and exactly one of --theirs, --ours, and --base must be used together")
 	}
-
-	msg := []string{
-		"WARNING: 'git lfs checkout' is deprecated and will be removed in v3.0.0.",
-
-		"'git checkout' has been updated in upstream Git to have comparable speeds",
-		"to 'git lfs checkout'.",
-	}
-	fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
 
 	ref, err := git.CurrentRef()
 	if err != nil {
