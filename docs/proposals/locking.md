@@ -115,7 +115,7 @@ support:
 
 This is useful because it means it provides a reminder that the user should be
 locking the file before they start to edit it, to avoid the case of an unexpected
-merge later on. 
+merge later on.
 
 I've done some tests with chmod and discovered:
 
@@ -151,7 +151,7 @@ I've done some tests with chmod and discovered:
   * Calls `post-checkout` with pre/post SHA and branch=1 (even though it's a plain SHA)
 * Checkout named files (e.g. discard changes)
   * Calls `post-checkout` with identical pre/post SHA (HEAD) and branch=0
-* Reset all files (discard all changes ie git reset --hard HEAD) 
+* Reset all files (discard all changes ie git reset --hard HEAD)
   * Doesn't call `post-checkout` - could restore write bit, but must have been
     set anyway for file to be edited, so not a problem?
 * Reset a branch to a previous commit
@@ -161,7 +161,7 @@ I've done some tests with chmod and discovered:
 * Rebase a branch with lockable files (non-conflicting)
 * Merge conflicts - fix then commit
 * Rebase conflicts - fix then continue
-* 
+*
 
 
 ## Implementation details (Initial simple API-only pass)

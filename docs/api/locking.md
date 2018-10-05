@@ -26,7 +26,7 @@ simplest use case: single branch locking. The API is designed to be extensible
 as we experiment with more advanced locking scenarios, as defined in the
 [original proposal](/docs/proposals/locking.md).
 
-The [Batch API's `ref` property docs](./batch.md#ref-property) describe how the `ref` property can be used to support auth schemes that include the server ref. Locking API implementations should also only use it for authentication, until advanced locking scenarios have been developed. 
+The [Batch API's `ref` property docs](./batch.md#ref-property) describe how the `ref` property can be used to support auth schemes that include the server ref. Locking API implementations should also only use it for authentication, until advanced locking scenarios have been developed.
 
 ## Create Lock
 

@@ -33,8 +33,6 @@ commands and low level ("plumbing") commands.
     Display the Git LFS environment.
 * git-lfs-checkout(1):
     Populate working copy with real content from Git LFS files.
-* git-lfs-clone(1):
-    Efficiently clone a Git LFS-enabled repository.
 * git-lfs-fetch(1):
     Download Git LFS files from a remote.
 * git-lfs-fsck(1):
