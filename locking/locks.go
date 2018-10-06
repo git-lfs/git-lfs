@@ -204,7 +204,7 @@ type Lock struct {
 // If localOnly = true, don't query the server & report only own local locks
 func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) ([]Lock, error) {
 	if localOnly {
-		return c.searchCachedLocks(filter, limit)
+		return c.searchLocalLocks(filter, limit)
 	} else {
 		return c.searchRemoteLocks(filter, limit)
 	}
@@ -272,7 +272,7 @@ func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks 
 	return ourLocks, theirLocks, nil
 }
 
-func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
+func (c *Client) searchLocalLocks(filter map[string]string, limit int) ([]Lock, error) {
 	cachedlocks := c.cache.Locks()
 	path, filterByPath := filter["path"]
 	id, filterById := filter["id"]
@@ -372,7 +372,7 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 // current user, as cached locally
 func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
 	filter := map[string]string{"path": path}
-	locks, err := c.searchCachedLocks(filter, 1)
+	locks, err := c.searchLocalLocks(filter, 1)
 	if err != nil {
 		tracerx.Printf("Error searching cached locks: %s\nForcing remote search", err)
 		locks, _ = c.searchRemoteLocks(filter, 1)
