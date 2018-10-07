@@ -1,6 +1,7 @@
 package locking
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -41,6 +42,7 @@ type Client struct {
 	RemoteRef *git.Ref
 	client    *lockClient
 	cache     LockCacher
+	cacheDir  string
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -79,6 +81,7 @@ func (c *Client) SetupFileCache(path string) error {
 	}
 
 	c.cache = cache
+	c.cacheDir = filepath.Join(path, "cache")
 	return nil
 }
 
@@ -206,7 +209,21 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	if localOnly {
 		return c.searchLocalLocks(filter, limit)
 	} else {
-		return c.searchRemoteLocks(filter, limit)
+		locks, err := c.searchRemoteLocks(filter, limit)
+		if err != nil {
+			return locks, err
+		}
+
+		if len(filter) == 0 && limit == 0 {
+			cacheFile, err := c.prepareCacheDirectory()
+			if err != nil {
+				return locks, err
+			}
+
+			err = c.writeLocksToCacheFile(cacheFile, locks)
+		}
+
+		return locks, err
 	}
 }
 
@@ -382,6 +399,44 @@ func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
 
 func init() {
 	kv.RegisterTypeForStorage(&Lock{})
+}
+
+func (c *Client) prepareCacheDirectory() (string, error) {
+	cacheDir := filepath.Join(c.cacheDir, "locks")
+	if c.RemoteRef != nil {
+		cacheDir = filepath.Join(cacheDir, c.RemoteRef.Refspec())
+	}
+
+	stat, err := os.Stat(cacheDir)
+	if err == nil {
+		if !stat.IsDir() {
+			return cacheDir, errors.New("init cache directory " + cacheDir + " failed: already exists, but is no directory")
+		}
+	} else if os.IsNotExist(err) {
+		err = os.MkdirAll(cacheDir, os.ModePerm)
+		if err != nil {
+			return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed: directory creation failed")
+		}
+	} else {
+		return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed")
+	}
+
+	return filepath.Join(cacheDir, "remote"), nil
+}
+
+func (c *Client) writeLocksToCacheFile(path string, locks []Lock) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.NewEncoder(file).Encode(locks)
+	if err != nil {
+		file.Close()
+		return err
+	}
+
+	return file.Close()
 }
 
 type nilLockCacher struct{}
