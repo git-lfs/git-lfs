@@ -205,9 +205,29 @@ type Lock struct {
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
 // If localOnly = true, don't query the server & report only own local locks
-func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) ([]Lock, error) {
+func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool, cached bool) ([]Lock, error) {
 	if localOnly {
 		return c.searchLocalLocks(filter, limit)
+	} else if cached {
+		if len(filter) > 0 || limit != 0 {
+			return []Lock{}, errors.New("can't search cached locks when filter or limit is set")
+		}
+
+		cacheFile, err := c.prepareCacheDirectory()
+		if err != nil {
+			return []Lock{}, err
+		}
+
+		_, err = os.Stat(cacheFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return []Lock{}, errors.New("no cached locks present")
+			}
+
+			return []Lock{}, err
+		}
+
+		return c.readLocksFromCacheFile(cacheFile)
 	} else {
 		locks, err := c.searchRemoteLocks(filter, limit)
 		if err != nil {
@@ -422,6 +442,23 @@ func (c *Client) prepareCacheDirectory() (string, error) {
 	}
 
 	return filepath.Join(cacheDir, "remote"), nil
+}
+
+func (c *Client) readLocksFromCacheFile(path string) ([]Lock, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return []Lock{}, err
+	}
+
+	defer file.Close()
+
+	locks := []Lock{}
+	err = json.NewDecoder(file).Decode(&locks)
+	if err != nil {
+		return []Lock{}, err
+	}
+
+	return locks, nil
 }
 
 func (c *Client) writeLocksToCacheFile(path string, locks []Lock) error {

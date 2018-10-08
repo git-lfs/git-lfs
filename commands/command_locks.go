@@ -32,7 +32,19 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
-	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local)
+	if locksCmdFlags.Cached {
+		if locksCmdFlags.Limit > 0 {
+			Exit("--cached option can't be combined with --limit")
+		}
+		if len(filters) > 0 {
+			Exit("--cached option can't be combined with filters")
+		}
+		if locksCmdFlags.Local {
+			Exit("--cached option can't be combined with --local")
+		}
+	}
+
+	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local, locksCmdFlags.Cached)
 	// Print any we got before exiting
 
 	if locksCmdFlags.JSON {
@@ -93,6 +105,9 @@ type locksFlags struct {
 	Local bool
 	// JSON is an optional parameter to output data in json format.
 	JSON bool
+	// for non-local queries, report cached query results from the last query
+	// instead of actually querying the server again
+	Cached bool
 }
 
 // Filters produces a filter based on locksFlags instance.
@@ -121,6 +136,7 @@ func init() {
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
+		cmd.Flags().BoolVarP(&locksCmdFlags.Cached, "cached", "", false, "list cached lock information from the last remote query, instead of actually querying the server")
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }

@@ -21,7 +21,13 @@ Lists current locks from the Git LFS server.
   Specifies a lock by its path. Returns a single result.
 
 * `--local`:
-  Lists only the locks cached locally. Skips a remote call.
+  Lists only our own locks which are cached locally. Skips a remote call.
+
+* `--cached`:
+  Lists cached locks from the last remote call. Contrary to --local, this will
+  include locks of other users as well. This option is intended to display the
+  last known locks in case you are offline. There is no guarantee that locks
+  on the server have not changed in the meanwhile.
 
 * `-l <num>` `--limit=<num>`:
   Specifies number of results to return.
