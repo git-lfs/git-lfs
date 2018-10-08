@@ -1053,6 +1053,14 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
+	if repo == "netrctest" {
+		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		if err != nil || (user == "netrcuser" && pass == "badpassretry") {
+			writeLFSError(w, 401, "Error: Bad Auth")
+			return
+		}
+	}
+
 	switch r.Method {
 	case "GET":
 		if !lockRe.MatchString(r.URL.Path) {

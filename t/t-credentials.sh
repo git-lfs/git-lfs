@@ -336,6 +336,61 @@ begin_test "credentials from netrc with bad password"
 )
 end_test
 
+begin_test "credentials with bad netrc creds will retry"
+(
+  set -e
+
+  printf "machine localhost\nlogin netrcuser\npassword badpassretry\n" >> "$NETRCFILE"
+  echo $HOME
+  echo "GITSERVER $GITSERVER"
+  cat $NETRCFILE
+
+  # prevent prompts on Windows particularly
+  export SSH_ASKPASS=
+
+  # ensure we provide the correct creds through ASKPASS so we can fall back
+  # when .netrc fails
+  export LFS_ASKPASS_USERNAME="netrcuser"
+  export LFS_ASKPASS_PASSWORD="netrcpass"
+
+  reponame="netrctest"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo4
+
+  # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
+  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+  git lfs env
+
+  git lfs track "*.dat"
+  echo "push a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  GIT_TRACE=1 GIT_ASKPASS="lfs-askpass" git push netrc master 2>&1 | tee push.log
+  grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log
+
+  # netrc credentials should be attempted then rejected for the lock request
+  echo "netrc credentials attempted:"
+  [ "1" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+
+  echo "netrc credentials rejected:"
+  [ "1" -eq "$(cat push.log | grep "netrc: git credential reject" | wc -l)" ]
+
+  # credhelper should then use askpass to find the proper credentials, which
+  # should be successful
+  echo "askpass credentials attempted:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+
+  echo "askpass credentials approved:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+
+  # askpass creds should be cached and used for the batch request
+  echo "cached credentials used:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential cache" | wc -l)" ]
+)
+end_test
+
 begin_test "credentials from lfs.url"
 (
   set -e
