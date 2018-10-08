@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"sort"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
@@ -65,6 +66,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
+	excludeOIDs := cfg.FetchExcludeOIDs()
 
 	if fetchAllArg {
 		if fetchRecentArg || len(args) > 1 {
@@ -76,7 +78,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
-		success = fetchAll()
+		success = fetchAll(excludeOIDs)
 
 	} else { // !all
 		filter := buildFilepathFilter(cfg, include, exclude)
@@ -219,8 +221,18 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	return ok
 }
 
-func fetchAll() bool {
+func fetchAll(excludedOIDs []string) bool {
 	pointers := scanAll()
+	if excludedOIDs != nil && len(excludedOIDs) > 0 {
+		var cleaned = make([]*lfs.WrappedPointer, 0, len(pointers))
+		for _, p := range pointers {
+			// TODO uppercase/lowercase?
+			if excludedOIDs[sort.SearchStrings(excludedOIDs, p.Oid)] != p.Oid {
+				cleaned = append(cleaned, p)
+			}
+		}
+		pointers = cleaned
+	}
 	Print("fetch: Fetching all references...")
 	return fetchAndReportToChan(pointers, nil, nil)
 }

@@ -192,12 +192,29 @@ begin_test "fetch with include/exclude filters in gitconfig"
 )
 end_test
 
-begin_test "fetch with include filter in cli"
+begin_test "fetch with excluded OIDs"
 (
   set -e
   cd clone
   git config --unset "lfs.fetchinclude"
   git config --unset "lfs.fetchexclude"
+  rm -rf .git/lfs/objects
+
+  git config "lfs.fetchexcludeoids" "$contents_oid"
+  git lfs fetch --all origin
+  refute_local_object "$contents_oid"
+  assert_local_object "$b_oid" 1
+  objectlist=$(find .git/lfs/objects -type f)
+  [ "$(echo "$objectlist" | wc -l)" -eq 1 ]
+
+)
+end_test
+
+begin_test "fetch with include filter in cli"
+(
+  set -e
+  cd clone
+  git config --unset "lfs.fetchexcludeoids"
   rm -rf .git/lfs/objects
 
   git lfs fetch --include="a*" origin master newbranch

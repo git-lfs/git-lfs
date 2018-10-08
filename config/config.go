@@ -149,6 +149,23 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
+func (c *Configuration) FetchExcludeOIDs() []string {
+	var cleaned []string
+	oids, _ := c.Git.Get("lfs.fetchexcludeoids")
+
+	if oids = strings.TrimSpace(oids); len(oids) == 0 {
+		return cleaned
+	}
+
+	for _, part := range strings.Split(oids, ",") {
+		part = strings.TrimSpace(part)
+		cleaned = append(cleaned, part)
+	}
+
+	// TODO: normalize case?
+	return cleaned
+}
+
 func (c *Configuration) CurrentRef() *git.Ref {
 	c.loading.Lock()
 	defer c.loading.Unlock()
