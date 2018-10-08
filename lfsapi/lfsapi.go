@@ -13,7 +13,6 @@ import (
 type Client struct {
 	Endpoints   EndpointFinder
 	Credentials creds.CredentialHelper
-	Netrc       NetrcFinder
 
 	ntlmSessions map[string]ntlm.ClientSession
 	ntlmMu       sync.Mutex
@@ -30,10 +29,6 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 
 	gitEnv := ctx.GitEnv()
 	osEnv := ctx.OSEnv()
-	netrc, netrcfile, err := ParseNetrc(osEnv)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("bad netrc file %s", netrcfile))
-	}
 
 	httpClient, err := lfshttp.NewClient(ctx)
 	if err != nil {
@@ -42,7 +37,6 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 
 	c := &Client{
 		Endpoints:   NewEndpointFinder(ctx),
-		Netrc:       netrc,
 		client:      httpClient,
 		credContext: creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}

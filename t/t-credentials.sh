@@ -255,8 +255,14 @@ begin_test "credentials from netrc"
 
   GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
-  echo "any git credential calls:"
-  [ "0" -eq "$(cat push.log | grep "git credential" | wc -l)" ]
+  echo "any netrc credential calls:"
+  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+
+  echo "any netrc credential fills:"
+  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+
+  echo "any netrc credential approvals:"
+  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
 )
 end_test
 
@@ -288,8 +294,14 @@ begin_test "credentials from netrc with unknown keyword"
 
   GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
-  echo "any git credential calls:"
-  [ "0" -eq "$(cat push.log | grep "git credential" | wc -l)" ]
+  echo "any netrc credential calls:"
+  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+
+  echo "any netrc credential fills:"
+  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+
+  echo "any netrc credential approvals:"
+  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
 )
 end_test
 

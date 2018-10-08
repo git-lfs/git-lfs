@@ -3,7 +3,6 @@ package lfsapi
 import (
 	"encoding/base64"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,12 +11,10 @@ import (
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
-	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )
 
 var (
-	defaultNetrcFinder    = &noFinder{}
 	defaultEndpointFinder = NewEndpointFinder(nil)
 )
 
@@ -134,16 +131,11 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 		ef = defaultEndpointFinder
 	}
 
-	netrcFinder := c.Netrc
-	if netrcFinder == nil {
-		netrcFinder = defaultNetrcFinder
-	}
-
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 
 	if access.Mode() != NTLMAccess {
-		if requestHasAuth(req) || setAuthFromNetrc(netrcFinder, req) || access.Mode() == NoneAccess {
+		if requestHasAuth(req) || access.Mode() == NoneAccess {
 			return creds.NullCreds, nil, nil, nil
 		}
 
@@ -171,18 +163,6 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 		return creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
 	}
 
-	if netrcMachine := getAuthFromNetrc(netrcFinder, req); netrcMachine != nil {
-		cred := creds.Creds{
-			"protocol": credsURL.Scheme,
-			"host":     credsURL.Host,
-			"username": netrcMachine.Login,
-			"password": netrcMachine.Password,
-			"source":   "netrc",
-		}
-
-		return creds.NullCreds, credsURL, cred, nil
-	}
-
 	// NTLM uses creds to create the session
 	credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
 	return credHelper, credsURL, creds, err
@@ -202,33 +182,6 @@ func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (
 	}
 
 	return credHelper, creds, err
-}
-
-func getAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) *netrc.Machine {
-	hostname := req.URL.Host
-	var host string
-
-	if strings.Contains(hostname, ":") {
-		var err error
-		host, _, err = net.SplitHostPort(hostname)
-		if err != nil {
-			tracerx.Printf("netrc: error parsing %q: %s", hostname, err)
-			return nil
-		}
-	} else {
-		host = hostname
-	}
-
-	return netrcFinder.FindMachine(host)
-}
-
-func setAuthFromNetrc(netrcFinder NetrcFinder, req *http.Request) bool {
-	if machine := getAuthFromNetrc(netrcFinder, req); machine != nil {
-		setRequestAuth(req, machine.Login, machine.Password)
-		return true
-	}
-
-	return false
 }
 
 func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint lfshttp.Endpoint, req *http.Request) (*url.URL, error) {

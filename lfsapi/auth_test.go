@@ -448,27 +448,6 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
-		"ntlm with netrc": getCredsTest{
-			Remote:   "origin",
-			Method:   "GET",
-			Href:     "https://netrc-host.com/repo/lfs/locks",
-			Endpoint: "https://netrc-host.com/repo/lfs",
-			Config: map[string]string{
-				"lfs.url": "https://netrc-host.com/repo/lfs",
-				"lfs.https://netrc-host.com/repo/lfs.access": "ntlm",
-			},
-			Expected: getCredsExpected{
-				Access:   NTLMAccess,
-				CredsURL: "https://netrc-host.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "netrc-host.com",
-					"username": "abc",
-					"password": "def",
-					"source":   "netrc",
-				},
-			},
-		},
 		"custom auth": getCredsTest{
 			Remote:   "origin",
 			Method:   "GET",
@@ -484,20 +463,6 @@ func TestGetCreds(t *testing.T) {
 			Expected: getCredsExpected{
 				Access:        BasicAccess,
 				Authorization: "custom",
-			},
-		},
-		"netrc": getCredsTest{
-			Remote:   "origin",
-			Method:   "GET",
-			Href:     "https://netrc-host.com/repo/lfs/locks",
-			Endpoint: "https://netrc-host.com/repo/lfs",
-			Config: map[string]string{
-				"lfs.url": "https://netrc-host.com/repo/lfs",
-				"lfs.https://netrc-host.com/repo/lfs.access": "basic",
-			},
-			Expected: getCredsExpected{
-				Access:        BasicAccess,
-				Authorization: basicAuth("abc", "def"),
 			},
 		},
 		"username in url": getCredsTest{
@@ -675,7 +640,6 @@ func TestGetCreds(t *testing.T) {
 		ctx := lfshttp.NewContext(git.NewConfig("", ""), nil, test.Config)
 		client, _ := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
-		client.Netrc = &fakeNetrc{}
 		client.Endpoints = NewEndpointFinder(ctx)
 		_, credsURL, creds, err := client.getCreds(test.Remote, client.Endpoints.AccessFor(test.Endpoint), req)
 		if !assert.Nil(t, err) {

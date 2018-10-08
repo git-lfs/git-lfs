@@ -41,6 +41,7 @@ func bufferCreds(c Creds) *bytes.Buffer {
 }
 
 type CredentialHelperContext struct {
+	netrcCredHelper   *netrcCredentialHelper
 	commandCredHelper *commandCredentialHelper
 	askpassCredHelper *AskPassCredentialHelper
 	cachingCredHelper *credentialCacher
@@ -50,6 +51,8 @@ type CredentialHelperContext struct {
 
 func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
 	c := &CredentialHelperContext{urlConfig: config.NewURLConfig(gitEnv)}
+
+	c.netrcCredHelper = newNetrcCredentialHelper(osEnv)
 
 	askpass, ok := osEnv.Get("GIT_ASKPASS")
 	if !ok {
@@ -95,7 +98,10 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 		return helper, input
 	}
 
-	helpers := make([]CredentialHelper, 0, 3)
+	helpers := make([]CredentialHelper, 0, 4)
+	if ctxt.netrcCredHelper != nil {
+		helpers = append(helpers, ctxt.netrcCredHelper)
+	}
 	if ctxt.cachingCredHelper != nil {
 		helpers = append(helpers, ctxt.cachingCredHelper)
 	}

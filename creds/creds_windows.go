@@ -1,5 +1,5 @@
 // +build windows
 
-package lfsapi
+package creds
 
 var netrcBasename = "_netrc"
