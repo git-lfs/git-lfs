@@ -37,6 +37,8 @@ An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object
 * `-X` <paths> `--exclude=`<paths>:
   Exclude paths matching any of these patterns; see [FETCH SETTINGS].
 
+* `-n` `--name-only`:
+  Show only the lfs tracked file names.
 ## SEE ALSO
 
 git-lfs-status(1), git-lfs-config(5).

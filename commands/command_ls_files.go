@@ -11,18 +11,18 @@ import (
 )
 
 var (
-	longOIDs           = false
-	lsFilesScanAll     = false
-	lsFilesScanDeleted = false
-	lsFilesShowSize    = false
-	debug              = false
+	longOIDs            = false
+	lsFilesScanAll      = false
+	lsFilesScanDeleted  = false
+	lsFilesShowSize     = false
+	lsFilesShowNameOnly = false
+	debug               = false
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	var ref string
-
 	if len(args) == 1 {
 		if lsFilesScanAll {
 			Exit("fatal: cannot use --all with explicit reference")
@@ -82,6 +82,9 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 				p.Version)
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
+			if lsFilesShowNameOnly {
+				msg = []string{p.Name}
+			}
 			if lsFilesShowSize {
 				size := humanize.FormatBytes(uint64(p.Size))
 				msg = append(msg, "("+size+")")
@@ -143,6 +146,7 @@ func init() {
 	RegisterCommand("ls-files", lsFilesCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&longOIDs, "long", "l", false, "")
 		cmd.Flags().BoolVarP(&lsFilesShowSize, "size", "s", false, "")
+		cmd.Flags().BoolVarP(&lsFilesShowNameOnly, "name-only", "n", false, "")
 		cmd.Flags().BoolVarP(&debug, "debug", "d", false, "")
 		cmd.Flags().BoolVarP(&lsFilesScanAll, "all", "a", false, "")
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
