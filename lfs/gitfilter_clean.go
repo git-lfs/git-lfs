@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/errors"
@@ -61,7 +60,7 @@ func (f *GitFilter) Clean(reader io.Reader, fileName string, fileSize int64, cb 
 }
 
 func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCallback) (oid string, size int64, tmp *os.File, err error) {
-	tmp, err = ioutil.TempFile(f.cfg.TempDir(), "")
+	tmp, err = TempFile(f.cfg, "")
 	if err != nil {
 		return
 	}

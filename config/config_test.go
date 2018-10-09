@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -154,4 +155,38 @@ func TestFetchIncludeExcludesAreCleaned(t *testing.T) {
 
 	assert.Equal(t, []string{"/path/to/clean"}, cfg.FetchIncludePaths())
 	assert.Equal(t, []string{"/other/path/to/clean"}, cfg.FetchExcludePaths())
+}
+
+func TestRepositoryPermissions(t *testing.T) {
+	perms := 0666 & ^umask()
+
+	values := map[string]int{
+		"group":     0660,
+		"true":      0660,
+		"1":         0660,
+		"YES":       0660,
+		"all":       0664,
+		"world":     0664,
+		"everybody": 0664,
+		"2":         0664,
+		"false":     perms,
+		"umask":     perms,
+		"0":         perms,
+		"NO":        perms,
+		"this does not remotely look like a valid value": perms,
+		"0664": 0664,
+		"0666": 0666,
+		"0600": 0600,
+		"0660": 0660,
+		"0644": 0644,
+	}
+
+	for key, val := range values {
+		cfg := NewFrom(Values{
+			Git: map[string][]string{
+				"core.sharedrepository": []string{key},
+			},
+		})
+		assert.Equal(t, os.FileMode(val), cfg.RepositoryPermissions())
+	}
 }
