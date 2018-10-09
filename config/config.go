@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -48,6 +49,8 @@ type Configuration struct {
 	loadingGit sync.Mutex // guards initialization of local git and working dirs
 	remotes    []string
 	extensions map[string]Extension
+	mask       int
+	maskOnce   sync.Once
 }
 
 func New() *Configuration {
@@ -76,6 +79,38 @@ func NewIn(workdir, gitdir string) *Configuration {
 		},
 	}
 	return c
+}
+
+func (c *Configuration) getMask() int {
+	// This logic is necessarily complex because Git's logic is complex.
+	c.maskOnce.Do(func() {
+		val, ok := c.Git.Get("core.sharedrepository")
+		if !ok {
+			val = "umask"
+		} else if Bool(val, false) {
+			val = "group"
+		}
+
+		switch strings.ToLower(val) {
+		case "group", "true", "1":
+			c.mask = 007
+		case "all", "world", "everybody", "2":
+			c.mask = 002
+		case "umask", "false", "0":
+			c.mask = umask()
+		default:
+			if mode, err := strconv.ParseInt(val, 8, 16); err != nil {
+				// If this doesn't look like an octal number, then it
+				// could be a falsy value, in which case we should use
+				// the umask, or it's just invalid, in which case the
+				// umask is a safe bet.
+				c.mask = umask()
+			} else {
+				c.mask = 0666 & ^int(mode)
+			}
+		}
+	})
+	return c.mask
 }
 
 func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
@@ -451,4 +486,10 @@ func (c *Configuration) CurrentCommitter() (name, email string) {
 	name, _ = c.Git.Get("user.name")
 	email, _ = c.Git.Get("user.email")
 	return
+}
+
+// RepositoryPermissions returns the permissions that should be used to write
+// files in the repository.
+func (c *Configuration) RepositoryPermissions() os.FileMode {
+	return os.FileMode(0666 & ^c.getMask())
 }

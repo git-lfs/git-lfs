@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -89,7 +88,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 	var output io.WriteCloser
 	input = pipeReader
 	extcmds[0].cmd.Stdin = input
-	if response.file, err = ioutil.TempFile(cfg.TempDir(), ""); err != nil {
+	if response.file, err = TempFile(cfg, ""); err != nil {
 		return
 	}
 	defer response.file.Close()
