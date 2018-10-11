@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
@@ -51,6 +52,7 @@ type Configuration struct {
 	extensions map[string]Extension
 	mask       int
 	maskOnce   sync.Once
+	timestamp  time.Time
 }
 
 func New() *Configuration {
@@ -62,6 +64,7 @@ func NewIn(workdir, gitdir string) *Configuration {
 	c := &Configuration{
 		Os:        EnvironmentOf(NewOsFetcher()),
 		gitConfig: gitConf,
+		timestamp: time.Now(),
 	}
 
 	if len(gitConf.WorkDir) > 0 {
@@ -142,6 +145,7 @@ func NewFrom(v Values) *Configuration {
 	c := &Configuration{
 		Os:        EnvironmentOf(mapFetcher(v.Os)),
 		gitConfig: git.NewConfig("", ""),
+		timestamp: time.Now(),
 	}
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
@@ -486,6 +490,12 @@ func (c *Configuration) CurrentCommitter() (name, email string) {
 	name, _ = c.Git.Get("user.name")
 	email, _ = c.Git.Get("user.email")
 	return
+}
+
+// CurrentCommitterTimestamp returns the timestamp that would be used to commit
+// a change with this configuration.
+func (c *Configuration) CurrentCommitterTimestamp() time.Time {
+	return c.timestamp
 }
 
 // RepositoryPermissions returns the permissions that should be used to write
