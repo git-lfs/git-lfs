@@ -479,7 +479,7 @@ func (c *Configuration) loadGitConfig() {
 	}
 }
 
-// CurrentCommitter returns the name/email that would be used to author a commit
+// CurrentCommitter returns the name/email that would be used to commit a change
 // with this configuration. In particular, the "user.name" and "user.email"
 // configuration values are used
 func (c *Configuration) CurrentCommitter() (name, email string) {
