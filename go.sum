@@ -1,7 +1,7 @@
 github.com/ThomsonReutersEikon/go-ntlm v0.0.0-20151030004737-b00ec39bbdd0/go.mod h1:0eFwySJYxbNw/r8cJ01IeztpJfwrgrmiLtYig80Yvrc=
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858/go.mod h1:976q2ETgjT2snVCf2ZaBnyBbVoPERGjUz+0sofzEfro=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/git-lfs/gitobj v0.0.0-20180907143119-1e97572956c1/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
+github.com/git-lfs/gitobj v1.0.0/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/wildmatch v1.0.0/go.mod h1:SdHAGnApDpnFYQ0vAxbniWR0sn7yLJ3QXo9RRfhn2ew=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
