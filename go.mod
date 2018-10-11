@@ -3,7 +3,7 @@ module github.com/git-lfs/git-lfs
 require (
 	github.com/ThomsonReutersEikon/go-ntlm v0.0.0-20151030004737-b00ec39bbdd0
 	github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
-	github.com/git-lfs/gitobj v0.0.0-20180907143119-1e97572956c1
+	github.com/git-lfs/gitobj v1.0.0
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 	github.com/git-lfs/wildmatch v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
