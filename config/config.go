@@ -483,13 +483,48 @@ func (c *Configuration) loadGitConfig() {
 	}
 }
 
+// findUserData returns the name/email that should be used in the commit header.
+// We use the same technique as Git for finding this information, except that we
+// don't fall back to querying the system for defaults if no values are found in
+// the Git configuration or environment.
+//
+// envType should be "author" or "committer".
+func (c *Configuration) findUserData(envType string) (name, email string) {
+	var filter = func(r rune) rune {
+		switch r {
+		case '<', '>', '\n':
+			return -1
+		default:
+			return r
+		}
+	}
+
+	envType = strings.ToUpper(envType)
+
+	name, ok := c.Os.Get("GIT_" + envType + "_NAME")
+	if !ok {
+		name, _ = c.Git.Get("user.name")
+	}
+
+	email, ok = c.Os.Get("GIT_" + envType + "_EMAIL")
+	if !ok {
+		email, ok = c.Git.Get("user.email")
+	}
+	if !ok {
+		email, _ = c.Os.Get("EMAIL")
+	}
+
+	// Git filters certain characters out of the name and email fields.
+	name = strings.Map(filter, name)
+	email = strings.Map(filter, email)
+	return
+}
+
 // CurrentCommitter returns the name/email that would be used to commit a change
 // with this configuration. In particular, the "user.name" and "user.email"
 // configuration values are used
 func (c *Configuration) CurrentCommitter() (name, email string) {
-	name, _ = c.Git.Get("user.name")
-	email, _ = c.Git.Get("user.email")
-	return
+	return c.findUserData("committer")
 }
 
 // CurrentCommitterTimestamp returns the timestamp that would be used to commit
