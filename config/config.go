@@ -533,6 +533,19 @@ func (c *Configuration) CurrentCommitterTimestamp() time.Time {
 	return c.timestamp
 }
 
+// CurrentAuthor returns the name/email that would be used to author a change
+// with this configuration. In particular, the "user.name" and "user.email"
+// configuration values are used
+func (c *Configuration) CurrentAuthor() (name, email string) {
+	return c.findUserData("author")
+}
+
+// CurrentCommitterTimestamp returns the timestamp that would be used to commit
+// a change with this configuration.
+func (c *Configuration) CurrentAuthorTimestamp() time.Time {
+	return c.timestamp
+}
+
 // RepositoryPermissions returns the permissions that should be used to write
 // files in the repository.
 func (c *Configuration) RepositoryPermissions() os.FileMode {

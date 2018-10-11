@@ -234,4 +234,24 @@ func TestCurrentUser(t *testing.T) {
 	name, email = cfg.CurrentCommitter()
 	assert.Equal(t, name, "Sam Roe")
 	assert.Equal(t, email, "sroe@example.net")
+
+	cfg = NewFrom(Values{
+		Git: map[string][]string{
+			"user.name":  []string{"Pat Doe"},
+			"user.email": []string{"pdoe@example.org"},
+		},
+		Os: map[string][]string{
+			"GIT_AUTHOR_NAME":  []string{"Sam Roe"},
+			"GIT_AUTHOR_EMAIL": []string{"sroe@example.net"},
+			"EMAIL":            []string{"pdoe@example.com"},
+		},
+	})
+
+	name, email = cfg.CurrentCommitter()
+	assert.Equal(t, name, "Pat Doe")
+	assert.Equal(t, email, "pdoe@example.org")
+
+	name, email = cfg.CurrentAuthor()
+	assert.Equal(t, name, "Sam Roe")
+	assert.Equal(t, email, "sroe@example.net")
 }
