@@ -190,3 +190,68 @@ func TestRepositoryPermissions(t *testing.T) {
 		assert.Equal(t, os.FileMode(val), cfg.RepositoryPermissions())
 	}
 }
+
+func TestCurrentUser(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"user.name":  []string{"Pat Doe"},
+			"user.email": []string{"pdoe@example.org"},
+		},
+		Os: map[string][]string{
+			"EMAIL": []string{"pdoe@example.com"},
+		},
+	})
+
+	name, email := cfg.CurrentCommitter()
+	assert.Equal(t, name, "Pat Doe")
+	assert.Equal(t, email, "pdoe@example.org")
+
+	cfg = NewFrom(Values{
+		Git: map[string][]string{
+			"user.name": []string{"Pat Doe"},
+		},
+		Os: map[string][]string{
+			"EMAIL": []string{"pdoe@example.com"},
+		},
+	})
+
+	name, email = cfg.CurrentCommitter()
+	assert.Equal(t, name, "Pat Doe")
+	assert.Equal(t, email, "pdoe@example.com")
+
+	cfg = NewFrom(Values{
+		Git: map[string][]string{
+			"user.name":  []string{"Pat Doe"},
+			"user.email": []string{"pdoe@example.org"},
+		},
+		Os: map[string][]string{
+			"GIT_COMMITTER_NAME":  []string{"Sam Roe"},
+			"GIT_COMMITTER_EMAIL": []string{"sroe@example.net"},
+			"EMAIL":               []string{"pdoe@example.com"},
+		},
+	})
+
+	name, email = cfg.CurrentCommitter()
+	assert.Equal(t, name, "Sam Roe")
+	assert.Equal(t, email, "sroe@example.net")
+
+	cfg = NewFrom(Values{
+		Git: map[string][]string{
+			"user.name":  []string{"Pat Doe"},
+			"user.email": []string{"pdoe@example.org"},
+		},
+		Os: map[string][]string{
+			"GIT_AUTHOR_NAME":  []string{"Sam Roe"},
+			"GIT_AUTHOR_EMAIL": []string{"sroe@example.net"},
+			"EMAIL":            []string{"pdoe@example.com"},
+		},
+	})
+
+	name, email = cfg.CurrentCommitter()
+	assert.Equal(t, name, "Pat Doe")
+	assert.Equal(t, email, "pdoe@example.org")
+
+	name, email = cfg.CurrentAuthor()
+	assert.Equal(t, name, "Sam Roe")
+	assert.Equal(t, email, "sroe@example.net")
+}
