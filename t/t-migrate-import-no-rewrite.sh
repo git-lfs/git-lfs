@@ -33,6 +33,9 @@ begin_test "migrate import --no-rewrite (default branch)"
   # Ensure a new commit message was generated based on the list of imported files
   commit_msg="$(git log -1 --pretty=format:%s)"
   echo "$commit_msg" | grep -q "a.txt: convert to Git LFS"
+
+  # Ensure we write a valid commit object.
+  git fsck
 )
 end_test
 

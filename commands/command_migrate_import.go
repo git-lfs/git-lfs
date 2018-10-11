@@ -80,12 +80,23 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		name, email := cfg.CurrentCommitter()
-		author := fmt.Sprintf("%s <%s>", name, email)
+		name, email := cfg.CurrentAuthor()
+		author := &gitobj.Signature{
+			Name:  name,
+			Email: email,
+			When:  cfg.CurrentAuthorTimestamp(),
+		}
+
+		name, email = cfg.CurrentCommitter()
+		committer := &gitobj.Signature{
+			Name:  name,
+			Email: email,
+			When:  cfg.CurrentCommitterTimestamp(),
+		}
 
 		oid, err := db.WriteCommit(&gitobj.Commit{
-			Author:    author,
-			Committer: author,
+			Author:    author.String(),
+			Committer: committer.String(),
 			ParentIDs: [][]byte{sha},
 			Message:   generateMigrateCommitMessage(cmd, strings.Join(args, ",")),
 			TreeID:    root,
