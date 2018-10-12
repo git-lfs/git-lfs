@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -483,6 +484,33 @@ func (c *Configuration) loadGitConfig() {
 	}
 }
 
+var (
+	// dateFormats is a list of all the date formats that Git accepts,
+	// except for the built-in one, which is handled below.
+	dateFormats = []string{
+		"Mon, 02 Jan 2006 15:04:05 -0700",
+		"2006-01-02T15:04:05-0700",
+		"2006-01-02 15:04:05-0700",
+		"2006.01.02T15:04:05-0700",
+		"2006.01.02 15:04:05-0700",
+		"01/02/2006T15:04:05-0700",
+		"01/02/2006 15:04:05-0700",
+		"02.01.2006T15:04:05-0700",
+		"02.01.2006 15:04:05-0700",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05Z",
+		"2006.01.02T15:04:05Z",
+		"2006.01.02 15:04:05Z",
+		"01/02/2006T15:04:05Z",
+		"01/02/2006 15:04:05Z",
+		"02.01.2006T15:04:05Z",
+		"02.01.2006 15:04:05Z",
+	}
+
+	// defaultDatePattern is the regexp for Git's native date format.
+	defaultDatePattern = regexp.MustCompile(`\A(\d+) ([+-])(\d{2})(\d{2})\z`)
+)
+
 // findUserData returns the name/email that should be used in the commit header.
 // We use the same technique as Git for finding this information, except that we
 // don't fall back to querying the system for defaults if no values are found in
@@ -520,6 +548,37 @@ func (c *Configuration) findUserData(envType string) (name, email string) {
 	return
 }
 
+func (c *Configuration) findUserTimestamp(envType string) time.Time {
+	date, ok := c.Os.Get(fmt.Sprintf("GIT_%s_DATE", strings.ToUpper(envType)))
+	if !ok {
+		return c.timestamp
+	}
+
+	// time.Parse doesn't parse seconds from the Epoch, like we use in the
+	// Git native format, so we have to do it ourselves.
+	strs := defaultDatePattern.FindStringSubmatch(date)
+	if strs != nil {
+		unixSecs, _ := strconv.ParseInt(strs[1], 10, 64)
+		hours, _ := strconv.Atoi(strs[3])
+		offset, _ := strconv.Atoi(strs[4])
+		offset = (offset + hours*60) * 60
+		if strs[2] == "-" {
+			offset = -offset
+		}
+
+		return time.Unix(unixSecs, 0).In(time.FixedZone("", offset))
+	}
+
+	for _, format := range dateFormats {
+		if t, err := time.Parse(format, date); err == nil {
+			return t
+		}
+	}
+
+	// The user provided an invalid value, so default to the current time.
+	return c.timestamp
+}
+
 // CurrentCommitter returns the name/email that would be used to commit a change
 // with this configuration. In particular, the "user.name" and "user.email"
 // configuration values are used
@@ -530,7 +589,7 @@ func (c *Configuration) CurrentCommitter() (name, email string) {
 // CurrentCommitterTimestamp returns the timestamp that would be used to commit
 // a change with this configuration.
 func (c *Configuration) CurrentCommitterTimestamp() time.Time {
-	return c.timestamp
+	return c.findUserTimestamp("committer")
 }
 
 // CurrentAuthor returns the name/email that would be used to author a change
@@ -543,7 +602,7 @@ func (c *Configuration) CurrentAuthor() (name, email string) {
 // CurrentCommitterTimestamp returns the timestamp that would be used to commit
 // a change with this configuration.
 func (c *Configuration) CurrentAuthorTimestamp() time.Time {
-	return c.timestamp
+	return c.findUserTimestamp("author")
 }
 
 // RepositoryPermissions returns the permissions that should be used to write

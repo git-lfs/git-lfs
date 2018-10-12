@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/stretchr/testify/assert"
@@ -254,4 +255,44 @@ func TestCurrentUser(t *testing.T) {
 	name, email = cfg.CurrentAuthor()
 	assert.Equal(t, name, "Sam Roe")
 	assert.Equal(t, email, "sroe@example.net")
+}
+
+func TestCurrentTimestamp(t *testing.T) {
+	m := map[string]string{
+		"1136239445 -0700":                "2006-01-02T15:04:05-07:00",
+		"Mon, 02 Jan 2006 15:04:05 -0700": "2006-01-02T15:04:05-07:00",
+		"2006-01-02T15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"2006-01-02 15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"2006.01.02T15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"2006.01.02 15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"01/02/2006T15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"01/02/2006 15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"02.01.2006T15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"02.01.2006 15:04:05-0700":        "2006-01-02T15:04:05-07:00",
+		"2006-01-02T15:04:05Z":            "2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05Z":            "2006-01-02T15:04:05Z",
+		"2006.01.02T15:04:05Z":            "2006-01-02T15:04:05Z",
+		"2006.01.02 15:04:05Z":            "2006-01-02T15:04:05Z",
+		"01/02/2006T15:04:05Z":            "2006-01-02T15:04:05Z",
+		"01/02/2006 15:04:05Z":            "2006-01-02T15:04:05Z",
+		"02.01.2006T15:04:05Z":            "2006-01-02T15:04:05Z",
+		"02.01.2006 15:04:05Z":            "2006-01-02T15:04:05Z",
+		"not a date":                      "default",
+		"":                                "default",
+	}
+
+	for val, res := range m {
+		cfg := NewFrom(Values{
+			Os: map[string][]string{
+				"GIT_COMMITTER_DATE": []string{val},
+			},
+		})
+		date := cfg.CurrentCommitterTimestamp()
+
+		if res == "default" {
+			assert.Equal(t, date, cfg.timestamp)
+		} else {
+			assert.Equal(t, date.Format(time.RFC3339), res)
+		}
+	}
 }
