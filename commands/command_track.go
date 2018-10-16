@@ -224,7 +224,14 @@ func listPatterns() {
 	for _, t := range knownPatterns {
 		if t.Lockable {
 			Print("    %s [lockable] (%s)", t.Path, t.Source)
-		} else {
+		} else if t.Tracked {
+			Print("    %s (%s)", t.Path, t.Source)
+		}
+	}
+
+	Print("Listing excluded patterns")
+	for _, t := range knownPatterns {
+		if !t.Tracked && !t.Lockable {
 			Print("    %s (%s)", t.Path, t.Source)
 		}
 	}

@@ -45,6 +45,14 @@ begin_test "track"
   grep "* text=auto" .gitattributes
   grep "diff=csharp" .gitattributes
   grep "*.jpg" .gitattributes
+
+  echo "*.gif -filter -text" >> a/b/.gitattributes
+  echo "*.mov -filter=lfs -text" >> a/b/.gitattributes
+
+  git lfs track | tee track.log
+  tail -n 3 track.log | head -n 1 | grep "Listing excluded patterns"
+  tail -n 3 track.log | grep "*.gif ($(native_path_escaped "a/b/.gitattributes"))"
+  tail -n 3 track.log | grep "*.mov ($(native_path_escaped "a/b/.gitattributes"))"
 )
 end_test
 

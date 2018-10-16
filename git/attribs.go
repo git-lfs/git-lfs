@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	LockableAttrib = "lockable"
+	LockableAttrib      = "lockable"
+	FilterDisableAttrib = "-filter"
 )
 
 // AttributePath is a path entry in a gitattributes file which has the LFS filter
@@ -24,6 +25,8 @@ type AttributePath struct {
 	Source *AttributeSource
 	// Path also has the 'lockable' attribute
 	Lockable bool
+	// Path is handled by Git LFS (i.e., filter=lfs)
+	Tracked bool
 }
 
 type AttributeSource struct {
@@ -102,11 +105,14 @@ func attrPaths(path, workingDir string) []AttributePath {
 			continue
 		}
 
+		hasFilter := strings.Contains(line, "filter=lfs")
+
 		// Check for filter=lfs (signifying that LFS is tracking
 		// this file) or "lockable", which indicates that the
 		// file is lockable (and may or may not be tracked by
 		// Git LFS).
-		if strings.Contains(line, "filter=lfs") ||
+		if hasFilter ||
+			strings.Contains(line, FilterDisableAttrib) ||
 			strings.HasSuffix(line, "lockable") {
 
 			fields := strings.Fields(line)
@@ -117,16 +123,21 @@ func attrPaths(path, workingDir string) []AttributePath {
 			// Find lockable flag in any position after pattern to avoid
 			// edge case of matching "lockable" to a file pattern
 			lockable := false
+			tracked := true
 			for _, f := range fields[1:] {
 				if f == LockableAttrib {
 					lockable = true
-					break
+				}
+				if !hasFilter ||
+					strings.HasPrefix(f, FilterDisableAttrib) {
+					tracked = false
 				}
 			}
 			paths = append(paths, AttributePath{
 				Path:     pattern,
 				Source:   source,
 				Lockable: lockable,
+				Tracked:  tracked,
 			})
 		}
 	}
