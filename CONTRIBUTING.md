@@ -25,21 +25,15 @@ into Git: SSH through public keys, and HTTPS through Git credential helpers.
 Servers can simply host off cloud storage, or implement more efficient methods
 of transferring data.
 
-You can see what the Git LFS team is prioritizing work on in the
-[roadmap](./ROADMAP.md).
-
 ## Project Management
 
-The Git LFS project is managed completely through this open source project and
-its [chat room][chat]. The [roadmap][] shows the high level items that are
-prioritized for future work. Suggestions for major features should be submitted
-as a pull request that adds a markdown file to `docs/proposals` discussing the
-feature. This gives the community time to discuss it before a lot of code has
-been written. Roadmap items are linked to one or more Issue task lists ([example][roadmap-items]), with the `roadmap` label, that go into more detail.
+The Git LFS project is managed completely through this open source project. The
+[milestones][] show the high level items that are prioritized for future work.
+Suggestions for major features should be submitted as a pull request that adds a
+markdown file to `docs/proposals` discussing the feature. This gives the
+community time to discuss it before a lot of code has been written.
 
-[chat]: https://gitter.im/git-lfs/git-lfs
-[roadmap]: ./ROADMAP.md
-[roadmap-items]: https://github.com/git-lfs/git-lfs/issues/490
+[milestones]: https://github.com/git-lfs/git-lfs/milestones
 
 The Git LFS teams mark issues and pull requests with the following labels:
 
@@ -48,8 +42,6 @@ The Git LFS teams mark issues and pull requests with the following labels:
 * `enhancement` - An issue for a possible new feature.
 * `review` - A pull request ready to be reviewed.
 * `release` - A checklist issue showing items marked for an upcoming release.
-* `roadmap` - A checklist issue with tasks to fulfill something from the
-[roadmap](./ROADMAP.md)
 
 ## Branching strategy
 
