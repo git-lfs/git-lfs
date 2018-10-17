@@ -70,8 +70,7 @@ them as separate pull requests.
 
 ### Prerequisites
 
-Git LFS depends on having a working Go 1.11.0+ environment, with your standard
-`$GOROOT` and `$GOPATH` environment variables set.
+Git LFS depends on having a working Go 1.11.0+ environment.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
 
@@ -88,15 +87,10 @@ In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
 
 ### Building Git LFS
 
-The easiest way to download Git LFS for making changes is `go get`:
+The easiest way to download Git LFS for making changes is `git clone`:
 
-    $ go get github.com/git-lfs/git-lfs
-
-This clones the Git LFS repository to your `$GOPATH`. If you typically keep
-your projects in a specific directory, you can symlink it from `$GOPATH`:
-
-    $ cd ~/path/to/your/projects
-    $ ln -s $GOPATH/src/github.com/git-lfs/git-lfs
+    $ git clone git@github.com:git-lfs/git-lfs.git
+    $ cd git-lfs
 
 From here, run `make` to build Git LFS in the `./bin` directory. Before
 submitting changes, be sure to run the Go tests and the shell integration
