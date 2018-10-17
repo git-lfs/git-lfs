@@ -56,6 +56,28 @@ begin_test "track"
 )
 end_test
 
+begin_test "track --no-excluded"
+(
+  set -e
+
+  reponame="track_no_excluded"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  mkdir -p a/b .git/info
+
+  echo "*.mov filter=lfs -text" > .git/info/attributes
+  echo "*.gif filter=lfs -text" > a/.gitattributes
+  echo "*.png filter=lfs -text" > a/b/.gitattributes
+  echo "*.gif -filter -text" >> a/b/.gitattributes
+  echo "*.mov -filter=lfs -text" >> a/b/.gitattributes
+
+  git lfs track --no-excluded | tee track.log
+  ! grep "Listing excluded patterns" track.log
+)
+end_test
+
 begin_test "track --verbose"
 (
   set -e

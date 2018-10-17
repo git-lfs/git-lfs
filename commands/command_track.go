@@ -25,6 +25,7 @@ var (
 	trackVerboseLoggingFlag bool
 	trackDryRunFlag         bool
 	trackNoModifyAttrsFlag  bool
+	trackNoExcludedFlag     bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -229,6 +230,10 @@ func listPatterns() {
 		}
 	}
 
+	if trackNoExcludedFlag {
+		return
+	}
+
 	Print("Listing excluded patterns")
 	for _, t := range knownPatterns {
 		if !t.Tracked && !t.Lockable {
@@ -302,5 +307,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackVerboseLoggingFlag, "verbose", "v", false, "log which files are being tracked and modified")
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
 		cmd.Flags().BoolVarP(&trackNoModifyAttrsFlag, "no-modify-attrs", "", false, "skip modifying .gitattributes file")
+		cmd.Flags().BoolVarP(&trackNoExcludedFlag, "no-excluded", "", false, "skip listing excluded paths")
 	})
 }
