@@ -74,14 +74,16 @@ Git LFS depends on having a working Go 1.11.0+ environment.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
 
-```
+```ShellSession
 $ sudo yum install gcc
 $ sudo yum install perl-Digest-SHA
 ```
 
 In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
 
-`$ sudo yum install ruby-devel`
+```ShellSession
+$ sudo yum install ruby-devel
+```
 
 (note on an AWS instance you may first need to `sudo yum-config-manager --enable rhui-REGION-rhel-server-optional`)
 
@@ -89,16 +91,20 @@ In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
 
 The easiest way to download Git LFS for making changes is `git clone`:
 
-    $ git clone git@github.com:git-lfs/git-lfs.git
-    $ cd git-lfs
+```ShellSession
+$ git clone git@github.com:git-lfs/git-lfs.git
+$ cd git-lfs
+```
 
 From here, run `make` to build Git LFS in the `./bin` directory. Before
 submitting changes, be sure to run the Go tests and the shell integration
 tests:
 
-    $ make test          # runs just the Go tests
-    $ cd t && make test  # runs the shell tests in ./test
-    $ script/cibuild     # runs everything, with verbose debug output
+```ShellSession
+$ make test          # runs just the Go tests
+$ cd t && make test  # runs the shell tests in ./test
+$ script/cibuild     # runs everything, with verbose debug output
+```
 
 ## Updating 3rd party packages
 
