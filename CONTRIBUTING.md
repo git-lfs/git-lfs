@@ -38,7 +38,6 @@ community time to discuss it before a lot of code has been written.
 The Git LFS teams mark issues and pull requests with the following labels:
 
 * `bug` - An issue describing a bug.
-* `core-team` - An issue relating to the governance of the project.
 * `enhancement` - An issue for a possible new feature.
 * `review` - A pull request ready to be reviewed.
 * `release` - A checklist issue showing items marked for an upcoming release.
@@ -49,13 +48,13 @@ In general, contributors should develop on branches based off of `master` and pu
 
 ## Submitting a pull request
 
-0. [Fork][] and clone the repository
-0. Configure and install the dependencies: `make`
-0. Make sure the tests pass on your machine: `make test`
-0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
-0. Make your change, add tests, and make sure the tests still pass
-0. Push to your fork and [submit a pull request][pr] from your branch to `master`
-0. Pat yourself on the back and wait for your pull request to be reviewed
+1. [Fork][] and clone the repository
+1. Configure and install the dependencies: `make`
+1. Make sure the tests pass on your machine: `make test`
+1. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
+1. Make your change, add tests, and make sure the tests still pass
+1. Push to your fork and [submit a pull request][pr] from your branch to `master`
+1. Pat yourself on the back and wait for your pull request to be reviewed
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
@@ -71,48 +70,48 @@ them as separate pull requests.
 
 ### Prerequisites
 
-Git LFS depends on having a working Go 1.11.0+ environment, with your standard
-`$GOROOT` and `$GOPATH` environment variables set.
+Git LFS depends on having a working Go 1.11.0+ environment.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
 
-```
+```ShellSession
 $ sudo yum install gcc
 $ sudo yum install perl-Digest-SHA
 ```
 
 In order to run the RPM build `rpm/build_rpms.bsh` you will also need to:
 
-`$ sudo yum install ruby-devel`
+```ShellSession
+$ sudo yum install ruby-devel
+```
 
 (note on an AWS instance you may first need to `sudo yum-config-manager --enable rhui-REGION-rhel-server-optional`)
 
 ### Building Git LFS
 
-The easiest way to download Git LFS for making changes is `go get`:
+The easiest way to download Git LFS for making changes is `git clone`:
 
-    $ go get github.com/git-lfs/git-lfs
-
-This clones the Git LFS repository to your `$GOPATH`. If you typically keep
-your projects in a specific directory, you can symlink it from `$GOPATH`:
-
-    $ cd ~/path/to/your/projects
-    $ ln -s $GOPATH/src/github.com/git-lfs/git-lfs
+```ShellSession
+$ git clone git@github.com:git-lfs/git-lfs.git
+$ cd git-lfs
+```
 
 From here, run `make` to build Git LFS in the `./bin` directory. Before
 submitting changes, be sure to run the Go tests and the shell integration
 tests:
 
-    $ make test          # runs just the Go tests
-    $ cd t && make test  # runs the shell tests in ./test
-    $ script/cibuild     # runs everything, with verbose debug output
+```ShellSession
+$ make test          # runs just the Go tests
+$ cd t && make test  # runs the shell tests in ./test
+$ script/cibuild     # runs everything, with verbose debug output
+```
 
 ## Updating 3rd party packages
 
-0. Update `go.mod`.
-0. Run `make vendor` to update the code in the `vendor` directory.
-0. Commit the change.  Git LFS vendors the full source code in the repository.
-0. Submit a pull request.
+1. Update `go.mod`.
+1. Run `make vendor` to update the code in the `vendor` directory.
+1. Commit the change.  Git LFS vendors the full source code in the repository.
+1. Submit a pull request.
 
 ## Releasing
 
