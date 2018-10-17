@@ -10,7 +10,7 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	if localInstall || cfg.InRepo() {
+	if !skipRepoInstall && (localInstall || cfg.InRepo()) {
 		uninstallHooksCommand(cmd, args)
 	}
 
@@ -34,6 +34,7 @@ func init() {
 	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
+		cmd.Flags().BoolVarP(&skipRepoInstall, "skip-repo", "", false, "Skip repo setup, just uninstall global filters.")
 		cmd.AddCommand(NewCommand("hooks", uninstallHooksCommand))
 	})
 }
