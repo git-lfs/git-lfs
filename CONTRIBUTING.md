@@ -38,7 +38,6 @@ community time to discuss it before a lot of code has been written.
 The Git LFS teams mark issues and pull requests with the following labels:
 
 * `bug` - An issue describing a bug.
-* `core-team` - An issue relating to the governance of the project.
 * `enhancement` - An issue for a possible new feature.
 * `review` - A pull request ready to be reviewed.
 * `release` - A checklist issue showing items marked for an upcoming release.
