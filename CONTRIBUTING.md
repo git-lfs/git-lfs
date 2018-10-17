@@ -49,13 +49,13 @@ In general, contributors should develop on branches based off of `master` and pu
 
 ## Submitting a pull request
 
-0. [Fork][] and clone the repository
-0. Configure and install the dependencies: `make`
-0. Make sure the tests pass on your machine: `make test`
-0. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
-0. Make your change, add tests, and make sure the tests still pass
-0. Push to your fork and [submit a pull request][pr] from your branch to `master`
-0. Pat yourself on the back and wait for your pull request to be reviewed
+1. [Fork][] and clone the repository
+1. Configure and install the dependencies: `make`
+1. Make sure the tests pass on your machine: `make test`
+1. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
+1. Make your change, add tests, and make sure the tests still pass
+1. Push to your fork and [submit a pull request][pr] from your branch to `master`
+1. Pat yourself on the back and wait for your pull request to be reviewed
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
@@ -109,10 +109,10 @@ tests:
 
 ## Updating 3rd party packages
 
-0. Update `go.mod`.
-0. Run `make vendor` to update the code in the `vendor` directory.
-0. Commit the change.  Git LFS vendors the full source code in the repository.
-0. Submit a pull request.
+1. Update `go.mod`.
+1. Run `make vendor` to update the code in the `vendor` directory.
+1. Commit the change.  Git LFS vendors the full source code in the repository.
+1. Submit a pull request.
 
 ## Releasing
 
