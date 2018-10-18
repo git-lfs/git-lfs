@@ -22,16 +22,19 @@ begin_test "uninstall outside repository"
 
   [ ! -e "lfs" ]
 
-  git lfs install
-  git lfs uninstall | tee uninstall.log
-  grep "configuration has been removed" uninstall.log
+  for opt in "" "--skip-repo"
+  do
+    git lfs install
+    git lfs uninstall $opt | tee uninstall.log
+    grep "configuration has been removed" uninstall.log
 
-  [ "" = "$(git config --global filter.lfs.smudge)" ]
-  [ "" = "$(git config --global filter.lfs.clean)" ]
-  [ "" = "$(git config --global filter.lfs.process)" ]
+    [ "" = "$(git config --global filter.lfs.smudge)" ]
+    [ "" = "$(git config --global filter.lfs.clean)" ]
+    [ "" = "$(git config --global filter.lfs.process)" ]
 
-  cat $HOME/.gitconfig
-  [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]
+    cat $HOME/.gitconfig
+    [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]
+  done
 )
 end_test
 
@@ -56,6 +59,33 @@ begin_test "uninstall outside repository without access to .git/lfs"
   [ "" = "$(git config --global filter.lfs.clean)" ]
   [ "" = "$(git config --global filter.lfs.process)" ]
 )
+
+begin_test "uninstall inside repository with --skip-repo"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-skip-repo"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+  git lfs install
+
+  [ -f .git/hooks/pre-push ]
+  grep "git-lfs" .git/hooks/pre-push
+
+  [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
+
+  git lfs uninstall --skip-repo
+
+  [ -f .git/hooks/pre-push ]
+  [ "" = "$(git config filter.lfs.smudge)" ]
+  [ "" = "$(git config filter.lfs.clean)" ]
+  [ "" = "$(git config filter.lfs.process)" ]
+)
+end_test
+
 
 begin_test "uninstall inside repository with default pre-push hook"
 (

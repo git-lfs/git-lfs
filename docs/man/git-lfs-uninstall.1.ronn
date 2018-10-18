@@ -17,6 +17,12 @@ Perform the following actions to remove the Git LFS configuration:
 * --local:
     Removes the "lfs" smudge and clean filters from the local repository's git
     config, instead of the global git config (~/.gitconfig).
+* --system:
+    Removes the "lfs" smudge and clean filters from the system git config,
+    instead of the global git config (~/.gitconfig).
+* --skip-repo:
+    Skips cleanup of the local repo; use if you want to uninstall the global lfs
+    filters but not make changes to the current repo.
 
 ## SEE ALSO
 
