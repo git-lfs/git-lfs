@@ -168,6 +168,7 @@ matching as in .gitattributes.
 You can configure Git LFS to only migrate commits reachable by references
 include by `--include-ref` and not reachable by `--exclude-ref`.
 
+```
         D---E---F
        /         \
   A---B------C    refs/heads/my-feature
@@ -175,18 +176,23 @@ include by `--include-ref` and not reachable by `--exclude-ref`.
     \          refs/heads/master
      \
       refs/remotes/origin/master
+```
 
 In the above configuration, the following commits are reachable by each ref:
 
+```
 refs/heads/master:         C, B, A
 refs/heads/my-feature:     F, E, D, B, A
 refs/remote/origin/master: A
+```
 
 The following configuration:
 
+```
   --include-ref=refs/heads/my-feature
   --include-ref=refs/heads/master
   --exclude-ref=refs/remotes/origin/master
+```
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
 
