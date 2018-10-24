@@ -87,6 +87,8 @@ func init() {
 	if len(os.Getenv("GIT_TRACE")) < 1 {
 		if tt := os.Getenv("GIT_TRANSFER_TRACE"); len(tt) > 0 {
 			os.Setenv("GIT_TRACE", tt)
+		} else if cv := os.Getenv("GIT_CURL_VERBOSE"); len(cv) > 0 {
+			os.Setenv("GIT_TRACE", cv)
 		}
 	}
 }

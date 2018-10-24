@@ -74,7 +74,8 @@ func (a *adapterBase) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	a.remote = cfg.Remote()
 	a.cb = cb
 	a.jobChan = make(chan *job, 100)
-	a.debugging = a.apiClient.OSEnv().Bool("GIT_TRANSFER_TRACE", false)
+	a.debugging = a.apiClient.OSEnv().Bool("GIT_TRANSFER_TRACE", false) ||
+		a.apiClient.OSEnv().Bool("GIT_CURL_VERBOSE", false)
 	maxConcurrency := cfg.ConcurrentTransfers()
 
 	a.Trace("xfer: adapter %q Begin() with %d workers", a.Name(), maxConcurrency)
