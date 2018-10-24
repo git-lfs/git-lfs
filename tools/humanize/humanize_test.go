@@ -273,7 +273,8 @@ func TestFormateByteRate(t *testing.T) {
 		"format petabytes exact": {uint64(1.3 * math.Pow(10, 12)), time.Second, "1.3 TB/s"},
 		"format terabytes exact": {uint64(1.3 * math.Pow(10, 15)), time.Second, "1.3 PB/s"},
 
-		"format bytes (non-second)": {uint64(10 * math.Pow(10, 0)), 2 * time.Second, "5 B/s"},
+		"format bytes (non-second)":  {uint64(10 * math.Pow(10, 0)), 2 * time.Second, "5 B/s"},
+		"format bytes (zero-second)": {uint64(10 * math.Pow(10, 0)), 0, "10 GB/s"},
 	} {
 		t.Run(desc, c.Assert)
 	}

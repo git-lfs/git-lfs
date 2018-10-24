@@ -146,7 +146,7 @@ func FormatByteRate(s uint64, d time.Duration) string {
 	f := float64(s)
 
 	if f != 0 {
-		f = f / d.Seconds()
+		f = f / math.Max(time.Nanosecond.Seconds(), d.Seconds())
 		e = math.Floor(log(f, 1000))
 		if e <= eps {
 			// The result of math.Floor(log(r, 1000)) can be
