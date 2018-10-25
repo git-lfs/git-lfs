@@ -75,9 +75,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.url": srv.URL + "/repo/lfs",
-	}))
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
 	require.Nil(t, err)
 	c.Credentials = cred
 
@@ -145,9 +147,11 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c, _ := NewClient(nil)
 	c.Credentials = cred
-	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.url": srv.URL,
-	}))
+	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL,
+		},
+	))
 
 	req, err := http.NewRequest("POST", srv.URL, nil)
 	require.Nil(t, err)
@@ -197,9 +201,11 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	defer srv.Close()
 
 	creds := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.url": srv.URL + "/repo/lfs",
-	}))
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
 	require.Nil(t, err)
 	c.Credentials = creds
 
@@ -245,9 +251,11 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.url": srv.URL + "/repo/lfs",
-	}))
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
 	require.Nil(t, err)
 	c.Credentials = cred
 
@@ -637,7 +645,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ctx := lfshttp.NewContext(git.NewConfig("", ""), nil, test.Config)
+		ctx := lfshttp.NewContext(git.NewReadOnlyConfig("", ""), nil, test.Config)
 		client, _ := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
 		client.Endpoints = NewEndpointFinder(ctx)
