@@ -306,18 +306,25 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	return rawurl
 }
 
+const (
+	aliasPrefix = "url."
+)
+
 func initAliases(e *endpointGitFinder, git config.Environment) {
-	prefix := "url."
 	suffix := ".insteadof"
 	for gitkey, gitval := range git.All() {
-		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
+		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, aliasPrefix) && strings.HasSuffix(gitkey, suffix)) {
 			continue
 		}
-		if _, ok := e.aliases[gitval[len(gitval)-1]]; ok {
-			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
-		}
-		e.aliases[gitval[len(gitval)-1]] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
+		storeAlias(e.aliases, gitkey, gitval, suffix)
 	}
+}
+
+func storeAlias(aliases map[string]string, key string, value []string, suffix string) {
+	if _, ok := aliases[value[len(value)-1]]; ok {
+		fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value)
+	}
+	aliases[value[len(value)-1]] = key[len(aliasPrefix) : len(key)-len(suffix)]
 }
 
 func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) lfshttp.Endpoint {
