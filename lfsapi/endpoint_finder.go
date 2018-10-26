@@ -288,8 +288,16 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	e.aliasMu.Lock()
 	defer e.aliasMu.Unlock()
 
+	rawurl, _ = e.replaceUrlAlias(e.aliases, rawurl)
+
+	return rawurl
+}
+
+// replaceUrlAlias is a helper function for ReplaceUrlAlias.  It must only be
+// called while the e.aliasMu mutex is held.
+func (e *endpointGitFinder) replaceUrlAlias(aliases map[string]string, rawurl string) (string, bool) {
 	var longestalias string
-	for alias, _ := range e.aliases {
+	for alias, _ := range aliases {
 		if !strings.HasPrefix(rawurl, alias) {
 			continue
 		}
@@ -300,10 +308,10 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	}
 
 	if len(longestalias) > 0 {
-		return e.aliases[longestalias] + rawurl[len(longestalias):]
+		return aliases[longestalias] + rawurl[len(longestalias):], true
 	}
 
-	return rawurl
+	return rawurl, false
 }
 
 const (
