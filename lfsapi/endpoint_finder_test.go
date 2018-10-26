@@ -494,6 +494,76 @@ func TestEndpointParsing(t *testing.T) {
 	}
 }
 
+type InsteadOfTestCase struct {
+	Given     string
+	Operation string
+	Expected  lfshttp.Endpoint
+}
+
+func (c *InsteadOfTestCase) Assert(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.test.url":                      c.Given,
+		"url.https://example.com/.insteadof":   "ex:",
+		"url.ssh://example.com/.pushinsteadof": "ex:",
+		"url.ssh://example.com/.insteadof":     "exp:",
+	}))
+	actual := finder.Endpoint(c.Operation, "test")
+	assert.Equal(t, c.Expected, actual, "lfsapi: expected endpoint for %q to be %#v (was %#v)", c.Given, c.Expected, actual)
+}
+
+func TestInsteadOf(t *testing.T) {
+	// Note that many of these tests will produce silly or completely broken
+	// values for the Url, and that's okay: they work nevertheless.
+	for desc, c := range map[string]InsteadOfTestCase{
+		"insteadof alias (download)": {
+			"ex:git-lfs/git-lfs.git",
+			"download",
+			lfshttp.Endpoint{
+				Url:            "https://example.com/git-lfs/git-lfs.git/info/lfs",
+				SshUserAndHost: "",
+				SshPath:        "",
+				SshPort:        "",
+				Operation:      "download",
+			},
+		},
+		"pushinsteadof alias (upload)": {
+			"ex:git-lfs/git-lfs.git",
+			"upload",
+			lfshttp.Endpoint{
+				Url:            "https://example.com/git-lfs/git-lfs.git/info/lfs",
+				SshUserAndHost: "example.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "upload",
+			},
+		},
+		"exp alias (download)": {
+			"exp:git-lfs/git-lfs.git",
+			"download",
+			lfshttp.Endpoint{
+				Url:            "https://example.com/git-lfs/git-lfs.git/info/lfs",
+				SshUserAndHost: "example.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "download",
+			},
+		},
+		"exp alias (upload)": {
+			"exp:git-lfs/git-lfs.git",
+			"upload",
+			lfshttp.Endpoint{
+				Url:            "https://example.com/git-lfs/git-lfs.git/info/lfs",
+				SshUserAndHost: "example.com",
+				SshPath:        "git-lfs/git-lfs.git",
+				SshPort:        "",
+				Operation:      "upload",
+			},
+		},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
 func TestNewEndpointFromCloneURLWithConfig(t *testing.T) {
 	expected := "https://foo/bar.git/info/lfs"
 	tests := []string{

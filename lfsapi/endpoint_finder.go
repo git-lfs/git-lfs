@@ -56,8 +56,9 @@ type endpointGitFinder struct {
 	gitEnv      config.Environment
 	gitProtocol string
 
-	aliasMu sync.Mutex
-	aliases map[string]string
+	aliasMu     sync.Mutex
+	aliases     map[string]string
+	pushAliases map[string]string
 
 	accessMu  sync.Mutex
 	urlAccess map[string]AccessMode
@@ -74,6 +75,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
+		pushAliases: make(map[string]string),
 		urlAccess:   make(map[string]AccessMode),
 	}
 
@@ -184,7 +186,7 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lf
 }
 
 func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoint {
-	rawurl = e.ReplaceUrlAlias(rawurl)
+	rawurl = e.ReplaceUrlAlias(operation, rawurl)
 	if strings.HasPrefix(rawurl, "/") {
 		return lfshttp.EndpointFromLocalPath(rawurl)
 	}
@@ -284,10 +286,15 @@ func (e *endpointGitFinder) GitProtocol() string {
 // ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
 // config setting. If multiple aliases match, use the longest one.
 // See https://git-scm.com/docs/git-config for Git's docs.
-func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
+func (e *endpointGitFinder) ReplaceUrlAlias(operation, rawurl string) string {
 	e.aliasMu.Lock()
 	defer e.aliasMu.Unlock()
 
+	if operation == "upload" {
+		if rawurl, replaced := e.replaceUrlAlias(e.pushAliases, rawurl); replaced {
+			return rawurl
+		}
+	}
 	rawurl, _ = e.replaceUrlAlias(e.aliases, rawurl)
 
 	return rawurl
@@ -320,11 +327,16 @@ const (
 
 func initAliases(e *endpointGitFinder, git config.Environment) {
 	suffix := ".insteadof"
+	pushSuffix := ".pushinsteadof"
 	for gitkey, gitval := range git.All() {
-		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, aliasPrefix) && strings.HasSuffix(gitkey, suffix)) {
+		if len(gitval) == 0 || !strings.HasPrefix(gitkey, aliasPrefix) {
 			continue
 		}
-		storeAlias(e.aliases, gitkey, gitval, suffix)
+		if strings.HasSuffix(gitkey, suffix) {
+			storeAlias(e.aliases, gitkey, gitval, suffix)
+		} else if strings.HasSuffix(gitkey, pushSuffix) {
+			storeAlias(e.pushAliases, gitkey, gitval, pushSuffix)
+		}
 	}
 }
 
