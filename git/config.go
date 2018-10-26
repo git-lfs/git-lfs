@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,13 +10,18 @@ import (
 	"github.com/git-lfs/git-lfs/subprocess"
 )
 
+var (
+	ErrReadOnly = errors.New("configuration is read-only")
+)
+
 // Configuration can fetch or modify the current Git config and track the Git
 // version.
 type Configuration struct {
-	WorkDir string
-	GitDir  string
-	version *string
-	mu      sync.Mutex
+	WorkDir  string
+	GitDir   string
+	version  *string
+	readOnly bool
+	mu       sync.Mutex
 }
 
 func NewConfig(workdir, gitdir string) *Configuration {
@@ -23,6 +29,15 @@ func NewConfig(workdir, gitdir string) *Configuration {
 		gitdir = filepath.Join(workdir, ".git")
 	}
 	return &Configuration{WorkDir: workdir, GitDir: gitdir}
+}
+
+// NewReadOnlyConfig creates a new confguration that returns an error if an
+// attempt to write to the configuration is made.
+func NewReadOnlyConfig(workdir, gitdir string) *Configuration {
+	cfg := NewConfig(workdir, gitdir)
+	cfg.readOnly = true
+	return cfg
+
 }
 
 func ParseConfigLines(lines string, onlySafeKeys bool) *ConfigurationSource {
@@ -63,37 +78,37 @@ func (c *Configuration) FindLocal(key string) string {
 
 // SetGlobal sets the git config value for the key in the global config
 func (c *Configuration) SetGlobal(key, val string) (string, error) {
-	return c.gitConfig("--global", "--replace-all", key, val)
+	return c.gitConfigWrite("--global", "--replace-all", key, val)
 }
 
 // SetSystem sets the git config value for the key in the system config
 func (c *Configuration) SetSystem(key, val string) (string, error) {
-	return c.gitConfig("--system", "--replace-all", key, val)
+	return c.gitConfigWrite("--system", "--replace-all", key, val)
 }
 
 // UnsetGlobalSection removes the entire named section from the global config
 func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
-	return c.gitConfig("--global", "--remove-section", key)
+	return c.gitConfigWrite("--global", "--remove-section", key)
 }
 
 // UnsetSystemSection removes the entire named section from the system config
 func (c *Configuration) UnsetSystemSection(key string) (string, error) {
-	return c.gitConfig("--system", "--remove-section", key)
+	return c.gitConfigWrite("--system", "--remove-section", key)
 }
 
 // UnsetLocalSection removes the entire named section from the system config
 func (c *Configuration) UnsetLocalSection(key string) (string, error) {
-	return c.gitConfig("--local", "--remove-section", key)
+	return c.gitConfigWrite("--local", "--remove-section", key)
 }
 
 // SetLocal sets the git config value for the key in the specified config file
 func (c *Configuration) SetLocal(key, val string) (string, error) {
-	return c.gitConfig("--replace-all", key, val)
+	return c.gitConfigWrite("--replace-all", key, val)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
 func (c *Configuration) UnsetLocalKey(key string) (string, error) {
-	return c.gitConfig("--unset", key)
+	return c.gitConfigWrite("--unset", key)
 }
 
 func (c *Configuration) Sources(optionalFilename string) ([]*ConfigurationSource, error) {
@@ -143,4 +158,11 @@ func (c *Configuration) gitConfig(args ...string) (string, error) {
 		cmd.Dir = c.GitDir
 	}
 	return subprocess.Output(cmd)
+}
+
+func (c *Configuration) gitConfigWrite(args ...string) (string, error) {
+	if c.readOnly {
+		return "", ErrReadOnly
+	}
+	return c.gitConfig(args...)
 }
