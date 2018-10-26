@@ -41,8 +41,8 @@ func (a *Access) Mode() AccessMode {
 }
 
 type EndpointFinder interface {
-	NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint
-	NewEndpoint(rawurl string) lfshttp.Endpoint
+	NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint
+	NewEndpoint(operation, rawurl string) lfshttp.Endpoint
 	Endpoint(operation, remote string) lfshttp.Endpoint
 	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
@@ -99,12 +99,12 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) lfshttp.Endpoi
 
 	if operation == "upload" {
 		if url, ok := e.gitEnv.Get("lfs.pushurl"); ok {
-			return e.NewEndpoint(url)
+			return e.NewEndpoint(operation, url)
 		}
 	}
 
 	if url, ok := e.gitEnv.Get("lfs.url"); ok {
-		return e.NewEndpoint(url)
+		return e.NewEndpoint(operation, url)
 	}
 
 	if len(remote) > 0 && remote != defaultRemote {
@@ -128,16 +128,16 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
 		if url, ok := e.gitEnv.Get("remote." + remote + ".lfspushurl"); ok {
-			return e.NewEndpoint(url)
+			return e.NewEndpoint(operation, url)
 		}
 	}
 	if url, ok := e.gitEnv.Get("remote." + remote + ".lfsurl"); ok {
-		return e.NewEndpoint(url)
+		return e.NewEndpoint(operation, url)
 	}
 
 	// finally fall back on git remote url (also supports pushurl)
 	if url := e.GitRemoteURL(remote, operation == "upload"); url != "" {
-		return e.NewEndpointFromCloneURL(url)
+		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
 	return lfshttp.Endpoint{}
@@ -163,8 +163,8 @@ func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 	return ""
 }
 
-func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint {
-	ep := e.NewEndpoint(rawurl)
+func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint {
+	ep := e.NewEndpoint(operation, rawurl)
 	if ep.Url == lfshttp.UrlUnknown {
 		return ep
 	}
@@ -183,7 +183,7 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) lfshttp.Endpo
 	return ep
 }
 
-func (e *endpointGitFinder) NewEndpoint(rawurl string) lfshttp.Endpoint {
+func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoint {
 	rawurl = e.ReplaceUrlAlias(rawurl)
 	if strings.HasPrefix(rawurl, "/") {
 		return lfshttp.EndpointFromLocalPath(rawurl)

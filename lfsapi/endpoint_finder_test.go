@@ -421,7 +421,7 @@ func (c *EndpointParsingTestCase) Assert(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"url.https://github.com/.insteadof": "gh:",
 	}))
-	actual := finder.NewEndpoint(c.Given)
+	actual := finder.NewEndpoint("upload", c.Given)
 	assert.Equal(t, c.Expected, actual, "lfsapi: expected endpoint for %q to be %#v (was %#v)", c.Given, c.Expected, actual)
 }
 
@@ -505,7 +505,7 @@ func TestNewEndpointFromCloneURLWithConfig(t *testing.T) {
 
 	finder := NewEndpointFinder(nil)
 	for _, actual := range tests {
-		e := finder.NewEndpointFromCloneURL(actual)
+		e := finder.NewEndpointFromCloneURL("upload", actual)
 		if e.Url != expected {
 			t.Errorf("%s returned bad endpoint url %s", actual, e.Url)
 		}
