@@ -87,6 +87,7 @@ func attrPaths(path, workingDir string) []AttributePath {
 	if err != nil {
 		return nil
 	}
+	defer attributes.Close()
 
 	var paths []AttributePath
 
