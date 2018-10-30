@@ -123,12 +123,14 @@ LFS_CLIENT_KEY_FILE_ENCRYPTED="$REMOTEDIR/client.enc.key"
 # the fake home dir used for the initial setup
 TESTHOME="$REMOTEDIR/home"
 
+GIT_LFS_FORCE_PROGRESS=1
 GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
 GIT_SSH=lfs-ssh-echo
 APPVEYOR_REPO_COMMIT_MESSAGE="test: env test should look for GIT_SSH too"
 
 export CREDSDIR
+export GIT_LFS_FORCE_PROGRESS
 export GIT_CONFIG_NOSYSTEM
 export GIT_SSH
 export APPVEYOR_REPO_COMMIT_MESSAGE

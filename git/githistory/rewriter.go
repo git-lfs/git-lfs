@@ -158,10 +158,12 @@ var (
 		}
 	}
 
-	// WithLoggerto logs updates caused by the *git/githistory.Rewriter to
+	// WithLoggerTo logs updates caused by the *git/githistory.Rewriter to
 	// the given io.Writer "sink".
-	WithLoggerTo = func(sink io.Writer) rewriterOption {
-		return WithLogger(tasklog.NewLogger(sink))
+	WithLoggerTo = func(sink io.Writer, forceProgress bool) rewriterOption {
+		return WithLogger(tasklog.NewLogger(sink,
+			tasklog.ForceProgress(forceProgress),
+		))
 	}
 
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the

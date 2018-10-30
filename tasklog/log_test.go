@@ -31,13 +31,32 @@ func TestLoggerLogsTasks(t *testing.T) {
 		close(task)
 	}()
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.throttle = 0
 	l.widthFn = func() int { return 0 }
 	l.Enqueue(ChanTask(task))
 	l.Close()
 
 	assert.Equal(t, "first\rsecond\rsecond, done\n", buf.String())
+}
+
+func TestLoggerLogsSuppressesProgress(t *testing.T) {
+	var buf bytes.Buffer
+
+	task := make(chan *Update)
+	go func() {
+		task <- &Update{"first", time.Now(), false}
+		task <- &Update{"second", time.Now(), false}
+		close(task)
+	}()
+
+	l := NewLogger(&buf, ForceProgress(false))
+	l.throttle = 0
+	l.widthFn = func() int { return 0 }
+	l.Enqueue(ChanTask(task))
+	l.Close()
+
+	assert.Equal(t, "second, done\n", buf.String())
 }
 
 func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
@@ -56,7 +75,7 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 		close(t2)
 	}()
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.throttle = 0
 	l.widthFn = func() int { return 0 }
 	l.Enqueue(ChanTask(t1), ChanTask(t2))
@@ -75,7 +94,7 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 	var buf bytes.Buffer
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.throttle = 0
 	t1, t2 := make(chan *Update), make(chan *Update)
 
@@ -112,7 +131,7 @@ func TestLoggerThrottlesWrites(t *testing.T) {
 		close(t1)                                                        // t = 20+2ε ms, throttle is closed
 	}()
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Millisecond
 
@@ -139,7 +158,7 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 		close(t1)                                                        // t = 10+2ε ms, throttle is closed
 	}()
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Millisecond
 
@@ -155,7 +174,7 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 	var buf bytes.Buffer
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.widthFn = func() int { return 0 }
 	l.throttle = 15 * time.Minute
 
@@ -182,7 +201,7 @@ func TestLoggerHandlesSilentTasks(t *testing.T) {
 	task := make(chan *Update)
 	close(task)
 
-	l := NewLogger(&buf)
+	l := NewLogger(&buf, ForceProgress(true))
 	l.Enqueue(ChanTask(task))
 	l.Close()
 

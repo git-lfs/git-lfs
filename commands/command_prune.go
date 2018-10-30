@@ -57,7 +57,9 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 
-	logger := tasklog.NewLogger(OutputWriter)
+	logger := tasklog.NewLogger(OutputWriter,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	defer logger.Close()
 
 	var reachableObjects tools.StringSet

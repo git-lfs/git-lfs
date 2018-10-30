@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	isatty "github.com/mattn/go-isatty"
 	"github.com/olekukonko/ts"
 )
 
@@ -25,6 +27,9 @@ type Logger struct {
 	// this logger is running within.
 	widthFn func() int
 
+	// forceProgress forces progress status even when stdout is not a tty
+	forceProgress bool
+
 	// throttle is the minimum amount of time that must pass between each
 	// instant data is logged.
 	throttle time.Duration
@@ -38,9 +43,21 @@ type Logger struct {
 	wg *sync.WaitGroup
 }
 
+// Option is the type for
+type Option func(*Logger)
+
+// ForceProgress returns an options function that configures forced progress status
+// on the logger.
+func ForceProgress(v bool) Option {
+	return func(l *Logger) {
+		l.forceProgress = v
+	}
+}
+
 // NewLogger retuns a new *Logger instance that logs to "sink" and uses the
-// current terminal width as the width of the line.
-func NewLogger(sink io.Writer) *Logger {
+// current terminal width as the width of the line. Will log progress status if
+// stdout is a terminal or if forceProgress is true
+func NewLogger(sink io.Writer, options ...Option) *Logger {
 	if sink == nil {
 		sink = ioutil.Discard
 	}
@@ -58,6 +75,10 @@ func NewLogger(sink io.Writer) *Logger {
 		queue: make(chan Task),
 		tasks: make(chan Task),
 		wg:    new(sync.WaitGroup),
+	}
+
+	for _, option := range options {
+		option(l)
 	}
 
 	go l.consume()
@@ -214,6 +235,9 @@ func (l *Logger) logTask(task Task) {
 
 	var update *Update
 	for update = range task.Updates() {
+		if !isatty.IsTerminal(os.Stdout.Fd()) && !l.forceProgress {
+			continue
+		}
 		if logAll || l.throttle == 0 || !update.Throttled(last.Add(l.throttle)) {
 			l.logLine(update.S)
 			last = update.At

@@ -38,7 +38,9 @@ func pull(filter *filepathfilter.Filter) {
 	}
 
 	pointers := newPointerMap()
-	logger := tasklog.NewLogger(os.Stdout)
+	logger := tasklog.NewLogger(os.Stdout,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	meter := tq.NewMeter()
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)
 	logger.Enqueue(meter)

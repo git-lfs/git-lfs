@@ -111,7 +111,9 @@ func newUploadContext(dryRun bool) *uploadContext {
 		sink = ioutil.Discard
 	}
 
-	ctx.logger = tasklog.NewLogger(sink)
+	ctx.logger = tasklog.NewLogger(sink,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	ctx.meter = buildProgressMeter(ctx.DryRun, tq.Upload)
 	ctx.logger.Enqueue(ctx.meter)
 	ctx.committerName, ctx.committerEmail = cfg.CurrentCommitter()

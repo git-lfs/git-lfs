@@ -8,6 +8,7 @@ require (
 	github.com/git-lfs/wildmatch v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
+	github.com/mattn/go-isatty v0.0.4
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086

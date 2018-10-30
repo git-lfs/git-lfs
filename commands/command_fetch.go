@@ -230,7 +230,9 @@ func scanAll() []*lfs.WrappedPointer {
 	task := tasklog.NewSimpleTask()
 	defer task.Complete()
 
-	logger := tasklog.NewLogger(OutputWriter)
+	logger := tasklog.NewLogger(OutputWriter,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	logger.Enqueue(task)
 	var numObjs int64
 
@@ -324,7 +326,9 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 }
 
 func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *tq.Meter) {
-	logger := tasklog.NewLogger(os.Stdout)
+	logger := tasklog.NewLogger(os.Stdout,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	meter := buildProgressMeter(false, tq.Download)
 	logger.Enqueue(meter)
 
