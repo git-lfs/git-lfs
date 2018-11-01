@@ -1,5 +1,125 @@
 # Git LFS Changelog
 
+## 2.6.0 (1 November, 2018)
+
+This release adds better support for redirecting network calls from a Git LFS
+API server to one that requires a different authentication mode, builds Git LFS
+on Go 1.11, and numerous other bug fixes and modifications.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @andyneff for updating our release targets
+* @gtsiolis: for removing the deprecated `git lfs clone` from the listing of
+  supported Git LFS commands
+* @jsantell for fixing a formatting issue in the INCLUDE AND EXCLUDE man page
+  section
+* @mmlb for adding a release target for Linux arm64
+* @skashyap7 for adding the 'git lfs track -n'
+* @Villemoes: for modernizing the Git LFS installation procedure on Debian.
+
+### Features
+
+* commands: list explicitly excluded patterns separately #3320 (@bk2204)
+* Uninstall improvements #3326 (@bk2204)
+* config: honor GIT_AUTHOR_DATE and GIT_COMMITTER_DATE #3314 (@bk2204)
+* Add new `.netrc` credential helper #3307 (@PastelMobileSuit)
+* Honor umask and core.sharedRepository #3304 (@bk2204)
+* Support listing only filename tracked by git lfs using --name (-n) option
+  #3271 (@skashyap7)
+* all: use Go 1.11.1 in CI #3298 (@ttaylorr)
+* lfsapi/tq: Have DoWithAuth() caller determine URL Access Mode #3293
+  (@PastelMobileSuit)
+* commands: undeprecate checkout #3303 (@bk2204)
+* Checkout options for conflicts #3296 (@bk2204)
+* Makefile: build source tarballs for release #3283 (@bk2204)
+* Encrypted SSL key support #3270 (@bk2204)
+* Add support for core.sshCommand #3235 (@bk2204)
+* gitobj-based Object Scanner #3236 (@bk2204)
+* README.md: new core team members #3217 (@ttaylorr)
+* Add build and releases for linux arm64 #3196 (@mmlb)
+* Update packagecloud.rb #3210 (@andyneff)
+* all: use Go modules instead of Glide #3208 (@ttaylorr)
+* all: use Go 1.11 in CI #3203 (@ttaylorr)
+
+### Bugs
+
+* Fix formatting of INCLUDE AND EXCLUDE (REFS) #3330 (@jsantell)
+* go.sum: add missing entries #3319 (@bk2204)
+* Ensure correct syntax for commit headers in lfs migrate import #3313 (@bk2204)
+* Clean up trailing whitespace #3299 (@bk2204)
+* commands: unambiguously resolve remote references #3285 (@ttaylorr)
+* Expand custom transfer args by using the shell #3259 (@bk2204)
+* Canonicalize paths properly on Windows #3277 (@bk2204)
+* debian/prerm: add --system flag #3272 (@Villemoes)
+* t: make testsuite run under git rebase -x #3262 (@bk2204)
+* git/gitattr: parse 'set' attributes #3255 (@ttaylorr)
+* t: avoid panic in lfstest-customadapter #3243 (@bk2204)
+* t: avoid using shell variables in printf's first argument #3242 (@bk2204)
+* lfsapi: handle SSH hostnames and aliases without users #3230 (@bk2204)
+* commands/command_ls_files.go: ignore index with argument #3219 (@ttaylorr)
+* commands/command_migrate_import.go: install hooks #3227 (@ttaylorr)
+* t: mark test sources as .PHONY #3228 (@ttaylorr)
+* Pass GIT_SSH_COMMAND to the shell #3199 (@bk2204)
+* Tidy misformatted files #3202 (@bk2204)
+* config: expand core.hooksPath #3212 (@ttaylorr)
+* locks: manage write permissions of ignored files #3190 (@ttaylorr)
+
+### Misc
+
+* CONTRIBUTING.md: :nail_care: #3325 (@ttaylorr)
+* Update CONTRIBUTING #3317 (@bk2204)
+* go.mod: depend on tagged gitobj #3311 (@ttaylorr)
+* RFC: SSH protocol #3290 (@bk2204)
+* Remove `git lfs clone` command from man #3301 (@gtsiolis)
+* ROADMAP.md: use GitHub issues instead #3286 (@ttaylorr)
+* docs: add note about closing release milestone #3274 (@bk2204)
+* CI improvements #3268 (@bk2204)
+* docs/howto: document our release process #3261 (@ttaylorr)
+* Create new lfshttp package #3244 (@PastelMobileSuit)
+* CONTRIBUTING: update required go version #3232 (@PastelMobileSuit)
+* go.mod: use latest github.com/olekukonko/ts #3223 (@ttaylorr)
+* go.mod: pin github.com/git-lfs/wildmatch to v1.0.0 #3218 (@ttaylorr)
+* Update README.md #3193 (@srl295)
+
+## 2.5.2 (17 September, 2018)
+
+### Bugs
+
+* config: Treat [host:port]:path URLs correctly #3226 (@saschpe)
+* tq: Always provide a Content-Type when uploading files #3201 (@bk2204)
+* commands/track: Properly `lfs track` files with escaped characters in their
+  name #3192 (@leonid-s-usov)
+
+### Misc
+
+* packagecloud.rb: remove older versions #3210 (@andyneff)
+
+## 2.5.1 (2 August, 2018)
+
+This release contains miscellaneous bug fixes since v2.5.0. Most notably,
+release v2.5.1 allows a user to disable automatic Content-Type detection
+(released in v2.5.0) via `git config lfs.contenttype false` for hosts that do
+not support it.
+
+### Features
+
+* tq: make Content-Type detection disable-able #3163 (@ttaylorr)
+
+### Bugs
+
+* Makefile: add explicit rule for commands/mancontent_gen.go #3160 (@jj1bdx)
+* script/install.sh: mark as executable #3155 (@ttaylorr)
+* config: add origin to remote list #3152 (@PastelMobileSuit)
+
+### Misc
+
+* docs/man/mangen.go: don't show non-fatal output without --verbose #3168
+  (@ttaylorr)
+* LICENSE.md: update copyright year #3156 (@IMJ355)
+* Makefile: silence some output #3164 (@ttaylorr)
+* Makefile: list prerequisites for resource.syso #3153 (@ttaylorr)
+
 ## 2.5.0 (26 July, 2018)
 
 This release adds three new migration modes, updated developer ergonomics, and
