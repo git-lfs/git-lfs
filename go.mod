@@ -3,6 +3,7 @@ module github.com/git-lfs/git-lfs
 require (
 	github.com/ThomsonReutersEikon/go-ntlm v0.0.0-20151030004737-b00ec39bbdd0
 	github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
+	github.com/davecgh/go-spew v1.1.1
 	github.com/git-lfs/gitobj v1.0.0
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 	github.com/git-lfs/wildmatch v1.0.0
@@ -10,6 +11,7 @@ require (
 	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
 	github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a
 	github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33 // indirect
