@@ -41,8 +41,8 @@ func (a *Access) Mode() AccessMode {
 }
 
 type EndpointFinder interface {
-	NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint
-	NewEndpoint(rawurl string) lfshttp.Endpoint
+	NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint
+	NewEndpoint(operation, rawurl string) lfshttp.Endpoint
 	Endpoint(operation, remote string) lfshttp.Endpoint
 	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
@@ -56,8 +56,9 @@ type endpointGitFinder struct {
 	gitEnv      config.Environment
 	gitProtocol string
 
-	aliasMu sync.Mutex
-	aliases map[string]string
+	aliasMu     sync.Mutex
+	aliases     map[string]string
+	pushAliases map[string]string
 
 	accessMu  sync.Mutex
 	urlAccess map[string]AccessMode
@@ -74,6 +75,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
+		pushAliases: make(map[string]string),
 		urlAccess:   make(map[string]AccessMode),
 	}
 
@@ -99,12 +101,12 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) lfshttp.Endpoi
 
 	if operation == "upload" {
 		if url, ok := e.gitEnv.Get("lfs.pushurl"); ok {
-			return e.NewEndpoint(url)
+			return e.NewEndpoint(operation, url)
 		}
 	}
 
 	if url, ok := e.gitEnv.Get("lfs.url"); ok {
-		return e.NewEndpoint(url)
+		return e.NewEndpoint(operation, url)
 	}
 
 	if len(remote) > 0 && remote != defaultRemote {
@@ -128,16 +130,16 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 	// Support separate push URL if specified and pushing
 	if operation == "upload" {
 		if url, ok := e.gitEnv.Get("remote." + remote + ".lfspushurl"); ok {
-			return e.NewEndpoint(url)
+			return e.NewEndpoint(operation, url)
 		}
 	}
 	if url, ok := e.gitEnv.Get("remote." + remote + ".lfsurl"); ok {
-		return e.NewEndpoint(url)
+		return e.NewEndpoint(operation, url)
 	}
 
 	// finally fall back on git remote url (also supports pushurl)
 	if url := e.GitRemoteURL(remote, operation == "upload"); url != "" {
-		return e.NewEndpointFromCloneURL(url)
+		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
 	return lfshttp.Endpoint{}
@@ -163,8 +165,8 @@ func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 	return ""
 }
 
-func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) lfshttp.Endpoint {
-	ep := e.NewEndpoint(rawurl)
+func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint {
+	ep := e.NewEndpoint(operation, rawurl)
 	if ep.Url == lfshttp.UrlUnknown {
 		return ep
 	}
@@ -183,8 +185,8 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(rawurl string) lfshttp.Endpo
 	return ep
 }
 
-func (e *endpointGitFinder) NewEndpoint(rawurl string) lfshttp.Endpoint {
-	rawurl = e.ReplaceUrlAlias(rawurl)
+func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoint {
+	rawurl = e.ReplaceUrlAlias(operation, rawurl)
 	if strings.HasPrefix(rawurl, "/") {
 		return lfshttp.EndpointFromLocalPath(rawurl)
 	}
@@ -284,12 +286,25 @@ func (e *endpointGitFinder) GitProtocol() string {
 // ReplaceUrlAlias returns a url with a prefix from a `url.*.insteadof` git
 // config setting. If multiple aliases match, use the longest one.
 // See https://git-scm.com/docs/git-config for Git's docs.
-func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
+func (e *endpointGitFinder) ReplaceUrlAlias(operation, rawurl string) string {
 	e.aliasMu.Lock()
 	defer e.aliasMu.Unlock()
 
+	if operation == "upload" {
+		if rawurl, replaced := e.replaceUrlAlias(e.pushAliases, rawurl); replaced {
+			return rawurl
+		}
+	}
+	rawurl, _ = e.replaceUrlAlias(e.aliases, rawurl)
+
+	return rawurl
+}
+
+// replaceUrlAlias is a helper function for ReplaceUrlAlias.  It must only be
+// called while the e.aliasMu mutex is held.
+func (e *endpointGitFinder) replaceUrlAlias(aliases map[string]string, rawurl string) (string, bool) {
 	var longestalias string
-	for alias, _ := range e.aliases {
+	for alias, _ := range aliases {
 		if !strings.HasPrefix(rawurl, alias) {
 			continue
 		}
@@ -300,24 +315,36 @@ func (e *endpointGitFinder) ReplaceUrlAlias(rawurl string) string {
 	}
 
 	if len(longestalias) > 0 {
-		return e.aliases[longestalias] + rawurl[len(longestalias):]
+		return aliases[longestalias] + rawurl[len(longestalias):], true
 	}
 
-	return rawurl
+	return rawurl, false
 }
 
+const (
+	aliasPrefix = "url."
+)
+
 func initAliases(e *endpointGitFinder, git config.Environment) {
-	prefix := "url."
 	suffix := ".insteadof"
+	pushSuffix := ".pushinsteadof"
 	for gitkey, gitval := range git.All() {
-		if len(gitval) == 0 || !(strings.HasPrefix(gitkey, prefix) && strings.HasSuffix(gitkey, suffix)) {
+		if len(gitval) == 0 || !strings.HasPrefix(gitkey, aliasPrefix) {
 			continue
 		}
-		if _, ok := e.aliases[gitval[len(gitval)-1]]; ok {
-			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.insteadof' keys with the same alias: %q\n", gitval)
+		if strings.HasSuffix(gitkey, suffix) {
+			storeAlias(e.aliases, gitkey, gitval, suffix)
+		} else if strings.HasSuffix(gitkey, pushSuffix) {
+			storeAlias(e.pushAliases, gitkey, gitval, pushSuffix)
 		}
-		e.aliases[gitval[len(gitval)-1]] = gitkey[len(prefix) : len(gitkey)-len(suffix)]
 	}
+}
+
+func storeAlias(aliases map[string]string, key string, value []string, suffix string) {
+	if _, ok := aliases[value[len(value)-1]]; ok {
+		fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value)
+	}
+	aliases[value[len(value)-1]] = key[len(aliasPrefix) : len(key)-len(suffix)]
 }
 
 func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) lfshttp.Endpoint {
