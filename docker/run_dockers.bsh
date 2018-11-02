@@ -95,6 +95,7 @@ for IMAGE_NAME in "${IMAGES[@]}"; do
   echo Compiling LFS in docker image ${IMAGE_NAME}
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[0]}"/"${IMAGE_INFO[1]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" ${DOCKER_OTHER_OPTIONS-} \
+                   -e USER=root \
                    -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -e FINAL_UID=${FINAL_UID} \
                    -e FINAL_GID=${FINAL_GID} \
