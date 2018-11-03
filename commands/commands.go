@@ -30,8 +30,8 @@ import (
 var (
 	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
-	ErrorWriter  = io.MultiWriter(os.Stderr, ErrorBuffer)
-	OutputWriter = io.MultiWriter(os.Stdout, ErrorBuffer)
+	ErrorWriter  = newMultiWriter(os.Stderr, ErrorBuffer)
+	OutputWriter = newMultiWriter(os.Stdout, ErrorBuffer)
 	ManPages     = make(map[string]string, 20)
 	tqManifest   = make(map[string]*tq.Manifest)
 

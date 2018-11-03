@@ -27,6 +27,9 @@ type Logger struct {
 	// this logger is running within.
 	widthFn func() int
 
+	// tty is true if sink is connected to a terminal
+	tty bool
+
 	// forceProgress forces progress status even when stdout is not a tty
 	forceProgress bool
 
@@ -81,9 +84,23 @@ func NewLogger(sink io.Writer, options ...Option) *Logger {
 		option(l)
 	}
 
+	l.tty = tty(sink)
+
 	go l.consume()
 
 	return l
+}
+
+type hasFd interface {
+	Fd() uintptr
+}
+
+// tty returns true if the writer is connected to a tty
+func tty(writer io.Writer) bool {
+	if v, ok := writer.(hasFd); ok {
+		return isatty.IsTerminal(v.Fd())
+	}
+	return false
 }
 
 // Close closes the queue and does not allow new Tasks to be `enqueue()`'d. It
