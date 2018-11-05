@@ -61,8 +61,8 @@ func (f *Filter) Allows(filename string) bool {
 		}
 	}
 
-	tracerx.Printf("filepathfilter: rejecting %q via %v", filename, f.include)
 	if !included && len(f.include) > 0 {
+		tracerx.Printf("filepathfilter: rejecting %q via %v", filename, f.include)
 		return false
 	}
 
