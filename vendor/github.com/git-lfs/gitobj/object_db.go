@@ -285,7 +285,7 @@ func (o *ObjectDatabase) open(sha []byte) (*ObjectReader, error) {
 	if o.ro.IsCompressed() {
 		return NewObjectReadCloser(f)
 	}
-	return NewUncompressedObjectReader(f)
+	return NewUncompressedObjectReadCloser(f)
 }
 
 // openDecode calls decode (see: below) on the object named "sha" after openin
