@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/lfshttp"
 	t "github.com/git-lfs/git-lfs/t/cmd/util"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tq"
@@ -141,11 +142,11 @@ func buildManifest(r *t.Repo) (*tq.Manifest, error) {
 	// Configure the endpoint manually
 	finder := lfsapi.NewEndpointFinder(r)
 
-	var endp lfsapi.Endpoint
+	var endp lfshttp.Endpoint
 	if len(cloneUrl) > 0 {
-		endp = finder.NewEndpointFromCloneURL(cloneUrl)
+		endp = finder.NewEndpointFromCloneURL("upload", cloneUrl)
 	} else {
-		endp = finder.NewEndpoint(apiUrl)
+		endp = finder.NewEndpoint("upload", apiUrl)
 	}
 
 	apiClient, err := lfsapi.NewClient(r)
@@ -160,18 +161,20 @@ func buildManifest(r *t.Repo) (*tq.Manifest, error) {
 }
 
 type constantEndpoint struct {
-	e lfsapi.Endpoint
+	e lfshttp.Endpoint
 
 	lfsapi.EndpointFinder
 }
 
-func (c *constantEndpoint) NewEndpointFromCloneURL(rawurl string) lfsapi.Endpoint { return c.e }
+func (c *constantEndpoint) NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint {
+	return c.e
+}
 
-func (c *constantEndpoint) NewEndpoint(rawurl string) lfsapi.Endpoint { return c.e }
+func (c *constantEndpoint) NewEndpoint(operation, rawurl string) lfshttp.Endpoint { return c.e }
 
-func (c *constantEndpoint) Endpoint(operation, remote string) lfsapi.Endpoint { return c.e }
+func (c *constantEndpoint) Endpoint(operation, remote string) lfshttp.Endpoint { return c.e }
 
-func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfsapi.Endpoint { return c.e }
+func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfshttp.Endpoint { return c.e }
 
 func buildTestData(repo *t.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
