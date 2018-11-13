@@ -52,7 +52,7 @@ func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 	var errbuf bytes.Buffer
 	for _, o := range retobjs {
 		link, _ := o.Rel("upload")
-		if link == nil {
+		if link != nil {
 			errbuf.WriteString(fmt.Sprintf("Upload link should not exist for %s, was %+v\n", o.Oid, link))
 		}
 	}

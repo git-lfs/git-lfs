@@ -19,7 +19,12 @@ TEST_CMDS += ../bin/lfstest-gitserver$X
 TEST_CMDS += ../bin/lfstest-standalonecustomadapter$X
 TEST_CMDS += ../bin/lfstest-testutils$X
 
-TEST_SRCS = $(wildcard t-*.sh)
+# Not used for the integration tests, but build it here anyway to ensure it
+# continues to work.
+TEST_CMDS += ../bin/git-lfs-test-server-api$X
+
+TEST_SRCS     = $(wildcard t-*.sh)
+TEST_API_SRCS = $(wildcard git-lfs-test-server-api/*.go)
 
 all : $(DEFAULT_TEST_TARGET)
 
@@ -40,4 +45,7 @@ clean :
 	$(RM) $(TEST_CMDS)
 
 ../bin/%$X : cmd/%.go
+	go build -o $@ $^
+
+../bin/git-lfs-test-server-api$X : $(TEST_API_SRCS)
 	go build -o $@ $^
