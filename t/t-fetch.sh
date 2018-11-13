@@ -51,8 +51,9 @@ begin_test "init for fetch tests"
   git push origin newbranch
   assert_server_object "$reponame" "$b_oid"
 
-  # This clone is used for subsequent tests
+  # These clones are used for subsequent tests
   clone_repo "$reponame" clone
+  git clone --shared "$TRASHDIR/clone" "$TRASHDIR/shared"
 )
 end_test
 
@@ -63,6 +64,21 @@ begin_test "fetch"
   rm -rf .git/lfs/objects
 
   git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
+  assert_local_object "$contents_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
+)
+end_test
+
+begin_test "fetch (shared repository)"
+(
+  set -e
+  cd shared
+  rm -rf .git/lfs/objects
+
+  git lfs fetch 2>&1 | tee fetch.log
+  ! grep "Could not scan" fetch.log
   assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
