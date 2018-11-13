@@ -48,8 +48,6 @@ RONN_EXTRA_ARGS ?=
 # GREP is the name of the program used for regular expression matching, or
 # 'grep' if unset.
 GREP ?= grep
-# RM is the name of the program used removing files, or 'rm -f' if unset.
-RM ?= rm -f
 # XARGS is the name of the program used to turn stdin into program arguments, or
 # 'xargs' if unset.
 XARGS ?= xargs
@@ -328,9 +326,6 @@ go.sum : go.mod
 .PHONY : vendor
 vendor : go.mod
 	$(GO) mod vendor -v
-	$(RM) -r vendor/github.com/ThomsonReutersEikon/go-ntlm/utils
-	$(RM) -r vendor/github.com/davecgh/go-spew
-	$(RM) -r vendor/github.com/pmezard/go-difflib
 
 # fmt runs goimports over all files in Git LFS (as defined by $(SOURCES) above),
 # and replaces their contents with a formatted one in-place.
