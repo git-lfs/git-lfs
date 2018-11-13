@@ -22,6 +22,7 @@ var (
 
 func statusCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
+	requireWorkingCopy()
 
 	// tolerate errors getting ref so this works before first commit
 	ref, _ := git.CurrentRef()
