@@ -1,6 +1,7 @@
 package locking
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -41,6 +42,7 @@ type Client struct {
 	RemoteRef *git.Ref
 	client    *lockClient
 	cache     LockCacher
+	cacheDir  string
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -79,6 +81,7 @@ func (c *Client) SetupFileCache(path string) error {
 	}
 
 	c.cache = cache
+	c.cacheDir = filepath.Join(path, "cache")
 	return nil
 }
 
@@ -202,11 +205,45 @@ type Lock struct {
 // SearchLocks returns a channel of locks which match the given name/value filter
 // If limit > 0 then search stops at that number of locks
 // If localOnly = true, don't query the server & report only own local locks
-func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool) ([]Lock, error) {
+func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool, cached bool) ([]Lock, error) {
 	if localOnly {
-		return c.searchCachedLocks(filter, limit)
+		return c.searchLocalLocks(filter, limit)
+	} else if cached {
+		if len(filter) > 0 || limit != 0 {
+			return []Lock{}, errors.New("can't search cached locks when filter or limit is set")
+		}
+
+		cacheFile, err := c.prepareCacheDirectory()
+		if err != nil {
+			return []Lock{}, err
+		}
+
+		_, err = os.Stat(cacheFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return []Lock{}, errors.New("no cached locks present")
+			}
+
+			return []Lock{}, err
+		}
+
+		return c.readLocksFromCacheFile(cacheFile)
 	} else {
-		return c.searchRemoteLocks(filter, limit)
+		locks, err := c.searchRemoteLocks(filter, limit)
+		if err != nil {
+			return locks, err
+		}
+
+		if len(filter) == 0 && limit == 0 {
+			cacheFile, err := c.prepareCacheDirectory()
+			if err != nil {
+				return locks, err
+			}
+
+			err = c.writeLocksToCacheFile(cacheFile, locks)
+		}
+
+		return locks, err
 	}
 }
 
@@ -272,7 +309,7 @@ func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks 
 	return ourLocks, theirLocks, nil
 }
 
-func (c *Client) searchCachedLocks(filter map[string]string, limit int) ([]Lock, error) {
+func (c *Client) searchLocalLocks(filter map[string]string, limit int) ([]Lock, error) {
 	cachedlocks := c.cache.Locks()
 	path, filterByPath := filter["path"]
 	id, filterById := filter["id"]
@@ -372,7 +409,7 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 // current user, as cached locally
 func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
 	filter := map[string]string{"path": path}
-	locks, err := c.searchCachedLocks(filter, 1)
+	locks, err := c.searchLocalLocks(filter, 1)
 	if err != nil {
 		tracerx.Printf("Error searching cached locks: %s\nForcing remote search", err)
 		locks, _ = c.searchRemoteLocks(filter, 1)
@@ -382,6 +419,61 @@ func (c *Client) IsFileLockedByCurrentCommitter(path string) bool {
 
 func init() {
 	kv.RegisterTypeForStorage(&Lock{})
+}
+
+func (c *Client) prepareCacheDirectory() (string, error) {
+	cacheDir := filepath.Join(c.cacheDir, "locks")
+	if c.RemoteRef != nil {
+		cacheDir = filepath.Join(cacheDir, c.RemoteRef.Refspec())
+	}
+
+	stat, err := os.Stat(cacheDir)
+	if err == nil {
+		if !stat.IsDir() {
+			return cacheDir, errors.New("init cache directory " + cacheDir + " failed: already exists, but is no directory")
+		}
+	} else if os.IsNotExist(err) {
+		err = os.MkdirAll(cacheDir, os.ModePerm)
+		if err != nil {
+			return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed: directory creation failed")
+		}
+	} else {
+		return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed")
+	}
+
+	return filepath.Join(cacheDir, "remote"), nil
+}
+
+func (c *Client) readLocksFromCacheFile(path string) ([]Lock, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return []Lock{}, err
+	}
+
+	defer file.Close()
+
+	locks := []Lock{}
+	err = json.NewDecoder(file).Decode(&locks)
+	if err != nil {
+		return []Lock{}, err
+	}
+
+	return locks, nil
+}
+
+func (c *Client) writeLocksToCacheFile(path string, locks []Lock) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.NewEncoder(file).Encode(locks)
+	if err != nil {
+		file.Close()
+		return err
+	}
+
+	return file.Close()
 }
 
 type nilLockCacher struct{}

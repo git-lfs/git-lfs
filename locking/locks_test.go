@@ -5,10 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sort"
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +22,111 @@ type LocksById []Lock
 func (a LocksById) Len() int           { return len(a) }
 func (a LocksById) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a LocksById) Less(i, j int) bool { return a[i].Id < a[j].Id }
+
+func TestRemoteLocksWithCache(t *testing.T) {
+	var err error
+	tempDir, err := ioutil.TempDir("", "testCacheLock")
+	assert.Nil(t, err)
+
+	remoteQueries := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteQueries++
+
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "/api/locks", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(&lockList{
+			Locks: []Lock{
+				Lock{Id: "100", Path: "folder/test1.dat", Owner: &User{Name: "Alice"}},
+				Lock{Id: "101", Path: "folder/test2.dat", Owner: &User{Name: "Charles"}},
+				Lock{Id: "102", Path: "folder/test3.dat", Owner: &User{Name: "Fred"}},
+			},
+		})
+		assert.Nil(t, err)
+	}))
+
+	defer func() {
+		srv.Close()
+	}()
+
+	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+		"lfs.url":    srv.URL + "/api",
+		"user.name":  "Fred",
+		"user.email": "fred@bloggs.com",
+	}))
+	require.Nil(t, err)
+
+	client, err := NewClient("", lfsclient)
+	assert.Nil(t, err)
+	assert.Nil(t, client.SetupFileCache(tempDir))
+
+	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
+	cacheFile, err := client.prepareCacheDirectory()
+	assert.Nil(t, err)
+
+	// Cache file should not exist
+	fi, err := os.Stat(cacheFile)
+	assert.True(t, os.IsNotExist(err))
+
+	// Querying non-existing cache file will report nothing
+	locks, err := client.SearchLocks(nil, 0, false, true)
+	assert.NotNil(t, err)
+	assert.Empty(t, locks)
+	assert.Equal(t, 0, remoteQueries)
+
+	// Need to include zero time in structure for equal to work
+	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// REMOTE QUERY: No cache file will be created when querying with a filter
+	locks, err = client.SearchLocks(map[string]string{
+		"key": "value",
+	}, 0, false, false)
+	assert.Nil(t, err)
+	// Just make sure we have have received anything, content doesn't matter
+	assert.Equal(t, 3, len(locks))
+	assert.Equal(t, 1, remoteQueries)
+
+	fi, err = os.Stat(cacheFile)
+	assert.True(t, os.IsNotExist(err))
+
+	// REMOTE QUERY: No cache file will be created when querying with a limit
+	locks, err = client.SearchLocks(nil, 1, false, false)
+	assert.Nil(t, err)
+	// Just make sure we have have received anything, content doesn't matter
+	assert.Equal(t, 1, len(locks))
+	assert.Equal(t, 2, remoteQueries)
+
+	fi, err = os.Stat(cacheFile)
+	assert.True(t, os.IsNotExist(err))
+
+	// REMOTE QUERY: locks will be reported and cache file should be created
+	locks, err = client.SearchLocks(nil, 0, false, false)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, remoteQueries)
+
+	fi, err = os.Stat(cacheFile)
+	assert.Nil(t, err)
+	const size int64 = 300
+	assert.Equal(t, size, fi.Size())
+
+	expectedLocks := []Lock{
+		Lock{Path: "folder/test1.dat", Id: "100", Owner: &User{Name: "Alice"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test2.dat", Id: "101", Owner: &User{Name: "Charles"}, LockedAt: zeroTime},
+		Lock{Path: "folder/test3.dat", Id: "102", Owner: &User{Name: "Fred"}, LockedAt: zeroTime},
+	}
+
+	sort.Sort(LocksById(locks))
+	assert.Equal(t, expectedLocks, locks)
+
+	// Querying cache file should report same locks
+	locks, err = client.SearchLocks(nil, 0, false, true)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, remoteQueries)
+
+	sort.Sort(LocksById(locks))
+	assert.Equal(t, expectedLocks, locks)
+}
 
 func TestRefreshCache(t *testing.T) {
 	var err error
@@ -61,14 +168,14 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	// Should start with no cached items
-	locks, err := client.SearchLocks(nil, 0, true)
+	locks, err := client.SearchLocks(nil, 0, true, false)
 	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
 	_, _, err = client.VerifiableLocks(nil, 100)
 	assert.Nil(t, err)
 
-	locks, err = client.SearchLocks(nil, 0, true)
+	locks, err = client.SearchLocks(nil, 0, true, false)
 	assert.Nil(t, err)
 	// Need to include zero time in structure for equal to work
 	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)

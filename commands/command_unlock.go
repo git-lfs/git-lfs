@@ -121,10 +121,10 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 	// Get the path so we can check the status
 	filter := map[string]string{"id": id}
 	// try local cache first
-	locks, _ := lockClient.SearchLocks(filter, 0, true)
+	locks, _ := lockClient.SearchLocks(filter, 0, true, false)
 	if len(locks) == 0 {
 		// Fall back on calling server
-		locks, _ = lockClient.SearchLocks(filter, 0, false)
+		locks, _ = lockClient.SearchLocks(filter, 0, false, false)
 	}
 
 	if len(locks) == 0 {
