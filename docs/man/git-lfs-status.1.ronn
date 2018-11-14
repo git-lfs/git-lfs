@@ -18,6 +18,8 @@ Display paths of Git LFS objects that
 * have differences between the working tree and the index file.  These
   are files that could be staged using `git add`.
 
+This command must be run in a non-bare repository.
+
 ## OPTIONS
 
 * `--porcelain`:

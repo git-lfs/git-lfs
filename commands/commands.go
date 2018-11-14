@@ -309,6 +309,22 @@ func requireInRepo() {
 	}
 }
 
+// requireWorkingCopy requires that the working directory be a work tree, i.e.,
+// that it not be bare. If it is bare (or the state of the repository could not
+// be determined), this function will terminate the program.
+func requireWorkingCopy() {
+	bare, err := git.IsBare()
+	if err != nil {
+		ExitWithError(errors.Wrap(
+			err, "fatal: could not determine bareness"))
+	}
+
+	if bare {
+		Print("This operation must be run in a work tree.")
+		os.Exit(128)
+	}
+}
+
 func handlePanic(err error) string {
 	if err == nil {
 		return ""

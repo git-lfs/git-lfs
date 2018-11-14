@@ -448,3 +448,19 @@ Git LFS objects not staged for commit:"
   [ "$expected" = "$(git lfs status)" ]
 )
 end_test
+
+begin_test "status (without a working copy)"
+(
+  reponame="status-no-working-copy.git"
+
+  git init --bare "$reponame"
+  cd "$reponame"
+
+  git lfs status 2>&1 | tee status.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "git lfs status should have failed, didn't ..."
+    exit 1
+  fi
+  [ "This operation must be run in a work tree." = "$(cat status.log)" ]
+)
+end_test
