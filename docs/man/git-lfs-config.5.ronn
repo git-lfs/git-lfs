@@ -306,6 +306,16 @@ be scoped inside the configuration for a remote.
   * `total` The entire size of the file, in bytes.
   * `name` The name of the file.
 
+* `GIT_LFS_FORCE_PROGRESS`
+  `lfs.forceprogress`
+
+  Controls whether Git LFS will suppress progress status when the standard
+  output stream is not attached to a terminal. The default is `false` which
+  makes Git LFS detect whether stdout is a terminal and suppress progress when
+  it's not; you can disable this behaviour and force progress status even when
+  standard output stream is not a terminal by setting either variable to 1,
+  'yes' or 'true'.
+
 * `GIT_LFS_SET_LOCKABLE_READONLY`
   `lfs.setlockablereadonly`
 

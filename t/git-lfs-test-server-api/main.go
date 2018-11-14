@@ -182,7 +182,9 @@ func buildTestData(repo *t.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing 
 	oidsMissing = make([]TestObject, 0, oidCount)
 
 	// just one commit
-	logger := tasklog.NewLogger(os.Stdout)
+	logger := tasklog.NewLogger(os.Stdout,
+		tasklog.ForceProgress(false),
+	)
 	meter := tq.NewMeter()
 	meter.Logger = meter.LoggerFromEnv(repo.OSEnv())
 	logger.Enqueue(meter)

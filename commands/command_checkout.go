@@ -47,7 +47,9 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	var totalBytes int64
 	var pointers []*lfs.WrappedPointer
-	logger := tasklog.NewLogger(os.Stdout)
+	logger := tasklog.NewLogger(os.Stdout,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 	meter := tq.NewMeter()
 	meter.Direction = tq.Checkout
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)

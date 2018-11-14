@@ -40,7 +40,9 @@ var (
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
-	l := tasklog.NewLogger(os.Stderr)
+	l := tasklog.NewLogger(os.Stderr,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
 
 	db, err := getObjectDatabase()
 	if err != nil {
