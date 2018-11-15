@@ -20,6 +20,8 @@ type object struct {
 	Size int64
 	// Type is the type of the object being held.
 	Type string
+	// object is the gitobj object being handled.
+	object gitobj.Object
 }
 
 // ObjectScanner is a scanner type that scans for Git objects reference-able in
@@ -68,6 +70,11 @@ func NewObjectScannerFrom(db *gitobj.ObjectDatabase) *ObjectScanner {
 // Scan() returns whether the scan was successful, or in other words, whether or
 // not the scanner can continue to progress.
 func (s *ObjectScanner) Scan(oid string) bool {
+	if err := s.reset(); err != nil {
+		s.err = err
+		return false
+	}
+
 	obj, err := s.scan(oid)
 	s.object = obj
 
@@ -87,6 +94,8 @@ func (s *ObjectScanner) Close() error {
 	if s == nil {
 		return nil
 	}
+
+	s.reset()
 
 	return nil
 }
@@ -115,6 +124,21 @@ func (s *ObjectScanner) Type() string {
 // Err returns the error (if any) that was encountered during the last Scan()
 // operation.
 func (s *ObjectScanner) Err() error { return s.err }
+
+func (s *ObjectScanner) reset() error {
+	if s.object != nil {
+		if c, ok := s.object.object.(interface {
+			Close() error
+		}); ok && c != nil {
+			if err := c.Close(); err != nil {
+				return err
+			}
+		}
+	}
+
+	s.object, s.err = nil, nil
+	return nil
+}
 
 type missingErr struct {
 	oid string
@@ -162,5 +186,6 @@ func (s *ObjectScanner) scan(oid string) (*object, error) {
 		Oid:      oid,
 		Size:     size,
 		Type:     obj.Type().String(),
+		object:   obj,
 	}, nil
 }
