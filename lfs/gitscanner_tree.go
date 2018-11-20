@@ -49,8 +49,6 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper, error) {
 	scanner, err := NewPointerScanner()
 	if err != nil {
-		scanner.Close()
-
 		return nil, err
 	}
 
@@ -58,8 +56,10 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 	errchan := make(chan error, 10) // Multiple errors possible
 
 	go func() {
+		hasNext := true
 		for t := range treeblobs.Results {
-			hasNext := scanner.Scan(t.Sha1)
+			hasNext = scanner.Scan(t.Sha1)
+
 			if p := scanner.Pointer(); p != nil {
 				p.Name = t.Filename
 				pointers <- p
@@ -74,10 +74,14 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper) (*PointerChannelWrapper
 			}
 		}
 
-		// Deal with nested error from incoming treeblobs
-		err := treeblobs.Wait()
-		if err != nil {
-			errchan <- err
+		// If the scanner quit early, we may still have treeblobs to
+		// read, so waiting for it to close will cause a deadlock.
+		if hasNext {
+			// Deal with nested error from incoming treeblobs
+			err := treeblobs.Wait()
+			if err != nil {
+				errchan <- err
+			}
 		}
 
 		if err = scanner.Close(); err != nil {
