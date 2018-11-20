@@ -11,6 +11,8 @@ import (
 	"github.com/git-lfs/wildmatch"
 )
 
+const attrPrefix = "[attr]"
+
 // Line carries a single line from a repository's .gitattributes file, affecting
 // a single pattern and applying zero or more attributes.
 type Line struct {
@@ -22,6 +24,12 @@ type Line struct {
 	// repository, while /path/to/.gitattributes affects all blobs that are
 	// direct or indirect children of /path/to.
 	Pattern *wildmatch.Wildmatch
+	// Macro is the name of a macro that, when matched, indicates that all
+	// of the below attributes (Attrs) should be applied to that tree
+	// entry.
+	//
+	// A given entry will have exactly one of Pattern or Macro set.
+	Macro string
 	// Attrs is the list of attributes to be applied when the above pattern
 	// matches a given filename.
 	//
@@ -66,6 +74,7 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 
 		var pattern string
 		var applied string
+		var macro string
 
 		switch text[0] {
 		case '#':
@@ -84,7 +93,11 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 		default:
 			splits := strings.SplitN(text, " ", 2)
 
-			pattern = splits[0]
+			if strings.HasPrefix(splits[0], attrPrefix) {
+				macro = splits[0][len(attrPrefix):]
+			} else {
+				pattern = splits[0]
+			}
 			if len(splits) == 2 {
 				applied = splits[1]
 			}
@@ -116,11 +129,17 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 			attrs = append(attrs, &attr)
 		}
 
-		lines = append(lines, &Line{
-			Pattern: wildmatch.NewWildmatch(pattern,
+		var matchPattern *wildmatch.Wildmatch
+		if pattern != "" {
+			matchPattern = wildmatch.NewWildmatch(pattern,
 				wildmatch.Basename, wildmatch.SystemCase,
-			),
-			Attrs: attrs,
+			)
+		}
+
+		lines = append(lines, &Line{
+			Macro:   macro,
+			Pattern: matchPattern,
+			Attrs:   attrs,
 		})
 	}
 
