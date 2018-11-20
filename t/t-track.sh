@@ -47,7 +47,7 @@ begin_test "track"
   grep "*.jpg" .gitattributes
 
   echo "*.gif -filter -text" >> a/b/.gitattributes
-  echo "*.mov -filter=lfs -text" >> a/b/.gitattributes
+  echo "*.mov -filter -text" >> a/b/.gitattributes
 
   git lfs track | tee track.log
   tail -n 3 track.log | head -n 1 | grep "Listing excluded patterns"
