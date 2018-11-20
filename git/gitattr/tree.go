@@ -20,7 +20,7 @@ type Tree struct {
 // will be propagated up accordingly.
 func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
 	children := make(map[string]*Tree)
-	lines, err := linesInTree(db, t)
+	lines, _, err := linesInTree(db, t)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
 // in that .gitattributes, or an error. If no .gitattributes blob was found,
 // return nil.
-func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, error) {
+func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, string, error) {
 	var at int = -1
 	for i, e := range t.Entries {
 		if e.Name == ".gitattributes" {
@@ -69,12 +69,12 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, error) {
 	}
 
 	if at < 0 {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	blob, err := db.Blob(t.Entries[at].Oid)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer blob.Close()
 

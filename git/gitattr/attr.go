@@ -2,6 +2,7 @@ package gitattr
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strconv"
 	"strings"
@@ -50,12 +51,14 @@ type Attr struct {
 //
 // If an error was encountered, it will be returned and the []*Line should be
 // considered unusable.
-func ParseLines(r io.Reader) ([]*Line, error) {
+func ParseLines(r io.Reader) ([]*Line, string, error) {
 	var lines []*Line
 
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
+	splitter := &lineEndingSplitter{}
 
+	scanner := bufio.NewScanner(r)
+	scanner.Split(splitter.ScanLines)
+	for scanner.Scan() {
 		text := strings.TrimSpace(scanner.Text())
 		if len(text) == 0 {
 			continue
@@ -71,11 +74,11 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 			var err error
 			last := strings.LastIndex(text, "\"")
 			if last == 0 {
-				return nil, errors.Errorf("git/gitattr: unbalanced quote: %s", text)
+				return nil, "", errors.Errorf("git/gitattr: unbalanced quote: %s", text)
 			}
 			pattern, err = strconv.Unquote(text[:last+1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "git/gitattr")
+				return nil, "", errors.Wrapf(err, "git/gitattr")
 			}
 			applied = strings.TrimSpace(text[last+1:])
 		default:
@@ -122,7 +125,48 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return lines, nil
+	return lines, splitter.LineEnding(), nil
+}
+
+// copies bufio.ScanLines(), counting LF vs CRLF in a file
+type lineEndingSplitter struct {
+	LFCount   int
+	CRLFCount int
+}
+
+func (s *lineEndingSplitter) LineEnding() string {
+	if s.CRLFCount > s.LFCount {
+		return "\r\n"
+	} else if s.LFCount == 0 {
+		return ""
+	}
+	return "\n"
+}
+
+func (s *lineEndingSplitter) ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, s.dropCR(data[0:i]), nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+func (s *lineEndingSplitter) dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		s.CRLFCount++
+		return data[0 : len(data)-1]
+	}
+	s.LFCount++
+	return data
 }

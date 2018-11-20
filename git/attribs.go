@@ -1,20 +1,18 @@
 package git
 
 import (
-	"bufio"
-	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	LockableAttrib      = "lockable"
-	FilterDisableAttrib = "-filter"
+	LockableAttrib = "lockable"
+	FilterAttrib   = "filter"
 )
 
 // AttributePath is a path entry in a gitattributes file which has the LFS filter
@@ -95,55 +93,43 @@ func attrPaths(path, workingDir string) []AttributePath {
 	reldir := filepath.Dir(relfile)
 	source := &AttributeSource{Path: relfile}
 
-	le := &lineEndingSplitter{}
-	scanner := bufio.NewScanner(attributes)
-	scanner.Split(le.ScanLines)
+	lines, eol, err := gitattr.ParseLines(attributes)
+	if err != nil {
+		return nil
+	}
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	for _, line := range lines {
+		lockable := false
+		tracked := false
+		hasFilter := false
 
-		if strings.HasPrefix(line, "#") {
+		for _, attr := range line.Attrs {
+			if attr.K == FilterAttrib {
+				hasFilter = true
+				tracked = attr.V == "lfs"
+			} else if attr.K == LockableAttrib && attr.V == "true" {
+				lockable = true
+			}
+		}
+
+		if !hasFilter && !lockable {
 			continue
 		}
 
-		hasFilter := strings.Contains(line, "filter=lfs")
-
-		// Check for filter=lfs (signifying that LFS is tracking
-		// this file) or "lockable", which indicates that the
-		// file is lockable (and may or may not be tracked by
-		// Git LFS).
-		if hasFilter ||
-			strings.Contains(line, FilterDisableAttrib) ||
-			strings.HasSuffix(line, "lockable") {
-
-			fields := strings.Fields(line)
-			pattern := fields[0]
-			if len(reldir) > 0 {
-				pattern = filepath.Join(reldir, pattern)
-			}
-			// Find lockable flag in any position after pattern to avoid
-			// edge case of matching "lockable" to a file pattern
-			lockable := false
-			tracked := true
-			for _, f := range fields[1:] {
-				if f == LockableAttrib {
-					lockable = true
-				}
-				if !hasFilter ||
-					strings.HasPrefix(f, FilterDisableAttrib) {
-					tracked = false
-				}
-			}
-			paths = append(paths, AttributePath{
-				Path:     pattern,
-				Source:   source,
-				Lockable: lockable,
-				Tracked:  tracked,
-			})
+		pattern := line.Pattern.String()
+		if len(reldir) > 0 {
+			pattern = filepath.Join(reldir, pattern)
 		}
+
+		paths = append(paths, AttributePath{
+			Path:     pattern,
+			Source:   source,
+			Lockable: lockable,
+			Tracked:  tracked,
+		})
 	}
 
-	source.LineEnding = le.LineEnding()
+	source.LineEnding = eol
 
 	return paths
 }
@@ -164,47 +150,6 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)
-}
-
-// copies bufio.ScanLines(), counting LF vs CRLF in a file
-type lineEndingSplitter struct {
-	LFCount   int
-	CRLFCount int
-}
-
-func (s *lineEndingSplitter) LineEnding() string {
-	if s.CRLFCount > s.LFCount {
-		return "\r\n"
-	} else if s.LFCount == 0 {
-		return ""
-	}
-	return "\n"
-}
-
-func (s *lineEndingSplitter) ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.IndexByte(data, '\n'); i >= 0 {
-		// We have a full newline-terminated line.
-		return i + 1, s.dropCR(data[0:i]), nil
-	}
-	// If we're at EOF, we have a final, non-terminated line. Return it.
-	if atEOF {
-		return len(data), data, nil
-	}
-	// Request more data.
-	return 0, nil, nil
-}
-
-// dropCR drops a terminal \r from the data.
-func (s *lineEndingSplitter) dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		s.CRLFCount++
-		return data[0 : len(data)-1]
-	}
-	s.LFCount++
-	return data
 }
 
 func findAttributeFiles(workingDir, gitDir string) []string {
