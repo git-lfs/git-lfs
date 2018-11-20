@@ -60,7 +60,7 @@ The 'info' mode has these additional options:
 
 * `--top=<n>`
     Only include the top 'n' entries, ordered by how many total files match the
-    given pathspec.
+    given pathspec. Default: top 5 entries.
 
 * `--unit=<unit>`
     Format the number of bytes in each entry as a quantity of the storage unit
