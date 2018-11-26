@@ -43,20 +43,20 @@ func (s *AttributeSource) String() string {
 
 // GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
 // only from the global gitattributes file.
-func GetRootAttributePaths(cfg Env) []AttributePath {
+func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Env) []AttributePath {
 	af, ok := cfg.Get("core.attributesfile")
 	if !ok {
 		return nil
 	}
 
 	// The working directory for the root gitattributes file is blank.
-	return attrPaths(af, "")
+	return attrPaths(mp, af, "", true)
 }
 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(env Env) []AttributePath {
+func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) []AttributePath {
 	prefix, _ := env.Get("PREFIX")
 	if len(prefix) == 0 {
 		prefix = string(filepath.Separator)
@@ -68,24 +68,24 @@ func GetSystemAttributePaths(env Env) []AttributePath {
 		return nil
 	}
 
-	return attrPaths(path, "")
+	return attrPaths(mp, path, "", true)
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
-func GetAttributePaths(workingDir, gitDir string) []AttributePath {
+func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
 	for _, file := range findAttributeFiles(workingDir, gitDir) {
-		paths = append(paths, attrPaths(file.path, workingDir)...)
+		paths = append(paths, attrPaths(mp, file.path, workingDir, file.readMacros)...)
 	}
 
 	return paths
 }
 
-func attrPaths(path, workingDir string) []AttributePath {
+func attrPaths(mp *gitattr.MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
 	attributes, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -102,6 +102,8 @@ func attrPaths(path, workingDir string) []AttributePath {
 	if err != nil {
 		return nil
 	}
+
+	lines = mp.ProcessLines(lines, readMacros)
 
 	for _, line := range lines {
 		lockable := false
@@ -145,7 +147,7 @@ func attrPaths(path, workingDir string) []AttributePath {
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
-	paths := GetAttributePaths(workingDir, gitDir)
+	paths := GetAttributePaths(gitattr.NewMacroProcessor(), workingDir, gitDir)
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {

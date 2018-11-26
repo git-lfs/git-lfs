@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
@@ -50,9 +51,11 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	mp := gitattr.NewMacroProcessor()
+
 	// Intentionally do _not_ consider global- and system-level
 	// .gitattributes here.
-	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
@@ -243,9 +246,10 @@ func listPatterns() {
 }
 
 func getAllKnownPatterns() []git.AttributePath {
-	knownPatterns := git.GetAttributePaths(cfg.LocalWorkingDir(), cfg.LocalGitDir())
-	knownPatterns = append(knownPatterns, git.GetRootAttributePaths(cfg.Git)...)
-	knownPatterns = append(knownPatterns, git.GetSystemAttributePaths(cfg.Os)...)
+	mp := gitattr.NewMacroProcessor()
+	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	knownPatterns = append(knownPatterns, git.GetRootAttributePaths(mp, cfg.Git)...)
+	knownPatterns = append(knownPatterns, git.GetSystemAttributePaths(mp, cfg.Os)...)
 
 	return knownPatterns
 }

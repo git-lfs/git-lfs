@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -39,7 +40,7 @@ func (c *Client) ensureLockablesLoaded() {
 // Internal function to repopulate lockable patterns
 // You must have locked the c.lockableMutex in the caller
 func (c *Client) refreshLockablePatterns() {
-	paths := git.GetAttributePaths(c.LocalWorkingDir, c.LocalGitDir)
+	paths := git.GetAttributePaths(gitattr.NewMacroProcessor(), c.LocalWorkingDir, c.LocalGitDir)
 	// Always make non-nil even if empty
 	c.lockablePatterns = make([]string, 0, len(paths))
 	for _, p := range paths {
