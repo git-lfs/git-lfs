@@ -121,6 +121,73 @@ func TestExpandPath(t *testing.T) {
 	}
 }
 
+type ExpandConfigPathTestCase struct {
+	Path        string
+	DefaultPath string
+
+	Want    string
+	WantErr string
+
+	currentUser      func() (*user.User, error)
+	lookupConfigHome func() string
+}
+
+func (c *ExpandConfigPathTestCase) Assert(t *testing.T) {
+	if c.currentUser != nil {
+		oldCurrentUser := currentUser
+		currentUser = c.currentUser
+		defer func() { currentUser = oldCurrentUser }()
+	}
+
+	if c.lookupConfigHome != nil {
+		oldLookupConfigHome := lookupConfigHome
+		lookupConfigHome = c.lookupConfigHome
+		defer func() { lookupConfigHome = oldLookupConfigHome }()
+	}
+
+	got, err := ExpandConfigPath(c.Path, c.DefaultPath)
+	if err != nil || len(c.WantErr) > 0 {
+		assert.EqualError(t, err, c.WantErr)
+	}
+	assert.Equal(t, filepath.ToSlash(c.Want), filepath.ToSlash(got))
+}
+
+func TestExpandConfigPath(t *testing.T) {
+	for desc, c := range map[string]*ExpandConfigPathTestCase{
+		"unexpanded full path": {
+			Path: "/path/to/attributes",
+			Want: "/path/to/attributes",
+		},
+		"expanded full path": {
+			Path: "~/path/to/attributes",
+			Want: "/home/pat/path/to/attributes",
+			currentUser: func() (*user.User, error) {
+				return &user.User{
+					HomeDir: "/home/pat",
+				}, nil
+			},
+		},
+		"expanded default path": {
+			DefaultPath: "git/attributes",
+			Want:        "/home/pat/.config/git/attributes",
+			currentUser: func() (*user.User, error) {
+				return &user.User{
+					HomeDir: "/home/pat",
+				}, nil
+			},
+		},
+		"XDG_CONFIG_HOME set": {
+			DefaultPath: "git/attributes",
+			Want:        "/home/pat/configpath/git/attributes",
+			lookupConfigHome: func() string {
+				return "/home/pat/configpath"
+			},
+		},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
 func TestFastWalkBasic(t *testing.T) {
 	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkBasic")
 	if err != nil {
