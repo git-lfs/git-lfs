@@ -32,6 +32,11 @@ type AttributeSource struct {
 	LineEnding string
 }
 
+type attrFile struct {
+	path       string
+	readMacros bool
+}
+
 func (s *AttributeSource) String() string {
 	return s.Path
 }
@@ -73,8 +78,8 @@ func GetSystemAttributePaths(env Env) []AttributePath {
 func GetAttributePaths(workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
-	for _, path := range findAttributeFiles(workingDir, gitDir) {
-		paths = append(paths, attrPaths(path, workingDir)...)
+	for _, file := range findAttributeFiles(workingDir, gitDir) {
+		paths = append(paths, attrPaths(file.path, workingDir)...)
 	}
 
 	return paths
@@ -152,12 +157,12 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	return filepathfilter.NewFromPatterns(patterns, nil)
 }
 
-func findAttributeFiles(workingDir, gitDir string) []string {
-	var paths []string
+func findAttributeFiles(workingDir, gitDir string) []attrFile {
+	var paths []attrFile
 
 	repoAttributes := filepath.Join(gitDir, "info", "attributes")
 	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
-		paths = append(paths, repoAttributes)
+		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
 	tools.FastWalkGitRepo(workingDir, func(parentDir string, info os.FileInfo, err error) {
@@ -169,7 +174,11 @@ func findAttributeFiles(workingDir, gitDir string) []string {
 		if info.IsDir() || info.Name() != ".gitattributes" {
 			return
 		}
-		paths = append(paths, filepath.Join(parentDir, info.Name()))
+
+		paths = append(paths, attrFile{
+			path:       filepath.Join(parentDir, info.Name()),
+			readMacros: parentDir == workingDir,
+		})
 	})
 
 	// reverse the order of the files so more specific entries are found first
