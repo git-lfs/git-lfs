@@ -54,7 +54,9 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	mp := gitattr.NewMacroProcessor()
 
 	// Intentionally do _not_ consider global- and system-level
-	// .gitattributes here.
+	// .gitattributes here.  Parse them still to expand any macros.
+	git.GetSystemAttributePaths(mp, cfg.Os)
+	git.GetRootAttributePaths(mp, cfg.Git)
 	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
@@ -247,9 +249,15 @@ func listPatterns() {
 
 func getAllKnownPatterns() []git.AttributePath {
 	mp := gitattr.NewMacroProcessor()
+
+	// Parse these in this order so that macros in one file are properly
+	// expanded when referred to in a later file, then order them in the
+	// order we want.
+	systemPatterns := git.GetSystemAttributePaths(mp, cfg.Os)
+	globalPatterns := git.GetRootAttributePaths(mp, cfg.Git)
 	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
-	knownPatterns = append(knownPatterns, git.GetRootAttributePaths(mp, cfg.Git)...)
-	knownPatterns = append(knownPatterns, git.GetSystemAttributePaths(mp, cfg.Os)...)
+	knownPatterns = append(knownPatterns, globalPatterns...)
+	knownPatterns = append(knownPatterns, systemPatterns...)
 
 	return knownPatterns
 }
