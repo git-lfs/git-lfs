@@ -44,8 +44,13 @@ func (s *AttributeSource) String() string {
 // GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
 // only from the global gitattributes file.
 func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Env) []AttributePath {
-	af, ok := cfg.Get("core.attributesfile")
-	if !ok {
+	af, _ := cfg.Get("core.attributesfile")
+	af, err := tools.ExpandConfigPath(af, "git/attributes")
+	if err != nil {
+		return nil
+	}
+
+	if _, err := os.Stat(af); os.IsNotExist(err) {
 		return nil
 	}
 
