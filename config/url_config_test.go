@@ -18,6 +18,7 @@ func TestURLConfig(t *testing.T) {
 		"http.https://host.com/repo.key":     []string{"no .git"},
 		"http.https://host.com/repo2.key":    []string{"no .git"},
 		"http.http://host.com/repo.key":      []string{"http"},
+		"http.https://host.*/a.key":          []string{"wild"},
 	})))
 
 	getOne := map[string]string{
@@ -37,6 +38,7 @@ func TestURLConfig(t *testing.T) {
 		"https://host.com/repo2.git":                  "host-2", // ditto
 		"https://host.com/repo2":                      "no .git",
 		"http://host.com/repo":                        "http",
+		"https://host.wild/a/b/c":                     "wild",
 	}
 
 	for rawurl, expected := range getOne {
