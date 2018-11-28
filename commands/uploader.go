@@ -347,7 +347,7 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 	}
 
 	if len(filename) > 0 {
-		if err = c.ensureFile(filename, localMediaPath); err != nil && !errors.IsCleanPointerError(err) {
+		if err = c.ensureFile(filename, localMediaPath, oid); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
 	}
@@ -362,7 +362,7 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
-func (c *uploadContext) ensureFile(smudgePath, cleanPath string) error {
+func (c *uploadContext) ensureFile(smudgePath, cleanPath, oid string) error {
 	if _, err := os.Stat(cleanPath); err == nil {
 		return nil
 	}
@@ -373,7 +373,7 @@ func (c *uploadContext) ensureFile(smudgePath, cleanPath string) error {
 		if c.allowMissing {
 			return nil
 		}
-		return err
+		return errors.Wrapf(err, "Unable to find source for object %v (try running git lfs fetch --all)", oid)
 	}
 
 	defer file.Close()
