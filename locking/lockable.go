@@ -122,7 +122,7 @@ func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlocka
 		errs = append(errs, err)
 	}
 
-	tools.FastWalkGitRepoAll(absPath, func(parentDir string, fi os.FileInfo, err error) {
+	tools.FastWalkGitRepo(absPath, func(parentDir string, fi os.FileInfo, err error) {
 		if err != nil {
 			addErr(err)
 			return

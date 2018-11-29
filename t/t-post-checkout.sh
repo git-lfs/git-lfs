@@ -11,9 +11,10 @@ begin_test "post-checkout"
 
   clone_repo "$reponame" "$reponame"
 
+  echo 'dir/' > .gitignore
   git lfs track --lockable "*.dat"
   git lfs track "*.big" # not lockable
-  git add .gitattributes
+  git add .gitattributes .gitignore
   git commit -m "add git attributes"
 
   echo "[
@@ -60,6 +61,9 @@ begin_test "post-checkout"
   rm -rf "$reponame"
   clone_repo "$reponame" "$reponame"
 
+  mkdir dir
+  echo "not to be modified" > dir/foo.dat
+
   # this will be master
 
   [ "$(cat file1.dat)" == "file 1 updated commit 2" ]
@@ -73,6 +77,7 @@ begin_test "post-checkout"
   refute_file_writeable file2.dat
   assert_file_writeable file3.big
   assert_file_writeable file4.big
+  assert_file_writeable dir/foo.dat
 
   # checkout branch
   git checkout branch2
@@ -84,6 +89,7 @@ begin_test "post-checkout"
   assert_file_writeable file3.big
   assert_file_writeable file4.big
   assert_file_writeable file6.big
+  assert_file_writeable dir/foo.dat
 
   # Confirm that contents of existing files were updated even though were read-only
   [ "$(cat file2.dat)" == "file 2 updated in branch2" ]
@@ -113,6 +119,7 @@ begin_test "post-checkout"
   assert_file_writeable file1.dat
   assert_file_writeable file2.dat
   refute_file_writeable file5.dat
+  assert_file_writeable dir/foo.dat
 
 )
 end_test
