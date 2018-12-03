@@ -85,7 +85,7 @@ func NewWildmatch(p string, opts ...opt) *Wildmatch {
 
 const (
 	// escapes is a constant string containing all escapable characters
-	escapes = "\\[]*?"
+	escapes = "\\[]*?#"
 )
 
 // slashEscape converts paths "p" to POSIX-compliant path, independent of which

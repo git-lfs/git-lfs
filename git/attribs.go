@@ -1,20 +1,18 @@
 package git
 
 import (
-	"bufio"
-	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	LockableAttrib      = "lockable"
-	FilterDisableAttrib = "-filter"
+	LockableAttrib = "lockable"
+	FilterAttrib   = "filter"
 )
 
 // AttributePath is a path entry in a gitattributes file which has the LFS filter
@@ -34,26 +32,36 @@ type AttributeSource struct {
 	LineEnding string
 }
 
+type attrFile struct {
+	path       string
+	readMacros bool
+}
+
 func (s *AttributeSource) String() string {
 	return s.Path
 }
 
 // GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
 // only from the global gitattributes file.
-func GetRootAttributePaths(cfg Env) []AttributePath {
-	af, ok := cfg.Get("core.attributesfile")
-	if !ok {
+func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Env) []AttributePath {
+	af, _ := cfg.Get("core.attributesfile")
+	af, err := tools.ExpandConfigPath(af, "git/attributes")
+	if err != nil {
+		return nil
+	}
+
+	if _, err := os.Stat(af); os.IsNotExist(err) {
 		return nil
 	}
 
 	// The working directory for the root gitattributes file is blank.
-	return attrPaths(af, "")
+	return attrPaths(mp, af, "", true)
 }
 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(env Env) []AttributePath {
+func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) []AttributePath {
 	prefix, _ := env.Get("PREFIX")
 	if len(prefix) == 0 {
 		prefix = string(filepath.Separator)
@@ -65,24 +73,24 @@ func GetSystemAttributePaths(env Env) []AttributePath {
 		return nil
 	}
 
-	return attrPaths(path, "")
+	return attrPaths(mp, path, "", true)
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
-func GetAttributePaths(workingDir, gitDir string) []AttributePath {
+func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
-	for _, path := range findAttributeFiles(workingDir, gitDir) {
-		paths = append(paths, attrPaths(path, workingDir)...)
+	for _, file := range findAttributeFiles(workingDir, gitDir) {
+		paths = append(paths, attrPaths(mp, file.path, workingDir, file.readMacros)...)
 	}
 
 	return paths
 }
 
-func attrPaths(path, workingDir string) []AttributePath {
+func attrPaths(mp *gitattr.MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
 	attributes, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -95,55 +103,45 @@ func attrPaths(path, workingDir string) []AttributePath {
 	reldir := filepath.Dir(relfile)
 	source := &AttributeSource{Path: relfile}
 
-	le := &lineEndingSplitter{}
-	scanner := bufio.NewScanner(attributes)
-	scanner.Split(le.ScanLines)
+	lines, eol, err := gitattr.ParseLines(attributes)
+	if err != nil {
+		return nil
+	}
 
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	lines = mp.ProcessLines(lines, readMacros)
 
-		if strings.HasPrefix(line, "#") {
+	for _, line := range lines {
+		lockable := false
+		tracked := false
+		hasFilter := false
+
+		for _, attr := range line.Attrs {
+			if attr.K == FilterAttrib {
+				hasFilter = true
+				tracked = attr.V == "lfs"
+			} else if attr.K == LockableAttrib && attr.V == "true" {
+				lockable = true
+			}
+		}
+
+		if !hasFilter && !lockable {
 			continue
 		}
 
-		hasFilter := strings.Contains(line, "filter=lfs")
-
-		// Check for filter=lfs (signifying that LFS is tracking
-		// this file) or "lockable", which indicates that the
-		// file is lockable (and may or may not be tracked by
-		// Git LFS).
-		if hasFilter ||
-			strings.Contains(line, FilterDisableAttrib) ||
-			strings.HasSuffix(line, "lockable") {
-
-			fields := strings.Fields(line)
-			pattern := fields[0]
-			if len(reldir) > 0 {
-				pattern = filepath.Join(reldir, pattern)
-			}
-			// Find lockable flag in any position after pattern to avoid
-			// edge case of matching "lockable" to a file pattern
-			lockable := false
-			tracked := true
-			for _, f := range fields[1:] {
-				if f == LockableAttrib {
-					lockable = true
-				}
-				if !hasFilter ||
-					strings.HasPrefix(f, FilterDisableAttrib) {
-					tracked = false
-				}
-			}
-			paths = append(paths, AttributePath{
-				Path:     pattern,
-				Source:   source,
-				Lockable: lockable,
-				Tracked:  tracked,
-			})
+		pattern := line.Pattern.String()
+		if len(reldir) > 0 {
+			pattern = filepath.Join(reldir, pattern)
 		}
+
+		paths = append(paths, AttributePath{
+			Path:     pattern,
+			Source:   source,
+			Lockable: lockable,
+			Tracked:  tracked,
+		})
 	}
 
-	source.LineEnding = le.LineEnding()
+	source.LineEnding = eol
 
 	return paths
 }
@@ -154,7 +152,7 @@ func attrPaths(path, workingDir string) []AttributePath {
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
-	paths := GetAttributePaths(workingDir, gitDir)
+	paths := GetAttributePaths(gitattr.NewMacroProcessor(), workingDir, gitDir)
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {
@@ -166,53 +164,12 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	return filepathfilter.NewFromPatterns(patterns, nil)
 }
 
-// copies bufio.ScanLines(), counting LF vs CRLF in a file
-type lineEndingSplitter struct {
-	LFCount   int
-	CRLFCount int
-}
-
-func (s *lineEndingSplitter) LineEnding() string {
-	if s.CRLFCount > s.LFCount {
-		return "\r\n"
-	} else if s.LFCount == 0 {
-		return ""
-	}
-	return "\n"
-}
-
-func (s *lineEndingSplitter) ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.IndexByte(data, '\n'); i >= 0 {
-		// We have a full newline-terminated line.
-		return i + 1, s.dropCR(data[0:i]), nil
-	}
-	// If we're at EOF, we have a final, non-terminated line. Return it.
-	if atEOF {
-		return len(data), data, nil
-	}
-	// Request more data.
-	return 0, nil, nil
-}
-
-// dropCR drops a terminal \r from the data.
-func (s *lineEndingSplitter) dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		s.CRLFCount++
-		return data[0 : len(data)-1]
-	}
-	s.LFCount++
-	return data
-}
-
-func findAttributeFiles(workingDir, gitDir string) []string {
-	var paths []string
+func findAttributeFiles(workingDir, gitDir string) []attrFile {
+	var paths []attrFile
 
 	repoAttributes := filepath.Join(gitDir, "info", "attributes")
 	if info, err := os.Stat(repoAttributes); err == nil && !info.IsDir() {
-		paths = append(paths, repoAttributes)
+		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
 	tools.FastWalkGitRepo(workingDir, func(parentDir string, info os.FileInfo, err error) {
@@ -224,7 +181,11 @@ func findAttributeFiles(workingDir, gitDir string) []string {
 		if info.IsDir() || info.Name() != ".gitattributes" {
 			return
 		}
-		paths = append(paths, filepath.Join(parentDir, info.Name()))
+
+		paths = append(paths, attrFile{
+			path:       filepath.Join(parentDir, info.Name()),
+			readMacros: parentDir == workingDir,
+		})
 	})
 
 	// reverse the order of the files so more specific entries are found first

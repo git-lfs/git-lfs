@@ -127,7 +127,10 @@ var (
 		u.HomeDir = os.Getenv("HOME")
 		return u, nil
 	}
-	lookupUser func(who string) (*user.User, error) = user.Lookup
+	lookupUser       func(who string) (*user.User, error) = user.Lookup
+	lookupConfigHome func() string                        = func() string {
+		return os.Getenv("XDG_CONFIG_HOME")
+	}
 )
 
 // ExpandPath returns a copy of path with any references to the current user's
@@ -177,6 +180,22 @@ func ExpandPath(path string, expand bool) (string, error) {
 		}
 	}
 	return filepath.Join(homedir, path[len(username)+1:]), nil
+}
+
+// ExpandConfigPath returns a copy of path expanded as with ExpandPath.  If the
+// path is empty, the default path is looked up inside $XDG_CONFIG_HOME, or
+// ~/.config if that is not set.
+func ExpandConfigPath(path, defaultPath string) (string, error) {
+	if path != "" {
+		return ExpandPath(path, false)
+	}
+
+	configHome := lookupConfigHome()
+	if configHome != "" {
+		return filepath.Join(configHome, defaultPath), nil
+	}
+
+	return ExpandPath(fmt.Sprintf("~/.config/%s", defaultPath), false)
 }
 
 // VerifyFileHash reads a file and verifies whether the SHA is correct

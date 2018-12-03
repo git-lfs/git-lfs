@@ -2,6 +2,7 @@ package gitattr
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/wildmatch"
 )
+
+const attrPrefix = "[attr]"
 
 // Line carries a single line from a repository's .gitattributes file, affecting
 // a single pattern and applying zero or more attributes.
@@ -21,6 +24,12 @@ type Line struct {
 	// repository, while /path/to/.gitattributes affects all blobs that are
 	// direct or indirect children of /path/to.
 	Pattern *wildmatch.Wildmatch
+	// Macro is the name of a macro that, when matched, indicates that all
+	// of the below attributes (Attrs) should be applied to that tree
+	// entry.
+	//
+	// A given entry will have exactly one of Pattern or Macro set.
+	Macro string
 	// Attrs is the list of attributes to be applied when the above pattern
 	// matches a given filename.
 	//
@@ -50,12 +59,14 @@ type Attr struct {
 //
 // If an error was encountered, it will be returned and the []*Line should be
 // considered unusable.
-func ParseLines(r io.Reader) ([]*Line, error) {
+func ParseLines(r io.Reader) ([]*Line, string, error) {
 	var lines []*Line
 
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
+	splitter := &lineEndingSplitter{}
 
+	scanner := bufio.NewScanner(r)
+	scanner.Split(splitter.ScanLines)
+	for scanner.Scan() {
 		text := strings.TrimSpace(scanner.Text())
 		if len(text) == 0 {
 			continue
@@ -63,6 +74,7 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 
 		var pattern string
 		var applied string
+		var macro string
 
 		switch text[0] {
 		case '#':
@@ -71,17 +83,21 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 			var err error
 			last := strings.LastIndex(text, "\"")
 			if last == 0 {
-				return nil, errors.Errorf("git/gitattr: unbalanced quote: %s", text)
+				return nil, "", errors.Errorf("git/gitattr: unbalanced quote: %s", text)
 			}
 			pattern, err = strconv.Unquote(text[:last+1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "git/gitattr")
+				return nil, "", errors.Wrapf(err, "git/gitattr")
 			}
 			applied = strings.TrimSpace(text[last+1:])
 		default:
 			splits := strings.SplitN(text, " ", 2)
 
-			pattern = splits[0]
+			if strings.HasPrefix(splits[0], attrPrefix) {
+				macro = splits[0][len(attrPrefix):]
+			} else {
+				pattern = splits[0]
+			}
 			if len(splits) == 2 {
 				applied = splits[1]
 			}
@@ -113,16 +129,63 @@ func ParseLines(r io.Reader) ([]*Line, error) {
 			attrs = append(attrs, &attr)
 		}
 
-		lines = append(lines, &Line{
-			Pattern: wildmatch.NewWildmatch(pattern,
+		var matchPattern *wildmatch.Wildmatch
+		if pattern != "" {
+			matchPattern = wildmatch.NewWildmatch(pattern,
 				wildmatch.Basename, wildmatch.SystemCase,
-			),
-			Attrs: attrs,
+			)
+		}
+
+		lines = append(lines, &Line{
+			Macro:   macro,
+			Pattern: matchPattern,
+			Attrs:   attrs,
 		})
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return lines, nil
+	return lines, splitter.LineEnding(), nil
+}
+
+// copies bufio.ScanLines(), counting LF vs CRLF in a file
+type lineEndingSplitter struct {
+	LFCount   int
+	CRLFCount int
+}
+
+func (s *lineEndingSplitter) LineEnding() string {
+	if s.CRLFCount > s.LFCount {
+		return "\r\n"
+	} else if s.LFCount == 0 {
+		return ""
+	}
+	return "\n"
+}
+
+func (s *lineEndingSplitter) ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, s.dropCR(data[0:i]), nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+func (s *lineEndingSplitter) dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		s.CRLFCount++
+		return data[0 : len(data)-1]
+	}
+	s.LFCount++
+	return data
 }

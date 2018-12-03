@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseLines(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader("*.dat filter=lfs"))
+	lines, _, err := ParseLines(strings.NewReader("*.dat filter=lfs"))
 
 	assert.NoError(t, err)
 	assert.Len(t, lines, 1)
@@ -21,7 +21,7 @@ func TestParseLines(t *testing.T) {
 }
 
 func TestParseLinesManyAttrs(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader(
+	lines, _, err := ParseLines(strings.NewReader(
 		"*.dat filter=lfs diff=lfs merge=lfs -text crlf"))
 
 	assert.NoError(t, err)
@@ -38,7 +38,7 @@ func TestParseLinesManyAttrs(t *testing.T) {
 }
 
 func TestParseLinesManyLines(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader(strings.Join([]string{
+	lines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
 		"*.dat filter=lfs diff=lfs merge=lfs -text",
 		"*.jpg filter=lfs diff=lfs merge=lfs -text",
 		"# *.pdf filter=lfs diff=lfs merge=lfs -text",
@@ -76,7 +76,7 @@ func TestParseLinesManyLines(t *testing.T) {
 }
 
 func TestParseLinesUnset(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader("*.dat -filter"))
+	lines, _, err := ParseLines(strings.NewReader("*.dat -filter"))
 
 	assert.NoError(t, err)
 	assert.Len(t, lines, 1)
@@ -88,7 +88,7 @@ func TestParseLinesUnset(t *testing.T) {
 }
 
 func TestParseLinesUnspecified(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader("*.dat !filter"))
+	lines, _, err := ParseLines(strings.NewReader("*.dat !filter"))
 
 	assert.NoError(t, err)
 	assert.Len(t, lines, 1)
@@ -100,7 +100,7 @@ func TestParseLinesUnspecified(t *testing.T) {
 }
 
 func TestParseLinesQuotedPattern(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader(
+	lines, _, err := ParseLines(strings.NewReader(
 		"\"space *.dat\" filter=lfs"))
 
 	assert.NoError(t, err)
@@ -113,7 +113,7 @@ func TestParseLinesQuotedPattern(t *testing.T) {
 }
 
 func TestParseLinesCommented(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader(
+	lines, _, err := ParseLines(strings.NewReader(
 		"# \"space *.dat\" filter=lfs"))
 
 	assert.NoError(t, err)
@@ -122,7 +122,7 @@ func TestParseLinesCommented(t *testing.T) {
 
 func TestParseLinesUnbalancedQuotes(t *testing.T) {
 	const text = "\"space *.dat filter=lfs"
-	lines, err := ParseLines(strings.NewReader(text))
+	lines, _, err := ParseLines(strings.NewReader(text))
 
 	assert.Empty(t, lines)
 	assert.EqualError(t, err, fmt.Sprintf(
@@ -130,11 +130,39 @@ func TestParseLinesUnbalancedQuotes(t *testing.T) {
 }
 
 func TestParseLinesWithNoAttributes(t *testing.T) {
-	lines, err := ParseLines(strings.NewReader("*.dat"))
+	lines, _, err := ParseLines(strings.NewReader("*.dat"))
 
 	assert.Len(t, lines, 1)
 	assert.NoError(t, err)
 
 	assert.Equal(t, lines[0].Pattern.String(), "*.dat")
 	assert.Empty(t, lines[0].Attrs)
+}
+
+func TestParseLinesWithMacros(t *testing.T) {
+	lines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
+		"[attr]lfs filter=lfs diff=lfs merge=lfs -text",
+		"*.dat lfs",
+		"*.txt text"}, "\n")))
+
+	assert.Len(t, lines, 3)
+	assert.NoError(t, err)
+
+	assert.Equal(t, lines[0].Macro, "lfs")
+	assert.Nil(t, lines[0].Pattern)
+	assert.Len(t, lines[0].Attrs, 4)
+	assert.Equal(t, lines[0].Attrs[0], &Attr{K: "filter", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[1], &Attr{K: "diff", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[2], &Attr{K: "merge", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[3], &Attr{K: "text", V: "false"})
+
+	assert.Equal(t, lines[1].Macro, "")
+	assert.Equal(t, lines[1].Pattern.String(), "*.dat")
+	assert.Len(t, lines[1].Attrs, 1)
+	assert.Equal(t, lines[1].Attrs[0], &Attr{K: "lfs", V: "true"})
+
+	assert.Equal(t, lines[2].Macro, "")
+	assert.Equal(t, lines[2].Pattern.String(), "*.txt")
+	assert.Len(t, lines[2].Attrs, 1)
+	assert.Equal(t, lines[2].Attrs[0], &Attr{K: "text", V: "true"})
 }
