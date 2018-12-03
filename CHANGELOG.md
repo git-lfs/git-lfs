@@ -1,5 +1,17 @@
 # Git LFS Changelog
 
+## 2.6.1 (3 December 2018)
+
+This release contains miscellaneous bug fixes since v2.6.0. Most notably,
+release v2.6.1 restores support for alternate repositories, which was
+accidentally broken in v2.6.0.
+
+### Bugs
+
+* git: close blob objects when finished #3379 (@bk2204)
+* Avoid hang in repos cloned with --shared or --reference #3383 (@bk2204)
+* vendor: don't remove necessary dependencies #3356 (@ttaylorr)
+
 ## 2.6.0 (1 November, 2018)
 
 This release adds better support for redirecting network calls from a Git LFS

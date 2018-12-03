@@ -33,8 +33,6 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	scanner, err := lfs.NewPointerScanner()
 	if err != nil {
-		scanner.Close()
-
 		ExitWithError(err)
 	}
 
