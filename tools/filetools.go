@@ -115,6 +115,21 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	return cleaned
 }
 
+// repositoryPermissionFetcher is an interface that matches the configuration
+// object and can be used to fetch repository permissions.
+type repositoryPermissionFetcher interface {
+	RepositoryPermissions(executable bool) os.FileMode
+}
+
+// MkdirAll makes a directory and any intervening directories with the
+// permissions specified by the core.sharedRepository setting.
+func MkdirAll(path string, config repositoryPermissionFetcher) error {
+	umask := 0777 & ^config.RepositoryPermissions(true)
+	return doWithUmask(int(umask), func() error {
+		return os.MkdirAll(path, config.RepositoryPermissions(true))
+	})
+}
+
 var (
 	// currentUser is a wrapper over user.Current(), but instead uses the
 	// value of os.Getenv("HOME") for the returned *user.User's "HomeDir"
