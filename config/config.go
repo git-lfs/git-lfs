@@ -611,6 +611,10 @@ func (c *Configuration) CurrentAuthorTimestamp() time.Time {
 
 // RepositoryPermissions returns the permissions that should be used to write
 // files in the repository.
-func (c *Configuration) RepositoryPermissions() os.FileMode {
-	return os.FileMode(0666 & ^c.getMask())
+func (c *Configuration) RepositoryPermissions(executable bool) os.FileMode {
+	perms := os.FileMode(0666 & ^c.getMask())
+	if executable {
+		return tools.ExecutablePermissions(perms)
+	}
+	return perms
 }

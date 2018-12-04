@@ -490,3 +490,11 @@ func SetFileWriteFlag(path string, writeEnabled bool) error {
 	}
 	return os.Chmod(path, os.FileMode(mode))
 }
+
+// ExecutablePermissions takes a set of Unix permissions (which may or may not
+// have the executable bits set) and maps them into a set of permissions in
+// which the executable bits are set, using the same technique as Git does.
+func ExecutablePermissions(perms os.FileMode) os.FileMode {
+	// Copy read bits to executable bits.
+	return perms | ((perms & 0444) >> 2)
+}

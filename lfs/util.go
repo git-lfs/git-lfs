@@ -238,7 +238,7 @@ func TempFile(cfg *config.Configuration, pattern string) (*os.File, error) {
 		return nil, err
 	}
 
-	perms := cfg.RepositoryPermissions()
+	perms := cfg.RepositoryPermissions(false)
 	err = os.Chmod(tmp.Name(), perms)
 	if err != nil {
 		tmp.Close()
