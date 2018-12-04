@@ -39,6 +39,7 @@ type Filesystem struct {
 	lfsobjdir     string
 	tmpdir        string
 	logdir        string
+	repoPerms     os.FileMode
 	mu            sync.Mutex
 }
 
@@ -77,6 +78,13 @@ func (f *Filesystem) ObjectPathname(oid string) string {
 
 func (f *Filesystem) DecodePathname(path string) string {
 	return string(DecodePathBytes([]byte(path)))
+}
+
+func (f *Filesystem) RepositoryPermissions(executable bool) os.FileMode {
+	if executable {
+		return tools.ExecutablePermissions(f.repoPerms)
+	}
+	return f.repoPerms
 }
 
 /**
@@ -173,7 +181,8 @@ func (f *Filesystem) Cleanup() error {
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
-func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
+// repoPerms is the permissions for directories in the repository.
+func New(env Environment, gitdir, workdir, lfsdir string, repoPerms os.FileMode) *Filesystem {
 	fs := &Filesystem{
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
@@ -189,6 +198,8 @@ func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
 	} else {
 		fs.LFSStorageDir = filepath.Join(fs.GitStorageDir, lfsdir)
 	}
+
+	fs.repoPerms = repoPerms
 
 	return fs
 }

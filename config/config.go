@@ -407,6 +407,7 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 			c.LocalGitDir(),
 			c.LocalWorkingDir(),
 			lfsdir,
+			c.RepositoryPermissions(false),
 		)
 	}
 
