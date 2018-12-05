@@ -41,7 +41,7 @@ func pull(filter *filepathfilter.Filter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	meter := tq.NewMeter()
+	meter := tq.NewMeter(cfg)
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)
 	logger.Enqueue(meter)
 	remote := cfg.Remote()

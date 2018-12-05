@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/lfshttp"
@@ -57,7 +58,7 @@ func TestRemoteLocksWithCache(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient)
+	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
@@ -163,7 +164,7 @@ func TestRefreshCache(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient)
+	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
@@ -235,7 +236,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient)
+	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
 
 	ourLocks, theirLocks, err := client.VerifiableLocks(nil, 0)

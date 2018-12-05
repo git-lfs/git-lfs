@@ -90,9 +90,9 @@ func closeAPIClient() error {
 }
 
 func newLockClient() *locking.Client {
-	lockClient, err := locking.NewClient(cfg.PushRemote(), getAPIClient())
+	lockClient, err := locking.NewClient(cfg.PushRemote(), getAPIClient(), cfg)
 	if err == nil {
-		os.MkdirAll(cfg.LFSStorageDir(), 0755)
+		tools.MkdirAll(cfg.LFSStorageDir(), cfg)
 		err = lockClient.SetupFileCache(cfg.LFSStorageDir())
 	}
 
@@ -142,7 +142,7 @@ func getHookInstallSteps() string {
 	if err != nil {
 		ExitWithError(err)
 	}
-	hooks := lfs.LoadHooks(hookDir)
+	hooks := lfs.LoadHooks(hookDir, cfg)
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
 		steps = append(steps, fmt.Sprintf(
@@ -158,7 +158,7 @@ func installHooks(force bool) error {
 	if err != nil {
 		return err
 	}
-	hooks := lfs.LoadHooks(hookDir)
+	hooks := lfs.LoadHooks(hookDir, cfg)
 	for _, h := range hooks {
 		if err := h.Install(force); err != nil {
 			return err
@@ -178,7 +178,7 @@ func uninstallHooks() error {
 	if err != nil {
 		return err
 	}
-	hooks := lfs.LoadHooks(hookDir)
+	hooks := lfs.LoadHooks(hookDir, cfg)
 	for _, h := range hooks {
 		if err := h.Uninstall(); err != nil {
 			return err
@@ -343,7 +343,7 @@ func logPanic(loggedError error) string {
 	name := now.Format("20060102T150405.999999999")
 	full := filepath.Join(cfg.LocalLogDir(), name+".log")
 
-	if err := os.MkdirAll(cfg.LocalLogDir(), 0755); err != nil {
+	if err := tools.MkdirAll(cfg.LocalLogDir(), cfg); err != nil {
 		full = ""
 		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
 	} else if file, err := os.Create(full); err != nil {
@@ -464,7 +464,7 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 }
 
 func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
-	m := tq.NewMeter()
+	m := tq.NewMeter(cfg)
 	m.Logger = m.LoggerFromEnv(cfg.Os)
 	m.DryRun = dryRun
 	m.Direction = d

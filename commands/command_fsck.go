@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +77,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
 	Print("Moving corrupt objects to %s", badDir)
 
-	if err := os.MkdirAll(badDir, 0755); err != nil {
+	if err := tools.MkdirAll(badDir, cfg); err != nil {
 		ExitWithError(err)
 	}
 

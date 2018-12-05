@@ -33,7 +33,7 @@ func (a *basicUploadAdapter) ClearTempStorage() error {
 func (a *basicUploadAdapter) tempDir() string {
 	// Must be dedicated to this adapter as deleted by ClearTempStorage
 	d := filepath.Join(os.TempDir(), "git-lfs-basic-temp")
-	if err := os.MkdirAll(d, 0755); err != nil {
+	if err := tools.MkdirAll(d, a.fs); err != nil {
 		return os.TempDir()
 	}
 	return d

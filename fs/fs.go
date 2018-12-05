@@ -66,7 +66,7 @@ func (f *Filesystem) ObjectExists(oid string, size int64) bool {
 
 func (f *Filesystem) ObjectPath(oid string) (string, error) {
 	dir := f.localObjectDir(oid)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := tools.MkdirAll(dir, f); err != nil {
 		return "", fmt.Errorf("Error trying to create local storage directory in %q: %s", dir, err)
 	}
 	return filepath.Join(dir, oid), nil
@@ -141,7 +141,7 @@ func (f *Filesystem) LFSObjectDir() string {
 
 	if len(f.lfsobjdir) == 0 {
 		f.lfsobjdir = filepath.Join(f.LFSStorageDir, "objects")
-		os.MkdirAll(f.lfsobjdir, 0755)
+		tools.MkdirAll(f.lfsobjdir, f)
 	}
 
 	return f.lfsobjdir
@@ -153,7 +153,7 @@ func (f *Filesystem) LogDir() string {
 
 	if len(f.logdir) == 0 {
 		f.logdir = filepath.Join(f.LFSStorageDir, "logs")
-		os.MkdirAll(f.logdir, 0755)
+		tools.MkdirAll(f.logdir, f)
 	}
 
 	return f.logdir
@@ -165,7 +165,7 @@ func (f *Filesystem) TempDir() string {
 
 	if len(f.tmpdir) == 0 {
 		f.tmpdir = filepath.Join(f.LFSStorageDir, "tmp")
-		os.MkdirAll(f.tmpdir, 0755)
+		tools.MkdirAll(f.tmpdir, f)
 	}
 
 	return f.tmpdir
