@@ -118,11 +118,16 @@ func (c *Configuration) getMask() int {
 }
 
 func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
-	gf, extensions, uniqRemotes := readGitConfig(gitconfigs...)
+	gf, extensions, uniqRemotes, credHelperKey := readGitConfig(gitconfigs...)
 	c.extensions = extensions
 	c.remotes = make([]string, 0, len(uniqRemotes))
 	for remote := range uniqRemotes {
 		c.remotes = append(c.remotes, remote)
+	}
+	if credHelperKey != "" {
+		if credHelperValue, ok := gf.Get(credHelperKey); ok {
+			c.gitConfig.SetLocal(credHelperKey, credHelperValue)
+		}
 	}
 
 	return EnvironmentOf(gf)

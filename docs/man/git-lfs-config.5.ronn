@@ -83,6 +83,11 @@ be scoped inside the configuration for a remote.
 
   Default: `lfs` in Git repository directory (usually `.git/lfs`).
 
+* `credential.https://<host>.helper`
+
+  Sets the Git Credential helper for the host. This can be used to specify the
+  credential helper of the LFS API. This will be copied to the local gitconfig.
+
 ### Transfer (upload / download) settings
 
   These settings control how the upload and download of LFS content occurs.
@@ -345,16 +350,19 @@ The .lfsconfig file in a repository is read and interpreted in the same format
 as the file stored in .git/config. It allows a subset of keys to be used,
 including and limited to:
 
+- lfs.allowincompletepush
 - lfs.fetchexclude
 - lfs.fetchinclude
 - lfs.gitprotocol
+- lfs.locksverify
 - lfs.pushurl
 - lfs.url
 - lfs.extension.{name}.clean
 - lfs.extension.{name}.smudge
 - lfs.extension.{name}.priority
 - remote.{name}.lfsurl
-- remote.{name}.{*}.access
+- lfs.{*}.access
+- credential.{*}.helper
 
 The set of keys allowed in this file is restricted for security reasons.
 

@@ -15,7 +15,7 @@ type GitFetcher struct {
 	vals map[string][]string
 }
 
-func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
+func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool, credHelperKey string) {
 	vals := make(map[string][]string)
 	ignored := make([]string, 0)
 
@@ -86,6 +86,9 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 				uniqRemotes[remote] = remote == "origin"
 			} else if len(parts) > 2 && parts[len(parts)-1] == "access" {
 				allowed = true
+			} else if len(parts) > 2 && parts[0] == "credential" && parts[len(parts)-1] == "helper" {
+				allowed = true
+				credHelperKey = key
 			}
 
 			if !allowed && keyIsUnsafe(key) {
