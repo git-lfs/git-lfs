@@ -260,7 +260,8 @@ Note: This will require a force push to any existing Git remotes.
 ### Migrate without rewriting local history
 
 You can also migrate files without modifying the existing history of your
-repository:
+repository. Note that in the examples below, files in subdirectories are not
+included because they are not explicitly specified.
 
 Without a specified commit message:
 
@@ -271,8 +272,9 @@ $ git lfs migrate import --no-rewrite test.zip *.mp3 *.psd
 With a specified commit message:
 
 ```
-$ git lfs migrate import --no-rewrite -m "Import .zip, .mp3, .psd files" \
-  test.zip *.mpd *.psd
+$ git lfs migrate import --no-rewrite \
+  -m "Import test.zip, .mp3, .psd files in root of repo" \
+  test.zip *.mp3 *.psd
 ```
 
 ## SEE ALSO
