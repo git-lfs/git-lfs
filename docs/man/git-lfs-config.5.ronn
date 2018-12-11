@@ -345,16 +345,18 @@ The .lfsconfig file in a repository is read and interpreted in the same format
 as the file stored in .git/config. It allows a subset of keys to be used,
 including and limited to:
 
+- lfs.allowincompletepush
 - lfs.fetchexclude
 - lfs.fetchinclude
 - lfs.gitprotocol
+- lfs.locksverify
 - lfs.pushurl
 - lfs.url
 - lfs.extension.{name}.clean
 - lfs.extension.{name}.smudge
 - lfs.extension.{name}.priority
 - remote.{name}.lfsurl
-- remote.{name}.{*}.access
+- lfs.{*}.access
 
 The set of keys allowed in this file is restricted for security reasons.
 
