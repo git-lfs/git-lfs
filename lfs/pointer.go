@@ -164,7 +164,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 	}
 
 	value, ok = kvps["size"]
-	size, err := strconv.ParseInt(value, 10, 0)
+	size, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || size < 0 {
 		return nil, fmt.Errorf("Invalid size: %q", value)
 	}
