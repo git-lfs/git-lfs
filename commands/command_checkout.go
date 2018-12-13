@@ -50,7 +50,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	meter := tq.NewMeter()
+	meter := tq.NewMeter(cfg)
 	meter.Direction = tq.Checkout
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)
 	logger.Enqueue(meter)

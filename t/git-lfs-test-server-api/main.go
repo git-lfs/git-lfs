@@ -185,7 +185,7 @@ func buildTestData(repo *t.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing 
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(false),
 	)
-	meter := tq.NewMeter()
+	meter := tq.NewMeter(repo.Configuration())
 	meter.Logger = meter.LoggerFromEnv(repo.OSEnv())
 	logger.Enqueue(meter)
 	commit := t.CommitInput{CommitterName: "A N Other", CommitterEmail: "noone@somewhere.com"}

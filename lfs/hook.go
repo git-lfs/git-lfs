@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
@@ -25,9 +26,10 @@ type Hook struct {
 	Contents     string
 	Dir          string
 	upgradeables []string
+	cfg          *config.Configuration
 }
 
-func LoadHooks(hookDir string) []*Hook {
+func LoadHooks(hookDir string, cfg *config.Configuration) []*Hook {
 	return []*Hook{
 		NewStandardHook("pre-push", hookDir, []string{
 			"#!/bin/sh\ngit lfs push --stdin $*",
@@ -35,20 +37,21 @@ func LoadHooks(hookDir string) []*Hook {
 			"#!/bin/sh\ngit lfs pre-push \"$@\"",
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
-		}),
-		NewStandardHook("post-checkout", hookDir, []string{}),
-		NewStandardHook("post-commit", hookDir, []string{}),
-		NewStandardHook("post-merge", hookDir, []string{}),
+		}, cfg),
+		NewStandardHook("post-checkout", hookDir, []string{}, cfg),
+		NewStandardHook("post-commit", hookDir, []string{}, cfg),
+		NewStandardHook("post-merge", hookDir, []string{}, cfg),
 	}
 }
 
 // NewStandardHook creates a new hook using the template script calling 'git lfs theType'
-func NewStandardHook(theType, hookDir string, upgradeables []string) *Hook {
+func NewStandardHook(theType, hookDir string, upgradeables []string, cfg *config.Configuration) *Hook {
 	return &Hook{
 		Type:         theType,
 		Contents:     strings.Replace(hookBaseContent, "{{Command}}", theType, -1),
 		Dir:          hookDir,
 		upgradeables: upgradeables,
+		cfg:          cfg,
 	}
 }
 
@@ -71,7 +74,7 @@ func (h *Hook) Path() string {
 func (h *Hook) Install(force bool) error {
 	msg := fmt.Sprintf("Install hook: %s, force=%t, path=%s", h.Type, force, h.Path())
 
-	if err := os.MkdirAll(h.Dir, 0755); err != nil {
+	if err := tools.MkdirAll(h.Dir, h.cfg); err != nil {
 		return err
 	}
 

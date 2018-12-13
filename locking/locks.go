@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
@@ -43,6 +44,7 @@ type Client struct {
 	client    *lockClient
 	cache     LockCacher
 	cacheDir  string
+	cfg       *config.Configuration
 
 	lockablePatterns []string
 	lockableFilter   *filepathfilter.Filter
@@ -56,11 +58,12 @@ type Client struct {
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
-func NewClient(remote string, lfsClient *lfsapi.Client) (*Client, error) {
+func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
 	return &Client{
 		Remote: remote,
 		client: &lockClient{Client: lfsClient},
 		cache:  &nilLockCacher{},
+		cfg:    cfg,
 	}, nil
 }
 
@@ -433,7 +436,7 @@ func (c *Client) prepareCacheDirectory() (string, error) {
 			return cacheDir, errors.New("init cache directory " + cacheDir + " failed: already exists, but is no directory")
 		}
 	} else if os.IsNotExist(err) {
-		err = os.MkdirAll(cacheDir, os.ModePerm)
+		err = tools.MkdirAll(cacheDir, c.cfg)
 		if err != nil {
 			return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed: directory creation failed")
 		}

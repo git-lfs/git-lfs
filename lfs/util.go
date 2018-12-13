@@ -40,7 +40,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 	}
 
 	cbDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(cbDir, 0755); err != nil {
+	if err := tools.MkdirAll(cbDir, f.cfg); err != nil {
 		return nil, nil, wrapProgressError(err, event, logPath)
 	}
 
@@ -238,7 +238,7 @@ func TempFile(cfg *config.Configuration, pattern string) (*os.File, error) {
 		return nil, err
 	}
 
-	perms := cfg.RepositoryPermissions()
+	perms := cfg.RepositoryPermissions(false)
 	err = os.Chmod(tmp.Name(), perms)
 	if err != nil {
 		tmp.Close()

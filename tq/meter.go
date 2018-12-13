@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
@@ -32,6 +33,7 @@ type Meter struct {
 	fileIndex         map[string]int64 // Maps a file name to its transfer number
 	fileIndexMutex    *sync.Mutex
 	updates           chan *tasklog.Update
+	cfg               *config.Configuration
 
 	DryRun    bool
 	Logger    *tools.SyncWriter
@@ -60,7 +62,7 @@ func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
+	if err := tools.MkdirAll(filepath.Dir(name), m.cfg); err != nil {
 		printErr(err.Error())
 		return nil
 	}
@@ -75,11 +77,12 @@ func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 }
 
 // NewMeter creates a new Meter.
-func NewMeter() *Meter {
+func NewMeter(cfg *config.Configuration) *Meter {
 	m := &Meter{
 		fileIndex:      make(map[string]int64),
 		fileIndexMutex: &sync.Mutex{},
 		updates:        make(chan *tasklog.Update),
+		cfg:            cfg,
 	}
 
 	return m

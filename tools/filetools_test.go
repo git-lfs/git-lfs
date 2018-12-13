@@ -484,3 +484,9 @@ func TestSetWriteFlag(t *testing.T) {
 		assert.EqualValues(t, 0640, getFileMode(filename))
 	}
 }
+
+func TestExecutablePermissions(t *testing.T) {
+	assert.EqualValues(t, os.FileMode(0755), ExecutablePermissions(0644))
+	assert.EqualValues(t, os.FileMode(0750), ExecutablePermissions(0640))
+	assert.EqualValues(t, os.FileMode(0700), ExecutablePermissions(0600))
+}

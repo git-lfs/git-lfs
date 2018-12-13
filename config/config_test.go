@@ -188,7 +188,41 @@ func TestRepositoryPermissions(t *testing.T) {
 				"core.sharedrepository": []string{key},
 			},
 		})
-		assert.Equal(t, os.FileMode(val), cfg.RepositoryPermissions())
+		assert.Equal(t, os.FileMode(val), cfg.RepositoryPermissions(false))
+	}
+}
+
+func TestRepositoryPermissionsExectable(t *testing.T) {
+	perms := 0777 & ^umask()
+
+	values := map[string]int{
+		"group":     0770,
+		"true":      0770,
+		"1":         0770,
+		"YES":       0770,
+		"all":       0775,
+		"world":     0775,
+		"everybody": 0775,
+		"2":         0775,
+		"false":     perms,
+		"umask":     perms,
+		"0":         perms,
+		"NO":        perms,
+		"this does not remotely look like a valid value": perms,
+		"0664": 0775,
+		"0666": 0777,
+		"0600": 0700,
+		"0660": 0770,
+		"0644": 0755,
+	}
+
+	for key, val := range values {
+		cfg := NewFrom(Values{
+			Git: map[string][]string{
+				"core.sharedrepository": []string{key},
+			},
+		})
+		assert.Equal(t, os.FileMode(val), cfg.RepositoryPermissions(true))
 	}
 }
 

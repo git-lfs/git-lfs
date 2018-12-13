@@ -39,6 +39,7 @@ type Filesystem struct {
 	lfsobjdir     string
 	tmpdir        string
 	logdir        string
+	repoPerms     os.FileMode
 	mu            sync.Mutex
 }
 
@@ -65,7 +66,7 @@ func (f *Filesystem) ObjectExists(oid string, size int64) bool {
 
 func (f *Filesystem) ObjectPath(oid string) (string, error) {
 	dir := f.localObjectDir(oid)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := tools.MkdirAll(dir, f); err != nil {
 		return "", fmt.Errorf("Error trying to create local storage directory in %q: %s", dir, err)
 	}
 	return filepath.Join(dir, oid), nil
@@ -77,6 +78,13 @@ func (f *Filesystem) ObjectPathname(oid string) string {
 
 func (f *Filesystem) DecodePathname(path string) string {
 	return string(DecodePathBytes([]byte(path)))
+}
+
+func (f *Filesystem) RepositoryPermissions(executable bool) os.FileMode {
+	if executable {
+		return tools.ExecutablePermissions(f.repoPerms)
+	}
+	return f.repoPerms
 }
 
 /**
@@ -133,7 +141,7 @@ func (f *Filesystem) LFSObjectDir() string {
 
 	if len(f.lfsobjdir) == 0 {
 		f.lfsobjdir = filepath.Join(f.LFSStorageDir, "objects")
-		os.MkdirAll(f.lfsobjdir, 0755)
+		tools.MkdirAll(f.lfsobjdir, f)
 	}
 
 	return f.lfsobjdir
@@ -145,7 +153,7 @@ func (f *Filesystem) LogDir() string {
 
 	if len(f.logdir) == 0 {
 		f.logdir = filepath.Join(f.LFSStorageDir, "logs")
-		os.MkdirAll(f.logdir, 0755)
+		tools.MkdirAll(f.logdir, f)
 	}
 
 	return f.logdir
@@ -157,7 +165,7 @@ func (f *Filesystem) TempDir() string {
 
 	if len(f.tmpdir) == 0 {
 		f.tmpdir = filepath.Join(f.LFSStorageDir, "tmp")
-		os.MkdirAll(f.tmpdir, 0755)
+		tools.MkdirAll(f.tmpdir, f)
 	}
 
 	return f.tmpdir
@@ -173,7 +181,8 @@ func (f *Filesystem) Cleanup() error {
 // New initializes a new *Filesystem with the given directories. gitdir is the
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
-func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
+// repoPerms is the permissions for directories in the repository.
+func New(env Environment, gitdir, workdir, lfsdir string, repoPerms os.FileMode) *Filesystem {
 	fs := &Filesystem{
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
@@ -189,6 +198,8 @@ func New(env Environment, gitdir, workdir, lfsdir string) *Filesystem {
 	} else {
 		fs.LFSStorageDir = filepath.Join(fs.GitStorageDir, lfsdir)
 	}
+
+	fs.repoPerms = repoPerms
 
 	return fs
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -117,7 +118,7 @@ func setupHTTPLogger(cmd *cobra.Command, args []string) {
 	}
 
 	logBase := filepath.Join(cfg.LocalLogDir(), "http")
-	if err := os.MkdirAll(logBase, 0755); err != nil {
+	if err := tools.MkdirAll(logBase, cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
 		return
 	}

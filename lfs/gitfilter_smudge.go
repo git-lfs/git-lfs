@@ -15,7 +15,7 @@ import (
 )
 
 func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest *tq.Manifest, cb tools.CopyCallback) error {
-	os.MkdirAll(filepath.Dir(filename), 0755)
+	tools.MkdirAll(filepath.Dir(filename), f.cfg)
 
 	if stat, _ := os.Stat(filename); stat != nil && stat.Mode()&0200 == 0 {
 		if err := os.Chmod(filename, stat.Mode()|0200); err != nil {

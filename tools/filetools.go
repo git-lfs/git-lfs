@@ -115,6 +115,21 @@ func CleanPaths(paths, delim string) (cleaned []string) {
 	return cleaned
 }
 
+// repositoryPermissionFetcher is an interface that matches the configuration
+// object and can be used to fetch repository permissions.
+type repositoryPermissionFetcher interface {
+	RepositoryPermissions(executable bool) os.FileMode
+}
+
+// MkdirAll makes a directory and any intervening directories with the
+// permissions specified by the core.sharedRepository setting.
+func MkdirAll(path string, config repositoryPermissionFetcher) error {
+	umask := 0777 & ^config.RepositoryPermissions(true)
+	return doWithUmask(int(umask), func() error {
+		return os.MkdirAll(path, config.RepositoryPermissions(true))
+	})
+}
+
 var (
 	// currentUser is a wrapper over user.Current(), but instead uses the
 	// value of os.Getenv("HOME") for the returned *user.User's "HomeDir"
@@ -489,4 +504,12 @@ func SetFileWriteFlag(path string, writeEnabled bool) error {
 		mode = mode &^ 0222 // disable all write
 	}
 	return os.Chmod(path, os.FileMode(mode))
+}
+
+// ExecutablePermissions takes a set of Unix permissions (which may or may not
+// have the executable bits set) and maps them into a set of permissions in
+// which the executable bits are set, using the same technique as Git does.
+func ExecutablePermissions(perms os.FileMode) os.FileMode {
+	// Copy read bits to executable bits.
+	return perms | ((perms & 0444) >> 2)
 }
