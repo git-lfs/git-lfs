@@ -13,7 +13,7 @@ github.com/git-lfs/gitobj/pack
 github.com/git-lfs/gitobj/storage
 # github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 github.com/git-lfs/go-netrc/netrc
-# github.com/git-lfs/wildmatch v1.0.1
+# github.com/git-lfs/wildmatch v1.0.2
 github.com/git-lfs/wildmatch
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
