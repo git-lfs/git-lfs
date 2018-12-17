@@ -5,7 +5,7 @@ require (
 	github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
 	github.com/git-lfs/gitobj v1.1.0
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
-	github.com/git-lfs/wildmatch v1.0.1
+	github.com/git-lfs/wildmatch v1.0.2
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
 	github.com/mattn/go-isatty v0.0.4
