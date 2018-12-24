@@ -16,7 +16,7 @@
 
 The client is written in Go, with pre-compiled binaries available for Mac,
 Windows, Linux, and FreeBSD. Check out the [website](http://git-lfs.github.com)
-for an overview of features.
+for an overview of all features.
 
 ## Getting Started
 
