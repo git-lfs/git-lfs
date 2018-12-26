@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -156,6 +157,18 @@ func IsRetriableError(err error) bool {
 		return IsRetriableError(parent)
 	}
 	return false
+}
+
+func IsRetriableLaterError(err error) (time.Time, bool) {
+	if e, ok := err.(interface {
+		RetriableLaterError() (time.Time, bool)
+	}); ok {
+		return e.RetriableLaterError()
+	}
+	if parent := parentOf(err); parent != nil {
+		return IsRetriableLaterError(parent)
+	}
+	return time.Time{}, false
 }
 
 type errorWithCause interface {
@@ -333,6 +346,31 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 
 func NewDownloadDeclinedError(err error, msg string) error {
 	return downloadDeclinedError{newWrappedError(err, msg)}
+}
+
+// Definitions for IsRetriableLaterError()
+
+type retriableLaterError struct {
+	*wrappedError
+	timeAvailable time.Time
+}
+
+func NewRetriableLaterErrorFromDelay(err error, retryAfter int) error {
+	return retriableLaterError{
+		wrappedError:  newWrappedError(err, ""),
+		timeAvailable: time.Now().Add(time.Duration(retryAfter) * time.Second),
+	}
+}
+
+func NewRetriableLaterErrorFromTime(err error, timeAvailable time.Time) error {
+	return retriableLaterError{
+		wrappedError:  newWrappedError(err, ""),
+		timeAvailable: timeAvailable,
+	}
+}
+
+func (e retriableLaterError) RetriableLaterError() (time.Time, bool) {
+	return e.timeAvailable, true
 }
 
 // Definitions for IsUnprocessableEntityError()

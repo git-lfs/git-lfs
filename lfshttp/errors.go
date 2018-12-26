@@ -3,7 +3,9 @@ package lfshttp
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
 )
@@ -60,6 +62,22 @@ func (c *Client) handleResponse(res *http.Response) error {
 
 	if res.StatusCode == 422 {
 		return errors.NewUnprocessableEntityError(err)
+	}
+
+	if res.StatusCode == 429 {
+		// The Retry-After header could be set, check to see if it exists.
+		h := res.Header.Get("Retry-After")
+		if h != "" {
+			retryAfter, err := strconv.Atoi(h)
+			if err == nil {
+				return errors.NewRetriableLaterErrorFromDelay(err, retryAfter)
+			}
+
+			date, err := time.Parse(time.RFC1123, h)
+			if err == nil {
+				return errors.NewRetriableLaterErrorFromTime(err, date)
+			}
+		}
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 507 && res.StatusCode != 509 {

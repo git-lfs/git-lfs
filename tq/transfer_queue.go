@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
@@ -78,13 +79,36 @@ type batch []*objectTuple
 // Concat concatenates two batches together, returning a single, clamped batch as
 // "left", and the remainder of elements as "right". If the union of the
 // receiver and "other" has cardinality less than "size", "right" will be
-// returned as nil.
-func (b batch) Concat(other batch, size int) (left, right batch) {
+// returned as nil. Any object tuple that is not currently able to be retried
+// (ie Retry-After response), will also go into the right batch. Also, when object(s)
+// are returend that are rate-limited, return the minimum duration required to wait until
+// a object is ready.
+func (b batch) Concat(other batch, size int) (left, right batch, minWait time.Duration) {
 	u := batch(append(b, other...))
-	if len(u) <= size {
-		return u, nil
+	for _, ot := range u {
+		if time.Now().After(ot.ReadyTime) {
+			// The current time is past the time the object should
+			// be available.
+			left = append(left, ot)
+		} else {
+			// The time hasn't passed for the object.
+			right = append(right, ot)
+			wait := time.Until(ot.ReadyTime)
+			if minWait == 0 {
+				minWait = wait
+			} else if wait < minWait {
+				minWait = wait
+			}
+		}
 	}
-	return u[:size], u[size:]
+	if len(left) <= size {
+		// If the size of left fits the given size limit, return with no adjustments.
+		return left, right, minWait
+	}
+	// If left is too large, trip left up to size and append the rest to right.
+	right = append(right, left[size:]...)
+	left = left[:size]
+	return left, right, minWait
 }
 
 func (b batch) ToTransfers() []*Transfer {
@@ -167,6 +191,7 @@ func (s *objects) First() *objectTuple {
 type objectTuple struct {
 	Name, Path, Oid string
 	Size            int64
+	ReadyTime       time.Time
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
@@ -356,14 +381,17 @@ func (q *TransferQueue) collectBatches() {
 		var retries batch
 
 		go func() {
+			defer close(done)
 			var err error
+
+			if len(next) == 0 {
+				return
+			}
 
 			retries, err = q.enqueueAndCollectRetriesFor(next)
 			if err != nil {
 				q.errorc <- err
 			}
-
-			close(done)
 		}()
 
 		var collected batch
@@ -374,11 +402,14 @@ func (q *TransferQueue) collectBatches() {
 		// - retries from the previous batch,
 		// - new additions that were enqueued behind retries, &
 		// - items collected while the batch was processing.
-		next, pending = retries.Concat(append(pending, collected...), q.batchSize)
-
-		if closing && len(next) == 0 {
-			// If len(next) == 0, there are no items in "pending",
-			// and it is safe to exit.
+		var minWaitTime time.Duration
+		next, pending, minWaitTime = retries.Concat(append(pending, collected...), q.batchSize)
+		if len(next) == 0 && len(pending) != 0 {
+			// There are some pending that cound not be queued.
+			// Wait the requested time before resuming loop.
+			time.Sleep(minWaitTime)
+		} else if len(next) == 0 && len(pending) == 0 {
+			// There are no items remaining, it is safe to break
 			break
 		}
 	}
@@ -446,6 +477,11 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				if q.canRetryObject(t.Oid, err) {
 					q.rc.Increment(t.Oid)
 
+					next = append(next, t)
+				} else if readyTime, canRetry := q.canRetryObjectLater(t.Oid, err); canRetry {
+					tracerx.Printf("tq: retrying object %s after %s seconds.", t.Oid, time.Until(readyTime).Seconds())
+					err = nil
+					t.ReadyTime = readyTime
 					next = append(next, t)
 				} else {
 					q.wait.Done()
@@ -654,6 +690,22 @@ func (q *TransferQueue) handleTransferResult(
 			} else {
 				q.errorc <- res.Error
 			}
+		} else if readyTime, canRetry := q.canRetryObjectLater(oid, res.Error); canRetry {
+			// If the object can't be retried now, but can be
+			// after a certain period of time, send it to
+			// the retry channel with a time when it's ready.
+			tracerx.Printf("tq: retrying object %s after %s seconds.", oid, time.Until(readyTime).Seconds())
+			q.trMutex.Lock()
+			objects, ok := q.transfers[oid]
+			q.trMutex.Unlock()
+
+			if ok {
+				t := objects.First()
+				t.ReadyTime = readyTime
+				retries <- t
+			} else {
+				q.errorc <- res.Error
+			}
 		} else {
 			// If the error wasn't retriable, OR the object has
 			// exceeded its retry budget, it will be NOT be sent to
@@ -845,6 +897,12 @@ func (q *TransferQueue) canRetry(err error) bool {
 	return errors.IsRetriableError(err)
 }
 
+// canRetryLater returns the number of seconds until an error can be retried and if the error
+// is a delayed-retriable error.
+func (q *TransferQueue) canRetryLater(err error) (time.Time, bool) {
+	return errors.IsRetriableLaterError(err)
+}
+
 // canRetryObject returns whether the given error is retriable for the object
 // given by "oid". If the an OID has met its retry limit, then it will not be
 // able to be retried again. If so, canRetryObject returns whether or not that
@@ -856,6 +914,15 @@ func (q *TransferQueue) canRetryObject(oid string, err error) bool {
 	}
 
 	return q.canRetry(err)
+}
+
+func (q *TransferQueue) canRetryObjectLater(oid string, err error) (time.Time, bool) {
+	if count, ok := q.rc.CanRetry(oid); !ok {
+		tracerx.Printf("tq: refusing to retry %q, too many retries (%d)", oid, count)
+		return time.Time{}, false
+	}
+
+	return q.canRetryLater(err)
 }
 
 // Errors returns any errors encountered during transfer.
