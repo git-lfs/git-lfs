@@ -173,7 +173,7 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
-	_, _, err = client.VerifiableLocks(nil, 100)
+	_, _, err = client.SearchLocksVerifiable(nil, 100)
 	assert.Nil(t, err)
 
 	locks, err = client.SearchLocks(nil, 0, true, false)
@@ -192,7 +192,7 @@ func TestRefreshCache(t *testing.T) {
 	}, locks)
 }
 
-func TestGetVerifiableLocks(t *testing.T) {
+func TestSearchLocksVerifiable(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/api/locks/verify", r.URL.Path)
@@ -239,7 +239,7 @@ func TestGetVerifiableLocks(t *testing.T) {
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
 
-	ourLocks, theirLocks, err := client.VerifiableLocks(nil, 0)
+	ourLocks, theirLocks, err := client.SearchLocksVerifiable(nil, 0)
 	assert.Nil(t, err)
 
 	// Need to include zero time in structure for equal to work
