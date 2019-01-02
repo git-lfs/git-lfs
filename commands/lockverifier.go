@@ -55,7 +55,8 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 	}
 
 	lockClient := newLockClient()
-	ours, theirs, err := lockClient.SearchLocksVerifiable(ref, 0)
+	lockClient.RemoteRef = ref
+	ours, theirs, err := lockClient.SearchLocksVerifiable(0)
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(lv.endpoint.Url)

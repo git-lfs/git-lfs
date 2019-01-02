@@ -252,13 +252,13 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
-func (c *Client) SearchLocksVerifiable(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
+func (c *Client) SearchLocksVerifiable(limit int) (ourLocks, theirLocks []Lock, err error) {
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
 
 	var requestRef *lockRef
-	if ref != nil {
-		requestRef = &lockRef{Name: ref.Refspec()}
+	if c.RemoteRef != nil {
+		requestRef = &lockRef{Name: c.RemoteRef.Refspec()}
 	}
 
 	body := &lockVerifiableRequest{
