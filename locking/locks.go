@@ -250,7 +250,7 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 	}
 }
 
-func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
+func (c *Client) SearchLocksVerifiable(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
 	if ref == nil {
 		ref = c.RemoteRef
 	}

@@ -171,7 +171,7 @@ func TestAPISearch(t *testing.T) {
 	assert.Equal(t, "2", locks.Locks[1].Id)
 }
 
-func TestAPIVerifiableLocks(t *testing.T) {
+func TestAPISearchVerifiable(t *testing.T) {
 	require.NotNil(t, verifyResSchema)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
