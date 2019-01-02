@@ -173,7 +173,7 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
-	_, _, err = client.SearchLocksVerifiable(nil, 100)
+	_, _, err = client.SearchLocksVerifiable(&git.Ref{Name: "refs/heads/master"}, 100)
 	assert.Nil(t, err)
 
 	locks, err = client.SearchLocks(nil, 0, true, false)
@@ -239,7 +239,7 @@ func TestSearchLocksVerifiable(t *testing.T) {
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
 
-	ourLocks, theirLocks, err := client.SearchLocksVerifiable(nil, 0)
+	ourLocks, theirLocks, err := client.SearchLocksVerifiable(&git.Ref{Name: "refs/heads/master"}, 0)
 	assert.Nil(t, err)
 
 	// Need to include zero time in structure for equal to work

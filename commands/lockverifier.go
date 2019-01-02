@@ -46,6 +46,10 @@ type lockVerifier struct {
 }
 
 func (lv *lockVerifier) Verify(ref *git.Ref) {
+	if ref == nil {
+		panic("no ref specified for verification")
+	}
+
 	if lv.verifyState == verifyStateDisabled || lv.verifiedRefs[ref.Refspec()] {
 		return
 	}
