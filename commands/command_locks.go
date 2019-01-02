@@ -51,9 +51,6 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		if locksCmdFlags.Local {
 			Exit("--verify option can't be combined with --local")
 		}
-		if locksCmdFlags.Cached {
-			Exit("--verify option can't be combined with --cached")
-		}
 	}
 
 	var locks []locking.Lock
@@ -61,7 +58,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	var jsonWriteFunc func(io.Writer) error
 	if locksCmdFlags.Verify {
 		var ourLocks, theirLocks []locking.Lock
-		ourLocks, theirLocks, err = lockClient.SearchLocksVerifiable(locksCmdFlags.Limit)
+		ourLocks, theirLocks, err = lockClient.SearchLocksVerifiable(locksCmdFlags.Limit, locksCmdFlags.Cached)
 		jsonWriteFunc = func(writer io.Writer) error {
 			return lockClient.EncodeLocksVerifiable(ourLocks, theirLocks, writer)
 		}
