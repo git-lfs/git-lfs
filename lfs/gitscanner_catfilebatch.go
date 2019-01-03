@@ -23,8 +23,9 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 	}
 
 	go func() {
+		canScan := true
 		for r := range revs.Results {
-			canScan := scanner.Scan(r)
+			canScan = scanner.Scan(r)
 
 			if err := scanner.Err(); err != nil {
 				errCh <- err
@@ -41,8 +42,10 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 			}
 		}
 
-		if err := revs.Wait(); err != nil {
-			errCh <- err
+		if canScan {
+			if err := revs.Wait(); err != nil {
+				errCh <- err
+			}
 		}
 
 		if err := scanner.Close(); err != nil {
