@@ -674,23 +674,7 @@ func (q *TransferQueue) handleTransferResult(
 	if res.Error != nil {
 		// If there was an error encountered when processing the
 		// transfer (res.Transfer), handle the error as is appropriate:
-
-		if q.canRetryObject(oid, res.Error) {
-			// If the object can be retried, send it on the retries
-			// channel, where it will be read at the call-site and
-			// its retry count will be incremented.
-			tracerx.Printf("tq: retrying object %s: %s", oid, res.Error)
-
-			q.trMutex.Lock()
-			objects, ok := q.transfers[oid]
-			q.trMutex.Unlock()
-
-			if ok {
-				retries <- objects.First()
-			} else {
-				q.errorc <- res.Error
-			}
-		} else if readyTime, canRetry := q.canRetryObjectLater(oid, res.Error); canRetry {
+		if readyTime, canRetry := q.canRetryObjectLater(oid, res.Error); canRetry {
 			// If the object can't be retried now, but can be
 			// after a certain period of time, send it to
 			// the retry channel with a time when it's ready.
@@ -703,6 +687,21 @@ func (q *TransferQueue) handleTransferResult(
 				t := objects.First()
 				t.ReadyTime = readyTime
 				retries <- t
+			} else {
+				q.errorc <- res.Error
+			}
+		} else if q.canRetryObject(oid, res.Error) {
+			// If the object can be retried, send it on the retries
+			// channel, where it will be read at the call-site and
+			// its retry count will be incremented.
+			tracerx.Printf("tq: retrying object %s: %s", oid, res.Error)
+
+			q.trMutex.Lock()
+			objects, ok := q.transfers[oid]
+			q.trMutex.Unlock()
+
+			if ok {
+				retries <- objects.First()
 			} else {
 				q.errorc <- res.Error
 			}

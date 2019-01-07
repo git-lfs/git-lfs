@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -355,18 +356,25 @@ type retriableLaterError struct {
 	timeAvailable time.Time
 }
 
-func NewRetriableLaterErrorFromDelay(err error, retryAfter int) error {
-	return retriableLaterError{
-		wrappedError:  newWrappedError(err, ""),
-		timeAvailable: time.Now().Add(time.Duration(retryAfter) * time.Second),
+func NewRetriableLaterError(err error, header string) error {
+	secs, err := strconv.Atoi(header)
+	if err == nil {
+		return retriableLaterError{
+			wrappedError:  newWrappedError(err, ""),
+			timeAvailable: time.Now().Add(time.Duration(secs) * time.Second),
+		}
 	}
-}
 
-func NewRetriableLaterErrorFromTime(err error, timeAvailable time.Time) error {
-	return retriableLaterError{
-		wrappedError:  newWrappedError(err, ""),
-		timeAvailable: timeAvailable,
+	time, err := time.Parse(time.RFC1123, header)
+	if err == nil {
+		return retriableLaterError{
+			wrappedError:  newWrappedError(err, ""),
+			timeAvailable: time,
+		}
 	}
+
+	// We could not return a successful error from the Retry-After header.
+	return nil
 }
 
 func (e retriableLaterError) RetriableLaterError() (time.Time, bool) {
