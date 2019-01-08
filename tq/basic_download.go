@@ -119,6 +119,15 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 			os.Remove(dlFile.Name())
 			return a.download(t, cb, authOkFunc, nil, 0, nil)
 		}
+
+		// Special-cae status code 429 - retry after certain time
+		if res.StatusCode == 429 {
+			retLaterErr := errors.NewRetriableLaterError(err, res.Header["Retry-After"][0])
+			if retLaterErr != nil {
+				return retLaterErr
+			}
+		}
+
 		return errors.NewRetriableError(err)
 	}
 
