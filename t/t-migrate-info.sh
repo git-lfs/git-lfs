@@ -344,6 +344,31 @@ begin_test "migrate info (empty set)"
 )
 end_test
 
+begin_test "migrate info (no-extension files)"
+(
+  set -e
+
+  setup_multiple_local_branches_with_alternate_names
+  git checkout master
+
+  original_master="$(git rev-parse refs/heads/master)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
+
+  git lfs migrate info --everything
+
+  diff -u <(git lfs migrate info --everything 2>&1 | tail -n 2) <(cat <<-EOF
+	no_extension	220 B	2/2 files(s)	100%
+	*.txt       	170 B	2/2 files(s)	100%
+	EOF)
+
+  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_feature="$(git rev-parse refs/heads/my-feature)"
+
+  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
 begin_test "migrate info (--everything)"
 (
   set -e

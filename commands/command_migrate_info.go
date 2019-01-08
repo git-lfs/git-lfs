@@ -74,22 +74,29 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			ext := fmt.Sprintf("*%s", filepath.Ext(path))
 
+			// If extension exists, group all items under extension,
+			// else just use the file name.
+			var groupName string
 			if len(ext) > 1 {
-				entry := exts[ext]
-				if entry == nil {
-					entry = &MigrateInfoEntry{Qualifier: ext}
-				}
-
-				entry.Total++
-				entry.BytesTotal += b.Size
-
-				if b.Size > int64(migrateInfoAbove) {
-					entry.TotalAbove++
-					entry.BytesAbove += b.Size
-				}
-
-				exts[ext] = entry
+				groupName = ext
+			} else {
+				groupName = filepath.Base(path)
 			}
+
+			entry := exts[groupName]
+			if entry == nil {
+				entry = &MigrateInfoEntry{Qualifier: groupName}
+			}
+
+			entry.Total++
+			entry.BytesTotal += b.Size
+
+			if b.Size > int64(migrateInfoAbove) {
+				entry.TotalAbove++
+				entry.BytesAbove += b.Size
+			}
+
+			exts[groupName] = entry
 
 			return b, nil
 		},
