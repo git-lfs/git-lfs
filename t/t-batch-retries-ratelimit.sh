@@ -68,3 +68,36 @@ begin_test "batch storage download causes retries"
   popd
 )
 end_test
+
+begin_test "batch clone causes retries"
+(
+  set -e
+
+  reponame="batch-storage-clone-retry-later"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" batch-storage-repo-clone
+
+  contents="storage-download-retry-later"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin master
+  assert_server_object "$reponame" "$oid"
+
+  pushd ..
+    git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
+    if [ "0" -ne "$?" ]; then
+	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
+	  exit 1
+	fi
+
+    cd "$reponame-assert"
+
+    assert_local_object "$oid" "${#contents}"
+  popd
+)
+end_test
