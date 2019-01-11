@@ -239,7 +239,6 @@ begin_test "env with multiple remotes and lfs.url config"
   git remote add other "$GITSERVER/env-other-remote"
   git config lfs.url "http://foo/bar"
 
-  endpoint="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
   localwd=$(native_path "$TRASHDIR/$reponame")
   localgit=$(native_path "$TRASHDIR/$reponame/.git")
   localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
@@ -251,67 +250,7 @@ begin_test "env with multiple remotes and lfs.url config"
 %s
 
 Endpoint=http://foo/bar (auth=none)
-Endpoint (other)=%s
-LocalWorkingDir=%s
-LocalGitDir=%s
-LocalGitStorageDir=%s
-LocalMediaDir=%s
-LocalReferenceDirs=
-TempDir=%s
-ConcurrentTransfers=3
-TusTransfers=false
-BasicTransfersOnly=false
-SkipDownloadErrors=false
-FetchRecentAlways=false
-FetchRecentRefsDays=7
-FetchRecentCommitsDays=0
-FetchRecentRefsIncludeRemotes=true
-PruneOffsetDays=3
-PruneVerifyRemoteAlways=false
-PruneRemoteName=origin
-LfsStorageDir=%s
-AccessDownload=none
-AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
-%s
-%s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
-  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
-  contains_same_elements "$expected" "$actual"
-
-  cd .git
-  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
-  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
-  contains_same_elements "$expected2" "$actual2"
-)
-end_test
-
-begin_test "env with multiple remotes and lfs configs"
-(
-  set -e
-  reponame="env-multiple-remotes-lfs-configs"
-  mkdir $reponame
-  cd $reponame
-  git init
-  git remote add origin "$GITSERVER/env-origin-remote"
-  git remote add other "$GITSERVER/env-other-remote"
-  git config lfs.url "http://foo/bar"
-  git config remote.origin.lfsurl "http://custom/origin"
-  git config remote.other.lfsurl "http://custom/other"
-
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
-  expected=$(printf '%s
-%s
-
-Endpoint=http://foo/bar (auth=none)
-Endpoint (other)=http://custom/other (auth=none)
+Endpoint (other)=http://foo/bar (auth=none)
 LocalWorkingDir=%s
 LocalGitDir=%s
 LocalGitStorageDir=%s
@@ -347,7 +286,67 @@ UploadTransfers=basic
 )
 end_test
 
-begin_test "env with multiple remotes and lfs url and batch configs"
+begin_test "env with multiple remotes and lfs configs"
+(
+  set -e
+  reponame="env-multiple-remotes-lfs-configs"
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin "$GITSERVER/env-origin-remote"
+  git remote add other "$GITSERVER/env-other-remote"
+  git config lfs.url "http://foo/bar"
+  git config remote.origin.lfsurl "http://custom/origin"
+  git config remote.other.lfsurl "http://custom/other"
+
+  localwd=$(native_path "$TRASHDIR/$reponame")
+  localgit=$(native_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  expected=$(printf '%s
+%s
+
+Endpoint=http://foo/bar (auth=none)
+Endpoint (other)=http://foo/bar (auth=none)
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDirs=
+TempDir=%s
+ConcurrentTransfers=3
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=%s
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic
+UploadTransfers=basic
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
+  contains_same_elements "$expected" "$actual"
+
+  cd .git
+  expected2=$(echo "$expected" | sed -e 's/LocalWorkingDir=.*/LocalWorkingDir=/')
+  actual2=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
+  contains_same_elements "$expected2" "$actual2"
+)
+end_test
+
+begin_test "env with multiple remotes and batch configs"
 (
   set -e
   reponame="env-multiple-remotes-lfs-batch-configs"
@@ -356,9 +355,8 @@ begin_test "env with multiple remotes and lfs url and batch configs"
   git init
   git remote add origin "$GITSERVER/env-origin-remote"
   git remote add other "$GITSERVER/env-other-remote"
-  git config lfs.url "http://foo/bar"
   git config lfs.concurrenttransfers 5
-  git config remote.origin.lfsurl "http://custom/origin"
+  git config remote.origin.lfsurl "http://foo/bar"
   git config remote.other.lfsurl "http://custom/other"
 
   localwd=$(native_path "$TRASHDIR/$reponame")
