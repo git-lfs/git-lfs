@@ -36,7 +36,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		if remote == defaultRemote {
 			continue
 		}
-		remoteEndpoint := getAPIClient().Endpoints.RemoteEndpoint("download", remote)
+		remoteEndpoint := getAPIClient().Endpoints.Endpoint("download", remote)
 		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess.Mode())
 		if len(remoteEndpoint.SshUserAndHost) > 0 {
