@@ -158,11 +158,11 @@ The properties are sent as URI query values, instead of through a JSON body:
 should be the `next_cursor` from a previous request.
 * `limit` - The integer limit of the number of locks to return. The server
 should have its own upper and lower bounds on the supported limits.
-* `ref` - Optional fully qualified server refspec
+* `refspec` - Optional fully qualified server refspec
 from which to search for locks.
 
 ```js
-// GET https://lfs-server.com/locks?path=&id=&cursor=&limit=
+// GET https://lfs-server.com/locks?path=&id=&cursor=&limit=&refspec=
 // Accept: application/vnd.git-lfs+json
 // Authorization: Basic ... (if needed)
 ```
