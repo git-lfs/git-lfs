@@ -64,6 +64,7 @@ $distro_name_map = {
     ubuntu/zesty
     ubuntu/artful
     ubuntu/bionic
+    ubuntu/cosmic
   ),
 }
 
