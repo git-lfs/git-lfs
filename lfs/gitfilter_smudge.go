@@ -86,22 +86,50 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
 	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
 
-	// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
-	// to the logpath specified by GIT_LFS_PROGRESS.
-	//
-	// Either way, forward it into the *tq.TransferQueue so that updates are
-	// sent over correctly.
+	mainRemote := f.cfg.Remote()
+	remotes := append([]string{mainRemote}, f.cfg.Remotes()...)
+	for i, remote := range remotes {
+		if remote == mainRemote {
+			remotes[0] = mainRemote
+			remotes[i] = remote
+			break
+		}
+	}
 
-	q := tq.NewTransferQueue(tq.Download, manifest, f.cfg.Remote(),
-		tq.WithProgressCallback(cb),
-		tq.RemoteRef(f.RemoteRef()),
-	)
-	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
-	q.Wait()
+	allErrs := make([]error, 0)
+	completed := false
+	for i, remote := range remotes {
 
-	if errs := q.Errors(); len(errs) > 0 {
+		// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
+		// to the logpath specified by GIT_LFS_PROGRESS.
+		//
+		// Either way, forward it into the *tq.TransferQueue so that updates are
+		// sent over correctly.
+
+		q := tq.NewTransferQueue(tq.Download, manifest, remote,
+			tq.WithProgressCallback(cb),
+			tq.RemoteRef(f.RemoteRef()),
+		)
+		q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
+		q.Wait()
+
+		errs := q.Errors()
+
+		if len(errs) == 0 {
+			completed = true
+			break
+		}
+
+		if i < len(remotes)-1 {
+			fmt.Fprintf(os.Stderr, "%s not found on remote \"%s\" - trying \"%s\" next\n", workingfile, remote, remotes[i+1])
+		}
+
+		allErrs = append(allErrs, errs...)
+	}
+
+	if !completed {
 		var multiErr error
-		for _, e := range errs {
+		for _, e := range allErrs {
 			if multiErr != nil {
 				multiErr = fmt.Errorf("%v\n%v", multiErr, e)
 			} else {
