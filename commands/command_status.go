@@ -145,6 +145,9 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 	}
 
 	f, err := os.Open(filepath.Join(cfg.LocalWorkingDir(), name))
+	if os.IsNotExist(err) {
+		return "deleted", "File", nil
+	}
 	if err != nil {
 		return "", "", err
 	}
