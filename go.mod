@@ -12,8 +12,8 @@ require (
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
-	github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a
-	github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33 // indirect
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.2.2
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
