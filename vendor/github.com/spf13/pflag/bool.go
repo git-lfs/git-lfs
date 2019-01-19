@@ -1,9 +1,6 @@
 package pflag
 
-import (
-	"fmt"
-	"strconv"
-)
+import "strconv"
 
 // optional interface to indicate boolean flags that can be
 // supplied without "=value" text
@@ -30,7 +27,7 @@ func (b *boolValue) Type() string {
 	return "bool"
 }
 
-func (b *boolValue) String() string { return fmt.Sprintf("%v", *b) }
+func (b *boolValue) String() string { return strconv.FormatBool(bool(*b)) }
 
 func (b *boolValue) IsBoolFlag() bool { return true }
 
@@ -53,7 +50,7 @@ func (f *FlagSet) BoolVar(p *bool, name string, value bool, usage string) {
 	f.BoolVarP(p, name, "", value, usage)
 }
 
-// Like BoolVar, but accepts a shorthand letter that can be used after a single dash.
+// BoolVarP is like BoolVar, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) BoolVarP(p *bool, name, shorthand string, value bool, usage string) {
 	flag := f.VarPF(newBoolValue(value, p), name, shorthand, usage)
 	flag.NoOptDefVal = "true"
@@ -65,7 +62,7 @@ func BoolVar(p *bool, name string, value bool, usage string) {
 	BoolVarP(p, name, "", value, usage)
 }
 
-// Like BoolVar, but accepts a shorthand letter that can be used after a single dash.
+// BoolVarP is like BoolVar, but accepts a shorthand letter that can be used after a single dash.
 func BoolVarP(p *bool, name, shorthand string, value bool, usage string) {
 	flag := CommandLine.VarPF(newBoolValue(value, p), name, shorthand, usage)
 	flag.NoOptDefVal = "true"
@@ -77,7 +74,7 @@ func (f *FlagSet) Bool(name string, value bool, usage string) *bool {
 	return f.BoolP(name, "", value, usage)
 }
 
-// Like Bool, but accepts a shorthand letter that can be used after a single dash.
+// BoolP is like Bool, but accepts a shorthand letter that can be used after a single dash.
 func (f *FlagSet) BoolP(name, shorthand string, value bool, usage string) *bool {
 	p := new(bool)
 	f.BoolVarP(p, name, shorthand, value, usage)
@@ -90,7 +87,7 @@ func Bool(name string, value bool, usage string) *bool {
 	return BoolP(name, "", value, usage)
 }
 
-// Like Bool, but accepts a shorthand letter that can be used after a single dash.
+// BoolP is like Bool, but accepts a shorthand letter that can be used after a single dash.
 func BoolP(name, shorthand string, value bool, usage string) *bool {
 	b := CommandLine.BoolP(name, shorthand, value, usage)
 	return b

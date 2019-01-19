@@ -96,6 +96,7 @@ func (s *ObjectScanner) Close() error {
 	}
 
 	s.reset()
+	s.gitobj.Close()
 
 	return nil
 }

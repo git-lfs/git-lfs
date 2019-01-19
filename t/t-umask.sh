@@ -15,7 +15,9 @@ clean_setup () {
 
 perms_for () {
   local file=$(echo "$1" | sed "s!^\(..\)\(..\)!.git/lfs/objects/\1/\2/\1\2!")
-  ls -l "$file" | awk '{print $1}'
+  local perms=$(ls -l "$file" | awk '{print $1}')
+  # Trim extended attributes:
+  echo ${perms:0:10}
 }
 
 assert_dir_perms () {

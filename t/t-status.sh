@@ -464,3 +464,42 @@ begin_test "status (without a working copy)"
   [ "This operation must be run in a work tree." = "$(cat status.log)" ]
 )
 end_test
+
+begin_test "status (deleted files)"
+(
+  set -e
+
+  reponame="status-deleted-files"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  git push origin master
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  oid_short="$(calc_oid "$contents" | head -c 7)"
+  printf "%s" "$contents" > a.dat
+
+  git add a.dat
+  git commit -m "add a large file"
+
+  git rm a.dat
+
+  expected="On branch master
+Git LFS objects to be pushed to origin/master:
+
+	a.dat ($oid)
+
+Git LFS objects to be committed:
+
+	a.dat (LFS: $oid_short -> File: deleted)
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test

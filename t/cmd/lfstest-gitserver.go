@@ -58,7 +58,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry", "unknown-oid",
+		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
 		"send-verify-action", "send-deprecated-links",
 	}
 )
@@ -240,6 +240,50 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 func lfsUrl(repo, oid string) string {
 	return server.URL + "/storage/" + oid + "?r=" + repo
+}
+
+const (
+	secondsToRefillTokens = 10
+	refillTokenCount      = 5
+)
+
+var (
+	requestTokens   = make(map[string]int)
+	retryStartTimes = make(map[string]time.Time)
+	laterRetriesMu  sync.Mutex
+)
+
+// checkRateLimit tracks the various requests to the git-server. If it is the first
+// request of its kind, then a times is started, that when it is finished, a certain
+// number of requests become available.
+func checkRateLimit(api, direction, repo, oid string) (seconds int, isWait bool) {
+	laterRetriesMu.Lock()
+	defer laterRetriesMu.Unlock()
+	key := strings.Join([]string{direction, repo, oid}, ":")
+	if requestsRemaining, ok := requestTokens[key]; !ok || requestsRemaining == 0 {
+		if retryStartTimes[key] == (time.Time{}) {
+			// If time is not initialized, set it to now
+			retryStartTimes[key] = time.Now()
+		}
+		// The user is not allowed to make a request now and must wait for the required
+		// time to pass.
+		secsPassed := time.Since(retryStartTimes[key]).Seconds()
+		if secsPassed >= float64(secondsToRefillTokens) {
+			// The required time has passed.
+			requestTokens[key] = refillTokenCount
+			return 0, false
+		}
+		return secondsToRefillTokens - int(secsPassed) + 1, true
+	}
+
+	requestTokens[key]--
+
+	// Tokens are now over, record time.
+	if requestTokens[key] == 0 {
+		retryStartTimes[key] = time.Now()
+	}
+
+	return 0, false
 }
 
 var (
@@ -623,6 +667,15 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 				return
 			}
+		case "storage-upload-retry-later":
+			if timeLeft, isWaiting := checkRateLimit("storage", "upload", repo, oid); isWaiting {
+				w.Header().Set("Retry-After", strconv.Itoa(timeLeft))
+				w.WriteHeader(http.StatusTooManyRequests)
+
+				w.Write([]byte("rate limit reached"))
+				fmt.Println("Setting header to: ", strconv.Itoa(timeLeft))
+				return
+			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -658,7 +711,14 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		resumeAt := int64(0)
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
+			if len(by) == len("storage-download-retry-later") && string(by) == "storage-download-retry-later" {
+				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
+					statusCode = http.StatusTooManyRequests
+					w.Header().Set("Retry-After", strconv.Itoa(secsToWait))
+					by = []byte("rate limit reached")
+					fmt.Println("Setting header to: ", strconv.Itoa(secsToWait))
+				}
+			} else if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
 				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
 					statusCode = 500
 					by = []byte("malformed content")

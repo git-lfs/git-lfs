@@ -3,6 +3,8 @@ package errors
 import (
 	"fmt"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -156,6 +158,18 @@ func IsRetriableError(err error) bool {
 		return IsRetriableError(parent)
 	}
 	return false
+}
+
+func IsRetriableLaterError(err error) (time.Time, bool) {
+	if e, ok := err.(interface {
+		RetriableLaterError() (time.Time, bool)
+	}); ok {
+		return e.RetriableLaterError()
+	}
+	if parent := parentOf(err); parent != nil {
+		return IsRetriableLaterError(parent)
+	}
+	return time.Time{}, false
 }
 
 type errorWithCause interface {
@@ -333,6 +347,38 @@ func (e downloadDeclinedError) DownloadDeclinedError() bool {
 
 func NewDownloadDeclinedError(err error, msg string) error {
 	return downloadDeclinedError{newWrappedError(err, msg)}
+}
+
+// Definitions for IsRetriableLaterError()
+
+type retriableLaterError struct {
+	*wrappedError
+	timeAvailable time.Time
+}
+
+func NewRetriableLaterError(err error, header string) error {
+	secs, err := strconv.Atoi(header)
+	if err == nil {
+		return retriableLaterError{
+			wrappedError:  newWrappedError(err, ""),
+			timeAvailable: time.Now().Add(time.Duration(secs) * time.Second),
+		}
+	}
+
+	time, err := time.Parse(time.RFC1123, header)
+	if err == nil {
+		return retriableLaterError{
+			wrappedError:  newWrappedError(err, ""),
+			timeAvailable: time,
+		}
+	}
+
+	// We could not return a successful error from the Retry-After header.
+	return nil
+}
+
+func (e retriableLaterError) RetriableLaterError() (time.Time, bool) {
+	return e.timeAvailable, true
 }
 
 // Definitions for IsUnprocessableEntityError()

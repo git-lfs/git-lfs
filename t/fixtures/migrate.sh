@@ -203,6 +203,32 @@ setup_multiple_local_branches() {
   git checkout master
 }
 
+# setup_multiple_local_branches_with_alternate_names performs the same task
+# as setup_multiple_local_branches, but creates a file with no extension.
+setup_multiple_local_branches_with_alternate_names() {
+  set -e
+
+  reponame="migrate-info-multiple-local-branches"
+
+  remove_and_create_local_repo "$reponame"
+
+  base64 < /dev/urandom | head -c 120 > no_extension
+  base64 < /dev/urandom | head -c 140 > a.txt
+
+  git add no_extension a.txt
+  git commit -m "initial commit"
+
+  git checkout -b my-feature
+
+  base64 < /dev/urandom | head -c 30 > a.txt
+  base64 < /dev/urandom | head -c 100 > no_extension
+
+  git add no_extension a.txt
+  git commit -m "add an additional 30 bytes to a.txt"
+
+  git checkout master
+}
+
 # setup_multiple_local_branches_with_gitattrs creates a repository in the same way
 # as setup_multiple_local_branches, but also adds relevant lfs filters to the
 # .gitattributes file in the master branch
