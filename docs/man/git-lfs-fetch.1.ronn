@@ -41,9 +41,9 @@ paths of the repo, and/or to exclude certain paths of the repo, to reduce the
 time you spend downloading things you do not use.
 
 In gitconfig, set `lfs.fetchinclude` and `lfs.fetchexclude` to comma-separated
-lists of paths to include/exclude in the fetch (pattern matching as per golang's
-`filepath.Match()`). Only paths which are matched by `fetchinclude` and not
-matched by `fetchexclude` will have objects fetched for them.
+lists of paths to include/exclude in the fetch. Only paths which are matched by
+`fetchinclude` and not matched by `fetchexclude` will have objects fetched for
+them.
 
 ### Examples:
 
