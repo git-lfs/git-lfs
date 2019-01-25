@@ -331,6 +331,12 @@ be scoped inside the configuration for a remote.
   The default is `true`; you can disable this behaviour and have all files
   writeable by setting either variable to 0, 'no' or 'false'.
 
+* `lfs.lockignoredfiles`
+
+  This setting controls whether Git LFS will set ignored files that match the
+  lockable pattern read only as well as tracked files. The default is `false`;
+  you can enable this behavior by setting the variable to 1, 'yes', or 'true'.
+
 * `lfs.defaulttokenttl`
 
   This setting sets a default token TTL when git-lfs-authenticate does not

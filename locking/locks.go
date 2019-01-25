@@ -53,6 +53,7 @@ type Client struct {
 	LocalWorkingDir          string
 	LocalGitDir              string
 	SetLockableFilesReadOnly bool
+	ModifyIgnoredFiles       bool
 }
 
 // NewClient creates a new locking client with the given configuration
@@ -60,10 +61,11 @@ type Client struct {
 // it
 func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
 	return &Client{
-		Remote: remote,
-		client: &lockClient{Client: lfsClient},
-		cache:  &nilLockCacher{},
-		cfg:    cfg,
+		Remote:             remote,
+		client:             &lockClient{Client: lfsClient},
+		cache:              &nilLockCacher{},
+		cfg:                cfg,
+		ModifyIgnoredFiles: lfsClient.GitEnv().Bool("lfs.lockignoredfiles", false),
 	}, nil
 }
 
