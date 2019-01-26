@@ -28,8 +28,8 @@ BUILTIN_LD_FLAGS += -s
 BUILTIN_LD_FLAGS += -w
 endif
 # EXTRA_LD_FLAGS are given by the caller, and are passed to the Go linker after
-# BUILTIN_LD_FLAGS are processed.
-EXTRA_LD_FLAGS =
+# BUILTIN_LD_FLAGS are processed. By default the system LDFLAGS are passed.
+EXTRA_LD_FLAGS ?= -extldflags ${LDFLAGS}
 # LD_FLAGS is the union of the above two BUILTIN_LD_FLAGS and EXTRA_LD_FLAGS.
 LD_FLAGS = $(BUILTIN_LD_FLAGS) $(EXTRA_LD_FLAGS)
 
