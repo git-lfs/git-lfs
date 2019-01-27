@@ -322,6 +322,8 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 		return nil, res, err
 	}
 
+	res.Body.Close()
+
 	return redirectedReq, nil, nil
 }
 
