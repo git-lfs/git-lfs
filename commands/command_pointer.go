@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -18,6 +19,7 @@ var (
 	pointerFile    string
 	pointerCompare string
 	pointerStdin   bool
+	pointerCheck   bool
 )
 
 func pointerCommand(cmd *cobra.Command, args []string) {
@@ -25,6 +27,36 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 	something := false
 	buildOid := ""
 	compareOid := ""
+
+	if pointerCheck {
+		var r io.ReadCloser
+		var err error
+
+		if len(pointerCompare) > 0 {
+			ExitWithError(fmt.Errorf("fatal: cannot combine --check with --compare"))
+		}
+
+		if len(pointerFile) > 0 {
+			if pointerStdin {
+				ExitWithError(fmt.Errorf("fatal: with --check, --file cannot be combined with --stdin"))
+			}
+			r, err = os.Open(pointerFile)
+			if err != nil {
+				ExitWithError(err)
+			}
+		} else if pointerStdin {
+			r = ioutil.NopCloser(os.Stdin)
+		} else {
+			ExitWithError(fmt.Errorf("fatal: must specify either --file or --stdin with --compare"))
+		}
+
+		_, err = lfs.DecodePointer(r)
+		if err != nil {
+			os.Exit(1)
+		}
+		r.Close()
+		return
+	}
 
 	if len(pointerCompare) > 0 || pointerStdin {
 		comparing = true
@@ -129,5 +161,6 @@ func init() {
 		cmd.Flags().StringVarP(&pointerFile, "file", "f", "", "Path to a local file to generate the pointer from.")
 		cmd.Flags().StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
 		cmd.Flags().BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
+		cmd.Flags().BoolVarP(&pointerCheck, "check", "", false, "Check whether the given file is a Git LFS pointer.")
 	})
 }

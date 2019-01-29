@@ -2,7 +2,6 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-
 begin_test "pointer --file --stdin"
 (
   set -e
@@ -300,5 +299,59 @@ begin_test "pointer to console"
   git lfs pointer --file=pointer-stdout-test.txt 2>&1 | tee pointer.txt
   grep "Git LFS pointer" pointer.txt
   grep "oid sha256:e96ec1bd71eea8df78b24c64a7ab9d42dd7f821c4e503f0e2288273b9bff6c16" pointer.txt
+)
+end_test
+
+begin_test "pointer --check (with valid pointer)"
+(
+  set -e
+
+  reponame="pointer---check-valid-pointer"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "contents" > good.txt
+  git lfs pointer --file good.txt > good.ptr
+
+  cat good.ptr
+
+  git lfs pointer --check --file good.ptr
+  git lfs pointer --check --stdin < good.ptr
+)
+end_test
+
+begin_test "pointer --check (with invalid pointer)"
+(
+  set -e
+
+  reponame="pointer---check-invalid-pointer"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "not-a-pointer" > bad.ptr
+
+  ! git lfs pointer --check --file bad.ptr
+  ! git lfs pointer --check --stdin < bad.ptr
+)
+end_test
+
+begin_test "pointer --check (with invalid arguments)"
+(
+  set -e
+
+  reponame="pointer---check-invalid-pointer"
+  git init "$reponame"
+  cd "$reponame"
+
+  touch a.txt
+
+  # git-lfs-pointer(1) --check with invalid combination --compare
+  ! git lfs pointer --check --compare
+
+  # git-lfs-pointer(1) --check without --file or --stdin
+  ! git lfs pointer --check
+
+  # git-lfs-pointer(1) --check with --file and --stdin
+  ! git lfs pointer --check --file a.txt --stdin
 )
 end_test
