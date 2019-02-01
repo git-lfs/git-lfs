@@ -9,7 +9,8 @@ git-lfs-ls-files(1) -- Show information about Git LFS files in the index and wor
 
 Display paths of Git LFS files that are found in the tree at the given
 reference.  If no reference is given, scan the currently checked-out branch.
-An asterisk (*) after the OID indicates a LFS pointer, a minus (-) a full object.
+An asterisk (*) after the OID indicates a full object, a minus (-) indicates an
+LFS pointer.
 
 ## OPTIONS
 
