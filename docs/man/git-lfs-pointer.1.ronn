@@ -1,11 +1,12 @@
-git-lfs-pointer(1) -- Build and compare pointers
-================================================
+git-lfs-pointer(1) -- Build, compare, and check pointers
+========================================================
 
 ## SYNOPSIS
 
 `git lfs pointer --file=path/to/file`<br>
 `git lfs pointer --file=path/to/file --pointer=path/to/pointer`<br>
 `git lfs pointer --file=path/to/file --stdin`
+`git lfs pointer --check --file=path/to/file`
 
 ## Description
 
@@ -24,6 +25,12 @@ between different Git LFS implementations.
 * `--stdin`:
     Reads the pointer from STDIN to compare with the pointer generated from
     `--file`.
+
+* `--check`:
+    Reads the pointer from STDIN (if `--stdin` is given) or the filepath (if
+    `--file`) is given. If neither or both of `--stdin` and `--file` are given,
+    the invocation is invalid. Exits 0 if the data read is a valid Git LFS
+    pointer. Exits 1 otherwise.
 
 ## SEE ALSO
 
