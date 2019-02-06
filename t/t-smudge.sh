@@ -121,7 +121,6 @@ begin_test "smudge with skip"
 
   echo "test clone without env"
   unset GIT_LFS_SKIP_SMUDGE
-  [ "$(env | grep LFS_SKIP)" == "" ]
   clone_repo "$reponame" "no-skip"
   [ "smudge a" = "$(cat a.dat)" ]
 
