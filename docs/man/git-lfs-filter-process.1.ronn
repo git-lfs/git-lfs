@@ -24,6 +24,9 @@ Without any options, filter-process accepts and responds to requests normally.
 * `--skip`:
     Skip automatic downloading of objects on clone or pull.
 
+* `GIT_LFS_SKIP_SMUDGE`:
+    Disables the smudging process. For more, see: git-lfs-config(5).
+
 ## SEE ALSO
 
 git-lfs-clean(1), git-lfs-install(1), git-lfs-smudge(1), gitattributes(5).

@@ -24,6 +24,9 @@ standard output.
 * `--skip`:
     Skip automatic downloading of objects on clone or pull.
 
+* `GIT_LFS_SKIP_SMUDGE`:
+    Disables the smudging process. For more, see: git-lfs-config(5).
+
 ## KNOWN BUGS
 
 On Windows, Git does not handle files in the working tree larger than 4

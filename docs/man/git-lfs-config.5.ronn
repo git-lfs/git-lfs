@@ -322,6 +322,14 @@ be scoped inside the configuration for a remote.
   standard output stream is not a terminal by setting either variable to 1,
   'yes' or 'true'.
 
+* `GIT_LFS_SKIP_SMUDGE`
+
+  Sets whether or not Git LFS will skip attempting to convert pointers of files
+  tracked into their corresponding objects when checked out into a working copy.
+  If 'true', '1', 'on', or similar, Git LFS will skip the smudge process in both
+  `git lfs smudge` and `git lfs filter-process`. If unset, or set to 'false',
+  '0', 'off', or similar, Git LFS will smudge files as normal.
+
 * `GIT_LFS_SET_LOCKABLE_READONLY`
   `lfs.setlockablereadonly`
 
