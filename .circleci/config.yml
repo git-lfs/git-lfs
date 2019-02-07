@@ -8,7 +8,6 @@ jobs:
     steps:
       - checkout
       - run: brew update
-      - run: brew prune
       - run: brew upgrade go || brew install go
       - run: brew upgrade git || brew install git
       - run: brew upgrade gettext || brew install gettext
