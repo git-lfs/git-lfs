@@ -1,0 +1,258 @@
+#!/bin/sh
+
+set -e
+
+REPO="git-lfs/git-lfs"
+WORKDIR="$(mktemp -d)"
+
+trap 'rm -fr "$WORKDIR"' EXIT
+
+say () {
+  [ -n "$QUIET" ] && return
+  local format="$1"
+  shift
+  printf "$format\n" "$@" >&2
+}
+
+abort () {
+  local format="$1"
+  shift
+  printf "$format\n" "$@" >&2
+  exit 2
+}
+
+curl () {
+  command curl -nfSs "$@"
+}
+
+categorize_os () {
+  local os="$1"
+
+  if [ "$os" = "freebsd" ]
+  then
+    echo FreeBSD
+  else
+    ruby -e 'puts ARGV[0].capitalize' "$os"
+  fi
+}
+
+categorize_arch () {
+  local arch="$1"
+
+  echo "$arch" | tr a-z A-Z
+}
+
+# Categorize a release asset and print its human readable name to standard
+# output.
+categorize_asset () {
+  local file="$1"
+  local os=$(echo "$file" | sed -e 's/^git-lfs-//' -e 's/[-.].*$//')
+  local arch=$(echo "$file" | ruby -pe '$_.gsub!(/\Agit-lfs-[^-]+-([^-]+)[-.].*/, "\\1")')
+
+  case "$file" in
+    git-lfs-v*.*.*.tar.gz)
+      echo "Source";;
+    git-lfs-windows-v*.*.*.exe)
+      echo "Windows Installer";;
+    sha256sums.asc)
+      echo "Signed SHA-256 Hashes";;
+    *)
+      printf "%s %s\n" "$(categorize_os "$os")" "$(categorize_arch "$arch")";;
+  esac
+}
+
+# Provide a content type for the asset based on its file name.
+content_type () {
+  local file="$1"
+
+  case "$file" in
+    *.zip)
+      echo "application/zip";;
+    *.tar.gz)
+      echo "application/gzip";;
+    *.exe)
+      echo "application/octet-stream";;
+    *.asc)
+      echo "text/plain";;
+  esac
+}
+
+# Format the JSON for creating the release and print it to standard output.
+format_release_json () {
+  local version="$1"
+  local bodyfile="$2"
+
+  ruby -rjson -e 'puts JSON.generate({
+    tag_name: ARGV[0],
+    name: ARGV[0],
+    draft: true,
+    body: File.read(ARGV[1]),
+  })' "$version" "$bodyfile"
+}
+
+# Create a draft release and print the upload URL for release assets to the
+# standard output. If a release with that version already exists, do nothing
+# instead.
+create_release () {
+  local version="$1"
+  local bodyfile="$2"
+
+  # Check to see if we already have such a release. If so, don't create it.
+  curl https://api.github.com/repos/$REPO/releases | \
+    jq -r '.[].name' | grep -qsF "$version" && {
+    say "Found an existing release for this version."
+    curl https://api.github.com/repos/$REPO/releases | \
+      jq -r '.[] | select(.name == "'"$version"'") | .upload_url' | \
+      sed -e 's/{.*}//g'
+    return
+  }
+
+  # This can be large, so pass it in a file.
+  format_release_json "$version" "$bodyfile" >> "$WORKDIR/release-json"
+
+  curl -H'Content-Type: application/json' -d"@$WORKDIR/release-json" \
+    https://api.github.com/repos/$REPO/releases | \
+    jq -r '.upload_url' |
+    sed -e 's/{.*}//g'
+}
+
+# Find the release files for the given version.
+release_files () {
+  local version="$1"
+
+  [ -n "$version" ] || return 1
+
+  find bin/releases -name '*.tar.gz' -o -name '*386*.zip' -o \
+    -name '*amd64*.zip' -o -name '*.exe' -o -name 'sha256sums.asc' | \
+    grep -E "$version|sha256sums.asc" | \
+    grep -v "assets" | \
+    LC_ALL=C sort
+}
+
+# Format the body message and print the file which contains it to the standard
+# output.
+finalize_body_message () {
+  local version="$1"
+  local changelog="$2"
+
+  version=$(echo "$version" | sed -e 's/^v//')
+
+  # If you change the list of distributions here, change docker/run_dockers.bsh
+  # as well.
+  cat "$changelog" > "$WORKDIR/body-template"
+  cat <<EOM >> "$WORKDIR/body-template"
+## Packages
+
+Up to date packages are available on [PackageCloud](https://packagecloud.io/github/git-lfs) and [Homebrew](http://brew.sh/).
+
+[RPM RHEL 6/CentOS 6](https://packagecloud.io/github/git-lfs/packages/el/6/git-lfs-VERSION-1.el6.x86_64.rpm/download)
+[RPM RHEL 7/CentOS 7](https://packagecloud.io/github/git-lfs/packages/el/7/git-lfs-VERSION-1.el7.x86_64.rpm/download)
+[Debian 7](https://packagecloud.io/github/git-lfs/packages/debian/wheezy/git-lfs_VERSION_amd64.deb/download)
+[Debian 8](https://packagecloud.io/github/git-lfs/packages/debian/jessie/git-lfs_VERSION_amd64.deb/download)
+[Debian 9](https://packagecloud.io/github/git-lfs/packages/debian/stretch/git-lfs_VERSION_amd64.deb/download)
+
+## SHA-256 hashes:
+EOM
+
+  shasum -a256 $(release_files "$version") | \
+    ruby -pe '$_.chomp!' \
+    -e '$_.gsub!(/^([0-9a-f]+)\s+.*\/([^\/]+)$/, "**\\2**\n\\1\n\n")' | \
+    ruby -0777 -pe '$_.gsub!(/\n+\z/, "\n")' >> "$WORKDIR/body-template"
+
+  sed -e "s/VERSION/$version/g" < "$WORKDIR/body-template" > "$WORKDIR/body"
+  echo "$WORKDIR/body"
+}
+
+# Filter a list of files from standard input, removing entries found in the file
+# provided.
+filter_files () {
+  local filter="$1"
+
+  # If the filter file is empty (that is, no assets have been uploaded), grep
+  # will produce no output, and therefore nothing will be uploaded. That's not
+  # what we want, so handle this case specially.
+  if [ -s "$filter" ]
+  then
+    grep -vF -f "$filter"
+  else
+    cat
+  fi
+}
+
+# Upload assets from the release directory to GitHub. Only assets that are not
+# already existing should be uploaded.
+upload_assets () {
+  local version="$1"
+  local upload_url="$2"
+  local file desc base ct encdesc encbase
+
+  curl https://api.github.com/repos/$REPO/releases | \
+    jq -r '.[] | select(.name == "'"$version"'") | .assets | .[] | .name' \
+    > "$WORKDIR/existing-assets"
+
+  for file in $(release_files "$version" | filter_files "$WORKDIR/existing-assets")
+  do
+    base=$(basename "$file")
+    desc=$(categorize_asset "$base")
+    ct=$(content_type "$base")
+    encbase=$(ruby -ruri -e 'print URI.escape(ARGV[0])' "$base")
+    encdesc=$(ruby -ruri -e 'print URI.escape(ARGV[0])' "$desc")
+
+    say "\tUploading %s as \"%s\" (Content-Type %s)..." "$base" "$desc" "$ct"
+    curl -d"@$file" -H'Accept: application/vnd.github.v3+json' \
+      -H"Content-Type: $ct" "$upload_url?name=$encbase&label=$encdesc" \
+       > /dev/null
+  done
+}
+
+# Provide a helpful usage message and exit.
+usage () {
+  local status="$1"
+  cat <<EOM
+Usage: $0 VERSION CHANGELOG
+
+Create a draft GitHub release for Git LFS using the tag specified by VERSION and
+the changelog specified in the file CHANGELOG. Before running this script, the
+release assets should be built and ready for upload, including the signed
+sha256sums.asc file.
+
+This script requires ruby, curl, shasum, and jq.
+EOM
+  exit $status
+}
+
+# The main program.
+main () {
+  local version="$1"
+  local changelog="$2"
+
+  [ "$version" = "--help" ] && usage 0
+  [ -z "$changelog" ] && usage 1 >&2
+
+  say "Checking that you've got some release artifacts..."
+  [ -n "$(release_files "$version")" ] || \
+    abort "I couldn't find any release files for $version."
+
+  say "Looking for the necessary entries in .netrc..."
+  grep -qsF api.github.com "$HOME/.netrc" || \
+    abort "I couldn't find api.github.com in your .netrc."
+  grep -qsF uploads.github.com "$HOME/.netrc" || \
+    abort "I couldn't find uploads.github.com in your .netrc."
+
+  say "Okay, everything looks good."
+
+  say "Formatting the body of the GitHub release now..."
+
+  local bodyfile=$(finalize_body_message "$version" "$changelog")
+
+  say "Creating a GitHub release for %s..." "$version"
+
+  local upload_url=$(create_release "$version" "$bodyfile")
+
+  say "Uploading assets to GitHub..."
+  upload_assets "$version" "$upload_url"
+
+  say "Okay, done. Sanity-check the release and publish it."
+}
+
+main "$@"

@@ -1,0 +1,78 @@
+#!/bin/sh -e
+
+rfc822_datestamp () {
+  # All the other changelog entries use this exact timestamp, so let's do so as
+  # well.  Use -0000 to indicate that our timestamp is in UTC, even though we
+  # ourselves may not be.
+  LC_ALL=C date +'%a, %d %b %Y 14:29:00 -0000'
+}
+
+user_id () {
+  git var GIT_COMMITTER_IDENT | sed -e 's/^\(.*<[^>]*>\).*$/\1/'
+}
+
+update_go () {
+  local version="$1"
+
+  sed -i '' -e "s/\(Version = \)\"[0-9.]*\"/\\1\"$version\"/" config/version.go
+}
+
+update_debian () {
+  local version="$1"
+
+  # Return if already updated.
+  ! grep -qs -F "git-lfs ($version)" debian/changelog || return
+
+  local tmpdir=$(mktemp -d)
+  local tmpfile="$tmpdir/changelog"
+
+  printf 'git-lfs (%s) stable; urgency=low
+
+  * New upstream version
+
+ -- %s  %s\n\n' "$version" "$(user_id)" "$(rfc822_datestamp)" >"$tmpfile"
+
+  cat debian/changelog >>"$tmpfile"
+  mv "$tmpfile" debian/changelog
+}
+
+update_rpm () {
+  local version="$1"
+
+  ruby -pi -e "\$_.gsub!(/^(Version:\\s+)[0-9.]+$/, '\\1$version')" \
+    rpm/SPECS/git-lfs.spec
+}
+
+update_versioninfo () {
+  local version="$1"
+
+  ruby -pi -e "ver = '$version'; pieces = ver.split('.')" \
+    -e '$_.gsub!(/("Major": )\d+/, %Q(\\1#{pieces[0]}))' \
+    -e '$_.gsub!(/("Minor": )\d+/, %Q(\\1#{pieces[1]}))' \
+    -e '$_.gsub!(/("Patch": )\d+/, %Q(\\1#{pieces[2]}))' \
+    -e '$_.gsub!(/("ProductVersion": )"[\d.]+"/, %Q(\\1"#{ver}"))' \
+    versioninfo.json
+}
+
+main () {
+  local version="$1"
+
+  if [ -z "$version" ] || [ "$version" = "--help" ]
+  then
+    cat <<EOM
+Usage: update-version NEW-VERSION
+
+NEW-VERSION will have the 'v' automatically stripped.
+EOM
+    exit
+  fi
+
+  version=$(echo "$version" | sed -e 's/^v//')
+
+  update_go "$version"
+  update_debian "$version"
+  update_rpm "$version"
+  update_versioninfo "$version"
+}
+
+main "$@"

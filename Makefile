@@ -63,6 +63,10 @@ GOIMPORTS_EXTRA_OPTS ?= -w -l
 TAR_XFORM_ARG ?= $(shell tar --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
 TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
 
+# CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
+# actual signature is made with SHA-256.
+CERT_SHA1 ?= 516f21950afecd3779b8b77da92f738fec501f03
+
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -283,6 +287,55 @@ bin/releases/git-lfs-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-%.exe
 # source archive to download and verify cryptographically.
 bin/releases/git-lfs-$(VERSION).tar.gz :
 	git archive -o $@ --prefix=git-lfs-$(patsubst v%,%,$(VERSION))/ --format tar.gz $(VERSION)
+
+# release-linux is a target that builds Linux packages. It must be run on a
+# system with Docker that can run Linux containers.
+.PHONY : release-linux
+release-linux:
+	./docker/run_dockers.bsh
+
+# release-windows is a target that builds and signs Windows binaries.  It must
+# be run on a Windows machine under Git Bash.
+#
+# You may sign with a different certificate by specifying CERT_SHA1.
+.PHONY : release-windows
+release-windows: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
+
+bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
+	$(RM) git-lfs-windows-*.exe
+	@# Using these particular filenames is required for the Inno Setup script to
+	@# work properly.
+	$(MAKE) -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
+	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
+	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x64.exe
+	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x86.exe
+	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
+	@# This file will be named according to the version number in the
+	@# versioninfo.json, not according to $(VERSION).
+	mv git-lfs-windows-*.exe git-lfs-windows.exe
+	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-windows.exe
+	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
+	mv git-lfs-x86.exe git-lfs-windows-386.exe
+	@# We use tar because Git Bash doesn't include zip.
+	tar -cf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
+	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
+
+# release-windows-rebuild takes the archive produced by release-windows and
+# incorporates the signed binaries into the existing zip archives.
+.PHONY : release-windows-rebuild
+release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
+	temp=$$(mktemp -d); \
+	file="$$PWD/$^"; \
+		( \
+			tar -C "$$temp" -xzf "$$file" && \
+			for i in 386 amd64; do \
+				cp "$$temp/git-lfs-windows-$$i.exe" "$$temp/git-lfs.exe" && \
+				zip -d bin/releases/git-lfs-windows-$$i-$(VERSION).zip "git-lfs-windows-$$i.exe" && \
+				zip -j -l bin/releases/git-lfs-windows-$$i-$(VERSION).zip  "$$temp/git-lfs.exe";  \
+			done && \
+			cp "$$temp/git-lfs-windows.exe" bin/releases/git-lfs-windows-$(VERSION).exe \
+		); \
+		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; exit "$$status"
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.

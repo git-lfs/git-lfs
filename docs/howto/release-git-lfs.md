@@ -74,9 +74,9 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
        the GitHub API.
 
        This will write a portion of the CHANGELOG to stdout, which you should
-       copy and paste into `CHANGELOG.md`, along with an H2-level heading
-       containing the version and release date (consistent with the existing
-       style in the document.)
+       save into a file as well as copy and paste into `CHANGELOG.md`, along
+       with an H2-level heading containing the version and release date
+       (consistent with the existing style in the document.)
 
        * Optionally write 1-2 paragraphs summarizing the release, and calling out
          community contributions.
@@ -85,14 +85,8 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
          were non-zero PATCH versions released in the `v2.n-1` series, also
          include any changes from the latest CHANGELOG in that series, too.
 
-     * Update `config/version.go` to refer to the latest version.
-
-     * Update `debian/changelog` to refer to the latest version (optionally
-       include all releases from the latest in `v2.n-1`'s, too).
-
-     * Update `rpm/SPECS/git-lfs.spec` to refer to the latest version.
-
-     * Update `versioninfo.json` to refer to the latest version.
+     * Run `script/update-version v2.n.m` to update the version number in all of
+       the relevant files.
 
   2. Then, create a pull request of your changes with head `release-next`. If
      you're building a MAJOR or MINOR release, set the base to `master`.
@@ -132,71 +126,20 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      * To build `*.deb` and `*.rpm` artifacts, follow the additional
        instructions in ["For Linux"](#for-linux) below.
 
-  5. Create a GitHub release for the new version number, including the
-     changelog and the standard copy materials, as below:
-
-     ```
-     <CHANGELOG.md additions>
-
-     ## Packages
-
-     Up to date packages are available on
-     [PackageCloud](https://packagecloud.io/github/git-lfs) and
-     [Homebrew](http://brew.sh/).
-
-     [RPM RHEL 6/CentOS 6](https://packagecloud.io/github/git-lfs/packages/el/6/...)
-     [RPM RHEL 7/CentOS 7](https://packagecloud.io/github/git-lfs/packages/el/7/...)
-     [Debian 7](https://packagecloud.io/github/git-lfs/packages/debian/wheezy/...)
-     [Debian 8](https://packagecloud.io/github/git-lfs/packages/debian/jessie/...)
-     [Debian 9](https://packagecloud.io/github/git-lfs/packages/debian/stretch/...)
-
-     ## SHA-256 hashes:
-
-     **</path/to/artifact>**
-     <artifact SHA-256>
-     ```
-
-  6. Upload the `*.tar.gz`, `*.zip` and Windows Installer assets to the release
-     notes, and rename them according to the following list:
-
-     * Darwin 386
-     * Darwin AMD64
-     * FreeBSD 386
-     * FreeBSD AMD64
-     * Linux 386
-     * Linux AMD64
-     * Windows Installer
-     * Windows 386
-     * Windows AMD64
-
-     GitHub does not allow you (at the time of writing) to edit the name of a
-     release asset from the website interface. Instead, list all release
-     artifacts by:
+  5. Once all the assets have been built, build the signed hash file via the
+     following:
 
      ```ShellSession
-     $ curl -n https://api.github.com/repos/git-lfs/git-lfs/releases |
-       jq '.[0].assets | .[] | {"id","name","label"} '
+     $ (cd bin/releases && shasum -a256 * | gpg --digest-algo SHA256 --clearsign >sha256sums.asc)
      ```
 
-     And update a single release asset's name by running:
+     Note that if the sha256sums.asc file exists, you must remove it first so
+     the old version doesn't get written into the new file.
 
-     ```ShellSession
-     $ curl -XPATCH -in \
-       https://api.github.com/repos/git-lfs/git-lfs/releases/assets/8712424 \
-       -d '{
-         "name": "git-lfs-linux-amd64-v2.5.2.tar.gz",
-         "label": "Linux AMD64"
-       }'
-     ```
-
-     Make sure to also include the SHA-256 signatures of all of the artifact
-     hashes, by running:
-
-     ```ShellSession
-     $ pwd
-     /go/src/github.com/git-lfs/git-lfs/bin/releases
-     $ shasum -a256 * | awk '{ print "**" $2 "**\n" $1 "\n" }'
-     ```
+  6. Run `script/upload` with the tag name and the file containing the changelog
+     entries for this version (not `CHANGELOG.md`, which has all versions). This
+     will create a new GitHub release and upload all the assets, giving them the
+     correct labels.
 
   7. Push the tag, via:
 
@@ -204,7 +147,7 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      $ git push origin v2.n.m
      ```
 
-     And publish the release on GitHub.
+     And publish the release on GitHub, assuming it looks correct.
 
   8. Move any remaining items out of the milestone for the current release to a
      future release and close the milestone.
@@ -295,32 +238,13 @@ following installed:
 Once you have the above installed, boot up your Windows VM and run the
 following in a checkout of Git LFS:
 
-  1. First, build the unsigned x64 and x86 versions of the Git LFS binary:
+  1. First, run `make release-windows`.
 
-     ```ShellSession
-     $ make -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
-     $ make -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
-     ```
+  2. Copy the `bin/releases/git-windows-assets-*.tar.gz` file to your Unix
+     system where you are doing the rest of the release and place it into
+     `bin/releases` in that Git LFS checkout.
 
-  2. Then, sign each using the following command:
-
-     ```PowerShell
-     $ signtool.exe sign /sha1 CERT_SHA1 /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x64.exe
-     $ signtool.exe sign /sha1 CERT_SHA1 /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x86.exe
-     ```
-
-  3. Then, launch InnoSetup and open the file
-     `script/windows-installer/inno-setup-git-lfs-installer.iss`, and build the
-     Git LFS installer.
-
-  4. Sign the Git LFS installer with the same command as above.
-
-  5. Re-package the `git-lfs-x64.exe` and `git-lfs-x86.exe` artifacts as
-     `git-lfs.exe` inside of the Windows ZIP artifacts that you built with `make
-     release`, and upload them to the release page.
-
-  6. Upload the signed `git-lfs-windows-v2.n.m.exe` installer to the release
-     page.
+  3. On your Unix system, run `make release-windows-rebuild`.
 
 ### For Linux
 
