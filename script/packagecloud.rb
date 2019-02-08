@@ -38,6 +38,7 @@ $distro_name_map = {
     opensuse/42.3
     sles/11.4
     sles/12.3
+    sles/15.0
   ),
   "debian/7" => %w(
     debian/wheezy
