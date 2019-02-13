@@ -1,5 +1,90 @@
 # Git LFS Changelog
 
+## 2.7.0 (15 February 2019)
+
+This release adds better support for large files on 32-bit systems, adds
+attribute macros, fixes several file descriptor leaks, improves compatibility
+with Git's configuration parsing, and includes numerous other bug fixes and
+modifications.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @andyneff and @torbjoernk for updating our release targets
+* @zkry for work on rate-limiting
+* @Foxboron for work on reproducible builds
+* @mstrap for adding a release target for Linux arm64
+* @keiko713, @Erwyn, and @mloskot for improving our documentation
+* @QuLogic for fixing our tests under SELinux
+* @saracen and @steffengodskesen for improving our output handling
+* @mbsulliv for finding and fixing a bug where we ran out of file descriptors
+
+### Features
+
+* Add sles 15 support #1055 #3515 (@andyneff)
+* docs/man/git-lfs-config.5.ronn: document GIT_LFS_SKIP_SMUDGE #3509 (@ttaylorr)
+* commands/command_pointer.go: introduce `--check` option #3501 (@ttaylorr)
+* Makefile additions for reproducible builds and asmflags #3444 (@Foxboron)
+* locking: add flag to control modification of ignored files #3409 (@bk2204)
+* build package for Ubuntu 18.10 aka Cosmic #3402 (@torbjoernk)
+* Add support for retries with delays (ex. rate limiting) #3449 (@zkry)
+* Trim embedded paths out of binaries #3443 (@bk2204)
+* Ensure 32-bit Git LFS binaries can handle files larger than 4 GiB #3426 (@bk2204)
+* Support attribute macros #3391 (@bk2204)
+* tasklog: don't log progress status when stdout is not a tty #3349 (@steffengodskesen)
+* locking: cache JSON response from server #3253 (@mstrap)
+* tq: enable transfer debugging when GIT_CURL_VERBOSE is set #3341 (@bk2204)
+
+### Bugs
+
+* .circleci: don't use 'brew prune' #3514 (@ttaylorr)
+* t/t-smudge.sh: remove unnecessary test #3513 (@ttaylorr)
+* docs/man: fix inconsistency in 'git-lfs-ls-files(1)' #3496 (@ttaylorr)
+* lfshttp: close body on redirect #3479 (@bk2204)
+* status: handle deleted files gracefully #3482 (@bk2204)
+* Fix hang in prune with too few file descriptors #3460 (@bk2204)
+* Fix parameter name on List Locks API Documentation #3477 (@Erwyn)
+* TST: Trim security context when checking permissions. #3476 (@QuLogic)
+* command/env: ensure we honor lfs.url #3470 (@bk2204)
+* Fix swapped case sensitivity in patterns #3433 (@bk2204)
+* core.sharedRepository improvements for directories #3417 (@bk2204)
+* Update the doc of whitelisted .lfsconfig keys #3423 (@keiko713)
+* Rewrite URL config-matching #3392 (@PastelMobileSuit)
+* git: close blob objects when finished #3379 (@bk2204)
+* Avoid hang in repos cloned with --shared or --reference #3383 (@bk2204)
+* commands/command_status.go: require a working copy #3378 (@ttaylorr)
+* Fix test server API #3377 (@bk2204)
+* vendor: don't remove necessary dependencies #3356 (@ttaylorr)
+* filepathfilter: don't say file is both accepted and rejected #3360 (@bk2204)
+* Support pushInsteadOf aliases when determining endpoints #3353 (@bk2204)
+* Close attributes file #3347 (@mbsulliv)
+* Fix humanize's FormatByteRate() to work with 0s duration #3340 (@saracen)
+
+### Misc
+
+* Release automation #3510 (@bk2204)
+* docs/man: update `git-lfs-fetch(1)` manpage #3488 (@ttaylorr)
+* Update Cobra #3483 (@bk2204)
+* Run go generate only on Windows #3480 (@bk2204)
+* docs/man/git-lfs-migrate: make examples less confusing #3424 (@bk2204)
+* Modify logic of 'migrate info' to process extensionless files #3458 (@zkry)
+* Improve error message on missing object #3398 (@bk2204)
+* docs/man: suggest using Git configuration for LFS keys #3394 (@bk2204)
+* Document default value of migrate info --top=<n> #3387 (@mloskot)
+* Clarify minimum git version #3327 (@carlwgeorge)
+
+## 2.6.1 (3 December 2018)
+
+This release contains miscellaneous bug fixes since v2.6.0. Most notably,
+release v2.6.1 restores support for alternate repositories, which was
+accidentally broken in v2.6.0.
+
+### Bugs
+
+* git: close blob objects when finished #3379 (@bk2204)
+* Avoid hang in repos cloned with --shared or --reference #3383 (@bk2204)
+* vendor: don't remove necessary dependencies #3356 (@ttaylorr)
+
 ## 2.6.0 (1 November, 2018)
 
 This release adds better support for redirecting network calls from a Git LFS
