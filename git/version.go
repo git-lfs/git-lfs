@@ -10,21 +10,17 @@ import (
 )
 
 var (
-	gitVersion   *string
-	gitVersionMu sync.Mutex
+	gitVersionOnce sync.Once
+	gitVersion     string
+	gitVersionErr  error
 )
 
 func Version() (string, error) {
-	gitVersionMu.Lock()
-	defer gitVersionMu.Unlock()
-
-	if gitVersion == nil {
-		v, err := subprocess.SimpleExec("git", "version")
-		gitVersion = &v
-		return v, err
-	}
-
-	return *gitVersion, nil
+	gitVersionOnce.Do(func() {
+		gitVersion, gitVersionErr =
+			subprocess.SimpleExec("git", "version")
+	})
+	return gitVersion, gitVersionErr
 }
 
 // IsVersionAtLeast returns whether the git version is the one specified or higher
