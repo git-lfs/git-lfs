@@ -123,6 +123,12 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 			err = errors.Wrap(err, perr.Error())
 		}
 
+		if res == nil {
+			// We encountered a network or similar error which caused us
+			// to not receive a response at all.
+			return errors.NewRetriableError(err)
+		}
+
 		if res.StatusCode == 429 {
 			retLaterErr := errors.NewRetriableLaterError(err, res.Header["Retry-After"][0])
 			if retLaterErr != nil {
