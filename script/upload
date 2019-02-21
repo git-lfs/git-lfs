@@ -199,7 +199,7 @@ upload_assets () {
     encdesc=$(ruby -ruri -e 'print URI.escape(ARGV[0])' "$desc")
 
     say "\tUploading %s as \"%s\" (Content-Type %s)..." "$base" "$desc" "$ct"
-    curl -d"@$file" -H'Accept: application/vnd.github.v3+json' \
+    curl --data-binary "@$file" -H'Accept: application/vnd.github.v3+json' \
       -H"Content-Type: $ct" "$upload_url?name=$encbase&label=$encdesc" \
        > /dev/null
   done
