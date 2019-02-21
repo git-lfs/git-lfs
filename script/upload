@@ -190,6 +190,8 @@ upload_assets () {
     jq -r '.[] | select(.name == "'"$version"'") | .assets | .[] | .name' \
     > "$WORKDIR/existing-assets"
 
+  mkdir "$WORKDIR/downloads"
+
   for file in $(release_files "$version" | filter_files "$WORKDIR/existing-assets")
   do
     base=$(basename "$file")
@@ -201,8 +203,33 @@ upload_assets () {
     say "\tUploading %s as \"%s\" (Content-Type %s)..." "$base" "$desc" "$ct"
     curl --data-binary "@$file" -H'Accept: application/vnd.github.v3+json' \
       -H"Content-Type: $ct" "$upload_url?name=$encbase&label=$encdesc" \
-       > /dev/null
+      >"$WORKDIR/response"
+    download=$(jq -r '.url' "$WORKDIR/response")
   done
+
+  curl https://api.github.com/repos/$REPO/releases | \
+    jq -rc '.[] | select(.name == "'"$version"'") | .assets | .[] | [.name,.url]' | \
+    ruby -rjson -ne 'puts JSON.parse($_).join(" ")' \
+    > "$WORKDIR/assets"
+
+  say "Assets uploaded."
+  say "Verifying assets..."
+
+  cat "$WORKDIR/assets" | (while read base url
+  do
+    say "\tDownloading %s for verification..." "$base"
+    (
+      cd "$WORKDIR/downloads" &&
+      curl -Lo "$base" -H"Accept: application/octet-stream" "$url"
+    )
+  done)
+
+  # If the OpenPGP data is not valid, gpg -d will output nothing to stdout, and
+  # shasum will then fail.
+  say "Checking assets for integrity..."
+  (cd "$WORKDIR/downloads" && gpg -d sha256sums.asc | shasum -a 256 -c)
+
+  say "\nAssets look good!"
 }
 
 # Provide a helpful usage message and exit.
