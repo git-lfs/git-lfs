@@ -1,5 +1,19 @@
 # Git LFS Changelog
 
+## 2.7.1 (26 February 2019)
+
+This release is a bugfix release to address panics that could occur when certain
+types of upload or download problems happen.
+
+### Bugs
+
+* Avoid nil pointer dereference on download failure #3537 (@bk2204)
+* Avoid nil pointer dereference on unexpected failure #3534 (@bk2204)
+
+### Misc
+
+* Fix asset uploading during releases #3538 (@bk2204)
+
 ## 2.7.0 (15 February 2019)
 
 This release adds better support for large files on 32-bit systems, adds
