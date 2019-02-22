@@ -105,8 +105,20 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		if dlFile == nil || hash == nil {
 			return fmt.Errorf("Cannot restart %v from %d without a file & hash", t.Oid, fromByte)
 		}
-		// We could just use a start byte, but since we know the length be specific
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
+
+		if fromByte < t.Size-1 {
+			// We could just use a start byte, but since we know the length be specific
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
+		} else {
+			// Somehow we have more data than expected. Let's retry
+			// from the top.
+			dlFile.Close()
+			os.Remove(dlFile.Name())
+
+			dlFile = nil
+			fromByte = 0
+			hash = nil
+		}
 	}
 
 	req = a.apiClient.LogRequest(req, "lfs.data.download")

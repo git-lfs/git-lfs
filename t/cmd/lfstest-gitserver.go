@@ -749,6 +749,37 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					byteLimit = 8
 					batchResumeFailFallbackStorageAttempts++
 				}
+			} else if string(by) == "status-batch-retry" {
+				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+					regex := regexp.MustCompile(`bytes=(\d+)\-(.*)`)
+					match := regex.FindStringSubmatch(rangeHdr)
+					// We have a Range header with two
+					// non-empty values.
+					if match != nil && len(match) > 2 && len(match[2]) != 0 {
+						first, _ := strconv.ParseInt(match[1], 10, 32)
+						second, _ := strconv.ParseInt(match[2], 10, 32)
+						// The second part of the range
+						// is smaller than the first
+						// part (or the latter part of
+						// the range is non-integral).
+						// This is invalid; reject it.
+						if second < first {
+							w.WriteHeader(400)
+							return
+						}
+						// The range is valid; we'll
+						// take the branch below.
+					}
+					// We got a valid range header, so
+					// provide a 206 Partial Content. We
+					// ignore the upper bound if one was
+					// provided.
+					if match != nil && len(match) > 1 {
+						statusCode = 206
+						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
+					}
+				}
 			}
 			w.WriteHeader(statusCode)
 			if byteLimit > 0 {

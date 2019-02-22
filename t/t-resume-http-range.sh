@@ -85,3 +85,44 @@ begin_test "resume-http-range-fallback"
 )
 end_test
 
+begin_test "resume-http-range-retry"
+(
+  set -e
+
+  reponame="resume-http-range-retry"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" $reponame
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # This string announces to server that we want a test that strictly handles
+  # Range headers, rejecting any where the latter part of the range is smaller
+  # than the former part.
+  contents="status-batch-retry"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git add .gitattributes
+  git commit -m "add a.dat" 2>&1 | tee commit.log
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  # Delete local copy then fetch it back.
+  rm -rf .git/lfs/objects
+  refute_local_object "$contents_oid"
+
+  # Create a partial corrupt object.
+  mkdir .git/lfs/incomplete
+  printf "%s" "${contents/st/aa}" >".git/lfs/incomplete/$contents_oid.tmp"
+
+  # The first download may fail with an error; run a second time to make sure
+  # that we detect the corrupt file and retry.
+  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
+  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
+  assert_local_object "$contents_oid" "${#contents}"
+)
+end_test
