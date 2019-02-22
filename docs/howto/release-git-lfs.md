@@ -130,11 +130,10 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      following:
 
      ```ShellSession
-     $ (cd bin/releases && shasum -a256 * | gpg --digest-algo SHA256 --clearsign >sha256sums.asc)
+     $ (cd bin/releases && \
+        shasum -a256 -b * | grep -vE '(assets|sha256sums)' | \
+        gpg --digest-algo SHA256 --clearsign >sha256sums.asc)
      ```
-
-     Note that if the sha256sums.asc file exists, you must remove it first so
-     the old version doesn't get written into the new file.
 
   6. Run `script/upload` with the tag name and the file containing the changelog
      entries for this version (not `CHANGELOG.md`, which has all versions). This
