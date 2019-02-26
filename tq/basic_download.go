@@ -112,8 +112,14 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	req = a.apiClient.LogRequest(req, "lfs.data.download")
 	res, err := a.makeRequest(t, req)
 	if err != nil {
+		if res == nil {
+			// We encountered a network or similar error which caused us
+			// to not receive a response at all.
+			return errors.NewRetriableError(err)
+		}
+
 		// Special-case status code 416 () - fall back
-		if fromByte > 0 && dlFile != nil && (res != nil && res.StatusCode == 416) {
+		if fromByte > 0 && dlFile != nil && res.StatusCode == 416 {
 			tracerx.Printf("xfer: server rejected resume download request for %q from byte %d; re-downloading from start", t.Oid, fromByte)
 			dlFile.Close()
 			os.Remove(dlFile.Name())
