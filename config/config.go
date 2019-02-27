@@ -322,7 +322,7 @@ func (c *Configuration) HookDir() (string, error) {
 			return tools.ExpandPath(hp, false)
 		}
 	}
-	return filepath.Join(c.LocalGitDir(), "hooks"), nil
+	return filepath.Join(c.LocalGitStorageDir(), "hooks"), nil
 }
 
 func (c *Configuration) InRepo() bool {
