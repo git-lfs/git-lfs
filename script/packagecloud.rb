@@ -25,47 +25,68 @@ $client = Packagecloud::Client.new(credentials)
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
 $distro_name_map = {
+  # RHEL EOL https://access.redhat.com/support/policy/updates/errata
   "centos/5" => %w(
-    el/5
+    el/5 # End of Extended Support November 30, 2020
   ),
   "centos/6" => %w(
-    el/6
+    el/6 # End of Extended Support June 30, 2024
   ),
   "centos/7" => %w(
     el/7
-    fedora/27
-    fedora/28
-    opensuse/42.3
-    sles/11.4
-    sles/12.3
-    sles/15.0
+    #el/8 # BOL ~2019-2020?
+    # Fedora EOL check https://fedoraproject.org/wiki/End_of_life
+    # or https://en.wikipedia.org/wiki/Fedora_version_history#Version_history
+    fedora/28 # EOL ~Oct 2019
+    fedora/29 # EOL ~2020
+    # fedora/30 # BOL ~May 2019
+    # opensuse https://en.opensuse.org/Lifetime
+    # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
+    opensuse/42.3 # EOL 2019-06-30
+    opensuse/15.0 # EOL 2019-11-25
+    opensuse/15.1 # EOL 2020-11
+    # SLES EOL https://www.suse.com/lifecycle/
+    sles/11.4 # LTSS ends 31 Mar 2022
+    sles/12.0 # LTSS ends 01 July 2019
+    sles/12.1 # LTSS ends 31 May 2020
+    sles/12.2 # LTSS ends 31 Mar 2021
+    sles/12.3 # LTSS ends 30 Jun 2022
+    sles/12.4 # Current
+    sles/15.0 # Current
   ),
+  # Debian EOL https://wiki.debian.org/LTS/
+  # Ubuntu EOL https://wiki.ubuntu.com/Releases
+  # Mint EOL https://linuxmint.com/download_all.php
   "debian/7" => %w(
-    debian/wheezy
-    ubuntu/precise
+    debian/wheezy  # EOL 31st May 2018
+    ubuntu/precise # ESM April 2019
   ),
   "debian/8" => %w(
-    debian/jessie
-    linuxmint/rafaela
-    linuxmint/rebecca
-    linuxmint/rosa
-    ubuntu/trusty
-    ubuntu/vivid
-    ubuntu/wily
+    debian/jessie     # EOL June 30, 2020
+    linuxmint/qiana   # EOL April 2019
+    linuxmint/rafaela # EOL April 2019
+    linuxmint/rebecca # EOL April 2019
+    linuxmint/rosa    # EOL April 2019
+    ubuntu/trusty     # ESM April 2022
+    ubuntu/vivid      # EOL February 4, 2016
+    ubuntu/wily       # EOL July 28, 2016
   ),
   "debian/9" => %W(
-    debian/stretch
-    linuxmint/sarah
-    linuxmint/serena
-    linuxmint/sonya
-    linuxmint/sylvia
-    linuxmint/tara
-    ubuntu/xenial
-    ubuntu/yakkety
-    ubuntu/zesty
-    ubuntu/artful
-    ubuntu/bionic
-    ubuntu/cosmic
+    debian/stretch   # EOL June 2022
+    debian/buster    # Current
+    linuxmint/sarah  # EOL April 2021
+    linuxmint/serena # EOL April 2021
+    linuxmint/sonya  # EOL April 2021
+    linuxmint/sylvia # EOL April 2021
+    linuxmint/tara   # EOL April 2023
+    linuxmint/tessa  # EOL April 2023
+    ubuntu/xenial    # ESM April 2024
+    ubuntu/yakkety   # EOL July 20, 2017
+    ubuntu/zesty     # EOL January 13, 2018
+    ubuntu/artful    # EOL July 19 2018
+    ubuntu/bionic    # ESM April 2028
+    ubuntu/cosmic    # EOL July 2019
+    #ubuntu/disco    # EOL ~April 
   ),
 }
 
