@@ -86,3 +86,32 @@ $(escape_path "$(env | grep "^GIT")")
     contains_same_elements "$expected" "$actual"
 )
 end_test
+
+begin_test "git worktree with hooks"
+(
+    set -e
+    reponame="worktree-hooks"
+    mkdir $reponame
+    cd $reponame
+    git init
+
+    # can't create a worktree until there's 1 commit at least
+    echo "a" > tmp.txt
+    git add tmp.txt
+    git commit -m "Initial commit"
+
+    worktreename="worktree-2-hook"
+    git worktree add "$TRASHDIR/$worktreename"
+    cd "$TRASHDIR/$worktreename"
+
+    # No hooks so far.
+    [ ! -e "$TRASHDIR/$reponame/.git/worktrees/$worktreename/hooks" ]
+    [ ! -e "$TRASHDIR/$reponame/.git/hooks/pre-push" ]
+
+    git lfs install
+
+    # Make sure we installed the hooks in the main repo, not the worktree dir.
+    [ ! -e "$TRASHDIR/$reponame/.git/worktrees/$worktreename/hooks" ]
+    [ -x "$TRASHDIR/$reponame/.git/hooks/pre-push" ]
+)
+end_test
