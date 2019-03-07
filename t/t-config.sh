@@ -125,6 +125,30 @@ begin_test "ambiguous url alias"
 )
 end_test
 
+begin_test "multiple config"
+(
+  set -e
+
+  mkdir url-alias-multiple
+  cd url-alias-multiple
+
+  git init
+
+  # When more than one insteadOf strings match a given URL, the longest match is used.
+  git config url."http://wrong-url/".insteadOf alias
+  git config url."http://actual-url/".insteadOf alias:
+  git config --add url."http://actual-url/".insteadOf alias2:
+  git config lfs.url alias:rest
+  git lfs env | tee env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
+
+  git config lfs.url alias2:rest
+  git lfs env | tee env.log
+  grep "Endpoint=http://actual-url/rest (auth=none)" env.log
+)
+end_test
+
+
 begin_test "url alias must be prefix"
 (
   set -e

@@ -340,11 +340,13 @@ func initAliases(e *endpointGitFinder, git config.Environment) {
 	}
 }
 
-func storeAlias(aliases map[string]string, key string, value []string, suffix string) {
-	if _, ok := aliases[value[len(value)-1]]; ok {
-		fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value)
+func storeAlias(aliases map[string]string, key string, values []string, suffix string) {
+	for _, value := range values {
+		if _, ok := aliases[value]; ok {
+			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value)
+		}
+		aliases[value] = key[len(aliasPrefix) : len(key)-len(suffix)]
 	}
-	aliases[value[len(value)-1]] = key[len(aliasPrefix) : len(key)-len(suffix)]
 }
 
 func endpointFromGitUrl(u *url.URL, e *endpointGitFinder) lfshttp.Endpoint {
