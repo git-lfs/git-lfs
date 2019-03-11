@@ -292,6 +292,9 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			newSha = make([]byte, len(oid))
 			copy(newSha, oid)
 		} else {
+			rewrittenCommit.ExtraHeaders =
+				r.removeSignatures(rewrittenCommit.ExtraHeaders)
+
 			newSha, err = r.db.WriteCommit(rewrittenCommit)
 			if err != nil {
 				return nil, err
@@ -337,6 +340,20 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	}
 
 	return tip, err
+}
+
+// removeSignatures returns a copy of the given list of extra headers with the
+// 'gpgsig' extra header removed.
+func (r *Rewriter) removeSignatures(hdrs []*gitobj.ExtraHeader) []*gitobj.ExtraHeader {
+	filtered := make([]*gitobj.ExtraHeader, 0, len(xs))
+	for _, hdr := range hdrs {
+		if hdr.K == "gpgsig" {
+			continue
+		}
+		filtered = append(filtered, hdr)
+	}
+
+	return filtered
 }
 
 // rewriteTree is a recursive function which rewrites a tree given by the ID
