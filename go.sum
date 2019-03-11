@@ -6,6 +6,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/git-lfs/gitobj v1.1.0 h1:XRUyk5nKYTWiO8U4cokO5QeoNUNBL8LKS+jXxXZdCTA=
 github.com/git-lfs/gitobj v1.1.0/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
+github.com/git-lfs/gitobj v1.2.0 h1:ck5v0ABc37Ld0dlX0cdFXwfHH/vMO8GPhF3kaYVptgE=
+github.com/git-lfs/gitobj v1.2.0/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/wildmatch v1.0.2 h1:Bt8fjbL2OjfhSTsmLPXSalpXgX9twSIFSVvupY2IdbE=
