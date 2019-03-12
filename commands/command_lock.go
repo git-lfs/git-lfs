@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
@@ -91,6 +92,9 @@ func lockPath(file string) (string, error) {
 	}
 
 	path = filepath.ToSlash(path)
+	if strings.HasPrefix(path, "../") {
+		return "", fmt.Errorf("lfs: unable to canonicalize path %q", path)
+	}
 
 	if stat, err := os.Stat(abs); err != nil {
 		return "", err
