@@ -626,7 +626,11 @@ func GitAndRootDirs() (string, string, error) {
 
 func canonicalizeDir(path string) (string, error) {
 	if len(path) > 0 {
-		return filepath.Abs(path)
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		return filepath.EvalSymlinks(path)
 	}
 	return "", nil
 }
