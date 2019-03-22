@@ -611,7 +611,7 @@ func GitAndRootDirs() (string, string, error) {
 		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
 	}
 
-	absGitDir, err := filepath.Abs(paths[0])
+	absGitDir, err := canonicalizeDir(paths[0])
 	if err != nil {
 		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[0], err)
 	}
@@ -620,8 +620,19 @@ func GitAndRootDirs() (string, string, error) {
 		return absGitDir, "", nil
 	}
 
-	absRootDir := paths[1]
-	return absGitDir, absRootDir, nil
+	absRootDir, err := canonicalizeDir(paths[1])
+	return absGitDir, absRootDir, err
+}
+
+func canonicalizeDir(path string) (string, error) {
+	if len(path) > 0 {
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		return filepath.EvalSymlinks(path)
+	}
+	return "", nil
 }
 
 func RootDir() (string, error) {
@@ -633,11 +644,7 @@ func RootDir() (string, error) {
 
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
-	if len(path) > 0 {
-		return filepath.Abs(path)
-	}
-	return "", nil
-
+	return canonicalizeDir(path)
 }
 
 func GitDir() (string, error) {
@@ -647,10 +654,7 @@ func GitDir() (string, error) {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
-	if len(path) > 0 {
-		return filepath.Abs(path)
-	}
-	return "", nil
+	return canonicalizeDir(path)
 }
 
 func GitCommonDir() (string, error) {
@@ -667,10 +671,7 @@ func GitCommonDir() (string, error) {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
-	if len(path) > 0 {
-		return filepath.Abs(path)
-	}
-	return "", nil
+	return canonicalizeDir(path)
 }
 
 // GetAllWorkTreeHEADs returns the refs that all worktrees are using as HEADs
