@@ -252,7 +252,7 @@ func (l *Logger) logTask(task Task) {
 
 	var update *Update
 	for update = range task.Updates() {
-		if !isatty.IsTerminal(os.Stdout.Fd()) && !l.forceProgress {
+		if !tty(os.Stdout) && !l.forceProgress {
 			continue
 		}
 		if logAll || l.throttle == 0 || !update.Throttled(last.Add(l.throttle)) {
