@@ -98,7 +98,7 @@ type hasFd interface {
 // tty returns true if the writer is connected to a tty
 func tty(writer io.Writer) bool {
 	if v, ok := writer.(hasFd); ok {
-		return isatty.IsTerminal(v.Fd())
+		return isatty.IsTerminal(v.Fd()) || isatty.IsCygwinTerminal(v.Fd())
 	}
 	return false
 }
