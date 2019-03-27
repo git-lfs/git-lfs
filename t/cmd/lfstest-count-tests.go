@@ -122,6 +122,7 @@ func main() {
 				fmt.Sprintf("LFSTEST_CLIENT_KEY=%s", os.Getenv("LFSTEST_CLIENT_KEY")),
 			)
 			cmd.Stdout = log
+			cmd.Stderr = log
 
 			// Start performs a fork/execve, hence we can abandon
 			// this process once it has started.
