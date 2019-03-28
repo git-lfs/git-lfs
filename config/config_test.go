@@ -13,7 +13,7 @@ func TestRemoteDefault(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
 			"branch.unused.remote":     []string{"a"},
-			"branch.unused.pushRemote": []string{"b"},
+			"branch.unused.pushremote": []string{"b"},
 		},
 	})
 	assert.Equal(t, "origin", cfg.Remote())
@@ -24,7 +24,7 @@ func TestRemoteBranchConfig(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
 			"branch.master.remote":    []string{"a"},
-			"branch.other.pushRemote": []string{"b"},
+			"branch.other.pushremote": []string{"b"},
 		},
 	})
 	cfg.ref = &git.Ref{Name: "master"}
@@ -37,8 +37,8 @@ func TestRemotePushDefault(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
 			"branch.master.remote":    []string{"a"},
-			"remote.pushDefault":      []string{"b"},
-			"branch.other.pushRemote": []string{"c"},
+			"remote.pushdefault":      []string{"b"},
+			"branch.other.pushremote": []string{"c"},
 		},
 	})
 	cfg.ref = &git.Ref{Name: "master"}
@@ -51,8 +51,8 @@ func TestRemoteBranchPushDefault(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
 			"branch.master.remote":     []string{"a"},
-			"remote.pushDefault":       []string{"b"},
-			"branch.master.pushRemote": []string{"c"},
+			"remote.pushdefault":       []string{"b"},
+			"branch.master.pushremote": []string{"c"},
 		},
 	})
 	cfg.ref = &git.Ref{Name: "master"}

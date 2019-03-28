@@ -32,7 +32,10 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 			}
 
 			allowed := !gc.OnlySafeKeys
-			key, val := strings.ToLower(pieces[0]), pieces[1]
+
+			// We don't need to change the case of the key here,
+			// since Git will already have canonicalized it for us.
+			key, val := pieces[0], pieces[1]
 
 			if origKey, ok := uniqKeys[key]; ok {
 				if ShowConfigWarnings && len(vals[key]) > 0 && vals[key][len(vals[key])-1] != val && strings.HasPrefix(key, gitConfigWarningPrefix) {
@@ -114,7 +117,8 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 // empty string and false will be returned, signaling that the value was
 // absent.
 //
-// Map lookup by key is case-insensitive, as per the .gitconfig specification.
+// Map lookup by key is case-insensitive, except for the middle part of a
+// three-part key, as per the .gitconfig specification.
 //
 // Get is safe to call across multiple goroutines.
 func (g *GitFetcher) Get(key string) (val string, ok bool) {
@@ -130,7 +134,7 @@ func (g *GitFetcher) GetAll(key string) []string {
 	g.vmu.RLock()
 	defer g.vmu.RUnlock()
 
-	return g.vals[strings.ToLower(key)]
+	return g.vals[g.caseFoldKey(key)]
 }
 
 func (g *GitFetcher) All() map[string][]string {
@@ -146,6 +150,27 @@ func (g *GitFetcher) All() map[string][]string {
 	}
 
 	return newmap
+}
+
+func (g *GitFetcher) caseFoldKey(key string) string {
+	parts := strings.Split(key, ".")
+	last := len(parts) - 1
+
+	// We check for 3 or more parts here because if the middle part is a
+	// URL, it may have dots in it. We'll downcase the part before the first
+	// dot and after the last dot, but preserve the piece in the middle,
+	// which may be a branch name, remote, or URL, all of which are
+	// case-sensitive. This is the algorithm Git uses to canonicalize its
+	// keys.
+	if len(parts) < 3 {
+		return strings.ToLower(key)
+	}
+
+	return strings.Join([]string{
+		strings.ToLower(parts[0]),
+		strings.Join(parts[1:last], "."),
+		strings.ToLower(parts[last]),
+	}, ".")
 }
 
 func keyIsUnsafe(key string) bool {
