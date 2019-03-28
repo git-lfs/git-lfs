@@ -3,6 +3,7 @@ package locking
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -468,13 +469,24 @@ func (c *Client) readLocksFromCacheFile(path string) ([]Lock, error) {
 	return locks, nil
 }
 
+func (c *Client) EncodeLocks(locks []Lock, writer io.Writer) error {
+	return json.NewEncoder(writer).Encode(locks)
+}
+
+func (c *Client) EncodeLocksVerifiable(ourLocks, theirLocks []Lock, writer io.Writer) error {
+	return json.NewEncoder(writer).Encode(&lockVerifiableList{
+		Ours:   ourLocks,
+		Theirs: theirLocks,
+	})
+}
+
 func (c *Client) writeLocksToCacheFile(path string, locks []Lock) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 
-	err = json.NewEncoder(file).Encode(locks)
+	err = c.EncodeLocks(locks, file)
 	if err != nil {
 		file.Close()
 		return err
