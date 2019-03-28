@@ -1156,3 +1156,28 @@ begin_test "pre-push locks verify 403 with verification unset"
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 )
 end_test
+
+begin_test "pre-push with pushDefault and explicit remote"
+(
+  set -e
+  reponame="pre-push-pushdefault-explicit"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git remote add wrong "$(repo_endpoint "$GITSERVER" "wrong-url")"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git config remote.pushDefault wrong
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  ! grep wrong-url push.log
+)
+end_test

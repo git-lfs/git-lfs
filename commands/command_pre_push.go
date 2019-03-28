@@ -47,7 +47,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	if err := cfg.SetValidRemote(args[0]); err != nil {
+	if err := cfg.SetValidPushRemote(args[0]); err != nil {
 		Exit("Invalid remote name %q: %s", args[0], err)
 	}
 
