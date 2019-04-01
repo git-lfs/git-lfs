@@ -10,7 +10,7 @@ import (
 	rc4P "crypto/rc4"
 	crc32P "hash/crc32"
 
-	md4P "github.com/ThomsonReutersEikon/go-ntlm/ntlm/md4"
+	md4P "github.com/git-lfs/go-ntlm/ntlm/md4"
 )
 
 func md4(data []byte) []byte {

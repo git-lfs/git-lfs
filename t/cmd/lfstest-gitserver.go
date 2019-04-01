@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
 var (

@@ -75,7 +75,7 @@ type ServerSession interface {
 	GetUserInfo() (string, string, string)
 
 	SetMode(mode Mode)
-	SetServerChallenge(challege []byte)
+	SetServerChallenge(challenge []byte)
 
 	ProcessNegotiateMessage(*NegotiateMessage) error
 	GenerateChallengeMessage() (*ChallengeMessage, error)

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
+	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
 func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds *ntmlCredentials) (*http.Response, error) {

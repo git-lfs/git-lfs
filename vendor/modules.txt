@@ -1,6 +1,3 @@
-# github.com/ThomsonReutersEikon/go-ntlm v0.0.0-20151030004737-b00ec39bbdd0
-github.com/ThomsonReutersEikon/go-ntlm/ntlm
-github.com/ThomsonReutersEikon/go-ntlm/ntlm/md4
 # github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
 github.com/alexbrainman/sspi
 github.com/alexbrainman/sspi/ntlm
@@ -13,6 +10,9 @@ github.com/git-lfs/gitobj/pack
 github.com/git-lfs/gitobj/storage
 # github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 github.com/git-lfs/go-netrc/netrc
+# github.com/git-lfs/go-ntlm v0.0.0-20190307203151-c5056e7fa066
+github.com/git-lfs/go-ntlm/ntlm
+github.com/git-lfs/go-ntlm/ntlm/md4
 # github.com/git-lfs/wildmatch v1.0.2
 github.com/git-lfs/wildmatch
 # github.com/inconshreveable/mousetrap v1.0.0
