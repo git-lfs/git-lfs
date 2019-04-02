@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ThomsonReutersEikon/go-ntlm/ntlm"
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
+	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
 type Client struct {
