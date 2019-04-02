@@ -289,3 +289,29 @@ begin_test "pull: outside git repository"
   grep "Not in a git repository" pull.log
 )
 end_test
+
+begin_test "pull with invalid insteadof"
+(
+  set -e
+  mkdir insteadof
+  cd insteadof
+  git init
+  git lfs install --local --skip-smudge
+
+  git remote add origin "$GITSERVER/t-pull"
+  git pull origin master
+
+  # set insteadOf to rewrite the href of downloading LFS object.
+  git config url."$GITSERVER/storage/invalid".insteadOf "$GITSERVER/storage/"
+
+  set +e
+  git lfs pull > pull.log 2>&1
+  res=$?
+
+  set -e
+  [ "$res" = "2" ]
+
+  # check rewritten href is used to download LFS object.
+  grep "LFS: Repository or object not found: $GITSERVER/storage/invalid" pull.log
+)
+end_test
