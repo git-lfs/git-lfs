@@ -64,7 +64,7 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 		return nil, err
 	}
 
-	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, via)
+	res, err := c.doWithCreds(remote, req, credHelper, creds, credsURL, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := access.Upgrade(getAuthAccess(res))
@@ -86,14 +86,23 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithCreds(remote string, req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
 	if access.Mode() == NTLMAccess {
 		return c.doWithNTLM(req, credHelper, creds, credsURL)
 	}
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
 
-	redirectedReq, res, err := c.client.DoWithRedirect(c.client.HttpClient(req.Host), req, "", via)
+	var httpClient *http.Client
+	if access.Mode() == H2SSHAccess {
+		operation := getReqOperation(req)
+		apiEndpoint := c.Endpoints.Endpoint(operation, remote)
+		httpClient = c.client.Http2SSHClient(req, apiEndpoint)
+	} else {
+		httpClient = c.client.HttpClient(req.Host)
+	}
+
+	redirectedReq, res, err := c.client.DoWithRedirect(httpClient, req, "", via)
 	if err != nil || res != nil {
 		return res, err
 	}

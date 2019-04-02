@@ -22,6 +22,7 @@ const (
 	PrivateAccess   AccessMode = "private"
 	NegotiateAccess AccessMode = "negotiate"
 	NTLMAccess      AccessMode = "ntlm"
+	H2SSHAccess     AccessMode = "h2ssh"
 	emptyAccess     AccessMode = ""
 	defaultRemote              = "origin"
 )

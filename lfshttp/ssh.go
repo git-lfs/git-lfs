@@ -2,8 +2,12 @@ package lfshttp
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -220,3 +224,45 @@ var (
 		"lfs-ssh-echo": "--", // used in lfs integration tests only
 	}
 )
+
+type H2SSHConn struct {
+	cmd *exec.Cmd
+	io.ReadCloser
+	io.WriteCloser
+}
+
+func SSHDialer(osEnv config.Environment, gitEnv config.Environment, upstream string, e Endpoint) func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+	return func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+		exe, args, needShell := sshGetExeAndArgs(osEnv, gitEnv, e)
+		args = append(args, "git-lfs-tunnel", upstream)
+		exe, args = sshFormatArgs(exe, args, needShell)
+		tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
+
+		cmd := exec.Command(exe, args...)
+		r, _ := cmd.StdoutPipe()
+		w, _ := cmd.StdinPipe()
+
+		cmd.Stderr = os.Stderr
+
+		conn := &H2SSHConn{cmd, r, w}
+		return conn, cmd.Start()
+	}
+}
+
+func (conn *H2SSHConn) Close() error {
+	conn.ReadCloser.Close()
+	conn.WriteCloser.Close()
+
+	return conn.cmd.Wait()
+}
+
+func (*H2SSHConn) LocalAddr() net.Addr                { return addr{} }
+func (*H2SSHConn) RemoteAddr() net.Addr               { return addr{} }
+func (*H2SSHConn) SetDeadline(t time.Time) error      { return fmt.Errorf("unsupported") }
+func (*H2SSHConn) SetReadDeadline(t time.Time) error  { return fmt.Errorf("unsupported") }
+func (*H2SSHConn) SetWriteDeadline(t time.Time) error { return fmt.Errorf("unsupported") }
+
+type addr struct{}
+
+func (addr) Network() string { return "h2sshconn" }
+func (addr) String() string  { return "h2sshconn" }

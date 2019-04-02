@@ -21,6 +21,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
+	"golang.org/x/net/http2"
 )
 
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
@@ -35,6 +36,8 @@ hint: The remote resolves to a file:// URL, which can only work with a
 hint: standalone transfer agent.  See section "Using a Custom Transfer Type
 hint: without the API server" in custom-transfers.md for details.
 `)
+
+var contextKeyBaseURL ckey = "baseurl"
 
 type Client struct {
 	SSH SSHResolver
@@ -133,6 +136,9 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 	if err != nil {
 		return req, err
 	}
+
+	ctx := context.WithValue(req.Context(), contextKeyBaseURL, prefix)
+	req = req.WithContext(ctx)
 
 	for key, value := range sshRes.Header {
 		req.Header.Set(key, value)
@@ -338,6 +344,49 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	}
 
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
+}
+
+func (c *Client) Http2SSHClient(req *http.Request, e Endpoint) *http.Client {
+	c.clientMu.Lock()
+	defer c.clientMu.Unlock()
+
+	if c.gitEnv == nil {
+		c.gitEnv = make(testEnv)
+	}
+
+	if c.osEnv == nil {
+		c.osEnv = make(testEnv)
+	}
+
+	if c.hostClients == nil {
+		c.hostClients = make(map[string]*http.Client)
+	}
+
+	if client, ok := c.hostClients[req.Host]; ok {
+		return client
+	}
+
+	upstream, ok := req.Context().Value(contextKeyBaseURL).(string)
+	if !ok {
+		panic("contextKeyBaseURL surprisingly not set")
+	}
+
+	httpClient := &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLS:   SSHDialer(c.osEnv, c.gitEnv, upstream, e),
+		},
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	c.hostClients[req.Host] = httpClient
+	if c.VerboseOut == nil {
+		c.VerboseOut = os.Stderr
+	}
+
+	return httpClient
 }
 
 func (c *Client) HttpClient(host string) *http.Client {
