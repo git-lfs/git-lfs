@@ -248,6 +248,38 @@ begin_test "pull with multiple remotes"
 )
 end_test
 
+begin_test "pull with invalid insteadof"
+(
+  set -e
+  mkdir insteadof
+  cd insteadof
+  git init
+  git lfs install --local --skip-smudge
+
+  git remote add origin "$GITSERVER/t-pull"
+  git pull origin master
+
+  # set insteadOf to rewrite the href of downloading LFS object.
+  git config url."$GITSERVER/storage/invalid".insteadOf "$GITSERVER/storage/"
+  # Enable href rewriting explicitly.
+  git config lfs.transfer.enablehrefrewrite true
+
+  set +e
+  git lfs pull > pull.log 2>&1
+  res=$?
+
+  set -e
+  [ "$res" = "2" ]
+
+  # check rewritten href is used to download LFS object.
+  grep "LFS: Repository or object not found: $GITSERVER/storage/invalid" pull.log
+
+  # lfs-pull succeed after unsetting enableHrefRerite config
+  git config --unset lfs.transfer.enablehrefrewrite
+  git lfs pull
+)
+end_test
+
 begin_test "pull: with missing object"
 (
   set -e

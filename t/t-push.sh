@@ -667,3 +667,30 @@ begin_test "push with deprecated _links"
   assert_server_object "$reponame" "$contents_oid"
 )
 end_test
+
+begin_test "push with invalid pushInsteadof"
+(
+  set -e
+
+  push_repo_setup "push-invalid-pushinsteadof"
+
+  # set pushInsteadOf to rewrite the href of uploading LFS object.
+  git config url."$GITSERVER/storage/invalid".pushInsteadOf "$GITSERVER/storage/"
+  # Enable href rewriting explicitly.
+  git config lfs.transfer.enablehrefrewrite true
+
+  set +e
+  git lfs push origin master > push.log 2>&1
+  res=$?
+
+  set -e
+  [ "$res" = "2" ]
+
+  # check rewritten href is used to upload LFS object.
+  grep "LFS: Authorization error: $GITSERVER/storage/invalid" push.log
+
+  # lfs-push succeed after unsetting enableHrefRerite config
+  git config --unset lfs.transfer.enablehrefrewrite
+  git lfs push origin master
+)
+end_test

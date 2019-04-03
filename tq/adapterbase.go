@@ -51,6 +51,11 @@ type transferImplementation interface {
 	DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error
 }
 
+const (
+	enableHrefReriteKey     = "lfs.transfer.enablehrefrewrite"
+	defaultEnableHrefRerite = false
+)
+
 func newAdapterBase(f *fs.Filesystem, name string, dir Direction, ti transferImplementation) *adapterBase {
 	return &adapterBase{
 		fs:           f,
@@ -194,12 +199,19 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 var httpRE = regexp.MustCompile(`\Ahttps?://`)
 
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
-	if !httpRE.MatchString(rel.Href) {
-		urlfragment := strings.SplitN(rel.Href, "?", 2)[0]
+	enableRewrite := a.apiClient.GitEnv().Bool(enableHrefReriteKey, defaultEnableHrefRerite)
+
+	href := rel.Href
+	if enableRewrite {
+		href = a.apiClient.Endpoints.NewEndpoint(a.direction.String(), rel.Href).Url
+	}
+
+	if !httpRE.MatchString(href) {
+		urlfragment := strings.SplitN(href, "?", 2)[0]
 		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
 	}
 
-	req, err := http.NewRequest(method, rel.Href, nil)
+	req, err := http.NewRequest(method, href, nil)
 	if err != nil {
 		return nil, err
 	}
