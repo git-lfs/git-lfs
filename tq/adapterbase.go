@@ -51,6 +51,11 @@ type transferImplementation interface {
 	DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error
 }
 
+const (
+	enableHrefReriteKey     = "lfs.transfer.enablehrefrewrite"
+	defaultEnableHrefRerite = false
+)
+
 func newAdapterBase(f *fs.Filesystem, name string, dir Direction, ti transferImplementation) *adapterBase {
 	return &adapterBase{
 		fs:           f,
@@ -194,7 +199,12 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 var httpRE = regexp.MustCompile(`\Ahttps?://`)
 
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
-	href := a.apiClient.Endpoints.NewEndpoint(a.direction.String(), rel.Href).Url
+	enableRewrite := a.apiClient.GitEnv().Bool(enableHrefReriteKey, defaultEnableHrefRerite)
+
+	href := rel.Href
+	if enableRewrite {
+		href = a.apiClient.Endpoints.NewEndpoint(a.direction.String(), rel.Href).Url
+	}
 
 	if !httpRE.MatchString(href) {
 		urlfragment := strings.SplitN(href, "?", 2)[0]

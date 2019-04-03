@@ -162,6 +162,13 @@ be scoped inside the configuration for a remote.
   not an integer, is less than one, or is not given, a default value of three
   will be used instead.
 
+* `lfs.transfer.enablehrefrewrite`
+
+  If set to true, this enables rewriting href of LFS objects using
+  `url.*.insteadof/pushinsteadof` config. `pushinsteadof` is used only for
+  uploading, and `insteadof` is used for downloading and for uploading when
+  `pushinsteadof` is not set.
+
 ### Push settings
 
 * `lfs.allowincompletepush`
