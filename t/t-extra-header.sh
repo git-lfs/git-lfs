@@ -96,3 +96,35 @@ begin_test "http.<url>.extraHeader with authorization (casing)"
   [ "0" -eq "$(grep -c "creds: git credential reject" curl.log)" ]
 )
 end_test
+
+begin_test "http.<url>.extraHeader with mixed-case URLs"
+(
+  set -e
+
+  reponame="Mixed-Case-Headers"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  # These config options check for several things.
+  #
+  # First, we check for mixed-case URLs being read properly and not forced to
+  # lowercase. Second, we check that the user can specify a config option for
+  # the Git URL and have that apply to the LFS URL, which exercises the
+  # URLConfig lookup code. Finally, we also write "ExtraHeader" in mixed-case as
+  # well to test that we lower-case the rightmost portion of the config key
+  # during lookup.
+  url="$(git config remote.origin.url).git"
+  git config --add "http.$url.ExtraHeader" "X-Foo: bar"
+  git config --add "http.$url.ExtraHeader" "X-Foo: baz"
+
+  git lfs track "*.dat"
+  printf "contents" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin master 2>&1 | tee curl.log
+
+  grep "> X-Foo: bar" curl.log
+  grep "> X-Foo: baz" curl.log
+)
+end_test
