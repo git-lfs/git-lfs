@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/git"
@@ -155,6 +156,15 @@ func NewFrom(v Values) *Configuration {
 			}
 
 			for key, values := range v.Git {
+				parts := strings.Split(key, ".")
+				isCaseSensitive := len(parts) >= 3
+				hasUpper := strings.IndexFunc(key, unicode.IsUpper) > -1
+
+				// This branch should only ever trigger in
+				// tests, and only if they'd be broken.
+				if !isCaseSensitive && hasUpper {
+					panic(fmt.Sprintf("key %q has uppercase, shouldn't", key))
+				}
 				for _, value := range values {
 					fmt.Printf("Config: %s=%s\n", key, value)
 					source.Lines = append(source.Lines, fmt.Sprintf("%s=%s", key, value))
