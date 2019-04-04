@@ -274,7 +274,7 @@ begin_test "pull with invalid insteadof"
   # check rewritten href is used to download LFS object.
   grep "LFS: Repository or object not found: $GITSERVER/storage/invalid" pull.log
 
-  # lfs-pull succeed after unsetting enableHrefRerite config
+  # lfs-pull succeed after unsetting enableHrefRewrite config
   git config --unset lfs.transfer.enablehrefrewrite
   git lfs pull
 )

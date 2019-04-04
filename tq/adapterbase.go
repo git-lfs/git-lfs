@@ -52,8 +52,8 @@ type transferImplementation interface {
 }
 
 const (
-	enableHrefReriteKey     = "lfs.transfer.enablehrefrewrite"
-	defaultEnableHrefRerite = false
+	enableHrefRewriteKey     = "lfs.transfer.enablehrefrewrite"
+	defaultEnableHrefRewrite = false
 )
 
 func newAdapterBase(f *fs.Filesystem, name string, dir Direction, ti transferImplementation) *adapterBase {
@@ -199,7 +199,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 var httpRE = regexp.MustCompile(`\Ahttps?://`)
 
 func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request, error) {
-	enableRewrite := a.apiClient.GitEnv().Bool(enableHrefReriteKey, defaultEnableHrefRerite)
+	enableRewrite := a.apiClient.GitEnv().Bool(enableHrefRewriteKey, defaultEnableHrefRewrite)
 
 	href := rel.Href
 	if enableRewrite {
