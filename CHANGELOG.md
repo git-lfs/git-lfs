@@ -1,5 +1,27 @@
 # Git LFS Changelog
 
+## 2.7.2 (8 April 2019)
+
+This release is a bugfix release to address some build problems and a regression
+in handling URLs with uppercase letters.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @andyneff for updating our release targets
+* @ssgelm for improving the Debian package manpage geeneration
+* @hartzell for work on the build system
+
+### Bugs
+
+* Don't set -extldflags unless LDFLAGS has a value #3545 (@hartzell)
+* Switch from manually running go generate to using dh-golang to run it #3549 (@ssgelm)
+* Properly handle config options for URLs with upper case letters #3584 (@bk2204)
+
+### Misc
+
+* Update packagecloud.rb #3546 (@andyneff)
+
 ## 2.7.1 (26 February 2019)
 
 This release is a bugfix release to address panics that could occur when certain
