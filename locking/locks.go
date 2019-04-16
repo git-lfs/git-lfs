@@ -3,6 +3,7 @@ package locking
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -218,21 +219,11 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 			return []Lock{}, errors.New("can't search cached locks when filter or limit is set")
 		}
 
-		cacheFile, err := c.prepareCacheDirectory()
-		if err != nil {
-			return []Lock{}, err
-		}
-
-		_, err = os.Stat(cacheFile)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return []Lock{}, errors.New("no cached locks present")
-			}
-
-			return []Lock{}, err
-		}
-
-		return c.readLocksFromCacheFile(cacheFile)
+		locks := []Lock{}
+		err := c.readLocksFromCacheFile("remote", func(decoder *json.Decoder) error {
+			return decoder.Decode(&locks)
+		})
+		return locks, err
 	} else {
 		locks, err := c.searchRemoteLocks(filter, limit)
 		if err != nil {
@@ -240,78 +231,95 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 		}
 
 		if len(filter) == 0 && limit == 0 {
-			cacheFile, err := c.prepareCacheDirectory()
-			if err != nil {
-				return locks, err
-			}
-
-			err = c.writeLocksToCacheFile(cacheFile, locks)
+			err = c.writeLocksToCacheFile("remote", func(writer io.Writer) error {
+				return c.EncodeLocks(locks, writer)
+			})
 		}
 
 		return locks, err
 	}
 }
 
-func (c *Client) VerifiableLocks(ref *git.Ref, limit int) (ourLocks, theirLocks []Lock, err error) {
-	if ref == nil {
-		ref = c.RemoteRef
-	}
-
+func (c *Client) SearchLocksVerifiable(limit int, cached bool) (ourLocks, theirLocks []Lock, err error) {
 	ourLocks = make([]Lock, 0, limit)
 	theirLocks = make([]Lock, 0, limit)
-	body := &lockVerifiableRequest{
-		Ref:   &lockRef{Name: ref.Refspec()},
-		Limit: limit,
+
+	if cached {
+		if limit != 0 {
+			return []Lock{}, []Lock{}, errors.New("can't search cached locks when limit is set")
+		}
+
+		locks := &lockVerifiableList{}
+		err := c.readLocksFromCacheFile("verifiable", func(decoder *json.Decoder) error {
+			return decoder.Decode(&locks)
+		})
+		return locks.Ours, locks.Theirs, err
+	} else {
+		var requestRef *lockRef
+		if c.RemoteRef != nil {
+			requestRef = &lockRef{Name: c.RemoteRef.Refspec()}
+		}
+
+		body := &lockVerifiableRequest{
+			Ref:   requestRef,
+			Limit: limit,
+		}
+
+		c.cache.Clear()
+
+		for {
+			list, res, err := c.client.SearchVerifiable(c.Remote, body)
+			if res != nil {
+				switch res.StatusCode {
+				case http.StatusNotFound, http.StatusNotImplemented:
+					return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+				case http.StatusForbidden:
+					return ourLocks, theirLocks, errors.NewAuthError(err)
+				}
+			}
+
+			if err != nil {
+				return ourLocks, theirLocks, err
+			}
+
+			if list.Message != "" {
+				if len(list.RequestID) > 0 {
+					tracerx.Printf("Server Request ID: %s", list.RequestID)
+				}
+				return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s", list.Message)
+			}
+
+			for _, l := range list.Ours {
+				c.cache.Add(l)
+				ourLocks = append(ourLocks, l)
+				if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
+					return ourLocks, theirLocks, nil
+				}
+			}
+
+			for _, l := range list.Theirs {
+				c.cache.Add(l)
+				theirLocks = append(theirLocks, l)
+				if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
+					return ourLocks, theirLocks, nil
+				}
+			}
+
+			if list.NextCursor != "" {
+				body.Cursor = list.NextCursor
+			} else {
+				break
+			}
+		}
+
+		if limit == 0 {
+			err = c.writeLocksToCacheFile("verifiable", func(writer io.Writer) error {
+				return c.EncodeLocksVerifiable(ourLocks, theirLocks, writer)
+			})
+		}
+
+		return ourLocks, theirLocks, err
 	}
-
-	c.cache.Clear()
-
-	for {
-		list, res, err := c.client.SearchVerifiable(c.Remote, body)
-		if res != nil {
-			switch res.StatusCode {
-			case http.StatusNotFound, http.StatusNotImplemented:
-				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
-			case http.StatusForbidden:
-				return ourLocks, theirLocks, errors.NewAuthError(err)
-			}
-		}
-
-		if err != nil {
-			return ourLocks, theirLocks, err
-		}
-
-		if list.Message != "" {
-			if len(list.RequestID) > 0 {
-				tracerx.Printf("Server Request ID: %s", list.RequestID)
-			}
-			return ourLocks, theirLocks, fmt.Errorf("Server error searching locks: %s", list.Message)
-		}
-
-		for _, l := range list.Ours {
-			c.cache.Add(l)
-			ourLocks = append(ourLocks, l)
-			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
-				return ourLocks, theirLocks, nil
-			}
-		}
-
-		for _, l := range list.Theirs {
-			c.cache.Add(l)
-			theirLocks = append(theirLocks, l)
-			if limit > 0 && (len(ourLocks)+len(theirLocks)) >= limit {
-				return ourLocks, theirLocks, nil
-			}
-		}
-
-		if list.NextCursor != "" {
-			body.Cursor = list.NextCursor
-		} else {
-			break
-		}
-	}
-
-	return ourLocks, theirLocks, nil
 }
 
 func (c *Client) searchLocalLocks(filter map[string]string, limit int) ([]Lock, error) {
@@ -426,7 +434,7 @@ func init() {
 	kv.RegisterTypeForStorage(&Lock{})
 }
 
-func (c *Client) prepareCacheDirectory() (string, error) {
+func (c *Client) prepareCacheDirectory(kind string) (string, error) {
 	cacheDir := filepath.Join(c.cacheDir, "locks")
 	if c.RemoteRef != nil {
 		cacheDir = filepath.Join(cacheDir, c.RemoteRef.Refspec())
@@ -446,39 +454,57 @@ func (c *Client) prepareCacheDirectory() (string, error) {
 		return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed")
 	}
 
-	return filepath.Join(cacheDir, "remote"), nil
+	return filepath.Join(cacheDir, kind), nil
 }
 
-func (c *Client) readLocksFromCacheFile(path string) ([]Lock, error) {
-	file, err := os.Open(path)
+func (c *Client) readLocksFromCacheFile(kind string, decoder func(*json.Decoder) error) error {
+	cacheFile, err := c.prepareCacheDirectory(kind)
 	if err != nil {
-		return []Lock{}, err
+		return err
+	}
+
+	_, err = os.Stat(cacheFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("no cached locks present")
+		}
+
+		return err
+	}
+
+	file, err := os.Open(cacheFile)
+	if err != nil {
+		return err
 	}
 
 	defer file.Close()
-
-	locks := []Lock{}
-	err = json.NewDecoder(file).Decode(&locks)
-	if err != nil {
-		return []Lock{}, err
-	}
-
-	return locks, nil
+	return decoder(json.NewDecoder(file))
 }
 
-func (c *Client) writeLocksToCacheFile(path string, locks []Lock) error {
-	file, err := os.Create(path)
+func (c *Client) EncodeLocks(locks []Lock, writer io.Writer) error {
+	return json.NewEncoder(writer).Encode(locks)
+}
+
+func (c *Client) EncodeLocksVerifiable(ourLocks, theirLocks []Lock, writer io.Writer) error {
+	return json.NewEncoder(writer).Encode(&lockVerifiableList{
+		Ours:   ourLocks,
+		Theirs: theirLocks,
+	})
+}
+
+func (c *Client) writeLocksToCacheFile(kind string, writer func(io.Writer) error) error {
+	cacheFile, err := c.prepareCacheDirectory(kind)
 	if err != nil {
 		return err
 	}
 
-	err = json.NewEncoder(file).Encode(locks)
+	file, err := os.Create(cacheFile)
 	if err != nil {
-		file.Close()
 		return err
 	}
 
-	return file.Close()
+	defer file.Close()
+	return writer(file)
 }
 
 type nilLockCacher struct{}

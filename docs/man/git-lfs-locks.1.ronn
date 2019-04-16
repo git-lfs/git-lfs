@@ -29,6 +29,16 @@ Lists current locks from the Git LFS server.
   last known locks in case you are offline. There is no guarantee that locks
   on the server have not changed in the meanwhile.
 
+* `--verify`:
+  Verifies the lock owner on the server and marks our own locks by 'O'.
+  Own locks are actually held by us and corresponding files can be updated for
+  the next push. All other locks are held by someone else.
+  Contrary to --local, this option will also detect locks which are held by us
+  despite no local lock information being available (e.g. because the file had
+  been locked from a different clone);
+  it will also detect 'broken' locks (e.g. if someone else has forcefully
+  unlocked our files).
+
 * `-l <num>` `--limit=<num>`:
   Specifies number of results to return.
 

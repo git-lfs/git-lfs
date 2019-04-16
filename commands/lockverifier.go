@@ -46,12 +46,17 @@ type lockVerifier struct {
 }
 
 func (lv *lockVerifier) Verify(ref *git.Ref) {
+	if ref == nil {
+		panic("no ref specified for verification")
+	}
+
 	if lv.verifyState == verifyStateDisabled || lv.verifiedRefs[ref.Refspec()] {
 		return
 	}
 
 	lockClient := newLockClient()
-	ours, theirs, err := lockClient.VerifiableLocks(ref, 0)
+	lockClient.RemoteRef = ref
+	ours, theirs, err := lockClient.SearchLocksVerifiable(0, false)
 	if err != nil {
 		if errors.IsNotImplementedError(err) {
 			disableFor(lv.endpoint.Url)

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/json"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -44,11 +44,41 @@ func locksCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	locks, err := lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local, locksCmdFlags.Cached)
+	if locksCmdFlags.Verify {
+		if len(filters) > 0 {
+			Exit("--verify option can't be combined with filters")
+		}
+		if locksCmdFlags.Local {
+			Exit("--verify option can't be combined with --local")
+		}
+	}
+
+	var locks []locking.Lock
+	var locksOwned map[locking.Lock]bool
+	var jsonWriteFunc func(io.Writer) error
+	if locksCmdFlags.Verify {
+		var ourLocks, theirLocks []locking.Lock
+		ourLocks, theirLocks, err = lockClient.SearchLocksVerifiable(locksCmdFlags.Limit, locksCmdFlags.Cached)
+		jsonWriteFunc = func(writer io.Writer) error {
+			return lockClient.EncodeLocksVerifiable(ourLocks, theirLocks, writer)
+		}
+
+		locks = append(ourLocks, theirLocks...)
+		locksOwned = make(map[locking.Lock]bool)
+		for _, lock := range ourLocks {
+			locksOwned[lock] = true
+		}
+	} else {
+		locks, err = lockClient.SearchLocks(filters, locksCmdFlags.Limit, locksCmdFlags.Local, locksCmdFlags.Cached)
+		jsonWriteFunc = func(writer io.Writer) error {
+			return lockClient.EncodeLocks(locks, writer)
+		}
+	}
+
 	// Print any we got before exiting
 
 	if locksCmdFlags.JSON {
-		if err := json.NewEncoder(os.Stdout).Encode(locks); err != nil {
+		if err := jsonWriteFunc(os.Stdout); err != nil {
 			Error(err.Error())
 		}
 		return
@@ -77,7 +107,16 @@ func locksCommand(cmd *cobra.Command, args []string) {
 
 		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
 		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
-		Print("%s%s\t%s%s\tID:%s", lock.Path, strings.Repeat(" ", pathPadding),
+		kind := ""
+		if locksOwned != nil {
+			if locksOwned[lock] {
+				kind = "O "
+			} else {
+				kind = "  "
+			}
+		}
+
+		Print("%s%s%s\t%s%s\tID:%s", kind, lock.Path, strings.Repeat(" ", pathPadding),
 			ownerName, strings.Repeat(" ", namePadding),
 			lock.Id,
 		)
@@ -108,6 +147,9 @@ type locksFlags struct {
 	// for non-local queries, report cached query results from the last query
 	// instead of actually querying the server again
 	Cached bool
+	// for non-local queries, verify lock owner on server and
+	// denote our locks in output
+	Verify bool
 }
 
 // Filters produces a filter based on locksFlags instance.
@@ -137,6 +179,7 @@ func init() {
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Cached, "cached", "", false, "list cached lock information from the last remote query, instead of actually querying the server")
+		cmd.Flags().BoolVarP(&locksCmdFlags.Verify, "verify", "", false, "verify lock owner on server and mark own locks by 'O'")
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }
