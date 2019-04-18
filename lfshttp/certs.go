@@ -42,11 +42,11 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	if err != nil {
 		return nil, err
 	}
-	credHelper, input := c.credHelperContext.GetCredentialHelper(nil, url)
+	credWrapper := c.credHelperContext.GetCredentialHelper(nil, url)
 
-	input["username"] = ""
+	credWrapper.Input["username"] = ""
 
-	creds, err := credHelper.Fill(input)
+	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
 	if err != nil {
 		tracerx.Printf("Error filling credentials for %q: %v", fileurl, err)
 		return nil, err
@@ -54,10 +54,10 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	pass := creds["password"]
 	decrypted, err := x509.DecryptPEMBlock(block, []byte(pass))
 	if err != nil {
-		credHelper.Reject(creds)
+		credWrapper.CredentialHelper.Reject(creds)
 		return nil, err
 	}
-	credHelper.Approve(creds)
+	credWrapper.CredentialHelper.Approve(creds)
 
 	// decrypted is a DER blob, but we need a PEM-encoded block.
 	toEncode := &pem.Block{Type: block.Type, Headers: nil, Bytes: decrypted}
