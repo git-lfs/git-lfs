@@ -84,8 +84,8 @@ $distro_name_map = {
     "ubuntu/zesty",     # EOL January 13, 2018
     "ubuntu/artful",    # EOL July 19 2018
     "ubuntu/bionic",    # ESM April 2028
-    "ubuntu/cosmic"     # EOL July 2019
-    #"ubuntu/disco"     # BOL ~April
+    "ubuntu/cosmic",    # EOL July 2019
+    "ubuntu/disco",     # EOL April 2020
   ],
 }
 
