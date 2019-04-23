@@ -41,7 +41,10 @@ func cmdInstallOptions() *lfs.FilterOptions {
 		Exit("Only one of --local and --system options can be specified.")
 	}
 
-	if systemInstall && os.Geteuid() != 0 {
+	// This call will return -1 on Windows; don't warn about this there,
+	// since we can't detect it correctly.
+	uid := os.Geteuid()
+	if systemInstall && uid != 0 && uid != -1 {
 		Print("WARNING: current user is not root/admin, system install is likely to fail.")
 	}
 
