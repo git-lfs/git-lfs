@@ -114,7 +114,13 @@ package_files.each do |full_path|
     puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
     result = $client.put_package("git-lfs", pkg, distro_id)
     result.succeeded || begin
-      raise "packagecloud put_package failed, error: #{result.response}"
+      # We've already uploaded this package in an earlier invocation of this
+      # script and our attempt to upload over the existing package failed
+      # because PackageCloud doesn't allow that. Ignore the failure since we
+      # already have the package uploaded.
+      if result.response != '{"filename":["has already been taken"]}'
+        raise "packagecloud put_package failed, error: #{result.response}"
+      end
     end
   end
 end
