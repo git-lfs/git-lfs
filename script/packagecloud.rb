@@ -60,7 +60,7 @@ $distro_name_map = {
   "debian/7" => [
     "debian/wheezy", # EOL 31st May 2018
     "ubuntu/precise" # ESM April 2019
-  ),
+  ],
   "debian/8" => [
     "debian/jessie",     # EOL June 30, 2020
     "linuxmint/qiana",   # EOL April 2019
@@ -70,7 +70,7 @@ $distro_name_map = {
     "ubuntu/trusty",     # ESM April 2022
     "ubuntu/vivid",      # EOL February 4, 2016
     "ubuntu/wily"        # EOL July 28, 2016
-  ),
+  ],
   "debian/9" => [
     "debian/stretch",   # EOL June 2022
     "debian/buster",    # Current
@@ -87,7 +87,7 @@ $distro_name_map = {
     "ubuntu/bionic",    # ESM April 2028
     "ubuntu/cosmic"     # EOL July 2019
     #"ubuntu/disco"     # BOL ~April
-  ),
+  ],
 }
 
 # caches distro id lookups
