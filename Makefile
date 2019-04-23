@@ -67,7 +67,7 @@ TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
 
 # CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
 # actual signature is made with SHA-256.
-CERT_SHA1 ?= 516f21950afecd3779b8b77da92f738fec501f03
+CERT_SHA1 ?= 824455beeb23fe270e756ca04ec8e902d19c62aa
 
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
