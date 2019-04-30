@@ -246,7 +246,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 			ExitWithError(err)
 		}
 
-		q.Add(t.Name, t.Path, t.Oid, t.Size)
+		q.Add(t.Name, t.Path, t.Oid, t.Size, t.Missing)
 		c.SetUploaded(p.Oid)
 	}
 }
@@ -338,6 +338,8 @@ var (
 )
 
 func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, error) {
+	var missing bool
+
 	filename := p.Name
 	oid := p.Oid
 
@@ -347,40 +349,38 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 	}
 
 	if len(filename) > 0 {
-		if err = c.ensureFile(filename, localMediaPath, oid); err != nil && !errors.IsCleanPointerError(err) {
+		if missing, err = c.ensureFile(filename, localMediaPath, oid); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err
 		}
 	}
 
 	return &tq.Transfer{
-		Name: filename,
-		Path: localMediaPath,
-		Oid:  oid,
-		Size: p.Size,
+		Name:    filename,
+		Path:    localMediaPath,
+		Oid:     oid,
+		Size:    p.Size,
+		Missing: missing,
 	}, nil
 }
 
 // ensureFile makes sure that the cleanPath exists before pushing it.  If it
 // does not exist, it attempts to clean it by reading the file at smudgePath.
-func (c *uploadContext) ensureFile(smudgePath, cleanPath, oid string) error {
+func (c *uploadContext) ensureFile(smudgePath, cleanPath, oid string) (bool, error) {
 	if _, err := os.Stat(cleanPath); err == nil {
-		return nil
+		return false, nil
 	}
 
 	localPath := filepath.Join(cfg.LocalWorkingDir(), smudgePath)
 	file, err := os.Open(localPath)
 	if err != nil {
-		if c.allowMissing {
-			return nil
-		}
-		return errors.Wrapf(err, "Unable to find source for object %v (try running git lfs fetch --all)", oid)
+		return !c.allowMissing, nil
 	}
 
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	cleaned, err := c.gitfilter.Clean(file, file.Name(), stat.Size(), nil)
@@ -389,9 +389,9 @@ func (c *uploadContext) ensureFile(smudgePath, cleanPath, oid string) error {
 	}
 
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return false, nil
 }
 
 // supportsLockingAPI returns whether or not a given url is known to support
