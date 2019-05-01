@@ -51,7 +51,6 @@ $distro_name_map = {
     "sles/12.1", # LTSS ends 31 May 2020
     "sles/12.2", # LTSS ends 31 Mar 2021
     "sles/12.3", # LTSS ends 30 Jun 2022
-    "sles/12.4", # Current
     "sles/15.0"  # Current
   ],
   # Debian EOL https://wiki.debian.org/LTS/
@@ -60,7 +59,7 @@ $distro_name_map = {
   "debian/7" => [
     "debian/wheezy", # EOL 31st May 2018
     "ubuntu/precise" # ESM April 2019
-  ),
+  ],
   "debian/8" => [
     "debian/jessie",     # EOL June 30, 2020
     "linuxmint/qiana",   # EOL April 2019
@@ -70,7 +69,7 @@ $distro_name_map = {
     "ubuntu/trusty",     # ESM April 2022
     "ubuntu/vivid",      # EOL February 4, 2016
     "ubuntu/wily"        # EOL July 28, 2016
-  ),
+  ],
   "debian/9" => [
     "debian/stretch",   # EOL June 2022
     "debian/buster",    # Current
@@ -85,9 +84,9 @@ $distro_name_map = {
     "ubuntu/zesty",     # EOL January 13, 2018
     "ubuntu/artful",    # EOL July 19 2018
     "ubuntu/bionic",    # ESM April 2028
-    "ubuntu/cosmic"     # EOL July 2019
-    #"ubuntu/disco"     # BOL ~April
-  ),
+    "ubuntu/cosmic",    # EOL July 2019
+    "ubuntu/disco",     # EOL April 2020
+  ],
 }
 
 # caches distro id lookups
@@ -115,7 +114,13 @@ package_files.each do |full_path|
     puts "pushing #{full_path} to #{$distro_id_map.key(distro_id).inspect}"
     result = $client.put_package("git-lfs", pkg, distro_id)
     result.succeeded || begin
-      raise "packagecloud put_package failed, error: #{result.response}"
+      # We've already uploaded this package in an earlier invocation of this
+      # script and our attempt to upload over the existing package failed
+      # because PackageCloud doesn't allow that. Ignore the failure since we
+      # already have the package uploaded.
+      if result.response != '{"filename":["has already been taken"]}'
+        raise "packagecloud put_package failed, error: #{result.response}"
+      end
     end
   end
 end
