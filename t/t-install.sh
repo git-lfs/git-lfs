@@ -35,7 +35,7 @@ begin_test "install with old (non-upgradeable) settings"
   git config --global filter.lfs.clean "git-lfs clean --something %f"
 
   git lfs install | tee install.log
-  [ "${PIPESTATUS[0]}" = 0 ]
+  [ "${PIPESTATUS[0]}" = 2 ]
 
   grep -E "(clean|smudge)\" attribute should be" install.log
   [ `grep -c "(MISSING)" install.log` = "0" ]
@@ -44,6 +44,7 @@ begin_test "install with old (non-upgradeable) settings"
   [ "git-lfs clean --something %f" = "$(git config --global filter.lfs.clean)" ]
 
   git lfs install --force
+
   [ "git-lfs smudge -- %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config --global filter.lfs.clean)" ]
 )
@@ -221,6 +222,37 @@ begin_test "install --local"
   [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
   [ "git-lfs filter-process" = "$(git config --local filter.lfs.process)" ]
+)
+end_test
+
+begin_test "install --local with failed permissions"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  # old values that should be ignored by `install --local`
+  git config --global filter.lfs.smudge "git lfs smudge %f"
+  git config --global filter.lfs.clean "git lfs clean %f"
+
+  mkdir install-local-repo-perms
+  cd install-local-repo-perms
+  git init
+
+  # Make it impossible to write a new .git/config file so we can't write config
+  # options.
+  chmod 500 .git
+
+  res=0
+  git lfs install --local >err.log || res=$?
+
+  # Cleanup fails without this.
+  chmod 700 .git
+
+  cat err.log
+  grep -E "Error running.*git.*config" err.log
+  [ "$res" -eq 2 ]
 )
 end_test
 
