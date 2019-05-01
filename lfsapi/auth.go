@@ -136,19 +136,16 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 
 	if access.Mode() != NTLMAccess {
 		if requestHasAuth(req) || access.Mode() == NoneAccess {
-			helper := creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}
-			return helper, nil
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			helper := creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}
-			return helper, errors.Wrap(err, "creds")
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			helper := creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}
-			return helper, nil
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
 
 		credWrapper := c.getGitCredsWrapper(ef, req, credsURL)
@@ -164,8 +161,7 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		helper := creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}
-		return helper, errors.Wrap(err, "creds")
+		return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
 	}
 
 	// NTLM uses creds to create the session
@@ -174,8 +170,7 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 }
 
 func (c *Client) getGitCredsWrapper(ef EndpointFinder, req *http.Request, u *url.URL) creds.CredentialHelperWrapper {
-	credWrapper := c.credContext.GetCredentialHelper(c.Credentials, u)
-	return credWrapper
+	return c.credContext.GetCredentialHelper(c.Credentials, u)
 }
 
 func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint lfshttp.Endpoint, req *http.Request) (*url.URL, error) {

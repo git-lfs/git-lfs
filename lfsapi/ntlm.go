@@ -39,31 +39,34 @@ func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelpe
 		return res, err
 	}
 
+	// If SSPI succeeded, then we can move on.
+	if res.StatusCode < 300 && res.StatusCode > 199 {
+		return res, nil
+	}
+
 	// If SSPI failed, then we need to try the normal.
-	if res.StatusCode >= 300 || res.StatusCode < 199 {
-		credWrapper.FillCreds()
-		ntmlCreds, err := ntlmGetCredentials(credWrapper.Creds)
-		if err != nil {
-			return nil, err
-		}
+	credWrapper.FillCreds()
+	ntmlCreds, err := ntlmGetCredentials(credWrapper.Creds)
+	if err != nil {
+		return nil, err
+	}
 
-		res, err := c.ntlmAuthenticateRequest(req, ntmlCreds)
-		if err != nil && !errors.IsAuthError(err) {
-			return res, err
-		}
+	res, err := c.ntlmAuthenticateRequest(req, ntmlCreds)
+	if err != nil && !errors.IsAuthError(err) {
+		return res, err
+	}
 
-		switch res.StatusCode {
-		case 401:
-			credWrapper.CredentialHelper.Reject(credWrapper.Creds)
-			if retry {
-				return c.ntlmReAuth(req, credWrapper, false)
-			}
-		case 403:
-			credWrapper.CredentialHelper.Reject(credWrapper.Creds)
-		default:
-			if res.StatusCode < 300 && res.StatusCode > 199 {
-				credWrapper.CredentialHelper.Approve(credWrapper.Creds)
-			}
+	switch res.StatusCode {
+	case 401:
+		credWrapper.CredentialHelper.Reject(credWrapper.Creds)
+		if retry {
+			return c.ntlmReAuth(req, credWrapper, false)
+		}
+	case 403:
+		credWrapper.CredentialHelper.Reject(credWrapper.Creds)
+	default:
+		if res.StatusCode < 300 && res.StatusCode > 199 {
+			credWrapper.CredentialHelper.Approve(credWrapper.Creds)
 		}
 	}
 

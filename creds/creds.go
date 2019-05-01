@@ -36,9 +36,9 @@ func (credWrapper CredentialHelperWrapper) FillCreds() error {
 	if creds == nil || len(creds) < 1 {
 		errmsg := fmt.Sprintf("Git credentials for %s not found", credWrapper.Url)
 		if err != nil {
-			errmsg = errmsg + ":\n" + err.Error()
+			errmsg = fmt.Sprintf("%s:\n%s", errmsg, err.Error())
 		} else {
-			errmsg = errmsg + "."
+			errmsg = fmt.Sprintf("%s.", errmsg)
 		}
 		err = errors.New(errmsg)
 	}
@@ -118,8 +118,7 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 	}
 
 	if helper != nil {
-		result := CredentialHelperWrapper{CredentialHelper: helper, Input: input, Url: u}
-		return result
+		return CredentialHelperWrapper{CredentialHelper: helper, Input: input, Url: u}
 	}
 
 	helpers := make([]CredentialHelper, 0, 4)
@@ -135,8 +134,7 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 			helpers = append(helpers, ctxt.askpassCredHelper)
 		}
 	}
-	result := CredentialHelperWrapper{CredentialHelper: NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), Input: input, Url: u}
-	return result
+	return CredentialHelperWrapper{CredentialHelper: NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), Input: input, Url: u}
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS
