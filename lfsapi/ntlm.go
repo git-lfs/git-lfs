@@ -51,7 +51,7 @@ func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelpe
 		return nil, err
 	}
 
-	res, err := c.ntlmAuthenticateRequest(req, ntmlCreds)
+	res, err = c.ntlmAuthenticateRequest(req, ntmlCreds)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
