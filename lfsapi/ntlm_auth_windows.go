@@ -9,6 +9,10 @@ import (
 	"github.com/alexbrainman/sspi/ntlm"
 )
 
+func (c *Client) ntlmSupportsSSPI() bool {
+	return true
+}
+
 func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds *ntmlCredentials) (*http.Response, error) {
 	var sspiCreds *sspi.Credentials
 	var err error
