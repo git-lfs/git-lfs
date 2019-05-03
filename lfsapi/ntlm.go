@@ -34,14 +34,16 @@ func (c *Client) doWithNTLM(req *http.Request, credWrapper creds.CredentialHelpe
 // If the status is 401 then we need to re-authenticate
 func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelperWrapper, retry bool) (*http.Response, error) {
 	// Try SSPI first.
-	res, err := c.ntlmAuthenticateRequest(req, nil)
-	if err != nil && !errors.IsAuthError(err) {
-		return res, err
-	}
+	if c.ntlmSupportsSSPI() == true {
+		res, err := c.ntlmAuthenticateRequest(req, nil)
+		if err != nil && !errors.IsAuthError(err) {
+			return res, err
+		}
 
-	// If SSPI succeeded, then we can move on.
-	if res.StatusCode < 300 && res.StatusCode > 199 {
-		return res, nil
+		// If SSPI succeeded, then we can move on.
+		if res.StatusCode < 300 && res.StatusCode > 199 {
+			return res, nil
+		}
 	}
 
 	// If SSPI failed, then we need to try the normal.
@@ -51,7 +53,7 @@ func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelpe
 		return nil, err
 	}
 
-	res, err = c.ntlmAuthenticateRequest(req, ntmlCreds)
+	res, err := c.ntlmAuthenticateRequest(req, ntmlCreds)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
 	}
