@@ -657,6 +657,11 @@ func TestGetCreds(t *testing.T) {
 		assert.Equal(t, test.Expected.Authorization, req.Header.Get("Authorization"), "authorization")
 
 		if test.Expected.Creds != nil {
+			if desc == "ntlm" {
+				// For NTLM we initially try with no provided credentials to test SSPI and then prompt.  We want to test both sets.
+				assert.Nil(t, credWrapper.Creds, "creds")
+				credWrapper.FillCreds()
+			}
 			assert.EqualValues(t, test.Expected.Creds, credWrapper.Creds)
 		} else {
 			assert.Nil(t, credWrapper.Creds, "creds")
