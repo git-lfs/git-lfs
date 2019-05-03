@@ -42,7 +42,7 @@ func TestNtlmAuth(t *testing.T) {
 		case 1:
 			w.Header().Set("Www-Authenticate", "ntlm")
 			w.WriteHeader(401)
-		case 2:
+		case 2, 4:
 			assert.True(t, strings.HasPrefix(req.Header.Get("Authorization"), "NTLM "))
 			neg := authHeader[5:] // strip "ntlm " prefix
 			_, err := base64.StdEncoding.DecodeString(neg)
@@ -77,6 +77,12 @@ func TestNtlmAuth(t *testing.T) {
 			if !assert.Nil(t, err) {
 				t.Logf("auth parse error: %+v", err)
 				w.WriteHeader(500)
+				return
+			}
+
+			if called == 3 {
+				// This is the SSPI call that should return unauth so that standard NTLM can run.
+				w.WriteHeader(401)
 				return
 			}
 
