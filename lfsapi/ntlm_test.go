@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -26,6 +27,11 @@ func TestNtlmAuth(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		reqIndex := atomic.LoadUint32(&called)
 		atomic.AddUint32(&called, 1)
+
+		if called == 4 && runtime.GOOS != "windows" {
+			// We don't want to hit the second class 1 path if we are on *nix.
+			atomic.AddUint32(&called, 1)
+		}
 
 		authHeader := req.Header.Get("Authorization")
 		t.Logf("REQUEST %d: %s %s", reqIndex, req.Method, req.URL)
@@ -80,7 +86,7 @@ func TestNtlmAuth(t *testing.T) {
 				return
 			}
 
-			if called == 3 {
+			if called == 3 && runtime.GOOS == "windows" {
 				// This is the SSPI call that should return unauth so that standard NTLM can run.
 				w.WriteHeader(401)
 				return
