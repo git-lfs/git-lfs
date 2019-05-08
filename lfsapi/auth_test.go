@@ -649,7 +649,7 @@ func TestGetCreds(t *testing.T) {
 		client, _ := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
 		client.Endpoints = NewEndpointFinder(ctx)
-		_, credsURL, creds, err := client.getCreds(test.Remote, client.Endpoints.AccessFor(test.Endpoint), req)
+		credWrapper, err := client.getCreds(test.Remote, client.Endpoints.AccessFor(test.Endpoint), req)
 		if !assert.Nil(t, err) {
 			continue
 		}
@@ -657,17 +657,22 @@ func TestGetCreds(t *testing.T) {
 		assert.Equal(t, test.Expected.Authorization, req.Header.Get("Authorization"), "authorization")
 
 		if test.Expected.Creds != nil {
-			assert.EqualValues(t, test.Expected.Creds, creds)
+			if desc == "ntlm" {
+				// For NTLM we initially try with no provided credentials to test SSPI and then prompt.  We want to test both sets.
+				assert.Nil(t, credWrapper.Creds, "creds")
+				credWrapper.FillCreds()
+			}
+			assert.EqualValues(t, test.Expected.Creds, credWrapper.Creds)
 		} else {
-			assert.Nil(t, creds, "creds")
+			assert.Nil(t, credWrapper.Creds, "creds")
 		}
 
 		if len(test.Expected.CredsURL) > 0 {
-			if assert.NotNil(t, credsURL, "credURL") {
-				assert.Equal(t, test.Expected.CredsURL, credsURL.String(), "credURL")
+			if assert.NotNil(t, credWrapper.Url, "credURL") {
+				assert.Equal(t, test.Expected.CredsURL, credWrapper.Url.String(), "credURL")
 			}
 		} else {
-			assert.Nil(t, credsURL)
+			assert.Nil(t, credWrapper.Url)
 		}
 	}
 }

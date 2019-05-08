@@ -59,12 +59,12 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.client.ExtraHeadersFor(req)
 
-	credHelper, credsURL, creds, err := c.getCreds(remote, access, req)
+	credWrapper, err := c.getCreds(remote, access, req)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.doWithCreds(req, credHelper, creds, credsURL, access, via)
+	res, err := c.doWithCreds(req, credWrapper, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
 			newAccess := access.Upgrade(getAuthAccess(res))
@@ -72,23 +72,23 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 				c.Endpoints.SetAccess(newAccess)
 			}
 
-			if creds != nil {
+			if credWrapper.Creds != nil {
 				req.Header.Del("Authorization")
-				credHelper.Reject(creds)
+				credWrapper.CredentialHelper.Reject(credWrapper.Creds)
 			}
 		}
 	}
 
 	if res != nil && res.StatusCode < 300 && res.StatusCode > 199 {
-		credHelper.Approve(creds)
+		credWrapper.CredentialHelper.Approve(credWrapper.Creds)
 	}
 
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL, access Access, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access Access, via []*http.Request) (*http.Response, error) {
 	if access.Mode() == NTLMAccess {
-		return c.doWithNTLM(req, credHelper, creds, credsURL)
+		return c.doWithNTLM(req, credWrapper)
 	}
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
@@ -125,7 +125,7 @@ func (c *Client) doWithCreds(req *http.Request, credHelper creds.CredentialHelpe
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, access Access, req *http.Request) (creds.CredentialHelper, *url.URL, creds.Creds, error) {
+func (c *Client) getCreds(remote string, access Access, req *http.Request) (creds.CredentialHelperWrapper, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -136,52 +136,41 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 
 	if access.Mode() != NTLMAccess {
 		if requestHasAuth(req) || access.Mode() == NoneAccess {
-			return creds.NullCreds, nil, nil, nil
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
 		}
 
 		if credsURL == nil {
-			return creds.NullCreds, nil, nil, nil
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
 
-		credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
+		credWrapper := c.getGitCredsWrapper(ef, req, credsURL)
+		err = credWrapper.FillCreds()
 		if err == nil {
 			tracerx.Printf("Filled credentials for %s", credsURL)
-			setRequestAuth(req, creds["username"], creds["password"])
+			setRequestAuth(req, credWrapper.Creds["username"], credWrapper.Creds["password"])
 		}
-		return credHelper, credsURL, creds, err
+		return credWrapper, err
 	}
 
 	// NTLM ONLY
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return creds.NullCreds, nil, nil, errors.Wrap(err, "creds")
+		return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
 	}
 
 	// NTLM uses creds to create the session
-	credHelper, creds, err := c.getGitCreds(ef, req, credsURL)
-	return credHelper, credsURL, creds, err
+	credWrapper := c.getGitCredsWrapper(ef, req, credsURL)
+	return credWrapper, err
 }
 
-func (c *Client) getGitCreds(ef EndpointFinder, req *http.Request, u *url.URL) (creds.CredentialHelper, creds.Creds, error) {
-	credHelper, input := c.credContext.GetCredentialHelper(c.Credentials, u)
-	creds, err := credHelper.Fill(input)
-	if creds == nil || len(creds) < 1 {
-		errmsg := fmt.Sprintf("Git credentials for %s not found", u)
-		if err != nil {
-			errmsg = errmsg + ":\n" + err.Error()
-		} else {
-			errmsg = errmsg + "."
-		}
-		err = errors.New(errmsg)
-	}
-
-	return credHelper, creds, err
+func (c *Client) getGitCredsWrapper(ef EndpointFinder, req *http.Request, u *url.URL) creds.CredentialHelperWrapper {
+	return c.credContext.GetCredentialHelper(c.Credentials, u)
 }
 
 func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint lfshttp.Endpoint, req *http.Request) (*url.URL, error) {

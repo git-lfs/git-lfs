@@ -10,6 +10,10 @@ import (
 	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
+func (c *Client) ntlmSupportsSSPI() bool {
+	return false
+}
+
 func (c *Client) ntlmAuthenticateRequest(req *http.Request, creds *ntmlCredentials) (*http.Response, error) {
 	negotiate, err := base64.StdEncoding.DecodeString(ntlmNegotiateMessage)
 	if err != nil {

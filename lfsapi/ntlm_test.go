@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -27,6 +28,11 @@ func TestNtlmAuth(t *testing.T) {
 		reqIndex := atomic.LoadUint32(&called)
 		atomic.AddUint32(&called, 1)
 
+		if called == 4 && runtime.GOOS != "windows" {
+			// We don't want to hit the second class 1 path if we are on *nix.
+			atomic.AddUint32(&called, 1)
+		}
+
 		authHeader := req.Header.Get("Authorization")
 		t.Logf("REQUEST %d: %s %s", reqIndex, req.Method, req.URL)
 		t.Logf("AUTH: %q", authHeader)
@@ -42,7 +48,7 @@ func TestNtlmAuth(t *testing.T) {
 		case 1:
 			w.Header().Set("Www-Authenticate", "ntlm")
 			w.WriteHeader(401)
-		case 2:
+		case 2, 4:
 			assert.True(t, strings.HasPrefix(req.Header.Get("Authorization"), "NTLM "))
 			neg := authHeader[5:] // strip "ntlm " prefix
 			_, err := base64.StdEncoding.DecodeString(neg)
@@ -77,6 +83,12 @@ func TestNtlmAuth(t *testing.T) {
 			if !assert.Nil(t, err) {
 				t.Logf("auth parse error: %+v", err)
 				w.WriteHeader(500)
+				return
+			}
+
+			if called == 3 && runtime.GOOS == "windows" {
+				// This is the SSPI call that should return unauth so that standard NTLM can run.
+				w.WriteHeader(401)
 				return
 			}
 

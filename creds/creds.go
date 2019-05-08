@@ -14,6 +14,14 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+// CredentialHelperWrapper is used to contain the encapsulate the information we need for credential handling during auth.
+type CredentialHelperWrapper struct {
+	CredentialHelper CredentialHelper
+	Input            Creds
+	Url              *url.URL
+	Creds            Creds
+}
+
 // CredentialHelper is an interface used by the lfsapi Client to interact with
 // the 'git credential' command: https://git-scm.com/docs/gitcredentials
 // Other implementations include ASKPASS support, and an in-memory cache.
@@ -21,6 +29,21 @@ type CredentialHelper interface {
 	Fill(Creds) (Creds, error)
 	Reject(Creds) error
 	Approve(Creds) error
+}
+
+func (credWrapper *CredentialHelperWrapper) FillCreds() error {
+	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
+	if creds == nil || len(creds) < 1 {
+		errmsg := fmt.Sprintf("Git credentials for %s not found", credWrapper.Url)
+		if err != nil {
+			errmsg = fmt.Sprintf("%s:\n%s", errmsg, err.Error())
+		} else {
+			errmsg = fmt.Sprintf("%s.", errmsg)
+		}
+		err = errors.New(errmsg)
+	}
+	credWrapper.Creds = creds
+	return err
 }
 
 // Creds represents a set of key/value pairs that are passed to 'git credential'
@@ -84,7 +107,7 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 //
 // It returns an error if any configuration was invalid, or otherwise
 // un-useable.
-func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper, u *url.URL) (CredentialHelper, Creds) {
+func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper, u *url.URL) CredentialHelperWrapper {
 	rawurl := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	input := Creds{"protocol": u.Scheme, "host": u.Host}
 	if u.User != nil && u.User.Username() != "" {
@@ -95,7 +118,7 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 	}
 
 	if helper != nil {
-		return helper, input
+		return CredentialHelperWrapper{CredentialHelper: helper, Input: input, Url: u}
 	}
 
 	helpers := make([]CredentialHelper, 0, 4)
@@ -111,8 +134,7 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 			helpers = append(helpers, ctxt.askpassCredHelper)
 		}
 	}
-
-	return NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), input
+	return CredentialHelperWrapper{CredentialHelper: NewCredentialHelpers(append(helpers, ctxt.commandCredHelper)), Input: input, Url: u}
 }
 
 // AskPassCredentialHelper implements the CredentialHelper type for GIT_ASKPASS

@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/creds"
@@ -19,7 +18,7 @@ type ntmlCredentials struct {
 	password string
 }
 
-func (c *Client) doWithNTLM(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, credsURL *url.URL) (*http.Response, error) {
+func (c *Client) doWithNTLM(req *http.Request, credWrapper creds.CredentialHelperWrapper) (*http.Response, error) {
 	res, err := c.do(req, "", nil)
 	if err != nil && !errors.IsAuthError(err) {
 		return res, err
@@ -29,12 +28,27 @@ func (c *Client) doWithNTLM(req *http.Request, credHelper creds.CredentialHelper
 		return res, nil
 	}
 
-	return c.ntlmReAuth(req, credHelper, creds, true)
+	return c.ntlmReAuth(req, credWrapper, true)
 }
 
 // If the status is 401 then we need to re-authenticate
-func (c *Client) ntlmReAuth(req *http.Request, credHelper creds.CredentialHelper, creds creds.Creds, retry bool) (*http.Response, error) {
-	ntmlCreds, err := ntlmGetCredentials(creds)
+func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelperWrapper, retry bool) (*http.Response, error) {
+	// Try SSPI first.
+	if c.ntlmSupportsSSPI() == true {
+		res, err := c.ntlmAuthenticateRequest(req, nil)
+		if err != nil && !errors.IsAuthError(err) {
+			return res, err
+		}
+
+		// If SSPI succeeded, then we can move on.
+		if res.StatusCode < 300 && res.StatusCode > 199 {
+			return res, nil
+		}
+	}
+
+	// If SSPI failed, then we need to try the normal.
+	credWrapper.FillCreds()
+	ntmlCreds, err := ntlmGetCredentials(credWrapper.Creds)
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +60,15 @@ func (c *Client) ntlmReAuth(req *http.Request, credHelper creds.CredentialHelper
 
 	switch res.StatusCode {
 	case 401:
-		credHelper.Reject(creds)
+		credWrapper.CredentialHelper.Reject(credWrapper.Creds)
 		if retry {
-			return c.ntlmReAuth(req, credHelper, creds, false)
+			return c.ntlmReAuth(req, credWrapper, false)
 		}
 	case 403:
-		credHelper.Reject(creds)
+		credWrapper.CredentialHelper.Reject(credWrapper.Creds)
 	default:
 		if res.StatusCode < 300 && res.StatusCode > 199 {
-			credHelper.Approve(creds)
+			credWrapper.CredentialHelper.Approve(credWrapper.Creds)
 		}
 	}
 
