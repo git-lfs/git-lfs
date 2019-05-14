@@ -71,7 +71,7 @@ the user credentials posted when creating the lock.
 {
   "lock": {
     "id": "some-uuid",
-    "path": "/path/to/file",
+    "path": "foo/bar.zip",
     "locked_at": "2016-05-17T15:49:06+00:00",
     "owner": {
       "name": "Jane Doe"
