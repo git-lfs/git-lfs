@@ -74,7 +74,7 @@ the user credentials posted when creating the lock.
     "path": "/path/to/file",
     "locked_at": "2016-05-17T15:49:06+00:00",
     "owner": {
-      "name": "Jane Doe",
+      "name": "Jane Doe"
     }
   }
 }
