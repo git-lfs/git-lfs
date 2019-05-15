@@ -193,7 +193,7 @@ Note: If the server has no locks, it must return an empty `locks` array.
       }
     }
   ],
-  "next_cursor": "optional next ID",
+  "next_cursor": "optional next ID"
 }
 ```
 
@@ -310,7 +310,7 @@ Note: If the server has no locks, it must return an empty array in the `ours` or
     }
   ],
   "theirs": [],
-  "next_cursor": "optional next ID",
+  "next_cursor": "optional next ID"
 }
 ```
 
