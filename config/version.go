@@ -9,6 +9,7 @@ import (
 var (
 	GitCommit   string
 	VersionDesc string
+	Vendor      string
 )
 
 const (
@@ -20,8 +21,12 @@ func init() {
 	if len(GitCommit) > 0 {
 		gitCommit = "; git " + GitCommit
 	}
-	VersionDesc = fmt.Sprintf("git-lfs/%s (GitHub; %s %s; go %s%s)",
+	if len(Vendor) == 0 {
+		Vendor = "GitHub"
+	}
+	VersionDesc = fmt.Sprintf("git-lfs/%s (%s; %s %s; go %s%s)",
 		Version,
+		Vendor,
 		runtime.GOOS,
 		runtime.GOARCH,
 		strings.Replace(runtime.Version(), "go", "", 1),
