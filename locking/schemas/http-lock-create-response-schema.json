@@ -24,7 +24,7 @@
           }
         }
       },
-      "required": ["id", "path"]
+      "required": ["id", "path", "locked_at"]
     },
     "message": {
       "type": "string"
