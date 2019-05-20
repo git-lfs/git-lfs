@@ -262,6 +262,8 @@ The following status codes can optionally be returned from the API, depending on
 the server implementation.
 
 * 406 - The Accept header needs to be `application/vnd.git-lfs+json`.
+* 413 - The batch API request contained too many objects or the request was
+otherwise too large.
 * 429 - The user has hit a rate limit with the server.  Though the API does not
 specify any rate limits, implementors are encouraged to set some for
 availability reasons.
