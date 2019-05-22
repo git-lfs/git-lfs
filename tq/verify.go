@@ -35,10 +35,11 @@ func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 		return err
 	}
 
+	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
 	for key, value := range action.Header {
 		req.Header.Set(key, value)
 	}
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 
 	mv := c.GitEnv().Int(maxVerifiesConfigKey, defaultMaxVerifyAttempts)
 	mv = tools.MaxInt(defaultMaxVerifyAttempts, mv)
