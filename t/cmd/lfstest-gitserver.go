@@ -215,10 +215,22 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 
+	// Check that we're sending valid data.
+	if !strings.Contains(r.Header.Get("Accept"), "application/vnd.git-lfs+json") {
+		w.WriteHeader(406)
+		return
+	}
+
 	debug(id, "git lfs %s %s repo: %s", r.Method, r.URL, repo)
 	w.Header().Set("Content-Type", "application/vnd.git-lfs+json")
 	switch r.Method {
 	case "POST":
+		// Reject invalid data.
+		if !strings.Contains(r.Header.Get("Content-Type"), "application/vnd.git-lfs+json") {
+			w.WriteHeader(400)
+			return
+		}
+
 		if strings.HasSuffix(r.URL.String(), "batch") {
 			lfsBatchHandler(w, r, id, repo)
 		} else {
