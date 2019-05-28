@@ -644,6 +644,9 @@ func RootDir() (string, error) {
 
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
+	if err != nil {
+		return "", err
+	}
 	return canonicalizeDir(path)
 }
 
@@ -654,6 +657,10 @@ func GitDir() (string, error) {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
+	path, err = tools.TranslateCygwinPath(path)
+	if err != nil {
+		return "", err
+	}
 	return canonicalizeDir(path)
 }
 
@@ -671,6 +678,10 @@ func GitCommonDir() (string, error) {
 		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
+	path, err = tools.TranslateCygwinPath(path)
+	if err != nil {
+		return "", err
+	}
 	return canonicalizeDir(path)
 }
 
