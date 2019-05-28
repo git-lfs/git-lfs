@@ -129,7 +129,7 @@ begin_test "list locks with pagination"
 
   for i in $(seq 1 5); do
     git lfs lock --json "h_$i.dat" | tee lock.log
-    assert_server_lock "$reponame" "$(assert_lock "lock.log" "h_$1.dat")"
+    assert_server_lock "$reponame" "$(assert_lock "lock.log" "h_$i.dat")"
   done
 
   # The server will return, at most, three locks at a time
