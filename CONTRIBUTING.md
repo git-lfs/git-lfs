@@ -71,6 +71,8 @@ Here are a few things you can do that will increase the likelihood of your pull 
 would like to make that are not dependent upon each other, consider submitting
 them as separate pull requests.
 * Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+* Explain the rationale for your change in the pull request. You can often use
+  part of a good commit message as a starting point.
 
 ## Building
 
