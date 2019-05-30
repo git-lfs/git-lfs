@@ -25,6 +25,12 @@ into Git: SSH through public keys, and HTTPS through Git credential helpers.
 Servers can simply host off cloud storage, or implement more efficient methods
 of transferring data.
 
+Since the focus for the project is on end users, we're generally hesitant about
+introducing new features that make data loss easy or are prone to misuse.
+However, we're not necessarily opposed to adding generally applicable
+customizability or features for advanced users if they don't conflict with other
+project goals.
+
 ## Project Management
 
 The Git LFS project is managed completely through this open source project. The
