@@ -25,6 +25,12 @@ into Git: SSH through public keys, and HTTPS through Git credential helpers.
 Servers can simply host off cloud storage, or implement more efficient methods
 of transferring data.
 
+Since the focus for the project is on end users, we're generally hesitant about
+introducing new features that make data loss easy or are prone to misuse.
+However, we're not necessarily opposed to adding generally applicable
+customizability or features for advanced users if they don't conflict with other
+project goals.
+
 ## Project Management
 
 The Git LFS project is managed completely through this open source project. The
@@ -65,6 +71,29 @@ Here are a few things you can do that will increase the likelihood of your pull 
 would like to make that are not dependent upon each other, consider submitting
 them as separate pull requests.
 * Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+* Explain the rationale for your change in the pull request. You can often use
+  part of a good commit message as a starting point.
+
+## Issues
+
+If you think you've found a bug or have an issue, we'd love to hear about it!
+Here are some tips for getting your question answered as quickly as possible:
+
+* It's helpful if your issue includes the output of `git lfs env`, plus any
+  relevant information about platform or configuration (e.g., container or CI
+  usage, Cygwin, WSL, or non-Basic authentication).
+* Take a look at the [troubleshooting](https://github.com/git-lfs/git-lfs/wiki/Troubleshooting)
+  page on the wiki. We update it from time to time with information on how to
+  track down problems. If it seems relevant, include any information you've
+  learned by following those steps.
+* If you're having problems with GitHub's server-side LFS support, it's best to
+  reach out to [GitHub's support team](https://github.com/contact) to get help.
+  We aren't able to address GitHub-specific issues in this project, but the
+  GitHub support team will do their best to help you out.
+* If you see an old issue that's closed as fixed, but you're still experiencing
+  the problem on your system, please open a new issue. The problem you're seeing
+  is likely different, at least in the way it works internally, and we can help
+  best when we have a new issue with all the information.
 
 ## Building
 
