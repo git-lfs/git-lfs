@@ -77,10 +77,8 @@ $ git lfs track "*.psd"
 more about this pattern syntax
 [here](https://git-scm.com/docs/gitattributes)).
 
-**Note**: the quotations surrounding the pattern are important. Otherwise
-the glob pattern will be interpreted first by your shell and expanded into matching
-existing files. Multiple individual file entries will be created in 
-`.gitattributes` voiding the glob pattern in the future.
+> *Note:* the quotation marks surrounding the pattern are important to
+> prevent the glob pattern from being expanded by the shell.
 
 After any invocation of `git-lfs-track(1)` or `git-lfs-untrack(1)`, you _must
 commit changes to your `.gitattributes` file_. This can be done by running:
