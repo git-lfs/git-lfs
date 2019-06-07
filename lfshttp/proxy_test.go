@@ -95,3 +95,18 @@ func TestProxyNoProxy(t *testing.T) {
 	assert.Nil(t, proxyURL)
 	assert.Nil(t, err)
 }
+
+func TestSocksProxyFromEnvironment(t *testing.T) {
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"HTTPS_PROXY": "socks5://proxy-from-env:3128",
+	}, nil))
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
+	require.Nil(t, err)
+
+	proxyURL, err := proxyFromClient(c)(req)
+	assert.Equal(t, "socks5", proxyURL.Scheme)
+	assert.Equal(t, "proxy-from-env:3128", proxyURL.Host)
+	assert.Nil(t, err)
+}
