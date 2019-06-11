@@ -145,8 +145,9 @@ omitted.
     * `expires_in` - Whole number of seconds after local client time when
       transfer will expire. Preferred over `expires_at` if both are provided.
       Maximum of 2147483647, minimum of -2147483647.
-    * `expires_at` - String ISO 8601 formatted timestamp for when the given
-    action expires (usually due to a temporary token).
+    * `expires_at` - String uppercase RFC 3339-formatted timestamp with second
+      precision for when the given action expires (usually due to a temporary
+      token).
 
 Download operations MUST specify a `download` action, or an object error if the
 object cannot be downloaded for some reason. See "Response Errors" below.
