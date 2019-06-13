@@ -27,7 +27,7 @@ var (
 	// filepath that is a packfile.
 	//
 	// It includes one matchgroup, which is the SHA-1 name of the pack.
-	nameRe = regexp.MustCompile(`^pack-([a-f0-9]{40}).pack$`)
+	nameRe = regexp.MustCompile(`^(.*)\.pack$`)
 )
 
 // NewSet creates a new *Set of all packfiles found in a given object database's
@@ -40,7 +40,7 @@ var (
 func NewSet(db string) (*Set, error) {
 	pd := filepath.Join(db, "pack")
 
-	paths, err := filepath.Glob(filepath.Join(pd, "pack-*.pack"))
+	paths, err := filepath.Glob(filepath.Join(pd, "*.pack"))
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +55,21 @@ func NewSet(db string) (*Set, error) {
 
 		name := submatch[1]
 
-		packf, err := os.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.pack", name)))
+		idxf, err := os.Open(filepath.Join(pd, fmt.Sprintf("%s.idx", name)))
 		if err != nil {
-			return nil, err
+			// We have a pack (since it matched the regex), but the
+			// index is missing or unusable.  Skip this pack and
+			// continue on with the next one, as Git does.
+			if idxf != nil {
+				// In the unlikely event that we did open a
+				// file, close it, but discard any error in
+				// doing so.
+				idxf.Close()
+			}
+			continue
 		}
 
-		idxf, err := os.Open(filepath.Join(pd, fmt.Sprintf("pack-%s.idx", name)))
+		packf, err := os.Open(filepath.Join(pd, fmt.Sprintf("%s.pack", name)))
 		if err != nil {
 			return nil, err
 		}
