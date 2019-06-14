@@ -74,3 +74,33 @@ begin_test "post-commit (locked file outside of LFS)"
   refute_file_writeable a.dat
 )
 end_test
+
+begin_test "post-commit does not enter submodules"
+(
+  set -e
+
+  reponame="post-commit-submodules"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track --lockable "*.dat"
+  git lfs track "*.big" # not lockable
+  git add .gitattributes
+  git commit -m "add git attributes"
+
+  mkdir submodule
+  (cd submodule && git init && echo abc >foo && git add foo && git commit -m 'foo')
+  git submodule add ./submodule submodule
+  git commit -m 'Add submodule'
+
+  echo "Come with me" > pcfile1.dat
+  echo "and you'll be" > pcfile2.dat
+  echo "in a world" > pcfile3.big
+  echo "of pure imagination" > pcfile4.big
+
+  git add *.dat
+  GIT_TRACE=1 git commit -m "Committed large files" 2>&1 | tee output
+  ! grep -E 'filepathfilter:.*submodule/foo' output
+)
+end_test
