@@ -48,53 +48,61 @@ func (r *refUpdater) UpdateRefs() error {
 	}
 
 	for _, ref := range r.Refs {
-		sha1, err := hex.DecodeString(ref.Sha)
+		err := r.updateOneRef(list, maxNameLen, ref)
 		if err != nil {
-			return errors.Wrapf(err, "could not decode: %q", ref.Sha)
-		}
-
-		to, ok := r.CacheFn(sha1)
-
-		if ref.Type == git.RefTypeLocalTag {
-			tag, _ := r.db.Tag(sha1)
-			if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
-				// Assume that a non-nil error is an indication
-				// that the tag is bare (without annotation).
-
-				toObj, okObj := r.CacheFn(tag.Object)
-				if !okObj {
-					continue
-				}
-
-				newTag, err := r.db.WriteTag(&gitobj.Tag{
-					Object:     toObj,
-					ObjectType: tag.ObjectType,
-					Name:       tag.Name,
-					Tagger:     tag.Tagger,
-
-					Message: tag.Message,
-				})
-
-				if err != nil {
-					return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
-				}
-
-				to = newTag
-				ok = true
-			}
-		}
-
-		if !ok {
-			continue
-		}
-
-		if err := git.UpdateRefIn(r.Root, ref, to, ""); err != nil {
 			return err
 		}
-
-		namePadding := tools.MaxInt(maxNameLen-len(ref.Name), 0)
-		list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
 	}
 
+	return nil
+}
+
+func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, ref *git.Ref) error {
+	sha1, err := hex.DecodeString(ref.Sha)
+	if err != nil {
+		return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+	}
+
+	to, ok := r.CacheFn(sha1)
+
+	if ref.Type == git.RefTypeLocalTag {
+		tag, _ := r.db.Tag(sha1)
+		if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
+			// Assume that a non-nil error is an indication
+			// that the tag is bare (without annotation).
+
+			toObj, okObj := r.CacheFn(tag.Object)
+			if !okObj {
+				return nil
+			}
+
+			newTag, err := r.db.WriteTag(&gitobj.Tag{
+				Object:     toObj,
+				ObjectType: tag.ObjectType,
+				Name:       tag.Name,
+				Tagger:     tag.Tagger,
+
+				Message: tag.Message,
+			})
+
+			if err != nil {
+				return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+			}
+
+			to = newTag
+			ok = true
+		}
+	}
+
+	if !ok {
+		return nil
+	}
+
+	if err := git.UpdateRefIn(r.Root, ref, to, ""); err != nil {
+		return err
+	}
+
+	namePadding := tools.MaxInt(maxNameLen-len(ref.Name), 0)
+	list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
 	return nil
 }
