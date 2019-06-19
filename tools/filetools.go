@@ -347,6 +347,15 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
 		fullPath = join(parentWorkDir, itemFi.Name())
 	}
 
+	if !isRoot && itemFi.IsDir() {
+		// If this directory has a .git directory or file in it, then
+		// this is a submodule, and we should not recurse into it.
+		_, err := os.Stat(filepath.Join(fullPath, ".git"))
+		if err == nil {
+			return
+		}
+	}
+
 	workPath := join(workDir, itemFi.Name())
 	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(workPath) {
 		return
