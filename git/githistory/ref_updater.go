@@ -57,6 +57,27 @@ func (r *refUpdater) UpdateRefs() error {
 	return nil
 }
 
+func (r *refUpdater) updateOneTag(tag *gitobj.Tag) ([]byte, error) {
+	toObj, okObj := r.CacheFn(tag.Object)
+	if !okObj {
+		return nil, nil
+	}
+
+	newTag, err := r.db.WriteTag(&gitobj.Tag{
+		Object:     toObj,
+		ObjectType: tag.ObjectType,
+		Name:       tag.Name,
+		Tagger:     tag.Tagger,
+
+		Message: tag.Message,
+	})
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+	}
+	return newTag, nil
+}
+
 func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string]struct{}, ref *git.Ref) error {
 	sha1, err := hex.DecodeString(ref.Sha)
 	if err != nil {
@@ -76,24 +97,10 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 			// Assume that a non-nil error is an indication
 			// that the tag is bare (without annotation).
 
-			toObj, okObj := r.CacheFn(tag.Object)
-			if !okObj {
-				return nil
+			newTag, err := r.updateOneTag(tag)
+			if newTag == nil {
+				return err
 			}
-
-			newTag, err := r.db.WriteTag(&gitobj.Tag{
-				Object:     toObj,
-				ObjectType: tag.ObjectType,
-				Name:       tag.Name,
-				Tagger:     tag.Tagger,
-
-				Message: tag.Message,
-			})
-
-			if err != nil {
-				return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
-			}
-
 			to = newTag
 			ok = true
 		}
