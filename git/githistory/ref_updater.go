@@ -47,9 +47,9 @@ func (r *refUpdater) UpdateRefs() error {
 		maxNameLen = tools.MaxInt(maxNameLen, len(ref.Name))
 	}
 
+	seen := make(map[string]struct{})
 	for _, ref := range r.Refs {
-		err := r.updateOneRef(list, maxNameLen, ref)
-		if err != nil {
+		if err := r.updateOneRef(list, maxNameLen, seen, ref); err != nil {
 			return err
 		}
 	}
@@ -57,11 +57,16 @@ func (r *refUpdater) UpdateRefs() error {
 	return nil
 }
 
-func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, ref *git.Ref) error {
+func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string]struct{}, ref *git.Ref) error {
 	sha1, err := hex.DecodeString(ref.Sha)
 	if err != nil {
 		return errors.Wrapf(err, "could not decode: %q", ref.Sha)
 	}
+
+	if _, ok := seen[ref.Name]; ok {
+		return nil
+	}
+	seen[ref.Name] = struct{}{}
 
 	to, ok := r.CacheFn(sha1)
 
