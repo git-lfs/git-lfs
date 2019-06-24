@@ -57,12 +57,7 @@ func (r *refUpdater) UpdateRefs() error {
 	return nil
 }
 
-func (r *refUpdater) updateOneTag(tag *gitobj.Tag) ([]byte, error) {
-	toObj, okObj := r.CacheFn(tag.Object)
-	if !okObj {
-		return nil, nil
-	}
-
+func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error) {
 	newTag, err := r.db.WriteTag(&gitobj.Tag{
 		Object:     toObj,
 		ObjectType: tag.ObjectType,
@@ -93,11 +88,43 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 
 	if ref.Type == git.RefTypeLocalTag {
 		tag, _ := r.db.Tag(sha1)
-		if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
-			// Assume that a non-nil error is an indication
-			// that the tag is bare (without annotation).
+		if tag != nil && tag.ObjectType == gitobj.TagObjectType {
+			innerTag, _ := r.db.Tag(tag.Object)
+			name := fmt.Sprintf("refs/tags/%s", innerTag.Name)
+			if _, ok := seen[name]; !ok {
+				old, err := git.ResolveRef(name)
+				if err != nil {
+					return err
+				}
 
-			newTag, err := r.updateOneTag(tag)
+				err = r.updateOneRef(list, maxNameLen, seen, old)
+				if err != nil {
+					return err
+				}
+			}
+
+			updated, err := git.ResolveRef(name)
+			if err != nil {
+				return err
+			}
+			updatedSha, err := hex.DecodeString(updated.Sha)
+			if err != nil {
+				return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+			}
+
+			newTag, err := r.updateOneTag(tag, updatedSha)
+			if newTag == nil {
+				return err
+			}
+			to = newTag
+			ok = true
+		} else if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
+			toObj, okObj := r.CacheFn(tag.Object)
+			if !okObj {
+				return nil
+			}
+
+			newTag, err := r.updateOneTag(tag, toObj)
 			if newTag == nil {
 				return err
 			}
