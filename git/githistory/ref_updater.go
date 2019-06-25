@@ -47,54 +47,101 @@ func (r *refUpdater) UpdateRefs() error {
 		maxNameLen = tools.MaxInt(maxNameLen, len(ref.Name))
 	}
 
+	seen := make(map[string]struct{})
 	for _, ref := range r.Refs {
-		sha1, err := hex.DecodeString(ref.Sha)
-		if err != nil {
-			return errors.Wrapf(err, "could not decode: %q", ref.Sha)
-		}
-
-		to, ok := r.CacheFn(sha1)
-
-		if ref.Type == git.RefTypeLocalTag {
-			tag, _ := r.db.Tag(sha1)
-			if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
-				// Assume that a non-nil error is an indication
-				// that the tag is bare (without annotation).
-
-				toObj, okObj := r.CacheFn(tag.Object)
-				if !okObj {
-					continue
-				}
-
-				newTag, err := r.db.WriteTag(&gitobj.Tag{
-					Object:     toObj,
-					ObjectType: tag.ObjectType,
-					Name:       tag.Name,
-					Tagger:     tag.Tagger,
-
-					Message: tag.Message,
-				})
-
-				if err != nil {
-					return errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
-				}
-
-				to = newTag
-				ok = true
-			}
-		}
-
-		if !ok {
-			continue
-		}
-
-		if err := git.UpdateRefIn(r.Root, ref, to, ""); err != nil {
+		if err := r.updateOneRef(list, maxNameLen, seen, ref); err != nil {
 			return err
 		}
-
-		namePadding := tools.MaxInt(maxNameLen-len(ref.Name), 0)
-		list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
 	}
 
+	return nil
+}
+
+func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error) {
+	newTag, err := r.db.WriteTag(&gitobj.Tag{
+		Object:     toObj,
+		ObjectType: tag.ObjectType,
+		Name:       tag.Name,
+		Tagger:     tag.Tagger,
+
+		Message: tag.Message,
+	})
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+	}
+	return newTag, nil
+}
+
+func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string]struct{}, ref *git.Ref) error {
+	sha1, err := hex.DecodeString(ref.Sha)
+	if err != nil {
+		return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+	}
+
+	if _, ok := seen[ref.Name]; ok {
+		return nil
+	}
+	seen[ref.Name] = struct{}{}
+
+	to, ok := r.CacheFn(sha1)
+
+	if ref.Type == git.RefTypeLocalTag {
+		tag, _ := r.db.Tag(sha1)
+		if tag != nil && tag.ObjectType == gitobj.TagObjectType {
+			innerTag, _ := r.db.Tag(tag.Object)
+			name := fmt.Sprintf("refs/tags/%s", innerTag.Name)
+			if _, ok := seen[name]; !ok {
+				old, err := git.ResolveRef(name)
+				if err != nil {
+					return err
+				}
+
+				err = r.updateOneRef(list, maxNameLen, seen, old)
+				if err != nil {
+					return err
+				}
+			}
+
+			updated, err := git.ResolveRef(name)
+			if err != nil {
+				return err
+			}
+			updatedSha, err := hex.DecodeString(updated.Sha)
+			if err != nil {
+				return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+			}
+
+			newTag, err := r.updateOneTag(tag, updatedSha)
+			if newTag == nil {
+				return err
+			}
+			to = newTag
+			ok = true
+		} else if tag != nil && tag.ObjectType == gitobj.CommitObjectType {
+			toObj, okObj := r.CacheFn(tag.Object)
+			if !okObj {
+				return nil
+			}
+
+			newTag, err := r.updateOneTag(tag, toObj)
+			if newTag == nil {
+				return err
+			}
+			to = newTag
+			ok = true
+		}
+	}
+
+	if !ok {
+		return nil
+	}
+
+	if err := git.UpdateRefIn(r.Root, ref, to, ""); err != nil {
+		return err
+	}
+
+	namePadding := tools.MaxInt(maxNameLen-len(ref.Name), 0)
+	list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
 	return nil
 }
