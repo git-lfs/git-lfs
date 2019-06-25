@@ -384,7 +384,8 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
 		}
 
 		if cached := r.uncacheEntry(entry); cached != nil {
-			entries = append(entries, copyEntry(cached))
+			entries = append(entries, copyEntryMode(cached,
+				entry.Filemode))
 			continue
 		}
 
@@ -434,6 +435,13 @@ func copyEntry(e *gitobj.TreeEntry) *gitobj.TreeEntry {
 		Name:     e.Name,
 		Oid:      oid,
 	}
+}
+
+func copyEntryMode(e *gitobj.TreeEntry, mode int32) *gitobj.TreeEntry {
+	copied := copyEntry(e)
+	copied.Filemode = mode
+
+	return copied
 }
 
 func (r *Rewriter) allows(typ gitobj.ObjectType, abs string) bool {
