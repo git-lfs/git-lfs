@@ -439,6 +439,34 @@ EOF)
 )
 end_test
 
+begin_test "migrate import (identical contents, different permissions)"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  setup_multiple_local_branches
+  git checkout master
+
+  echo "foo" >foo.dat
+  git add .
+  git commit -m "add file"
+
+  chmod u+x foo.dat
+  git add .
+  git commit -m "make file executable"
+
+  # Verify we have executable permissions.
+  ls -la foo.dat | grep 'rwx'
+
+  git lfs migrate import --everything --include="*.dat"
+
+  # Verify we have executable permissions.
+  ls -la foo.dat | grep 'rwx'
+)
+end_test
+
 begin_test "migrate import (bare repository)"
 (
   set -e
