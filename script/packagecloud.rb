@@ -56,10 +56,6 @@ $distro_name_map = {
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
-  "debian/7" => [
-    "debian/wheezy", # EOL 31st May 2018
-    "ubuntu/precise" # ESM April 2019
-  ],
   "debian/8" => [
     "debian/jessie",     # EOL June 30, 2020
     "linuxmint/qiana",   # EOL April 2019
@@ -129,7 +125,6 @@ package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
   os, distro = case full_path
-  when /debian\/7/ then ["Debian 7", "debian/wheezy"]
   when /debian\/8/ then ["Debian 8", "debian/jessie"]
   when /debian\/9/ then ["Debian 9", "debian/stretch"]
   when /centos\/5/ then ["RPM RHEL 5/CentOS 5", "el/5"]
