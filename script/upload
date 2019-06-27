@@ -149,6 +149,7 @@ Up to date packages are available on [PackageCloud](https://packagecloud.io/gith
 [RPM RHEL 7/CentOS 7](https://packagecloud.io/github/git-lfs/packages/el/7/git-lfs-VERSION-1.el7.x86_64.rpm/download)
 [Debian 8](https://packagecloud.io/github/git-lfs/packages/debian/jessie/git-lfs_VERSION_amd64.deb/download)
 [Debian 9](https://packagecloud.io/github/git-lfs/packages/debian/stretch/git-lfs_VERSION_amd64.deb/download)
+[Debian 10](https://packagecloud.io/github/git-lfs/packages/debian/buster/git-lfs_VERSION_amd64.deb/download)
 
 ## SHA-256 hashes:
 EOM
