@@ -232,6 +232,9 @@ begin_test "install --local with failed permissions"
   # Windows lacks POSIX permissions.
   [ "$IS_WINDOWS" -eq 1 ] && exit 0
 
+  # Root is exempt from permissions.
+  [ "$(id -u)" -eq 0 ] && exit 0
+
   # old values that should be ignored by `install --local`
   git config --global filter.lfs.smudge "git lfs smudge %f"
   git config --global filter.lfs.clean "git lfs clean %f"
