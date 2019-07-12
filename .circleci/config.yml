@@ -80,7 +80,6 @@ jobs:
       - run: script/cibuild
 
 workflows:
-  version: 2
   build:
     jobs:
       - bootstrap
