@@ -1,5 +1,4 @@
 version: 2
-
 jobs:
   bootstrap:
     macos:
@@ -78,7 +77,6 @@ jobs:
       - run: echo "export PATH=$HOME/bin:$GOPATH/bin:$PATH" >> $BASH_ENV
       - run: echo "export GIT_LFS_TEST_DIR=$HOME/git-lfs-tests" >> $BASH_ENV
       - run: script/cibuild
-
 workflows:
   version: 2
   build:
