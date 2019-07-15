@@ -55,6 +55,7 @@ type Transfer struct {
 	Links         ActionSet    `json:"_links,omitempty"`
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
+	Missing       bool         `json:"-"`
 }
 
 func (t *Transfer) Rel(name string) (*Action, error) {

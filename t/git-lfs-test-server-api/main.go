@@ -206,7 +206,7 @@ func buildTestData(repo *t.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing 
 		if err != nil {
 			return nil, nil, err
 		}
-		uploadQueue.Add(t.Name, t.Path, t.Oid, t.Size)
+		uploadQueue.Add(t.Name, t.Path, t.Oid, t.Size, false)
 	}
 	uploadQueue.Wait()
 

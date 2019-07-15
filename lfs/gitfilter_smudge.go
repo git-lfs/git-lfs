@@ -96,7 +96,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 		tq.WithProgressCallback(cb),
 		tq.RemoteRef(f.RemoteRef()),
 	)
-	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size)
+	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size, false)
 	q.Wait()
 
 	if errs := q.Errors(); len(errs) > 0 {

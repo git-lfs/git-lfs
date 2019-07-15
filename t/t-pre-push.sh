@@ -412,8 +412,7 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
     exit 1
   fi
 
-  grep "no such file or directory" push.log || # unix
-    grep "cannot find the file" push.log       # windows
+  grep 'Unable to find source' push.log
 
   refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"

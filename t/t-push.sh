@@ -694,3 +694,49 @@ begin_test "push with invalid pushInsteadof"
   git lfs push origin master
 )
 end_test
+
+begin_test 'push with data the server already has'
+(
+  set -e
+
+  reponame="push-server-data"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="abc123"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  git checkout -b side
+
+  # Use a different file name for the second file; otherwise, this test
+  # unexpectedly passes with the old code, since we fail to notice that the
+  # object we run through the clean filter is not the object we wanted.
+  contents2="def456"
+  contents2_oid="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+  git add b.dat
+  git commit -m "add b.dat"
+
+  # We remove the original object. The server already has this.
+  delete_local_object "$contents_oid"
+
+  # We use the URL so that we cannot take advantage of the existing "origin/*"
+  # refs that we know the server must have. We will traverse the entire history
+  # for this push, and we should not fail because the server already has the
+  # object we deleted above.
+  git push "$(git config remote.origin.url)" side
+
+  assert_server_object "$reponame" "$contents2_oid"
+)
+end_test

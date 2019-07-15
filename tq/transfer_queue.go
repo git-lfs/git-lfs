@@ -114,7 +114,7 @@ func (b batch) Concat(other batch, size int) (left, right batch, minWait time.Du
 func (b batch) ToTransfers() []*Transfer {
 	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size, Missing: t.Missing})
 	}
 	return transfers
 }
@@ -191,15 +191,17 @@ func (s *objects) First() *objectTuple {
 type objectTuple struct {
 	Name, Path, Oid string
 	Size            int64
+	Missing         bool
 	ReadyTime       time.Time
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
 	return &Transfer{
-		Name: o.Name,
-		Path: o.Path,
-		Oid:  o.Oid,
-		Size: o.Size,
+		Name:    o.Name,
+		Path:    o.Path,
+		Oid:     o.Oid,
+		Size:    o.Size,
+		Missing: o.Missing,
 	}
 }
 
@@ -284,12 +286,13 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 //
 // Only one file will be transferred to/from the Path element of the first
 // transfer.
-func (q *TransferQueue) Add(name, path, oid string, size int64) {
+func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool) {
 	t := &objectTuple{
-		Name: name,
-		Path: path,
-		Oid:  oid,
-		Size: size,
+		Name:    name,
+		Path:    path,
+		Oid:     oid,
+		Size:    size,
+		Missing: missing,
 	}
 
 	if objs := q.remember(t); len(objs.objects) > 1 {
@@ -379,10 +382,10 @@ func (q *TransferQueue) collectBatches() {
 		done := make(chan struct{})
 
 		var retries batch
+		var err error
 
 		go func() {
 			defer close(done)
-			var err error
 
 			if len(next) == 0 {
 				return
@@ -396,6 +399,12 @@ func (q *TransferQueue) collectBatches() {
 
 		var collected batch
 		collected, closing = q.collectPendingUntil(done)
+
+		// If we've encountered a serious error here, abort immediately;
+		// don't process further batches.
+		if err != nil {
+			break
+		}
 
 		// Ensure the next batch is filled with, in order:
 		//
@@ -457,7 +466,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		// Trust the external transfer agent can do everything by itself.
 		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
-			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path})
+			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path, Missing: t.Missing})
 		}
 		bRes = &BatchResponse{
 			Objects:             objects,
@@ -488,12 +497,38 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				}
 			}
 
+			if err != nil && bRes != nil {
+				// Avoid a hang if we return early.
+				q.wait.Add(-len(bRes.Objects))
+			}
+
 			return next, err
 		}
 	}
 
 	if len(bRes.Objects) == 0 {
 		return next, nil
+	}
+
+	// We check first that all of the objects we want to upload are present,
+	// and abort if any are missing. We'll never have any objects marked as
+	// missing except possibly on upload, so just skip iterating over the
+	// objects in that case.
+	if q.direction == Upload {
+		for _, o := range bRes.Objects {
+			// If the server already has the object, the list of
+			// actions will be empty. It's fine if the file is
+			// missing in that case, since we don't need to upload
+			// it.
+			if o.Missing && len(o.Actions) != 0 {
+				// Indicate that we've handled these objects, in
+				// this case by ignoring them and aborting
+				// early. Failing to do this means we deadlock
+				// on this WaitGroup.
+				q.wait.Add(-len(bRes.Objects))
+				return nil, errors.Errorf("Unable to find source for object %v (try running git lfs fetch --all)", o.Oid)
+			}
+		}
 	}
 
 	q.useAdapter(bRes.TransferAdapterName)
