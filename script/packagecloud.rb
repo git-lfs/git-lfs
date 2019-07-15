@@ -56,10 +56,6 @@ $distro_name_map = {
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
-  "debian/7" => [
-    "debian/wheezy", # EOL 31st May 2018
-    "ubuntu/precise" # ESM April 2019
-  ],
   "debian/8" => [
     "debian/jessie",     # EOL June 30, 2020
     "linuxmint/qiana",   # EOL April 2019
@@ -72,7 +68,6 @@ $distro_name_map = {
   ],
   "debian/9" => [
     "debian/stretch",   # EOL June 2022
-    "debian/buster",    # Current
     "linuxmint/sarah",  # EOL April 2021
     "linuxmint/serena", # EOL April 2021
     "linuxmint/sonya",  # EOL April 2021
@@ -87,6 +82,9 @@ $distro_name_map = {
     "ubuntu/cosmic",    # EOL July 2019
     "ubuntu/disco",     # EOL April 2020
   ],
+  "debian/10" => [
+    "debian/buster",    # Current
+  ]
 }
 
 # caches distro id lookups
@@ -129,12 +127,12 @@ package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
   os, distro = case full_path
-  when /debian\/7/ then ["Debian 7", "debian/wheezy"]
-  when /debian\/8/ then ["Debian 8", "debian/jessie"]
-  when /debian\/9/ then ["Debian 9", "debian/stretch"]
-  when /centos\/5/ then ["RPM RHEL 5/CentOS 5", "el/5"]
-  when /centos\/6/ then ["RPM RHEL 6/CentOS 6", "el/6"]
-  when /centos\/7/ then ["RPM RHEL 7/CentOS 7", "el/7"]
+  when /debian\/8/  then ["Debian 8",  "debian/jessie"]
+  when /debian\/9/  then ["Debian 9",  "debian/stretch"]
+  when /debian\/10/ then ["Debian 10", "debian/buster"]
+  when /centos\/5/  then ["RPM RHEL 5/CentOS 5", "el/5"]
+  when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
+  when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   end
 
   next unless os

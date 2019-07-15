@@ -1,7 +1,6 @@
 #!/usr/bin/make -f
 
 export DH_OPTIONS
-export GO111MODULE=on
 
 #dh_golang doesn't do this for you
 ifeq ($(DEB_HOST_ARCH), i386)
@@ -25,7 +24,8 @@ export PATH := $(CURDIR)/$(BUILD_DIR)/bin:$(PATH)
 export DH_GOLANG_INSTALL_ALL := 1
 
 %:
-	dh $@ --buildsystem=golang --with=golang
+	mkdir -p /tmp/gocache
+	GO111MODULE=on GOFLAGS=-mod=vendor GOCACHE=/tmp/gocache dh $@ --buildsystem=golang --with=golang
 
 override_dh_clean:
 	rm -f debian/debhelper.log
@@ -37,7 +37,6 @@ override_dh_auto_build:
 	#dh_golang doesn't do anything here in deb 8, and it's needed in both
 	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
 		cp -rf $(BUILD_DIR)/bin/*/* $(BUILD_DIR)/bin/; \
-		cp -rf $(BUILD_DIR)/pkg/*/* $(BUILD_DIR)/pkg/; \
 	fi
 	rm $(BUILD_DIR)/bin/script
 	rm $(BUILD_DIR)/bin/man
