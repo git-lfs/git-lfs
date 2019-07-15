@@ -196,7 +196,7 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 	}
 
 	switch u.Scheme {
-	case "ssh":
+	case "ssh", "git+ssh", "ssh+git":
 		return lfshttp.EndpointFromSshUrl(u)
 	case "http", "https":
 		return lfshttp.EndpointFromHttpUrl(u)
