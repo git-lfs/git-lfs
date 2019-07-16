@@ -212,9 +212,12 @@ begin_test "track with autocrlf=input"
   [ "*.mov filter=lfs -text" = "$(cat .gitattributes)" ]
 
   git lfs track "*.gif"
-  expected="*.mov filter=lfs -text^M$
-*.gif filter=lfs diff=lfs merge=lfs -text^M$"
-  [ "$expected" = "$(cat -e .gitattributes)" ]
+  if [ $IS_WINDOWS -eq 1 ]
+  then
+      cat -e .gitattributes | grep '\^M\$'
+  else
+      cat -e .gitattributes | grep -v '\^M'
+  fi
 )
 end_test
 
