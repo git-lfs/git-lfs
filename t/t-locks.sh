@@ -50,6 +50,33 @@ begin_test "list a single lock"
 )
 end_test
 
+begin_test "list a single lock (SSH)"
+(
+  set -e
+
+  reponame="locks-list-ssh"
+  setup_remote_repo_with_file "$reponame" "f.dat"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+  echo $sshurl
+  git config lfs.url "$sshurl"
+
+  git lfs lock --json "f.dat" | tee lock.log
+
+  id=$(assert_lock lock.log f.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/master"
+
+  GIT_TRACE=1 git lfs locks --path "f.dat" 2>trace.log | tee locks.log
+  cat trace.log
+  [ $(wc -l < locks.log) -eq 1 ]
+  grep "f.dat" locks.log
+  grep "Git LFS Tests" locks.log
+  grep "lfs-ssh-echo.*git-lfs-authenticate $reponame download" trace.log
+)
+end_test
+
+
 begin_test "list a single lock (--json)"
 (
   set -e

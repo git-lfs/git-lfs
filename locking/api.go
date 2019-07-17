@@ -180,7 +180,7 @@ type lockList struct {
 }
 
 func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, *http.Response, error) {
-	e := c.Endpoints.Endpoint("upload", remote)
+	e := c.Endpoints.Endpoint("download", remote)
 	req, err := c.NewRequest("GET", e, "locks", nil)
 	if err != nil {
 		return nil, nil, err
