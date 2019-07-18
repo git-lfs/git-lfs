@@ -1,5 +1,75 @@
 # Git LFS Changelog
 
+## 2.8.0 (23 July 2019)
+
+This release adds support for SOCKS proxies and Windows junctions, adds native
+packages for Debian 10 and similar distributions, reduces the number of
+situations in which running `git lfs fetch --all` is required, improves
+compatibility with Cygwin, and numerous other bug fixes and modifications.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @mstrap for adding support for listing lock owners
+* @h-hirokawa for adding support for rewriting object URLs
+* @slonopotamus for helping get our specs and implementation in sync
+* @ssgelm for improving our Debian packaging
+* @TBK for fixing a test
+* @hartzell for improving the compatibility of our Makefile
+* @AJH16 for implementing support for NTLM SSO
+
+### Features
+
+* Don't fail if we lack objects the server has #3634 (@bk2204)
+* Add support for Debian 10 #3697 (@bk2204)
+* Migrate tags pointing to other tags #3690 (@bk2204)
+* Add support for SOCKS proxies #3677 (@bk2204)
+* Allow vendors to customize the version info #3636 (@bk2204)
+* Wrap credential data to allow late credential prompting and update NTLM/SSPI to attempt SSPI login prior to prompting for credentials. #3617 (@AJH16)
+* git-lfs locks should optionally denote own locks #3569 (@mstrap)
+* tq/adapterbase: support rewriting href #3590 (@h-hirokawa)
+* Handle Windows junctions properly #3560 (@bk2204)
+* Allow specifying multiple insteadOf aliases #3550 (@bk2204)
+
+### Bugs
+
+* Make API documentation lock creation example less confusing #3648 (@bk2204)
+* Use a download token when searching locks #3715 (@bk2204)
+* Copy mode from original file when rewriting objects #3694 (@bk2204)
+* Don't recurse into submodules when walking repository #3686 (@bk2204)
+* Be more precise about what timestamps we accept #3680 (@bk2204)
+* Canonicalize common directory paths on Cygwin #3671 (@bk2204)
+* Ensure we always use correct Content-Type and Accept headers #3663 (@bk2204)
+* Fix 'owner' lock field not documented as optional #3651 (@slonopotamus)
+* Improve error handling in git lfs install #3624 (@bk2204)
+* Properly handle config options for URLs with upper case letters #3584 (@bk2204)
+* Detect Cygwin-style pipe TTYs as TTYs #3582 (@bk2204)
+* Set push remote for pre-push #3579 (@bk2204)
+* Switch from manually running go generate to using dh-golang to run it #3549 (@ssgelm)
+* Install worktree hooks in the proper directory #3547 (@bk2204)
+* Avoid nil pointer dereference on download failure #3537 (@bk2204)
+* Avoid nil pointer dereference on unexpected failure #3534 (@bk2204)
+
+### Misc
+
+* Update gitobj to v1.3.1 #3716 (@bk2204)
+* Use default line endings for core.autocrlf=input #3712 (@bk2204)
+* Fix CircleCI #3710 (@bk2204)
+* Vendor in gitobj v1.3.0 #3685 (@bk2204)
+* Update CONTRIBUTING #3673 (@bk2204)
+* Fix typo in t-locks.sh #3666 (@TBK)
+* Make 'locked_at' required in JSON schema #3655 (@slonopotamus)
+* Document a new batch error code #3639 (@bk2204)
+* Fix invalid JSON in LFS locking API documentation #3650 (@slonopotamus)
+* Fix invalid JSON in locking protocol docs #3644 (@slonopotamus)
+* Various release updates #3623 (@bk2204)
+* tq/adapterbase: fix typo enableHrefRerite to enableHrefRewrite #3594 (@h-hirokawa)
+* Use git-lfs version of go-ntlm #3588 (@bk2204)
+* Log test server standard error to log file #3577 (@bk2204)
+* Don't set -extldflags unless LDFLAGS has a value #3545 (@hartzell)
+* Retry on oversize file #3518 (@bk2204)
+* Fix asset uploading during releases #3538 (@bk2204)
+
 ## 2.7.0 (15 February 2019)
 
 This release adds better support for large files on 32-bit systems, adds
