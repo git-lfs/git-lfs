@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -88,7 +87,6 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 
 	// Save stdout and stderr in separate buffers
 	var outbuf, errbuf bytes.Buffer
-	cmd.Stdin = os.Stdin
 	cmd.Stdout = &outbuf
 	cmd.Stderr = &errbuf
 
