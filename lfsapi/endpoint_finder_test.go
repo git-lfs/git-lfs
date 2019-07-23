@@ -166,6 +166,54 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "9000", e.SshPort)
 }
 
+func TestGitSSHEndpointAddsLfsSuffix(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git+ssh://git@example.com/foo/bar",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SshUserAndHost)
+	assert.Equal(t, "foo/bar", e.SshPath)
+	assert.Equal(t, "", e.SshPort)
+}
+
+func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git+ssh://git@example.com:9000/foo/bar",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SshUserAndHost)
+	assert.Equal(t, "foo/bar", e.SshPath)
+	assert.Equal(t, "9000", e.SshPort)
+}
+
+func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "ssh+git://git@example.com/foo/bar",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SshUserAndHost)
+	assert.Equal(t, "foo/bar", e.SshPath)
+	assert.Equal(t, "", e.SshPort)
+}
+
+func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "ssh+git://git@example.com:9000/foo/bar",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SshUserAndHost)
+	assert.Equal(t, "foo/bar", e.SshPath)
+	assert.Equal(t, "9000", e.SshPort)
+}
+
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"remote.origin.url": "git@example.com:foo/bar.git",
