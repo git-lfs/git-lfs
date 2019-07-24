@@ -172,7 +172,7 @@ type lockList struct {
 	// `LockListRequest`.
 	NextCursor string `json:"next_cursor,omitempty"`
 	// Message populates any error that was encountered during the search. If no
-	// error was encountered and the operation was succesful, then a value
+	// error was encountered and the operation was successful, then a value
 	// of nil will be passed here.
 	Message          string `json:"message,omitempty"`
 	DocumentationURL string `json:"documentation_url,omitempty"`
@@ -238,7 +238,7 @@ type lockVerifiableList struct {
 	// `LockListRequest`.
 	NextCursor string `json:"next_cursor,omitempty"`
 	// Message populates any error that was encountered during the search. If no
-	// error was encountered and the operation was succesful, then a value
+	// error was encountered and the operation was successful, then a value
 	// of nil will be passed here.
 	Message          string `json:"message,omitempty"`
 	DocumentationURL string `json:"documentation_url,omitempty"`

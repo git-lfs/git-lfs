@@ -57,7 +57,7 @@ func ForceProgress(v bool) Option {
 	}
 }
 
-// NewLogger retuns a new *Logger instance that logs to "sink" and uses the
+// NewLogger returns a new *Logger instance that logs to "sink" and uses the
 // current terminal width as the width of the line. Will log progress status if
 // stdout is a terminal or if forceProgress is true
 func NewLogger(sink io.Writer, options ...Option) *Logger {
