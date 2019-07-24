@@ -11,7 +11,7 @@ go through the ntlm auth flow.
 
 We will store NTLM credentials in the credential helper. When the user is prompted for their credentials they must use username:{DOMAIN}\{user} and password:{pass}
 
-The ntlm protocl will be handled by an ntlm.go class that hides the implementation of InitHandshake, Authenticate, and Challenge. This allows miminal changesto the existing
+The ntlm protocol will be handled by an ntlm.go class that hides the implementation of InitHandshake, Authenticate, and Challenge. This allows miminal changesto the existing
 client.go class.
 
 ### Tech

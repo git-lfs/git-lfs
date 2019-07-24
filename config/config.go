@@ -139,7 +139,7 @@ type Values struct {
 }
 
 // NewFrom returns a new `*config.Configuration` that reads both its Git
-// and Enviornment-level values from the ones provided instead of the actual
+// and Environment-level values from the ones provided instead of the actual
 // `.gitconfig` file or `os.Getenv`, respectively.
 //
 // This method should only be used during testing.

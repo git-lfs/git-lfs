@@ -4,7 +4,7 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.3.0"
 
-begin_test "credentails with url-specific helper skips askpass"
+begin_test "credentials with url-specific helper skips askpass"
 (
   set -e
 

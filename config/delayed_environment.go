@@ -7,7 +7,7 @@ import (
 // delayedEnvironment is an implementation of the Environment which wraps the legacy
 // behavior of `*config.Configuration.loadGitConfig()`.
 //
-// It is functionally equivelant to call `cfg.loadGitConfig()` before calling
+// It is functionally equivalent to call `cfg.loadGitConfig()` before calling
 // methods on the Environment type.
 type delayedEnvironment struct {
 	env      Environment

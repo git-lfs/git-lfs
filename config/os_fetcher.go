@@ -12,7 +12,7 @@ import (
 type OsFetcher struct {
 	// vmu guards read/write access to vals
 	vmu sync.Mutex
-	// vals maintains a local cache of the system's enviornment variables
+	// vals maintains a local cache of the system's environment variables
 	// for fast repeat lookups of a given key.
 	vals map[string]*string
 }

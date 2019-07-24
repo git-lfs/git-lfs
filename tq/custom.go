@@ -120,7 +120,7 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 }
 
 func (a *customAdapter) ClearTempStorage() error {
-	// no action requred
+	// no action required
 	return nil
 }
 

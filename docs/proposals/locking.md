@@ -364,7 +364,7 @@ type LockList struct {
         // `LockListRequest`.
         NextCursor string `json:"next_cursor,omitempty"`
         // Err populates any error that was encountered during the search. If no
-        // error was encountered and the operation was succesful, then a value
+        // error was encountered and the operation was successful, then a value
         // of nil will be passed here.
         Err error `json:"error,omitempty"`
 }

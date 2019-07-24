@@ -35,7 +35,7 @@ func (c *LockCache) Add(l Lock) error {
 	return nil
 }
 
-// Remove a cached lock by path becuase it's been relinquished
+// Remove a cached lock by path because it's been relinquished
 func (c *LockCache) RemoveByPath(filePath string) error {
 	ilock := c.kv.Get(filePath)
 	if lock, ok := ilock.(*Lock); ok && lock != nil {

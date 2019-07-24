@@ -5,7 +5,7 @@
 #  ./run_dockers.bsh centos_6 centos_7 - Run only CentOS 6 & 7 image
 #  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker
 #
-# Special Environmet Variables
+# Special Environments Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
 #  DOCKER_AUTOPULL - Default 1. If set to 0, it will not build docker images
 #                before running

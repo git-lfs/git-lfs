@@ -16,7 +16,7 @@ import (
 )
 
 // DatabaseFromFixture returns a *gitobj.ObjectDatabase instance that is safely
-// mutable and created from a template equivelant to the fixture that you
+// mutable and created from a template equivalent to the fixture that you
 // provided it.
 //
 // If any error was encountered, it will call t.Fatalf() immediately.

@@ -393,7 +393,7 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 //
 // If the API call failed, an error will be returned. If multiple locks matched
 // the given path (should not happen during real-world usage), an error will be
-// returnd. If no locks matched the given path, an error will be returned.
+// returned. If no locks matched the given path, an error will be returned.
 //
 // If the API call is successful, and only one lock matches the given filepath,
 // then its ID will be returned, along with a value of "nil" for the error.

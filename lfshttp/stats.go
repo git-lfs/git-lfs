@@ -43,7 +43,7 @@ func (c *Client) LogHTTPStats(w io.WriteCloser) {
 }
 
 // LogStats is intended to be called after all HTTP operations for the
-// commmand have finished. It dumps k/v logs, one line per httpTransfer into
+// command have finished. It dumps k/v logs, one line per httpTransfer into
 // a log file with the current timestamp.
 //
 // DEPRECATED: Call LogHTTPStats() before the first HTTP request.

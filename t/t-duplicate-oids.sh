@@ -6,7 +6,7 @@ begin_test "multiple revs with same OID get pushed once"
 (
   set -e
 
-  reponame="mutliple-revs-one-oid"
+  reponame="multiple-revs-one-oid"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 

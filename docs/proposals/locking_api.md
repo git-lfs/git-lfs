@@ -69,7 +69,7 @@
 < }
 ```
 
-* **Bad repsonse: server error**
+* **Bad response: server error**
 ```
 < HTTP/1.1 500 Internal server error
 < Content-Type: application/vnd.git-lfs+json
@@ -93,7 +93,7 @@
 > Authorization: Basic
 ```
 
-### Repsonse
+### Response
 
 * **Success: unlocked**
 ```

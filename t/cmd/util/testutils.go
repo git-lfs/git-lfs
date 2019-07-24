@@ -439,7 +439,7 @@ func (r *Repo) AddRemote(name string) *Repo {
 	return remote
 }
 
-// Just a psuedo-random stream of bytes (not cryptographic)
+// Just a pseudo-random stream of bytes (not cryptographic)
 // Calls RNG a bit less often than using rand.Source directly
 type PlaceholderDataReader struct {
 	source    rand.Source
