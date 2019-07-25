@@ -108,6 +108,8 @@ begin_test "alternates (OS environment, single)"
   popd > /dev/null
 
   rm -rf .git/lfs/objects
+  rm -rf .git/objects/*
+  git init
 
   alternate="$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects")"
 
@@ -115,6 +117,8 @@ begin_test "alternates (OS environment, single)"
   GIT_TRACE=1 \
     git lfs fetch origin master 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
+  GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate" \
+    git lfs push "$(git config remote.origin.url)" master
 )
 end_test
 
@@ -134,6 +138,8 @@ begin_test "alternates (OS environment, multiple)"
   popd > /dev/null
 
   rm -rf .git/lfs/objects
+  rm -rf .git/objects/*
+  git init
 
   alternate_stale="$(native_path "$TRASHDIR/${reponame}_alternate_stale/.git/objects")"
   alternate="$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects")"
@@ -143,5 +149,7 @@ begin_test "alternates (OS environment, multiple)"
   GIT_TRACE=1 \
     git lfs fetch origin master 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
+  GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate_stale$sep$alternate" \
+    git lfs push "$(git config remote.origin.url)" master
 )
 end_test

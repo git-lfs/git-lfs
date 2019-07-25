@@ -48,7 +48,8 @@ func NewObjectScanner(osEnv Environment) (*ObjectScanner, error) {
 		return nil, err
 	}
 
-	gitobj, err := gitobj.FromFilesystem(filepath.Join(gitdir, "objects"), "")
+	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	gitobj, err := gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), "", alternates)
 	if err != nil {
 		return nil, err
 	}
