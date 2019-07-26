@@ -85,7 +85,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 	if err := c.RunToPath(p, cwdfilepath); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)
-			LoggedError(err, "Skipped checkout for %q, content not local. Use fetch to download.", p.Name)
+			Error("Skipped checkout for %q, content not local. Use fetch to download.", p.Name)
 		} else {
 			FullError(fmt.Errorf("Could not check out %q", p.Name))
 		}
