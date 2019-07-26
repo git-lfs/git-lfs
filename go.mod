@@ -7,7 +7,6 @@ require (
 	github.com/git-lfs/go-ntlm v0.0.0-20190307203151-c5056e7fa066
 	github.com/git-lfs/wildmatch v1.0.2
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
 	github.com/mattn/go-isatty v0.0.4
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
