@@ -162,18 +162,16 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@bk2204][bk2204-user] | [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@ttaylorr][ttaylorr-user] |
-|---|---|---|---|
-| [![][bk2204-img]][bk2204-user] | [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][ttaylorr-img]][ttaylorr-user] |
+| [@bk2204][bk2204-user] | [@larsxschneider][larsxschneider-user] | [@PastelMobileSuit][PastelMobileSuit-user] |
+|---|---|---|
+| [![][bk2204-img]][bk2204-user] | [![][larsxschneider-img]][larsxschneider-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] |
 
 [bk2204-img]: https://avatars1.githubusercontent.com/u/497054?s=100&v=4
 [larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
 [PastelMobileSuit-img]: https://avatars2.githubusercontent.com/u/37254014?s=100&v=4
-[ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
 [bk2204-user]: https://github.com/bk2204
 [larsxschneider-user]: https://github.com/larsxschneider
 [PastelMobileSuit-user]: https://github.com/PastelMobileSuit
-[ttaylorr-user]: https://github.com/ttaylorr
 
 ### Alumni
 
@@ -183,15 +181,17 @@ not be possible without them.
 
 In alphabetical order:
 
-| [@andyneff][andyneff-user] | [@rubyist][rubyist-user] | [@sinbad][sinbad-user] | [@technoweenie][technoweenie-user] |
-|---|---|---|---|
-| [![][andyneff-img]][andyneff-user] | [![][rubyist-img]][rubyist-user] | [![][sinbad-img]][sinbad-user] | [![][technoweenie-img]][technoweenie-user] |
+| [@andyneff][andyneff-user] | [@rubyist][rubyist-user] | [@sinbad][sinbad-user] | [@technoweenie][technoweenie-user] | [@ttaylorr][ttaylorr-user] |
+|---|---|---|---|---|
+| [![][andyneff-img]][andyneff-user] | [![][rubyist-img]][rubyist-user] | [![][sinbad-img]][sinbad-user] | [![][technoweenie-img]][technoweenie-user] | [![][ttaylorr-img]][ttaylorr-user] |
 
 [andyneff-img]: https://avatars1.githubusercontent.com/u/7596961?v=3&s=100
 [rubyist-img]: https://avatars1.githubusercontent.com/u/143?v=3&s=100
 [sinbad-img]: https://avatars1.githubusercontent.com/u/142735?v=3&s=100
 [technoweenie-img]: https://avatars3.githubusercontent.com/u/21?v=3&s=100
+[ttaylorr-img]: https://avatars2.githubusercontent.com/u/443245?s=100&v=4
 [andyneff-user]: https://github.com/andyneff
 [sinbad-user]: https://github.com/sinbad
 [rubyist-user]: https://github.com/rubyist
 [technoweenie-user]: https://github.com/technoweenie
+[ttaylorr-user]: https://github.com/ttaylorr
