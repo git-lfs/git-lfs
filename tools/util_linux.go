@@ -33,3 +33,16 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 	}
 	return false, nil
 }
+
+func CloneFileByPath(dst, src string) (bool, error) {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return false, err
+	}
+	dstFile, err := os.Create(dst) //truncating, it if it already exists.
+	if err != nil {
+		return false, err
+	}
+
+	return CloneFile(dstFile, srcFile)
+}

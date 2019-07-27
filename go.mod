@@ -18,5 +18,5 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
-	golang.org/x/sys v0.0.0-20180831094639-fa5fdf94c789 // indirect
+	golang.org/x/sys v0.0.0-20180831094639-fa5fdf94c789
 )
