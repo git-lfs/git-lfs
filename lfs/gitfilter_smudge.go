@@ -36,7 +36,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 	if _, err := f.Smudge(file, ptr, filename, download, manifest, cb); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
-			file.Seek(0, os.SEEK_SET)
+			file.Seek(0, io.SeekStart)
 			ptr.Encode(file)
 			return err
 		} else {

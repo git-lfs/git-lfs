@@ -122,7 +122,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	var reader lfsapi.ReadSeekCloser = tools.NewBodyWithCallback(f, t.Size, ccb)
 	reader = newStartCallbackReader(reader, func() error {
 		// seek to the offset since lfsapi.Client rewinds the body
-		if _, err := f.Seek(offset, os.SEEK_CUR); err != nil {
+		if _, err := f.Seek(offset, io.SeekCurrent); err != nil {
 			return err
 		}
 		// Signal auth was ok on first read; this frees up other workers to start

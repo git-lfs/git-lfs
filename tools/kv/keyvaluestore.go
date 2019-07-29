@@ -136,7 +136,7 @@ func (k *Store) Save() error {
 	if stat, _ := f.Stat(); stat.Size() > 0 {
 		k.loadAndMergeReaderIfNeeded(f)
 		// Now we overwrite the file
-		f.Seek(0, os.SEEK_SET)
+		f.Seek(0, io.SeekStart)
 		f.Truncate(0)
 	}
 
