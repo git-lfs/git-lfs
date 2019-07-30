@@ -202,6 +202,8 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 		return lfshttp.EndpointFromHttpUrl(u)
 	case "git":
 		return endpointFromGitUrl(u, e)
+	case "file":
+		return lfshttp.EndpointFromFileUrl(u)
 	case "":
 		return lfshttp.EndpointFromBareSshUrl(u.String())
 	default:

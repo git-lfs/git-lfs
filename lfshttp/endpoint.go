@@ -112,3 +112,9 @@ func EndpointFromLocalPath(path string) Endpoint {
 	}
 	return Endpoint{Url: fmt.Sprintf("file://%s", path)}
 }
+
+// Construct a new endpoint from a file URL
+func EndpointFromFileUrl(u *url.URL) Endpoint {
+	// just pass this straight through
+	return Endpoint{Url: u.String()}
+}
