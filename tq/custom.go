@@ -348,8 +348,23 @@ func newCustomAdapter(f *fs.Filesystem, name string, dir Direction, path, args s
 	return c
 }
 
+const (
+	standaloneFileName = "lfs-standalone-file"
+)
+
+func configureDefaultCustomAdapters(git Env, m *Manifest) {
+	newfunc := func(name string, dir Direction) Adapter {
+		standalone := m.standaloneTransferAgent != ""
+		return newCustomAdapter(m.fs, standaloneFileName, dir, "git-lfs", "standalone-file", false, standalone)
+	}
+	m.RegisterNewAdapterFunc(standaloneFileName, Download, newfunc)
+	m.RegisterNewAdapterFunc(standaloneFileName, Upload, newfunc)
+}
+
 // Initialise custom adapters based on current config
 func configureCustomAdapters(git Env, m *Manifest) {
+	configureDefaultCustomAdapters(git, m)
+
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
 	for k, _ := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
