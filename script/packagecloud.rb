@@ -87,6 +87,7 @@ $distro_name_map = {
   ],
   "debian/10" => [
     "debian/buster",    # Current
+    "ubuntu/eoan",      # Current
   ]
 }
 
