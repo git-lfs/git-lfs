@@ -41,6 +41,7 @@ $distro_name_map = {
     # or https://en.wikipedia.org/wiki/Fedora_version_history#Version_history
     "fedora/28", # EOL ~Oct 2019
     "fedora/29", # EOL ~2020
+    "fedora/30", # EOL ~2020
     # "fedora/30", # BOL ~May 2019
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
