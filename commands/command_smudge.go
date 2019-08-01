@@ -124,7 +124,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 		download = filter.Allows(filename)
 	}
 
-	n, err := gf.Smudge(to, ptr, filename, download, getTransferManifest(), cb)
+	n, err := gf.Smudge(to, ptr, filename, download, getTransferManifestOperationRemote("download", cfg.Remote()), cb)
 	if file != nil {
 		file.Close()
 	}
