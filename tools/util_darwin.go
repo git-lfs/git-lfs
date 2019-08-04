@@ -5,11 +5,13 @@ package tools
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"unsafe"
 
+	"github.com/git-lfs/git-lfs/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -52,6 +54,30 @@ func checkCloneFileSupported() bool {
 	}
 
 	return major >= 16
+}
+
+// CheckCloneFileSupported runs explicit test of clone file on supplied directory.
+// This function creates some (src and dst) file in the directory and remove after test finished.
+//
+// If check failed (e.g. directory is read-only), returns err.
+func CheckCloneFileSupported(dir string) (supported bool, err error) {
+	if !cloneFileSupported {
+		return false, errors.New("unsupported OS version. >= 10.12.x Sierra required")
+	}
+
+	src, err := ioutil.TempFile(dir, "src")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(src.Name())
+
+	dst, err := ioutil.TempFile(dir, "dst")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(dst.Name())
+
+	return CloneFileByPath(dst.Name(), src.Name())
 }
 
 type CloneFileError struct {
