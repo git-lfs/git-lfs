@@ -11,6 +11,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCheckCloneFileSupported(t *testing.T) {
+	as := assert.New(t)
+
+	// Do
+	ok, err := CheckCloneFileSupported(os.TempDir())
+
+	// Verify
+	t.Logf("ok = %v, err = %v", ok, err) // Just logging for 1st element
+
+	if ! checkCloneFileSupported() {
+		as.EqualError(err, "unsupported OS version. >= 10.12.x Sierra required")
+	}
+}
+
 func TestCloneFile(t *testing.T) {
 	as := assert.New(t)
 
