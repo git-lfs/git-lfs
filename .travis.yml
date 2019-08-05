@@ -11,7 +11,7 @@ env:
     - GIT_LFS_SRC_DIR="$HOME/src/git-lfs"
     - GIT_LFS_TEST_DIR="$HOME/git-lfs-tests"
     - GIT_SOURCE_REPO="https://github.com/git/git.git"
-    - GIT_EARLIEST_SUPPORTED_VERSION="v2.0.0
+    - GIT_EARLIEST_SUPPORTED_VERSION="v2.0.0"
     - GIT_LATEST_SOURCE_BRANCH="master"
     - GIT_ASKPASS=""
 
