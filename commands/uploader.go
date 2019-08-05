@@ -54,7 +54,12 @@ func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue,
 			return err
 		}
 	} else {
-		if err := g.ScanLeftToRemote(update.LeftCommitish(), cb); err != nil {
+		left := update.LeftCommitish()
+		right := update.Right().Sha
+		if left == right {
+			right = ""
+		}
+		if err := g.ScanRangeToRemote(left, right, cb); err != nil {
 			return err
 		}
 	}

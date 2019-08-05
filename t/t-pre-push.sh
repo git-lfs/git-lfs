@@ -1180,3 +1180,45 @@ begin_test "pre-push with pushDefault and explicit remote"
   ! grep wrong-url push.log
 )
 end_test
+
+begin_test "pre-push does not traverse Git objects server has"
+(
+  set -e
+  reponame="pre-push-traverse-server-objects"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint=$(git config remote.origin.url)
+  contents_oid=$(calc_oid 'hi\n')
+  git config "lfs.$endpoint.locksverify" false
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  refute_server_object "$reponame" $contents_oid "refs/heads/master"
+
+  # We use a URL instead of a named remote so that we can't make use of the
+  # optimization that ignores objects we already have in remote tracking
+  # branches.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" $contents_oid "refs/heads/master"
+
+  contents2_oid=$(calc_oid 'hello\n')
+  echo "hello" > b.dat
+  git add .gitattributes b.dat
+  git commit -m "add b.dat"
+
+  refute_server_object "$reponame" $contents2_oid "refs/heads/master"
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+
+  assert_server_object "$reponame" $contents2_oid "refs/heads/master"
+
+  # Verify that we haven't tried to push or query for the object we already
+  # pushed before; i.e., we didn't see it because we ignored its Git object
+  # during traversal.
+  ! grep $contents_oid push.log
+)
+end_test

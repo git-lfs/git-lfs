@@ -91,7 +91,7 @@ func TestRevListArgs(t *testing.T) {
 		},
 		"scan left to remote, no skipped refs": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
-				Mode:        ScanLeftToRemoteMode,
+				Mode:        ScanRangeToRemoteMode,
 				Remote:      "origin",
 				SkippedRefs: []string{},
 			},
@@ -100,7 +100,7 @@ func TestRevListArgs(t *testing.T) {
 		},
 		"scan left to remote, skipped refs": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
-				Mode:        ScanLeftToRemoteMode,
+				Mode:        ScanRangeToRemoteMode,
 				Remote:      "origin",
 				SkippedRefs: []string{"a", "b", "c"},
 			},

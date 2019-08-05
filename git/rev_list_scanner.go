@@ -23,9 +23,9 @@ const (
 	ScanRefsMode ScanningMode = iota
 	// ScanAllMode will scan all history.
 	ScanAllMode
-	// ScanLeftToRemoteMode will scan the difference between any included
+	// ScanRangeToRemoteMode will scan the difference between any included
 	// SHA1s and a remote tracking ref.
-	ScanLeftToRemoteMode
+	ScanRangeToRemoteMode
 )
 
 // RevListOrder is a constant type that allows for variation in the ordering of
@@ -250,7 +250,7 @@ func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []
 			includeExcludeShas(include, exclude), "\n"))
 	case ScanAllMode:
 		args = append(args, "--all")
-	case ScanLeftToRemoteMode:
+	case ScanRangeToRemoteMode:
 		if len(opt.SkippedRefs) == 0 {
 			args = append(args, "--not", "--remotes="+opt.Remote)
 			stdin = strings.NewReader(strings.Join(
