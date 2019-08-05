@@ -14,7 +14,7 @@ assert_pointer() {
     while read -r -d $'\0' x; do
       echo $x
     done |
-    grep "$path" | cut -f 3 -d " ")
+    grep -F "$path" | cut -f 3 -d " ")
 
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)

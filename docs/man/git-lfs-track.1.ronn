@@ -31,6 +31,11 @@ to match paths.
 
   Disabled by default.
 
+* `--filename`
+  Treat the arguments as literal filenames, not as patterns. Any special glob
+  characters in the filename will be escaped when writing the `.gitattributes`
+  file.
+
 * `--lockable` `-l`
   Make the paths 'lockable', meaning they should be locked to edit them, and
   will be made read-only in the working copy when not locked.
