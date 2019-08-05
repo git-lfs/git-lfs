@@ -74,9 +74,10 @@ func (s *GitScanner) RemoteForPush(r string) error {
 	return nil
 }
 
-// ScanLeftToRemote scans through all commits starting at the given ref that the
-// given remote does not have. See RemoteForPush().
-func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerFoundPointer) error {
+// ScanRangeToRemote scans through all commits starting at the left ref but not
+// including the right ref (if given)that the given remote does not have. See
+// RemoteForPush().
+func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -89,7 +90,10 @@ func (s *GitScanner) ScanLeftToRemote(left string, cb GitScannerFoundPointer) er
 	}
 	s.mu.Unlock()
 
-	return scanLeftRightToChan(s, callback, left, "", s.opts(ScanLeftToRemoteMode))
+	if len(right) != 0 {
+		right = fmt.Sprintf("^%s", right)
+	}
+	return scanLeftRightToChan(s, callback, left, right, s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanRefs through all commits reachable by refs contained in "include" and
@@ -216,9 +220,9 @@ func firstGitScannerCallback(callbacks ...GitScannerFoundPointer) (GitScannerFou
 type ScanningMode int
 
 const (
-	ScanRefsMode         = ScanningMode(iota) // 0 - or default scan mode
-	ScanAllMode          = ScanningMode(iota)
-	ScanLeftToRemoteMode = ScanningMode(iota)
+	ScanRefsMode          = ScanningMode(iota) // 0 - or default scan mode
+	ScanAllMode           = ScanningMode(iota)
+	ScanRangeToRemoteMode = ScanningMode(iota)
 )
 
 type ScanRefsOptions struct {
