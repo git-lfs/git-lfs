@@ -1,6 +1,7 @@
 package tq
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
@@ -103,6 +104,13 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 	return m
 }
 
+func findDefaultStandaloneTransfer(url string) string {
+	if strings.HasPrefix(url, "file://") {
+		return standaloneFileName
+	}
+	return ""
+}
+
 func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) string {
 	if operation == "" || remote == "" {
 		v, _ := client.GitEnv().Get("lfs.standalonetransferagent")
@@ -113,7 +121,7 @@ func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) str
 	uc := config.NewURLConfig(client.GitEnv())
 	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")
 	if !ok {
-		return ""
+		return findDefaultStandaloneTransfer(ep.Url)
 	}
 
 	return v

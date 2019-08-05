@@ -45,8 +45,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -97,8 +97,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -156,8 +156,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -213,8 +213,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -271,8 +271,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -331,8 +331,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -391,8 +391,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -459,8 +459,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -514,8 +514,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -568,8 +568,8 @@ PruneRemoteName=origin
 LfsStorageDir=lfs
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 git config filter.lfs.process = ""
 git config filter.lfs.smudge = ""
@@ -604,8 +604,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -637,8 +637,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -682,8 +682,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -761,8 +761,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -794,8 +794,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -827,8 +827,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVarsEnabled" "$envInitConfig")
@@ -889,8 +889,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,supertransfer
-UploadTransfers=basic,supertransfer,tus
+DownloadTransfers=basic,lfs-standalone-file,supertransfer
+UploadTransfers=basic,lfs-standalone-file,supertransfer,tus
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -948,8 +948,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic
-UploadTransfers=basic
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")

@@ -175,6 +175,10 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lf
 		ep.Url = rawurl[0 : len(rawurl)-1]
 	}
 
+	if strings.HasPrefix(rawurl, "file://") {
+		return ep
+	}
+
 	// When using main remote URL for HTTP, append info/lfs
 	if path.Ext(ep.Url) == ".git" {
 		ep.Url += "/info/lfs"
@@ -202,6 +206,8 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 		return lfshttp.EndpointFromHttpUrl(u)
 	case "git":
 		return endpointFromGitUrl(u, e)
+	case "file":
+		return lfshttp.EndpointFromFileUrl(u)
 	case "":
 		return lfshttp.EndpointFromBareSshUrl(u.String())
 	default:
