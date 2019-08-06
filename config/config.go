@@ -230,12 +230,7 @@ func (c *Configuration) Remote() string {
 	defer c.loading.Unlock()
 
 	if c.currentRemote == nil {
-		if len(ref.Name) == 0 {
-			c.currentRemote = &defaultRemote
-			return defaultRemote
-		}
-
-		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); ok {
+		if remote, ok := c.Git.Get(fmt.Sprintf("branch.%s.remote", ref.Name)); len(ref.Name) != 0 && ok {
 			// try tracking remote
 			c.currentRemote = &remote
 		} else if remotes := c.Remotes(); len(remotes) == 1 {

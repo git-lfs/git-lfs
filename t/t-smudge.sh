@@ -219,3 +219,34 @@ begin_test "smudge skip download failure"
 
 )
 end_test
+
+begin_test "smudge no ref, non-origin"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-no-ref-non-origin"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame-1"
+
+  git lfs track "*.dat"
+  echo "smudge a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+  master=$(git rev-parse master)
+
+  cd ..
+  git init "$reponame"
+  cd "$reponame"
+
+  # We intentionally pick a name that is not origin to exercise the remote
+  # selection code path. Since there is only one remote, we should use it
+  # regardless of its name
+  git config remote.random.url "$GITSERVER/$reponame"
+  git fetch "$GITSERVER/$reponame"
+
+  git checkout "$master"
+  [ "smudge a" = "$(cat a.dat)" ]
+)
+end_test
