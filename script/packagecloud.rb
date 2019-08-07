@@ -30,15 +30,18 @@ $distro_name_map = {
     "el/5" # End of Extended Support November 30, 2020
   ],
   "centos/6" => [
-    "el/6" # End of Extended Support June 30, 2024
+    "el/6", # End of Extended Support June 30, 2024
+    "scientific/6",
   ],
   "centos/7" => [
     "el/7",
+    "scientific/7",
     #"el/8", # BOL ~2019-2020?
     # Fedora EOL check https://fedoraproject.org/wiki/End_of_life
     # or https://en.wikipedia.org/wiki/Fedora_version_history#Version_history
     "fedora/28", # EOL ~Oct 2019
     "fedora/29", # EOL ~2020
+    "fedora/30", # EOL ~2020
     # "fedora/30", # BOL ~May 2019
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
@@ -84,6 +87,7 @@ $distro_name_map = {
   ],
   "debian/10" => [
     "debian/buster",    # Current
+    "ubuntu/eoan",      # Current
   ]
 }
 
