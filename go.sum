@@ -22,12 +22,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086 h1:mncRSDOqYCng7jOD+Y6+IivdRI6Kzv2BLWYkWkdQfu0=
 github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086/go.mod h1:YpdgDXpumPB/+EGmGTYHeiW/0QVFRzBYTNFaxWfPDk4=
-github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a h1:pYw8mElqJwrz3T7QVT2EZw1Te6gHW+cOGsuOuRzNdRo=
-github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
 github.com/spf13/cobra v0.0.3 h1:ZlrZ4XsMRm04Fr5pSFxBgfND2EBVa1nLpiy1stUsX/8=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
-github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33 h1:JZTN3XaDcPNAKb/i98hWdKD3C0wNQ8ehJRQHcg9eQ10=
-github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.3 h1:zPAT6CGy6wXeQ7NtTnaTerfKOsV6V6F8agHXFiazDkg=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
