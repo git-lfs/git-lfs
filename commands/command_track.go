@@ -27,6 +27,7 @@ var (
 	trackDryRunFlag         bool
 	trackNoModifyAttrsFlag  bool
 	trackNoExcludedFlag     bool
+	trackFilenameFlag       bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -93,6 +94,13 @@ ArgsLoop:
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
+		}
+
+		if trackFilenameFlag {
+			// We need to do this after escapeAttrPattern since that
+			// function turns backslashes into slashes.
+			encodedArg = escapeGlobCharacters(encodedArg)
+			pattern = escapeGlobCharacters(pattern)
 		}
 
 		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
@@ -290,7 +298,15 @@ var (
 		" ": "[[:space:]]",
 		"#": "\\#",
 	}
+	trackEscapeStrings = []string{"*", "[", "]", "?"}
 )
+
+func escapeGlobCharacters(s string) string {
+	for _, ch := range trackEscapeStrings {
+		s = strings.Replace(s, ch, fmt.Sprintf("\\%s", ch), -1)
+	}
+	return s
+}
 
 func escapeAttrPattern(unescaped string) string {
 	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
@@ -320,5 +336,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackDryRunFlag, "dry-run", "d", false, "preview results of running `git lfs track`")
 		cmd.Flags().BoolVarP(&trackNoModifyAttrsFlag, "no-modify-attrs", "", false, "skip modifying .gitattributes file")
 		cmd.Flags().BoolVarP(&trackNoExcludedFlag, "no-excluded", "", false, "skip listing excluded paths")
+		cmd.Flags().BoolVarP(&trackFilenameFlag, "filename", "", false, "treat this pattern as a literal filename")
 	})
 }
