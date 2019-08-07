@@ -17,8 +17,6 @@ github.com/git-lfs/go-ntlm/ntlm/md4
 github.com/git-lfs/wildmatch
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/kr/pty v0.0.0-20150511174710-5cf931ef8f76
-github.com/kr/pty
 # github.com/mattn/go-isatty v0.0.4
 github.com/mattn/go-isatty
 # github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
