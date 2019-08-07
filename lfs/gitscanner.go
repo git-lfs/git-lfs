@@ -90,9 +90,6 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	}
 	s.mu.Unlock()
 
-	if len(right) != 0 {
-		right = fmt.Sprintf("^%s", right)
-	}
 	return scanLeftRightToChan(s, callback, left, right, s.opts(ScanRangeToRemoteMode))
 }
 

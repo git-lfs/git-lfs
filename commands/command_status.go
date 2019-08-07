@@ -239,7 +239,7 @@ func statusScanRefRange(ref *git.Ref) {
 	defer gitscanner.Close()
 
 	Print("Git LFS objects to be pushed to %s:\n", remoteRef.Name)
-	if err := gitscanner.ScanRefRange(ref.Sha, "^"+remoteRef.Sha, nil); err != nil {
+	if err := gitscanner.ScanRefRange(ref.Sha, remoteRef.Sha, nil); err != nil {
 		Panic(err, "Could not scan for Git LFS objects")
 	}
 
