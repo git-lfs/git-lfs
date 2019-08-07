@@ -36,7 +36,16 @@ type ObjectDatabase struct {
 //
 //  /absolute/repo/path/.git/objects
 func FromFilesystem(root, tmp string) (*ObjectDatabase, error) {
-	b, err := NewFilesystemBackend(root, tmp)
+	return FromFilesystemWithAlternates(root, tmp, "")
+}
+
+// FromFilesystemWithAlternates constructs an *ObjectDatabase instance that is
+// backed by a directory on the filesystem, optionally with one or more
+// alternates. Specifically, this should point to:
+//
+//  /absolute/repo/path/.git/objects
+func FromFilesystemWithAlternates(root, tmp, alternates string) (*ObjectDatabase, error) {
+	b, err := NewFilesystemBackendWithAlternates(root, tmp, alternates)
 	if err != nil {
 		return nil, err
 	}

@@ -2,8 +2,8 @@ github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858 h1:OZQyEhf4Bviyd
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858/go.mod h1:976q2ETgjT2snVCf2ZaBnyBbVoPERGjUz+0sofzEfro=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/git-lfs/gitobj v1.3.1 h1:Nni8wnRfvT3x91rDl3V397LjKOUoiaEK6vyIcA92aM8=
-github.com/git-lfs/gitobj v1.3.1/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
+github.com/git-lfs/gitobj v1.4.0 h1:F7fKUUM/OTVu0ejnBA6x0trSYM8A9Zv7VGoBTsMmhHk=
+github.com/git-lfs/gitobj v1.4.0/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/go-ntlm v0.0.0-20190307203151-c5056e7fa066 h1:j7JwIEwLNQ/kBdKpHO3U1jjMXIPjSq7eCFvQIF3e8Fs=

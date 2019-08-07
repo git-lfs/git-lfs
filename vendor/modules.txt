@@ -3,7 +3,7 @@ github.com/alexbrainman/sspi
 github.com/alexbrainman/sspi/ntlm
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/git-lfs/gitobj v1.3.1
+# github.com/git-lfs/gitobj v1.4.0
 github.com/git-lfs/gitobj
 github.com/git-lfs/gitobj/errors
 github.com/git-lfs/gitobj/pack
