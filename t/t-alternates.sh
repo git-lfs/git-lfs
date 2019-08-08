@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "test/testlib.sh"
+. "$(dirname "$0")/testlib.sh"
 
 begin_test "alternates (single)"
 (
