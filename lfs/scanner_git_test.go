@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/config"
 	. "github.com/git-lfs/git-lfs/lfs"
 	test "github.com/git-lfs/git-lfs/t/cmd/util"
 	"github.com/stretchr/testify/assert"
@@ -91,7 +92,7 @@ func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 	pointers := make([]*WrappedPointer, 0, 10)
 	var multiErr error
 
-	gitscanner := NewGitScanner(func(p *WrappedPointer, err error) {
+	gitscanner := NewGitScanner(config.New(), func(p *WrappedPointer, err error) {
 		if err != nil {
 			if multiErr != nil {
 				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
@@ -193,7 +194,7 @@ func TestScanPreviousVersions(t *testing.T) {
 
 func scanPreviousVersions(t *testing.T, ref string, since time.Time) ([]*WrappedPointer, error) {
 	pointers := make([]*WrappedPointer, 0, 10)
-	gitscanner := NewGitScanner(func(p *WrappedPointer, err error) {
+	gitscanner := NewGitScanner(config.New(), func(p *WrappedPointer, err error) {
 		if err != nil {
 			t.Error(err)
 			return

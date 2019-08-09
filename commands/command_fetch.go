@@ -60,7 +60,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	success := true
-	gitscanner := lfs.NewGitScanner(nil)
+	gitscanner := lfs.NewGitScanner(cfg, nil)
 	defer gitscanner.Close()
 
 	include, exclude := getIncludeExcludeArgs(cmd)
@@ -110,7 +110,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, error) {
 	var pointers []*lfs.WrappedPointer
 	var multiErr error
-	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			if multiErr != nil {
 				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
@@ -147,7 +147,7 @@ func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter) bool {
 	var pointers []*lfs.WrappedPointer
 
-	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			Panic(err, "Could not scan for Git LFS previous versions")
 			return
@@ -239,7 +239,7 @@ func scanAll() []*lfs.WrappedPointer {
 	// use temp gitscanner to collect pointers
 	var pointers []*lfs.WrappedPointer
 	var multiErr error
-	tempgitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			if multiErr != nil {
 				multiErr = fmt.Errorf("%v\n%v", multiErr, err)

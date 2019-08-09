@@ -42,7 +42,7 @@ type ObjectScanner struct {
 // command, they will be returned immediately.
 //
 // Otherwise, an `*ObjectScanner` is returned with no error.
-func NewObjectScanner() (*ObjectScanner, error) {
+func NewObjectScanner(osEnv Environment) (*ObjectScanner, error) {
 	gitdir, err := GitCommonDir()
 	if err != nil {
 		return nil, err

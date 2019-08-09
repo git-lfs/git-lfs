@@ -1,6 +1,9 @@
 package lfs
 
-import "github.com/git-lfs/git-lfs/tools"
+import (
+	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools"
+)
 
 const (
 	// blobSizeCutoff is used to determine which files to scan for Git LFS
@@ -45,11 +48,11 @@ func catFileBatchCheck(revs *StringChannelWrapper, lockableSet *lockableNameSet)
 // of a git object, given its sha1. The contents will be decoded into
 // a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
 // will be sent. It returns a channel from which point.Pointers can be read.
-func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet) (*PointerChannelWrapper, chan string, error) {
+func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet, osEnv config.Environment) (*PointerChannelWrapper, chan string, error) {
 	pointerCh := make(chan *WrappedPointer, chanBufSize)
 	lockableCh := make(chan string, chanBufSize)
 	errCh := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?
-	if err := runCatFileBatch(pointerCh, lockableCh, lockableSet, revs, errCh); err != nil {
+	if err := runCatFileBatch(pointerCh, lockableCh, lockableSet, revs, errCh, osEnv); err != nil {
 		return nil, nil, err
 	}
 	return NewPointerChannelWrapper(pointerCh, errCh), lockableCh, nil
