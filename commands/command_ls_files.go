@@ -23,7 +23,9 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	requireInRepo()
 
 	var ref string
-	if len(args) == 1 {
+	var otherRef string
+	var scanRange = false
+	if len(args) > 0 {
 		if lsFilesScanAll {
 			Exit("fatal: cannot use --all with explicit reference")
 		} else if args[0] == "--all" {
@@ -37,6 +39,13 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 
 		ref = args[0]
+		if len(args) > 1 {
+			if lsFilesScanDeleted {
+				Exit("fatal: cannot use --deleted with reference range")
+			}
+			otherRef = args[1]
+			scanRange = true
+		}
 	} else {
 		fullref, err := git.CurrentRef()
 		if err != nil {
@@ -59,7 +68,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		if !lsFilesScanAll {
+		if !lsFilesScanAll && !scanRange {
 			if _, ok := seen[p.Name]; ok {
 				return
 			}
@@ -118,6 +127,8 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		var err error
 		if lsFilesScanDeleted {
 			err = gitscanner.ScanRefWithDeleted(ref, nil)
+		} else if scanRange {
+			err = gitscanner.ScanRefRange(otherRef, ref, nil)
 		} else {
 			err = gitscanner.ScanTree(ref)
 		}

@@ -3,12 +3,16 @@ git-lfs-ls-files(1) -- Show information about Git LFS files in the index and wor
 
 ## SYNOPSIS
 
-`git lfs ls-files` [<ref>]
+`git lfs ls-files` [<ref>]<br>
+`git lfs ls-files` <ref> <ref>
 
 ## DESCRIPTION
 
 Display paths of Git LFS files that are found in the tree at the given
 reference.  If no reference is given, scan the currently checked-out branch.
+If two references are given, the LFS files that are modified between the two
+references are shown; deletions are not listed.
+
 An asterisk (*) after the OID indicates a full object, a minus (-) indicates an
 LFS pointer.
 
