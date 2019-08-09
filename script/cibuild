@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-GOIMPORTS="goimports"
-if [ "appveyor" = "$USERNAME" ]; then
-  GOIMPORTS="C:\\Users\\appveyor\\go\\bin\\goimports"
+# Strip out CI environment variables which cause tests to fail.
+unset $(env | grep -E '^GIT(HUB)?_' | sed -e 's/=.*$//')
+
+UNAME=$(uname -s)
+X=""
+if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
+  X=".exe"
+  WINDOWS=1
+  export GIT_LFS_NO_TEST_COUNT=1
+  export GIT_LFS_LOCK_ACQUIRE_DISABLED=1
 fi
+
+GOIMPORTS="goimports"
 
 make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 
@@ -12,15 +21,9 @@ make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 GIT_TRACE=1 make GOIMPORTS="$GOIMPORTS" PKGS=git test
 
 pushd t >/dev/null
-  UNAME=$(uname -s)
-  X=""
-  if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
-    X=".exe"
-  fi
-
   PROVE="prove"
   PROVE_EXTRA_ARGS="-j9"
-  if [ "appveyor" = "$USERNAME" ]; then
+  if [ "$WINDOWS" ]; then
     export PATH="/c/Strawberry/perl/bin:.:$PATH"
     PROVE="prove.bat"
     PROVE_EXTRA_ARGS="$PROVE_EXTRA_ARGS --exec bash"
