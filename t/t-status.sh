@@ -503,3 +503,48 @@ Git LFS objects not staged for commit:"
   [ "$expected" = "$(git lfs status)" ]
 )
 end_test
+
+begin_test "status (file to dir)"
+(
+  set -e
+
+  reponame="status-file-to-dir"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  printf 'file' > test
+  git add test
+  git commit -m "add test"
+
+  obj=$(calc_oid "file" | head -c 7)
+
+  git rm test
+  mkdir test
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  oid_short="$(calc_oid "$contents" | head -c 7)"
+  printf "%s" "$contents" > test/a.dat
+
+  git add test
+  git commit -m "add files"
+
+  git reset HEAD~
+  git add test
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+	test (Git: $obj -> File: deleted)
+	test/a.dat (LFS: $oid_short)
+
+Git LFS objects not staged for commit:"
+
+  [ "$expected" = "$(git lfs status)" ]
+)
+end_test
