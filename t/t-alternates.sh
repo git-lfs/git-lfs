@@ -16,7 +16,7 @@ begin_test "alternates (single)"
   rm -rf .git/lfs/objects
 
   alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
-  echo "$alternate" > .git/objects/info/alternates
+  echo "$(native_path "$alternate")" > .git/objects/info/alternates
 
   GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
@@ -42,8 +42,8 @@ begin_test "alternates (multiple)"
 
   alternate_stale="$TRASHDIR/${reponame}_alternate_stale/.git/objects"
   alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
-  echo "$alternate" > .git/objects/info/alternates
-  echo "$alternate_stale" >> .git/objects/info/alternates
+  echo "$(native_path "$alternate")" > .git/objects/info/alternates
+  echo "$(native_path "$alternate_stale")" >> .git/objects/info/alternates
 
   GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
@@ -84,7 +84,11 @@ begin_test "alternates (quoted)"
 
   rm -rf .git/lfs/objects
 
-  alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
+  # Normally, a plain native_path call would be sufficient here, but when we
+  # use a quoted alternate, Git interprets backslash escapes, and Windows path
+  # names look like backslash escapes. As a consequence, we switch to forward
+  # slashes to avoid misinterpretation.
+  alternate=$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects" | sed -e 's,\\,/,g')
   echo "\"$alternate\"" > .git/objects/info/alternates
 
   GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
@@ -105,7 +109,7 @@ begin_test "alternates (OS environment, single)"
 
   rm -rf .git/lfs/objects
 
-  alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
+  alternate="$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects")"
 
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate" \
   GIT_TRACE=1 \
@@ -131,8 +135,8 @@ begin_test "alternates (OS environment, multiple)"
 
   rm -rf .git/lfs/objects
 
-  alternate_stale="$TRASHDIR/${reponame}_alternate_stale/.git/objects"
-  alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
+  alternate_stale="$(native_path "$TRASHDIR/${reponame}_alternate_stale/.git/objects")"
+  alternate="$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects")"
   sep="$(native_path_list_separator)"
 
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate_stale$sep$alternate" \
