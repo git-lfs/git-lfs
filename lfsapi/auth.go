@@ -192,7 +192,7 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint l
 
 	if len(remote) > 0 {
 		if u := ef.GitRemoteURL(remote, operation == "upload"); u != "" {
-			schemedUrl, _ := prependEmptySchemeIfAbsent(u)
+			schemedUrl, _ := fixSchemelessURL(u)
 
 			gitRemoteURL, err := url.Parse(schemedUrl)
 			if err != nil {
@@ -214,12 +214,13 @@ func getCredURLForAPI(ef EndpointFinder, operation, remote string, apiEndpoint l
 	return apiURL, nil
 }
 
-// prependEmptySchemeIfAbsent prepends an empty scheme "//" if none was found in
-// the URL in order to satisfy RFC 3986 §3.3, and `net/url.Parse()`.
+// fixSchemelessURL prepends an empty scheme "//" if none was found in
+// the URL and replaces the first colon with a slash in order to satisfy RFC
+// 3986 §3.3, and `net/url.Parse()`.
 //
 // It returns a string parse-able with `net/url.Parse()` and a boolean whether
 // or not an empty scheme was added.
-func prependEmptySchemeIfAbsent(u string) (string, bool) {
+func fixSchemelessURL(u string) (string, bool) {
 	if hasScheme(u) {
 		return u, false
 	}
@@ -231,7 +232,11 @@ func prependEmptySchemeIfAbsent(u string) (string, bool) {
 		// First path segment has a colon, assumed that it's a
 		// scheme-less URL. Append an empty scheme on top to
 		// satisfy RFC 3986 §3.3, and `net/url.Parse()`.
-		return fmt.Sprintf("//%s", u), true
+		//
+		// In addition, replace the first colon with a slash since
+		// otherwise the colon looks like it's introducing a port
+		// number.
+		return fmt.Sprintf("//%s", strings.Replace(u, ":", "/", 1)), true
 	}
 	return u, true
 }
