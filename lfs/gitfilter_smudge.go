@@ -28,7 +28,12 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 		defer os.Chmod(filename, stat.Mode())
 	}
 
-	file, err := os.Create(filename)
+	abs, err := filepath.Abs(filename)
+	if err != nil {
+		return fmt.Errorf("Could not produce absolute path for %q", filename)
+	}
+
+	file, err := os.Create(abs)
 	if err != nil {
 		return fmt.Errorf("Could not create working directory file: %v", err)
 	}
