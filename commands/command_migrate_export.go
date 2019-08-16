@@ -121,7 +121,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	// If we have a valid remote, pre-download all objects using the Transfer Queue
 	if remoteURL != "" {
 		q := newDownloadQueue(getTransferManifestOperationRemote("Download", remote), remote)
-		gs := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+		gs := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 			if err != nil {
 				return
 			}

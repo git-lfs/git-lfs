@@ -14,6 +14,13 @@ var (
 	ErrReadOnly = errors.New("configuration is read-only")
 )
 
+// Environment is a restricted version of config.Environment that only provides
+// a single method.
+type Environment interface {
+	// Get is shorthand for calling `e.Fetcher.Get(key)`.
+	Get(key string) (val string, ok bool)
+}
+
 // Configuration can fetch or modify the current Git config and track the Git
 // version.
 type Configuration struct {

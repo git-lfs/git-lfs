@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 )
 
@@ -12,7 +13,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter) error {
+func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter, osEnv config.Environment) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
@@ -67,7 +68,7 @@ func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter) 
 
 	ch := make(chan gitscannerResult, chanBufSize)
 
-	barePointerCh, _, err := catFileBatch(smallShas, nil)
+	barePointerCh, _, err := catFileBatch(smallShas, nil, osEnv)
 	if err != nil {
 		return err
 	}

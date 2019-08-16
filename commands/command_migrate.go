@@ -82,7 +82,8 @@ func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
-	return gitobj.FromFilesystem(filepath.Join(dir, "objects"), cfg.TempDir())
+	alternates, _ := cfg.OSEnv().Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	return gitobj.FromFilesystemWithAlternates(filepath.Join(dir, "objects"), cfg.TempDir(), alternates)
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a

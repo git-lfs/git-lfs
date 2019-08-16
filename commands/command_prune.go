@@ -91,7 +91,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// Now find files to be retained from many sources
 	retainChan := make(chan string, 100)
 
-	gitscanner := lfs.NewGitScanner(nil)
+	gitscanner := lfs.NewGitScanner(cfg, nil)
 	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
 
 	sem := semaphore.NewWeighted(int64(runtime.NumCPU() * 2))

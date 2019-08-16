@@ -42,13 +42,14 @@ type ObjectScanner struct {
 // command, they will be returned immediately.
 //
 // Otherwise, an `*ObjectScanner` is returned with no error.
-func NewObjectScanner() (*ObjectScanner, error) {
+func NewObjectScanner(osEnv Environment) (*ObjectScanner, error) {
 	gitdir, err := GitCommonDir()
 	if err != nil {
 		return nil, err
 	}
 
-	gitobj, err := gitobj.FromFilesystem(filepath.Join(gitdir, "objects"), "")
+	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	gitobj, err := gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), "", alternates)
 	if err != nil {
 		return nil, err
 	}

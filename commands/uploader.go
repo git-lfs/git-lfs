@@ -151,7 +151,7 @@ func (c *uploadContext) addScannerError(err error) {
 }
 
 func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
-	gitscanner := lfs.NewGitScanner(nil)
+	gitscanner := lfs.NewGitScanner(cfg, nil)
 	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
 	gitscanner.PotentialLockables = c.lockVerifier
 	return gitscanner, gitscanner.RemoteForPush(c.Remote)

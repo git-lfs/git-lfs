@@ -2,8 +2,8 @@ github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858 h1:OZQyEhf4Bviyd
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858/go.mod h1:976q2ETgjT2snVCf2ZaBnyBbVoPERGjUz+0sofzEfro=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/git-lfs/gitobj v1.3.1 h1:Nni8wnRfvT3x91rDl3V397LjKOUoiaEK6vyIcA92aM8=
-github.com/git-lfs/gitobj v1.3.1/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
+github.com/git-lfs/gitobj v1.4.0 h1:F7fKUUM/OTVu0ejnBA6x0trSYM8A9Zv7VGoBTsMmhHk=
+github.com/git-lfs/gitobj v1.4.0/go.mod h1:EdPNGHVxXe1jTuNXzZT1+CdJCuASoDSLPQuvNOo9nGM=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/go-ntlm v0.0.0-20190307203151-c5056e7fa066 h1:j7JwIEwLNQ/kBdKpHO3U1jjMXIPjSq7eCFvQIF3e8Fs=
@@ -22,12 +22,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086 h1:mncRSDOqYCng7jOD+Y6+IivdRI6Kzv2BLWYkWkdQfu0=
 github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086/go.mod h1:YpdgDXpumPB/+EGmGTYHeiW/0QVFRzBYTNFaxWfPDk4=
-github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a h1:pYw8mElqJwrz3T7QVT2EZw1Te6gHW+cOGsuOuRzNdRo=
-github.com/spf13/cobra v0.0.0-20150809222549-c55cdf33856a/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
 github.com/spf13/cobra v0.0.3 h1:ZlrZ4XsMRm04Fr5pSFxBgfND2EBVa1nLpiy1stUsX/8=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
-github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33 h1:JZTN3XaDcPNAKb/i98hWdKD3C0wNQ8ehJRQHcg9eQ10=
-github.com/spf13/pflag v0.0.0-20150814225300-580b9be06c33/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.3 h1:zPAT6CGy6wXeQ7NtTnaTerfKOsV6V6F8agHXFiazDkg=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=

@@ -34,7 +34,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	var corruptOids []string
-	gitscanner := lfs.NewGitScanner(func(p *lfs.WrappedPointer, err error) {
+	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
 			var pointerOk bool
 			pointerOk, err = fsckPointer(p.Name, p.Oid)

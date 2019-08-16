@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"regexp"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 )
 
@@ -37,7 +38,7 @@ func noopFoundLockable(name string) {}
 // "include" and not reachable by any refs included in "excluded" and returns
 // a channel of WrappedPointer objects for all Git LFS pointers it finds.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, opt *ScanRefsOptions) error {
+func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic("no scan ref options")
 	}
@@ -64,7 +65,7 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 		}
 	}(lockableCb, batchLockableCh)
 
-	pointers, checkLockableCh, err := catFileBatch(smallShas, lockableSet)
+	pointers, checkLockableCh, err := catFileBatch(smallShas, lockableSet, osEnv)
 	if err != nil {
 		return err
 	}
@@ -95,8 +96,8 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 // scanLeftRightToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, opt *ScanRefsOptions) error {
-	return scanRefsToChan(scanner, pointerCb, []string{refLeft}, []string{refRight}, opt)
+func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, osEnv config.Environment, opt *ScanRefsOptions) error {
+	return scanRefsToChan(scanner, pointerCb, []string{refLeft}, []string{refRight}, osEnv, opt)
 }
 
 // revListShas uses git rev-list to return the list of object sha1s

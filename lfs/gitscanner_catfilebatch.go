@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 )
 
@@ -16,8 +17,8 @@ import (
 // pointerCh. If a Git Blob is not an LFS pointer, check the lockableSet to see
 // if that blob is for a locked file. Any errors are sent to errCh. An error is
 // returned if the 'git cat-file' command fails to start.
-func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
-	scanner, err := NewPointerScanner()
+func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error, osEnv config.Environment) error {
+	scanner, err := NewPointerScanner(osEnv)
 	if err != nil {
 		return err
 	}
@@ -69,8 +70,8 @@ type PointerScanner struct {
 	err         error
 }
 
-func NewPointerScanner() (*PointerScanner, error) {
-	scanner, err := git.NewObjectScanner()
+func NewPointerScanner(osEnv config.Environment) (*PointerScanner, error) {
+	scanner, err := git.NewObjectScanner(osEnv)
 	if err != nil {
 		return nil, err
 	}
