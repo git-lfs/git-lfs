@@ -18,7 +18,7 @@ and will communicate with the process via stdin/stdout for each transfer.
 
 In the LFS API request, the client includes a list of transfer types it
 supports. When replying, the API server will pick one of these and make any
-necessary adjustments to the returned object actions, in case the the picked
+necessary adjustments to the returned object actions, in case the picked
 transfer type needs custom details about how to do each transfer.
 
 ## Using a Custom Transfer Type without the API server
