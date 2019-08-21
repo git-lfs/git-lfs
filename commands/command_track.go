@@ -90,17 +90,17 @@ ArgsLoop:
 		}
 
 		// Generate the new / changed attrib line for merging
-		encodedArg := escapeAttrPattern(pattern)
+		var encodedArg string
+		if trackFilenameFlag {
+			encodedArg = escapeGlobCharacters(pattern)
+			pattern = escapeGlobCharacters(pattern)
+		} else {
+			encodedArg = escapeAttrPattern(pattern)
+		}
+
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
 			lockableArg = " " + git.LockableAttrib
-		}
-
-		if trackFilenameFlag {
-			// We need to do this after escapeAttrPattern since that
-			// function turns backslashes into slashes.
-			encodedArg = escapeGlobCharacters(encodedArg)
-			pattern = escapeGlobCharacters(pattern)
 		}
 
 		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
@@ -302,10 +302,16 @@ var (
 )
 
 func escapeGlobCharacters(s string) string {
+	var escaped string = strings.Replace(s, `\`, "/", -1)
+
 	for _, ch := range trackEscapeStrings {
-		s = strings.Replace(s, ch, fmt.Sprintf("\\%s", ch), -1)
+		escaped = strings.Replace(escaped, ch, fmt.Sprintf("\\%s", ch), -1)
 	}
-	return s
+
+	for from, to := range trackEscapePatterns {
+		escaped = strings.Replace(escaped, from, to, -1)
+	}
+	return escaped
 }
 
 func escapeAttrPattern(unescaped string) string {
