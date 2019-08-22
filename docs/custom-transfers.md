@@ -18,7 +18,7 @@ and will communicate with the process via stdin/stdout for each transfer.
 
 In the LFS API request, the client includes a list of transfer types it
 supports. When replying, the API server will pick one of these and make any
-necessary adjustments to the returned object actions, in case the the picked
+necessary adjustments to the returned object actions, in case the picked
 transfer type needs custom details about how to do each transfer.
 
 ## Using a Custom Transfer Type without the API server
@@ -114,7 +114,7 @@ line feed at the end (and flush the output).
 
 The protocol consists of 3 stages:
 
-#### Stage 1: Intiation
+#### Stage 1: Initiation
 
 Immediately after invoking a custom transfer process, git-lfs sends initiation
 data to the process over stdin. This tells the process useful information about
@@ -137,7 +137,7 @@ The message will look like this:
   the transfer process wants to implement its own concurrency and wants to
   respect this setting.
 
-The transfer process should use the information it needs from the intiation
+The transfer process should use the information it needs from the initiation
 structure, and also perform any one-off setup tasks it needs to do. It should
 then respond on stdout with a simple empty confirmation structure, as follows:
 

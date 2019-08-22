@@ -95,7 +95,7 @@ begin_test "batch transfers occur in reverse order by size"
   pos_small="$(substring_position "$batch" "$small_oid")"
   pos_large="$(substring_position "$batch" "$bigger_oid")"
 
-  # Assert that the the larger object shows up earlier in the batch than the
+  # Assert that the larger object shows up earlier in the batch than the
   # smaller object
   [ "$pos_large" -lt "$pos_small" ]
 )

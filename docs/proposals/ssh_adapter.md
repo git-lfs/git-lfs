@@ -5,7 +5,7 @@ exclusively, avoiding the need to use HTTPS altogether.  This will make
 deployment and use easier in a variety of situations where access to certain
 ports is limited.
 
-This is a merely a proposal, not a commitment to implement for either the client
+This is merely a proposal, not a commitment to implement for either the client
 or server side.  Implementers who prefer to use HTTP can continue to do so.
 
 ## What not to do
