@@ -118,6 +118,9 @@ func credsFromFilename(file string) (string, string, error) {
 		return "", "", fmt.Errorf("Error opening %q: %s", file, err)
 	}
 	credsPieces := strings.SplitN(strings.TrimSpace(string(userPass)), ":", 2)
+	if len(credsPieces) != 2 {
+		return "", "", fmt.Errorf("Invalid data %q while reading %q", string(userPass), file)
+	}
 	return credsPieces[0], credsPieces[1], nil
 }
 
