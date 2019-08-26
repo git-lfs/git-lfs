@@ -21,6 +21,7 @@ import (
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
+	"golang.org/x/net/http2"
 )
 
 const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
@@ -434,6 +435,8 @@ func (c *Client) HttpClient(host string) *http.Client {
 	} else {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
+
+	http2.ConfigureTransport(tr)
 
 	httpClient := &http.Client{
 		Transport: tr,
