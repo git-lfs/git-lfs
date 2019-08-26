@@ -11,7 +11,7 @@ import (
 // For example:
 //   entry #1
 //   entry #2
-//   msg: ..., done
+//   msg: ..., done.
 type ListTask struct {
 	msg string
 	ch  chan *Update

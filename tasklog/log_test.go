@@ -37,7 +37,7 @@ func TestLoggerLogsTasks(t *testing.T) {
 	l.Enqueue(ChanTask(task))
 	l.Close()
 
-	assert.Equal(t, "first\rsecond\rsecond, done\n", buf.String())
+	assert.Equal(t, "first\rsecond\rsecond, done.\n", buf.String())
 }
 
 func TestLoggerLogsSuppressesProgress(t *testing.T) {
@@ -56,7 +56,7 @@ func TestLoggerLogsSuppressesProgress(t *testing.T) {
 	l.Enqueue(ChanTask(task))
 	l.Close()
 
-	assert.Equal(t, "second, done\n", buf.String())
+	assert.Equal(t, "second, done.\n", buf.String())
 }
 
 func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
@@ -84,10 +84,10 @@ func TestLoggerLogsMultipleTasksInOrder(t *testing.T) {
 	assert.Equal(t, strings.Join([]string{
 		"first\r",
 		"second\r",
-		"second, done\n",
+		"second, done.\n",
 		"third\r",
 		"fourth\r",
-		"fourth, done\n",
+		"fourth, done.\n",
 	}, ""), buf.String())
 }
 
@@ -111,9 +111,9 @@ func TestLoggerLogsMultipleTasksWithoutBlocking(t *testing.T) {
 
 	assert.Equal(t, strings.Join([]string{
 		"first\r",
-		"first, done\n",
+		"first, done.\n",
 		"second\r",
-		"second, done\n",
+		"second, done.\n",
 	}, ""), buf.String())
 }
 
@@ -142,7 +142,7 @@ func TestLoggerThrottlesWrites(t *testing.T) {
 		"first\r",
 		"forced\r",
 		"third\r",
-		"third, done\n",
+		"third, done.\n",
 	}, ""), buf.String())
 }
 
@@ -167,7 +167,7 @@ func TestLoggerThrottlesLastWrite(t *testing.T) {
 
 	assert.Equal(t, strings.Join([]string{
 		"first\r",
-		"second, done\n",
+		"second, done.\n",
 	}, ""), buf.String())
 }
 
@@ -191,7 +191,7 @@ func TestLoggerLogsAllDurableUpdates(t *testing.T) {
 	assert.Equal(t, strings.Join([]string{
 		"first\r",
 		"second\r",
-		"second, done\n",
+		"second, done.\n",
 	}, ""), buf.String())
 }
 

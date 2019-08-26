@@ -236,7 +236,7 @@ func (l *Logger) consume() {
 }
 
 // logTask logs the set of updates from a given task to the sink, then logs a
-// "done" message, and then marks the task as done.
+// "done." message, and then marks the task as done.
 //
 // By default, the *Logger throttles log entry updates to once per the duration
 // of time specified by `l.throttle time.Duration`.
@@ -265,7 +265,7 @@ func (l *Logger) logTask(task Task) {
 		// If a task sent no updates, the last recorded update will be
 		// nil. Given this, only log a message when there was at least
 		// (1) update.
-		l.log(fmt.Sprintf("%s, done\n", update.S))
+		l.log(fmt.Sprintf("%s, done.\n", update.S))
 	}
 
 	if v, ok := task.(interface {
