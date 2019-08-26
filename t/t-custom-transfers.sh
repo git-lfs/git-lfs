@@ -184,7 +184,6 @@ begin_test "custom-transfer-standalone"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" fetchcustom.log
-  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 
@@ -195,6 +194,8 @@ begin_test "custom-transfer-standalone"
 
   objectlist=`find .git/lfs/objects -type f`
   [ "$(echo "$objectlist" | wc -l)" -eq 12 ]
+
+  git lfs fsck
 )
 end_test
 
@@ -275,11 +276,12 @@ begin_test "custom-transfer-standalone-urlmatch"
 
   grep "xfer: started custom adapter process" fetchcustom.log
   grep "xfer\[lfstest-standalonecustomadapter\]:" fetchcustom.log
-  grep "Downloading LFS objects: 100% (12/12)" fetchcustom.log
 
   grep "Terminating test custom adapter gracefully" fetchcustom.log
 
   objectlist=`find .git/lfs/objects -type f`
   [ "$(echo "$objectlist" | wc -l)" -eq 12 ]
+
+  git lfs fsck
 )
 end_test
