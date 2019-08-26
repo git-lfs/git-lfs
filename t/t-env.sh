@@ -6,10 +6,16 @@ envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
 git config filter.lfs.smudge = "git-lfs smudge -- %f"
 git config filter.lfs.clean = "git-lfs clean -- %f"'
 
+unset_vars() {
+    # If set, these will cause the test to fail.
+    unset GIT_LFS_NO_TEST_COUNT GIT_LFS_LOCK_ACQUIRE_DISABLED
+}
+
 begin_test "env with no remote"
 (
   set -e
   reponame="env-no-remote"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -60,6 +66,7 @@ begin_test "env with origin remote"
 (
   set -e
   reponame="env-origin-remote"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -116,6 +123,7 @@ begin_test "env with multiple remotes"
 (
   set -e
   reponame="env-multiple-remotes"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -175,6 +183,7 @@ begin_test "env with other remote"
 (
   set -e
   reponame="env-other-remote"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -232,6 +241,7 @@ begin_test "env with multiple remotes and lfs.url config"
 (
   set -e
   reponame="env-multiple-remotes-with-lfs-url"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -290,6 +300,7 @@ begin_test "env with multiple remotes and lfs configs"
 (
   set -e
   reponame="env-multiple-remotes-lfs-configs"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -350,6 +361,7 @@ begin_test "env with multiple remotes and batch configs"
 (
   set -e
   reponame="env-multiple-remotes-lfs-batch-configs"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -410,6 +422,7 @@ begin_test "env with .lfsconfig"
 (
   set -e
   reponame="env-with-lfsconfig"
+  unset_vars
 
   git init $reponame
   cd $reponame
@@ -478,6 +491,7 @@ begin_test "env with environment variables"
 (
   set -e
   reponame="env-with-envvars"
+  unset_vars
   git init $reponame
   mkdir -p $reponame/a/b/c
 
@@ -651,6 +665,7 @@ begin_test "env with bare repo"
 (
   set -e
   reponame="env-with-bare-repo"
+  unset_vars
   git init --bare $reponame
   cd $reponame
 
@@ -697,6 +712,7 @@ begin_test "env with multiple ssh remotes"
 (
   set -e
   reponame="env-with-ssh"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
@@ -845,6 +861,7 @@ begin_test "env with extra transfer methods"
 (
   set -e
   reponame="env-with-transfers"
+  unset_vars
   git init $reponame
   cd $reponame
 
@@ -904,6 +921,7 @@ begin_test "env with multiple remotes and ref"
 (
   set -e
   reponame="env-multiple-remotes-ref"
+  unset_vars
   mkdir $reponame
   cd $reponame
   git init
