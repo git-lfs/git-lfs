@@ -1,6 +1,7 @@
 package lfshttp
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -288,4 +289,49 @@ func TestMarshalToRequest(t *testing.T) {
 	assert.NotNil(t, req.Body)
 	assert.Equal(t, "15", req.Header.Get("Content-Length"))
 	assert.EqualValues(t, 15, req.ContentLength)
+}
+
+func TestHttp2(t *testing.T) {
+	var calledSrvTLS uint32
+	var calledSrv uint32
+
+	srvTLS := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&calledSrvTLS, 1)
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "HTTP/2.0", r.Proto)
+		w.WriteHeader(200)
+	}))
+	srvTLS.TLS = &tls.Config{NextProtos: []string{"h2", "http/1.1"}}
+	srvTLS.StartTLS()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&calledSrv, 1)
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "HTTP/1.1", r.Proto)
+		w.WriteHeader(200)
+	}))
+
+	defer srvTLS.Close()
+	defer srv.Close()
+
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		fmt.Sprintf("http.sslverify"): "false",
+	}))
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", srvTLS.URL, nil)
+	require.Nil(t, err)
+
+	res, err := c.Do(req)
+	require.Nil(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 1, calledSrvTLS)
+
+	req, err = http.NewRequest("GET", srv.URL, nil)
+	require.Nil(t, err)
+
+	res, err = c.Do(req)
+	require.Nil(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+	assert.EqualValues(t, 1, calledSrv)
 }
