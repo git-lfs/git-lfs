@@ -5,10 +5,10 @@ package tools
 /*
 #include <sys/ioctl.h>
 
-#undef BTRFS_IOCTL_MAGIC
-#define BTRFS_IOCTL_MAGIC 0x94
-#undef BTRFS_IOC_CLONE
-#define BTRFS_IOC_CLONE _IOW (BTRFS_IOCTL_MAGIC, 9, int)
+#undef FICLONE
+#define FICLONE		_IOW(0x94, 9, int)
+// copy from https://github.com/torvalds/linux/blob/v5.2/include/uapi/linux/fs.h#L195 for older header files.
+// This is equal to the older BTRFS_IOC_CLONE value.
 */
 import "C"
 
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	BtrfsIocClone = C.BTRFS_IOC_CLONE
+	ioctlFiClone = C.FICLONE
 )
 
 // CheckCloneFileSupported runs explicit test of clone file on supplied directory.
@@ -51,7 +51,7 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 	fdst, fdstFound := writer.(*os.File)
 	fsrc, fsrcFound := reader.(*os.File)
 	if fdstFound && fsrcFound {
-		if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, fdst.Fd(), BtrfsIocClone, fsrc.Fd()); err != 0 {
+		if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, fdst.Fd(), ioctlFiClone, fsrc.Fd()); err != 0 {
 			return false, err
 		}
 		return true, nil
