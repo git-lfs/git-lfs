@@ -1,5 +1,6 @@
 // +build !linux !cgo
 // +build !darwin
+// +build !windows
 
 package tools
 
