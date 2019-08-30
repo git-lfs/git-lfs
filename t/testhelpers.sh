@@ -744,6 +744,18 @@ native_path_list_separator() {
   fi
 }
 
+# canonical_path prints the native path name in a canonical form, as if
+# realpath(3) were called on it.
+canonical_path() {
+  printf "%s" "$(lfstest-realpath "$(native_path "$1")")"
+}
+
+# canonical_path_escaped prints the native path name in a canonical form, as if
+# realpath(3) were called on it, and then escapes it.
+canonical_path_escaped() {
+  printf "%s" "$(escape_path "$(lfstest-realpath "$(native_path "$1")")")"
+}
+
 cat_end() {
   if [ $IS_WINDOWS -eq 1 ]; then
     printf '^M$'
