@@ -20,12 +20,12 @@ begin_test "env with no remote"
   cd $reponame
   git init
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expected=$(printf '%s
@@ -73,12 +73,12 @@ begin_test "env with origin remote"
   git remote add origin "$GITSERVER/env-origin-remote"
 
   endpoint="$GITSERVER/$reponame.git/info/lfs (auth=none)"
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -132,12 +132,12 @@ begin_test "env with multiple remotes"
 
   endpoint="$GITSERVER/env-origin-remote.git/info/lfs (auth=none)"
   endpoint2="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -190,12 +190,12 @@ begin_test "env with other remote"
   git remote add other "$GITSERVER/env-other-remote"
 
   endpoint="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expected=$(printf '%s
@@ -249,12 +249,12 @@ begin_test "env with multiple remotes and lfs.url config"
   git remote add other "$GITSERVER/env-other-remote"
   git config lfs.url "http://foo/bar"
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -310,12 +310,12 @@ begin_test "env with multiple remotes and lfs configs"
   git config remote.origin.lfsurl "http://custom/origin"
   git config remote.other.lfsurl "http://custom/other"
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -371,12 +371,12 @@ begin_test "env with multiple remotes and batch configs"
   git config remote.origin.lfsurl "http://foo/bar"
   git config remote.other.lfsurl "http://custom/other"
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -441,12 +441,12 @@ lfsurl = http://foobar:5050/
 concurrenttransfers = 50
 ' > .gitconfig
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s
@@ -495,15 +495,15 @@ begin_test "env with environment variables"
   git init $reponame
   mkdir -p $reponame/a/b/c
 
-  gitDir=$(native_path "$TRASHDIR/$reponame/.git")
-  workTree=$(native_path "$TRASHDIR/$reponame/a/b")
+  gitDir=$(canonical_path "$TRASHDIR/$reponame/.git")
+  workTree=$(canonical_path "$TRASHDIR/$reponame/a/b")
 
-  localwd=$(native_path "$TRASHDIR/$reponame/a/b")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame/a/b")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
   expected=$(printf '%s
 %s
@@ -669,11 +669,11 @@ begin_test "env with bare repo"
   git init --bare $reponame
   cd $reponame
 
-  localgit=$(native_path "$TRASHDIR/$reponame")
-  localgitstore=$(native_path "$TRASHDIR/$reponame")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  localgit=$(canonical_path "$TRASHDIR/$reponame")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expected=$(printf "%s\n%s\n
@@ -739,19 +739,19 @@ begin_test "env with skip download errors"
 
   git config lfs.skipdownloaderrors 1
 
-  localgit=$(native_path "$TRASHDIR/$reponame")
-  localgitstore=$(native_path "$TRASHDIR/$reponame")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  localgit=$(canonical_path "$TRASHDIR/$reponame")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expectedenabled=$(printf '%s
@@ -868,19 +868,19 @@ begin_test "env with extra transfer methods"
   git config lfs.tustransfers true
   git config lfs.customtransfer.supertransfer.path /path/to/something
 
-  localgit=$(native_path "$TRASHDIR/$reponame")
-  localgitstore=$(native_path "$TRASHDIR/$reponame")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/lfs/tmp")
+  localgit=$(canonical_path "$TRASHDIR/$reponame")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
 
   expectedenabled=$(printf '%s
@@ -934,12 +934,12 @@ begin_test "env with multiple remotes and ref"
 
   endpoint="$GITSERVER/env-origin-remote.git/info/lfs (auth=none)"
   endpoint2="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
-  localwd=$(native_path "$TRASHDIR/$reponame")
-  localgit=$(native_path "$TRASHDIR/$reponame/.git")
-  localgitstore=$(native_path "$TRASHDIR/$reponame/.git")
-  lfsstorage=$(native_path "$TRASHDIR/$reponame/.git/lfs")
-  localmedia=$(native_path "$TRASHDIR/$reponame/.git/lfs/objects")
-  tempdir=$(native_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
   envVars=$(printf "%s" "$(env | grep "^GIT")")
   expected=$(printf '%s
 %s

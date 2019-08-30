@@ -27,12 +27,12 @@ begin_test "git worktree"
     git commit -m "Initial commit"
 
     expected=$(printf "%s\n%s\n
-LocalWorkingDir=$(native_path_escaped "$TRASHDIR/$reponame")
-LocalGitDir=$(native_path_escaped "$TRASHDIR/$reponame/.git")
-LocalGitStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git")
-LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
+LocalWorkingDir=$(canonical_path_escaped "$TRASHDIR/$reponame")
+LocalGitDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git")
+LocalGitStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git")
+LocalMediaDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDirs=
-TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
+TempDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
@@ -44,7 +44,7 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
-LfsStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs")
+LfsStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,lfs-standalone-file
@@ -63,12 +63,12 @@ $(escape_path "$(env | grep "^GIT")")
     # is only for index, temp etc
     # storage of git objects and lfs objects is in the original .git
     expected=$(printf "%s\n%s\n
-LocalWorkingDir=$(native_path_escaped "$TRASHDIR/$worktreename")
-LocalGitDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename")
-LocalGitStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git")
-LocalMediaDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
+LocalWorkingDir=$(canonical_path_escaped "$TRASHDIR/$worktreename")
+LocalGitDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/worktrees/$worktreename")
+LocalGitStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git")
+LocalMediaDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDirs=
-TempDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
+TempDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
 ConcurrentTransfers=3
 TusTransfers=false
 BasicTransfersOnly=false
@@ -80,7 +80,7 @@ FetchRecentRefsIncludeRemotes=true
 PruneOffsetDays=3
 PruneVerifyRemoteAlways=false
 PruneRemoteName=origin
-LfsStorageDir=$(native_path_escaped "$TRASHDIR/$reponame/.git/lfs")
+LfsStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,lfs-standalone-file
