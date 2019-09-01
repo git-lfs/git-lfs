@@ -321,3 +321,40 @@ begin_test "pull: outside git repository"
   grep "Not in a git repository" pull.log
 )
 end_test
+
+begin_test "pull ignores sparsecheckout"
+(
+  set -e
+  mkdir pull-sparsecheckout
+  cd pull-sparsecheckout
+  git init
+
+  # Initial commit
+  echo "TEST" > test.blob
+  git lfs track test.blob && git add test.blob
+  git add -f .gitattributes
+  git commit -m "initial commit"
+
+  # File must be exit
+  if [ ! -f test.blob ]; then
+    echo "File not exit unexpectedly."; exit 1
+  fi
+
+  # Use sparsecheckout
+  git config core.sparsecheckout true
+  echo '/.*' > $(git rev-parse --git-dir)/info/sparse-checkout
+  git read-tree -m -u HEAD
+
+  # File must not be exit
+  if [ -f test.blob ]; then
+    echo "File exits unexpectedly"; exit 1
+  fi
+
+  # git lfs pull
+  git lfs pull
+  # File must not be exit
+  if [ -f test.blob ]; then
+    echo "File exists unexpectedly"; exit 1
+  fi
+)
+end_test

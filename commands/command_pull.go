@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -50,6 +52,13 @@ func pull(filter *filepathfilter.Filter) {
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, "Scanner error: %s", err)
+			return
+		}
+
+		if !tools.FileExists(filepath.Join(cfg.LocalWorkingDir(), p.Name)) {
+			// Skip if raw pointer file not exists.
+			// This file excluded by sparse checkout or user delete this file(=working tree is dirty).
+			// In the later case, user should restore file first.
 			return
 		}
 
