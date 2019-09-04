@@ -220,8 +220,9 @@ upload_assets () {
     > "$WORKDIR/assets"
 
   say "Assets uploaded."
-  say "Verifying assets..."
+}
 
+verify_assets () {
   cat "$WORKDIR/assets" | (while read base url
   do
     say "\tDownloading %s for verification..." "$base"
@@ -257,10 +258,25 @@ EOM
 
 # The main program.
 main () {
+  while [ -n "$1" ]
+  do
+    case "$1" in
+      --help)
+        usage 0;;
+      --skip-verify)
+        SKIP_VERIFY=1
+        shift;;
+      --)
+        shift
+        break;;
+      *)
+        break;;
+    esac
+  done
+
   local version="$1"
   local changelog="$2"
 
-  [ "$version" = "--help" ] && usage 0
   [ -z "$changelog" ] && usage 1 >&2
 
   say "Checking that you've got some release artifacts..."
@@ -290,6 +306,12 @@ main () {
 
   say "Uploading assets to GitHub..."
   upload_assets "$version" "$upload_url"
+
+  if [ -z "$SKIP_VERIFY" ]
+  then
+    say "Verifying assets..."
+    verify_assets
+  fi
 
   say "Okay, done. Sanity-check the release and publish it."
 }
