@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +55,8 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	wd, _ := os.Getwd()
 	repo := cfg.LocalWorkingDir()
+
+	wd = tools.ResolveSymlinks(wd)
 
 	Print("\nGit LFS objects to be committed:\n")
 	for _, entry := range staged {
