@@ -59,6 +59,8 @@ categorize_asset () {
       echo "Source";;
     git-lfs-windows-v*.*.*.exe)
       echo "Windows Installer";;
+    sha256sums)
+      echo "Unsigned SHA-256 Hashes";;
     sha256sums.asc)
       echo "Signed SHA-256 Hashes";;
     *)
@@ -77,7 +79,7 @@ content_type () {
       echo "application/gzip";;
     *.exe)
       echo "application/octet-stream";;
-    *.asc)
+    *.asc|sha256sums*)
       echo "text/plain";;
   esac
 }
