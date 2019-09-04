@@ -214,28 +214,40 @@ upload_assets () {
     download=$(jq -r '.url' "$WORKDIR/response")
   done
 
+  say "Assets uploaded."
+}
+
+# Download assets from GitHub to the specified directory.
+download_assets () {
+  local version="$1"
+  local dir="$2"
+
   curl https://api.github.com/repos/$REPO/releases | \
     jq -rc '.[] | select(.name == "'"$version"'") | .assets | .[] | [.name,.url]' | \
     ruby -rjson -ne 'puts JSON.parse($_).join(" ")' \
     > "$WORKDIR/assets"
 
-  say "Assets uploaded."
-}
-
-verify_assets () {
   cat "$WORKDIR/assets" | (while read base url
   do
     say "\tDownloading %s for verification..." "$base"
     (
-      cd "$WORKDIR/downloads" &&
+      cd "$dir" &&
       curl -Lo "$base" -H"Accept: application/octet-stream" "$url"
     )
   done)
+}
+
+# Download the assets and verify the signature made on them.
+verify_assets () {
+  local version="$1"
+  local dir="$WORKDIR/verify"
+  mkdir "$dir"
+  download_assets "$version" "$dir"
 
   # If the OpenPGP data is not valid, gpg -d will output nothing to stdout, and
   # shasum will then fail.
   say "Checking assets for integrity..."
-  (cd "$WORKDIR/downloads" && gpg -d sha256sums.asc | shasum -a 256 -c)
+  (cd "$dir" && gpg -d sha256sums.asc | shasum -a 256 -c)
 
   say "\nAssets look good!"
 }
@@ -310,7 +322,7 @@ main () {
   if [ -z "$SKIP_VERIFY" ]
   then
     say "Verifying assets..."
-    verify_assets
+    verify_assets "$version"
   fi
 
   say "Okay, done. Sanity-check the release and publish it."
