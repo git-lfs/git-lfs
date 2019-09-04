@@ -22,7 +22,12 @@ abort () {
 }
 
 curl () {
-  command curl -nfSs "$@"
+  if [ -n "$GITHUB_TOKEN" ]
+  then
+    command curl -u "token:$GITHUB_TOKEN" -fSs "$@"
+  else
+    command curl -nfSs "$@"
+  fi
 }
 
 categorize_os () {
@@ -260,11 +265,16 @@ main () {
   [ -n "$(release_files "$version")" ] || \
     abort "I couldn't find any release files for $version."
 
-  say "Looking for the necessary entries in .netrc..."
-  grep -qsF api.github.com "$HOME/.netrc" || \
-    abort "I couldn't find api.github.com in your .netrc."
-  grep -qsF uploads.github.com "$HOME/.netrc" || \
-    abort "I couldn't find uploads.github.com in your .netrc."
+  if [ -n "$GITHUB_TOKEN" ]
+  then
+    say "Found a token in the GITHUB_TOKEN environment variable."
+  else
+    say "Looking for the necessary entries in .netrc..."
+    grep -qsF api.github.com "$HOME/.netrc" || \
+      abort "I couldn't find api.github.com in your .netrc."
+    grep -qsF uploads.github.com "$HOME/.netrc" || \
+      abort "I couldn't find uploads.github.com in your .netrc."
+  fi
 
   say "Okay, everything looks good."
 
