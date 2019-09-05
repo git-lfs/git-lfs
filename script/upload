@@ -282,6 +282,28 @@ EOM
   exit $status
 }
 
+# Check that this script has the prerequisites to continue.
+sanity_check () {
+  local version="$1"
+
+  say "Checking that you've got some release artifacts..."
+  [ -n "$(release_files "$version")" ] || \
+    abort "I couldn't find any release files for $version."
+
+  if [ -n "$GITHUB_TOKEN" ]
+  then
+    say "Found a token in the GITHUB_TOKEN environment variable."
+  else
+    say "Looking for the necessary entries in .netrc..."
+    grep -qsF api.github.com "$HOME/.netrc" || \
+      abort "I couldn't find api.github.com in your .netrc."
+    grep -qsF uploads.github.com "$HOME/.netrc" || \
+      abort "I couldn't find uploads.github.com in your .netrc."
+  fi
+
+  say "Okay, everything looks good."
+}
+
 # The main program.
 main () {
   while [ -n "$1" ]
@@ -304,22 +326,7 @@ main () {
 
   [ -z "$version" ] && usage 1 >&2
 
-  say "Checking that you've got some release artifacts..."
-  [ -n "$(release_files "$version")" ] || \
-    abort "I couldn't find any release files for $version."
-
-  if [ -n "$GITHUB_TOKEN" ]
-  then
-    say "Found a token in the GITHUB_TOKEN environment variable."
-  else
-    say "Looking for the necessary entries in .netrc..."
-    grep -qsF api.github.com "$HOME/.netrc" || \
-      abort "I couldn't find api.github.com in your .netrc."
-    grep -qsF uploads.github.com "$HOME/.netrc" || \
-      abort "I couldn't find uploads.github.com in your .netrc."
-  fi
-
-  say "Okay, everything looks good."
+  sanity_check "$version"
 
   say "Formatting the body of the GitHub release now..."
 
