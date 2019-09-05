@@ -47,6 +47,10 @@ GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
 ASM_FLAGS ?= all=-trimpath="$$HOME"
 
+# TRIMPATH contains arguments to be passed to go to strip paths on Go 1.13 and
+# newer.
+TRIMPATH ?= $(shell [ "$$($(GO) version | awk '{print $$3}' | sed -e 's/^[^.]*\.//;s/\..*$$//;')" -ge 13 ] && echo -trimpath)
+
 # RONN is the name of the 'ronn' program used to generate man pages.
 RONN ?= ronn
 # RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
@@ -143,6 +147,7 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 	-ldflags="$(LD_FLAGS)" \
 	-gcflags="$(GC_FLAGS)" \
 	-asmflags="$(ASM_FLAGS)" \
+	$(TRIMPATH) \
 	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
