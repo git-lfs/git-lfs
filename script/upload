@@ -252,11 +252,25 @@ verify_assets () {
   say "\nAssets look good!"
 }
 
+# Extract the changelog for the given version from the history and save it in a
+# file.  Print the filename of the changelog to standard output.
+extract_changelog () {
+  local version="$1"
+
+  git cat-file blob "$version:CHANGELOG.md" | \
+  ruby -ne "version=%Q($version)[1..-1]; state ||= :silent; text ||= [];" \
+    -e 'if state == :print && $_.start_with?("## "); puts text.join.strip; exit; end;' \
+    -e 'text << $_ if state == :print;' \
+    -e 'state = :print if $_.start_with?("## #{version}")' \
+    > "$WORKDIR/changelog"
+  echo "$WORKDIR/changelog"
+}
+
 # Provide a helpful usage message and exit.
 usage () {
   local status="$1"
   cat <<EOM
-Usage: $0 VERSION CHANGELOG
+Usage: $0 VERSION
 
 Create a draft GitHub release for Git LFS using the tag specified by VERSION and
 the changelog specified in the file CHANGELOG. Before running this script, the
@@ -287,9 +301,8 @@ main () {
   done
 
   local version="$1"
-  local changelog="$2"
 
-  [ -z "$changelog" ] && usage 1 >&2
+  [ -z "$version" ] && usage 1 >&2
 
   say "Checking that you've got some release artifacts..."
   [ -n "$(release_files "$version")" ] || \
@@ -310,6 +323,7 @@ main () {
 
   say "Formatting the body of the GitHub release now..."
 
+  local changelog=$(extract_changelog "$version")
   local bodyfile=$(finalize_body_message "$version" "$changelog")
 
   say "Creating a GitHub release for %s..." "$version"
