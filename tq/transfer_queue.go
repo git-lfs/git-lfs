@@ -417,7 +417,7 @@ func (q *TransferQueue) collectBatches() {
 			// There are some pending that cound not be queued.
 			// Wait the requested time before resuming loop.
 			time.Sleep(minWaitTime)
-		} else if len(next) == 0 && len(pending) == 0 {
+		} else if len(next) == 0 && len(pending) == 0 && closing {
 			// There are no items remaining, it is safe to break
 			break
 		}
