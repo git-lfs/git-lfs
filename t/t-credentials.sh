@@ -437,7 +437,7 @@ begin_test "credentials from lfs.url"
   # No 401 should occur as we've already set an access mode for the
   # storage endpoint during the push
   [ ! "$(grep "HTTP: 401" fetch.log)" ]
-  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
+  git lfs fsck
 
   echo "good fetch, setting access mode"
   rm -rf .git/lfs/objects
@@ -451,7 +451,8 @@ begin_test "credentials from lfs.url"
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
   [ ! "$(grep "tq: retrying object" fetch.log)" ]
-  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
+
+  git lfs fsck
 )
 end_test
 
@@ -502,7 +503,7 @@ begin_test "credentials from remote.origin.url"
   # No 401 should occur as we've already set an access mode for the
   # storage endpoint during the push
   [ ! "$(grep "HTTP: 401" fetch.log)" ]
-  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
+  git lfs fsck
 
   echo "good fetch, setting access mode"
   rm -rf .git/lfs/objects
@@ -516,6 +517,7 @@ begin_test "credentials from remote.origin.url"
   # Ensure we didn't make a second batch request, which means the request
   # was successfully retried internally
   [ ! "$(grep "tq: retrying object" fetch.log)" ]
-  grep "Downloading LFS objects: 100% (1/1), 7 B" fetch.log
+
+  git lfs fsck
 )
 end_test

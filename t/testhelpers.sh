@@ -488,6 +488,17 @@ repo_endpoint() {
   echo "$server/$repo.git/info/lfs"
 }
 
+# write_creds_file writes credentials to a file iff it doesn't exist.
+write_creds_file() {
+  local creds="$1"
+  local file="$2"
+
+  if [ ! -f "$file" ]
+  then
+    printf "%s" "$creds" > "$file"
+  fi
+}
+
 # setup initializes the clean, isolated environment for integration tests.
 setup() {
   cd "$ROOTDIR"
@@ -544,9 +555,9 @@ setup() {
   local certpath="$(echo "$LFS_CLIENT_CERT_FILE" | tr / -)"
   local keypath="$(echo "$LFS_CLIENT_KEY_FILE_ENCRYPTED" | tr / -)"
   mkdir -p "$CREDSDIR"
-  printf "user:pass" > "$CREDSDIR/127.0.0.1"
-  printf ":pass" > "$CREDSDIR/--$certpath"
-  printf ":pass" > "$CREDSDIR/--$keypath"
+  write_creds_file "user:pass" "$CREDSDIR/127.0.0.1"
+  write_creds_file ":pass" "$CREDSDIR/--$certpath"
+  write_creds_file ":pass" "$CREDSDIR/--$keypath"
 
   echo "#"
   echo "# HOME: $HOME"
@@ -731,6 +742,18 @@ native_path_list_separator() {
   else
     printf ":";
   fi
+}
+
+# canonical_path prints the native path name in a canonical form, as if
+# realpath(3) were called on it.
+canonical_path() {
+  printf "%s" "$(lfstest-realpath "$(native_path "$1")")"
+}
+
+# canonical_path_escaped prints the native path name in a canonical form, as if
+# realpath(3) were called on it, and then escapes it.
+canonical_path_escaped() {
+  printf "%s" "$(escape_path "$(lfstest-realpath "$(native_path "$1")")")"
 }
 
 cat_end() {

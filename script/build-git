@@ -1,0 +1,26 @@
+#!/bin/sh -ex
+
+DIR="$1"
+
+case $(uname -s) in
+  Darwin)
+    brew install curl zlib pcre2 gettext openssl
+    brew link --force zlib pcre2 gettext openssl;;
+  Linux)
+    export DEBIAN_FRONTEND=noninteractive
+    sed -e 's/^deb/deb-src/' /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/src.list
+    sudo apt-get update
+    sudo apt-get install build-essential
+    sudo apt-get -y build-dep git;;
+esac
+
+cd "$DIR"
+printf "%s\n" \
+  "NO_OPENSSL=YesPlease" \
+  "prefix=/usr/local" \
+  > config.mak
+make -j2
+sudo make install
+
+echo "Git version:"
+git --version

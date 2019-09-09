@@ -1,0 +1,58 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build-default:
+    name: Build with default Git
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@master
+    - run: script/cibuild
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@master
+    - run: mkdir -p "$HOME/go/bin"
+      shell: bash
+    - run: set GOPATH=%HOME%\go
+    - run: set PATH=%GOPATH%\bin;%PATH%
+    - run: cinst InnoSetup -y
+    - run: cinst strawberryperl -y
+    - run: refreshenv
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+      shell: bash
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" script/cibuild
+      shell: bash
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B
+      shell: bash
+    - run: mv bin\git-lfs.exe git-lfs-x86.exe
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=amd64 -B
+      shell: bash
+    - run: mv bin\git-lfs.exe git-lfs-x64.exe
+    - run: iscc script\windows-installer\inno-setup-git-lfs-installer.iss
+  build-latest:
+    name: Build with latest Git
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@master
+    - run: git clone -b master https://github.com/git/git.git "$HOME/git"
+    - run: script/build-git "$HOME/git"
+    - run: script/cibuild
+  build-earliest:
+    name: Build with earliest Git
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@master
+    - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
+    - run: script/build-git "$HOME/git"
+    - run: script/cibuild
