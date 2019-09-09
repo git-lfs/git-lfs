@@ -156,6 +156,11 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 	}
 	defer f.Close()
 
+	// We've replaced a file with a directory.
+	if fi, err := f.Stat(); err == nil && fi.Mode().IsDir() {
+		return "deleted", "File", nil
+	}
+
 	shasum := sha256.New()
 	if _, err = io.Copy(shasum, f); err != nil {
 		return "", "", err
