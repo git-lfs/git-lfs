@@ -242,7 +242,12 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return fmt.Errorf("Expected OID %s, got %s after %d bytes written", t.Oid, actual, written)
 	}
 
-	return tools.RenameFileCopyPermissions(dlfilename, t.Path)
+	err = tools.RenameFileCopyPermissions(dlfilename, t.Path)
+	if _, err2 := os.Stat(t.Path); err2 == nil {
+		// Target file already exists, possibly was downloaded by other git-lfs process
+		return nil
+	}
+	return err
 }
 
 func configureBasicDownloadAdapter(m *Manifest) {
