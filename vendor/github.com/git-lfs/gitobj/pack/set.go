@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/git-lfs/gitobj/errors"
 )
@@ -40,7 +41,7 @@ var (
 func NewSet(db string) (*Set, error) {
 	pd := filepath.Join(db, "pack")
 
-	paths, err := filepath.Glob(filepath.Join(pd, "*.pack"))
+	paths, err := filepath.Glob(filepath.Join(escapeGlobPattern(pd), "*.pack"))
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +90,21 @@ func NewSet(db string) (*Set, error) {
 		packs = append(packs, pack)
 	}
 	return NewSetPacks(packs...), nil
+}
+
+// globEscapes uses these escapes because filepath.Glob does not understand
+// backslash escapes on Windows.
+var globEscapes = map[string]string{
+	"*": "[*]",
+	"?": "[?]",
+	"[": "[[]",
+}
+
+func escapeGlobPattern(s string) string {
+	for char, escape := range globEscapes {
+		s = strings.Replace(s, char, escape, -1)
+	}
+	return s
 }
 
 // NewSetPacks creates a new *Set from the given packfiles.
