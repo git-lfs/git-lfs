@@ -10,7 +10,7 @@ github.com/git-lfs/gitobj/pack
 github.com/git-lfs/gitobj/storage
 # github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 github.com/git-lfs/go-netrc/netrc
-# github.com/git-lfs/go-ntlm v0.0.0-20190307203151-c5056e7fa066
+# github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066
 github.com/git-lfs/go-ntlm/ntlm
 github.com/git-lfs/go-ntlm/ntlm/md4
 # github.com/git-lfs/wildmatch v1.0.2
@@ -41,16 +41,17 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
 github.com/xeipuuv/gojsonschema
 # golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
-golang.org/x/net/http2
 golang.org/x/net/http/httpguts
+golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 # golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/text v0.3.0
 golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/transform
