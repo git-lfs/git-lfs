@@ -332,11 +332,11 @@ func TestCurrentTimestamp(t *testing.T) {
 }
 
 func TestRemoteNameWithDotDefault(t *testing.T) {
-        cfg := NewFrom(Values{
-                Git: map[string][]string{
-			"remote.name.with.dot.url":       []string{"http://remote.url/repo"},
-                },
-        })
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"remote.name.with.dot.url": []string{"http://remote.url/repo"},
+		},
+	})
 
-        assert.Equal(t, "name.with.dot", cfg.Remote())
+	assert.Equal(t, "name.with.dot", cfg.Remote())
 }
