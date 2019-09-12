@@ -5,7 +5,7 @@ require (
 	github.com/git-lfs/gitobj v1.4.1
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 	github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066
-	github.com/git-lfs/wildmatch v1.0.2
+	github.com/git-lfs/wildmatch v1.0.4
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.4
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0

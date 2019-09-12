@@ -13,7 +13,7 @@ github.com/git-lfs/go-netrc/netrc
 # github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066
 github.com/git-lfs/go-ntlm/ntlm
 github.com/git-lfs/go-ntlm/ntlm/md4
-# github.com/git-lfs/wildmatch v1.0.2
+# github.com/git-lfs/wildmatch v1.0.4
 github.com/git-lfs/wildmatch
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
