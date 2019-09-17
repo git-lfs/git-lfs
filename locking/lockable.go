@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -113,46 +112,20 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 // Internal implementation of fixing file write flags with precompiled filters
 func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlockable *filepathfilter.Filter) error {
 
-	var errs []error
-	var errMux sync.Mutex
-
-	addErr := func(err error) {
-		errMux.Lock()
-		defer errMux.Unlock()
-
-		errs = append(errs, err)
+	// Build a list of files
+	lsFiles, err := git.NewLsFiles(workingDir, !c.ModifyIgnoredFiles)
+	if err != nil {
+		return err
 	}
 
-	recursor := tools.FastWalkGitRepo
-	if c.ModifyIgnoredFiles {
-		recursor = tools.FastWalkGitRepoAll
+	for f := range lsFiles.Files {
+		err = c.fixSingleFileWriteFlags(f, lockable, unlockable)
+		if err != nil {
+			return err
+		}
 	}
 
-	recursor(absPath, func(parentDir string, fi os.FileInfo, err error) {
-		if err != nil {
-			addErr(err)
-			return
-		}
-		// Skip dirs, we only need to check files
-		if fi.IsDir() {
-			return
-		}
-		abschild := filepath.Join(parentDir, fi.Name())
-
-		// This is a file, get relative to repo root
-		relpath, err := filepath.Rel(workingDir, abschild)
-		if err != nil {
-			addErr(err)
-			return
-		}
-
-		err = c.fixSingleFileWriteFlags(relpath, lockable, unlockable)
-		if err != nil {
-			addErr(err)
-		}
-
-	})
-	return errors.Combine(errs)
+	return nil
 }
 
 // FixLockableFileWriteFlags checks each file in the provided list, and for
