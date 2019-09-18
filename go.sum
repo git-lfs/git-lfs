@@ -2,6 +2,8 @@ github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858 h1:OZQyEhf4Bviyd
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858/go.mod h1:976q2ETgjT2snVCf2ZaBnyBbVoPERGjUz+0sofzEfro=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
+github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/git-lfs/gitobj v1.4.1 h1:6nH5d1QP7GJjZfBqaBXpS7mDzT4plXQLqUjPbcbtRpw=
 github.com/git-lfs/gitobj v1.4.1/go.mod h1:B+djgKTnUoJHbg4uDvnC/+6xPcfEJNFbZd/YunEJRtA=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
@@ -10,6 +12,8 @@ github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066 h1:f5UyyCnv3o2EHy+
 github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066/go.mod h1:YnCP1lAyul0ITv9nT/OqXseZmGeaqvMVa2uvl8ssQvE=
 github.com/git-lfs/wildmatch v1.0.4 h1:Mj6LPnNZ6QSHLAAPDCH596pu6A/Z1xVm2Vk0+s3CtkY=
 github.com/git-lfs/wildmatch v1.0.4/go.mod h1:SdHAGnApDpnFYQ0vAxbniWR0sn7yLJ3QXo9RRfhn2ew=
+github.com/google/slothfs v0.0.0-20190417171004-6b42407d9230 h1:iBLrJ79cF90CZmpskySqhPvzrWr9njBYEsOZubXLZlc=
+github.com/google/slothfs v0.0.0-20190417171004-6b42407d9230/go.mod h1:kzvK/MFjZSNdFgc1tCZML3E1nVvnB4/npSKEuvMoECU=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/mattn/go-isatty v0.0.4 h1:bnP0vzxcAdeI1zdubAl5PjU6zsERjGZb7raWodagDYs=

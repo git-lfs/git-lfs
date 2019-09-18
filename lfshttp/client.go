@@ -445,6 +445,12 @@ func (c *Client) HttpClient(host string) *http.Client {
 		},
 	}
 
+	if isCookieJarEnabledForHost(c, host) {
+		tracerx.Printf("http: cookieFile for %s", host)
+		cookieJar, _ := getCookieJarForHost(c, host)
+		httpClient.Jar = cookieJar
+	}
+
 	c.hostClients[host] = httpClient
 	if c.VerboseOut == nil {
 		c.VerboseOut = os.Stderr
