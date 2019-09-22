@@ -14,7 +14,7 @@ func isCookieJarEnabledForHost(c *Client, host string) bool {
 }
 
 func getCookieJarForHost(c *Client, host string) (http.CookieJar, error) {
-cookieFile, _ := c.uc.Get("http", fmt.Sprintf("https://%v", host), "cookieFile")
+	cookieFile, _ := c.uc.Get("http", fmt.Sprintf("https://%v", host), "cookieFile")
 
 	return cookie.NewJar(cookieFile)
 }
