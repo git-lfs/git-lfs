@@ -69,7 +69,11 @@ for IMAGE_NAME in "${IMAGES[@]}"; do
   fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
-  OTHER_OPTIONS=("-it")
+  OTHER_OPTIONS=("-t")
+
+  if tty >/dev/null; then
+    OTHER_OPTIONS+=("-i")
+  fi
 
   if [ "${AUTO_REMOVE-1}" == "1" ]; then
     OTHER_OPTIONS+=("--rm")
