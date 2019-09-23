@@ -1,0 +1,76 @@
+name: Release
+on:
+  push:
+    tags: '*'
+
+jobs:
+  build-windows:
+    name: Build Windows Assets
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-ruby@v1
+    - run: mkdir -p "$HOME/go/bin"
+      shell: bash
+    - run: set GOPATH=%HOME%\go
+    - run: set PATH=%GOPATH%\bin;%PATH%
+    - run: cinst InnoSetup -y
+    - run: cinst strawberryperl -y
+    - run: cinst zip -y
+    - run: cinst jq -y
+    - run: cinst windows-sdk-10.0 -y
+    - run: refreshenv
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+      shell: bash
+    - run: mkdir -p bin/releases
+      shell: bash
+    - run: CERT_FILE="$HOME/cert.pfx" make release-write-certificate
+      shell: bash
+      env:
+        CERT_CONTENTS: ${{secrets.WINDOWS_CERT_BASE64}}
+    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-amd64-$(git describe).zip
+      shell: bash
+    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-386-$(git describe).zip
+      shell: bash
+    - run: echo "$PATH"
+      shell: bash
+    - run: find "/c/Program Files (x86)/Windows Kits/10/bin/x86"
+      shell: bash
+    - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
+      shell: bash
+      env:
+        CERT_PASS: ${{secrets.WINDOWS_CERT_PASS}}
+    - run: make release-windows-rebuild
+      shell: bash
+    - uses: actions/upload-artifact@v1
+      with:
+        name: assets
+        path: bin/releases
+  build-main:
+    name: Main Release Assets
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-ruby@v1
+    - uses: actions/download-artifact@v1
+      with:
+        name: assets
+    - run: make release
+    - run: rm -f bin/releases/*windows*
+    - run: find assets -name "*windows*" | xargs -L1 -I{} mv {} bin/releases
+    - run: script/upload --skip-verify $(git describe)
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  build-docker:
+    name: Build Linux Packages
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-ruby@v1
+    - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
+    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh
+    - run: ./script/packagecloud.rb
+      env:
+        PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
