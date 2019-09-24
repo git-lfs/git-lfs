@@ -85,7 +85,9 @@ CERT_PASS ?=
 
 # CERT_ARGS are additional arguments to pass when signing Windows binaries.
 ifneq ("$(CERT_FILE)$(CERT_PASS)","")
-CERT_ARGS ?= /f "$(CERT_FILE)" /p "$(CERT_PASS)"
+CERT_ARGS ?= -f "$(CERT_FILE)" -p "$(CERT_PASS)"
+else
+CERT_ARGS ?= -sha1 $(CERT_SHA1)
 endif
 
 # SOURCES is a listing of all .go files in this and child directories, excluding
@@ -330,15 +332,15 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	$(MAKE) -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
 	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
 	@echo Signing git-lfs-x64.exe
-	@signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v $(CERT_ARGS) git-lfs-x64.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
 	@echo Signing git-lfs-x86.exe
-	@signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v $(CERT_ARGS) git-lfs-x86.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
 	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
 	@# This file will be named according to the version number in the
 	@# versioninfo.json, not according to $(VERSION).
 	mv git-lfs-windows-*.exe git-lfs-windows.exe
 	@echo Signing git-lfs-windows.exe
-	@signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v $(CERT_ARGS) git-lfs-windows.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
 	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
 	@# We use tar because Git Bash doesn't include zip.
