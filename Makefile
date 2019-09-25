@@ -344,7 +344,7 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
 	@# We use tar because Git Bash doesn't include zip.
-	tar -cf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
+	tar -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
 	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
 
 # release-windows-rebuild takes the archive produced by release-windows and
