@@ -3,7 +3,6 @@ package lfs
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -233,17 +232,5 @@ func LinkOrCopy(cfg *config.Configuration, src string, dst string) error {
 // This function is designed to handle only temporary files that will be renamed
 // into place later somewhere within the Git repository.
 func TempFile(cfg *config.Configuration, pattern string) (*os.File, error) {
-	tmp, err := ioutil.TempFile(cfg.TempDir(), pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	perms := cfg.RepositoryPermissions(false)
-	err = os.Chmod(tmp.Name(), perms)
-	if err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
-		return nil, err
-	}
-	return tmp, nil
+	return tools.TempFile(cfg.TempDir(), pattern, cfg)
 }
