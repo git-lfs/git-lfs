@@ -671,7 +671,6 @@ begin_test "clone (HTTP server/proxy require cookies)"
   set -e
 
   # golang net.http.Cookie ignores cookies with IP instead of domain/hostname
-  GITSERVER_SAVED="$GITSERVER"
   GITSERVER=$(echo "$GITSERVER" | sed 's/127\.0\.0\.1/localhost/')
   cp "$CREDSDIR/127.0.0.1" "$CREDSDIR/localhost"
   printf "localhost\tTRUE\t/\tFALSE\t2145916800\tCOOKIE_GITLFS\tsecret\n" >> "$REMOTEDIR/cookies.txt"
@@ -752,7 +751,6 @@ begin_test "clone (HTTP server/proxy require cookies)"
     assert_clean_status
   popd
 
-  GITSERVER="$GITSERVER_SAVED"
   rm "$CREDSDIR/localhost"
 )
 end_test
