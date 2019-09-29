@@ -751,6 +751,7 @@ begin_test "clone (HTTP server/proxy require cookies)"
     assert_clean_status
   popd
 
+  # to avoid breaking t-credentials.sh
   rm "$CREDSDIR/localhost"
 )
 end_test
