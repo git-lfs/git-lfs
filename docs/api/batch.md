@@ -54,7 +54,7 @@ transfer adapters.
   "objects": [
     {
       "oid": "12345678",
-      "size": 123,
+      "size": 123
     }
   ]
 }
