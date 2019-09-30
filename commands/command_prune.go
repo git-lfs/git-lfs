@@ -56,6 +56,19 @@ type PruneProgress struct {
 }
 type PruneProgressChan chan PruneProgress
 
+func maxConcurrency() int64 {
+	fds, err := tools.GetMaxFileDescriptors()
+	if err != nil {
+		return int64(runtime.NumCPU() * 2)
+	}
+	// Assume 64 FDs for each operation and leave 64 for other purposes.
+	maxThreads := (int64(fds) - 64) / 64
+	if maxThreads < 1 {
+		return 1
+	}
+	return maxThreads
+}
+
 func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
 	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
@@ -94,7 +107,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	gitscanner := lfs.NewGitScanner(cfg, nil)
 	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
 
-	sem := semaphore.NewWeighted(int64(runtime.NumCPU() * 2))
+	sem := semaphore.NewWeighted(maxConcurrency())
 
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
 	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
