@@ -61,6 +61,8 @@ var (
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
 		"send-verify-action", "send-deprecated-links",
 	}
+
+	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
 )
 
 func main() {
@@ -108,6 +110,12 @@ func main() {
 		id, ok := reqId(w)
 		if !ok {
 			return
+		}
+
+		if reqCookieReposRE.MatchString(r.URL.Path) {
+			if skipIfNoCookie(w, r, id) {
+				return
+			}
 		}
 
 		if strings.Contains(r.URL.Path, "/info/lfs") {
@@ -1523,6 +1531,17 @@ func extractAuth(auth string) (string, string, error) {
 	}
 
 	return "", "", nil
+}
+
+func skipIfNoCookie(w http.ResponseWriter, r *http.Request, id string) bool {
+	cookie := r.Header.Get("Cookie")
+	if strings.Contains(cookie, "secret") {
+		return false
+	}
+
+	w.WriteHeader(403)
+	debug(id, "No cookie received: %q", r.URL.Path)
+	return true
 }
 
 func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string, ntlmSession ntlm.ServerSession) bool {

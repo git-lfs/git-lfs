@@ -665,3 +665,93 @@ begin_test "clone bare empty repository"
   fi
 )
 end_test
+
+begin_test "clone (HTTP server/proxy require cookies)"
+(
+  set -e
+
+  # golang net.http.Cookie ignores cookies with IP instead of domain/hostname
+  GITSERVER=$(echo "$GITSERVER" | sed 's/127\.0\.0\.1/localhost/')
+  cp "$CREDSDIR/127.0.0.1" "$CREDSDIR/localhost"
+  printf "localhost\tTRUE\t/\tFALSE\t2145916800\tCOOKIE_GITLFS\tsecret\n" >> "$REMOTEDIR/cookies.txt"
+  git config --global http.cookieFile "$REMOTEDIR/cookies.txt"
+
+  reponame="require-cookie-test"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":110},
+      {\"Filename\":\"file3.dat\",\"Size\":66},
+      {\"Filename\":\"file4.dat\",\"Size\":23}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"file5.dat\",\"Size\":120},
+      {\"Filename\":\"file6.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin master
+
+  # Now clone again, test specific clone dir
+  cd "$TRASHDIR"
+
+  newclonedir="require-cookie-test1"
+  git lfs clone "$GITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # should be cloned into location as per arg
+  [ -d "$newclonedir" ]
+
+  # check a few file sizes to make sure pulled
+  pushd "$newclonedir"
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
+  popd
+
+  # Now check clone with implied dir
+  rm -rf "$reponame"
+  git lfs clone "$GITSERVER/$reponame" 2>&1 | tee lfsclone.log
+  grep "Cloning into" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
+  # should be no filter errors
+  [ ! $(grep "filter" lfsclone.log) ]
+  [ ! $(grep "error" lfsclone.log) ]
+  # clone location should be implied
+  [ -d "$reponame" ]
+
+  pushd "$reponame"
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
+  popd
+
+  # to avoid breaking t-credentials.sh
+  rm "$CREDSDIR/localhost"
+)
+end_test
