@@ -47,6 +47,10 @@ GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
 ASM_FLAGS ?= all=-trimpath="$$HOME"
 
+# TRIMPATH contains arguments to be passed to go to strip paths on Go 1.13 and
+# newer.
+TRIMPATH ?= $(shell [ "$$($(GO) version | awk '{print $$3}' | sed -e 's/^[^.]*\.//;s/\..*$$//;')" -ge 13 ] && echo -trimpath)
+
 # RONN is the name of the 'ronn' program used to generate man pages.
 RONN ?= ronn
 # RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
@@ -71,6 +75,20 @@ TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
 # CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
 # actual signature is made with SHA-256.
 CERT_SHA1 ?= 824455beeb23fe270e756ca04ec8e902d19c62aa
+
+# CERT_FILE is the PKCS#12 file holding the certificate.
+CERT_FILE ?=
+
+# CERT_PASS is the password for the certificate.  It must not contain
+# double-quotes.
+CERT_PASS ?=
+
+# CERT_ARGS are additional arguments to pass when signing Windows binaries.
+ifneq ("$(CERT_FILE)$(CERT_PASS)","")
+CERT_ARGS ?= -f "$(CERT_FILE)" -p "$(CERT_PASS)"
+else
+CERT_ARGS ?= -sha1 $(CERT_SHA1)
+endif
 
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
@@ -143,6 +161,7 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 	-ldflags="$(LD_FLAGS)" \
 	-gcflags="$(GC_FLAGS)" \
 	-asmflags="$(ASM_FLAGS)" \
+	$(TRIMPATH) \
 	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
@@ -312,17 +331,20 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	@# work properly.
 	$(MAKE) -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
 	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
-	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x64.exe
-	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-x86.exe
+	@echo Signing git-lfs-x64.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
+	@echo Signing git-lfs-x86.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
 	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
 	@# This file will be named according to the version number in the
 	@# versioninfo.json, not according to $(VERSION).
 	mv git-lfs-windows-*.exe git-lfs-windows.exe
-	signtool.exe sign /sha1 $(CERT_SHA1) /fd sha256 /tr http://timestamp.digicert.com /td sha256 /v git-lfs-windows.exe
+	@echo Signing git-lfs-windows.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
 	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
 	@# We use tar because Git Bash doesn't include zip.
-	tar -cf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
+	tar -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
 	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
 
 # release-windows-rebuild takes the archive produced by release-windows and
@@ -341,6 +363,12 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 			cp "$$temp/git-lfs-windows.exe" bin/releases/git-lfs-windows-$(VERSION).exe \
 		); \
 		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; exit "$$status"
+
+.PHONY : release-write-certificate
+release-write-certificate:
+	@echo "Writing certificate to $(CERT_FILE)"
+	@echo "$$CERT_CONTENTS" | base64 --decode >"$$CERT_FILE"
+	@printf 'Wrote %d bytes (SHA256 %s) to certificate file\n' $$(wc -c <"$$CERT_FILE") $$(shasum -ba 256 "$$CERT_FILE" | cut -d' ' -f1)
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.

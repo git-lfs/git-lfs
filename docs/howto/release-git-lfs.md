@@ -74,9 +74,9 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
        the GitHub API.
 
        This will write a portion of the CHANGELOG to stdout, which you should
-       save into a file as well as copy and paste into `CHANGELOG.md`, along
-       with an H2-level heading containing the version and release date
-       (consistent with the existing style in the document.)
+       copy and paste into `CHANGELOG.md`, along with an H2-level heading
+       containing the version and release date (consistent with the existing
+       style in the document.)
 
        * Optionally write 1-2 paragraphs summarizing the release, and calling out
          community contributions.
@@ -115,43 +115,34 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      v2.n.m
      ```
 
-  4. Begin building release artifacts.
-
-     * To build `*.tar.gz` artifacts, run `make release`.
-
-     * To build `*.zip` artifacts, run `make release` (as above), and follow the
-       additional instructions in the section ["For Windows"](#for-windows)
-       below.
-
-     * To build `*.deb` and `*.rpm` artifacts, follow the additional
-       instructions in ["For Linux"](#for-linux) below.
-
-  5. Once all the assets have been built, build the signed hash file via the
-     following:
-
-     ```ShellSession
-     $ (cd bin/releases && \
-        shasum -a256 -b * | grep -vE '(assets|sha256sums)' | \
-        gpg --digest-algo SHA256 --clearsign >sha256sums.asc)
-     ```
-
-  6. Run `script/upload` with the tag name and the file containing the changelog
-     entries for this version (not `CHANGELOG.md`, which has all versions). This
-     will create a new GitHub release and upload all the assets, giving them the
-     correct labels.
-
-  7. Push the tag, via:
+  4. Push the tag, via:
 
      ```ShellSession
      $ git push origin v2.n.m
      ```
 
-     And publish the release on GitHub, assuming it looks correct.
+     This will kick off the process of building the release artifacts.  This
+     process will take somewhere between 45 minutes and an hour.  When it's
+     done, you'll end up with a draft release in the repository for the version
+     in question.
 
-  8. Move any remaining items out of the milestone for the current release to a
+  5. From the command line, finalize the release process by signing the release:
+
+     ```ShellSession
+     $ script/upload --finalize v2.n.m
+     ```
+
+     If you want to inspect the data before approving it, pass the `--inspect`
+     option, which will drop you to a shell and let you look at things.  If the
+     shell exits successfully, the build will be signed; otherwise, the process
+     will be aborted.
+
+  6. Publish the release on GitHub, assuming it looks correct.
+
+  7. Move any remaining items out of the milestone for the current release to a
      future release and close the milestone.
 
-  9. Update the `_config.yml` file in
+  8. Update the `_config.yml` file in
      [`git-lfs/git-lfs.github.com`](https://github.com/git-lfs/git-lfs.github.com),
      similar to the following:
 
@@ -219,48 +210,3 @@ branch.
       parent as the mainline.
 
    4. Then, proceed to follow the guidelines above.
-
-### For Windows
-
-We distribute three key artifacts for Windows builds, the `-x86`, and `-x64`
-binaries embedded in a ZIP file, and the Windows installer. Before beginning,
-ensure that you have a Windows VM (or access to a Windows computer) with the
-following installed:
-
-  1. Git for Windows
-  2. Go (matching the version the release is built with)
-  3. InnoSetup (available from: http://www.jrsoftware.org/isinfo.php)
-  4. The Git LFS signing certificate (ask a maintainer for access)
-  5. signtool.exe (available from:
-     https://docs.microsoft.com/en-us/windows/desktop/seccrypto/signtool)
-
-Once you have the above installed, boot up your Windows VM and run the
-following in a checkout of Git LFS:
-
-  1. First, run `make release-windows`.
-
-  2. Copy the `bin/releases/git-windows-assets-*.tar.gz` file to your Unix
-     system where you are doing the rest of the release and place it into
-     `bin/releases` in that Git LFS checkout.
-
-  3. On your Unix system, run `make release-windows-rebuild`.
-
-### For Linux
-
-To build Git LFS `*.deb` and `*.rpm` packages, we first build them in
-specialized Docker containers, and we upload them to PackageCloud.io.
-
-  1. To build custom versions of the Docker containers, clone
-     `git@github.com:git-lfs/build-dockers.git`, and run `build_dockers.bsh`.
-     Then, run `./docker/run_dockers.bsh` in the Git LFS repo with
-     `DOCKER_AUTOPULL=0`.
-
-     Otherwise, run `./docker/run_dockers.bsh` in the Git LFS repo with no
-     arguments.
-
-  2. Once you have built the `*.deb` and `*.rpm` files, they will appear in the
-     `repos` directory, and you can upload them to PackageCloud with:
-
-     ```ShellSession
-     $ PACKAGECLOUD_TOKEN= ruby ./script/packagecloud.rb
-     ```

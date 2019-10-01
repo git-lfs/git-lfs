@@ -22,7 +22,12 @@ abort () {
 }
 
 curl () {
-  command curl -nfSs "$@"
+  if [ -n "$GITHUB_TOKEN" ]
+  then
+    command curl -u "token:$GITHUB_TOKEN" -fSs "$@"
+  else
+    command curl -nfSs "$@"
+  fi
 }
 
 categorize_os () {
@@ -54,6 +59,8 @@ categorize_asset () {
       echo "Source";;
     git-lfs-windows-v*.*.*.exe)
       echo "Windows Installer";;
+    sha256sums)
+      echo "Unsigned SHA-256 Hashes";;
     sha256sums.asc)
       echo "Signed SHA-256 Hashes";;
     *)
@@ -72,7 +79,7 @@ content_type () {
       echo "application/gzip";;
     *.exe)
       echo "application/octet-stream";;
-    *.asc)
+    *.asc|sha256sums*)
       echo "text/plain";;
   esac
 }
@@ -116,13 +123,36 @@ create_release () {
     sed -e 's/{.*}//g'
 }
 
+# Update the draft release with a new body and print the upload URL for release assets to the
+# standard output.  A release with the given version must already exist.
+patch_release () {
+  local version="$1"
+  local bodyfile="$2"
+
+  # Find the URL of this release.
+  local url=$(curl https://api.github.com/repos/$REPO/releases | \
+    jq -r '.[] | select(.name == "'"$version"'") | .url')
+
+  [ -n "$url" ] || abort "No existing release found for version $version."
+  say "Found the existing release for this version."
+
+  # This can be large, so pass it in a file.
+  format_release_json "$version" "$bodyfile" >> "$WORKDIR/release-json"
+
+  curl -XPATCH -H'Content-Type: application/json' -d"@$WORKDIR/release-json" \
+    $url | \
+    jq -r '.upload_url' |
+    sed -e 's/{.*}//g'
+}
+
 # Find the release files for the given version.
 release_files () {
   local version="$1"
+  local assets="${2:-bin/releases}"
 
   [ -n "$version" ] || return 1
 
-  find bin/releases -name '*.tar.gz' -o -name '*386*.zip' -o \
+  find "$assets" -name '*.tar.gz' -o -name '*386*.zip' -o \
     -name '*amd64*.zip' -o -name '*.exe' -o -name 'sha256sums.asc' | \
     grep -E "$version|sha256sums.asc" | \
     grep -v "assets" | \
@@ -134,6 +164,7 @@ release_files () {
 finalize_body_message () {
   local version="$1"
   local changelog="$2"
+  local assets="$3"
 
   version=$(echo "$version" | sed -e 's/^v//')
 
@@ -154,7 +185,7 @@ Up to date packages are available on [PackageCloud](https://packagecloud.io/gith
 ## SHA-256 hashes:
 EOM
 
-  shasum -a256 $(release_files "$version") | \
+  shasum -a256 $(release_files "$version" "$assets") | \
     ruby -pe '$_.chomp!' \
     -e '$_.gsub!(/^([0-9a-f]+)\s+.*\/([^\/]+)$/, "**\\2**\n\\1\n\n")' | \
     ruby -0777 -pe '$_.gsub!(/\n+\z/, "\n")' >> "$WORKDIR/body-template"
@@ -190,8 +221,6 @@ upload_assets () {
     jq -r '.[] | select(.name == "'"$version"'") | .assets | .[] | .name' \
     > "$WORKDIR/existing-assets"
 
-  mkdir "$WORKDIR/downloads"
-
   for file in $(release_files "$version" | filter_files "$WORKDIR/existing-assets")
   do
     base=$(basename "$file")
@@ -207,77 +236,198 @@ upload_assets () {
     download=$(jq -r '.url' "$WORKDIR/response")
   done
 
+  say "Assets uploaded."
+}
+
+# Download assets from GitHub to the specified directory.
+download_assets () {
+  local version="$1"
+  local dir="$2"
+
   curl https://api.github.com/repos/$REPO/releases | \
     jq -rc '.[] | select(.name == "'"$version"'") | .assets | .[] | [.name,.url]' | \
     ruby -rjson -ne 'puts JSON.parse($_).join(" ")' \
     > "$WORKDIR/assets"
 
-  say "Assets uploaded."
-  say "Verifying assets..."
-
   cat "$WORKDIR/assets" | (while read base url
   do
-    say "\tDownloading %s for verification..." "$base"
+    say "\tDownloading %s..." "$base"
     (
-      cd "$WORKDIR/downloads" &&
+      cd "$dir" &&
       curl -Lo "$base" -H"Accept: application/octet-stream" "$url"
     )
   done)
+}
+
+# Download the assets and verify the signature made on them.
+verify_assets () {
+  local version="$1"
+  local dir="$WORKDIR/verify"
+  mkdir "$dir"
+  download_assets "$version" "$dir"
 
   # If the OpenPGP data is not valid, gpg -d will output nothing to stdout, and
   # shasum will then fail.
   say "Checking assets for integrity..."
-  (cd "$WORKDIR/downloads" && gpg -d sha256sums.asc | shasum -a 256 -c)
+  (cd "$dir" && gpg -d sha256sums.asc | shasum -a 256 -c)
 
   say "\nAssets look good!"
+}
+
+# Extract the changelog for the given version from the history and save it in a
+# file.  Print the filename of the changelog to standard output.
+extract_changelog () {
+  local version="$1"
+
+  git cat-file blob "$version:CHANGELOG.md" | \
+  ruby -ne "version=%Q($version)[1..-1]; state ||= :silent; text ||= [];" \
+    -e 'if state == :print && $_.start_with?("## "); puts text.join.strip; exit; end;' \
+    -e 'text << $_ if state == :print;' \
+    -e 'state = :print if $_.start_with?("## #{version}")' \
+    > "$WORKDIR/changelog"
+  echo "$WORKDIR/changelog"
+}
+
+# Perform the final steps to verify a release
+finalize () {
+  local version="$1"
+  local inspect="$2"
+  local downloads="$WORKDIR/finalize"
+
+  say "Finalizing the release process..."
+  say "Downloading assets..."
+
+  mkdir "$downloads"
+  download_assets "$version" "$downloads"
+
+  if [ -n "$inspect" ]
+  then
+    say "Dropping you to a shell to inspect the assets."
+    say "Type 'exit 0' to continue, or 'exit 1' to abort."
+
+    (cd "$downloads" && $SHELL)
+  fi
+
+  say "Signing asset manifest..."
+  (
+    cd "$downloads" && \
+    shasum -a256 -b * | grep -vE '(assets|sha256sums)' | \
+        gpg --digest-algo SHA256 --clearsign >sha256sums.asc
+  )
+
+  say "Formatting the final body of the GitHub release now..."
+
+  local changelog=$(extract_changelog "$version")
+  local bodyfile=$(finalize_body_message "$version" "$changelog" "$downloads")
+
+  say "Uploading final release body..."
+
+  local upload_url=$(patch_release "$version" "$bodyfile")
+
+  say "Uploading final versions of assets..."
+  cp "$downloads/sha256sums.asc" bin/releases
+  upload_assets "$version" "$upload_url"
+
+  # Verification occurs in caller below.
 }
 
 # Provide a helpful usage message and exit.
 usage () {
   local status="$1"
   cat <<EOM
-Usage: $0 VERSION CHANGELOG
+Usage: $0 VERSION
 
 Create a draft GitHub release for Git LFS using the tag specified by VERSION and
 the changelog specified in the file CHANGELOG. Before running this script, the
 release assets should be built and ready for upload, including the signed
 sha256sums.asc file.
 
-This script requires ruby, curl, shasum, and jq.
+This script requires ruby, gpg, curl, shasum, and jq.
 EOM
   exit $status
 }
 
-# The main program.
-main () {
+# Check that this script has the prerequisites to continue.
+sanity_check () {
   local version="$1"
-  local changelog="$2"
-
-  [ "$version" = "--help" ] && usage 0
-  [ -z "$changelog" ] && usage 1 >&2
+  local finalize="$2"
 
   say "Checking that you've got some release artifacts..."
-  [ -n "$(release_files "$version")" ] || \
-    abort "I couldn't find any release files for $version."
+  if [ -n "$(release_files "$version")" ]
+  then
+    [ -z "$finalize" ] || abort "You'll need an empty bin/releases directory to continue."
+  else
+    [ -n "$finalize" ] || abort "I couldn't find any release files for $version."
+  fi
 
-  say "Looking for the necessary entries in .netrc..."
-  grep -qsF api.github.com "$HOME/.netrc" || \
-    abort "I couldn't find api.github.com in your .netrc."
-  grep -qsF uploads.github.com "$HOME/.netrc" || \
-    abort "I couldn't find uploads.github.com in your .netrc."
+  if [ -n "$GITHUB_TOKEN" ]
+  then
+    say "Found a token in the GITHUB_TOKEN environment variable."
+  else
+    say "Looking for the necessary entries in .netrc..."
+    grep -qsF api.github.com "$HOME/.netrc" || \
+      abort "I couldn't find api.github.com in your .netrc."
+    grep -qsF uploads.github.com "$HOME/.netrc" || \
+      abort "I couldn't find uploads.github.com in your .netrc."
+  fi
 
   say "Okay, everything looks good."
+}
 
-  say "Formatting the body of the GitHub release now..."
+# The main program.
+main () {
+  local inspect=""
 
-  local bodyfile=$(finalize_body_message "$version" "$changelog")
+  while [ -n "$1" ]
+  do
+    case "$1" in
+      --help)
+        usage 0;;
+      --inspect)
+        inspect=1
+        shift;;
+      --skip-verify)
+        SKIP_VERIFY=1
+        shift;;
+      --finalize)
+        FINALIZE=1
+        shift;;
+      --)
+        shift
+        break;;
+      *)
+        break;;
+    esac
+  done
 
-  say "Creating a GitHub release for %s..." "$version"
+  local version="$1"
 
-  local upload_url=$(create_release "$version" "$bodyfile")
+  [ -z "$version" ] && usage 1 >&2
 
-  say "Uploading assets to GitHub..."
-  upload_assets "$version" "$upload_url"
+  sanity_check "$version" "$FINALIZE"
+
+  if [ -n "$FINALIZE" ]
+  then
+    finalize "$version" "$inspect"
+  else
+    say "Formatting the body of the GitHub release now..."
+
+    local changelog=$(extract_changelog "$version")
+    local bodyfile=$(finalize_body_message "$version" "$changelog")
+
+    say "Creating a GitHub release for %s..." "$version"
+
+    local upload_url=$(create_release "$version" "$bodyfile")
+
+    say "Uploading assets to GitHub..."
+    upload_assets "$version" "$upload_url"
+  fi
+
+  if [ -z "$SKIP_VERIFY" ]
+  then
+    say "Verifying assets..."
+    verify_assets "$version"
+  fi
 
   say "Okay, done. Sanity-check the release and publish it."
 }
