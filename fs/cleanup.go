@@ -17,7 +17,7 @@ func (f *Filesystem) cleanupTmp() error {
 	}
 
 	var walkErr error
-	tools.FastWalkGitRepo(tmpdir, func(parentDir string, info os.FileInfo, err error) {
+	tools.FastWalkDir(tmpdir, func(parentDir string, info os.FileInfo, err error) {
 		if err != nil {
 			walkErr = err
 		}

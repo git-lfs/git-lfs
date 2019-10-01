@@ -250,7 +250,7 @@ begin_test "lock with .gitignore"
   git add .gitignore
   git commit -m ".gitignore: ignore 'a.txt'"
   rm -f a.txt && git checkout a.txt
-  assert_file_writeable a.txt
+  refute_file_writeable a.txt
 )
 end_test
 

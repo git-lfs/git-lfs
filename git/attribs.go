@@ -3,6 +3,7 @@ package git
 import (
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git/gitattr"
@@ -172,27 +173,27 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
-	tools.FastWalkGitRepo(workingDir, func(parentDir string, info os.FileInfo, err error) {
-		if err != nil {
-			tracerx.Printf("Error finding .gitattributes: %v", err)
-			return
-		}
+	lsFiles, err := NewLsFiles(workingDir, true)
+	if err != nil {
+		tracerx.Printf("Error finding .gitattributes: %v", err)
+		return paths
+	}
 
-		if info.IsDir() || info.Name() != ".gitattributes" {
-			return
+	if gitattributesFiles, present := lsFiles.FilesByName[".gitattributes"]; present {
+		for _, f := range gitattributesFiles {
+			tracerx.Printf("findAttributeFiles: located %s", f.FullPath)
+			paths = append(paths, attrFile{
+				path: filepath.Join(workingDir, f.FullPath),
+				readMacros: f.FullPath == ".gitattributes", // Read macros from the top-level attributes
+			})
 		}
-
-		paths = append(paths, attrFile{
-			path:       filepath.Join(parentDir, info.Name()),
-			readMacros: parentDir == workingDir,
-		})
-	})
+	}
 
 	// reverse the order of the files so more specific entries are found first
 	// when iterating from the front (respects precedence)
-	for i, j := 0, len(paths)-1; i < j; i, j = i+1, j-1 {
-		paths[i], paths[j] = paths[j], paths[i]
-	}
+	sort.Slice(paths[:], func(i, j int) bool {
+		return len(paths[i].path) > len(paths[j].path)
+	})
 
 	return paths
 }

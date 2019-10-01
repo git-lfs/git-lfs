@@ -10,7 +10,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -198,166 +197,10 @@ func TestFastWalkBasic(t *testing.T) {
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	walker := fastWalkWithExcludeFiles(expectedEntries[0], "")
+	walker := fastWalkWithExcludeFiles(expectedEntries[0])
 	gotEntries, gotErrors := collectFastWalkResults(walker.ch)
 
 	assert.Empty(t, gotErrors)
-
-	sort.Strings(expectedEntries)
-	sort.Strings(gotEntries)
-	assert.Equal(t, expectedEntries, gotEntries)
-}
-
-func BenchmarkFastWalkGitRepoChannels(b *testing.B) {
-	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoChannels")
-	if err != nil {
-		assert.FailNow(b, "Unable to get temp dir: %v", err)
-	}
-	defer os.RemoveAll(rootDir)
-	os.Chdir(rootDir)
-	entries := createFastWalkInputData(1000, 5000)
-
-	for i := 0; i < b.N; i++ {
-		var files, errors int
-		FastWalkGitRepo(entries[0], func(parent string, info os.FileInfo, err error) {
-			if err != nil {
-				errors++
-			} else {
-				files++
-			}
-		})
-		b.Logf("files: %d, errors: %d", files, errors)
-	}
-}
-
-func BenchmarkFastWalkGitRepoCallback(b *testing.B) {
-	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsBenchFastWalkGitRepoCallback")
-	if err != nil {
-		assert.FailNow(b, "Unable to get temp dir: %v", err)
-	}
-	defer os.RemoveAll(rootDir)
-	os.Chdir(rootDir)
-	entries := createFastWalkInputData(1000, 5000)
-
-	for i := 0; i < b.N; i++ {
-		var files, errors int
-		FastWalkGitRepo(entries[0], func(parentDir string, info os.FileInfo, err error) {
-			if err != nil {
-				errors++
-			} else {
-				files++
-			}
-		})
-
-		b.Logf("files: %d, errors: %d", files, errors)
-	}
-}
-
-func TestFastWalkGitRepo(t *testing.T) {
-	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkGitRepo")
-	if err != nil {
-		assert.FailNow(t, "Unable to get temp dir: %v", err)
-	}
-	defer os.RemoveAll(rootDir)
-	os.Chdir(rootDir)
-
-	expectedEntries := createFastWalkInputData(3, 3)
-
-	mainDir := expectedEntries[0]
-
-	// Set up a git repo and add some ignored files / dirs
-	subprocess.SimpleExec("git", "init", mainDir)
-	ignored := []string{
-		"filethatweignore.ign",
-		"foldercontainingignored",
-		"foldercontainingignored/notthisone.ign",
-		"foldercontainingignored/ignoredfolder",
-		"foldercontainingignored/ignoredfolder/file1.txt",
-		"foldercontainingignored/ignoredfolder/file2.txt",
-		"ignoredfolder",
-		"ignoredfolder/file1.txt",
-		"ignoredfolder/file2.txt",
-		"ignoredfrominside",
-		"ignoredfrominside/thisisok.txt",
-		"ignoredfrominside/thisisnot.txt",
-		"ignoredfrominside/thisone",
-		"ignoredfrominside/thisone/file1.txt",
-	}
-	for _, f := range ignored {
-		fullPath := join(mainDir, f)
-		if len(filepath.Ext(f)) > 0 {
-			ioutil.WriteFile(fullPath, []byte("TEST"), 0644)
-		} else {
-			os.MkdirAll(fullPath, 0755)
-		}
-	}
-	// write root .gitignore
-	rootGitIgnore := `
-# ignore *.ign everywhere
-*.ign
-# ignore folder
-ignoredfolder
-`
-	ioutil.WriteFile(join(mainDir, ".gitignore"), []byte(rootGitIgnore), 0644)
-	// Subfolder ignore; folder will show up but but subfolder 'thisone' won't
-	subFolderIgnore := `
-thisone
-thisisnot.txt
-`
-	ioutil.WriteFile(join(mainDir, "ignoredfrominside", ".gitignore"), []byte(subFolderIgnore), 0644)
-
-	// This dir will be walked but content won't be
-	expectedEntries = append(expectedEntries, join(mainDir, "foldercontainingignored"))
-	// This dir will be walked and some of its content but has its own gitignore
-	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside"))
-	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside", "thisisok.txt"))
-	// Also gitignores
-	expectedEntries = append(expectedEntries, join(mainDir, ".gitignore"))
-	expectedEntries = append(expectedEntries, join(mainDir, "ignoredfrominside", ".gitignore"))
-	// nothing else should be there
-
-	gotEntries := make([]string, 0, 1000)
-	gotErrors := make([]error, 0, 5)
-	FastWalkGitRepo(mainDir, func(parent string, info os.FileInfo, err error) {
-		if err != nil {
-			gotErrors = append(gotErrors, err)
-		} else {
-			if len(parent) == 0 {
-				gotEntries = append(gotEntries, info.Name())
-			} else {
-				gotEntries = append(gotEntries, join(parent, info.Name()))
-			}
-		}
-	})
-
-	assert.Empty(t, gotErrors)
-
-	sort.Strings(expectedEntries)
-	sort.Strings(gotEntries)
-	assert.Equal(t, expectedEntries, gotEntries)
-
-	// Go again using FastWalkGitRepoAll instead of FastWalkGitRepo to
-	// ensure that .gitingore'd files and directories are seen and
-	// traversed, respectively.
-	for _, ignore := range ignored {
-		expectedEntries = append(expectedEntries, join(mainDir, ignore))
-	}
-	gotEntries = make([]string, 0, 1000)
-
-	FastWalkGitRepoAll(mainDir, func(parent string, info os.FileInfo, err error) {
-		if err != nil {
-			gotErrors = append(gotErrors, err)
-		} else {
-			if len(parent) == 0 {
-				gotEntries = append(gotEntries, info.Name())
-			} else {
-				gotEntries = append(gotEntries, join(parent, info.Name()))
-			}
-		}
-	})
-
-	expectedEntries = uniq(expectedEntries)
-	gotEntries = uniq(gotEntries)
 
 	sort.Strings(expectedEntries)
 	sort.Strings(gotEntries)
