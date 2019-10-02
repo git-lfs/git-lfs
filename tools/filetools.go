@@ -272,11 +272,11 @@ type fastWalkInfo struct {
 }
 
 type fastWalker struct {
-	rootDir         string
-	ch              chan fastWalkInfo
-	limit           int32
-	cur             *int32
-	wg              *sync.WaitGroup
+	rootDir string
+	ch      chan fastWalkInfo
+	limit   int32
+	cur     *int32
+	wg      *sync.WaitGroup
 }
 
 // fastWalkWithExcludeFiles walks the contents of a dir, respecting
@@ -296,11 +296,11 @@ func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
 
 	c := int32(0)
 	w := &fastWalker{
-		rootDir:         rootDir,
-		limit:           int32(limit),
-		cur:             &c,
-		ch:              make(chan fastWalkInfo, 256),
-		wg:              &sync.WaitGroup{},
+		rootDir: rootDir,
+		limit:   int32(limit),
+		cur:     &c,
+		ch:      make(chan fastWalkInfo, 256),
+		wg:      &sync.WaitGroup{},
 	}
 
 	go func() {

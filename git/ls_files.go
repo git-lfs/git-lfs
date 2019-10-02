@@ -2,9 +2,9 @@ package git
 
 import (
 	"bufio"
-	"strings"
-	"path"
 	"io/ioutil"
+	"path"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/tools"
@@ -16,7 +16,7 @@ type lsFileInfo struct {
 	FullPath string
 }
 type LsFiles struct {
-	Files map[string]*lsFileInfo
+	Files       map[string]*lsFileInfo
 	FilesByName map[string][]*lsFileInfo
 }
 
@@ -35,8 +35,8 @@ func NewLsFiles(workingDir string, standardExclude bool) (*LsFiles, error) {
 	cmd := gitNoLFS(args...)
 	cmd.Dir = workingDir
 
-    tracerx.Printf("NewLsFiles: running in %s git %s",
-			workingDir, strings.Join(args, " "))
+	tracerx.Printf("NewLsFiles: running in %s git %s",
+		workingDir, strings.Join(args, " "))
 
 	// Capture stdout and stderr
 	stdout, err := cmd.StdoutPipe()
@@ -55,8 +55,8 @@ func NewLsFiles(workingDir string, standardExclude bool) (*LsFiles, error) {
 		return nil, err
 	}
 
-	rv := &LsFiles {
-		Files: make(map[string]*lsFileInfo),
+	rv := &LsFiles{
+		Files:       make(map[string]*lsFileInfo),
 		FilesByName: make(map[string][]*lsFileInfo),
 	}
 
@@ -71,7 +71,7 @@ func NewLsFiles(workingDir string, standardExclude bool) (*LsFiles, error) {
 	// Read all files
 	for scanner.Scan() {
 		base := path.Base(scanner.Text())
-		finfo := &lsFileInfo {
+		finfo := &lsFileInfo{
 			BaseName: base,
 			FullPath: scanner.Text(),
 		}

@@ -183,7 +183,7 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		for _, f := range gitattributesFiles {
 			tracerx.Printf("findAttributeFiles: located %s", f.FullPath)
 			paths = append(paths, attrFile{
-				path: filepath.Join(workingDir, f.FullPath),
+				path:       filepath.Join(workingDir, f.FullPath),
 				readMacros: f.FullPath == ".gitattributes", // Read macros from the top-level attributes
 			})
 		}
