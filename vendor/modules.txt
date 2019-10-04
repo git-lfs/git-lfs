@@ -3,6 +3,8 @@ github.com/alexbrainman/sspi
 github.com/alexbrainman/sspi/ntlm
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/fsnotify/fsnotify v1.4.7
+github.com/fsnotify/fsnotify
 # github.com/git-lfs/gitobj v1.4.1
 github.com/git-lfs/gitobj
 github.com/git-lfs/gitobj/errors
@@ -15,6 +17,8 @@ github.com/git-lfs/go-ntlm/ntlm
 github.com/git-lfs/go-ntlm/ntlm/md4
 # github.com/git-lfs/wildmatch v1.0.4
 github.com/git-lfs/wildmatch
+# github.com/google/slothfs v0.0.0-20190417171004-6b42407d9230
+github.com/google/slothfs/cookie
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/mattn/go-isatty v0.0.4
