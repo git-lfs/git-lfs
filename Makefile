@@ -151,24 +151,27 @@ endif
 #
 # 	$(1) - a valid GOOS value, or empty-string
 # 	$(2) - a valid GOARCH value, or empty-string
-# 	$(3) - an optional program extension. If $(3) is given as '-foo', then the
+# 	$(3) - a valid GOARM value, or empty-string
+# 	$(4) - an optional program extension. If $(3) is given as '-foo', then the
 # 	       program will be written to bin/git-lfs-foo.
 #
 # It uses BUILD_MAIN as defined above to specify the entrypoint for building Git
 # LFS.
-BUILD = GOOS=$(1) GOARCH=$(2) \
+BUILD = GOOS=$(1) GOARCH=$(2) GOARM=$(3) \
 	$(GO) build \
 	-ldflags="$(LD_FLAGS)" \
 	-gcflags="$(GC_FLAGS)" \
 	-asmflags="$(ASM_FLAGS)" \
 	$(TRIMPATH) \
-	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
+	-o ./bin/git-lfs$(4) $(BUILD_MAIN)
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
 # built for.
 BUILD_TARGETS = \
 	bin/git-lfs-darwin-amd64 \
 	bin/git-lfs-darwin-386 \
+	bin/git-lfs-linux-armel \
+	bin/git-lfs-linux-armhf \
 	bin/git-lfs-linux-arm64 \
 	bin/git-lfs-linux-amd64 \
 	bin/git-lfs-linux-386 \
@@ -202,23 +205,27 @@ all build : $(BUILD_TARGETS)
 # On Windows, they also depend on the resource.syso target, which installs and
 # embeds the versioninfo into the binary.
 bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
-	$(call BUILD,darwin,amd64,-darwin-amd64)
+	$(call BUILD,darwin,amd64,,-darwin-amd64)
 bin/git-lfs-darwin-386 : $(SOURCES) mangen
-	$(call BUILD,darwin,386,-darwin-386)
+	$(call BUILD,darwin,386,,-darwin-386)
+bin/git-lfs-linux-armel : $(SOURCES) mangen
+	$(call BUILD,linux,arm,5,-linux-armel)
+bin/git-lfs-linux-armhf : $(SOURCES) mangen
+	$(call BUILD,linux,arm,7,-linux-armhf)
 bin/git-lfs-linux-arm64 : $(SOURCES) mangen
-	$(call BUILD,linux,arm64,-linux-arm64)
+	$(call BUILD,linux,arm64,,-linux-arm64)
 bin/git-lfs-linux-amd64 : $(SOURCES) mangen
-	$(call BUILD,linux,amd64,-linux-amd64)
+	$(call BUILD,linux,amd64,,-linux-amd64)
 bin/git-lfs-linux-386 : $(SOURCES) mangen
-	$(call BUILD,linux,386,-linux-386)
+	$(call BUILD,linux,386,,-linux-386)
 bin/git-lfs-freebsd-amd64 : $(SOURCES) mangen
-	$(call BUILD,freebsd,amd64,-freebsd-amd64)
+	$(call BUILD,freebsd,amd64,,-freebsd-amd64)
 bin/git-lfs-freebsd-386 : $(SOURCES) mangen
-	$(call BUILD,freebsd,386,-freebsd-386)
+	$(call BUILD,freebsd,386,,-freebsd-386)
 bin/git-lfs-windows-amd64.exe : resource.syso $(SOURCES) mangen
-	$(call BUILD,windows,amd64,-windows-amd64.exe)
+	$(call BUILD,windows,amd64,,-windows-amd64.exe)
 bin/git-lfs-windows-386.exe : resource.syso $(SOURCES) mangen
-	$(call BUILD,windows,386,-windows-386.exe)
+	$(call BUILD,windows,386,,-windows-386.exe)
 
 # .DEFAULT_GOAL sets the operating system-appropriate Git LFS binary as the
 # default output of 'make'.
@@ -227,12 +234,12 @@ bin/git-lfs-windows-386.exe : resource.syso $(SOURCES) mangen
 # bin/git-lfs targets the default output of Git LFS on non-Windows operating
 # systems, and respects the build knobs as above.
 bin/git-lfs : $(SOURCES) fmt mangen
-	$(call BUILD,$(GOOS),$(GOARCH),)
+	$(call BUILD,$(GOOS),$(GOARCH),,)
 
 # bin/git-lfs.exe targets the default output of Git LFS on Windows systems, and
 # respects the build knobs as above.
 bin/git-lfs.exe : $(SOURCES) resource.syso mangen
-	$(call BUILD,$(GOOS),$(GOARCH),.exe)
+	$(call BUILD,$(GOOS),$(GOARCH),,.exe)
 
 # resource.syso installs the 'goversioninfo' command and uses it in order to
 # generate a binary that has information included necessary to create the
@@ -264,6 +271,8 @@ script/windows-installer/git-lfs-wizard-image.bmp
 RELEASE_TARGETS = \
 	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-armel-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-armhf-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-386-$(VERSION).tar.gz \

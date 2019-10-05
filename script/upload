@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -44,7 +44,16 @@ categorize_os () {
 categorize_arch () {
   local arch="$1"
 
-  echo "$arch" | tr a-z A-Z
+  if [[ "$arch" = "armel" ]]; then
+    echo "ARM v5"
+    return 
+  fi 
+  if [[ "$arch" = "armhf" ]]; then
+    echo "ARM v7"
+    return 
+  fi 
+
+  echo "$arch" | tr '[:lower:]' '[:upper:]'
 }
 
 # Categorize a release asset and print its human readable name to standard
