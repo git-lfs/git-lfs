@@ -68,7 +68,7 @@ are provided by an upload `action` object.
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_in": 86400,
+          "expires_in": 86400
         }
       }
     }
@@ -110,14 +110,14 @@ after a successful upload.
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_in": 86400,
+          "expires_in": 86400
         },
         "verify": {
           "href": "https://some-verify-callback.com",
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_in": 86400,
+          "expires_in": 86400
         }
       }
     }

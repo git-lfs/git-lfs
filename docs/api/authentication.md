@@ -22,7 +22,7 @@ $ ssh git@git-server.com git-lfs-authenticate foo/bar.git download
   },
 
   # optional, for expiring tokens, preferred over expires_at
-  "expires_in": 86400
+  "expires_in": 86400,
 
   # optional, for expiring tokens
   "expires_at": "2016-11-10T15:29:07Z"

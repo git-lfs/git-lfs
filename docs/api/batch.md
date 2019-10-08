@@ -54,7 +54,7 @@ transfer adapters.
   "objects": [
     {
       "oid": "12345678",
-      "size": 123,
+      "size": 123
     }
   ]
 }
@@ -77,7 +77,7 @@ Some examples will illustrate how the `ref` property can be used.
   "objects": [
     {
       "oid": "12345678",
-      "size": 123,
+      "size": 123
     }
   ]
 }
@@ -92,7 +92,7 @@ With this payload, both `owner` and `contrib` can download the requested object,
   "objects": [
     {
       "oid": "12345678",
-      "size": 123,
+      "size": 123
     }
   ]
 }
@@ -108,7 +108,7 @@ With this payload, only `owner` can upload the requested object.
   "objects": [
     {
       "oid": "12345678",
-      "size": 123,
+      "size": 123
     }
   ]
 }
@@ -175,7 +175,7 @@ completely. The client will then assume the server already has it.
           "header": {
             "Key": "value"
           },
-          "expires_at": "2016-11-10T15:29:07Z",
+          "expires_at": "2016-11-10T15:29:07Z"
         }
       }
     }
