@@ -67,8 +67,8 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
 	if fetchAllArg {
-		if fetchRecentArg || len(args) > 1 {
-			Exit("Cannot combine --all with ref arguments or --recent")
+		if fetchRecentArg {
+			Exit("Cannot combine --all with --recent")
 		}
 		if include != nil || exclude != nil {
 			Exit("Cannot combine --all with --include or --exclude")
@@ -76,7 +76,16 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
 			Print("Ignoring global include / exclude paths to fulfil --all")
 		}
-		success = fetchAll()
+
+		if len(args) > 1 {
+			refShas := make([]string, len(refs))
+			for _, ref := range refs {
+				refShas = append(refShas, ref.Sha)
+			}
+			success = fetchRefs(refShas)
+		} else {
+			success = fetchAll()
+		}
 
 	} else { // !all
 		filter := buildFilepathFilter(cfg, include, exclude)
@@ -140,6 +149,51 @@ func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 		Panic(err, "Could not scan for Git LFS files")
 	}
 	return fetchAndReportToChan(pointers, filter, nil)
+}
+
+func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
+	// This could be a long process so use the chan version & report progress
+	task := tasklog.NewSimpleTask()
+	defer task.Complete()
+
+	logger := tasklog.NewLogger(OutputWriter,
+		tasklog.ForceProgress(cfg.ForceProgress()),
+	)
+	logger.Enqueue(task)
+	var numObjs int64
+
+	// use temp gitscanner to collect pointers
+	var pointers []*lfs.WrappedPointer
+	var multiErr error
+	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			if multiErr != nil {
+				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
+			} else {
+				multiErr = err
+			}
+			return
+		}
+
+		numObjs++
+		task.Logf("fetch: %d object(s) found", numObjs)
+		pointers = append(pointers, p)
+	})
+
+	if err := tempgitscanner.ScanRefs(refs, nil, nil); err != nil {
+		return nil, err
+	}
+
+	tempgitscanner.Close()
+	return pointers, multiErr
+}
+
+func fetchRefs(refs []string) bool {
+	pointers, err := pointersToFetchForRefs(refs)
+	if err != nil {
+		Panic(err, "Could not scan for Git LFS files")
+	}
+	return fetchAndReportToChan(pointers, nil, nil)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
