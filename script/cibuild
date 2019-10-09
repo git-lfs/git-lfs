@@ -13,7 +13,11 @@ if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
   export GIT_LFS_LOCK_ACQUIRE_DISABLED=1
 fi
 
-GOIMPORTS="goimports"
+# Set GOPATH if it isn't already set.
+eval "$(go env | grep GOPATH)"
+go get golang.org/x/tools/cmd/goimports
+
+GOIMPORTS="$GOPATH/bin/goimports"
 
 make GOIMPORTS="$GOIMPORTS" && make GOIMPORTS="$GOIMPORTS" test
 
@@ -36,3 +40,13 @@ popd >/dev/null
 echo "Looking for trailing whitespace..."
 ! git grep -lE '[[:space:]]+$' | \
   grep -vE '(^vendor/|\.git/(objects/|index)|\.bat$)'
+
+echo "Formatting files..."
+# Building and installing goimports and goversioninfo will have modified go.mod
+# and go.sum, so reset the branch before formatting.
+git reset --hard
+make GOIMPORTS="$GOIMPORTS" fmt
+
+echo "Looking for files that are not formatted correctly..."
+git status -s
+[ -z "$(git status --porcelain)" ]

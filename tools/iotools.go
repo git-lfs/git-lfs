@@ -146,11 +146,10 @@ func Spool(to io.Writer, from io.Reader, dir string) (n int64, err error) {
 
 // Split the input on the NUL character. Usable with bufio.Scanner.
 func SplitOnNul(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	for i:= 0; i < len(data); i++ {
+	for i := 0; i < len(data); i++ {
 		if data[i] == '\x00' {
-			return i+1, data[:i], nil
+			return i + 1, data[:i], nil
 		}
 	}
 	return 0, nil, nil
 }
-
