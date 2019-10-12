@@ -398,7 +398,8 @@ begin_test "fetch-all"
 
   # Preform the same assertion as above, on the same data
   git lfs fetch --all origin
-  for ((a=0; a < NUMFILES ; a++)); do
+  for ((a=0; a < NUMFILES ; a++))
+  do
     assert_local_object "${oid[$a]}" "${#content[$a]}"
   done
 )
