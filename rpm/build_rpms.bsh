@@ -119,6 +119,10 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
   fi
 fi
 
+if [[ ${VERSION_ID[0]} == 8 ]]; then
+  $SUDO yum install -y rubygems-devel
+fi
+
 if ! which ronn; then
   echo "Downloading some ruby gems..."
   pushd ${CURDIR}/SOURCES

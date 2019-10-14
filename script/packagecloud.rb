@@ -56,6 +56,9 @@ $distro_name_map = {
     "sles/12.3", # LTSS ends 30 Jun 2022
     "sles/15.0"  # Current
   ],
+  "centos/8" => [
+    "el/8",
+  ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
