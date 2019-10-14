@@ -26,8 +26,8 @@ This does not update the working copy.
 
 * `--all`:
   Download all objects that are referenced by any commit reachable from the refs
-  provided as arguments. If no refs are provided, then all refs are pushed. This
-  is primarily for backup and migration purposes. Cannot be combined with
+  provided as arguments. If no refs are provided, then all refs are fetched.
+  This is primarily for backup and migration purposes. Cannot be combined with
   --recent or --include/--exclude. Ignores any globally configured include and
   exclude paths to ensure that all objects are downloaded.
 
@@ -130,7 +130,7 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 * Fetch all the LFS objects from the default remote that are referenced by any
   commit in the `master` and `develop` branches
 
-  `git lfs fetch --all master develop`
+  `git lfs fetch --all origin master develop`
 
 * Fetch the LFS objects for a branch from origin
 
