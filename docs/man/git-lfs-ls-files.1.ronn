@@ -24,13 +24,14 @@ LFS pointer.
 * `-s` `--size`:
   Show the size of the LFS object between parenthesis at the end of a line.
 
-* -d --debug:
+* `-d` `--debug`:
   Show as much information as possible about a LFS file. This is intended
   for manual inspection; the exact format may change at any time.
 
-* -a --all:
+* `-a` `--all`:
   Inspects the full history of the repository, not the current HEAD (or other
-  provided reference).
+  provided reference). This will include previous versions of LFS objects that
+  are no longer found in the current tree.
 
 * `--deleted`:
   Shows the full history of the given reference, including objects that have
