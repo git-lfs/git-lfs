@@ -25,10 +25,11 @@ This does not update the working copy.
   that would otherwise be downloaded. See [RECENT CHANGES]
 
 * `--all`:
-  Download all objects referenced by any commit that is reachable; this is
-  primarily for backup / migration purposes. Cannot be combined with --recent or
-  --include/--exclude. Ignores any globally configured include and exclude paths
-  to ensure that all objects are downloaded.
+  Download all objects that are referenced by any commit reachable from the refs
+  provided as arguments. If no refs are provided, then all refs are fetched.
+  This is primarily for backup and migration purposes. Cannot be combined with
+  --recent or --include/--exclude. Ignores any globally configured include and
+  exclude paths to ensure that all objects are downloaded.
 
 * `--prune` `-p`:
   Prune old and unreferenced objects after fetching, equivalent to running
@@ -125,6 +126,11 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 * Fetch the LFS objects for the current ref from a secondary remote 'upstream'
 
   `git lfs fetch upstream`
+
+* Fetch all the LFS objects from the default remote that are referenced by any
+  commit in the `master` and `develop` branches
+
+  `git lfs fetch --all origin master develop`
 
 * Fetch the LFS objects for a branch from origin
 

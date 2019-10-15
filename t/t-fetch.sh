@@ -371,6 +371,7 @@ begin_test "fetch-all"
   git push origin branch3
   git push origin remote_branch_only
   git push origin tag_only
+  git push origin tag1
   for ((a=0; a < NUMFILES ; a++))
   do
     assert_server_object "$reponame" "${oid[$a]}"
@@ -391,6 +392,32 @@ begin_test "fetch-all"
     assert_local_object "${oid[$a]}" "${#content[$a]}"
   done
 
+  rm -rf .git/lfs/objects
+
+  # fetch all objects reachable from the master branch only
+  git lfs fetch --all origin master
+  for a in 0 1 3 5 7 9 10 11
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 2 4 6 8
+  do
+    refute_local_object "${oid[$a]}"
+  done
+
+  rm -rf .git/lfs/objects
+
+  # fetch all objects reachable from branch1 and tag1 only
+  git lfs fetch --all origin branch1 tag1
+  for a in 0 1 2 3 5 6
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 4 7 8 9 10 11
+  do
+    refute_local_object "${oid[$a]}"
+  done
+
   # Make a bare clone of the repository
   cd ..
   git clone --bare "$GITSERVER/$reponame" "$reponame-bare"
@@ -398,8 +425,35 @@ begin_test "fetch-all"
 
   # Preform the same assertion as above, on the same data
   git lfs fetch --all origin
-  for ((a=0; a < NUMFILES ; a++)); do
+  for ((a=0; a < NUMFILES ; a++))
+  do
     assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+
+  rm -rf lfs/objects
+
+  # fetch all objects reachable from the master branch only
+  git lfs fetch --all origin master
+  for a in 0 1 3 5 7 9 10 11
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 2 4 6 8
+  do
+    refute_local_object "${oid[$a]}"
+  done
+
+  rm -rf lfs/objects
+
+  # fetch all objects reachable from branch1 and tag1 only
+  git lfs fetch --all origin branch1 tag1
+  for a in 0 1 2 3 5 6
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 4 7 8 9 10 11
+  do
+    refute_local_object "${oid[$a]}"
   done
 )
 end_test
