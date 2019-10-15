@@ -1,5 +1,76 @@
 # Git LFS Changelog
 
+## 2.9.0 (17 October 2019)
+
+This release adds support for DragonFly BSD, adds a new `git lfs dedup` command
+to save space if the file system supports it, adds support for file URLs,
+improves the performance when walking the repository, contains improvements
+to use HTTP/2 when available and cookies when required, and numerous other bug
+fixes, features, and modifications.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @pluehne for adding support for fetching the history of specific refs
+* @kupson for adding cookie support
+* @liweitianux for adding Dragonfly BSD support
+* @kazuki-ma for implementing de-duplication support
+* @dvdveer for adding range support to ls-files
+* @dyrone, @pmeerw, @yamiacat, and @kittenking for cleaning up some documentation issues
+* @slonopotamus for improving concurrent downloads
+* @nataliechen1 for fixing remote names with dots
+* @jw3 for removing excessive logging
+* @SeamusConnor for significantly improving performance when walking the repository
+
+### Features
+
+* Support fetching entire history of specific refs #3849 (@pluehne)
+* Add support for CentOS 8 #3854 (@bk2204)
+* Let git-lfs HTTPS transport send cookies #3825 (@kupson)
+* Support DragonFly BSD #3837 (@liweitianux)
+* HTTP/2 protocol support #3793 (@PastelMobileSuit)
+* Add clonefile on Windows over ReFS support. #3790 (@kazuki-ma)
+* Add new command `git lfs dedup` for file system level de-duplication. #3753 (@kazuki-ma)
+* Support GIT_ALTERNATE_OBJECT_DIRECTORIES #3765 (@bk2204)
+* ls-files: add support for reference range #3764 (@dvdveer)
+* Add several additional distros for packagecloud.io #3751 (@bk2204)
+* Provide an option to track to handle paths literally #3756 (@bk2204)
+* Optimize traversal of Git objects with URL remotes #3755 (@bk2204)
+* Support for file URLs #3748 (@bk2204)
+* Add clone file on MacOS X (darwin). #3745 (@kazuki-ma)
+
+### Bugs
+
+* Fix JSON comma problems in docs #3851 (@dyrone)
+* Remove redundant comma in batch.md #3841 (@dyrone)
+* More robust handling of parallel attempts to download the same file #3826 (@slonopotamus)
+* Update wildmatch to v1.0.4 #3820 (@bk2204)
+* Update to gitobj v1.4.1 #3815 (@bk2204)
+* Fix build error when cross-compiling #3817 (@bk2204)
+* Do not fail when multiple processes download the same lfs file #3813 (@slonopotamus)
+* Fix Remote Name Parsing Bug #3812 (@nataliechen1)
+* status: gracefully handle files replaced by directories #3768 (@bk2204)
+* Avoid deadlock when transfer queue fails #3800 (@bk2204)
+* Avoid a hang when Git is slow to provide us data #3806 (@bk2204)
+* tasklog/log.go: print "done" messages with a trailing period #3789 (@ttaylorr)
+* track: make --filename work with spaces #3785 (@bk2204)
+* Fix couple of 'the the' typos #3786 (@pmeerw)
+* Use an absolute path for smudging #3780 (@bk2204)
+* Fix URL parsing with Go 1.12.8 #3771 (@bk2204)
+* Fix remote autoselection when not on a branch #3759 (@bk2204)
+* Replace deprecated SEEK_SET, SEEK_CUR usage. #3739 (@kazuki-ma)
+* Do not log skipped checkouts to file #3736 (@jw3)
+* Fix typos across git-lfs repository #3728 (@kittenking)
+* Accept legacy Git SSH URLs #3713 (@bk2204)
+
+### Misc
+
+* ls-files --all man patch #3859 (@yamiacat)
+* Reworked to use git ls-files in some circumstances instead of FastWalkGitRepo #3823 (@SeamusConnor)
+* Clean up go.mod for Go 1.13 #3807 (@bk2204)
+* Use FICLONE instead of BTRFS_IOC_CLONE. #3796 (@kazuki-ma)
+* Remove unused pty code #3737 (@bk2204)
+
 ## 2.8.0 (23 July 2019)
 
 This release adds support for SOCKS proxies and Windows junctions, adds native
