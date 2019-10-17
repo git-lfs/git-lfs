@@ -62,7 +62,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 	stat, statErr := os.Stat(mediafile)
 	if statErr == nil && stat != nil {
 		fileSize := stat.Size()
-		if fileSize == 0 || fileSize != ptr.Size {
+		if fileSize != ptr.Size {
 			tracerx.Printf("Removing %s, size %d is invalid", mediafile, fileSize)
 			os.RemoveAll(mediafile)
 			stat = nil
