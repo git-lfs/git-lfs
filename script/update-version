@@ -14,7 +14,7 @@ user_id () {
 update_go () {
   local version="$1"
 
-  sed -i '' -e "s/\(Version = \)\"[0-9.]*\"/\\1\"$version\"/" config/version.go
+  sed -i -e "s/\(Version = \)\"[0-9.]*\"/\\1\"$version\"/" config/version.go
 }
 
 update_debian () {
