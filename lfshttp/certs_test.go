@@ -150,7 +150,7 @@ func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
 	c, err := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAINFO": tempfile.Name(),
 	}, map[string]string{
-		"http.sslbackend": "schannel",
+		"http.sslbackend":           "schannel",
 		"http.schannelusesslcainfo": "1",
 	}))
 	assert.Nil(t, err)
