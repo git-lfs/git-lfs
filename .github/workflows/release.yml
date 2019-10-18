@@ -68,6 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - uses: actions/setup-ruby@v1
+    - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
     - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh

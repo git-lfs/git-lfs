@@ -18,7 +18,11 @@ Requires:       ruby
 a swift, liberal HTML parser with a fantastic library
 
 %prep
+%if 0%{?el6}
+%setup -q -c -T
+%else
 %setup -q -n %{gem_name}-%{version}
+%endif
 %if ! 0%{?el8}
 gem install -V --local --force --install-dir ./%{gemdir} %{SOURCE0}
 %endif

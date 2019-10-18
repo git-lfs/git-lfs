@@ -18,7 +18,11 @@ Requires:       ruby > 1.9.2
 Fast Implementation of Gruber's Markdown in C
 
 %prep
+%if 0%{?el6}
+%setup -q -c -T
+%else
 %setup -q -n %{gem_name}-%{version}
+%endif
 %if ! 0%{?el8}
 gem install -V --local --force --install-dir ./%{gemdir} %{SOURCE0}
 mv ./%{gemdir}/bin ./usr/local
