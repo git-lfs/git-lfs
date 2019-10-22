@@ -139,7 +139,7 @@ func whichCheckout() (stage git.IndexStage, err error) {
 	}
 
 	if seen > 1 {
-		return 0, fmt.Errorf("At most one of --base, --theirs, and --ours is allowed")
+		return 0, fmt.Errorf("at most one of --base, --theirs, and --ours is allowed")
 	}
 	return stage, nil
 }

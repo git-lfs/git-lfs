@@ -11,7 +11,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var missingCallbackErr = errors.New("No callback given")
+var missingCallbackErr = errors.New("no callback given")
 
 // IsCallbackMissing returns a boolean indicating whether the error is reporting
 // that a GitScanner is missing a required GitScannerCallback.
@@ -68,7 +68,7 @@ func (s *GitScanner) RemoteForPush(r string) error {
 	defer s.mu.Unlock()
 
 	if len(s.remote) > 0 && s.remote != r {
-		return fmt.Errorf("Trying to set remote to %q, already set to %q", r, s.remote)
+		return fmt.Errorf("trying to set remote to %q, already set to %q", r, s.remote)
 	}
 
 	s.remote = r
@@ -88,7 +88,7 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("Unable to scan starting at %q: no remote set.", left)
+		return fmt.Errorf("unable to scan starting at %q: no remote set", left)
 	}
 	s.mu.Unlock()
 

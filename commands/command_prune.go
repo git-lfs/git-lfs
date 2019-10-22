@@ -311,7 +311,7 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 		task.Count(1)
 	}
 	if problems.Len() > 0 {
-		LoggedError(fmt.Errorf("Failed to delete some files"), problems.String())
+		LoggedError(fmt.Errorf("failed to delete some files"), problems.String())
 		Exit("Prune failed, see errors above")
 	}
 }
@@ -416,7 +416,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 			// We measure from the last commit at the ref
 			summ, err := git.GetCommitSummary(commit)
 			if err != nil {
-				errorChan <- fmt.Errorf("Couldn't scan commits at %v: %v", commit, err)
+				errorChan <- fmt.Errorf("couldn't scan commits at %v: %v", commit, err)
 				continue
 			}
 			commitsSince := summ.CommitDate.AddDate(0, 0, -pruneCommitDays)

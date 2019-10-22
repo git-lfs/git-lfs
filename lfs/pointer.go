@@ -166,7 +166,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 	value, ok = kvps["size"]
 	size, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || size < 0 {
-		return nil, fmt.Errorf("Invalid size: %q", value)
+		return nil, fmt.Errorf("invalid size: %q", value)
 	}
 
 	var extensions []*PointerExtension
@@ -227,7 +227,7 @@ func validatePointerExtensions(exts []*PointerExtension) error {
 	m := make(map[int]struct{})
 	for _, ext := range exts {
 		if _, exist := m[ext.Priority]; exist {
-			return fmt.Errorf("Duplicate priority found: %d", ext.Priority)
+			return fmt.Errorf("duplicate priority found: %d", ext.Priority)
 		}
 		m[ext.Priority] = struct{}{}
 	}
@@ -253,7 +253,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) < 2 {
-			err = fmt.Errorf("Error reading line %d: %s", line, text)
+			err = fmt.Errorf("error reading line %d: %s", line, text)
 			return
 		}
 
@@ -261,7 +261,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		value := parts[1]
 
 		if numKeys <= line {
-			err = fmt.Errorf("Extra line: %s", text)
+			err = fmt.Errorf("extra line: %s", text)
 			return
 		}
 

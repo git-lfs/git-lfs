@@ -64,7 +64,7 @@ func TestPktLineEmptyPacket(t *testing.T) {
 			// No body (invalid)
 		},
 
-		Err: "Invalid packet length.",
+		Err: "invalid packet length",
 	}
 
 	tc.Assert(t)
@@ -128,7 +128,7 @@ func TestPktLineReadsTextWithErr(t *testing.T) {
 	str, err := rw.readPacketText()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Invalid packet length.", err.Error())
+	assert.Equal(t, "invalid packet length", err.Error())
 	assert.Equal(t, "", str)
 }
 
@@ -161,7 +161,7 @@ func TestPktLineAppendsPacketListsAndReturnsErrs(t *testing.T) {
 	str, err := rw.readPacketList()
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Invalid packet length.", err.Error())
+	assert.Equal(t, "invalid packet length", err.Error())
 	assert.Empty(t, str)
 }
 
@@ -198,7 +198,7 @@ func TestPktLineDoesNotWritePacketsExceedingMaxLength(t *testing.T) {
 	err := rw.writePacket(make([]byte, MaxPacketLength+1))
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Packet length exceeds maximal length", err.Error())
+	assert.Equal(t, "packet length exceeds maximal length", err.Error())
 	assert.Empty(t, buf.Bytes())
 }
 

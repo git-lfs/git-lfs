@@ -107,7 +107,7 @@ func (c *Client) ntlmSendMessage(req *http.Request, message []byte) (*http.Respo
 func parseChallengeResponse(res *http.Response) ([]byte, error) {
 	header := res.Header.Get("Www-Authenticate")
 	if len(header) < 6 {
-		return nil, fmt.Errorf("Invalid NTLM challenge response: %q", header)
+		return nil, fmt.Errorf("invalid NTLM challenge response: %q", header)
 	}
 
 	//parse out the "NTLM " at the beginning of the response

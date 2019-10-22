@@ -230,7 +230,7 @@ func VerifyFileHash(oid, path string) error {
 
 	calcOid := hex.EncodeToString(h.Sum(nil))
 	if calcOid != oid {
-		return fmt.Errorf("File %q has an invalid hash %s, expected %s", path, calcOid, oid)
+		return fmt.Errorf("file %q has an invalid hash %s, expected %s", path, calcOid, oid)
 	}
 
 	return nil

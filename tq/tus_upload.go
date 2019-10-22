@@ -64,11 +64,11 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response will contain Upload-Offset if supported
 	offHdr := res.Header.Get("Upload-Offset")
 	if len(offHdr) == 0 {
-		return fmt.Errorf("Missing Upload-Offset header from tus.io HEAD response at %q, contact server admin", rel.Href)
+		return fmt.Errorf("missing Upload-Offset header from tus.io HEAD response at %q, contact server admin", rel.Href)
 	}
 	offset, err := strconv.ParseInt(offHdr, 10, 64)
 	if err != nil || offset < 0 {
-		return fmt.Errorf("Invalid Upload-Offset value %q in response from tus.io HEAD at %q, contact server admin", offHdr, rel.Href)
+		return fmt.Errorf("invalid Upload-Offset value %q in response from tus.io HEAD at %q, contact server admin", offHdr, rel.Href)
 	}
 	// Upload-Offset=size means already completed (skip)
 	// Batch API will probably already detect this, but handle just in case
