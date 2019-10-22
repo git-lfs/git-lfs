@@ -6,7 +6,7 @@ import (
 )
 
 func TestChecksHandleGoErrors(t *testing.T) {
-	err := errors.New("Go Error")
+	err := errors.New("go error")
 
 	if IsFatalError(err) {
 		t.Error("go error should not be a fatal error")
@@ -14,7 +14,7 @@ func TestChecksHandleGoErrors(t *testing.T) {
 }
 
 func TestCheckHandlesWrappedErrors(t *testing.T) {
-	err := errors.New("Go error")
+	err := errors.New("go error")
 
 	fatal := NewFatalError(err)
 
@@ -24,7 +24,7 @@ func TestCheckHandlesWrappedErrors(t *testing.T) {
 }
 
 func TestBehaviorWraps(t *testing.T) {
-	err := errors.New("Go error")
+	err := errors.New("go error")
 
 	fatal := NewFatalError(err)
 	ni := NewNotImplementedError(fatal)
@@ -43,7 +43,7 @@ func TestBehaviorWraps(t *testing.T) {
 }
 
 func TestContextOnGoErrors(t *testing.T) {
-	err := errors.New("Go error")
+	err := errors.New("go error")
 
 	SetContext(err, "foo", "bar")
 
@@ -54,7 +54,7 @@ func TestContextOnGoErrors(t *testing.T) {
 }
 
 func TestContextOnWrappedErrors(t *testing.T) {
-	err := NewFatalError(errors.New("Go error"))
+	err := NewFatalError(errors.New("go error"))
 
 	SetContext(err, "foo", "bar")
 

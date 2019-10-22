@@ -76,7 +76,7 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			ch <- gitscannerResult{Err: fmt.Errorf("Error in git log: %v %v", err, string(stderr))}
+			ch <- gitscannerResult{Err: fmt.Errorf("error in git log: %v %v", err, string(stderr))}
 		}
 		close(ch)
 	}()

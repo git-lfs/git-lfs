@@ -226,7 +226,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	if len(opt.ObjectMapFilePath) > 0 {
 		objectMapFile, err = os.OpenFile(opt.ObjectMapFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 		if err != nil {
-			return nil, fmt.Errorf("Could not create object map file: %v", err)
+			return nil, fmt.Errorf("could not create object map file: %v", err)
 		}
 		defer objectMapFile.Close()
 	}

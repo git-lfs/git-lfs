@@ -132,7 +132,7 @@ func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	req, err := readRequest(NewFilterProcessScanner(from, nil))
 
 	require.NotNil(t, err)
-	assert.Equal(t, "Invalid packet length.", err.Error())
+	assert.Equal(t, "invalid packet length", err.Error())
 
 	assert.Nil(t, req)
 }

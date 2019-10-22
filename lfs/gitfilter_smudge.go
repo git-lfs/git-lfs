@@ -30,12 +30,12 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 
 	abs, err := filepath.Abs(filename)
 	if err != nil {
-		return fmt.Errorf("Could not produce absolute path for %q", filename)
+		return fmt.Errorf("could not produce absolute path for %q", filename)
 	}
 
 	file, err := os.Create(abs)
 	if err != nil {
-		return fmt.Errorf("Could not create working directory file: %v", err)
+		return fmt.Errorf("could not create working directory file: %v", err)
 	}
 	defer file.Close()
 	if _, err := f.Smudge(file, ptr, filename, download, manifest, cb); err != nil {
@@ -45,7 +45,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 			ptr.Encode(file)
 			return err
 		} else {
-			return fmt.Errorf("Could not write working directory file: %v", err)
+			return fmt.Errorf("could not write working directory file: %v", err)
 		}
 	}
 	return nil
@@ -122,7 +122,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
 	reader, err := os.Open(mediafile)
 	if err != nil {
-		return 0, errors.Wrapf(err, "Error opening media file.")
+		return 0, errors.Wrapf(err, "error opening media file")
 	}
 	defer reader.Close()
 
@@ -138,7 +138,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		for _, ptrExt := range ptr.Extensions {
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
-				err := fmt.Errorf("Extension '%s' is not configured.", ptrExt.Name)
+				err := fmt.Errorf("extension '%s' is not configured", ptrExt.Name)
 				return 0, errors.Wrap(err, "smudge")
 			}
 			ext.Priority = ptrExt.Priority
@@ -171,18 +171,18 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// verify name, order, and oids
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
-			err = fmt.Errorf("Actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
+			err = fmt.Errorf("actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
 			return 0, errors.Wrap(err, "smudge")
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
-				err = fmt.Errorf("Actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
+				err = fmt.Errorf("actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
 				return 0, errors.Wrap(err, "smudge")
 			}
 			if actual.oidOut != expected.Oid {
-				err = fmt.Errorf("Actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
+				err = fmt.Errorf("actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
 				return 0, errors.Wrap(err, "smudge")
 			}
 		}

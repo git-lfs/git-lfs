@@ -160,7 +160,7 @@ func TestRevListArgs(t *testing.T) {
 
 func TestRevListScannerCallsClose(t *testing.T) {
 	var called uint32
-	err := errors.New("Hello world")
+	err := errors.New("this is a marker error")
 
 	s := &RevListScanner{
 		closeFn: func() error {

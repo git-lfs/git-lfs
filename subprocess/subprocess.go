@@ -75,7 +75,7 @@ func Output(cmd *Cmd) (string, error) {
 		if len(cmd.Args) > 1 {
 			ran = fmt.Sprintf("%s %s", cmd.Path, quotedArgs(cmd.Args[1:]))
 		}
-		formattedErr := fmt.Errorf("Error running %s: '%s' '%s'", ran, errorOutput, strings.TrimSpace(exitError.Error()))
+		formattedErr := fmt.Errorf("error running %s: '%s' '%s'", ran, errorOutput, strings.TrimSpace(exitError.Error()))
 
 		// return "" as output in error case, for callers that don't care about errors but rely on "" returned, in-case stdout != ""
 		return "", formattedErr
