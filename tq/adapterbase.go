@@ -177,7 +177,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		// Actual transfer happens here
 		var err error
 		if t.Size < 0 {
-			err = fmt.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
+			err = fmt.Errorf("object %q has invalid size (got: %d)", t.Oid, t.Size)
 		} else {
 			err = a.transferImpl.DoTransfer(ctx, t, a.cb, authCallback)
 		}

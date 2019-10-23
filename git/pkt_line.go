@@ -37,7 +37,7 @@ func newPktline(r io.Reader, w io.Writer) *pktline {
 //    before an entire packet (or header) could be ingested, an
 //    io.ErrShortBuffer error will be returned.
 // 3) If there was a valid header, but no body associated with the packet, an
-//    "Invalid packet length." error will be returned.
+//    "invalid packet length" error will be returned.
 // 4) If the data in the header could not be parsed as a hexadecimal length in
 //    the Git pktline format, the parse error will be returned.
 //
@@ -61,7 +61,7 @@ func (p *pktline) readPacket() ([]byte, error) {
 		return nil, nil
 	}
 	if pktLen <= 4 {
-		return nil, errors.New("Invalid packet length.")
+		return nil, errors.New("invalid packet length")
 	}
 
 	payload, err := ioutil.ReadAll(io.LimitReader(p.r, pktLen-4))
@@ -108,7 +108,7 @@ func (p *pktline) readPacketList() ([]string, error) {
 // `writeFlush()`.
 func (p *pktline) writePacket(data []byte) error {
 	if len(data) > MaxPacketLength {
-		return errors.New("Packet length exceeds maximal length")
+		return errors.New("packet length exceeds maximal length")
 	}
 
 	if _, err := p.w.WriteString(fmt.Sprintf("%04x", len(data)+4)); err != nil {

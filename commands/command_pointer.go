@@ -145,7 +145,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 func pointerReader() (io.ReadCloser, error) {
 	if len(pointerCompare) > 0 {
 		if pointerStdin {
-			return nil, errors.New("Cannot read from STDIN and --pointer.")
+			return nil, errors.New("cannot read from STDIN and --pointer")
 		}
 
 		return os.Open(pointerCompare)

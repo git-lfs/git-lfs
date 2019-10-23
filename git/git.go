@@ -201,7 +201,7 @@ func HashObject(r io.Reader) (string, error) {
 	cmd.Stdin = r
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("Error building Git blob OID: %s", err)
+		return "", fmt.Errorf("error building Git blob OID: %s", err)
 	}
 
 	return string(bytes.TrimSpace(out)), nil
@@ -329,7 +329,7 @@ func RemoteList() ([]string, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git remote: %v", err)
+		return nil, fmt.Errorf("failed to call git remote: %v", err)
 	}
 	cmd.Start()
 	defer cmd.Wait()
@@ -351,7 +351,7 @@ func LocalRefs() ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+		return nil, fmt.Errorf("failed to call git show-ref: %v", err)
 	}
 
 	var refs []*Ref
@@ -419,7 +419,7 @@ func ValidateRemote(remote string) error {
 		return nil
 	}
 
-	return fmt.Errorf("Invalid remote name: %q", remote)
+	return fmt.Errorf("invalid remote name: %q", remote)
 }
 
 // ValidateRemoteURL checks that a string is a valid Git remote URL
@@ -434,7 +434,7 @@ func ValidateRemoteURL(remote string) error {
 		if strings.Contains(remote, ":") {
 			return nil
 		} else {
-			return fmt.Errorf("Invalid remote name: %q", remote)
+			return fmt.Errorf("invalid remote name: %q", remote)
 		}
 	}
 
@@ -442,7 +442,7 @@ func ValidateRemoteURL(remote string) error {
 	case "ssh", "http", "https", "git", "file":
 		return nil
 	default:
-		return fmt.Errorf("Invalid remote url protocol %q in %q", u.Scheme, remote)
+		return fmt.Errorf("invalid remote url protocol %q in %q", u.Scheme, remote)
 	}
 }
 
@@ -462,7 +462,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		"refs")
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git for-each-ref: %v", err)
+		return nil, fmt.Errorf("failed to call git for-each-ref: %v", err)
 	}
 	cmd.Start()
 	defer cmd.Wait()
@@ -560,7 +560,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git show: %v %v", err, string(out))
+		return nil, fmt.Errorf("failed to call git show: %v %v", err, string(out))
 	}
 
 	// At most 10 substrings so subject line is not split on anything
@@ -597,7 +597,7 @@ func GitAndRootDirs() (string, string, error) {
 	out, err := cmd.Output()
 	output := string(out)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
+		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
 
 	paths := strings.Split(output, "\n")
@@ -608,12 +608,12 @@ func GitAndRootDirs() (string, string, error) {
 	}
 
 	if pathLen == 0 {
-		return "", "", fmt.Errorf("Bad git rev-parse output: %q", output)
+		return "", "", fmt.Errorf("bad git rev-parse output: %q", output)
 	}
 
 	absGitDir, err := canonicalizeDir(paths[0])
 	if err != nil {
-		return "", "", fmt.Errorf("Error converting %q to absolute: %s", paths[0], err)
+		return "", "", fmt.Errorf("error converting %q to absolute: %s", paths[0], err)
 	}
 
 	if pathLen == 1 || len(paths[1]) == 0 {
@@ -639,7 +639,7 @@ func RootDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("Failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
 	}
 
 	path := strings.TrimSpace(string(out))
@@ -654,7 +654,7 @@ func GitDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--git-dir")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -675,7 +675,7 @@ func GitCommonDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--git-common-dir")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("Failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -937,7 +937,7 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
 	err := cmd.Start()
 	if err != nil {
-		return fmt.Errorf("Failed to start git clone: %v", err)
+		return fmt.Errorf("failed to start git clone: %v", err)
 	}
 
 	err = cmd.Wait()
@@ -979,7 +979,7 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git show-ref: %v", err)
+		return nil, fmt.Errorf("failed to call git show-ref: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1024,7 +1024,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git ls-remote: %v", err)
+		return nil, fmt.Errorf("failed to call git ls-remote: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1110,7 +1110,7 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git ls-files: %v", err)
+		return nil, fmt.Errorf("failed to call git ls-files: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1163,17 +1163,17 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	cmd := gitNoLFS(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to call git diff: %v", err)
+		return nil, fmt.Errorf("failed to call git diff: %v", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("Failed to start git diff: %v", err)
+		return nil, fmt.Errorf("failed to start git diff: %v", err)
 	}
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		files = append(files, strings.TrimSpace(scanner.Text()))
 	}
 	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("Git diff failed: %v", err)
+		return nil, fmt.Errorf("git diff failed: %v", err)
 	}
 
 	return files, err

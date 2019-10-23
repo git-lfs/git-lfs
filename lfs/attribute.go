@@ -154,7 +154,7 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		}
 		return err
 	} else if currentValue != value {
-		return fmt.Errorf("The %q attribute should be %q but is %q",
+		return fmt.Errorf("the %q attribute should be %q but is %q",
 			key, value, currentValue)
 	}
 

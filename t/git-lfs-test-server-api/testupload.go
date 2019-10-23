@@ -18,7 +18,7 @@ func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject
 	}
 
 	if len(retobjs) != len(oidsMissing) {
-		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", len(oidsMissing), len(retobjs))
+		return fmt.Errorf("incorrect number of returned objects, expected %d, got %d", len(oidsMissing), len(retobjs))
 	}
 
 	var errbuf bytes.Buffer
@@ -46,7 +46,7 @@ func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 	}
 
 	if len(retobjs) != len(oidsExist) {
-		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", len(oidsExist), len(retobjs))
+		return fmt.Errorf("incorrect number of returned objects, expected %d, got %d", len(oidsExist), len(retobjs))
 	}
 
 	var errbuf bytes.Buffer
@@ -84,7 +84,7 @@ func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) err
 
 	count := len(oidsExist) + len(oidsMissing)
 	if len(retobjs) != count {
-		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", count, len(retobjs))
+		return fmt.Errorf("incorrect number of returned objects, expected %d, got %d", count, len(retobjs))
 	}
 
 	var errbuf bytes.Buffer
@@ -157,7 +157,7 @@ func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 
 	count := len(errorCases) + len(validCases)
 	if len(retobjs) != count {
-		return fmt.Errorf("Incorrect number of returned objects, expected %d, got %d", count, len(retobjs))
+		return fmt.Errorf("incorrect number of returned objects, expected %d, got %d", count, len(retobjs))
 	}
 
 	var errbuf bytes.Buffer

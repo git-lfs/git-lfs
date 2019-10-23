@@ -33,7 +33,7 @@ func translateCygwinPath(path string) (string, error) {
 	out, err := cmd.Output()
 	output := strings.TrimSpace(string(out))
 	if err != nil {
-		return path, fmt.Errorf("Failed to translate path from cygwin to windows: %s", buf.String())
+		return path, fmt.Errorf("failed to translate path from cygwin to windows: %s", buf.String())
 	}
 	return output, nil
 }
