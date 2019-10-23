@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -155,4 +157,90 @@ func roundUp(value, base int64) int64 {
 	}
 
 	return value - mod + base
+}
+
+// I had to copy this from file_windows.go thanks to Go visibility rules :(
+func fixLongPath(path string) string {
+	// Do nothing (and don't allocate) if the path is "short".
+	// Empirically (at least on the Windows Server 2013 builder),
+	// the kernel is arbitrarily okay with < 248 bytes. That
+	// matches what the docs above say:
+	// "When using an API to create a directory, the specified
+	// path cannot be so long that you cannot append an 8.3 file
+	// name (that is, the directory name cannot exceed MAX_PATH
+	// minus 12)." Since MAX_PATH is 260, 260 - 12 = 248.
+	//
+	// The MSDN docs appear to say that a normal path that is 248 bytes long
+	// will work; empirically the path must be less then 248 bytes long.
+	if len(path) < 248 {
+		// Don't fix. (This is how Go 1.7 and earlier worked,
+		// not automatically generating the \\?\ form)
+		return path
+	}
+
+	// The extended form begins with \\?\, as in
+	// \\?\c:\windows\foo.txt or \\?\UNC\server\share\foo.txt.
+	// The extended form disables evaluation of . and .. path
+	// elements and disables the interpretation of / as equivalent
+	// to \. The conversion here rewrites / to \ and elides
+	// . elements as well as trailing or duplicate separators. For
+	// simplicity it avoids the conversion entirely for relative
+	// paths or paths containing .. elements. For now,
+	// \\server\share paths are not converted to
+	// \\?\UNC\server\share paths because the rules for doing so
+	// are less well-specified.
+	if len(path) >= 2 && path[:2] == `\\` {
+		// Don't canonicalize UNC paths.
+		return path
+	}
+	if !filepath.IsAbs(path) {
+		// Relative path
+		return path
+	}
+
+	const prefix = `\\?`
+
+	pathbuf := make([]byte, len(prefix)+len(path)+len(`\`))
+	copy(pathbuf, prefix)
+	n := len(path)
+	r, w := 0, len(prefix)
+	for r < n {
+		switch {
+		case os.IsPathSeparator(path[r]):
+			// empty block
+			r++
+		case path[r] == '.' && (r+1 == n || os.IsPathSeparator(path[r+1])):
+			// /./
+			r++
+		case r+1 < n && path[r] == '.' && path[r+1] == '.' && (r+2 == n || os.IsPathSeparator(path[r+2])):
+			// /../ is currently unhandled
+			return path
+		default:
+			pathbuf[w] = '\\'
+			w++
+			for ; r < n && !os.IsPathSeparator(path[r]); r++ {
+				pathbuf[w] = path[r]
+				w++
+			}
+		}
+	}
+	// A drive's root directory needs a trailing \
+	if w == len(`\\?\c:`) {
+		pathbuf[w] = '\\'
+		w++
+	}
+	return string(pathbuf[:w])
+}
+
+// This is almost identical to os.Rename but doesn't replace newname if it already exists
+func RenameNoReplace(oldname, newname string) error {
+	from, err := syscall.UTF16PtrFromString(fixLongPath(oldname))
+	if err != nil {
+		return err
+	}
+	to, err := syscall.UTF16PtrFromString(fixLongPath(newname))
+	if err != nil {
+		return err
+	}
+	return windows.MoveFileEx(from, to, 0)
 }

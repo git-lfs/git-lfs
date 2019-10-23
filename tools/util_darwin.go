@@ -18,6 +18,7 @@ import (
 /*
 #include <fcntl.h>
 #include <errno.h>
+#include <stdio.h>
 #include <sys/clonefile.h>
 */
 import "C"
@@ -137,6 +138,27 @@ func cloneFileSyscall(dst, src string) *CloneFileError {
 			Unsupported: errNo == C.ENOTSUP,
 			errorString: fmt.Sprintf("%s. from %v to %v", unix.ErrnoName(errNo), src, dst),
 		}
+	}
+
+	return nil
+}
+
+// This is almost identical to os.rename but doesn't replace newname if it already exists
+func RenameNoReplace(oldname, newname string) error {
+	from, err := unix.BytePtrFromString(oldname)
+	if err != nil {
+		return err
+	}
+	to, err := unix.BytePtrFromString(newname)
+	if err != nil {
+		return err
+	}
+
+	atFDCwd := C.AT_FDCWD // current directory.
+
+	_, _, errNo := unix.Syscall6(unix.SYS_RENAMEATX_NP, uintptr(atFDCwd), uintptr(unsafe.Pointer(from)), uintptr(atFDCwd), uintptr(unsafe.Pointer(to)), uintptr(C.RENAME_EXCL), 0)
+	if errNo != 0 {
+		return &os.LinkError{Op: "rename", Old: oldname, New: newname, Err: errNo}
 	}
 
 	return nil

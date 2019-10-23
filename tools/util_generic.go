@@ -21,3 +21,8 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 func CloneFileByPath(_, _ string) (bool, error) {
 	return false, nil
 }
+
+// This is almost identical to os.rename but doesn't replace newname if it already exists
+func RenameNoReplace(oldname, newname string) error {
+	return false, errors.New("unsupported platform")
+}

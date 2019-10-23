@@ -16,7 +16,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -51,7 +52,7 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 	fdst, fdstFound := writer.(*os.File)
 	fsrc, fsrcFound := reader.(*os.File)
 	if fdstFound && fsrcFound {
-		if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, fdst.Fd(), ioctlFiClone, fsrc.Fd()); err != 0 {
+		if _, _, err := unix.Syscall(unix.SYS_IOCTL, fdst.Fd(), ioctlFiClone, fsrc.Fd()); err != 0 {
 			return false, err
 		}
 		return true, nil
@@ -70,4 +71,23 @@ func CloneFileByPath(dst, src string) (bool, error) {
 	}
 
 	return CloneFile(dstFile, srcFile)
+}
+
+// This is almost identical to os.rename but doesn't replace newname if it already exists
+func RenameNoReplace(oldname, newname string) error {
+	fi, err := os.Lstat(newname)
+	if err == nil && fi.IsDir() {
+		if _, err := os.Lstat(oldname); err != nil {
+			if pe, ok := err.(*os.PathError); ok {
+				err = pe.Err
+			}
+			return &os.LinkError{Op: "rename", Old: oldname, New: newname, Err: err}
+		}
+		return &os.LinkError{Op: "rename", Old: oldname, New: newname, Err: unix.EEXIST}
+	}
+	err = unix.Renameat2(unix.AT_FDCWD, oldname, unix.AT_FDCWD, newname, unix.RENAME_NOREPLACE)
+	if err != nil {
+		return &os.LinkError{Op: "rename", Old: oldname, New: newname, Err: err}
+	}
+	return nil
 }
