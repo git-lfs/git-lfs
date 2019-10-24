@@ -13,7 +13,6 @@ jobs:
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
-    - run: set PATH=%GOPATH%\bin;%PATH%
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
     - run: cinst zip -y
