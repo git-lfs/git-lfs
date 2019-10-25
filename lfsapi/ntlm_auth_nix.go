@@ -10,6 +10,10 @@ import (
 	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
+func IsSystemCredentialError(err error) bool {
+	return false
+}
+
 func (c *Client) ntlmSupportsSSPI() bool {
 	return false
 }

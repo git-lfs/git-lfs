@@ -4,10 +4,20 @@ package lfsapi
 
 import (
 	"net/http"
+	"syscall"
 
 	"github.com/alexbrainman/sspi"
 	"github.com/alexbrainman/sspi/ntlm"
 )
+
+const systemCredentialError = 0x8009030E
+
+func IsSystemCredentialError(err error) bool {
+	if e, ok := err.(syscall.Errno); ok {
+		return uintptr(e) == systemCredentialError
+	}
+	return false
+}
 
 func (c *Client) ntlmSupportsSSPI() bool {
 	return true

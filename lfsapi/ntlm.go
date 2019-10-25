@@ -36,12 +36,12 @@ func (c *Client) ntlmReAuth(req *http.Request, credWrapper creds.CredentialHelpe
 	// Try SSPI first.
 	if c.ntlmSupportsSSPI() == true {
 		res, err := c.ntlmAuthenticateRequest(req, nil)
-		if err != nil && !errors.IsAuthError(err) {
+		if err != nil && !errors.IsAuthError(err) && !IsSystemCredentialError(err) {
 			return res, err
 		}
 
 		// If SSPI succeeded, then we can move on.
-		if res.StatusCode < 300 && res.StatusCode > 199 {
+		if res != nil && res.StatusCode < 300 && res.StatusCode > 199 {
 			return res, nil
 		}
 	}
