@@ -5,7 +5,12 @@ DIR="$1"
 case $(uname -s) in
   Darwin)
     brew install curl zlib pcre2 gettext openssl
-    brew link --force zlib pcre2 gettext openssl;;
+    brew reinstall curl zlib pcre2 gettext openssl
+    for i in curl zlib pcre2 gettext openssl
+    do
+      brew unlink $i || true;
+      brew link --force $i || true
+    done;;
   Linux)
     export DEBIAN_FRONTEND=noninteractive
     sed -e 's/^deb/deb-src/' /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/src.list
