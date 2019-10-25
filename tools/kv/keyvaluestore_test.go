@@ -83,6 +83,7 @@ func TestStoreSimple(t *testing.T) {
 
 	// Now confirm that we can read blank & get nothing
 	kvs, err = NewStore(filename)
+	assert.Nil(t, err)
 	kvs.Visit(func(k string, v interface{}) bool {
 		// Should not be called
 		assert.Fail(t, "Should be no entries")
