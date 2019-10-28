@@ -346,6 +346,26 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
+func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
+	version, _ := c.uc.Get("http", u.String(), "version")
+	switch version {
+	case "HTTP/1.1":
+		// This disables HTTP/2, according to the documentation.
+		tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+	case "HTTP/2":
+		if u.Scheme != "https" {
+			return fmt.Errorf("HTTP/2 cannot be used except with TLS")
+		}
+		http2.ConfigureTransport(tr)
+		delete(tr.TLSNextProto, "http/1.1")
+	case "":
+		http2.ConfigureTransport(tr)
+	default:
+		return fmt.Errorf("Unknown HTTP version %q", version)
+	}
+	return nil
+}
+
 func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
@@ -443,7 +463,9 @@ func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
 
-	http2.ConfigureTransport(tr)
+	if err := c.configureProtocols(u, tr); err != nil {
+		return nil, err
+	}
 
 	httpClient := &http.Client{
 		Transport: tr,
