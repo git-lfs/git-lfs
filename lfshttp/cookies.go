@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/google/slothfs/cookie"
+	"github.com/ssgelm/cookiejarparser"
 )
 
 func isCookieJarEnabledForHost(c *Client, host string) bool {
@@ -22,5 +22,5 @@ func getCookieJarForHost(c *Client, host string) (http.CookieJar, error) {
 		return nil, err
 	}
 
-	return cookie.NewJar(cookieFilePath)
+	return cookiejarparser.LoadCookieJarFile(cookieFilePath)
 }
