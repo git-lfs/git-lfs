@@ -173,7 +173,12 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.HttpClient(req.Host), req, remote, via)
+	client, err := c.HttpClient(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.doWithRedirects(client, req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -341,9 +346,11 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
-func (c *Client) HttpClient(host string) *http.Client {
+func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
+
+	host := u.Host
 
 	if c.gitEnv == nil {
 		c.gitEnv = make(testEnv)
@@ -358,7 +365,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 	}
 
 	if client, ok := c.hostClients[host]; ok {
-		return client
+		return client, nil
 	}
 
 	concurrentTransfers := c.ConcurrentTransfers
@@ -388,7 +395,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 	}
 
 	activityTimeout := 30
-	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
+	if v, ok := c.uc.Get("lfs", u.String(), "activitytimeout"); ok {
 		if i, err := strconv.Atoi(v); err == nil {
 			activityTimeout = i
 		} else {
@@ -459,7 +466,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 		c.VerboseOut = os.Stderr
 	}
 
-	return httpClient
+	return httpClient, nil
 }
 
 func (c *Client) CurrentUser() (string, string) {
