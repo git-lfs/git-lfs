@@ -604,7 +604,12 @@ func GitAndRootDirs() (string, string, error) {
 	pathLen := len(paths)
 
 	for i := 0; i < pathLen; i++ {
-		paths[i], err = tools.TranslateCygwinPath(paths[i])
+		if paths[i] != "" {
+			paths[i], err = tools.TranslateCygwinPath(paths[i])
+			if err != nil {
+				return "", "", fmt.Errorf("error translating cygwin path: %s", err)
+			}
+		}
 	}
 
 	if pathLen == 0 {
