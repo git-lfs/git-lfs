@@ -62,7 +62,7 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 	}
 
 	// Attempt to resume download. No error checking here. If we fail, we'll simply download from the start
-	os.Rename(a.downloadFilename(t), f.Name())
+	tools.RobustRename(a.downloadFilename(t), f.Name())
 
 	// Open temp file. It is either empty or partially downloaded
 	f, err = os.OpenFile(f.Name(), os.O_RDWR, 0644)
@@ -100,7 +100,7 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 		f.Close()
 		// Rename file so next download can resume from where we stopped.
 		// No error checking here, if rename fails then file will be deleted and there just will be no download resuming
-		os.Rename(f.Name(), a.downloadFilename(t))
+		tools.RobustRename(f.Name(), a.downloadFilename(t))
 	}
 
 	return err

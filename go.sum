@@ -1,5 +1,7 @@
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858 h1:OZQyEhf4BviydsRdmK4ryeJHotDLd7vL1X8+nnxXkfk=
 github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858/go.mod h1:976q2ETgjT2snVCf2ZaBnyBbVoPERGjUz+0sofzEfro=
+github.com/avast/retry-go v2.4.2+incompatible h1:+ZjCypQT/CyP0kyJO2EcU4d/ZEJWSbP8NENI578cPmA=
+github.com/avast/retry-go v2.4.2+incompatible/go.mod h1:XtSnn+n/sHqQIpZ10K1qAevBhOOCWBLXXy3hyiqqBrY=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/git-lfs/gitobj v1.4.1 h1:6nH5d1QP7GJjZfBqaBXpS7mDzT4plXQLqUjPbcbtRpw=

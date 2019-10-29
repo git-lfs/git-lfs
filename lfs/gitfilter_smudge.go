@@ -120,7 +120,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 }
 
 func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
-	reader, err := os.Open(mediafile)
+	reader, err := tools.RobustOpen(mediafile)
 	if err != nil {
 		return 0, errors.Wrapf(err, "error opening media file")
 	}
