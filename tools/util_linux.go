@@ -71,7 +71,3 @@ func CloneFileByPath(dst, src string) (bool, error) {
 
 	return CloneFile(dstFile, srcFile)
 }
-
-func TryRename(oldname, newname string) error {
-	return RenameFileCopyPermissions(oldname, newname)
-}

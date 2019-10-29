@@ -100,7 +100,7 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 		f.Close()
 		// Rename file so next download can resume from where we stopped.
 		// No error checking here, if rename fails then file will be deleted and there just will be no download resuming
-		tools.TryRename(f.Name(), a.downloadFilename(t))
+		os.Rename(f.Name(), a.downloadFilename(t))
 	}
 
 	return err
@@ -254,15 +254,12 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return fmt.Errorf("can't close tempfile %q: %v", dlfilename, err)
 	}
 
-	err = tools.TryRename(dlfilename, t.Path)
-	// If rename failed because file already exists, we do not treat it as error
-	// This can happen when multiple git-lfs processes are fetching files concurrently on Windows
-	// Note that dlfilename needs to be handled regardless of TryRename success
-	if err != nil && !os.IsExist(err) {
-		return err
+	err = tools.RenameFileCopyPermissions(dlfilename, t.Path)
+	if _, err2 := os.Stat(t.Path); err2 == nil {
+		// Target file already exists, possibly was downloaded by other git-lfs process
+		return nil
 	}
-
-	return nil
+	return err
 }
 
 func configureBasicDownloadAdapter(m *Manifest) {
