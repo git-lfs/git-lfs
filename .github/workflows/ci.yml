@@ -35,6 +35,14 @@ jobs:
       shell: bash
     - run: mv bin\git-lfs.exe git-lfs-x64.exe
     - run: iscc script\windows-installer\inno-setup-git-lfs-installer.iss
+    - run: mkdir -p bin/assets
+      shell: bash
+    - run: mv *.exe bin/assets
+      shell: bash
+    - uses: actions/upload-artifact@v1
+      with:
+        name: windows-latest
+        path: bin/assets
   build-latest:
     name: Build with latest Git
     strategy:
