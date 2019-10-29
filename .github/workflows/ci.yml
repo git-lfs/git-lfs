@@ -11,6 +11,13 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - run: script/cibuild
+    - run: make release
+    - run: mkdir -p bin/assets
+    - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}
+        path: bin/assets
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
