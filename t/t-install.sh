@@ -254,7 +254,7 @@ begin_test "install --local with failed permissions"
   chmod 700 .git
 
   cat err.log
-  grep -E "Error running.*git.*config" err.log
+  grep -E "error running.*git.*config" err.log
   [ "$res" -eq 2 ]
 )
 end_test

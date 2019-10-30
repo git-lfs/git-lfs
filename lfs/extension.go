@@ -142,7 +142,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 		if err = ec.cmd.Wait(); err != nil {
 			if ec.err != nil {
 				errStr := ec.err.String()
-				err = fmt.Errorf("Extension '%s' failed with: %s", ec.result.name, errStr)
+				err = fmt.Errorf("extension '%s' failed with: %s", ec.result.name, errStr)
 			}
 			return
 		}

@@ -66,7 +66,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 
 func wrapProgressError(err error, event, filename string) error {
 	if err != nil {
-		return fmt.Errorf("Error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
+		return fmt.Errorf("error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
 	}
 
 	return nil
@@ -176,7 +176,7 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
 	currDir, err := os.Getwd()
 	if err != nil {
-		return "", "", false, fmt.Errorf("Unable to get working dir: %v", err)
+		return "", "", false, fmt.Errorf("unable to get working dir: %v", err)
 	}
 	currDir = tools.ResolveSymlinks(currDir)
 	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil

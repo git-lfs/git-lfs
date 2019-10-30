@@ -314,7 +314,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 
 	if _, ok := err.(*exec.ExitError); ok {
 		if h.SkipPrompt {
-			return nil, fmt.Errorf("Change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s.",
+			return nil, fmt.Errorf("change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s",
 				input["protocol"], input["host"])
 		}
 
