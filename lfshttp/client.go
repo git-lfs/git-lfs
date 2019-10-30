@@ -173,7 +173,12 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.HttpClient(req.Host), req, remote, via)
+	client, err := c.HttpClient(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.doWithRedirects(client, req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -341,9 +346,31 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
-func (c *Client) HttpClient(host string) *http.Client {
+func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
+	version, _ := c.uc.Get("http", u.String(), "version")
+	switch version {
+	case "HTTP/1.1":
+		// This disables HTTP/2, according to the documentation.
+		tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+	case "HTTP/2":
+		if u.Scheme != "https" {
+			return fmt.Errorf("HTTP/2 cannot be used except with TLS")
+		}
+		http2.ConfigureTransport(tr)
+		delete(tr.TLSNextProto, "http/1.1")
+	case "":
+		http2.ConfigureTransport(tr)
+	default:
+		return fmt.Errorf("Unknown HTTP version %q", version)
+	}
+	return nil
+}
+
+func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
+
+	host := u.Host
 
 	if c.gitEnv == nil {
 		c.gitEnv = make(testEnv)
@@ -358,7 +385,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 	}
 
 	if client, ok := c.hostClients[host]; ok {
-		return client
+		return client, nil
 	}
 
 	concurrentTransfers := c.ConcurrentTransfers
@@ -388,7 +415,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 	}
 
 	activityTimeout := 30
-	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
+	if v, ok := c.uc.Get("lfs", u.String(), "activitytimeout"); ok {
 		if i, err := strconv.Atoi(v); err == nil {
 			activityTimeout = i
 		} else {
@@ -436,7 +463,9 @@ func (c *Client) HttpClient(host string) *http.Client {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
 
-	http2.ConfigureTransport(tr)
+	if err := c.configureProtocols(u, tr); err != nil {
+		return nil, err
+	}
 
 	httpClient := &http.Client{
 		Transport: tr,
@@ -459,7 +488,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 		c.VerboseOut = os.Stderr
 	}
 
-	return httpClient
+	return httpClient, nil
 }
 
 func (c *Client) CurrentUser() (string, string) {

@@ -335,3 +335,77 @@ func TestHttp2(t *testing.T) {
 	assert.Equal(t, 200, res.StatusCode)
 	assert.EqualValues(t, 1, calledSrv)
 }
+
+func TestHttpVersion(t *testing.T) {
+	testcases := []struct {
+		Proto       string
+		Setting     string
+		TLSOk       bool
+		PlaintextOk bool
+		Error       string
+	}{
+		{"HTTP/2.0", "HTTP/2", true, false, "HTTP/2 cannot be used except with TLS"},
+		{"HTTP/1.1", "HTTP/1.1", true, true, ""},
+		{"HTTP/2.0", "lalala", false, false, `Unknown HTTP version "lalala"`},
+	}
+
+	for _, test := range testcases {
+		var calledSrvTLS uint32
+		var calledSrv uint32
+
+		srvTLS := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddUint32(&calledSrvTLS, 1)
+			assert.Equal(t, "GET", r.Method)
+			assert.Equal(t, test.Proto, r.Proto)
+			w.WriteHeader(200)
+		}))
+		srvTLS.TLS = &tls.Config{NextProtos: []string{"h2", "http/1.1"}}
+		srvTLS.StartTLS()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddUint32(&calledSrv, 1)
+			assert.Equal(t, "GET", r.Method)
+			assert.Equal(t, "HTTP/1.1", r.Proto)
+			w.WriteHeader(200)
+		}))
+
+		defer srvTLS.Close()
+		defer srv.Close()
+
+		c, err := NewClient(NewContext(nil, nil, map[string]string{
+			"http.sslverify": "false",
+			"http.version":   test.Setting,
+		}))
+		require.Nil(t, err)
+
+		req, err := http.NewRequest("GET", srvTLS.URL, nil)
+		require.Nil(t, err)
+
+		if test.TLSOk {
+			res, err := c.Do(req)
+			require.Nil(t, err)
+			assert.Equal(t, 200, res.StatusCode)
+			assert.EqualValues(t, 1, calledSrvTLS)
+		} else {
+			_, err := c.Do(req)
+			require.NotNil(t, err)
+			assert.EqualValues(t, err.Error(), test.Error)
+			assert.EqualValues(t, 0, calledSrv)
+		}
+
+		req, err = http.NewRequest("GET", srv.URL, nil)
+		require.Nil(t, err)
+
+		if test.PlaintextOk {
+			res, err := c.Do(req)
+			require.Nil(t, err)
+			assert.Equal(t, 200, res.StatusCode)
+			assert.EqualValues(t, 1, calledSrv)
+		} else {
+			_, err := c.Do(req)
+			require.NotNil(t, err)
+			assert.EqualValues(t, err.Error(), test.Error)
+			assert.EqualValues(t, 0, calledSrv)
+		}
+	}
+}
