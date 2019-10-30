@@ -764,8 +764,7 @@ begin_test "push custom reference"
 
   # Create and try pushing a reference in a nonstandard namespace, that is,
   # outside of refs/heads, refs/tags, and refs/remotes.
-  mkdir -p .git/refs/custom/remote/heads
-  cp .git/refs/heads/master .git/refs/custom/remote/heads/
+  git update-ref refs/custom/remote/heads/master refs/heads/master
 
   git lfs push origin refs/custom/remote/heads/master
   assert_server_object "$reponame" "$oid"
