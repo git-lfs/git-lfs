@@ -72,22 +72,24 @@ begin_test "pull"
   echo "lfs pull"
   rm -r a.dat á.dat dir # removing files makes the status dirty
   rm -rf .git/lfs/objects
-  git lfs pull 2>&1 | grep "Downloading LFS objects: 100% (3/3), 5 B"
+  git lfs pull
   ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  git lfs fsck
 
   echo "lfs pull with remote"
   rm -r a.dat á.dat dir
   rm -rf .git/lfs/objects
-  git lfs pull origin 2>&1 | grep "Downloading LFS objects: 100% (3/3), 5 B"
+  git lfs pull origin
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_clean_status
+  git lfs fsck
 
   echo "lfs pull with local storage"
   rm a.dat á.dat

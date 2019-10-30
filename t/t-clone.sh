@@ -625,7 +625,8 @@ begin_test "clone in current directory"
     mkdir "$reponame-clone"
     cd "$reponame-clone"
 
-    git lfs clone $GITSERVER/$reponame "." 2>&1 | grep "Downloading LFS objects: 100% (1/1), 8 B"
+    git lfs clone $GITSERVER/$reponame "."
+    git lfs fsck
 
     assert_local_object "$contents_oid" 8
     assert_hooks "$(dot_git_dir)"
