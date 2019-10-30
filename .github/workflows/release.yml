@@ -31,10 +31,6 @@ jobs:
       shell: bash
     - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-386-$(git describe).zip
       shell: bash
-    - run: echo "$PATH"
-      shell: bash
-    - run: find "/c/Program Files (x86)/Windows Kits/10/bin/x86"
-      shell: bash
     - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
       env:
