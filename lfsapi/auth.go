@@ -93,7 +93,12 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
 
-	redirectedReq, res, err := c.client.DoWithRedirect(c.client.HttpClient(req.Host), req, "", via)
+	client, err := c.client.HttpClient(req.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	redirectedReq, res, err := c.client.DoWithRedirect(client, req, "", via)
 	if err != nil || res != nil {
 		return res, err
 	}
