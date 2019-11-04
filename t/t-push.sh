@@ -740,3 +740,33 @@ begin_test 'push with data the server already has'
   assert_server_object "$reponame" "$contents2_oid"
 )
 end_test
+
+begin_test "push custom reference"
+(
+  set -e
+
+  reponame="push-custom-reference"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  # generate content we'll use
+  content="filecontent"
+  oid=$(calc_oid "$content")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -6m)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content}, \"Data\":\"$content\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # Create and try pushing a reference in a nonstandard namespace, that is,
+  # outside of refs/heads, refs/tags, and refs/remotes.
+  git update-ref refs/custom/remote/heads/master refs/heads/master
+
+  git lfs push origin refs/custom/remote/heads/master
+  assert_server_object "$reponame" "$oid"
+)
+end_test
