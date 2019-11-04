@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/go-netrc/netrc"
@@ -39,6 +40,7 @@ func (f *noFinder) FindMachine(host string) *netrc.Machine {
 // NetrcCredentialHelper retrieves credentials from a .netrc file
 type netrcCredentialHelper struct {
 	netrcFinder NetrcFinder
+	mu          sync.Mutex
 	skip        map[string]bool
 }
 
@@ -65,11 +67,11 @@ func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
 	if err != nil {
 		return nil, credHelperNoOp
 	}
-
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.skip[host] {
 		return nil, credHelperNoOp
 	}
-
 	if machine := c.netrcFinder.FindMachine(host); machine != nil {
 		creds := make(Creds)
 		creds["username"] = machine.Login
@@ -108,7 +110,9 @@ func (c *netrcCredentialHelper) Approve(what Creds) error {
 		}
 		tracerx.Printf("netrc: git credential approve (%q, %q, %q)",
 			what["protocol"], what["host"], what["path"])
+		c.mu.Lock()
 		c.skip[host] = false
+		c.mu.Unlock()
 		return nil
 	}
 	return credHelperNoOp
@@ -123,7 +127,9 @@ func (c *netrcCredentialHelper) Reject(what Creds) error {
 
 		tracerx.Printf("netrc: git credential reject (%q, %q, %q)",
 			what["protocol"], what["host"], what["path"])
+		c.mu.Lock()
 		c.skip[host] = true
+		c.mu.Unlock()
 		return nil
 	}
 	return credHelperNoOp
