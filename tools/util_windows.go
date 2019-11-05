@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -156,27 +155,4 @@ func roundUp(value, base int64) int64 {
 	}
 
 	return value - mod + base
-}
-
-// This is a simplified variant of fixLongPath from file_windows.go. Unfortunately, that function is not public
-func toSafePath(path string) (*uint16, error) {
-	abspath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return windows.UTF16PtrFromString(`\\?\` + abspath)
-}
-
-// This is almost the same as os.Rename but doesn't overwrite destination if it already exists
-func TryRename(oldname, newname string) error {
-	from, err := toSafePath(oldname)
-	if err != nil {
-		return err
-	}
-	to, err := toSafePath(newname)
-	if err != nil {
-		return err
-	}
-	return windows.MoveFileEx(from, to, 0)
 }

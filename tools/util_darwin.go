@@ -141,7 +141,3 @@ func cloneFileSyscall(dst, src string) *CloneFileError {
 
 	return nil
 }
-
-func TryRename(oldname, newname string) error {
-	return RenameFileCopyPermissions(oldname, newname)
-}
