@@ -139,6 +139,7 @@ func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
 			Filemode: 0100644,
 		},
 	}})
+	require.NoError(t, err)
 
 	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
 		{
@@ -181,6 +182,7 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 			Filemode: 0100644,
 		},
 	}})
+	require.NoError(t, err)
 
 	child, err := db.WriteTree(&gitobj.Tree{Entries: []*gitobj.TreeEntry{
 		{
@@ -189,6 +191,7 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 			Filemode: 040000,
 		},
 	}})
+	require.NoError(t, err)
 
 	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
 		{
@@ -231,6 +234,7 @@ func TestNewIgnoresChildrenAppropriately(t *testing.T) {
 			Filemode: 0100644,
 		},
 	}})
+	require.NoError(t, err)
 
 	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
 		{
