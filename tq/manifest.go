@@ -118,10 +118,11 @@ func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) str
 	}
 
 	ep := client.Endpoints.RemoteEndpoint(operation, remote)
+	aep := client.Endpoints.Endpoint(operation, remote)
 	uc := config.NewURLConfig(client.GitEnv())
 	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")
 	if !ok {
-		return findDefaultStandaloneTransfer(ep.Url)
+		return findDefaultStandaloneTransfer(aep.Url)
 	}
 
 	return v
