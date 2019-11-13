@@ -347,7 +347,7 @@ func RemoteList() ([]string, error) {
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
-	cmd := gitNoLFS("show-ref", "--heads", "--tags")
+	cmd := gitNoLFS("show-ref")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -604,7 +604,12 @@ func GitAndRootDirs() (string, string, error) {
 	pathLen := len(paths)
 
 	for i := 0; i < pathLen; i++ {
-		paths[i], err = tools.TranslateCygwinPath(paths[i])
+		if paths[i] != "" {
+			paths[i], err = tools.TranslateCygwinPath(paths[i])
+			if err != nil {
+				return "", "", fmt.Errorf("error translating cygwin path: %s", err)
+			}
+		}
 	}
 
 	if pathLen == 0 {

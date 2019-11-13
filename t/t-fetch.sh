@@ -63,7 +63,7 @@ begin_test "fetch"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
+  git lfs fetch
   assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
@@ -92,7 +92,7 @@ begin_test "fetch with remote"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch origin 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
+  git lfs fetch origin
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
 

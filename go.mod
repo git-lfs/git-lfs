@@ -2,6 +2,7 @@ module github.com/git-lfs/git-lfs
 
 require (
 	github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
+	github.com/avast/retry-go v2.4.2+incompatible
 	github.com/git-lfs/gitobj v1.4.1
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 	github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066

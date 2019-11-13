@@ -442,3 +442,26 @@ begin_test "migrate export (invalid --remote)"
   grep "fatal: invalid remote zz provided" migrate.log
 )
 end_test
+
+begin_test "migrate export (invalid pointer)"
+(
+  set -e
+
+  git init repo1
+  git init repo2
+
+  cd repo1
+  echo "git-lfs" > problematic_file
+  git add .
+  git commit -m "create repo"
+
+  git lfs migrate export --include="*" --everything --yes
+
+  cd ../repo2
+  echo "not git-lfs" > problematic_file
+  git add .
+  git commit -m "create repo"
+
+  git lfs migrate export --include="*" --everything --yes
+)
+end_test
