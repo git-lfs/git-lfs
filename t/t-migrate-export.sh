@@ -49,11 +49,11 @@ begin_test "migrate export (default branch)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff"
 
-  [ ! $(echo "$feature_attrs" | grep -q "*.md text !filter !merge !diff") ]
-  [ ! $(echo "$feature_attrs" | grep -q "*.txt text !filter !merge !diff") ]
+  [ ! $(echo "$feature_attrs" | grep -q "*.md !text !filter !merge !diff") ]
+  [ ! $(echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
 )
 end_test
 
@@ -89,8 +89,8 @@ begin_test "migrate export (with remote)"
   master="$(git rev-parse refs/heads/master)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff"
 )
 end_test
 
@@ -118,7 +118,7 @@ begin_test "migrate export (include/exclude args)"
 
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "* text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "* !text !filter !merge !diff"
   echo "$master_attrs" | grep -q "a.md filter=lfs diff=lfs merge=lfs"
 )
 end_test
@@ -185,10 +185,10 @@ begin_test "migrate export (given branch)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff"
-  echo "$feature_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$feature_attrs" | grep -q "*.txt text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff"
+  echo "$feature_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff"
 )
 end_test
 
@@ -250,11 +250,11 @@ begin_test "migrate export (exclude remote refs)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
   remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff"
 
-  [ ! $(echo "$remote_attrs" | grep -q "*.md text !filter !merge !diff") ]
-  [ ! $(echo "$remote_attrs" | grep -q "*.txt text !filter !merge !diff") ]
+  [ ! $(echo "$remote_attrs" | grep -q "*.md !text !filter !merge !diff") ]
+  [ ! $(echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
 )
 end_test
 
@@ -300,10 +300,10 @@ begin_test "migrate export (--skip-fetch)"
   master_attrs="$(git cat-file -p "$master:.gitattributes")"
   remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff"
-  echo "$remote_attrs" | grep -q "*.md text !filter !merge !diff"
-  echo "$remote_attrs" | grep -q "*.txt text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff"
+  echo "$remote_attrs" | grep -q "*.md !text !filter !merge !diff"
+  echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff"
 )
 end_test
 
@@ -361,9 +361,9 @@ begin_test "migrate export (include/exclude ref)"
   remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  [ ! $(echo "$master_attrs" | grep -q "*.txt text !filter !merge !diff") ]
-  [ ! $(echo "$remote_attrs" | grep -q "*.txt text !filter !merge !diff") ]
-  echo "$feature_attrs" | grep -q "*.txt text !filter !merge !diff"
+  [ ! $(echo "$master_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
+  [ ! $(echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
+  echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff"
 )
 end_test
 
