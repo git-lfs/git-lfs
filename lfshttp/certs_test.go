@@ -122,6 +122,53 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	}
 }
 
+func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
+	tempfile, err := ioutil.TempFile("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSL_CAINFO": tempfile.Name(),
+	}, map[string]string{
+		"http.sslbackend": "schannel",
+	}))
+	assert.Nil(t, err)
+
+	// Should match any host at all
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		assert.Nil(t, pool)
+	}
+}
+
+func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
+	tempfile, err := ioutil.TempFile("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSL_CAINFO": tempfile.Name(),
+	}, map[string]string{
+		"http.sslbackend":           "schannel",
+		"http.schannelusesslcainfo": "1",
+	}))
+	assert.Nil(t, err)
+
+	// Should match any host at all
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
+}
+
 func TestCertFromSSLCAPathConfig(t *testing.T) {
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")

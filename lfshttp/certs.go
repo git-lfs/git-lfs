@@ -115,6 +115,17 @@ func getRootCAsForHost(c *Client, host string) *x509.CertPool {
 }
 
 func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x509.CertPool, host string) *x509.CertPool {
+	url := fmt.Sprintf("https://%v/", host)
+	uc := config.NewURLConfig(gitEnv)
+
+	backend, _ := uc.Get("http", url, "sslbackend")
+	schannelUseSslCaInfoStrValue, _ := uc.Get("http", url, "schannelusesslcainfo")
+	schannelUseSslCaInfo := config.Bool(schannelUseSslCaInfoStrValue, false)
+
+	if backend == "schannel" && !schannelUseSslCaInfo {
+		return pool
+	}
+
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
@@ -122,8 +133,7 @@ func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
-	uc := config.NewURLConfig(gitEnv)
-	if cafile, ok := uc.Get("http", fmt.Sprintf("https://%v/", host), "sslcainfo"); ok {
+	if cafile, ok := uc.Get("http", url, "sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
