@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/lfshttp"
@@ -312,19 +313,31 @@ func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
 }
 
 func TestLocalPathEndpointAddsDotGitDir(t *testing.T) {
+	// Windows will add a drive letter to the paths below since we
+	// canonicalize them.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"remote.origin.url": "/local/path",
 	}))
 	e := finder.Endpoint("download", "")
-	assert.Equal(t, "file:///local/path/.git/info/lfs", e.Url)
+	assert.Equal(t, "file:///local/path/.git", e.Url)
 }
 
 func TestLocalPathEndpointPreservesDotGit(t *testing.T) {
+	// Windows will add a drive letter to the paths below since we
+	// canonicalize them.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"remote.origin.url": "/local/path.git",
 	}))
 	e := finder.Endpoint("download", "")
-	assert.Equal(t, "file:///local/path.git/info/lfs", e.Url)
+	assert.Equal(t, "file:///local/path.git", e.Url)
 }
 
 func TestAccessConfig(t *testing.T) {

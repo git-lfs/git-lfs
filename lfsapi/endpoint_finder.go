@@ -175,7 +175,7 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lf
 		ep.Url = rawurl[0 : len(rawurl)-1]
 	}
 
-	if strings.HasPrefix(rawurl, "file://") {
+	if strings.HasPrefix(ep.Url, "file://") {
 		return ep
 	}
 
@@ -209,11 +209,19 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 	case "file":
 		return lfshttp.EndpointFromFileUrl(u)
 	case "":
+		// If it looks like a local path, it probably is.
+		if _, err := os.Stat(rawurl); err == nil {
+			return lfshttp.EndpointFromLocalPath(rawurl)
+		}
 		return lfshttp.EndpointFromBareSshUrl(u.String())
 	default:
 		if strings.HasPrefix(rawurl, u.Scheme+"::") {
 			// Looks like a remote helper; just pass it through.
 			return lfshttp.Endpoint{Url: rawurl}
+		}
+		// If it looks like a local path, it probably is.
+		if _, err := os.Stat(rawurl); err == nil {
+			return lfshttp.EndpointFromLocalPath(rawurl)
 		}
 		// We probably got here because the "scheme" that was parsed is
 		// a hostname (whether FQDN or single word) and the URL parser
