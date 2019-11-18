@@ -170,12 +170,12 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
-	uncached, err := lfs.NewDiffIndexScanner(ref, false)
+	uncached, err := lfs.NewDiffIndexScanner(ref, false, true)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cached, err := lfs.NewDiffIndexScanner(ref, true)
+	cached, err := lfs.NewDiffIndexScanner(ref, true, false)
 	if err != nil {
 		return nil, nil, err
 	}

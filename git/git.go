@@ -178,7 +178,14 @@ func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
 }
 
-func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
+func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
+	if refresh {
+		_, err := gitSimple("update-index", "-q", "--refresh")
+		if err != nil {
+			return nil, lfserrors.Wrap(err, "Failed to run git update-index")
+		}
+	}
+
 	args := []string{"diff-index", "-M"}
 	if cached {
 		args = append(args, "--cached")

@@ -119,11 +119,16 @@ type DiffIndexScanner struct {
 // scan for differences between the given ref and the currently checked out
 // tree.
 //
+// If "refresh" is given, the DiffIndexScanner will refresh the index.  This is
+// probably what you want in all cases except fsck, where invoking a filtering
+// operation would be undesirable due to the possibility of corruption. It can
+// also be disabled where another operation will have refreshed the index.
+//
 // If any error was encountered in starting the command or closing its `stdin`,
 // that error will be returned immediately. Otherwise, a `*DiffIndexScanner`
 // will be returned with a `nil` error.
-func NewDiffIndexScanner(ref string, cached bool) (*DiffIndexScanner, error) {
-	scanner, err := git.DiffIndex(ref, cached)
+func NewDiffIndexScanner(ref string, cached bool, refresh bool) (*DiffIndexScanner, error) {
+	scanner, err := git.DiffIndex(ref, cached, refresh)
 	if err != nil {
 		return nil, err
 	}

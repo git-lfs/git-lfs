@@ -548,3 +548,48 @@ Git LFS objects not staged for commit:"
   [ "$expected" = "$(git lfs status)" ]
 )
 end_test
+
+
+begin_test "status: permission change"
+(
+  set -e
+
+  # We're using chmod below.
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    exit 0
+  fi
+
+  reponame="status-permission-change"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="contents"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "track *.dat"
+
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  chmod 400 a.dat
+
+  # A permission change should not result in any output.
+  git lfs status 2>&1 | tee status.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "git lfs status should have succeeded, didn't ..."
+    exit 1
+  fi
+
+  expected="On branch master
+
+Git LFS objects to be committed:
+
+
+Git LFS objects not staged for commit:"
+  actual="$(cat status.log)"
+
+  [ "$expected" = "$actual" ]
+)
+end_test
