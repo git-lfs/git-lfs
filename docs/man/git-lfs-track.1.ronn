@@ -13,7 +13,10 @@ currently-tracked paths.
 
 The [gitattributes documentation](https://git-scm.com/docs/gitattributes) states
 that patterns use the [gitignore pattern rules](https://git-scm.com/docs/gitignore)
-to match paths.
+to match paths. This means that patterns which contain asterisk (`*`), question
+mark (`?`), and the bracket characters (`[` and `]`) are treated specially; to
+disable this behavior and treat them literally instead, use `--filename` or
+escape the character with a backslash.
 
 ## OPTIONS
 
@@ -65,6 +68,10 @@ to match paths.
 * Configure Git LFS to track PSD files and make them read-only unless locked:
 
     `git lfs track --lockable "*.psd"`
+
+* Configure Git LFS to track the file named `project [1].psd`:
+
+    `git lfs track --filename "project [1].psd"`
 
 ## SEE ALSO
 
