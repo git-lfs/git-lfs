@@ -95,7 +95,7 @@ $ git commit -m "add psd"
 > in your history to use Git LFS, use `git lfs migrate`. For example:
 >
 > ```
-> $ git lfs migrate import --include="*.psd"
+> $ git lfs migrate import --include="*.psd" --everything
 > ```
 >
 > For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/master/docs/man/git-lfs-migrate.1.ronn).
