@@ -1,5 +1,32 @@
 # Git LFS Changelog
 
+## 2.9.1 (25 November 2019)
+
+This release fixes a few regressions, such as the ability to use HTTP/1.1 when
+required, addresses a race condition, and switches the cookie jar parser to
+something that's easier for distributions to package.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @nataliechen1 for fixing a data race
+* @ssgelm for writing and updating the code to use a new cookie jar parser
+
+### Features
+
+* Allow specifying HTTP version to use #3887 (@bk2204)
+
+### Bugs
+
+* synchronize access to netrcCredentialHelper.skip #3896 (@nataliechen1)
+* Fix several causes of CI problems #3878 (@bk2204)
+* Miscellaneous release fixes #3866 (@bk2204)
+
+### Misc
+
+* Build artifacts during CI for easier testing #3892 (@bk2204)
+* Use different parser for cookiejar files #3886 (@ssgelm)
+
 ## 2.9.0 (17 October 2019)
 
 This release adds support for DragonFly BSD, adds a new `git lfs dedup` command

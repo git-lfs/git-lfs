@@ -5,7 +5,7 @@
 commit_summary() {
   local hash=$1
 
-  pr=$(git show $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
+  pr=$(git show -s $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
   prjson="$(curl -n https://api.github.com/repos/git-lfs/git-lfs/pulls/$pr 2>/dev/null)"
   title="$(echo $prjson | jq -r -e ".title")"
   id="$(echo $prjson | jq -r -e ".number")"
@@ -21,7 +21,7 @@ commit_summary() {
 }
 
 revisions_in () {
-  git rev-list --merges --first-parent $1
+  git rev-list --first-parent $1
 }
 
 noninteractive () {
