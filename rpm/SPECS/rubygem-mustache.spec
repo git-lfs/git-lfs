@@ -20,7 +20,11 @@ BuildArch:      noarch
 Inspired by ctemplate, Mustache is a framework-agnostic way to render logic-free views. As ctemplates says, "It emphasizes separating logic from presentation: it is impossible to embed application logic in this template language. Think of Mustache as a replacement for your views. Instead of views consisting of ERB or HAML with random helpers and arbitrary logic, your views are broken into two parts: a Ruby class and an HTML template.
 
 %prep
+%if 0%{?el6}
+%setup -q -c -T
+%else
 %setup -q -n %{gem_name}-%{version}
+%endif
 %if ! 0%{?el8}
 gem install -V --local --force --install-dir ./%{gemdir} %{SOURCE0}
 mv ./%{gemdir}/bin ./usr/local

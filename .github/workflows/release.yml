@@ -13,7 +13,6 @@ jobs:
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
-    - run: set PATH=%GOPATH%\bin;%PATH%
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
     - run: cinst zip -y
@@ -31,10 +30,6 @@ jobs:
     - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-amd64-$(git describe).zip
       shell: bash
     - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-386-$(git describe).zip
-      shell: bash
-    - run: echo "$PATH"
-      shell: bash
-    - run: find "/c/Program Files (x86)/Windows Kits/10/bin/x86"
       shell: bash
     - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
@@ -68,6 +63,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - uses: actions/setup-ruby@v1
+    - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
     - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh
