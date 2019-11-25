@@ -160,7 +160,7 @@ rm -rf ${CURDIR}/tmptar
 mkdir -p ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}
 pushd ${CURDIR}/..
   #I started running out of space in the docker, so I needed to copy a little less waste
-  tar -c . --exclude tmptar --exclude repos | tar -x -C ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}/
+  tar -c --exclude tmptar --exclude repos . | tar -x -C ${CURDIR}/tmptar/git-lfs-${LFS_VERSION}/
 popd
 pushd ${CURDIR}/tmptar
   tar -zcf ${CURDIR}/SOURCES/git-lfs-${LFS_VERSION}.tar.gz git-lfs-${LFS_VERSION}
