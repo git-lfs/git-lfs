@@ -72,3 +72,12 @@ jobs:
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
+  build-docker:
+    name: Build Linux packages
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-ruby@v1
+    - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
+    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh

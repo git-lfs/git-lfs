@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # Pushes all deb and rpm files from ./repos to PackageCloud.
 
 packagecloud_user = ENV["PACKAGECLOUD_USER"] || "github"
