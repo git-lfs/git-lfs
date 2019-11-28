@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,7 @@ var sslCAInfoMatchedHostTests = []struct {
 
 func clientForHost(c *Client, host string) *http.Client {
 	u, _ := url.Parse(fmt.Sprintf("https://%v", host))
-	client, _ := c.HttpClient(u)
+	client, _ := c.HttpClient(u, creds.BasicAccess)
 	return client
 }
 

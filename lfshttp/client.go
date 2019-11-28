@@ -37,6 +37,11 @@ hint: standalone transfer agent.  See section "Using a Custom Transfer Type
 hint: without the API server" in custom-transfers.md for details.
 `)
 
+type hostData struct {
+	host string
+	mode creds.AccessMode
+}
+
 type Client struct {
 	SSH SSHResolver
 
@@ -50,7 +55,7 @@ type Client struct {
 	DebuggingVerbose bool
 	VerboseOut       io.Writer
 
-	hostClients map[string]*http.Client
+	hostClients map[hostData]*http.Client
 	clientMu    sync.Mutex
 
 	httpLogger *syncLogger
@@ -173,7 +178,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	client, err := c.HttpClient(req.URL)
+	client, err := c.HttpClient(req.URL, creds.NoneAccess)
 	if err != nil {
 		return nil, err
 	}
@@ -457,17 +462,19 @@ func (c *Client) Transport(u *url.URL) (*http.Transport, error) {
 	return tr, nil
 }
 
-func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
+func (c *Client) HttpClient(u *url.URL, access creds.AccessMode) (*http.Client, error) {
 	c.clientMu.Lock()
 	defer c.clientMu.Unlock()
 
 	host := u.Host
 
 	if c.hostClients == nil {
-		c.hostClients = make(map[string]*http.Client)
+		c.hostClients = make(map[hostData]*http.Client)
 	}
 
-	if client, ok := c.hostClients[host]; ok {
+	hd := hostData{host: host, mode: access}
+
+	if client, ok := c.hostClients[hd]; ok {
 		return client, nil
 	}
 
@@ -492,7 +499,7 @@ func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 		}
 	}
 
-	c.hostClients[host] = httpClient
+	c.hostClients[hd] = httpClient
 	if c.VerboseOut == nil {
 		c.VerboseOut = os.Stderr
 	}

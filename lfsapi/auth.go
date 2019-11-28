@@ -93,7 +93,7 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
 
-	client, err := c.client.HttpClient(req.URL)
+	client, err := c.client.HttpClient(req.URL, access.Mode())
 	if err != nil {
 		return nil, err
 	}
