@@ -366,10 +366,7 @@ func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
 	return nil
 }
 
-func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
-	c.clientMu.Lock()
-	defer c.clientMu.Unlock()
-
+func (c *Client) Transport(u *url.URL) (*http.Transport, error) {
 	host := u.Host
 
 	if c.gitEnv == nil {
@@ -378,14 +375,6 @@ func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 
 	if c.osEnv == nil {
 		c.osEnv = make(testEnv)
-	}
-
-	if c.hostClients == nil {
-		c.hostClients = make(map[string]*http.Client)
-	}
-
-	if client, ok := c.hostClients[host]; ok {
-		return client, nil
 	}
 
 	concurrentTransfers := c.ConcurrentTransfers
@@ -407,7 +396,6 @@ func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 	if tlstime < 1 {
 		tlstime = 30
 	}
-
 	tr := &http.Transport{
 		Proxy:               proxyFromClient(c),
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
@@ -464,6 +452,27 @@ func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
 	}
 
 	if err := c.configureProtocols(u, tr); err != nil {
+		return nil, err
+	}
+	return tr, nil
+}
+
+func (c *Client) HttpClient(u *url.URL) (*http.Client, error) {
+	c.clientMu.Lock()
+	defer c.clientMu.Unlock()
+
+	host := u.Host
+
+	if c.hostClients == nil {
+		c.hostClients = make(map[string]*http.Client)
+	}
+
+	if client, ok := c.hostClients[host]; ok {
+		return client, nil
+	}
+
+	tr, err := c.Transport(u)
+	if err != nil {
 		return nil, err
 	}
 
