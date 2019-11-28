@@ -169,16 +169,25 @@ func joinURL(prefix, suffix string) string {
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.ExtraHeadersFor(req)
 
-	return c.do(req, "", nil)
+	return c.do(req, "", nil, creds.NoneAccess)
+}
+
+// DoWithAccess sends an HTTP request to get an HTTP response using the
+// specified access mode. It wraps net/http, adding extra headers, redirection
+// handling, and error reporting.
+func (c *Client) DoWithAccess(req *http.Request, mode creds.AccessMode) (*http.Response, error) {
+	req.Header = c.ExtraHeadersFor(req)
+
+	return c.do(req, "", nil, mode)
 }
 
 // do performs an *http.Request respecting redirects, and handles the response
 // as defined in c.handleResponse. Notably, it does not alter the headers for
 // the request argument in any way.
-func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
+func (c *Client) do(req *http.Request, remote string, via []*http.Request, mode creds.AccessMode) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	client, err := c.HttpClient(req.URL, creds.NoneAccess)
+	client, err := c.HttpClient(req.URL, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +380,7 @@ func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
 	return nil
 }
 
-func (c *Client) Transport(u *url.URL) (*http.Transport, error) {
+func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripper, error) {
 	host := u.Host
 
 	if c.gitEnv == nil {
@@ -478,7 +487,7 @@ func (c *Client) HttpClient(u *url.URL, access creds.AccessMode) (*http.Client, 
 		return client, nil
 	}
 
-	tr, err := c.Transport(u)
+	tr, err := c.Transport(u, access)
 	if err != nil {
 		return nil, err
 	}
