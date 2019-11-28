@@ -9,36 +9,15 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/rubyist/tracerx"
 )
 
-type AccessMode string
-
 const (
-	NoneAccess      AccessMode = "none"
-	BasicAccess     AccessMode = "basic"
-	PrivateAccess   AccessMode = "private"
-	NegotiateAccess AccessMode = "negotiate"
-	NTLMAccess      AccessMode = "ntlm"
-	emptyAccess     AccessMode = ""
-	defaultRemote              = "origin"
+	defaultRemote = "origin"
 )
-
-type Access struct {
-	mode AccessMode
-	url  string
-}
-
-// Returns a copy of an AccessMode with the mode upgraded to newMode
-func (a *Access) Upgrade(newMode AccessMode) Access {
-	return Access{url: a.url, mode: newMode}
-}
-
-func (a *Access) Mode() AccessMode {
-	return a.mode
-}
 
 type EndpointFinder interface {
 	NewEndpointFromCloneURL(operation, rawurl string) lfshttp.Endpoint
@@ -46,8 +25,8 @@ type EndpointFinder interface {
 	Endpoint(operation, remote string) lfshttp.Endpoint
 	RemoteEndpoint(operation, remote string) lfshttp.Endpoint
 	GitRemoteURL(remote string, forpush bool) string
-	AccessFor(rawurl string) Access
-	SetAccess(access Access)
+	AccessFor(rawurl string) creds.Access
+	SetAccess(access creds.Access)
 	GitProtocol() string
 }
 
@@ -61,7 +40,7 @@ type endpointGitFinder struct {
 	pushAliases map[string]string
 
 	accessMu  sync.Mutex
-	urlAccess map[string]AccessMode
+	urlAccess map[string]creds.AccessMode
 	urlConfig *config.URLConfig
 }
 
@@ -76,7 +55,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		gitProtocol: "https",
 		aliases:     make(map[string]string),
 		pushAliases: make(map[string]string),
-		urlAccess:   make(map[string]AccessMode),
+		urlAccess:   make(map[string]creds.AccessMode),
 	}
 
 	e.urlConfig = config.NewURLConfig(e.gitEnv)
@@ -232,38 +211,38 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 	}
 }
 
-func (e *endpointGitFinder) AccessFor(rawurl string) Access {
+func (e *endpointGitFinder) AccessFor(rawurl string) creds.Access {
 	accessurl := urlWithoutAuth(rawurl)
 
 	if e.gitEnv == nil {
-		return Access{mode: NoneAccess, url: accessurl}
+		return creds.NewAccess(creds.NoneAccess, accessurl)
 	}
 
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
 	if cached, ok := e.urlAccess[accessurl]; ok {
-		return Access{mode: cached, url: accessurl}
+		return creds.NewAccess(cached, accessurl)
 	}
 
 	e.urlAccess[accessurl] = e.fetchGitAccess(accessurl)
-	return Access{mode: e.urlAccess[accessurl], url: accessurl}
+	return creds.NewAccess(e.urlAccess[accessurl], accessurl)
 }
 
-func (e *endpointGitFinder) SetAccess(access Access) {
-	key := fmt.Sprintf("lfs.%s.access", access.url)
+func (e *endpointGitFinder) SetAccess(access creds.Access) {
+	key := fmt.Sprintf("lfs.%s.access", access.URL())
 	tracerx.Printf("setting repository access to %s", access.Mode())
 
 	e.accessMu.Lock()
 	defer e.accessMu.Unlock()
 
 	switch access.Mode() {
-	case emptyAccess, NoneAccess:
+	case creds.EmptyAccess, creds.NoneAccess:
 		e.gitConfig.UnsetLocalKey(key)
-		e.urlAccess[access.url] = NoneAccess
+		e.urlAccess[access.URL()] = creds.NoneAccess
 	default:
 		e.gitConfig.SetLocal(key, string(access.Mode()))
-		e.urlAccess[access.url] = access.Mode()
+		e.urlAccess[access.URL()] = access.Mode()
 	}
 }
 
@@ -282,15 +261,15 @@ func urlWithoutAuth(rawurl string) string {
 	return u.String()
 }
 
-func (e *endpointGitFinder) fetchGitAccess(rawurl string) AccessMode {
+func (e *endpointGitFinder) fetchGitAccess(rawurl string) creds.AccessMode {
 	if v, _ := e.urlConfig.Get("lfs", rawurl, "access"); len(v) > 0 {
-		access := AccessMode(strings.ToLower(v))
-		if access == PrivateAccess {
-			return BasicAccess
+		access := creds.AccessMode(strings.ToLower(v))
+		if access == creds.PrivateAccess {
+			return creds.BasicAccess
 		}
 		return access
 	}
-	return NoneAccess
+	return creds.NoneAccess
 }
 
 func (e *endpointGitFinder) GitProtocol() string {
