@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	spnego "github.com/dpotapov/go-spnego"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
@@ -467,6 +468,12 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 
 	if err := c.configureProtocols(u, tr); err != nil {
 		return nil, err
+	}
+
+	if access == creds.NegotiateAccess {
+		// This technically copies a mutex, but we know since we've just created
+		// the object that this mutex is unlocked.
+		return &spnego.Transport{Transport: *tr}, nil
 	}
 	return tr, nil
 }

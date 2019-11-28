@@ -23,19 +23,19 @@ type authRequest struct {
 }
 
 func TestAuthenticateHeaderAccess(t *testing.T) {
-	tests := map[string]AccessMode{
-		"":                BasicAccess,
-		"basic 123":       BasicAccess,
-		"basic":           BasicAccess,
-		"unknown":         BasicAccess,
-		"NTLM":            NTLMAccess,
-		"ntlm":            NTLMAccess,
-		"NTLM 1 2 3":      NTLMAccess,
-		"ntlm 1 2 3":      NTLMAccess,
-		"NEGOTIATE":       NTLMAccess,
-		"negotiate":       NTLMAccess,
-		"NEGOTIATE 1 2 3": NTLMAccess,
-		"negotiate 1 2 3": NTLMAccess,
+	tests := map[string]creds.AccessMode{
+		"":                creds.BasicAccess,
+		"basic 123":       creds.BasicAccess,
+		"basic":           creds.BasicAccess,
+		"unknown":         creds.BasicAccess,
+		"NTLM":            creds.NTLMAccess,
+		"ntlm":            creds.NTLMAccess,
+		"NTLM 1 2 3":      creds.NTLMAccess,
+		"ntlm 1 2 3":      creds.NTLMAccess,
+		"NEGOTIATE":       creds.NegotiateAccess,
+		"negotiate":       creds.NegotiateAccess,
+		"NEGOTIATE 1 2 3": creds.NegotiateAccess,
+		"negotiate 1 2 3": creds.NegotiateAccess,
 	}
 
 	for _, key := range authenticateHeaders {

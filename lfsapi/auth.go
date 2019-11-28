@@ -89,6 +89,8 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
 	if access.Mode() == creds.NTLMAccess {
 		return c.doWithNTLM(req, credWrapper)
+	} else if access.Mode() == creds.NegotiateAccess {
+		return c.doWithNegotiate(req, credWrapper)
 	}
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
@@ -124,9 +126,10 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 // 1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
 // 2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
 //    This URL used for the "lfs.URL.access" git config key, which determines
-//    what kind of auth the LFS server expects. Could be BasicAccess, NTLMAccess,
-//    or NoneAccess, in which the Git Credential Helper step is skipped. We do
-//    not want to prompt the user for a password to fetch public repository data.
+//    what kind of auth the LFS server expects. Could be BasicAccess,
+//    NTLMAccess, NegotiateAccess, or NoneAccess, in which the Git Credential
+//    Helper step is skipped. We do not want to prompt the user for a password
+//    to fetch public repository data.
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
@@ -139,7 +142,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 
-	if access.Mode() != creds.NTLMAccess {
+	if access.Mode() != creds.NTLMAccess && access.Mode() != creds.NegotiateAccess {
 		if requestHasAuth(req) || access.Mode() == creds.NoneAccess {
 			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
@@ -162,7 +165,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 		return credWrapper, err
 	}
 
-	// NTLM ONLY
+	// NTLM and Negotiate only
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
@@ -321,9 +324,7 @@ func getAuthAccess(res *http.Response) creds.AccessMode {
 
 			switch creds.AccessMode(pieces[0]) {
 			case creds.NegotiateAccess, creds.NTLMAccess:
-				// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTLM.
-				// Since git-lfs current does not support Kerberos, we will return NTLM in this case.
-				return creds.NTLMAccess
+				return creds.AccessMode(pieces[0])
 			}
 		}
 	}
