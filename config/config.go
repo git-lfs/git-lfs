@@ -324,7 +324,14 @@ func (c *Configuration) HookDir() (string, error) {
 	if git.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
-			return tools.ExpandPath(hp, false)
+			path, err := tools.ExpandPath(hp, false)
+			if err != nil {
+				return "", err
+			}
+			if filepath.IsAbs(path) {
+				return path, nil
+			}
+			return filepath.Join(c.LocalWorkingDir(), path), nil
 		}
 	}
 	return filepath.Join(c.LocalGitStorageDir(), "hooks"), nil
