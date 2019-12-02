@@ -23,7 +23,7 @@ BuildArch:      noarch
 Builds Manuals
 
 %prep
-%if 0%{?el6}
+%if 0%{?el6}%{?el7}
 %setup -q -c -T
 %else
 %setup -q -n %{gem_name}-%{version}
