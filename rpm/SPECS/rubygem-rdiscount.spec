@@ -18,7 +18,7 @@ Requires:       ruby > 1.9.2
 Fast Implementation of Gruber's Markdown in C
 
 %prep
-%if 0%{?el6}
+%if 0%{?el6}%{?el7}
 %setup -q -c -T
 %else
 %setup -q -n %{gem_name}-%{version}
