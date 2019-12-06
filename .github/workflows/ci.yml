@@ -9,7 +9,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: script/cibuild
     - run: make release
     - run: mkdir -p bin/assets
@@ -22,7 +22,7 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
@@ -57,7 +57,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
@@ -68,7 +68,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
@@ -76,7 +76,7 @@ jobs:
     name: Build Linux packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
