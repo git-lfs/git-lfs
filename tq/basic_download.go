@@ -47,15 +47,17 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 	if err != nil {
 		return err
 	}
+	tmpName := f.Name()
 	defer func() {
+		// Fail-safe: Most implementation of os.File.Close() does nil check
 		if f != nil {
 			f.Close()
-			// This will delete temp file if:
-			// - we failed to fully download file and move it to final location including the case when final location already
-			//   exists because other parallel git-lfs processes downloaded file
-			// - we also failed to move it to a partially-downloaded location
-			os.Remove(f.Name())
 		}
+		// This will delete temp file if:
+		// - we failed to fully download file and move it to final location including the case when final location already
+		//   exists because other parallel git-lfs processes downloaded file
+		// - we also failed to move it to a partially-downloaded location
+		os.Remove(tmpName)
 	}()
 
 	// Close file because we will attempt to move partially-downloaded one on top of it
