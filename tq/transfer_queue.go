@@ -442,7 +442,7 @@ func (q *TransferQueue) collectBatches() {
 		// don't process further batches.  Abort the wait queue so that
 		// we don't deadlock waiting for objects to complete when they
 		// never will.
-		if err != nil {
+		if err != nil && !errors.IsRetriableError(err) {
 			q.wait.Abort()
 			break
 		}
@@ -538,7 +538,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				}
 			}
 
-			return next, err
+			return next, errors.NewRetriableError(err)
 		}
 	}
 
