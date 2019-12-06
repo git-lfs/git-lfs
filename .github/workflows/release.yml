@@ -8,7 +8,7 @@ jobs:
     name: Build Windows Assets
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
@@ -46,7 +46,7 @@ jobs:
     needs: build-windows
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - uses: actions/download-artifact@v1
       with:
@@ -61,7 +61,7 @@ jobs:
     name: Build Linux Packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
