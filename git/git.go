@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -597,7 +598,14 @@ func GitAndRootDirs() (string, string, error) {
 	out, err := cmd.Output()
 	output := string(out)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
+		// If we got a fatal error, it's possible we're on a newer
+		// (2.24+) Git and we're not in a worktree, so fall back to just
+		// looking up the repo directory.
+		if e, ok := err.(*exec.ExitError); ok && e.ProcessState.ExitCode() == 128 {
+			absGitDir, err := GitDir()
+			return absGitDir, "", err
+		}
+		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
 
 	paths := strings.Split(output, "\n")
