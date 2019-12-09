@@ -19,6 +19,8 @@ only a pointer file is written.
 * Values MUST NOT contain return or newline characters.
 * Pointer files MUST be stored in Git with their executable bit matching that
 of the replaced file.
+* Pointer files are unique: that is, there is exactly one valid encoding for a
+  pointer file.
 
 An empty file is the pointer for an empty file. That is, empty files are
 passed through LFS without any change.
