@@ -1,5 +1,28 @@
 # Git LFS Changelog
 
+## 2.9.2 (12 December 2019)
+
+This release fixes a few regressions, such as a possible nil pointer
+dereference, a failure to retry batch requests, and a bug where repositories
+could fail to be detected on Windows.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @exceed-alae for fixing a possible nil pointer dereference
+
+### Bugs
+
+* Add nil-check on defer block of DoTransfer() #3936 (@exceed-alae)
+* Retry batch failures #3930 (@bk2204)
+* rpm: use old setup code on CentOS 7 #3938 (@bk2204)
+* Handle missing cygpath gracefully #3910 (@bk2204)
+
+### Misc
+
+* Don't abort with newer Git when in a bare repo #3940 (@bk2204)
+* Fix more Linux package issues #3932 (@bk2204)
+
 ## 2.9.1 (25 November 2019)
 
 This release fixes a few regressions, such as the ability to use HTTP/1.1 when
