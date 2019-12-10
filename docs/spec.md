@@ -19,6 +19,8 @@ only a pointer file is written.
 * Values MUST NOT contain return or newline characters.
 * Pointer files MUST be stored in Git with their executable bit matching that
 of the replaced file.
+* Pointer files are unique: that is, there is exactly one valid encoding for a
+  pointer file.
 
 An empty file is the pointer for an empty file. That is, empty files are
 passed through LFS without any change.
@@ -29,7 +31,8 @@ The required keys are:
 simple string comparison on the version, without any URL parsing or
 normalization.  It is case sensitive, and %-encoding is discouraged.
 * `oid` tracks the unique object id for the file, prefixed by its hashing
-method: `{hash-method}:{hash}`.  Currently, only `sha256` is supported.
+method: `{hash-method}:{hash}`.  Currently, only `sha256` is supported.  The
+hash is lower case hexadecimal.
 * `size` is in bytes.
 
 Example of a v1 text pointer:
