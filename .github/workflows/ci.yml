@@ -18,6 +18,18 @@ jobs:
       with:
         name: ${{ matrix.os }}
         path: bin/assets
+  build-go:
+    name: Build with specific Go
+    strategy:
+      matrix:
+        go: ['1.12.x', '1.13.x']
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+    - run: script/cibuild
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
