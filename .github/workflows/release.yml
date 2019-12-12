@@ -8,7 +8,7 @@ jobs:
     name: Build Windows Assets
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
@@ -46,7 +46,7 @@ jobs:
     needs: build-windows
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - uses: actions/download-artifact@v1
       with:
@@ -61,12 +61,13 @@ jobs:
     name: Build Linux Packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
     - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh
-    - run: ./script/packagecloud.rb
+    # If this is a pre-release tag, don't upload anything to packagecloud.
+    - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
       env:
         PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
