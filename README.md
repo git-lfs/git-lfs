@@ -1,8 +1,9 @@
 # Git Large File Storage
 
-![CI status][1]
+[![CI status][ci_badge]][ci_url]
 
-[1]: https://github.com/git-lfs/git-lfs/workflows/CI/badge.svg
+[ci_badge]: https://github.com/git-lfs/git-lfs/workflows/CI/badge.svg
+[ci_url]: https://github.com/git-lfs/git-lfs/actions?query=workflow%3ACI
 
 [Git LFS](https://git-lfs.github.com) is a command line extension and
 [specification](docs/spec.md) for managing large files with Git.
