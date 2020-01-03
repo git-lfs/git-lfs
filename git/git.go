@@ -672,9 +672,12 @@ func RootDir() (string, error) {
 
 func GitDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--git-dir")
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
 	out, err := cmd.Output()
+
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -694,8 +697,10 @@ func GitCommonDir() (string, error) {
 
 	cmd := gitNoLFS("rev-parse", "--git-common-dir")
 	out, err := cmd.Output()
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-common-dir: %v %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
