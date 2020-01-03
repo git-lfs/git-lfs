@@ -83,7 +83,7 @@ func NewClient(ctx Context) (*Client, error) {
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
-		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 3),
+		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 8),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),

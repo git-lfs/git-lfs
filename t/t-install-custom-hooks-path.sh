@@ -19,6 +19,14 @@ assert_hooks() {
   [ ! -e ".git/post-merge" ]
 }
 
+refute_hooks() {
+  local hooks_dir="$1"
+  [ ! -e "$hooks_dir/pre-push" ]
+  [ ! -e "$hooks_dir/post-checkout" ]
+  [ ! -e "$hooks_dir/post-commit" ]
+  [ ! -e "$hooks_dir/post-merge" ]
+}
+
 begin_test "install with supported core.hooksPath"
 (
   set -e
@@ -36,6 +44,28 @@ begin_test "install with supported core.hooksPath"
   grep "Updated git hooks" install.log
 
   assert_hooks "$hooks_dir"
+)
+end_test
+
+begin_test "install with supported core.hooksPath in subdirectory"
+(
+  set -e
+
+  repo_name="supported-custom-hooks-path-subdir"
+  git init "$repo_name"
+  cd "$repo_name"
+
+  hooks_dir="custom_hooks_dir"
+
+  mkdir subdir
+
+  git config --local core.hooksPath "$hooks_dir"
+
+  (cd subdir && git lfs install 2>&1 | tee install.log)
+  grep "Updated git hooks" subdir/install.log
+
+  assert_hooks "$hooks_dir"
+  refute_hooks "subdir/$hooks_dir"
 )
 end_test
 
