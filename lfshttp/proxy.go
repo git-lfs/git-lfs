@@ -1,12 +1,12 @@
 package lfshttp
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"golang.org/x/net/http/httpproxy"
 )
 
 // Logic is copied, with small changes, from "net/http".ProxyFromEnvironment in the go std lib.
@@ -27,23 +27,23 @@ func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 
-		if !useProxy(noProxy, canonicalAddr(req.URL)) {
-			return nil, nil
+		cfg := &httpproxy.Config{
+			HTTPProxy:  proxy,
+			HTTPSProxy: proxy,
+			NoProxy:    noProxy,
+			CGI:        false,
 		}
 
-		proxyURL, err := url.Parse(proxy)
-		if err != nil || !(strings.HasPrefix(proxyURL.Scheme, "http") || strings.HasPrefix(proxyURL.Scheme, "socks")) {
-			// proxy was bogus. Try prepending "http://" to it and
-			// see if that parses correctly. If not, we fall
-			// through and complain about the original one.
-			if httpProxyURL, httpErr := url.Parse("http://" + proxy); httpErr == nil {
-				return httpProxyURL, nil
-			}
+		// We want to use the standard logic except that we want to
+		// allow proxies for localhost, which the standard library does
+		// not.  Since the proxy code looks only at the URL, we
+		// synthesize a fake URL except that we rewrite "localhost" to
+		// "127.0.0.1" for purposes of looking up the proxy.
+		u := *(req.URL)
+		if u.Host == "localhost" {
+			u.Host = "127.0.0.1"
 		}
-		if err != nil {
-			return nil, fmt.Errorf("invalid proxy address: %q: %v", proxy, err)
-		}
-		return proxyURL, nil
+		return cfg.ProxyFunc()(&u)
 	}
 }
 
@@ -85,67 +85,3 @@ func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environm
 
 	return
 }
-
-// canonicalAddr returns url.Host but always with a ":port" suffix
-// Copied from "net/http".ProxyFromEnvironment in the go std lib.
-func canonicalAddr(url *url.URL) string {
-	addr := url.Host
-	if !hasPort(addr) {
-		return addr + ":" + portMap[url.Scheme]
-	}
-	return addr
-}
-
-// useProxy reports whether requests to addr should use a proxy,
-// according to the noProxy or noProxy environment variable.
-// addr is always a canonicalAddr with a host and port.
-// Copied from "net/http".ProxyFromEnvironment in the go std lib
-// and adapted to allow proxy usage even for localhost.
-func useProxy(noProxy, addr string) bool {
-	if len(addr) == 0 {
-		return true
-	}
-
-	if noProxy == "*" {
-		return false
-	}
-
-	addr = strings.ToLower(strings.TrimSpace(addr))
-	if hasPort(addr) {
-		addr = addr[:strings.LastIndex(addr, ":")]
-	}
-
-	for _, p := range strings.Split(noProxy, ",") {
-		p = strings.ToLower(strings.TrimSpace(p))
-		if len(p) == 0 {
-			continue
-		}
-		if hasPort(p) {
-			p = p[:strings.LastIndex(p, ":")]
-		}
-		if addr == p {
-			return false
-		}
-		if p[0] == '.' && (strings.HasSuffix(addr, p) || addr == p[1:]) {
-			// noProxy ".foo.com" matches "bar.foo.com" or "foo.com"
-			return false
-		}
-		if p[0] != '.' && strings.HasSuffix(addr, p) && addr[len(addr)-len(p)-1] == '.' {
-			// noProxy "foo.com" matches "bar.foo.com"
-			return false
-		}
-	}
-	return true
-}
-
-// Given a string of the form "host", "host:port", or "[ipv6::address]:port",
-// return true if the string includes a port.
-// Copied from "net/http".ProxyFromEnvironment in the go std lib.
-func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
-
-var (
-	portMap = map[string]string{
-		"http":  "80",
-		"https": "443",
-	}
-)
