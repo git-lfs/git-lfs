@@ -7,8 +7,12 @@ ifeq ($(DEB_HOST_ARCH), i386)
 	export GOARCH := 386
 else ifeq ($(DEB_HOST_ARCH), amd64)
 	export GOARCH := amd64
+else ifeq ($(DEB_HOST_ARCH), armel)
+	export GOARCH := arm
+	export GOARM := 5
 else ifeq ($(DEB_HOST_ARCH), armhf)
 	export GOARCH := arm
+	export GOARM := 7
 else ifeq ($(DEB_HOST_ARCH), arm64)
 	export GOARCH := arm64
 endif
