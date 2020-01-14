@@ -19,7 +19,7 @@ begin_test "multiple revs with same OID get pushed once"
 
   # Stash the contents of the file that we want to commit in .git/lfs/objects.
   object_dir="$(echo $contents_oid \
-    | awk '{ print substr($0, 0, 2) "/" substr($0, 3, 2) }')"
+    | awk '{ print substr($0, 1, 2) "/" substr($0, 3, 2) }')"
   mkdir -p ".git/lfs/objects/$object_dir"
   printf "%s" "$contents" > ".git/lfs/objects/$object_dir/$contents_oid"
 
