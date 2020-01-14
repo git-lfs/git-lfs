@@ -741,6 +741,56 @@ begin_test 'push with data the server already has'
 )
 end_test
 
+begin_test 'push with multiple refs and data the server already has'
+(
+  set -e
+
+  reponame="push-multi-ref-server-data"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="abc123"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git push origin master
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  contents2="def456"
+  contents2_oid="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+  git add b.dat
+  git commit -m "add b.dat"
+
+  # Create a tag.  Normally this would cause the entire history to be traversed
+  # since it's a new ref, but we no longer do that since we're pushing multiple
+  # refs.
+  git tag -m v1.0.0 -a v1.0.0
+
+  # We remove the original object. The server already has this.
+  delete_local_object "$contents_oid"
+
+  # We use the URL so that we cannot take advantage of the existing "origin/*"
+  # refs that we know the server must have.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 \
+    git push "$(git config remote.origin.url)" master v1.0.0 2>&1 | tee push.log
+
+  # We should not find a batch request for the object which is in the earlier
+  # version of master, since we know the remote side has it.
+  [ "$(grep -c "$contents_oid" push.log)" = 0 ]
+
+  # Yet we should have pushed the new object successfully.
+  assert_server_object "$reponame" "$contents2_oid"
+)
+end_test
+
 begin_test "push custom reference"
 (
   set -e
