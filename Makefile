@@ -171,6 +171,8 @@ BUILD_TARGETS = \
 	bin/git-lfs-darwin-386 \
 	bin/git-lfs-linux-arm64 \
 	bin/git-lfs-linux-amd64 \
+	bin/git-lfs-linux-ppc64le \
+	bin/git-lfs-linux-s390x \
 	bin/git-lfs-linux-386 \
 	bin/git-lfs-freebsd-amd64 \
 	bin/git-lfs-freebsd-386 \
@@ -209,6 +211,10 @@ bin/git-lfs-linux-arm64 : $(SOURCES) mangen
 	$(call BUILD,linux,arm64,-linux-arm64)
 bin/git-lfs-linux-amd64 : $(SOURCES) mangen
 	$(call BUILD,linux,amd64,-linux-amd64)
+bin/git-lfs-linux-ppc64le : $(SOURCES) mangen
+	$(call BUILD,linux,ppc64le,-linux-ppc64le)
+bin/git-lfs-linux-s390x : $(SOURCES) mangen
+	$(call BUILD,linux,s390x,-linux-s390x)
 bin/git-lfs-linux-386 : $(SOURCES) mangen
 	$(call BUILD,linux,386,-linux-386)
 bin/git-lfs-freebsd-amd64 : $(SOURCES) mangen
@@ -266,6 +272,8 @@ RELEASE_TARGETS = \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-ppc64le-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-s390x-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-freebsd-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-freebsd-386-$(VERSION).tar.gz \
