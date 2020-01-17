@@ -35,6 +35,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+    - run: |
+        echo "::add-path::C:\Program Files\Git\mingw64\bin"
+        echo "::add-path::C:\Program Files\Git\usr\bin"
+        echo "::add-path::C:\Program Files\Git\bin"
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
