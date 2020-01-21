@@ -1,5 +1,123 @@
 # Git LFS Changelog
 
+## 2.10.0 (21 January 2020)
+
+This release introduces several new features, such as support for local paths in
+remotes, Kerberos support, and official binaries for S390x and little-endian
+64-bit PowerPC systems.  In addition, numerous bugs have been fixed and
+miscellaneous issues have been addressed.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @ganadist for fixing a bug in the output of `git lfs env`
+* @exceed-alae for fixing a possible nil pointer dereference
+* @slonopotamus for improvements to Windows support and code cleanups
+* @nataliechen1 for fixing a data race
+* @ssgelm for writing and updating the code to use a new cookie jar parser
+* @austintraver for improving the output of `git lfs status`
+* @nikola-sh for improving option parity with Git
+* @alrs for fixing several error checks in the testsuite
+* @pluehne for improving our support for uncommon references
+
+### Features
+
+* Optimize pushes for multiple refs #3978 (@bk2204)
+* Include ppc64le and s390x Linux builds in releases #3983 (@bk2204)
+* Kerberos (SPNEGO) support for HTTP #3941 (@bk2204)
+* Add support for local paths #3918 (@bk2204)
+* Allow specifying HTTP version to use #3887 (@bk2204)
+
+### Bugs
+
+* t-duplicate-oids: use correct awk indexing #3981 (@bk2204)
+* Improved proxy support #3972 (@bk2204)
+* install: don't print error if run outside repository #3969 (@bk2204)
+* debian: bump version of golang-go #3959 (@bk2204)
+* lfshttp: Set valid default value for lfs.concurrenttransfers #3949 (@ganadist)
+* Add nil-check on defer block of DoTransfer() #3936 (@exceed-alae)
+* Retry batch failures #3930 (@bk2204)
+* rpm: use old setup code on CentOS 7 #3938 (@bk2204)
+* Interpret relative hook paths as relative to working tree #3926 (@bk2204)
+* Handle missing cygpath gracefully #3910 (@bk2204)
+* Update index before showing status #3921 (@bk2204)
+* Honor lfs.url when deciding on transfer adapters #3905 (@bk2204)
+* Implement retry logic to fix LFS storage race conditions on Windows #3890 (@slonopotamus)
+* Avoid hang when using git hash-object --stdin --path #3902 (@bk2204)
+* synchronize access to netrcCredentialHelper.skip #3896 (@nataliechen1)
+
+### Misc
+
+* Improve license files #3973 (@bk2204)
+* Add CI link to CI badge in README #3960 (@slonopotamus)
+* Clarify output shown by `git lfs status` #3953 (@austintraver)
+* Revert "ci: force Windows Git version to 2.22.0" #3903 (@bk2204)
+* Better document pointer format constraints #3944 (@bk2204)
+* Don't abort with newer Git when in a bare repo #3940 (@bk2204)
+* Fix more Linux package issues #3932 (@bk2204)
+* docs: explain shell metacharacters better #3920 (@bk2204)
+* Reset the text attribute on export #3913 (@bk2204)
+* Support schannel ssl backend #3868 (@nikola-sh)
+* Allow migrate export to handle non-pointer files gracefully #3911 (@bk2204)
+* git/gitattr: fix dropped test errors #3904 (@alrs)
+* Accept all local references with git lfs push #3876 (@pluehne)
+* Drop pre-1.6 Go compatibility code #3897 (@slonopotamus)
+* tools/kv: Fix dropped test error #3882 (@alrs)
+* Use different parser for cookiejar files #3886 (@ssgelm)
+* Stop replacing files in LFS storage when downloading them concurrently on Windows #3880 (@slonopotamus)
+* Fix error strings to follow Go guidelines #3871 (@slonopotamus)
+* Miscellaneous release fixes #3866 (@bk2204)
+
+## 2.9.2 (12 December 2019)
+
+This release fixes a few regressions, such as a possible nil pointer
+dereference, a failure to retry batch requests, and a bug where repositories
+could fail to be detected on Windows.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @exceed-alae for fixing a possible nil pointer dereference
+
+### Bugs
+
+* Add nil-check on defer block of DoTransfer() #3936 (@exceed-alae)
+* Retry batch failures #3930 (@bk2204)
+* rpm: use old setup code on CentOS 7 #3938 (@bk2204)
+* Handle missing cygpath gracefully #3910 (@bk2204)
+
+### Misc
+
+* Don't abort with newer Git when in a bare repo #3940 (@bk2204)
+* Fix more Linux package issues #3932 (@bk2204)
+
+## 2.9.1 (25 November 2019)
+
+This release fixes a few regressions, such as the ability to use HTTP/1.1 when
+required, addresses a race condition, and switches the cookie jar parser to
+something that's easier for distributions to package.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @nataliechen1 for fixing a data race
+* @ssgelm for writing and updating the code to use a new cookie jar parser
+
+### Features
+
+* Allow specifying HTTP version to use #3887 (@bk2204)
+
+### Bugs
+
+* synchronize access to netrcCredentialHelper.skip #3896 (@nataliechen1)
+* Fix several causes of CI problems #3878 (@bk2204)
+* Miscellaneous release fixes #3866 (@bk2204)
+
+### Misc
+
+* Build artifacts during CI for easier testing #3892 (@bk2204)
+* Use different parser for cookiejar files #3886 (@ssgelm)
+
 ## 2.9.0 (17 October 2019)
 
 This release adds support for DragonFly BSD, adds a new `git lfs dedup` command
