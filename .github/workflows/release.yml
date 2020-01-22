@@ -10,6 +10,10 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - run: |
+        echo "::add-path::C:\Program Files\Git\mingw64\bin"
+        echo "::add-path::C:\Program Files\Git\usr\bin"
+        echo "::add-path::C:\Program Files\Git\bin"
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go

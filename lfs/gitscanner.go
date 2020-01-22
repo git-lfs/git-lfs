@@ -95,6 +95,25 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	return scanLeftRightToChan(s, callback, left, right, s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
+// ScanMultiRangeToRemote scans through all commits starting at the left ref but
+// not including the right ref (if given) that the given remote does not have.
+// See RemoteForPush().
+func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	if len(s.remote) == 0 {
+		s.mu.Unlock()
+		return fmt.Errorf("unable to scan starting at %q: no remote set", left)
+	}
+	s.mu.Unlock()
+
+	return scanMultiLeftRightToChan(s, callback, left, rights, s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+}
+
 // ScanRefs through all commits reachable by refs contained in "include" and
 // not reachable by any refs included in "excluded"
 func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPointer) error {

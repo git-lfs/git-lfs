@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/lfshttp"
 )
 
@@ -23,6 +24,10 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 // the request argument in any way.
 func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
 	return c.client.Do(req)
+}
+
+func (c *Client) doWithAccess(req *http.Request, remote string, via []*http.Request, mode creds.AccessMode) (*http.Response, error) {
+	return c.client.DoWithAccess(req, mode)
 }
 
 func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {

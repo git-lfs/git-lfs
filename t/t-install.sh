@@ -163,7 +163,7 @@ begin_test "install outside repository directory"
     exit 1
   fi
 
-  git lfs install 2>&1 > check.log
+  git lfs install > check.log 2>&1
 
   if [ -d "hooks" ]; then
     ls -al
@@ -175,6 +175,7 @@ begin_test "install outside repository directory"
 
   # doesn't print this because being in a git repo is not necessary for install
   [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
+  [ "$(grep -c "Error" check.log)" = "0" ]
 )
 end_test
 
