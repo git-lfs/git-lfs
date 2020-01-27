@@ -77,6 +77,16 @@ func trackCommand(cmd *cobra.Command, args []string) {
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
+
+		// Generate the new / changed attrib line for merging
+		var encodedArg string
+		if trackFilenameFlag {
+			encodedArg = escapeGlobCharacters(pattern)
+			pattern = escapeGlobCharacters(pattern)
+		} else {
+			encodedArg = escapeAttrPattern(pattern)
+		}
+
 		if !trackNoModifyAttrsFlag {
 			for _, known := range knownPatterns {
 				if unescapeAttrPattern(known.Path) == filepath.Join(relpath, pattern) &&
@@ -87,15 +97,6 @@ ArgsLoop:
 					continue ArgsLoop
 				}
 			}
-		}
-
-		// Generate the new / changed attrib line for merging
-		var encodedArg string
-		if trackFilenameFlag {
-			encodedArg = escapeGlobCharacters(pattern)
-			pattern = escapeGlobCharacters(pattern)
-		} else {
-			encodedArg = escapeAttrPattern(pattern)
 		}
 
 		lockableArg := ""
