@@ -83,6 +83,12 @@ be scoped inside the configuration for a remote.
 
   Default: `lfs` in Git repository directory (usually `.git/lfs`).
 
+* `lfs.largefilewarning`
+
+  Warn when a file is 4 GiB or larger. Such files will be corrupted when using
+  Windows (unless smudging is disabled) due to a limitation in Git.  Default:
+  true.
+
 ### Transfer (upload / download) settings
 
   These settings control how the upload and download of LFS content occurs.
