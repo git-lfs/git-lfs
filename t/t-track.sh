@@ -670,6 +670,7 @@ begin_test "track: escaped glob pattern in .gitattributes"
   contents_oid=$(calc_oid "$contents")
 
   git lfs track --filename "$filename"
+  git lfs track --filename "$filename" | grep 'already supported'
   git add .
   cat .gitattributes
 
