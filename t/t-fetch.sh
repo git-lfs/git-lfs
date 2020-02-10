@@ -619,3 +619,23 @@ begin_test "fetch with invalid remote"
   grep "Invalid remote name" fetch.log
 )
 end_test
+
+begin_test "fetch fails when LFS directory has wrong permissions"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  # Root is exempt from permissions.
+  [ "$(id -u)" -eq 0 ] && exit 0
+
+  cd shared
+  rm -rf .git/lfs/objects
+  mkdir .git/lfs/objects
+  chmod 400 .git/lfs/objects
+
+  git lfs fetch 2>&1 | tee fetch.log
+  grep "error trying to create local storage directory" fetch.log
+)
+end_test

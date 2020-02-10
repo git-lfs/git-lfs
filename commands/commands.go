@@ -131,9 +131,9 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 	return filepathfilter.New(inc, exc)
 }
 
-func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool) {
-	path, _ = cfg.Filesystem().ObjectPath(p.Oid)
-	return p.Name, path, p.Oid, p.Size, false
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
+	path, err = cfg.Filesystem().ObjectPath(p.Oid)
+	return p.Name, path, p.Oid, p.Size, false, err
 }
 
 // Get user-readable manual install steps for hooks
