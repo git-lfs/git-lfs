@@ -324,7 +324,12 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 //
 // Only one file will be transferred to/from the Path element of the first
 // transfer.
-func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool) {
+func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool, err error) {
+	if err != nil {
+		q.errorc <- err
+		return
+	}
+
 	t := &objectTuple{
 		Name:    name,
 		Path:    path,

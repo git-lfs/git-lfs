@@ -258,7 +258,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 			ExitWithError(err)
 		}
 
-		q.Add(t.Name, t.Path, t.Oid, t.Size, t.Missing)
+		q.Add(t.Name, t.Path, t.Oid, t.Size, t.Missing, nil)
 		c.SetUploaded(p.Oid)
 	}
 }
