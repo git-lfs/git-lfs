@@ -31,6 +31,6 @@ begin_test "cherry-pick two commits without lfs cache"
   git checkout secondbranch
   rm -rf .git/lfs/objects
 
-  GIT_TRACE_PACK_ACCESS=2 git cherry-pick $commit1 $commit2
+  git cherry-pick $commit1 $commit2
 )
 end_test
