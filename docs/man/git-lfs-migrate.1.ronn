@@ -35,6 +35,12 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 * `--everything`:
     See [INCLUDE AND EXCLUDE (REFS)].
 
+* `--yes`:
+    Assume a yes answer to any prompts, permitting noninteractive use.
+    Currently, the only such prompt is the one asking whether to overwrite
+    (destroy) any working copy changes. Thus, specifying this option may cause
+    data loss if you are not careful.
+
 * [branch ...]:
     Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
     will migrate the currently checked out branch.
