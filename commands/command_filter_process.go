@@ -88,10 +88,10 @@ func filterCommand(cmd *cobra.Command, args []string) {
 				n = ptr.Size
 			}
 		case "smudge":
-			closeOnce = new(sync.Once)
-			available = make(chan *tq.Transfer)
+			if q == nil && supportsDelay {
+				closeOnce = new(sync.Once)
+				available = make(chan *tq.Transfer)
 
-			if supportsDelay {
 				q = tq.NewTransferQueue(
 					tq.Download,
 					getTransferManifestOperationRemote("download", cfg.Remote()),
@@ -160,6 +160,12 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					// accept it later.
 					paths = append(paths, fmt.Sprintf("pathname=%s", path))
 				}
+				// At this point all items have been completely processed,
+				// so we explicitly close transfer queue. If Git issues
+				// another `smudge` command the transfer queue will be
+				// created from scratch. Transfer queue needs to be recreated
+				// because it has been already partially closed by `q.Wait()`
+				q = nil
 			}
 			err = s.WriteList(paths)
 		default:
