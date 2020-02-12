@@ -55,7 +55,7 @@ jobs:
     - uses: actions/download-artifact@v1
       with:
         name: assets
-    - run: make release
+    - run: CGO_ENABLED=0 make release
     - run: rm -f bin/releases/*windows*
     - run: find assets -name "*windows*" | xargs -L1 -I{} mv {} bin/releases
     - run: script/upload --skip-verify $(git describe)

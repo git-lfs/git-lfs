@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: script/cibuild
-    - run: make release
+    - run: CGO_ENABLED=0 make release
     - run: mkdir -p bin/assets
     - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
     - uses: actions/upload-artifact@v1
