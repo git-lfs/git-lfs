@@ -1,16 +1,6 @@
-// +build linux,cgo
+// +build linux
 
 package tools
-
-/*
-#include <sys/ioctl.h>
-
-#undef FICLONE
-#define FICLONE		_IOW(0x94, 9, int)
-// copy from https://github.com/torvalds/linux/blob/v5.2/include/uapi/linux/fs.h#L195 for older header files.
-// This is equal to the older BTRFS_IOC_CLONE value.
-*/
-import "C"
 
 import (
 	"io"
@@ -20,7 +10,10 @@ import (
 )
 
 const (
-	ioctlFiClone = C.FICLONE
+	// This is the FICLONE ioctl value found in linux/fs.h on a typical
+	// system.  It's equivalent to the older BTRFS_IOC_CLONE.  We hard-code
+	// the value here to avoid a dependency on cgo.
+	ioctlFiClone = 0x40049409
 )
 
 // CheckCloneFileSupported runs explicit test of clone file on supplied directory.
