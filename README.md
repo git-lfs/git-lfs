@@ -57,6 +57,23 @@ running:
 $ git lfs install
 ```
 
+#### Verifying releases
+
+Releases are signed with the OpenPGP key of one of the core team members.  To
+get these keys, you can run the following command, which will print them to
+standard output:
+
+```ShellSession
+$ curl -L https://api.github.com/repos/git-lfs/git-lfs/tarball/core-gpg-keys | tar -Ozxf -
+```
+
+Once you have the keys, you can download the `sha256sums.asc` file and verify
+the file you want like so:
+
+```ShellSession
+$ gpg -d sha256sums.asc | grep git-lfs-linux-amd64-v2.10.0.tar.gz | shasum -a 256 -c
+```
+
 ## Example Usage
 
 To begin using Git LFS within a Git repository that is not already configured
