@@ -10,8 +10,6 @@ require (
 	github.com/git-lfs/wildmatch v1.0.4
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jcmturner/gofork v1.0.0 // indirect
-	github.com/jcmturner/gokrb5 v7.3.0+incompatible // indirect
-	github.com/kr/pty v1.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.4
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
@@ -26,9 +24,7 @@ require (
 	golang.org/x/net v0.0.0-20191027093000-83d349e8ac1a
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d
-	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
-	gopkg.in/jcmturner/gokrb5.v7 v7.3.0 // indirect
-	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
+	gopkg.in/jcmturner/goidentity.v2 v2.0.0 // indirect
 )
 
 go 1.11
