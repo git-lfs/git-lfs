@@ -203,7 +203,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformed) > 0 {
-		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that should have been pointers, but weren't:\n", len(malformed))
+		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that should have been Git LFS pointers, but they're Git files:\n", len(malformed))
 		for _, m := range malformed {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
