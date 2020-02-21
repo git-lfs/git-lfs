@@ -209,8 +209,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
 
-		fmt.Fprintf(os.Stderr, "\Type: `git lfs ls-files` to see which files are in the Git LFS index.\n");
-		fmt.Fprintf(os.Stderr, "\See: `git lfs help migrate` for migrating files to the Git LFS index.\n");
+		fmt.Fprintf(os.Stderr, "\nType: `git lfs ls-files` to see which files are in the Git LFS index.\n");
+		fmt.Fprintf(os.Stderr, "\nSee: `git lfs help migrate` for migrating files to the Git LFS index.\n");
 	}
 
 	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", true) {
