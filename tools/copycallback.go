@@ -3,6 +3,7 @@ package tools
 import (
 	"bytes"
 	"io"
+	"os"
 )
 
 type CopyCallback func(totalSize int64, readSoFar int64, readSinceLast int) error
@@ -16,6 +17,10 @@ type BodyWithCallback struct {
 
 func NewByteBodyWithCallback(by []byte, totalSize int64, cb CopyCallback) *BodyWithCallback {
 	return NewBodyWithCallback(NewByteBody(by), totalSize, cb)
+}
+
+func NewFileBodyWithCallback(f *os.File, totalSize int64, cb CopyCallback) *BodyWithCallback {
+	return NewBodyWithCallback(NewFileBody(f), totalSize, cb)
 }
 
 func NewBodyWithCallback(body ReadSeekCloser, totalSize int64, cb CopyCallback) *BodyWithCallback {
@@ -97,5 +102,17 @@ type closingByteReader struct {
 }
 
 func (r *closingByteReader) Close() error {
+	return nil
+}
+
+func NewFileBody(f *os.File) ReadSeekCloser {
+	return &closingFileReader{File: f}
+}
+
+type closingFileReader struct {
+	*os.File
+}
+
+func (r *closingFileReader) Close() error {
 	return nil
 }

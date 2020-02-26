@@ -59,7 +59,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
-		"send-verify-action", "send-deprecated-links",
+		"send-verify-action", "send-deprecated-links", "redirect-storage-upload",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
@@ -258,7 +258,10 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 }
 
-func lfsUrl(repo, oid string) string {
+func lfsUrl(repo, oid string, redirect bool) string {
+	if redirect {
+		return server.URL + "/redirect307/objects/" + oid + "?r=" + repo
+	}
 	return server.URL + "/storage/" + oid + "?r=" + repo
 }
 
@@ -488,10 +491,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			if handler == "send-deprecated-links" {
 				o.Links = make(map[string]*lfsLink)
 			}
-
 			if addAction {
 				a := &lfsLink{
-					Href:   lfsUrl(repo, obj.Oid),
+					Href:   lfsUrl(repo, obj.Oid, handler == "redirect-storage-upload"),
 					Header: map[string]string{},
 				}
 				a = serveExpired(a, repo, handler)
@@ -644,7 +646,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-
 	repo := r.URL.Query().Get("r")
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
@@ -975,6 +976,9 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 		redirectTo = "/" + strings.Join(parts[3:], "/")
 	} else if parts[2] == "abs" {
 		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
+	} else if parts[2] == "objects" {
+		repo := r.URL.Query().Get("r")
+		redirectTo = server.URL + "/storage/" + strings.Join(parts[3:], "/") + "?r=" + repo
 	} else {
 		debug(id, "Invalid URL for redirect: %v", r.URL)
 		w.WriteHeader(404)
