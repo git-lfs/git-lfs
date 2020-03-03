@@ -1,0 +1,23 @@
+git-lfs-post-commit(1) -- Git post-commit hook implementation
+=================================================================
+
+## SYNOPSIS
+
+`git lfs post-commit`
+
+## DESCRIPTION
+
+Responds to Git post-commit events. It makes sure that any files which are
+marked as lockable by `git lfs track` are read-only in the working copy, if
+not currently locked by the local user.
+
+Where the `git lfs post-merge` command, which has a similar purpose, must
+examine all files in the working copy, `git lfs post-commit` can limit
+itself checking only those files which have changed in `HEAD`.  It primarily
+handles newly added lockable files which have not yet been made read-only.
+
+## SEE ALSO
+
+git-lfs-post-merge(1), git-lfs-track(1)
+
+Part of the git-lfs(1) suite.
