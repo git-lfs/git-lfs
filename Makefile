@@ -469,6 +469,7 @@ MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
   man/git-lfs-migrate.1 \
   man/git-lfs-pointer.1 \
   man/git-lfs-post-checkout.1 \
+  man/git-lfs-post-commit.1 \
   man/git-lfs-post-merge.1 \
   man/git-lfs-pre-push.1 \
   man/git-lfs-prune.1 \
@@ -501,6 +502,7 @@ MAN_HTML_TARGETS = man/git-lfs-checkout.1.html \
   man/git-lfs-migrate.1.html \
   man/git-lfs-pointer.1.html \
   man/git-lfs-post-checkout.1.html \
+  man/git-lfs-post-commit.1.html \
   man/git-lfs-post-merge.1.html \
   man/git-lfs-pre-push.1.html \
   man/git-lfs-prune.1.html \
