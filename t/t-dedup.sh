@@ -10,6 +10,21 @@ begin_test "dedup"
   git init $reponame
   cd $reponame
 
+  # Confirm Git LFS extensions prevent de-duplication
+  git config lfs.extension.foo.clean "foo-clean %f"
+  git config lfs.extension.foo.smudge "foo-smudge %f"
+  git config lfs.extension.foo.priority 0
+
+  result=$(git lfs dedup 2>&1) && true
+  if ( echo $result | grep "This system does not support deduplication." ); then
+    exit
+  fi
+  echo "$result" | grep 'This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.'
+
+  git config --unset lfs.extension.foo.clean
+  git config --unset lfs.extension.foo.smudge
+  git config --unset lfs.extension.foo.priority
+
   # Create a commit with some files tracked by git-lfs
   git lfs track *.dat
   echo "test data" > a.dat
@@ -25,9 +40,6 @@ begin_test "dedup"
 
   # DO
   result=$(git lfs dedup 2>&1) && true
-  if ( echo $result | grep "This system does not support deduplication." ); then
-    exit
-  fi
 
   # VERIFY: Expected
   #  Success: a.dat
@@ -46,11 +58,23 @@ begin_test "dedup test"
   git init $reponame
   cd $reponame
 
-  # DO
+  # Confirm Git LFS extensions prevent de-duplication
+  git config lfs.extension.foo.clean "foo-clean %f"
+  git config lfs.extension.foo.smudge "foo-smudge %f"
+  git config lfs.extension.foo.priority 0
+
   result=$(git lfs dedup --test 2>&1) && true
   if ( echo $result | grep "This system does not support deduplication." ); then
     exit
   fi
+  echo "$result" | grep 'This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.'
+
+  git config --unset lfs.extension.foo.clean
+  git config --unset lfs.extension.foo.smudge
+  git config --unset lfs.extension.foo.priority
+
+  # DO
+  result=$(git lfs dedup --test 2>&1) && true
 
   # Verify: This platform and repository support file de-duplication.
   echo "$result" | grep 'This platform and repository support file de-duplication.'
