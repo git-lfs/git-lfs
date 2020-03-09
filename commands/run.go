@@ -124,6 +124,9 @@ func usageCommand(cmd *cobra.Command) error {
 }
 
 func printHelp(commandName string) {
+	if commandName == "--help" {
+		commandName = "git-lfs"
+	}
 	if txt, ok := ManPages[commandName]; ok {
 		fmt.Fprintf(os.Stdout, "%s\n", strings.TrimSpace(txt))
 	} else {
