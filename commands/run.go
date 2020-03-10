@@ -69,6 +69,12 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 
 		Run: func(c *cobra.Command, args []string) {
 			cmd, _, e := c.Root().Find(args)
+			// In the case of "git lfs help config", pretend the
+			// last arg was "help" so our command lookup succeeds,
+			// since cmd will be ignored in helpCommand().
+			if e != nil && args[0] == "config" {
+				cmd, _, e = c.Root().Find([]string{"help"})
+			}
 			if cmd == nil || e != nil {
 				c.Printf("Unknown help topic %#q\n", args)
 				c.Root().Usage()
