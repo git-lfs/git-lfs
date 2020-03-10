@@ -449,7 +449,9 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 		tr.DialContext = dialer.DialContext
 	}
 
-	tr.TLSClientConfig = &tls.Config{}
+	tr.TLSClientConfig = &tls.Config{
+		Renegotiation: tls.RenegotiateFreelyAsClient,
+	}
 
 	if isClientCertEnabledForHost(c, host) {
 		tracerx.Printf("http: client cert for %s", host)
