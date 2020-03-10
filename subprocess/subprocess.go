@@ -127,16 +127,24 @@ func quotedArgs(args []string) string {
 	return strings.Join(quoted, " ")
 }
 
-// An env for an exec.Command without GIT_TRACE
+// An env for an exec.Command without GIT_TRACE and GIT_INTERNAL_SUPER_PREFIX
 var env []string
 var traceEnv = "GIT_TRACE="
+
+// Don't pass GIT_INTERNAL_SUPER_PREFIX back to Git. Git passes this environment
+// variable to child processes when submodule.recurse is set to true. However,
+// passing that environment variable back to Git will cause it to append the
+// --super-prefix command-line option to every Git call. This is problematic
+// because many Git commands (including git config and git rev-parse) don't
+// support --super-prefix and would immediately exit with an error as a result.
+var superPrefixEnv = "GIT_INTERNAL_SUPER_PREFIX="
 
 func init() {
 	realEnv := os.Environ()
 	env = make([]string, 0, len(realEnv))
 
 	for _, kv := range realEnv {
-		if strings.HasPrefix(kv, traceEnv) {
+		if strings.HasPrefix(kv, traceEnv) || strings.HasPrefix(kv, superPrefixEnv) {
 			continue
 		}
 		env = append(env, kv)
