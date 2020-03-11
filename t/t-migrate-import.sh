@@ -439,6 +439,38 @@ EOF)
 )
 end_test
 
+begin_test "migrate import (--exclude with existing .gitattributes)"
+(
+  set -e
+
+  setup_local_branch_with_gitattrs
+
+  pwd
+
+  master="$(git rev-parse refs/heads/master)"
+
+  txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
+
+  git lfs migrate import --yes --include-ref=refs/heads/master --include="*.txt" --exclude="*.bin"
+
+  assert_local_object "$txt_master_oid" "120"
+
+  master="$(git rev-parse refs/heads/master)"
+  prev="$(git rev-parse refs/heads/master^1)"
+
+  diff -u <(git cat-file -p $master:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.other filter=lfs diff=lfs merge=lfs -text
+*.bin !text -filter -merge -diff
+EOF)
+
+  diff -u <(git cat-file -p $prev:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.bin !text -filter -merge -diff
+EOF)
+)
+end_test
+
 begin_test "migrate import (identical contents, different permissions)"
 (
   set -e
