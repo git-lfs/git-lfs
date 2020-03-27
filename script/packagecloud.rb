@@ -59,6 +59,7 @@ $distro_name_map = {
   ],
   "centos/8" => [
     "el/8",
+    "fedora/31", # EOL ~2021
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -81,6 +82,8 @@ $distro_name_map = {
     "linuxmint/sylvia", # EOL April 2021
     "linuxmint/tara",   # EOL April 2023
     "linuxmint/tessa",  # EOL April 2023
+    "linuxmint/tina",   # EOL April 2023
+    "linuxmint/tricia", # EOL April 2023
     "ubuntu/xenial",    # ESM April 2024
     "ubuntu/yakkety",   # EOL July 20, 2017
     "ubuntu/zesty",     # EOL January 13, 2018
@@ -91,7 +94,8 @@ $distro_name_map = {
   ],
   "debian/10" => [
     "debian/buster",    # Current
-    "ubuntu/eoan",      # Current
+    "ubuntu/eoan",      # EOL July 2020
+    "ubuntu/focal",     # Current
   ]
 }
 
