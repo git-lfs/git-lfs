@@ -498,3 +498,21 @@ begin_test "ls-files: history with reference range"
   [ 0 -eq $(grep -c "c\.dat" ls-files.log) ]
 )
 end_test
+
+begin_test "ls-files: not affected by lfs.fetchexclude"
+(
+  set -e
+
+  mkdir repo-fetchexclude
+  cd repo-fetchexclude
+  git init
+  git lfs track "*.dat" | grep "Tracking \"\*.dat\""
+  echo "some data" > some.dat
+  echo "some text" > some.txt
+  echo "missing" > missing.dat
+  git add missing.dat
+  git commit -m "add missing file"
+  git config lfs.fetchexclude '*'
+  [ "6bbd052ab0 * missing.dat" = "$(git lfs ls-files)" ]
+)
+end_test
