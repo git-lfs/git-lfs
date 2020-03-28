@@ -101,6 +101,11 @@ func gitDirAtPath(path string) (string, error) {
 	}
 	env = env[:n]
 
+	// Trim any trailing .git path segment.
+	if filepath.Base(path) == ".git" {
+		path = filepath.Dir(path)
+	}
+
 	curdir, err := os.Getwd()
 	if err != nil {
 		return "", err
