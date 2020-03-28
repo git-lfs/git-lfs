@@ -404,7 +404,7 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 # 		make PKGS="config lfsapi tools/kv" test-race
 #
 # And so on.
-test : fmt
+test : fmt $(.DEFAULT_GOAL)
 	(unset GIT_DIR; unset GIT_WORK_TREE; \
 	$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)))
 
