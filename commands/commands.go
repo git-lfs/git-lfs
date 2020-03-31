@@ -126,8 +126,8 @@ func currentRemoteRef() *git.Ref {
 	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).Right()
 }
 
-func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
-	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
 	return filepathfilter.New(inc, exc)
 }
 
@@ -449,14 +449,22 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	}
 }
 
-func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
+func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) (include, exclude []string) {
 	if includeArg == nil {
-		include = config.FetchIncludePaths()
+		if useFetchOptions {
+			include = config.FetchIncludePaths()
+		} else {
+			include = []string{}
+		}
 	} else {
 		include = tools.CleanPaths(*includeArg, ",")
 	}
 	if excludeArg == nil {
-		exclude = config.FetchExcludePaths()
+		if useFetchOptions {
+			exclude = config.FetchExcludePaths()
+		} else {
+			exclude = []string{}
+		}
 	} else {
 		exclude = tools.CleanPaths(*excludeArg, ",")
 	}
