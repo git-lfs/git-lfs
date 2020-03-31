@@ -303,7 +303,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 // filter given by the --include and --exclude arguments.
 func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
-	filter := buildFilepathFilter(cfg, include, exclude)
+	filter := buildFilepathFilter(cfg, include, exclude, false)
 
 	return githistory.NewRewriter(db,
 		githistory.WithFilter(filter), githistory.WithLogger(l))

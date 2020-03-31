@@ -88,7 +88,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 
 	} else { // !all
-		filter := buildFilepathFilter(cfg, include, exclude)
+		filter := buildFilepathFilter(cfg, include, exclude, true)
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {

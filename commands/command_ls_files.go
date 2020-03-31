@@ -107,7 +107,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	defer gitscanner.Close()
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
-	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg)
+	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg, false)
 
 	if len(args) == 0 {
 		// Only scan the index when "git lfs ls-files" was invoked with
