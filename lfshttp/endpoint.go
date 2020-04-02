@@ -125,7 +125,7 @@ func EndpointFromLocalPath(path string) Endpoint {
 	} else {
 		gitpath = filepath.Join(path, ".git")
 	}
-	if file, err := os.Lstat(gitpath); err == nil && file.IsDir() {
+	if _, err := os.Stat(gitpath); err == nil {
 		path = gitpath
 	}
 	return Endpoint{Url: fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))}
