@@ -1,6 +1,8 @@
 package lfsapi
 
 import (
+	"io/ioutil"
+	"os"
 	"runtime"
 	"testing"
 
@@ -313,32 +315,92 @@ func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SshPort)
 }
 
-func TestLocalPathEndpointAddsDotGitDir(t *testing.T) {
+func TestLocalPathEndpointAddsDotGitForWorkingRepo(t *testing.T) {
 	// Windows will add a drive letter to the paths below since we
 	// canonicalize them.
 	if runtime.GOOS == "windows" {
 		return
 	}
 
+	path, err := ioutil.TempDir("", "lfsRepo")
+	assert.Nil(t, err)
+	path = path + "/local/path"
+	err = os.MkdirAll(path+"/.git", 0755)
+	assert.Nil(t, err)
+
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
-		"remote.origin.url": "/local/path",
+		"remote.origin.url": path,
 	}))
 	e := finder.Endpoint("download", "")
-	assert.Equal(t, "file:///local/path/.git", e.Url)
+	assert.Equal(t, "file://"+path+"/.git", e.Url)
+
+	os.RemoveAll(path)
 }
 
-func TestLocalPathEndpointPreservesDotGit(t *testing.T) {
+func TestLocalPathEndpointPreservesDotGitForWorkingRepo(t *testing.T) {
 	// Windows will add a drive letter to the paths below since we
 	// canonicalize them.
 	if runtime.GOOS == "windows" {
 		return
 	}
 
+	path, err := ioutil.TempDir("", "lfsRepo")
+	assert.Nil(t, err)
+	path = path + "/local/path/.git"
+	err = os.MkdirAll(path, 0755)
+	assert.Nil(t, err)
+
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
-		"remote.origin.url": "/local/path.git",
+		"remote.origin.url": path,
 	}))
 	e := finder.Endpoint("download", "")
-	assert.Equal(t, "file:///local/path.git", e.Url)
+	assert.Equal(t, "file://"+path, e.Url)
+
+	os.RemoveAll(path)
+}
+
+func TestLocalPathEndpointPreservesNoDotGitForBareRepo(t *testing.T) {
+	// Windows will add a drive letter to the paths below since we
+	// canonicalize them.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	path, err := ioutil.TempDir("", "lfsRepo")
+	assert.Nil(t, err)
+	path = path + "/local/path"
+	err = os.MkdirAll(path, 0755)
+	assert.Nil(t, err)
+
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": path,
+	}))
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "file://"+path, e.Url)
+
+	os.RemoveAll(path)
+}
+
+func TestLocalPathEndpointRemovesDotGitForBareRepo(t *testing.T) {
+	// Windows will add a drive letter to the paths below since we
+	// canonicalize them.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	path, err := ioutil.TempDir("", "lfsRepo")
+	assert.Nil(t, err)
+	path = path + "/local/path"
+	err = os.MkdirAll(path, 0755)
+	assert.Nil(t, err)
+
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": path + "/.git",
+	}))
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "file://"+path, e.Url)
+
+	os.RemoveAll(path)
 }
 
 func TestAccessConfig(t *testing.T) {

@@ -3,6 +3,7 @@ package lfshttp
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -108,9 +109,6 @@ func EndpointFromHttpUrl(u *url.URL) Endpoint {
 }
 
 func EndpointFromLocalPath(path string) Endpoint {
-	if !strings.HasSuffix(path, ".git") {
-		path = fmt.Sprintf("%s/.git", path)
-	}
 	var slash string
 	if abs, err := filepath.Abs(path); err == nil {
 		// Required for Windows paths to work.
@@ -118,6 +116,17 @@ func EndpointFromLocalPath(path string) Endpoint {
 			slash = "/"
 		}
 		path = abs
+	}
+
+	var gitpath string
+	if filepath.Base(path) == ".git" {
+		gitpath = path
+		path = filepath.Dir(path)
+	} else {
+		gitpath = filepath.Join(path, ".git")
+	}
+	if file, err := os.Lstat(gitpath); err == nil && file.IsDir() {
+		path = gitpath
 	}
 	return Endpoint{Url: fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))}
 }
