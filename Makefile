@@ -268,7 +268,7 @@ script/windows-installer/git-lfs-wizard-image.bmp
 #
 # 	make VERSION=my-version bin/releases/git-lfs-darwin-amd64-my-version.tar.gz
 RELEASE_TARGETS = \
-	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
+	bin/releases/git-lfs-darwin-amd64-$(VERSION).zip \
 	bin/releases/git-lfs-linux-arm-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
@@ -296,7 +296,7 @@ release : $(RELEASE_TARGETS)
 	shasum -a 256 $(RELEASE_TARGETS)
 
 # bin/releases/git-lfs-%-$(VERSION).tar.gz generates a gzip-compressed TAR of
-# the non-Windows release artifacts.
+# the non-Windows and non-macOS release artifacts.
 #
 # It includes all of RELEASE_INCLUDES, as well as script/install.sh.
 bin/releases/git-lfs-%-$(VERSION).tar.gz : \
@@ -304,12 +304,24 @@ $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 	@mkdir -p bin/releases
 	tar $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
 
-# bin/releases/git-lfs-%-$(VERSION).zip generates a ZIP compression of all of
-# the Windows release artifacts.
+# bin/releases/git-lfs-darwin-$(VERSION).zip generates a ZIP compression of all
+# of the macOS release artifacts.
+#
+# It includes all of the RELEASE_INCLUDES, as well as script/install.sh.
+bin/releases/git-lfs-darwin-%-$(VERSION).zip : \
+$(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
+	dir=bin/releases/darwin-$* && \
+	mkdir -p $$dir && \
+	cp $^ $$dir && mv $$dir/git-lfs-darwin-$* $$dir/git-lfs && \
+	zip -j $@ $$dir/* && \
+	$(RM) -r $$dir
+
+# bin/releases/git-lfs-windows-$(VERSION).zip generates a ZIP compression of all
+# of the Windows release artifacts.
 #
 # It includes all of the RELEASE_INCLUDES, and converts LF-style line endings to
 # CRLF in the non-binary components of the artifact.
-bin/releases/git-lfs-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-%.exe
+bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
 	zip -j -l $@ $^
 
