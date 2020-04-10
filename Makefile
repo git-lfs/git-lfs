@@ -168,7 +168,6 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 # built for.
 BUILD_TARGETS = \
 	bin/git-lfs-darwin-amd64 \
-	bin/git-lfs-darwin-386 \
 	bin/git-lfs-linux-arm \
 	bin/git-lfs-linux-arm64 \
 	bin/git-lfs-linux-amd64 \
@@ -206,8 +205,6 @@ all build : $(BUILD_TARGETS)
 # embeds the versioninfo into the binary.
 bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
 	$(call BUILD,darwin,amd64,-darwin-amd64)
-bin/git-lfs-darwin-386 : $(SOURCES) mangen
-	$(call BUILD,darwin,386,-darwin-386)
 bin/git-lfs-linux-arm : $(SOURCES) mangen
 	GOARM=5 $(call BUILD,linux,arm,-linux-arm)
 bin/git-lfs-linux-arm64 : $(SOURCES) mangen
@@ -272,7 +269,6 @@ script/windows-installer/git-lfs-wizard-image.bmp
 # 	make VERSION=my-version bin/releases/git-lfs-darwin-amd64-my-version.tar.gz
 RELEASE_TARGETS = \
 	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
-	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
