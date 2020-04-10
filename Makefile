@@ -90,6 +90,13 @@ else
 CERT_ARGS ?= -sha1 $(CERT_SHA1)
 endif
 
+# DARWIN_CERT_ID is a portion of the common name of the signing certificatee.
+DARWIN_CERT_ID ?=
+
+# DARWIN_KEYCHAIN_ID is the name of the keychain (with suffix) where the
+# certificate is located.
+DARWIN_KEYCHAIN_ID ?= CI.keychain
+
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -341,7 +348,7 @@ release-linux:
 # release-windows is a target that builds and signs Windows binaries.  It must
 # be run on a Windows machine under Git Bash.
 #
-# You may sign with a different certificate by specifying CERT_SHA1.
+# You may sign with a different certificate by specifying CERT_ID.
 .PHONY : release-windows
 release-windows: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 
@@ -384,11 +391,53 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 		); \
 		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; exit "$$status"
 
+# release-darwin is a target that builds and signs Darwin (macOS) binaries.  It must
+# be run on a macOS machine with a suitable version of XCode.
+#
+# You may sign with a different certificate by specifying DARWIN_CERT_ID.
+.PHONY : release-darwin
+release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip
+	for i in $^; do \
+		temp=$$(mktemp -d) && \
+		( \
+			unzip -d "$$temp" $^ && \
+			codesign --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/git-lfs" && \
+			codesign -dvvv "$$temp/git-lfs" && \
+			zip -j $$i "$$temp/git-lfs" && \
+			codesign --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
+			codesign -dvvv "$$i" && \
+			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
+			for j in 1 2 3; \
+			do \
+				gon "$$temp/manifest.json" && break; \
+			done; \
+		); \
+		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; [ "$$status" -eq 0 ] || exit "$$status"; \
+	done
+
 .PHONY : release-write-certificate
 release-write-certificate:
 	@echo "Writing certificate to $(CERT_FILE)"
 	@echo "$$CERT_CONTENTS" | base64 --decode >"$$CERT_FILE"
 	@printf 'Wrote %d bytes (SHA256 %s) to certificate file\n' $$(wc -c <"$$CERT_FILE") $$(shasum -ba 256 "$$CERT_FILE" | cut -d' ' -f1)
+
+# release-import-certificate imports the given certificate into the macOS
+# keychain "CI".  It is not generally recommended to run this on a user system,
+# since it creates a new keychain and modifies the keychain search path.
+.PHONY : release-import-certificate
+release-import-certificate:
+	@[ -n "$(CI)" ] || { echo "Don't run this target by hand." >&2; false; }
+	@echo "Creating CI keychain"
+	security create-keychain -p default CI.keychain
+	security set-keychain-settings CI.keychain
+	security unlock-keychain -p default CI.keychain
+	@echo "Importing certificate from $(CERT_FILE)"
+	@security import "$$CERT_FILE" -f pkcs12 -k CI.keychain -P "$$CERT_PASS" -A
+	@echo "Verifying import and setting permissions"
+	security list-keychains -s CI.keychain
+	security default-keychain -s CI.keychain
+	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default CI.keychain
+	security find-identity -vp codesigning CI.keychain
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.
