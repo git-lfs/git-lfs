@@ -43,21 +43,38 @@ jobs:
       shell: bash
     - uses: actions/upload-artifact@v1
       with:
-        name: assets
+        name: windows-assets
+        path: bin/releases
+  build-macos:
+    name: Build macOS Assets
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - run: make release
+    - uses: actions/upload-artifact@v1
+      with:
+        name: macos-assets
         path: bin/releases
   build-main:
     name: Main Release Assets
-    needs: build-windows
+    needs:
+      - build-windows
+      - build-macos
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - uses: actions/download-artifact@v1
       with:
-        name: assets
+        name: windows-assets
+    - uses: actions/download-artifact@v1
+      with:
+        name: macos-assets
     - run: CGO_ENABLED=0 make release
-    - run: rm -f bin/releases/*windows*
-    - run: find assets -name "*windows*" | xargs -L1 -I{} mv {} bin/releases
+    - run: rm -f bin/releases/*windows* bin/releases/*darwin*
+    - run: 'find windows-assets -name "*windows*" -type f | xargs -L1 -I{} mv {} bin/releases'
+    - run: 'find macos-assets -name "*darwin*" -type f | xargs -L1 -I{} mv {} bin/releases'
     - run: script/upload --skip-verify $(git describe)
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
