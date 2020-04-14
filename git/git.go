@@ -31,6 +31,7 @@ const (
 	RefTypeLocalBranch  = RefType(iota)
 	RefTypeRemoteBranch = RefType(iota)
 	RefTypeLocalTag     = RefType(iota)
+	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
 
@@ -1042,7 +1043,7 @@ func Fetch(remotes ...string) error {
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
-// accessing the remote vir git ls-remote
+// accessing the remote via git ls-remote.
 func RemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
 	cmd := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
@@ -1064,7 +1065,11 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 
 			sha := match[1]
-			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+			typ := RefTypeRemoteBranch
+			if match[2] == "tags" {
+				typ = RefTypeRemoteTag
+			}
+			ret = append(ret, &Ref{name, typ, sha})
 		}
 	}
 	return ret, cmd.Wait()
