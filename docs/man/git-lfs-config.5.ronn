@@ -160,6 +160,18 @@ be scoped inside the configuration for a remote.
   not an integer, is less than one, or is not given, a value of eight will be
   used instead.
 
+* `lfs.transfer.maxretrydelay`
+
+  Specifies the maximum time in seconds LFS will wait between each retry
+  attempt. LFS uses exponential backoff for retries, doubling the time between
+  each retry until reaching this limit. If a server requests a delay using the
+  `Retry-After` header, the header value overrides the exponential delay for
+  that attempt and is not limited by this option.
+  
+  Must be an integer which is not negative. Use zero to disable delays between
+  retries unless requested by a server. If the value is not an integer, is
+  negative, or is not given, a value of ten will be used instead.
+
 * `lfs.transfer.maxverifies`
 
   Specifies how many verification requests LFS will attempt per OID before

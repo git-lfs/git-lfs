@@ -575,7 +575,7 @@ begin_test "push (retry with expired actions)"
 
   GIT_TRACE=1 git push origin master 2>&1 | tee push.log
 
-  expected="enqueue retry #1 for \"$contents_oid\" (size: $contents_size): LFS: tq: action \"upload\" expires at"
+  expected="enqueue retry #1 after 0.25s for \"$contents_oid\" (size: $contents_size): LFS: tq: action \"upload\" expires at"
 
   grep "$expected" push.log
   grep "Uploading LFS objects: 100% (1/1), 21 B" push.log

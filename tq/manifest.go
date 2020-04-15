@@ -12,13 +12,16 @@ import (
 
 const (
 	defaultMaxRetries          = 8
+	defaultMaxRetryDelay       = 10
 	defaultConcurrentTransfers = 8
 )
 
 type Manifest struct {
 	// maxRetries is the maximum number of retries a single object can
-	// attempt to make before it will be dropped.
+	// attempt to make before it will be dropped. maxRetryDelay is the maximum
+	// time in seconds to wait between retry attempts when using backoff.
 	maxRetries              int
+	maxRetryDelay           int
 	concurrentTransfers     int
 	basicTransfersOnly      bool
 	standaloneTransferAgent string
@@ -37,6 +40,10 @@ func (m *Manifest) APIClient() *lfsapi.Client {
 
 func (m *Manifest) MaxRetries() int {
 	return m.maxRetries
+}
+
+func (m *Manifest) MaxRetryDelay() int {
+	return m.maxRetryDelay
 }
 
 func (m *Manifest) ConcurrentTransfers() int {
@@ -77,6 +84,9 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		if v := git.Int("lfs.transfer.maxretries", 0); v > 0 {
 			m.maxRetries = v
 		}
+		if v := git.Int("lfs.transfer.maxretrydelay", -1); v > -1 {
+			m.maxRetryDelay = v
+		}
 		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
 			m.concurrentTransfers = v
 		}
@@ -90,6 +100,9 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 
 	if m.maxRetries < 1 {
 		m.maxRetries = defaultMaxRetries
+	}
+	if m.maxRetryDelay < 1 {
+		m.maxRetryDelay = defaultMaxRetryDelay
 	}
 
 	if m.concurrentTransfers < 1 {
