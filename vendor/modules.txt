@@ -43,7 +43,7 @@ github.com/spf13/cobra
 github.com/spf13/pflag
 # github.com/ssgelm/cookiejarparser v1.0.1
 github.com/ssgelm/cookiejarparser
-# github.com/stretchr/testify v1.2.2
+# github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
@@ -110,3 +110,5 @@ gopkg.in/jcmturner/gokrb5.v5/pac
 gopkg.in/jcmturner/gokrb5.v5/types
 # gopkg.in/jcmturner/rpc.v0 v0.0.2
 gopkg.in/jcmturner/rpc.v0/ndr
+# gopkg.in/yaml.v2 v2.2.8
+gopkg.in/yaml.v2
