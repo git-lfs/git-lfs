@@ -1222,3 +1222,34 @@ begin_test "pre-push does not traverse Git objects server has"
   ! grep $contents_oid push.log
 )
 end_test
+
+begin_test "pre-push with force-pushed ref"
+(
+  set -e
+  reponame="pre-push-force-pushed-ref"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git tag -a -m tagname tagname
+
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+
+  git push origin master tagname
+
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+
+  # We pick a different message so that we get different object IDs even if both
+  # commands run in the same second.
+  git tag -f -a -m tagname2 tagname
+  # Prune the old tag object.
+  git reflog expire --all --expire=now
+  git gc --prune=now
+  # Make sure we deal with us missing the object for the old value of the tag ref.
+  git push origin +tagname
+)
+end_test

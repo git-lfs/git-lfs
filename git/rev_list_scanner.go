@@ -225,7 +225,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 // occurred.
 func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []string, error) {
 	var stdin io.Reader
-	args := []string{"rev-list", "--stdin"}
+	args := []string{"rev-list"}
 	if !opt.CommitsOnly {
 		args = append(args, "--objects")
 	}
@@ -251,6 +251,7 @@ func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []
 	case ScanAllMode:
 		args = append(args, "--all")
 	case ScanRangeToRemoteMode:
+		args = append(args, "--ignore-missing")
 		if len(opt.SkippedRefs) == 0 {
 			args = append(args, "--not", "--remotes="+opt.Remote)
 			stdin = strings.NewReader(strings.Join(
@@ -263,7 +264,7 @@ func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []
 	default:
 		return nil, nil, errors.Errorf("unknown scan type: %d", opt.Mode)
 	}
-	return stdin, append(args, "--"), nil
+	return stdin, append(args, "--stdin", "--"), nil
 }
 
 func includeExcludeShas(include, exclude []string) []string {
