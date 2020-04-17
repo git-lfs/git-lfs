@@ -702,3 +702,90 @@ func TestRefTypeKnownPrefixes(t *testing.T) {
 		assert.Equal(t, expected.Ok, ok)
 	}
 }
+
+func TestRemoteURLs(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+	cfg := repo.GitConfig()
+	cfg.SetLocal("remote.foo.url", "https://github.com/git-lfs/git-lfs.git")
+	cfg.SetLocal("remote.bar.url", "https://github.com/git-lfs/wildmatch.git")
+	cfg.SetLocal("remote.bar.pushurl", "https://github.com/git-lfs/pktline.git")
+
+	expected := make(map[string][]string)
+	expected["foo"] = []string{"https://github.com/git-lfs/git-lfs.git"}
+	expected["bar"] = []string{"https://github.com/git-lfs/wildmatch.git"}
+	actual, err := RemoteURLs(false)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, actual)
+
+	expected["bar"] = []string{"https://github.com/git-lfs/pktline.git"}
+	actual, err = RemoteURLs(true)
+	assert.Nil(t, err)
+	assert.Equal(t, expected, actual)
+}
+
+func TestMapRemoteURL(t *testing.T) {
+	repo := test.NewRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+	cfg := repo.GitConfig()
+	cfg.SetLocal("remote.foo.url", "https://github.com/git-lfs/git-lfs.git")
+	cfg.SetLocal("remote.bar.url", "https://github.com/git-lfs/wildmatch.git")
+	cfg.SetLocal("remote.bar.pushurl", "https://github.com/git-lfs/pktline.git")
+
+	tests := []struct {
+		url   string
+		push  bool
+		match bool
+		val   string
+	}{
+		{
+			"https://github.com/git-lfs/git-lfs.git",
+			false,
+			true,
+			"foo",
+		},
+		{
+			"https://github.com/git-lfs/git-lfs.git",
+			true,
+			true,
+			"foo",
+		},
+		{
+			"https://github.com/git-lfs/wildmatch.git",
+			false,
+			true,
+			"bar",
+		},
+		{
+			"https://github.com/git-lfs/pktline.git",
+			true,
+			true,
+			"bar",
+		},
+		{
+			"https://github.com/git-lfs/pktline.git",
+			false,
+			false,
+			"https://github.com/git-lfs/pktline.git",
+		},
+		{
+			"https://github.com/git/git.git",
+			true,
+			false,
+			"https://github.com/git/git.git",
+		},
+	}
+	for _, test := range tests {
+		val, ok := MapRemoteURL(test.url, test.push)
+		assert.Equal(t, ok, test.match)
+		assert.Equal(t, val, test.val)
+	}
+}

@@ -353,6 +353,54 @@ func RemoteList() ([]string, error) {
 	return ret, nil
 }
 
+func RemoteURLs(push bool) (map[string][]string, error) {
+	cmd := gitNoLFS("remote", "-v")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to call git remote -v: %v", err)
+	}
+	cmd.Start()
+	defer cmd.Wait()
+
+	scanner := bufio.NewScanner(outp)
+
+	text := "(fetch)"
+	if push {
+		text = "(push)"
+	}
+	ret := make(map[string][]string)
+	for scanner.Scan() {
+		// [remote, urlpair-text]
+		pair := strings.Split(strings.TrimSpace(scanner.Text()), "\t")
+		if len(pair) != 2 {
+			continue
+		}
+		// [url, "(fetch)" | "(push)"]
+		urlpair := strings.Split(pair[1], " ")
+		if len(urlpair) != 2 || urlpair[1] != text {
+			continue
+		}
+		ret[pair[0]] = append(ret[pair[0]], urlpair[0])
+	}
+
+	return ret, nil
+}
+
+func MapRemoteURL(url string, push bool) (string, bool) {
+	urls, err := RemoteURLs(push)
+	if err != nil {
+		return url, false
+	}
+
+	for name, remotes := range urls {
+		if len(remotes) == 1 && url == remotes[0] {
+			return name, true
+		}
+	}
+	return url, false
+}
+
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
