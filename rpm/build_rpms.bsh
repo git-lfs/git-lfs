@@ -142,6 +142,9 @@ if ! which ronn; then
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
 fi
 
+rm -fr ${CURDIR}/{BUILD,BUILDROOT}
+mkdir -p ${CURDIR}/{BUILD,BUILDROOT}
+
 pushd ${CURDIR}/..
   #Yes, compile lfs before compiling lfs...
   make
