@@ -114,6 +114,7 @@ if [[ ${RUBY_VERSION[0]} < 2 ]]; then
     "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
     echo "Installing ruby..."
     $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
+    $SUDO yum erase -y libyaml-devel autoconf gcc-c++ readline-devel zlib-devel openssl-devel automake libtool sqlite-devel
   else
     $SUDO yum install -y ruby ruby-devel
   fi
@@ -141,6 +142,9 @@ if ! which ronn; then
   echo "Installing ruby gems..."
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
 fi
+
+rm -fr ${CURDIR}/{BUILD,BUILDROOT}
+mkdir -p ${CURDIR}/{BUILD,BUILDROOT}
 
 pushd ${CURDIR}/..
   #Yes, compile lfs before compiling lfs...

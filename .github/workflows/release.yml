@@ -70,7 +70,7 @@ jobs:
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh
+    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune
     # If this is a pre-release tag, don't upload anything to packagecloud.
     - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
       env:
