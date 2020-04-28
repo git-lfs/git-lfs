@@ -4,9 +4,9 @@ DIR="$1"
 
 case $(uname -s) in
   Darwin)
-    brew install curl zlib pcre2 gettext openssl
-    brew reinstall curl zlib pcre2 gettext openssl
-    for i in curl zlib pcre2 gettext openssl
+    brew install curl zlib pcre2 openssl
+    brew reinstall curl zlib pcre2 openssl
+    for i in curl zlib pcre2 openssl
     do
       brew unlink $i || true;
       brew link --force $i || true
@@ -21,6 +21,7 @@ esac
 
 cd "$DIR"
 printf "%s\n" \
+  "NO_GETTEXT=YesPlease" \
   "NO_OPENSSL=YesPlease" \
   "prefix=/usr/local" \
   > config.mak
