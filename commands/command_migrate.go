@@ -341,7 +341,7 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 			case "n", "N":
 				proceed = false
 				break L
-			case "y", "Y":
+			case "y", "Y", "":
 				proceed = true
 				break L
 			}
