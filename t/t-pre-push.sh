@@ -1275,3 +1275,30 @@ begin_test "pre-push with force-pushed ref"
   git push origin +tagname
 )
 end_test
+
+begin_test "pre-push with local path"
+(
+  set -e
+  reponame="pre-push-local-path"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame-2"
+  cd ..
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  # Push to the other repo.
+  git push "../$reponame-2" master:foo
+
+  # Push to . to make sure that works.
+  git push "." master:foo
+
+  git lfs fsck
+  cd "../$reponame-2"
+  git checkout foo
+  git lfs fsck
+)
+end_test
