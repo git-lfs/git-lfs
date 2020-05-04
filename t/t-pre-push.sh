@@ -1181,6 +1181,28 @@ begin_test "pre-push with pushDefault and explicit remote"
 )
 end_test
 
+begin_test "pre-push uses optimization if remote URL matches"
+(
+  set -e
+  reponame="pre-push-remote-url-optimization"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint=$(git config remote.origin.url)
+  contents_oid=$(calc_oid 'hi\n')
+  git config "lfs.$endpoint.locksverify" false
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  refute_server_object "$reponame" $contents_oid "refs/heads/master"
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  grep 'rev-list.*--not --remotes=origin' push.log
+)
+end_test
+
 begin_test "pre-push does not traverse Git objects server has"
 (
   set -e
@@ -1198,10 +1220,10 @@ begin_test "pre-push does not traverse Git objects server has"
 
   refute_server_object "$reponame" $contents_oid "refs/heads/master"
 
-  # We use a URL instead of a named remote so that we can't make use of the
-  # optimization that ignores objects we already have in remote tracking
-  # branches.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  # We use a different URL instead of a named remote or the remote URL so that
+  # we can't make use of the optimization that ignores objects we already have
+  # in remote tracking branches.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
 
   assert_server_object "$reponame" $contents_oid "refs/heads/master"
 
@@ -1212,7 +1234,7 @@ begin_test "pre-push does not traverse Git objects server has"
 
   refute_server_object "$reponame" $contents2_oid "refs/heads/master"
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
 
   assert_server_object "$reponame" $contents2_oid "refs/heads/master"
 
