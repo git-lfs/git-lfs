@@ -268,7 +268,10 @@ func (c *Configuration) PushRemote() string {
 
 func (c *Configuration) SetValidRemote(name string) error {
 	if err := git.ValidateRemote(name); err != nil {
-		return err
+		name := git.RewriteLocalPathAsURL(name)
+		if err := git.ValidateRemote(name); err != nil {
+			return err
+		}
 	}
 	c.SetRemote(name)
 	return nil
@@ -276,7 +279,10 @@ func (c *Configuration) SetValidRemote(name string) error {
 
 func (c *Configuration) SetValidPushRemote(name string) error {
 	if err := git.ValidateRemote(name); err != nil {
-		return err
+		name := git.RewriteLocalPathAsURL(name)
+		if err := git.ValidateRemote(name); err != nil {
+			return err
+		}
 	}
 	c.SetPushRemote(name)
 	return nil

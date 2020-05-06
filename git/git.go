@@ -503,6 +503,34 @@ func ValidateRemoteURL(remote string) error {
 	}
 }
 
+func RewriteLocalPathAsURL(path string) string {
+	var slash string
+	if abs, err := filepath.Abs(path); err == nil {
+		// Required for Windows paths to work.
+		if !strings.HasPrefix(abs, "/") {
+			slash = "/"
+		}
+		path = abs
+	}
+
+	var gitpath string
+	if filepath.Base(path) == ".git" {
+		gitpath = path
+		path = filepath.Dir(path)
+	} else {
+		gitpath = filepath.Join(path, ".git")
+	}
+
+	if _, err := os.Stat(gitpath); err == nil {
+		path = gitpath
+	} else if _, err := os.Stat(path); err != nil {
+		// Not a local path.  We check down here because we perform
+		// canonicalization by stripping off the .git above.
+		return path
+	}
+	return fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))
+}
+
 func UpdateIndexFromStdin() *subprocess.Cmd {
 	return git("update-index", "-q", "--refresh", "--stdin")
 }
