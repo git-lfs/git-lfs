@@ -1,5 +1,59 @@
 # Git LFS Changelog
 
+## 2.11.0 (8 May 2020)
+
+This release introduces several new features, such as better support for unnamed
+local paths and URLs as remotes, support for `submodule.recurse`, exponential
+backoff on failure, and support for renegotiation.  In addition, numerous bugs
+have been fixed and miscellaneous issues have been addressed.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @bluekeyes for adding support for exponential backoff
+* @pluehne for adding support for `submodule.recurse`
+* @Electric26 for fixing the default behavior of a prompt
+* @nataliechen1 for fixing certain upload retry failures
+* @shalashik for fixing a panic during cherry-pick
+* @swisspol for updating our documentation to reflect supported `.lfsconfig`
+  keys
+* @dan2468 for updating the copyright year
+
+### Features
+
+* Allow literal local paths as remotes #4119 (@bk2204)
+* pre-push: find named remote for URL if possible #4103 (@bk2204)
+* tq: add exponential backoff for retries #4097 (@bluekeyes)
+* migrate import: set text to unspecified for excluded fields #4068 (@bk2204)
+* Update list of distros for packagecloud.io #4080 (@bk2204)
+* lfshttp: allow renegotiation #4066 (@bk2204)
+* Support submodule.recurse = true #4063 (@pluehne)
+* add man page for the post-commit hook command #4052 (@chrisd8088)
+* Add an option to control warning about files larger than 4 GiB #4009 (@bk2204)
+
+### Bugs
+
+* commands/command_migrate.go: fix bug #4116 (@Electric26)
+* git: avoid "bad object" messages when force-pushing #4102 (@bk2204)
+* git: avoid trying to rewrite remote tags as remote branches #4096 (@bk2204)
+* make Go tests run consistently using local binary #4084 (@chrisd8088)
+* commands: don't honor lfs.fetch* for ls-files #4083 (@bk2204)
+* commands: print help output with --help #4059 (@bk2204)
+* fail dedup command with explanation when LFS extensions configured #4045 (@chrisd8088)
+* fix upload retry 'file already closed' issue' #4042 (@nataliechen1)
+* commands/command_filter_process: cherry-pick of several commits cause panic error #4017 (@shalashik)
+* Check error when creating local storage directory #4016 (@bk2204)
+* track: detect duplicate patterns with --filename #4000 (@bk2204)
+
+### Misc
+
+* Removed lfs.extension.* from list of supported keys for .lfsconfig #4044 (@swisspol)
+* Tidy modules #4035 (@bk2204)
+* README: explain how to verify releases #4022 (@bk2204)
+* docs: document git lfs migrate --yes #4023 (@bk2204)
+* Stop using cgo on amd64 Linux #4026 (@bk2204)
+* updated copyright year #3995 (@dan2468)
+
 ## 2.10.0 (21 January 2020)
 
 This release introduces several new features, such as support for local paths in
