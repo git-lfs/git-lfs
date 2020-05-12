@@ -1,4 +1,4 @@
-name: CI
+name: Hannah
 on: [push, pull_request]
 
 jobs:
@@ -98,4 +98,4 @@ jobs:
     - uses: actions/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune
+    - run: DOCKER_/docker/run_dockers.bsh --prune
