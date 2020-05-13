@@ -140,11 +140,11 @@ begin_test "unlocking a file ignores readonly"
 )
 end_test
 
-begin_test "force unlocking lock with missing file"
+begin_test "unlocking lock removed file"
 (
   set -e
 
-  reponame="force-unlock-missing-file"
+  reponame="unlock-removed-file"
   setup_remote_repo_with_file "$reponame" "a.dat"
 
   git lfs lock --json "a.dat" | tee lock.log
@@ -156,12 +156,23 @@ begin_test "force unlocking lock with missing file"
   rm *.log *.json # ensure clean git status
   git status
 
-  git lfs unlock "a.dat" 2>&1 | tee unlock.log
-  grep "Unable to determine path" unlock.log
+  git lfs unlock --force "a.dat" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
+begin_test "unlocking nonexistent file"
+(
+  set -e
+
+  reponame="unlock-nonexistent-file"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+
+  git lfs lock --json "b.dat" | tee lock.log
+  id=$(assert_lock lock.log b.dat)
   assert_server_lock "$reponame" "$id"
 
-  rm unlock.log
-  git lfs unlock --force "a.dat" 2>&1 | tee unlock.log
+  git lfs unlock --force "b.dat" 2>&1 | tee unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test
