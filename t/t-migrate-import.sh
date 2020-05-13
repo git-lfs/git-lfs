@@ -499,6 +499,32 @@ begin_test "migrate import (identical contents, different permissions)"
 )
 end_test
 
+begin_test "migrate import (tags with same name as branches)"
+(
+  set -e
+
+  setup_multiple_local_branches
+  git checkout master
+
+  contents="hello"
+  oid=$(calc_oid "$contents")
+  printf "$contents" >hello.dat
+  git add .
+  git commit -m "add file"
+
+  git branch foo
+  git tag foo
+  git tag bar
+
+  git lfs migrate import --everything --include="*.dat"
+
+  [ "$(git rev-parse refs/heads/foo)" = "$(git rev-parse refs/tags/foo)" ]
+  [ "$(git rev-parse refs/heads/foo)" = "$(git rev-parse refs/tags/bar)" ]
+
+  assert_pointer "refs/heads/foo" hello.dat "$oid" 5
+)
+end_test
+
 begin_test "migrate import (bare repository)"
 (
   set -e
