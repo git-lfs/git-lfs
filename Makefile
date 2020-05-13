@@ -409,8 +409,16 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 #
 # And so on.
 test : fmt $(.DEFAULT_GOAL)
-	(unset GIT_DIR; unset GIT_WORK_TREE; \
-	$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)))
+	( \
+		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; \
+		tempdir="$$(mktemp -d)"; \
+		export HOME="$$tempdir"; \
+		export GIT_CONFIG_NOSYSTEM=1; \
+		$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)); \
+		RET=$$?; \
+		rm -fr "$$tempdir"; \
+		exit $$RET; \
+	)
 
 # integration is a shorthand for running 'make' in the 't' directory.
 .PHONY : integration
