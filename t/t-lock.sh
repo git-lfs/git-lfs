@@ -100,6 +100,20 @@ begin_test "creating a lock (with output)"
 )
 end_test
 
+begin_test "locking a file that doesn't exist"
+(
+  set -e
+
+  reponame="lock_create_nonexistent"
+  setup_remote_repo_with_file "$reponame" "a_output.dat"
+
+  git lfs lock "b_output.dat" | tee lock.log
+  grep "Locked b_output.dat" lock.log
+  id=$(grep -oh "\((.*)\)" lock.log | tr -d \(\))
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "locking a previously locked file"
 (
   set -e

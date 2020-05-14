@@ -169,6 +169,7 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 BUILD_TARGETS = \
 	bin/git-lfs-darwin-amd64 \
 	bin/git-lfs-darwin-386 \
+	bin/git-lfs-linux-arm \
 	bin/git-lfs-linux-arm64 \
 	bin/git-lfs-linux-amd64 \
 	bin/git-lfs-linux-ppc64le \
@@ -207,6 +208,8 @@ bin/git-lfs-darwin-amd64 : $(SOURCES) mangen
 	$(call BUILD,darwin,amd64,-darwin-amd64)
 bin/git-lfs-darwin-386 : $(SOURCES) mangen
 	$(call BUILD,darwin,386,-darwin-386)
+bin/git-lfs-linux-arm : $(SOURCES) mangen
+	GOARM=5 $(call BUILD,linux,arm,-linux-arm)
 bin/git-lfs-linux-arm64 : $(SOURCES) mangen
 	$(call BUILD,linux,arm64,-linux-arm64)
 bin/git-lfs-linux-amd64 : $(SOURCES) mangen
@@ -270,6 +273,7 @@ script/windows-installer/git-lfs-wizard-image.bmp
 RELEASE_TARGETS = \
 	bin/releases/git-lfs-darwin-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-darwin-386-$(VERSION).tar.gz \
+	bin/releases/git-lfs-linux-arm-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-arm64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-amd64-$(VERSION).tar.gz \
 	bin/releases/git-lfs-linux-ppc64le-$(VERSION).tar.gz \
@@ -405,8 +409,16 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 #
 # And so on.
 test : fmt $(.DEFAULT_GOAL)
-	(unset GIT_DIR; unset GIT_WORK_TREE; \
-	$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)))
+	( \
+		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; \
+		tempdir="$$(mktemp -d)"; \
+		export HOME="$$tempdir"; \
+		export GIT_CONFIG_NOSYSTEM=1; \
+		$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)); \
+		RET=$$?; \
+		rm -fr "$$tempdir"; \
+		exit $$RET; \
+	)
 
 # integration is a shorthand for running 'make' in the 't' directory.
 .PHONY : integration
