@@ -33,7 +33,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		scanIndexAt = git.RefBeforeFirstCommit
 	}
 
-	scanner, err := lfs.NewPointerScanner(cfg.OSEnv())
+	scanner, err := lfs.NewPointerScanner(cfg.GitEnv(), cfg.OSEnv())
 	if err != nil {
 		ExitWithError(err)
 	}

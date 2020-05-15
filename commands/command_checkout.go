@@ -99,7 +99,7 @@ func checkoutConflict(file string, stage git.IndexStage) {
 		Exit("Could not checkout (are you not in the middle of a merge?): %v", err)
 	}
 
-	scanner, err := git.NewObjectScanner(cfg.OSEnv())
+	scanner, err := git.NewObjectScanner(cfg.GitEnv(), cfg.OSEnv())
 	if err != nil {
 		Exit("Could not create object scanner: %v", err)
 	}
