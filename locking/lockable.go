@@ -44,7 +44,7 @@ func (c *Client) refreshLockablePatterns() {
 	c.lockablePatterns = make([]string, 0, len(paths))
 	for _, p := range paths {
 		if p.Lockable {
-			c.lockablePatterns = append(c.lockablePatterns, p.Path)
+			c.lockablePatterns = append(c.lockablePatterns, filepath.ToSlash(p.Path))
 		}
 	}
 	c.lockableFilter = filepathfilter.New(c.lockablePatterns, nil)
