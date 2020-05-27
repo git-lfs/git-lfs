@@ -789,3 +789,11 @@ func TestMapRemoteURL(t *testing.T) {
 		assert.Equal(t, val, test.val)
 	}
 }
+
+func TestIsValidObjectIDLength(t *testing.T) {
+	// Lengths are 40, 64, 39, and 12.
+	assert.Equal(t, HasValidObjectIDLength("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), true)
+	assert.Equal(t, HasValidObjectIDLength("2222222222222222222222222222222222222222222222222222222222222222"), true)
+	assert.Equal(t, HasValidObjectIDLength("555555555555555555555555555555555555555"), false)
+	assert.Equal(t, HasValidObjectIDLength("0123456789ab"), false)
+}

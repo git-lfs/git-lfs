@@ -46,7 +46,12 @@ const (
 	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
-var ObjectIDRegex = fmt.Sprintf("(?:[0-9a-f]{%d}(?:[0-9a-f]{%d})?)", SHA1HexSize, SHA256HexSize-SHA1HexSize)
+var (
+	ObjectIDRegex = fmt.Sprintf("(?:[0-9a-f]{%d}(?:[0-9a-f]{%d})?)", SHA1HexSize, SHA256HexSize-SHA1HexSize)
+	// ObjectIDLengths is a slice of valid Git hexadecimal object ID
+	// lengths in increasing order.
+	ObjectIDLengths = []int{SHA1HexSize, SHA256HexSize}
+)
 
 type IndexStage int
 
@@ -120,6 +125,17 @@ func (r *Ref) Refspec() string {
 	}
 
 	return r.Name
+}
+
+// HasValidObjectIDLength returns true if `s` has a length that is a valid
+// hexadecimal Git object ID length.
+func HasValidObjectIDLength(s string) bool {
+	for _, length := range ObjectIDLengths {
+		if len(s) == length {
+			return true
+		}
+	}
+	return false
 }
 
 // Some top level information about a commit (only first line of message)
@@ -429,7 +445,7 @@ func LocalRefs() ([]*Ref, error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		parts := strings.SplitN(line, " ", 2)
-		if len(parts) != 2 || len(parts[0]) != 40 || len(parts[1]) < 1 {
+		if len(parts) != 2 || !HasValidObjectIDLength(parts[0]) || len(parts[1]) < 1 {
 			tracerx.Printf("Invalid line from git show-ref: %q", line)
 			continue
 		}

@@ -32,7 +32,7 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 				errCh <- err
 			} else if p := scanner.Pointer(); p != nil {
 				pointerCh <- p
-			} else if b := scanner.BlobSHA(); len(b) == 40 {
+			} else if b := scanner.BlobSHA(); git.HasValidObjectIDLength(b) {
 				if name, ok := lockableSet.Check(b); ok {
 					lockableCh <- name
 				}
