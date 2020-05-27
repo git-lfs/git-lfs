@@ -46,6 +46,8 @@ const (
 	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
+var ObjectIDRegex = fmt.Sprintf("(?:[0-9a-f]{%d}(?:[0-9a-f]{%d})?)", SHA1HexSize, SHA256HexSize-SHA1HexSize)
+
 type IndexStage int
 
 const (
@@ -565,7 +567,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93 2015-08-13 16:50:37 +0100
 
 	// Output is ordered by latest commit date first, so we can stop at the threshold
-	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
+	regex := regexp.MustCompile(fmt.Sprintf(`^(refs/[^/]+/\S+)\s+(%s)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`, ObjectIDRegex))
 	tracerx.Printf("RECENT: Getting refs >= %v", since)
 	var ret []*Ref
 	for scanner.Scan() {
