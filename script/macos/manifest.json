@@ -1,0 +1,10 @@
+{
+  "apple_id": {
+    "password": "@env:DARWIN_DEV_PASS"
+  },
+  "notarize": {
+    "path": ["git-lfs"],
+    "bundle_id": "com.github.git-lfs",
+    "staple": false
+  }
+}

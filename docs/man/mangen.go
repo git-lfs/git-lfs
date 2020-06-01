@@ -63,8 +63,8 @@ func main() {
 		os.Exit(2)
 	}
 	out.WriteString("package commands\n\nfunc init() {\n")
-	out.WriteString("// THIS FILE IS GENERATED, DO NOT EDIT\n")
-	out.WriteString("// Use 'go generate ./commands' to update\n")
+	out.WriteString("\t// THIS FILE IS GENERATED, DO NOT EDIT\n")
+	out.WriteString("\t// Use 'go generate ./commands' to update\n")
 	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.\d.ronn`)
 	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9 ]+)`)
 	// only pick up caps in links to avoid matching optional args
@@ -80,7 +80,7 @@ func main() {
 				// This is git-lfs.1.ronn
 				cmd = "git-lfs"
 			}
-			out.WriteString("ManPages[\"" + cmd + "\"] = `")
+			out.WriteString("\tManPages[\"" + cmd + "\"] = `")
 			contentf, err := os.Open(filepath.Join(manDir, f.Name()))
 			if err != nil {
 				warnf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)

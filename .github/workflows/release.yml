@@ -43,21 +43,50 @@ jobs:
       shell: bash
     - uses: actions/upload-artifact@v1
       with:
-        name: assets
+        name: windows-assets
+        path: bin/releases
+  build-macos:
+    name: Build macOS Assets
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - run: brew install mitchellh/gon/gon
+    - run: make release
+    - run: CERT_FILE="$HOME/cert.p12" make release-write-certificate
+      env:
+        CERT_CONTENTS: ${{secrets.MACOS_CERT_BASE64}}
+    - run: CERT_FILE="$HOME/cert.p12" make release-import-certificate
+      env:
+        CERT_PASS: ${{secrets.MACOS_CERT_PASS}}
+    - run: make release-darwin
+      env:
+        DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
+        DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
+        DARWIN_CERT_ID: ${{secrets.MACOS_CERT_ID}}
+    - uses: actions/upload-artifact@v1
+      with:
+        name: macos-assets
         path: bin/releases
   build-main:
     name: Main Release Assets
-    needs: build-windows
+    needs:
+      - build-windows
+      - build-macos
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - uses: actions/download-artifact@v1
       with:
-        name: assets
+        name: windows-assets
+    - uses: actions/download-artifact@v1
+      with:
+        name: macos-assets
     - run: CGO_ENABLED=0 make release
-    - run: rm -f bin/releases/*windows*
-    - run: find assets -name "*windows*" | xargs -L1 -I{} mv {} bin/releases
+    - run: rm -f bin/releases/*windows* bin/releases/*darwin*
+    - run: 'find windows-assets -name "*windows*" -type f | xargs -L1 -I{} mv {} bin/releases'
+    - run: 'find macos-assets -name "*darwin*" -type f | xargs -L1 -I{} mv {} bin/releases'
     - run: script/upload --skip-verify $(git describe)
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
