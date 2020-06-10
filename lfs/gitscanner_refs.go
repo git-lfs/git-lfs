@@ -2,13 +2,10 @@ package lfs
 
 import (
 	"encoding/hex"
-	"regexp"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/git"
 )
-
-var z40 = regexp.MustCompile(`\^?0{40}`)
 
 type lockableNameSet struct {
 	opt *ScanRefsOptions

@@ -797,3 +797,11 @@ func TestIsValidObjectIDLength(t *testing.T) {
 	assert.Equal(t, HasValidObjectIDLength("555555555555555555555555555555555555555"), false)
 	assert.Equal(t, HasValidObjectIDLength("0123456789ab"), false)
 }
+
+func TestIsZeroObjectID(t *testing.T) {
+	assert.Equal(t, IsZeroObjectID("0000000000000000000000000000000000000000"), true)
+	assert.Equal(t, IsZeroObjectID("0000000000000000000000000000000000000000000000000000000000000000"), true)
+	assert.Equal(t, IsZeroObjectID("000000000000000000000000000000000000000"), false)
+	assert.Equal(t, IsZeroObjectID("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"), false)
+	assert.Equal(t, IsZeroObjectID("473a0f4c3be8a93681a267e3b1e9a7dcda1185436fe141f7749120a303721813"), false)
+}

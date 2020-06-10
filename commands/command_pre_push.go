@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	prePushDryRun       = false
-	prePushDeleteBranch = strings.Repeat("0", 40)
+	prePushDryRun = false
 )
 
 // prePushCommand is run through Git's pre-push hook. The pre-push hook passes
@@ -80,7 +79,7 @@ func prePushRefs(r io.Reader) []*git.RefUpdate {
 		tracerx.Printf("pre-push: %s", line)
 
 		left, right := decodeRefs(line)
-		if left.Sha == prePushDeleteBranch {
+		if git.IsZeroObjectID(left.Sha) {
 			continue
 		}
 

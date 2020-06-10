@@ -138,6 +138,17 @@ func HasValidObjectIDLength(s string) bool {
 	return false
 }
 
+// IsZeroObjectID returns true if the string is a valid hexadecimal Git object
+// ID and represents the all-zeros object ID for some hash algorithm.
+func IsZeroObjectID(s string) bool {
+	for _, length := range ObjectIDLengths {
+		if s == strings.Repeat("0", length) {
+			return true
+		}
+	}
+	return false
+}
+
 // Some top level information about a commit (only first line of message)
 type CommitSummary struct {
 	Sha            string

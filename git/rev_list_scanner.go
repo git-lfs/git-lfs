@@ -153,10 +153,6 @@ var (
 	// ambiguousRegex is a regular expression matching the output of stderr
 	// when ambiguous refnames are encountered.
 	ambiguousRegex = regexp.MustCompile(`warning: refname (.*) is ambiguous`)
-
-	// z40 is a regular expression matching the empty blob/commit/tree
-	// SHA: "0000000000000000000000000000000000000000".
-	z40 = regexp.MustCompile(`\^?0{40}`)
 )
 
 // NewRevListScanner instantiates a new RevListScanner instance scanning all
@@ -288,7 +284,7 @@ func nonZeroShas(all []string) []string {
 	nz := make([]string, 0, len(all))
 
 	for _, sha := range all {
-		if len(sha) > 0 && !z40.MatchString(sha) {
+		if len(sha) > 0 && !IsZeroObjectID(sha) {
 			nz = append(nz, sha)
 		}
 	}
