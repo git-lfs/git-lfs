@@ -291,6 +291,8 @@ func nonZeroShas(all []string) []string {
 	return nz
 }
 
+var startsWithObjectID = regexp.MustCompile(fmt.Sprintf(`\A%s`, ObjectIDRegex))
+
 // Name is an optional field that gives the name of the object (if the object is
 // a tree, blob).
 //
@@ -341,19 +343,23 @@ func (s *RevListScanner) scan() ([]byte, string, error) {
 	}
 
 	line := strings.TrimSpace(s.s.Text())
-	if len(line) < 40 {
+	if len(line) < ObjectIDLengths[0] {
 		return nil, "", nil
 	}
 
-	sha1, err := hex.DecodeString(line[:40])
+	oidhex := startsWithObjectID.FindString(line)
+	if len(oidhex) == 0 {
+		return nil, "", fmt.Errorf("missing object id in line (got %q)", line)
+	}
+	oid, err := hex.DecodeString(oidhex)
 	if err != nil {
 		return nil, "", err
 	}
 
 	var name string
-	if len(line) > 40 {
-		name = line[41:]
+	if len(line) > len(oidhex) {
+		name = line[len(oidhex)+1:]
 	}
 
-	return sha1, name, nil
+	return oid, name, nil
 }
