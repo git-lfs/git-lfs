@@ -473,6 +473,7 @@ test : fmt $(.DEFAULT_GOAL)
 		export GIT_CONFIG_NOSYSTEM=1; \
 		$(GO) test -count=1 $(GO_TEST_EXTRA_ARGS) $(addprefix ./,$(PKGS)); \
 		RET=$$?; \
+		chmod -R u+w "$$tempdir"; \
 		rm -fr "$$tempdir"; \
 		exit $$RET; \
 	)
