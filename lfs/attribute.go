@@ -31,6 +31,7 @@ type FilterOptions struct {
 	GitConfig  *git.Configuration
 	Force      bool
 	Local      bool
+	Worktree   bool
 	System     bool
 	SkipSmudge bool
 }
@@ -136,6 +137,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 	var currentValue string
 	if opt.Local {
 		currentValue = gitConfig.FindLocal(key)
+	} else if opt.Worktree {
+		currentValue = gitConfig.FindWorktree(key)
 	} else if opt.System {
 		currentValue = gitConfig.FindSystem(key)
 	} else {
@@ -146,6 +149,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		var err error
 		if opt.Local {
 			_, err = gitConfig.SetLocal(key, value)
+		} else if opt.Worktree {
+			_, err = gitConfig.SetWorktree(key, value)
 		} else if opt.System {
 			_, err = gitConfig.SetSystem(key, value)
 		} else {
@@ -165,6 +170,8 @@ func (a *Attribute) Uninstall(opt *FilterOptions) error {
 	var err error
 	if opt.Local {
 		_, err = opt.GitConfig.UnsetLocalSection(a.Section)
+	} else if opt.Worktree {
+		_, err = opt.GitConfig.UnsetWorktreeSection(a.Section)
 	} else if opt.System {
 		_, err = opt.GitConfig.UnsetSystemSection(a.Section)
 	} else {
