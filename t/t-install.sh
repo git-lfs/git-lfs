@@ -236,10 +236,6 @@ begin_test "install --local with failed permissions"
   # Root is exempt from permissions.
   [ "$(id -u)" -eq 0 ] && exit 0
 
-  # old values that should be ignored by `install --local`
-  git config --global filter.lfs.smudge "git lfs smudge %f"
-  git config --global filter.lfs.clean "git lfs clean %f"
-
   mkdir install-local-repo-perms
   cd install-local-repo-perms
   git init
@@ -249,33 +245,35 @@ begin_test "install --local with failed permissions"
   chmod 500 .git
 
   res=0
-  git lfs install --local >err.log || res=$?
+  git lfs install --local >out.log || res=$?
 
   # Cleanup fails without this.
   chmod 700 .git
 
-  cat err.log
-  grep -E "error running.*git.*config" err.log
+  cat out.log
+  grep -E "error running.*git.*config" out.log
   [ "$res" -eq 2 ]
 )
 end_test
 
 begin_test "install --local outside repository"
 (
+  set -e
+
   # If run inside the git-lfs source dir this will update its .git/config & cause issues
   if [ "$GIT_LFS_TEST_DIR" == "" ]; then
     echo "Skipping install --local because GIT_LFS_TEST_DIR is not set"
     exit 0
   fi
 
-  set +e
-
   has_test_dir || exit 0
 
-  git lfs install --local 2> err.log
+  set +e
+  git lfs install --local >out.log
   res=$?
+  set -e
 
-  [ "Not in a git repository." = "$(cat err.log)" ]
+  [ "Not in a git repository." = "$(cat out.log)" ]
   [ "0" != "$res" ]
 )
 end_test
@@ -298,7 +296,6 @@ begin_test "install in directory without access to .git/lfs"
 )
 end_test
 
-
 begin_test "install in repo without changing hooks"
 (
   set -e
@@ -319,7 +316,6 @@ begin_test "install in repo without changing hooks"
   [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
 )
 end_test
-
 
 begin_test "can install when multiple global values registered"
 (
