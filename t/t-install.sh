@@ -210,19 +210,27 @@ begin_test "install --local"
   set -e
 
   # old values that should be ignored by `install --local`
-  git config --global filter.lfs.smudge "git lfs smudge %f"
-  git config --global filter.lfs.clean "git lfs clean %f"
+  git config --global filter.lfs.smudge "global smudge"
+  git config --global filter.lfs.clean "global clean"
+  git config --global filter.lfs.process "global filter"
 
   mkdir install-local-repo
   cd install-local-repo
   git init
   git lfs install --local
 
+  # local configs are correct
+  [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
+  [ "git-lfs smudge -- %f" = "$(git config --local filter.lfs.smudge)" ]
   [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs clean -- %f" = "$(git config --local filter.lfs.clean)" ]
-  [ "git lfs clean %f" = "$(git config --global filter.lfs.clean)" ]
   [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
   [ "git-lfs filter-process" = "$(git config --local filter.lfs.process)" ]
+
+  # global configs
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
 )
 end_test
 
@@ -274,6 +282,25 @@ begin_test "install --local outside repository"
   set -e
 
   [ "Not in a git repository." = "$(cat out.log)" ]
+  [ "0" != "$res" ]
+)
+end_test
+
+begin_test "install --local with conflicting scope"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-scope-conflict"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  set +e
+  git lfs install --local --system 2>err.log
+  res=$?
+  set -e
+
+  [ "Only one of --local and --system options can be specified." = "$(cat err.log)" ]
   [ "0" != "$res" ]
 )
 end_test
