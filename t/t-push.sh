@@ -200,7 +200,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "^push " < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  [ $(grep -c "Uploading LFS objects: 100% (6/6), 36 B" push.log) -eq 1 ]
+  [ $(grep -c "Uploading LFS objects: 100% (6/6)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -232,7 +232,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "^push " push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "Uploading LFS objects: 100% (6/6), 36 B" push.log
+  grep "Uploading LFS objects: 100% (6/6)" push.log
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
