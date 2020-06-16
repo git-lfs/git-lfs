@@ -43,8 +43,7 @@ func (o *FilterOptions) Install() error {
 }
 
 func (o *FilterOptions) Uninstall() error {
-	filterAttribute().Uninstall(o)
-	return nil
+	return filterAttribute().Uninstall(o)
 }
 
 func filterAttribute() *Attribute {
@@ -162,14 +161,16 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 }
 
 // Uninstall removes all properties in the path of this property.
-func (a *Attribute) Uninstall(opt *FilterOptions) {
+func (a *Attribute) Uninstall(opt *FilterOptions) error {
+	var err error
 	if opt.Local {
-		opt.GitConfig.UnsetLocalSection(a.Section)
+		_, err = opt.GitConfig.UnsetLocalSection(a.Section)
 	} else if opt.System {
-		opt.GitConfig.UnsetSystemSection(a.Section)
+		_, err = opt.GitConfig.UnsetSystemSection(a.Section)
 	} else {
-		opt.GitConfig.UnsetGlobalSection(a.Section)
+		_, err = opt.GitConfig.UnsetGlobalSection(a.Section)
 	}
+	return err
 }
 
 // shouldReset determines whether or not a value is resettable given its current
