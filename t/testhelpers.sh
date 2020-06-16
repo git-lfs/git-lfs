@@ -706,18 +706,6 @@ get_date() {
   fi
 }
 
-# Convert potentially MinGW bash paths to native Windows paths
-# Needed to match generic built paths in test scripts to native paths generated from Go
-native_path() {
-  local arg=$1
-  if [ $IS_WINDOWS -eq 1 ]; then
-    # Use params form to avoid interpreting any '\' characters
-    printf '%s' "$(cygpath -w $arg)"
-  else
-    printf '%s' "$arg"
-  fi
-}
-
 # escape any instance of '\' with '\\' on Windows
 escape_path() {
   local unescaped="$1"
