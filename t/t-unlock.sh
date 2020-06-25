@@ -2,12 +2,20 @@
 
 . "$(dirname "$0")/testlib.sh"
 
+setup_repo () {
+  setup_remote_repo_with_file "$1" "$2"
+
+  git lfs track --lockable "*.dat"
+  git add -u
+  git commit -m 'Mark files lockable'
+}
+
 begin_test "unlocking a lock by path with good ref"
 (
   set -e
 
   reponame="unlock-by-path-master-branch-required"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_repo "$reponame" "c.dat"
 
   git lfs lock --json "c.dat" | tee lock.log
 
@@ -115,7 +123,7 @@ begin_test "unlocking a file makes it readonly"
   set -e
 
   reponame="unlock_set_readonly"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_repo "$reponame" "c.dat"
 
   git lfs lock --json "c.dat"
   assert_file_writeable c.dat
@@ -130,7 +138,7 @@ begin_test "unlocking a file ignores readonly"
   set -e
 
   reponame="unlock_set_readonly_ignore"
-  setup_remote_repo_with_file "$reponame" "c.dat"
+  setup_repo "$reponame" "c.dat"
 
   git lfs lock --json "c.dat"
   assert_file_writeable c.dat
@@ -145,7 +153,7 @@ begin_test "unlocking lock removed file"
   set -e
 
   reponame="unlock-removed-file"
-  setup_remote_repo_with_file "$reponame" "a.dat"
+  setup_repo "$reponame" "a.dat"
 
   git lfs lock --json "a.dat" | tee lock.log
   id=$(assert_lock lock.log a.dat)
@@ -166,7 +174,7 @@ begin_test "unlocking nonexistent file"
   set -e
 
   reponame="unlock-nonexistent-file"
-  setup_remote_repo_with_file "$reponame" "a.dat"
+  setup_repo "$reponame" "a.dat"
 
   git lfs lock --json "b.dat" | tee lock.log
   id=$(assert_lock lock.log b.dat)
@@ -182,7 +190,7 @@ begin_test "unlocking a lock (--json)"
   set -e
 
   reponame="unlock_by_path_json"
-  setup_remote_repo_with_file "$reponame" "c_json.dat"
+  setup_repo "$reponame" "c_json.dat"
 
   git lfs lock --json "c_json.dat" | tee lock.log
 
@@ -201,7 +209,7 @@ begin_test "unlocking a lock by id"
   set -e
 
   reponame="unlock_by_id"
-  setup_remote_repo_with_file "$reponame" "d.dat"
+  setup_repo "$reponame" "d.dat"
 
   git lfs lock --json "d.dat" | tee lock.log
   assert_file_writeable d.dat
@@ -219,7 +227,7 @@ begin_test "unlocking a lock without sufficient info"
   set -e
 
   reponame="unlock_ambiguous"
-  setup_remote_repo_with_file "$reponame" "e.dat"
+  setup_repo "$reponame" "e.dat"
 
   git lfs lock --json "e.dat" | tee lock.log
 
@@ -237,7 +245,7 @@ begin_test "unlocking a lock while uncommitted"
   set -e
 
   reponame="unlock_modified"
-  setup_remote_repo_with_file "$reponame" "mod.dat"
+  setup_repo "$reponame" "mod.dat"
 
   git lfs lock --json "mod.dat" | tee lock.log
 
@@ -265,7 +273,7 @@ begin_test "unlocking a lock with ambiguious arguments"
   set -e
 
   reponame="unlock_ambiguious_args"
-  setup_remote_repo_with_file "$reponame" "a.dat"
+  setup_repo "$reponame" "a.dat"
 
   git lfs lock --json "a.dat" | tee lock.log
 
@@ -288,7 +296,7 @@ begin_test "unlocking a lock while uncommitted with --force"
   set -e
 
   reponame="unlock_modified_force"
-  setup_remote_repo_with_file "$reponame" "modforce.dat"
+  setup_repo "$reponame" "modforce.dat"
 
   git lfs lock --json "modforce.dat" | tee lock.log
 
@@ -309,7 +317,7 @@ begin_test "unlocking a lock while untracked"
   set -e
 
   reponame="unlock_untracked"
-  setup_remote_repo_with_file "$reponame" "notrelevant.dat"
+  setup_repo "$reponame" "notrelevant.dat"
 
   git lfs track "*.dat"
   # Create file but don't add it to git
