@@ -16,18 +16,37 @@ type Pattern interface {
 }
 
 type Filter struct {
-	include []Pattern
-	exclude []Pattern
+	include      []Pattern
+	exclude      []Pattern
+	defaultValue bool
 }
 
-func NewFromPatterns(include, exclude []Pattern) *Filter {
-	return &Filter{include: include, exclude: exclude}
+type options struct {
+	defaultValue bool
 }
 
-func New(include, exclude []string) *Filter {
+type option func(*options)
+
+// DefaultValue is an option representing the default value of a filepathfilter
+// if no patterns match.  If this option is not provided, the default is true.
+func DefaultValue(val bool) option {
+	return func(args *options) {
+		args.defaultValue = val
+	}
+}
+
+func NewFromPatterns(include, exclude []Pattern, setters ...option) *Filter {
+	args := &options{defaultValue: true}
+	for _, setter := range setters {
+		setter(args)
+	}
+	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+}
+
+func New(include, exclude []string, setters ...option) *Filter {
 	return NewFromPatterns(
 		convertToWildmatch(include),
-		convertToWildmatch(exclude))
+		convertToWildmatch(exclude), setters...)
 }
 
 // Include returns the result of calling String() on each Pattern in the
@@ -66,6 +85,15 @@ func (f *Filter) Allows(filename string) bool {
 		return false
 	}
 
+	// Beyond this point, the only values we can logically return are false
+	// or the default value.  If the default is false, then there's no point
+	// traversing the exclude patterns because the return value will always
+	// be false; we'd do extra work for no functional benefit.
+	if !included && !f.defaultValue {
+		tracerx.Printf("filepathfilter: rejecting %q", filename)
+		return false
+	}
+
 	for _, ex := range f.exclude {
 		if ex.Match(filename) {
 			tracerx.Printf("filepathfilter: rejecting %q via %q", filename, ex.String())
@@ -73,6 +101,7 @@ func (f *Filter) Allows(filename string) bool {
 		}
 	}
 
+	// No patterns matched and our default value is true.
 	tracerx.Printf("filepathfilter: accepting %q", filename)
 	return true
 }

@@ -185,6 +185,46 @@ begin_test "unlocking nonexistent file"
 )
 end_test
 
+begin_test "unlocking unlockable file"
+(
+  set -e
+
+  reponame="unlock-unlockable-file"
+  # Try with lockable patterns.
+  setup_repo "$reponame" "a.dat"
+
+  touch README.md
+  git add README.md
+  git commit -m 'Add README'
+
+  git lfs lock --json "README.md" | tee lock.log
+  id=$(assert_lock lock.log README.md)
+  assert_server_lock "$reponame" "$id"
+  assert_file_writeable "README.md"
+
+  git lfs unlock --force "README.md" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame" "$id"
+  assert_file_writeable "README.md"
+
+  cd "$TRASHDIR"
+  # Try without any lockable patterns.
+  setup_remote_repo_with_file "$reponame-2" "a.dat"
+
+  touch README.md
+  git add README.md
+  git commit -m 'Add README'
+
+  git lfs lock --json "README.md" | tee lock.log
+  id=$(assert_lock lock.log README.md)
+  assert_server_lock "$reponame-2" "$id"
+  assert_file_writeable "README.md"
+
+  git lfs unlock --force "README.md" 2>&1 | tee unlock.log
+  refute_server_lock "$reponame-2" "$id"
+  assert_file_writeable "README.md"
+)
+end_test
+
 begin_test "unlocking a lock (--json)"
 (
   set -e
