@@ -65,7 +65,7 @@ func (c *Configuration) Find(val string) string {
 	return output
 }
 
-// FindGlobal returns the git config value global scope for the key
+// FindGlobal returns the git config value in global scope for the key
 func (c *Configuration) FindGlobal(key string) string {
 	output, _ := c.gitConfig("--global", key)
 	return output
@@ -77,7 +77,7 @@ func (c *Configuration) FindSystem(key string) string {
 	return output
 }
 
-// Find returns the git config value for the key
+// FindLocal returns the git config value in local scope for the key
 func (c *Configuration) FindLocal(key string) string {
 	output, _ := c.gitConfig("--local", key)
 	return output
@@ -93,6 +93,11 @@ func (c *Configuration) SetSystem(key, val string) (string, error) {
 	return c.gitConfigWrite("--system", "--replace-all", key, val)
 }
 
+// SetLocal sets the git config value for the key in the specified config file
+func (c *Configuration) SetLocal(key, val string) (string, error) {
+	return c.gitConfigWrite("--replace-all", key, val)
+}
+
 // UnsetGlobalSection removes the entire named section from the global config
 func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
 	return c.gitConfigWrite("--global", "--remove-section", key)
@@ -103,14 +108,9 @@ func (c *Configuration) UnsetSystemSection(key string) (string, error) {
 	return c.gitConfigWrite("--system", "--remove-section", key)
 }
 
-// UnsetLocalSection removes the entire named section from the system config
+// UnsetLocalSection removes the entire named section from the local config
 func (c *Configuration) UnsetLocalSection(key string) (string, error) {
 	return c.gitConfigWrite("--local", "--remove-section", key)
-}
-
-// SetLocal sets the git config value for the key in the specified config file
-func (c *Configuration) SetLocal(key, val string) (string, error) {
-	return c.gitConfigWrite("--replace-all", key, val)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file
