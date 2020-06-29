@@ -33,7 +33,7 @@ begin_test "submodule env with .lfsconfig"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo
   git config -f .lfsconfig lfs.url "$GITSERVER/$lfsname.git/info/lfs"
-  git submodule add "$GITSERVER/$submodname" sub
+  git submodule add -b master "$GITSERVER/$submodname" sub
   git submodule update
   git lfs track "*.dat"
   mkdir dir
