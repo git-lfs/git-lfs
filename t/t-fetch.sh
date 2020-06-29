@@ -515,7 +515,7 @@ begin_test "fetch with no origin remote"
   cd ../no-remote-clone
 
   # pull commits & lfs
-  git pull 2>&1
+  git pull origin master 2>&1
   assert_local_object "$contents_oid" 1
 
   # now checkout detached HEAD so we're not tracking anything on remote

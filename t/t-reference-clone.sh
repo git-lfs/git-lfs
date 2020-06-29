@@ -84,7 +84,7 @@ begin_test "fetch from clone reference"
   delete_server_object "$reponame" "$oid"
 
   cd "$repo_dir"
-  GIT_LFS_SKIP_SMUDGE=1 git pull
+  GIT_LFS_SKIP_SMUDGE=1 git pull origin master
   git lfs pull
 
   assert_pointer "master" "a.dat" "$oid" 1

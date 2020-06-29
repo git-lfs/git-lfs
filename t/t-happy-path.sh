@@ -56,7 +56,7 @@ begin_test "happy path"
   # change to the clone's working directory
   cd ../clone
 
-  git pull
+  git pull origin master
 
   [ "a" = "$(cat a.dat)" ]
 
