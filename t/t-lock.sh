@@ -36,6 +36,7 @@ begin_test "lock with good tracked ref"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
+  git config branch.master.remote origin
   git push origin master
 
   git lfs lock "a.dat" --json 2>&1 | tee lock.json

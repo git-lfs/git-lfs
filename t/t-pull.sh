@@ -60,6 +60,8 @@ begin_test "pull"
   cd ../clone
 
   echo "normal pull"
+  git config branch.master.remote origin
+  git config branch.master.merge refs/heads/master
   git pull 2>&1
 
   [ "a" = "$(cat a.dat)" ]
@@ -296,6 +298,8 @@ begin_test "pull: with missing object"
   refute_server_object "$reponame" "$contents_oid"
 
   # should return non-zero, but should also download all the other valid files too
+  git config branch.master.remote origin
+  git config branch.master.merge refs/heads/master
   git lfs pull 2>&1 | tee pull.log
   pull_exit="${PIPESTATUS[0]}"
   [ "$pull_exit" != "0" ]

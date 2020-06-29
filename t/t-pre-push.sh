@@ -894,6 +894,7 @@ begin_test "pre-push locks verify 403 with good tracked ref"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
+  git config branch.master.remote origin
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
   git push 2>&1 | tee push.log
 

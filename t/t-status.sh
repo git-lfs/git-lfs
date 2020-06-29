@@ -426,7 +426,7 @@ begin_test "status (unpushed objects)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git push origin master
+  git push -u origin master
 
   contents="a"
   oid="$(calc_oid "$contents")"
@@ -477,7 +477,7 @@ begin_test "status (deleted files)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git push origin master
+  git push -u origin master
 
   contents="a"
   oid="$(calc_oid "$contents")"

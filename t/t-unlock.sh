@@ -42,6 +42,7 @@ begin_test "unlocking a lock by path with tracked ref"
 
   git config push.default upstream
   git config branch.master.merge refs/heads/tracked
+  git config branch.master.remote origin
   git push origin master
 
   git lfs lock --json "c.dat" | tee lock.log
