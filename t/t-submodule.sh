@@ -16,14 +16,14 @@ begin_test "submodule local git dir"
   echo "sub module" > dir/README
   git add dir/README
   git commit -a -m "submodule readme"
-  git push origin master
+  git push origin main
 
   clone_repo "$reponame" repo
   git submodule add "$GITSERVER/$submodname" sub
   git submodule update
   git add .gitmodules sub
   git commit -m "add submodule"
-  git push origin master
+  git push origin main
 
   grep "sub module" sub/dir/README || {
     echo "submodule not setup correctly?"

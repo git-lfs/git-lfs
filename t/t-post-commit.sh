@@ -30,7 +30,7 @@ begin_test "post-commit"
   assert_file_writeable pcfile3.big
   assert_file_writeable pcfile4.big
 
-  git push -u origin master
+  git push -u origin main
 
   # now lock files, then edit
   git lfs lock pcfile1.dat

@@ -25,7 +25,7 @@ for typ in "${expiration_types[@]}"; do
     git add a.dat
     git commit -m "add a.dat"
 
-    GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+    GIT_TRACE=1 git push origin main 2>&1 | tee push.log
     if [ "0" -eq "${PIPESTATUS[0]}" ]; then
       echo >&2 "fatal: expected push to fail, didn't"
       exit 1
@@ -60,7 +60,7 @@ for typ in "${expiration_types[@]}"; do
     git add a.dat
     git commit -m "add a.dat"
 
-    GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+    GIT_TRACE=1 git push origin main 2>&1 | tee push.log
     grep "ssh cache expired" push.log
   )
   end_test

@@ -18,9 +18,9 @@ begin_test "batch storage upload causes retries"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected \`git push origin master\` to succeed ..."
+    echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
     exit 1
   fi
 
@@ -44,7 +44,7 @@ begin_test "batch storage download causes retries"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  git push origin master
+  git push origin main
   assert_server_object "$reponame" "$oid"
 
   pushd ..
@@ -58,9 +58,9 @@ begin_test "batch storage download causes retries"
 
     git config credential.helper lfstest
 
-    GIT_TRACE=1 git lfs pull origin master 2>&1 | tee pull.log
+    GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
     if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected \`git lfs pull origin master\` to succeed ..."
+      echo >&2 "fatal: expected \`git lfs pull origin main\` to succeed ..."
       exit 1
     fi
 
@@ -85,7 +85,7 @@ begin_test "batch clone causes retries"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  git push origin master
+  git push origin main
   assert_server_object "$reponame" "$oid"
 
   pushd ..

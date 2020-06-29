@@ -22,9 +22,9 @@ begin_test "push zero len file"
   git commit -m "add files" | tee commit.log
 
   # cut from commit output
-  #   $ git cat-file -p master
+  #   $ git cat-file -p main
   #   tree 2d67d025fb1f9df9fa349412b4b130e982314e92
-  tree="$(git cat-file -p master | cut -f 2 -d " " | head -n 1)"
+  tree="$(git cat-file -p main | cut -f 2 -d " " | head -n 1)"
 
   # cut from tree output
   #   $ git cat-file -p "$tree"
@@ -36,9 +36,9 @@ begin_test "push zero len file"
   # look for lfs pointer in git blob
   [ "0" = "$(git cat-file -p "$emptyblob" | grep "lfs" -c)" ]
 
-  assert_pointer "master" "full.dat" "$contents_oid" 4
+  assert_pointer "main" "full.dat" "$contents_oid" 4
 
-  git push origin master | tee push.log
+  git push origin main | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
 )
 end_test

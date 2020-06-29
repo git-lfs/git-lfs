@@ -23,7 +23,7 @@ begin_test "credentials with url-specific helper skips askpass"
   git commit -m "initial commit"
 
   # askpass is skipped
-  GIT_ASKPASS="lfs-bad-cmd" GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_ASKPASS="lfs-bad-cmd" GIT_TRACE=1 git push origin main 2>&1 | tee push.log
 
   [ "0" -eq "$(grep "filling with GIT_ASKPASS" push.log | wc -l)" ]
 )
@@ -253,7 +253,7 @@ begin_test "credentials from netrc"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
   echo "any netrc credential calls:"
   [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
@@ -292,7 +292,7 @@ begin_test "credentials from netrc with unknown keyword"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 git lfs push netrc master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
   echo "any netrc credential calls:"
   [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
@@ -331,7 +331,7 @@ begin_test "credentials from netrc with bad password"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push netrc master 2>&1 | tee push.log
+  git push netrc main 2>&1 | tee push.log
   [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
 )
 end_test
@@ -367,7 +367,7 @@ begin_test "credentials with bad netrc creds will retry"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 GIT_ASKPASS="lfs-askpass" git push netrc master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_ASKPASS="lfs-askpass" git push netrc main 2>&1 | tee push.log
   grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   # netrc credentials should be attempted then rejected for the lock request
@@ -406,14 +406,14 @@ begin_test "credentials from lfs.url"
 
   echo "bad push"
   git lfs env
-  git lfs push origin master 2>&1 | tee push.log
+  git lfs push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "good push"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config lfs.url http://requirecreds:pass@$gitserverhost/$reponame.git/info/lfs
   git lfs env
-  GIT_TRACE=1 git lfs push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
   # A 401 indicates URL access mode for the /storage endpoint
   # was used instead of for the lfsapi endpoint
   grep "HTTP: 401" push.log
@@ -471,14 +471,14 @@ begin_test "credentials from remote.origin.url"
 
   echo "bad push"
   git lfs env
-  git lfs push origin master 2>&1 | tee push.log
+  git lfs push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 
   echo "good push"
   gitserverhost=$(echo "$GITSERVER" | cut -d'/' -f3)
   git config remote.origin.url http://requirecreds:pass@$gitserverhost/$reponame.git
   git lfs env
-  GIT_TRACE=1 git lfs push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
   # A 401 indicates URL access mode for the /storage endpoint
   # was used instead of for the lfsapi endpoint
   grep "HTTP: 401" push.log

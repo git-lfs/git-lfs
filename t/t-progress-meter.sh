@@ -21,7 +21,7 @@ begin_test "progress meter displays positive progress"
   git add *.dat
   git commit -m "add many objects"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   [ "0" -eq "${PIPESTATUS[0]}" ]
 
   grep "Uploading LFS objects: 100% (128/128), 276 B" push.log

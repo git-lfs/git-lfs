@@ -14,19 +14,19 @@ begin_test "list a single lock with bad ref"
   echo "f" > f.dat
   git add .gitattributes f.dat
   git commit -m "add f.dat"
-  git push origin master:other
+  git push origin main:other
 
   git checkout -b other
   git lfs lock --json "f.dat" | tee lock.log
 
-  git checkout master
+  git checkout main
   git lfs locks --path "f.dat" 2>&1 | tee locks.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
     exit 1
   fi
 
-  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' locks.log
+  grep 'Expected ref "refs/heads/other", got "refs/heads/main"' locks.log
 )
 end_test
 
@@ -34,14 +34,14 @@ begin_test "list a single lock"
 (
   set -e
 
-  reponame="locks-list-master-branch-required"
+  reponame="locks-list-main-branch-required"
   setup_remote_repo_with_file "$reponame" "f.dat"
   clone_repo "$reponame" "$reponame"
 
   git lfs lock --json "f.dat" | tee lock.log
 
   id=$(assert_lock lock.log f.dat)
-  assert_server_lock "$reponame" "$id" "refs/heads/master"
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
 
   git lfs locks --path "f.dat" | tee locks.log
   [ $(wc -l < locks.log) -eq 1 ]
@@ -65,7 +65,7 @@ begin_test "list a single lock (SSH)"
   git lfs lock --json "f.dat" | tee lock.log
 
   id=$(assert_lock lock.log f.dat)
-  assert_server_lock "$reponame" "$id" "refs/heads/master"
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
 
   GIT_TRACE=1 git lfs locks --path "f.dat" 2>trace.log | tee locks.log
   cat trace.log
@@ -115,8 +115,8 @@ begin_test "list locks with a limit"
   grep "create mode 100644 .gitattributes" commit.log
 
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
 
   git lfs lock --json "g_1.dat" | tee lock.log
   assert_server_lock "$reponame" "$(assert_log "lock.log" g_1.dat)"
@@ -151,8 +151,8 @@ begin_test "list locks with pagination"
   done
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
 
   for i in $(seq 1 5); do
     git lfs lock --json "h_$i.dat" | tee lock.log
@@ -184,8 +184,8 @@ begin_test "cached locks"
   grep "create mode 100644 cached2.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
 
   git lfs lock --json "cached1.dat" | tee lock.log
   assert_server_lock "$(assert_lock "lock.log" cached1.dat)"

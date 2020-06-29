@@ -35,7 +35,7 @@ begin_test "fetch: setup for include test"
   grep "create mode 100644 big/big2.big" commit.log
   grep "create mode 100644 big/big3.big" commit.log
 
-  git push origin master | tee push.log
+  git push origin main | tee push.log
   grep "Uploading LFS objects: 100% (2/2), 18 B" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -51,7 +51,7 @@ begin_test "fetch: include first matching file"
   git init
   git lfs install --local --skip-smudge
   git remote add origin $GITSERVER/$reponame
-  git pull origin master
+  git pull origin main
 
   refute_local_object "$contents_oid"
 
@@ -72,7 +72,7 @@ begin_test "fetch: include second matching file"
   git init
   git lfs install --local --skip-smudge
   git remote add origin $GITSERVER/$reponame
-  git pull origin master
+  git pull origin main
 
   refute_local_object "$contents_oid"
 

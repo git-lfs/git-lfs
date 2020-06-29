@@ -6,7 +6,7 @@ begin_test "fetch with good ref"
 (
   set -e
 
-  reponame="fetch-master-branch-required"
+  reponame="fetch-main-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -15,12 +15,12 @@ begin_test "fetch with good ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push origin master
+  git push origin main
 
   # $ echo "a" | shasum -a 256
   oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
   assert_local_object "$oid" 2
-  assert_server_object "$reponame" "$oid" "refs/heads/master"
+  assert_server_object "$reponame" "$oid" "refs/heads/main"
 
   rm -rf .git/lfs/objects
   git lfs fetch --all
@@ -41,7 +41,7 @@ begin_test "fetch with tracked ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push origin master:tracked
+  git push origin main:tracked
 
   # $ echo "a" | shasum -a 256
   oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
@@ -50,7 +50,7 @@ begin_test "fetch with tracked ref"
 
   rm -rf .git/lfs/objects
   git config push.default upstream
-  git config branch.master.merge refs/heads/tracked
+  git config branch.main.merge refs/heads/tracked
   git lfs fetch --all
   assert_local_object "$oid" 2
 )
@@ -69,7 +69,7 @@ begin_test "fetch with bad ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push origin master:other
+  git push origin main:other
 
   # $ echo "a" | shasum -a 256
   oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
@@ -83,6 +83,6 @@ begin_test "fetch with bad ref"
     exit 1
   fi
 
-  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' fetch.log
+  grep 'Expected ref "refs/heads/other", got "refs/heads/main"' fetch.log
 )
 end_test

@@ -25,7 +25,7 @@ begin_test "custom-transfer-wrong-path"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   res=${PIPESTATUS[0]}
   grep "xfer: adapter \"testcustom\" Begin()" pushcustom.log
@@ -88,7 +88,7 @@ begin_test "custom-transfer-upload-download"
   }
   ]" | lfstest-testutils addcommits
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   [ ${PIPESTATUS[0]} = "0" ]
 
@@ -167,7 +167,7 @@ begin_test "custom-transfer-standalone"
   }
   ]" | lfstest-testutils addcommits
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   [ ${PIPESTATUS[0]} = "0" ]
 
@@ -259,7 +259,7 @@ begin_test "custom-transfer-standalone-urlmatch"
   }
   ]" | lfstest-testutils addcommits
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushcustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushcustom.log
   # use PIPESTATUS otherwise we get exit code from tee
   [ ${PIPESTATUS[0]} = "0" ]
 

@@ -18,7 +18,7 @@ begin_test "GIT_LFS_PROGRESS"
   echo "e" > e.dat
   git add .gitattributes *.dat
   git commit -m "add files"
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (5/5), 10 B" push.log
 
   cd ..

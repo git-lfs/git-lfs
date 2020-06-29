@@ -50,7 +50,7 @@ begin_test "prune worktree"
   },
   {
     \"CommitDate\":\"$(get_date -30d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit3}, \"Data\":\"$content_oldcommit3\"}]
@@ -62,14 +62,14 @@ begin_test "prune worktree"
   },
   {
     \"CommitDate\":\"$(get_date -30d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
   }
   ]" | lfstest-testutils addcommits
 
   # push everything so that's not a retention issue
-  git push origin master:master branch1:branch1 branch2:branch2
+  git push origin main:main branch1:branch1 branch2:branch2
 
   # don't keep any recent, just checkouts
   git config lfs.fetchrecentrefsdays 0

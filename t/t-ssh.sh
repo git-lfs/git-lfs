@@ -21,7 +21,7 @@ begin_test "ssh with proxy command in lfs.url"
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: push succeeded"
     exit 1

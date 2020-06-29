@@ -14,16 +14,16 @@ begin_test "unlocking a lock by path with good ref"
 (
   set -e
 
-  reponame="unlock-by-path-master-branch-required"
+  reponame="unlock-by-path-main-branch-required"
   setup_repo "$reponame" "c.dat"
 
   git lfs lock --json "c.dat" | tee lock.log
 
   id=$(assert_lock lock.log c.dat)
-  assert_server_lock "$reponame" "$id" "refs/heads/master"
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
 
   git lfs unlock --id="$id"
-  refute_server_lock "$reponame" "$id" "refs/heads/master"
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
 )
 end_test
 
@@ -41,9 +41,9 @@ begin_test "unlocking a lock by path with tracked ref"
   git commit -m "add c.dat"
 
   git config push.default upstream
-  git config branch.master.merge refs/heads/tracked
-  git config branch.master.remote origin
-  git push origin master
+  git config branch.main.merge refs/heads/tracked
+  git config branch.main.remote origin
+  git push origin main
 
   git lfs lock --json "c.dat" | tee lock.log
 
@@ -67,7 +67,7 @@ begin_test "unlocking a lock by path with bad ref"
   echo "c" > c.dat
   git add .gitattributes c.dat
   git commit -m "add c.dat"
-  git push origin master:other
+  git push origin main:other
 
   git checkout -b other
   git lfs lock --json "c.dat" | tee lock.log
@@ -75,7 +75,7 @@ begin_test "unlocking a lock by path with bad ref"
   id=$(assert_lock lock.log c.dat)
   assert_server_lock "$reponame" "$id" "refs/heads/other"
 
-  git checkout master
+  git checkout main
   git lfs unlock --id="$id" 2>&1 | tee unlock.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
@@ -83,7 +83,7 @@ begin_test "unlocking a lock by path with bad ref"
   fi
 
   assert_server_lock "$reponame" "$id" "refs/heads/other"
-  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
+  grep 'Expected ref "refs/heads/other", got "refs/heads/main"' unlock.log
 )
 end_test
 
@@ -99,7 +99,7 @@ begin_test "unlocking a lock by id with bad ref"
   echo "c" > c.dat
   git add .gitattributes c.dat
   git commit -m "add c.dat"
-  git push origin master:other
+  git push origin main:other
 
   git checkout -b other
   git lfs lock --json "c.dat" | tee lock.log
@@ -107,7 +107,7 @@ begin_test "unlocking a lock by id with bad ref"
   id=$(assert_lock lock.log c.dat)
   assert_server_lock "$reponame" "$id" "refs/heads/other"
 
-  git checkout master
+  git checkout main
   git lfs unlock --id="$id" 2>&1 | tee unlock.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
@@ -115,7 +115,7 @@ begin_test "unlocking a lock by id with bad ref"
   fi
 
   assert_server_lock "$reponame" "$id" "refs/heads/other"
-  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' unlock.log
+  grep 'Expected ref "refs/heads/other", got "refs/heads/main"' unlock.log
 )
 end_test
 

@@ -18,9 +18,9 @@ begin_test "redirect upload"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected \`git push origin master\` to succeed ..."
+    echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
     exit 1
   fi
 

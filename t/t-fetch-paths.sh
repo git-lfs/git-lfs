@@ -22,7 +22,7 @@ begin_test "init fetch unclean paths"
   git add dir/a.dat
   git add .gitattributes
   git commit -m "add dir/a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 dir/a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -32,9 +32,9 @@ begin_test "init fetch unclean paths"
   assert_local_object "$contents_oid" 1
   refute_server_object "$contents_oid"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 

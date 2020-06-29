@@ -35,7 +35,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder1/nested.dat)" ]
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
-  assert_pointer "master" "file1.dat" "$contents_oid" $contentsize
+  assert_pointer "main" "file1.dat" "$contents_oid" $contentsize
 
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
@@ -94,7 +94,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
   echo "test checkout with missing data doesn't fail"
-  git push origin master
+  git push origin main
   rm -rf .git/lfs/objects
   rm file*.dat
   git lfs checkout
@@ -174,7 +174,7 @@ begin_test "checkout: write-only file"
     chmod -w "$filename"
 
     refute_file_writeable "$filename"
-    assert_pointer "refs/heads/master" "$filename" "$(calc_oid "$filename\n")" 6
+    assert_pointer "refs/heads/main" "$filename" "$(calc_oid "$filename\n")" 6
 
     git lfs fetch
     git lfs checkout "$filename"
@@ -206,7 +206,7 @@ begin_test "checkout: conflicts"
     git lfs checkout --to base.txt --base file1.dat 2>&1 | tee output.txt
     grep 'Could not checkout.*not in the middle of a merge' output.txt
 
-    git checkout -b second master
+    git checkout -b second main
     echo "def456" > file1.dat
     git add -u
     git commit -m "second"

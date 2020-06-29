@@ -20,7 +20,7 @@ begin_test "mergetool works with large files"
   git add conflict.dat
   git commit -m "conflict.dat: b"
 
-  git checkout master
+  git checkout main
 
   printf "a" > conflict.dat
   git add conflict.dat

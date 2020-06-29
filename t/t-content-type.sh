@@ -17,7 +17,7 @@ begin_test "content-type: is enabled by default"
 
   git add .gitattributes a.tar.gz
   git commit -m "initial commit"
-  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
   [ 1 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
   [ 0 -eq "$(grep -c "Content-Type: application/octet-stream" push.log)" ]
@@ -40,7 +40,7 @@ begin_test "content-type: is disabled by configuration"
   git add .gitattributes a.tar.gz
   git commit -m "initial commit"
   git config "lfs.$GITSERVER.contenttype" 0
-  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
   [ 0 -eq "$(grep -c "Content-Type: application/x-gzip" push.log)" ]
   [ 1 -eq "$(grep -c "Content-Type: application/octet-stream" push.log)" ]
@@ -60,7 +60,7 @@ begin_test "content-type: warning message"
 
   git add .gitattributes a.txt
   git commit -m "initial commit"
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   grep "info: Uploading failed due to unsupported Content-Type header(s)." push.log
   grep "info: Consider disabling Content-Type detection with:" push.log

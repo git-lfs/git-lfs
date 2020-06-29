@@ -23,7 +23,7 @@ begin_test "tus-upload-uninterrupted"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushtus.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushtus.log
   grep "xfer: tus.io uploading" pushtus.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -59,7 +59,7 @@ begin_test "tus-upload-interrupted-resume"
   git add a.dat verify.dat
   git add .gitattributes
   git commit -m "add a.dat, verify.dat" 2>&1 | tee commit.log
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee pushtus_resume.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee pushtus_resume.log
   # first attempt will start from the beginning
   grep "xfer: tus.io uploading" pushtus_resume.log
   grep "HTTP: 500" pushtus_resume.log

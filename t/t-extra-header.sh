@@ -19,7 +19,7 @@ begin_test "http.<url>.extraHeader"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin master 2>&1 | tee curl.log
+  GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin main 2>&1 | tee curl.log
 
   grep "> X-Foo: bar" curl.log
   grep "> X-Foo: baz" curl.log
@@ -46,9 +46,9 @@ begin_test "http.<url>.extraHeader with authorization"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  git push origin master 2>&1 | tee curl.log
+  git push origin main 2>&1 | tee curl.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "expected \`git push origin master\` to succeed, didn't"
+    echo >&2 "expected \`git push origin main\` to succeed, didn't"
     exit 1
   fi
 
@@ -83,9 +83,9 @@ begin_test "http.<url>.extraHeader with authorization (casing)"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  git push origin master 2>&1 | tee curl.log
+  git push origin main 2>&1 | tee curl.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "expected \`git push origin master\` to succeed, didn't"
+    echo >&2 "expected \`git push origin main\` to succeed, didn't"
     exit 1
   fi
 
@@ -122,7 +122,7 @@ begin_test "http.<url>.extraHeader with mixed-case URLs"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin master 2>&1 | tee curl.log
+  GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin main 2>&1 | tee curl.log
 
   grep "> X-Foo: bar" curl.log
   grep "> X-Foo: baz" curl.log

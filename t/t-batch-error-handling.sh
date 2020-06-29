@@ -33,7 +33,7 @@ begin_test "batch error handling"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -41,12 +41,12 @@ begin_test "batch error handling"
   [ "a" = "$(cat a.dat)" ]
 
   # This is a small shell function that runs several git commands together.
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "a.dat" "$contents_oid" 1
 
   refute_server_object "$reponame" "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Unable to parse HTTP response" push.log
 )
 end_test

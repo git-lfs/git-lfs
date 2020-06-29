@@ -327,10 +327,10 @@ begin_test "ls-files: --all with argument(s)"
   git init "$reponame"
   cd "$reponame"
 
-  git lfs ls-files --all master 2>&1 | tee ls-files.log
+  git lfs ls-files --all main 2>&1 | tee ls-files.log
 
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: \`git lfs ls-files --all master\` to fail"
+    echo >&2 "fatal: \`git lfs ls-files --all main\` to fail"
     exit 1
   fi
 
