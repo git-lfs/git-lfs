@@ -65,7 +65,7 @@ func (c *Configuration) Find(val string) string {
 	return output
 }
 
-// FindGlobal returns the git config value global scope for the key
+// FindGlobal returns the git config value in global scope for the key
 func (c *Configuration) FindGlobal(key string) string {
 	output, _ := c.gitConfig("--global", key)
 	return output
@@ -77,9 +77,15 @@ func (c *Configuration) FindSystem(key string) string {
 	return output
 }
 
-// Find returns the git config value for the key
+// FindLocal returns the git config value in local scope for the key
 func (c *Configuration) FindLocal(key string) string {
 	output, _ := c.gitConfig("--local", key)
+	return output
+}
+
+// FindWorktree returns the git config value in worktree or local scope for the key, depending on whether multiple worktrees are in use
+func (c *Configuration) FindWorktree(key string) string {
+	output, _ := c.gitConfig("--worktree", key)
 	return output
 }
 
@@ -93,6 +99,16 @@ func (c *Configuration) SetSystem(key, val string) (string, error) {
 	return c.gitConfigWrite("--system", "--replace-all", key, val)
 }
 
+// SetLocal sets the git config value for the key in the specified config file
+func (c *Configuration) SetLocal(key, val string) (string, error) {
+	return c.gitConfigWrite("--replace-all", key, val)
+}
+
+// SetWorktree sets the git config value for the key in the worktree or local config, depending on whether multiple worktrees are in use
+func (c *Configuration) SetWorktree(key, val string) (string, error) {
+	return c.gitConfigWrite("--worktree", "--replace-all", key, val)
+}
+
 // UnsetGlobalSection removes the entire named section from the global config
 func (c *Configuration) UnsetGlobalSection(key string) (string, error) {
 	return c.gitConfigWrite("--global", "--remove-section", key)
@@ -103,14 +119,14 @@ func (c *Configuration) UnsetSystemSection(key string) (string, error) {
 	return c.gitConfigWrite("--system", "--remove-section", key)
 }
 
-// UnsetLocalSection removes the entire named section from the system config
+// UnsetLocalSection removes the entire named section from the local config
 func (c *Configuration) UnsetLocalSection(key string) (string, error) {
 	return c.gitConfigWrite("--local", "--remove-section", key)
 }
 
-// SetLocal sets the git config value for the key in the specified config file
-func (c *Configuration) SetLocal(key, val string) (string, error) {
-	return c.gitConfigWrite("--replace-all", key, val)
+// UnsetWorktreeSection removes the entire named section from the worktree or local config, depending on whether multiple worktrees are in use
+func (c *Configuration) UnsetWorktreeSection(key string) (string, error) {
+	return c.gitConfigWrite("--worktree", "--remove-section", key)
 }
 
 // UnsetLocalKey removes the git config value for the key from the specified config file

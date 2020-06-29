@@ -26,6 +26,16 @@ filters if they are not already set.
 * `--local`:
     Sets the "lfs" smudge and clean filters in the local repository's git
     config, instead of the global git config (~/.gitconfig).
+* `--worktree`:
+    Sets the "lfs" smudge and clean filters in the current working tree's
+    git config, instead of the global git config (~/.gitconfig) or local
+    repository's git config ($GIT_DIR/config).
+    If multiple working trees are in use, the Git config extension
+    `worktreeConfig` must be enabled to use this option.
+    If only one working tree is in use, `--worktree` has the same effect
+    as `--local`.
+    This option is only available if the installed Git version is at least
+    2.20.0 and therefore supports the "worktreeConfig" extension.
 * `--manual`:
     Print instructions for manually updating your hooks to include git-lfs
     functionality. Use this option if `git lfs install` fails because of existing
@@ -43,6 +53,6 @@ filters if they are not already set.
 
 ## SEE ALSO
 
-git-lfs-uninstall(1).
+git-lfs-uninstall(1), git-worktree(1).
 
 Part of the git-lfs(1) suite.
