@@ -26,6 +26,7 @@ import (
 	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/gitobj"
 	"github.com/rubyist/tracerx"
 )
 
@@ -1423,4 +1424,9 @@ func IsWorkingCopyDirty() (bool, error) {
 		return false, err
 	}
 	return len(out) != 0, nil
+}
+
+func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.ObjectDatabase, error) {
+	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	return gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), tempdir, alternates)
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/git-lfs/gitobj"
 	"github.com/git-lfs/gitobj/errors"
@@ -48,8 +47,7 @@ func NewObjectScanner(gitEnv, osEnv Environment) (*ObjectScanner, error) {
 		return nil, err
 	}
 
-	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
-	gitobj, err := gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), "", alternates)
+	gitobj, err := ObjectDatabase(osEnv, gitEnv, gitdir, "")
 	if err != nil {
 		return nil, err
 	}
