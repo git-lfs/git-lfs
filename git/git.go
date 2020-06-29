@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -40,10 +41,6 @@ const (
 
 	SHA1HexSize   = sha1.Size * 2
 	SHA256HexSize = sha256.Size * 2
-
-	// A ref which can be used as a placeholder for before the first commit
-	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
-	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 )
 
 var (
@@ -51,6 +48,8 @@ var (
 	// ObjectIDLengths is a slice of valid Git hexadecimal object ID
 	// lengths in increasing order.
 	ObjectIDLengths = []int{SHA1HexSize, SHA256HexSize}
+	emptyTree       = ""
+	emptyTreeMutex  = &sync.Mutex{}
 )
 
 type IndexStage int
@@ -147,6 +146,19 @@ func IsZeroObjectID(s string) bool {
 		}
 	}
 	return false
+}
+
+func EmptyTree() string {
+	emptyTreeMutex.Lock()
+	defer emptyTreeMutex.Unlock()
+
+	if len(emptyTree) == 0 {
+		cmd := gitNoLFS("hash-object", "-t", "tree", "/dev/null")
+		cmd.Stdin = nil
+		out, _ := cmd.Output()
+		emptyTree = strings.TrimSpace(string(out))
+	}
+	return emptyTree
 }
 
 // Some top level information about a commit (only first line of message)
