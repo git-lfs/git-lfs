@@ -26,7 +26,7 @@ import (
 	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/rubyist/tracerx"
 )
 
@@ -1427,6 +1427,21 @@ func IsWorkingCopyDirty() (bool, error) {
 }
 
 func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.ObjectDatabase, error) {
+	var options []gitobj.Option
 	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
-	return gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), tempdir, alternates)
+	if alternates != "" {
+		options = append(options, gitobj.Alternates(alternates))
+	}
+	hashAlgo, _ := gitEnv.Get("extensions.objectformat")
+	if hashAlgo != "" {
+		options = append(options, gitobj.ObjectFormat(gitobj.ObjectFormatAlgorithm(hashAlgo)))
+	}
+	odb, err := gitobj.FromFilesystem(filepath.Join(gitdir, "objects"), tempdir, options...)
+	if err != nil {
+		return nil, err
+	}
+	if odb.Hasher() == nil {
+		return nil, fmt.Errorf("unsupported repository hash algorithm %q", hashAlgo)
+	}
+	return odb, nil
 }

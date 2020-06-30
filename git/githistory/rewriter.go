@@ -12,7 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tasklog"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 )
 
 // Rewriter allows rewriting topologically equivalent Git histories

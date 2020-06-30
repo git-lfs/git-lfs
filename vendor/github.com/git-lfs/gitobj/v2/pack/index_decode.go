@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"hash"
 	"io"
 )
 
@@ -33,8 +34,6 @@ const (
 	// V2 header.
 	indexOffsetV2Start = indexV2Width + indexFanoutWidth
 
-	// indexObjectNameWidth is the width of a SHA1 object name.
-	indexObjectNameWidth = 20
 	// indexObjectCRCWidth is the width of the CRC accompanying each object
 	// in V2.
 	indexObjectCRCWidth = 4
@@ -44,13 +43,6 @@ const (
 	// indexObjectLargeOffsetWidth is the width of the optional large offset
 	// encoded into the small offset.
 	indexObjectLargeOffsetWidth = 8
-
-	// indexObjectEntryV1Width is the width of one contiguous object entry
-	// in V1.
-	indexObjectEntryV1Width = indexObjectNameWidth + indexObjectSmallOffsetWidth
-	// indexObjectEntryV2Width is the width of one non-contiguous object
-	// entry in V2.
-	indexObjectEntryV2Width = indexObjectNameWidth + indexObjectCRCWidth + indexObjectSmallOffsetWidth
 )
 
 var (
@@ -69,8 +61,8 @@ var (
 // parse index entries.
 //
 // If there was an error parsing, it will be returned immediately.
-func DecodeIndex(r io.ReaderAt) (*Index, error) {
-	version, err := decodeIndexHeader(r)
+func DecodeIndex(r io.ReaderAt, hash hash.Hash) (*Index, error) {
+	version, err := decodeIndexHeader(r, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +81,7 @@ func DecodeIndex(r io.ReaderAt) (*Index, error) {
 }
 
 // decodeIndexHeader determines which version the index given by "r" is.
-func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
+func decodeIndexHeader(r io.ReaderAt, hash hash.Hash) (IndexVersion, error) {
 	hdr := make([]byte, 4)
 	if _, err := r.ReadAt(hdr, 0); err != nil {
 		return nil, err
@@ -104,13 +96,13 @@ func decodeIndexHeader(r io.ReaderAt) (IndexVersion, error) {
 		version := binary.BigEndian.Uint32(vb)
 		switch version {
 		case 1:
-			return new(V1), nil
+			return &V1{hash: hash}, nil
 		case 2:
-			return new(V2), nil
+			return &V2{hash: hash}, nil
 		}
 		return nil, &UnsupportedVersionErr{uint32(version)}
 	}
-	return new(V1), nil
+	return &V1{hash: hash}, nil
 }
 
 // decodeIndexFanout decodes the fanout table given by "r" and beginning at the

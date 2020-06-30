@@ -12,7 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 )
 

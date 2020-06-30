@@ -1,9 +1,0 @@
-language: go
-go: 1.11
-before_install:
-  - >
-    mkdir -p ~/src;
-    mv "$TRAVIS_BUILD_DIR" ~/src/gitobj;
-    export TRAVIS_BUILD_DIR=~/src/gitobj;
-notifications:
-  email: false

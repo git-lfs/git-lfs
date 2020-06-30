@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"hash"
 	"io"
 )
 
@@ -22,7 +23,7 @@ var (
 //
 // If the header is malformed, or otherwise cannot be read, an error will be
 // returned without a corresponding packfile.
-func DecodePackfile(r io.ReaderAt) (*Packfile, error) {
+func DecodePackfile(r io.ReaderAt, hash hash.Hash) (*Packfile, error) {
 	header := make([]byte, 12)
 	if _, err := r.ReadAt(header[:], 0); err != nil {
 		return nil, err
@@ -40,5 +41,6 @@ func DecodePackfile(r io.ReaderAt) (*Packfile, error) {
 		Objects: objects,
 
 		r: r,
+		hash: hash,
 	}, nil
 }

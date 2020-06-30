@@ -2,7 +2,6 @@ package gitobj
 
 import (
 	"compress/zlib"
-	"crypto/sha1"
 	"fmt"
 	"hash"
 	"io"
@@ -50,18 +49,20 @@ func (n *nopCloser) Close() error {
 }
 
 // NewObjectWriter returns a new *ObjectWriter instance that drains incoming
-// writes into the io.Writer given, "w".
-func NewObjectWriter(w io.Writer) *ObjectWriter {
-	return NewObjectWriteCloser(&nopCloser{w})
+// writes into the io.Writer given, "w".  "hash" is a hash instance from the
+// ObjectDatabase'e Hash method.
+func NewObjectWriter(w io.Writer, hash hash.Hash) *ObjectWriter {
+	return NewObjectWriteCloser(&nopCloser{w}, hash)
 }
 
 // NewObjectWriter returns a new *ObjectWriter instance that drains incoming
-// writes into the io.Writer given, "w".
+// writes into the io.Writer given, "w".  "sum" is a hash instance from the
+// ObjectDatabase'e Hash method.
 //
 // Upon closing, it calls the given Close() function of the io.WriteCloser.
-func NewObjectWriteCloser(w io.WriteCloser) *ObjectWriter {
+func NewObjectWriteCloser(w io.WriteCloser, sum hash.Hash) *ObjectWriter {
 	zw := zlib.NewWriter(w)
-	sum := sha1.New()
+	sum.Reset()
 
 	return &ObjectWriter{
 		w:   io.MultiWriter(zw, sum),

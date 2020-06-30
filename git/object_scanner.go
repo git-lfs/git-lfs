@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/git-lfs/gitobj"
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // object represents a generic Git object of any type.

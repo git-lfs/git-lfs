@@ -1,6 +1,7 @@
 package pack
 
 import (
+	"hash"
 	"io"
 )
 
@@ -10,8 +11,8 @@ type Storage struct {
 }
 
 // NewStorage returns a new storage object based on a pack set.
-func NewStorage(root string) (*Storage, error) {
-	packs, err := NewSet(root)
+func NewStorage(root string, algo hash.Hash) (*Storage, error) {
+	packs, err := NewSet(root, algo)
 	if err != nil {
 		return nil, err
 	}

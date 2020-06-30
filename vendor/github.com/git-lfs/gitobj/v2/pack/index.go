@@ -2,9 +2,12 @@ package pack
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 )
+
+const maxHashSize = sha256.Size
 
 // Index stores information about the location of objects in a corresponding
 // packfile.

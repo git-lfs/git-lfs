@@ -2,13 +2,16 @@ package gitobj
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 	"os"
 	"sync/atomic"
 
-	"github.com/git-lfs/gitobj/storage"
+	"github.com/git-lfs/gitobj/v2/storage"
 )
 
 // ObjectDatabase enables the reading and writing of objects against a storage
@@ -29,41 +32,80 @@ type ObjectDatabase struct {
 
 	// temp directory, defaults to os.TempDir
 	tmp string
+
+	// objectFormat is the object format (hash algorithm)
+	objectFormat ObjectFormatAlgorithm
+}
+
+type options struct {
+	alternates   string
+	objectFormat ObjectFormatAlgorithm
+}
+
+type Option func(*options)
+
+type ObjectFormatAlgorithm string
+
+const (
+	ObjectFormatSHA1   = ObjectFormatAlgorithm("sha1")
+	ObjectFormatSHA256 = ObjectFormatAlgorithm("sha256")
+)
+
+// Alternates is an Option to specify the string of alternate repositories that
+// are searched for objects.  The format is the same as for
+// GIT_ALTERNATE_OBJECT_DIRECTORIES.
+func Alternates(alternates string) Option {
+	return func(args *options) {
+		args.alternates = alternates
+	}
+}
+
+// ObjectFormat is an Option to specify the hash algorithm (object format) in
+// use in Git.  If not specified, it defaults to ObjectFormatSHA1.
+func ObjectFormat(algo ObjectFormatAlgorithm) Option {
+	return func(args *options) {
+		args.objectFormat = algo
+	}
 }
 
 // FromFilesystem constructs an *ObjectDatabase instance that is backed by a
 // directory on the filesystem. Specifically, this should point to:
 //
 //  /absolute/repo/path/.git/objects
-func FromFilesystem(root, tmp string) (*ObjectDatabase, error) {
-	return FromFilesystemWithAlternates(root, tmp, "")
-}
+func FromFilesystem(root, tmp string, setters ...Option) (*ObjectDatabase, error) {
+	args := &options{objectFormat: ObjectFormatSHA1}
 
-// FromFilesystemWithAlternates constructs an *ObjectDatabase instance that is
-// backed by a directory on the filesystem, optionally with one or more
-// alternates. Specifically, this should point to:
-//
-//  /absolute/repo/path/.git/objects
-func FromFilesystemWithAlternates(root, tmp, alternates string) (*ObjectDatabase, error) {
-	b, err := NewFilesystemBackendWithAlternates(root, tmp, alternates)
+	for _, setter := range setters {
+		setter(args)
+	}
+
+	b, err := NewFilesystemBackend(root, tmp, args.alternates, hasher(args.objectFormat))
 	if err != nil {
 		return nil, err
 	}
 
-	ro, rw := b.Storage()
-	return &ObjectDatabase{
-		tmp: tmp,
-		ro:  ro,
-		rw:  rw,
-	}, nil
+	odb, err := FromBackend(b, setters...)
+	if err != nil {
+		return nil, err
+	}
+	odb.tmp = tmp
+	return odb, nil
 }
 
-func FromBackend(b storage.Backend) (*ObjectDatabase, error) {
+func FromBackend(b storage.Backend, setters ...Option) (*ObjectDatabase, error) {
+	args := &options{objectFormat: ObjectFormatSHA1}
+
+	for _, setter := range setters {
+		setter(args)
+	}
+
 	ro, rw := b.Storage()
-	return &ObjectDatabase{
-		ro: ro,
-		rw: rw,
-	}, nil
+	odb := &ObjectDatabase{
+		ro:           ro,
+		rw:           rw,
+		objectFormat: args.objectFormat,
+	}
+	return odb, nil
 }
 
 // Close closes the *ObjectDatabase, freeing any open resources (namely: the
@@ -227,6 +269,11 @@ func (o *ObjectDatabase) Root() (string, bool) {
 	return "", false
 }
 
+// Hasher returns a new hash instance suitable for this object database.
+func (o *ObjectDatabase) Hasher() hash.Hash {
+	return hasher(o.objectFormat)
+}
+
 // encode encodes and saves an object to the storage backend and uses an
 // in-memory buffer to calculate the object's encoded body.
 func (d *ObjectDatabase) encode(object Object) (sha []byte, n int64, err error) {
@@ -247,7 +294,7 @@ func (d *ObjectDatabase) encodeBuffer(object Object, buf io.ReadWriter) (sha []b
 	}
 	defer d.cleanup(tmp)
 
-	to := NewObjectWriter(tmp)
+	to := NewObjectWriter(tmp, d.Hasher())
 	if _, err = to.WriteHeader(object.Type(), int64(cn)); err != nil {
 		return nil, 0, err
 	}
@@ -323,7 +370,7 @@ func (o *ObjectDatabase) decode(r *ObjectReader, into Object) error {
 		return &UnexpectedObjectType{Got: typ, Wanted: into.Type()}
 	}
 
-	if _, err = into.Decode(r, size); err != nil {
+	if _, err = into.Decode(o.Hasher(), r, size); err != nil {
 		return err
 	}
 
@@ -336,4 +383,15 @@ func (o *ObjectDatabase) decode(r *ObjectReader, into Object) error {
 func (o *ObjectDatabase) cleanup(f *os.File) {
 	f.Close()
 	os.Remove(f.Name())
+}
+
+func hasher(algo ObjectFormatAlgorithm) hash.Hash {
+	switch algo {
+	case ObjectFormatSHA1:
+		return sha1.New()
+	case ObjectFormatSHA256:
+		return sha256.New()
+	default:
+		return nil
+	}
 }

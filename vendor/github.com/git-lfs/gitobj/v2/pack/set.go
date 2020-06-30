@@ -2,13 +2,14 @@ package pack
 
 import (
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // Set allows access of objects stored across a set of packfiles.
@@ -38,7 +39,7 @@ var (
 // containing them. If there was an error parsing the packfiles in that
 // directory, or the directory was otherwise unable to be observed, NewSet
 // returns that error.
-func NewSet(db string) (*Set, error) {
+func NewSet(db string, algo hash.Hash) (*Set, error) {
 	pd := filepath.Join(db, "pack")
 
 	paths, err := filepath.Glob(filepath.Join(escapeGlobPattern(pd), "*.pack"))
@@ -75,12 +76,12 @@ func NewSet(db string) (*Set, error) {
 			return nil, err
 		}
 
-		pack, err := DecodePackfile(packf)
+		pack, err := DecodePackfile(packf, algo)
 		if err != nil {
 			return nil, err
 		}
 
-		idx, err := DecodeIndex(idxf)
+		idx, err := DecodeIndex(idxf, algo)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +139,7 @@ func NewSetPacks(packs ...*Packfile) *Set {
 	}
 
 	return &Set{
-		m: m,
+		m:    m,
 		closeFn: func() error {
 			for _, pack := range packs {
 				if err := pack.Close(); err != nil {

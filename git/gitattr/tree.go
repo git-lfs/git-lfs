@@ -3,7 +3,7 @@ package gitattr
 import (
 	"strings"
 
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 )
 
 // Tree represents the .gitattributes file at one layer of the tree in a Git

@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // memoryStorer is an implementation of the storer interface that holds data for

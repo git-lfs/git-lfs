@@ -9,7 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 )
 
 // refUpdater is a type responsible for moving references from one point in the

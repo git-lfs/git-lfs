@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"strings"
 )
@@ -24,7 +25,7 @@ type Tag struct {
 //
 // If any error was encountered along the way it will be returned, and the
 // receiving *Tag is considered invalid.
-func (t *Tag) Decode(r io.Reader, size int64) (int, error) {
+func (t *Tag) Decode(hash hash.Hash, r io.Reader, size int64) (int, error) {
 	scanner := bufio.NewScanner(io.LimitReader(r, size))
 
 	var (

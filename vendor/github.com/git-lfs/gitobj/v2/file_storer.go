@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // fileStorer implements the storer interface by writing to the .git/objects

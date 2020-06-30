@@ -3,7 +3,7 @@ package storage
 import (
 	"io"
 
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // Storage implements an interface for reading, but not writing, objects in an

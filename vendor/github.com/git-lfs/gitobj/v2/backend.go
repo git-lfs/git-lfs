@@ -2,6 +2,7 @@ package gitobj
 
 import (
 	"bufio"
+	"hash"
 	"io"
 	"os"
 	"path"
@@ -9,32 +10,28 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/gitobj/pack"
-	"github.com/git-lfs/gitobj/storage"
+	"github.com/git-lfs/gitobj/v2/pack"
+	"github.com/git-lfs/gitobj/v2/storage"
 )
 
-// NewFilesystemBackend initializes a new filesystem-based backend.
-func NewFilesystemBackend(root, tmp string) (storage.Backend, error) {
-	return NewFilesystemBackendWithAlternates(root, tmp, "")
-}
-
-// NewFilesystemBackendWithAlternates initializes a new filesystem-based
-// backend, optionally with additional alternates as specified in the
+// NewFilesystemBackend initializes a new filesystem-based backend,
+// optionally with additional alternates as specified in the
 // `alternates` variable. The syntax is that of the Git environment variable
-// GIT_ALTERNATE_OBJECT_DIRECTORIES.
-func NewFilesystemBackendWithAlternates(root, tmp, alternates string) (storage.Backend, error) {
+// GIT_ALTERNATE_OBJECT_DIRECTORIES.  The hash algorithm used is specified by
+// the algo parameter.
+func NewFilesystemBackend(root, tmp, alternates string, algo hash.Hash) (storage.Backend, error) {
 	fsobj := newFileStorer(root, tmp)
-	packs, err := pack.NewStorage(root)
+	packs, err := pack.NewStorage(root, algo)
 	if err != nil {
 		return nil, err
 	}
 
-	storage, err := findAllBackends(fsobj, packs, root)
+	storage, err := findAllBackends(fsobj, packs, root, algo)
 	if err != nil {
 		return nil, err
 	}
 
-	storage, err = addAlternatesFromEnvironment(storage, alternates)
+	storage, err = addAlternatesFromEnvironment(storage, alternates, algo)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +42,7 @@ func NewFilesystemBackendWithAlternates(root, tmp, alternates string) (storage.B
 	}, nil
 }
 
-func findAllBackends(mainLoose *fileStorer, mainPacked *pack.Storage, root string) ([]storage.Storage, error) {
+func findAllBackends(mainLoose *fileStorer, mainPacked *pack.Storage, root string, algo hash.Hash) ([]storage.Storage, error) {
 	storage := make([]storage.Storage, 2)
 	storage[0] = mainLoose
 	storage[1] = mainPacked
@@ -61,7 +58,7 @@ func findAllBackends(mainLoose *fileStorer, mainPacked *pack.Storage, root strin
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		storage, err = addAlternateDirectory(storage, scanner.Text())
+		storage, err = addAlternateDirectory(storage, scanner.Text(), algo)
 		if err != nil {
 			return nil, err
 		}
@@ -74,9 +71,9 @@ func findAllBackends(mainLoose *fileStorer, mainPacked *pack.Storage, root strin
 	return storage, nil
 }
 
-func addAlternateDirectory(s []storage.Storage, dir string) ([]storage.Storage, error) {
+func addAlternateDirectory(s []storage.Storage, dir string, algo hash.Hash) ([]storage.Storage, error) {
 	s = append(s, newFileStorer(dir, ""))
-	pack, err := pack.NewStorage(dir)
+	pack, err := pack.NewStorage(dir, algo)
 	if err != nil {
 		return s, err
 	}
@@ -84,14 +81,14 @@ func addAlternateDirectory(s []storage.Storage, dir string) ([]storage.Storage, 
 	return s, nil
 }
 
-func addAlternatesFromEnvironment(s []storage.Storage, env string) ([]storage.Storage, error) {
+func addAlternatesFromEnvironment(s []storage.Storage, env string, algo hash.Hash) ([]storage.Storage, error) {
 	if len(env) == 0 {
 		return s, nil
 	}
 
 	for _, dir := range splitAlternateString(env, alternatesSeparator) {
 		var err error
-		s, err = addAlternateDirectory(s, dir)
+		s, err = addAlternateDirectory(s, dir, algo)
 		if err != nil {
 			return nil, err
 		}

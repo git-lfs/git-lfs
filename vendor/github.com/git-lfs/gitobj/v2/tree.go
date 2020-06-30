@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"hash"
 	"io"
 	"sort"
 	"strconv"
@@ -27,7 +28,8 @@ func (t *Tree) Type() ObjectType { return TreeObjectType }
 //
 // If any error was encountered along the way, that will be returned, along with
 // the number of bytes read up to that point.
-func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
+func (t *Tree) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err error) {
+	hashlen := hash.Size()
 	buf := bufio.NewReader(from)
 
 	var entries []*TreeEntry
@@ -51,15 +53,15 @@ func (t *Tree) Decode(from io.Reader, size int64) (n int, err error) {
 		n += len(fname)
 		fname = strings.TrimSuffix(fname, "\x00")
 
-		var sha [20]byte
-		if _, err = io.ReadFull(buf, sha[:]); err != nil {
+		var sha [32]byte
+		if _, err = io.ReadFull(buf, sha[:hashlen]); err != nil {
 			return n, err
 		}
-		n += 20
+		n += hashlen
 
 		entries = append(entries, &TreeEntry{
 			Name:     fname,
-			Oid:      sha[:],
+			Oid:      sha[:hashlen],
 			Filemode: int32(mode),
 		})
 	}

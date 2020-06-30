@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
