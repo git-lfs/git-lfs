@@ -2,7 +2,7 @@
 set -e
 
 # Strip out CI environment variables which cause tests to fail.
-unset $(env | grep -E '^GIT(HUB)?_' | sed -e 's/=.*$//')
+unset $(env | grep -E '^GIT(HUB)?_' | grep -v '^GIT_DEFAULT_HASH=' | sed -e 's/=.*$//')
 
 UNAME=$(uname -s)
 X=""
