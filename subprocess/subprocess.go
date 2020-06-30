@@ -46,7 +46,6 @@ func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
 
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
-	Trace(name, args...)
 	return Output(ExecCommand(name, args...))
 }
 
