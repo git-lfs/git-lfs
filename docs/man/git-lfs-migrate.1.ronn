@@ -13,6 +13,9 @@ git-lfs-migrate(1) - Migrate history to or from git-lfs
 * `import`
     Convert large Git objects to LFS pointers.
 
+* `export`
+    Convert LFS pointers to large Git objects.
+
 ## OPTIONS
 
 * `-I` <paths> `--include=`<paths>:
