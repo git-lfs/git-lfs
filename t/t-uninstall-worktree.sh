@@ -106,6 +106,7 @@ begin_test "uninstall --worktree with multiple working trees"
   git add a.txt
   git commit -m "initial commit"
 
+  git config core.repositoryformatversion 1
   git config extensions.worktreeConfig true
 
   treename="../$reponame-wt"
