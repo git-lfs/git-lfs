@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,34 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 )
+
+func init() {
+	path := os.Getenv("PATH")
+	sep := ""
+	if path != "" {
+		if runtime.GOOS == "windows" {
+			sep = ";"
+		} else {
+			sep = ":"
+		}
+	}
+
+	// Strip the trailing "t/cmd/util/testutils.go" from the path to this
+	// source file to create a path to the working tree's "bin" directory,
+	// then prepend that to the PATH environment variable to ensure our
+	// "git-lfs" binary is used in preference to any installed versions when
+	// executing the Go tests.
+	_, srcdir, _, _ := runtime.Caller(0)
+	for i := 0; i < 4; i++ {
+		srcdir = filepath.Dir(srcdir)
+	}
+	var err error
+	srcdir, err = filepath.Abs(srcdir)
+	if err != nil {
+		panic(err)
+	}
+	os.Setenv("PATH", filepath.Join(srcdir, "bin")+sep+path)
+}
 
 type RepoType int
 

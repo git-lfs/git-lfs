@@ -9,32 +9,65 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
+    - run: script/cibuild
+    - run: CGO_ENABLED=0 make release
+    - run: mkdir -p bin/assets
+    - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
+    - uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.os }}
+        path: bin/assets
+  build-go:
+    name: Build with specific Go
+    strategy:
+      matrix:
+        go: ['1.12.x', '1.13.x', '1.14.x']
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
     - run: script/cibuild
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
+    - run: |
+        echo "::add-path::C:\Program Files\Git\mingw64\bin"
+        echo "::add-path::C:\Program Files\Git\usr\bin"
+        echo "::add-path::C:\Program Files\Git\bin"
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
-    - run: choco uninstall git.install -y --force
-    - run: cinst git --version 2.22.0 -y --force
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" script/cibuild
       shell: bash
+    - run: rm -f commands/mancontent_gen.go
+      shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B
       shell: bash
     - run: mv bin\git-lfs.exe git-lfs-x86.exe
+    - run: rm -f commands/mancontent_gen.go
+      shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=amd64 -B
       shell: bash
     - run: mv bin\git-lfs.exe git-lfs-x64.exe
     - run: iscc script\windows-installer\inno-setup-git-lfs-installer.iss
+    - run: mkdir -p bin/assets
+      shell: bash
+    - run: mv *.exe bin/assets
+      shell: bash
+    - uses: actions/upload-artifact@v1
+      with:
+        name: windows-latest
+        path: bin/assets
   build-latest:
     name: Build with latest Git
     strategy:
@@ -42,7 +75,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
@@ -53,7 +86,16 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
+  build-docker:
+    name: Build Linux packages
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
+    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune

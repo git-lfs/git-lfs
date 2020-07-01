@@ -57,7 +57,7 @@ func TestRevListArgs(t *testing.T) {
 				SkipDeletedBlobs: false,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--do-walk", "--stdin", "--"},
 		},
 		"scan refs not deleted, left and right": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -65,7 +65,7 @@ func TestRevListArgs(t *testing.T) {
 				SkipDeletedBlobs: true,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--no-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--no-walk", "--stdin", "--"},
 		},
 		"scan refs deleted, left only": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
@@ -73,7 +73,7 @@ func TestRevListArgs(t *testing.T) {
 				SkipDeletedBlobs: false,
 			},
 			ExpectedStdin: s1,
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--do-walk", "--stdin", "--"},
 		},
 		"scan refs not deleted, left only": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
@@ -81,13 +81,13 @@ func TestRevListArgs(t *testing.T) {
 				SkipDeletedBlobs: true,
 			},
 			ExpectedStdin: s1,
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--no-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--no-walk", "--stdin", "--"},
 		},
 		"scan all": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
 				Mode: ScanAllMode,
 			},
-			ExpectedArgs: []string{"rev-list", "--stdin", "--objects", "--all", "--"},
+			ExpectedArgs: []string{"rev-list", "--objects", "--all", "--stdin", "--"},
 		},
 		"scan left to remote, no skipped refs": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
@@ -96,7 +96,7 @@ func TestRevListArgs(t *testing.T) {
 				SkippedRefs: []string{},
 			},
 			ExpectedStdin: s1,
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--not", "--remotes=origin", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--ignore-missing", "--not", "--remotes=origin", "--stdin", "--"},
 		},
 		"scan left to remote, skipped refs": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -104,7 +104,7 @@ func TestRevListArgs(t *testing.T) {
 				Remote:      "origin",
 				SkippedRefs: []string{"a", "b", "c"},
 			},
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--ignore-missing", "--stdin", "--"},
 			ExpectedStdin: s1 + "\n^" + s2 + "\na\nb\nc",
 		},
 		"scan unknown type": {
@@ -119,7 +119,7 @@ func TestRevListArgs(t *testing.T) {
 				Order: DateRevListOrder,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--date-order", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--date-order", "--do-walk", "--stdin", "--"},
 		},
 		"scan author date order": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -127,7 +127,7 @@ func TestRevListArgs(t *testing.T) {
 				Order: AuthorDateRevListOrder,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--author-date-order", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--author-date-order", "--do-walk", "--stdin", "--"},
 		},
 		"scan topo order": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -135,7 +135,7 @@ func TestRevListArgs(t *testing.T) {
 				Order: TopoRevListOrder,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--topo-order", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--topo-order", "--do-walk", "--stdin", "--"},
 		},
 		"scan commits only": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -143,7 +143,7 @@ func TestRevListArgs(t *testing.T) {
 				CommitsOnly: true,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--do-walk", "--stdin", "--"},
 		},
 		"scan reverse": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
@@ -151,7 +151,7 @@ func TestRevListArgs(t *testing.T) {
 				Reverse: true,
 			},
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
-			ExpectedArgs:  []string{"rev-list", "--stdin", "--objects", "--reverse", "--do-walk", "--"},
+			ExpectedArgs:  []string{"rev-list", "--objects", "--reverse", "--do-walk", "--stdin", "--"},
 		},
 	} {
 		t.Run(desc, c.Assert)

@@ -31,6 +31,7 @@ type FilterOptions struct {
 	GitConfig  *git.Configuration
 	Force      bool
 	Local      bool
+	Worktree   bool
 	System     bool
 	SkipSmudge bool
 }
@@ -43,8 +44,7 @@ func (o *FilterOptions) Install() error {
 }
 
 func (o *FilterOptions) Uninstall() error {
-	filterAttribute().Uninstall(o)
-	return nil
+	return filterAttribute().Uninstall(o)
 }
 
 func filterAttribute() *Attribute {
@@ -137,6 +137,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 	var currentValue string
 	if opt.Local {
 		currentValue = gitConfig.FindLocal(key)
+	} else if opt.Worktree {
+		currentValue = gitConfig.FindWorktree(key)
 	} else if opt.System {
 		currentValue = gitConfig.FindSystem(key)
 	} else {
@@ -147,6 +149,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		var err error
 		if opt.Local {
 			_, err = gitConfig.SetLocal(key, value)
+		} else if opt.Worktree {
+			_, err = gitConfig.SetWorktree(key, value)
 		} else if opt.System {
 			_, err = gitConfig.SetSystem(key, value)
 		} else {
@@ -162,14 +166,18 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 }
 
 // Uninstall removes all properties in the path of this property.
-func (a *Attribute) Uninstall(opt *FilterOptions) {
+func (a *Attribute) Uninstall(opt *FilterOptions) error {
+	var err error
 	if opt.Local {
-		opt.GitConfig.UnsetLocalSection(a.Section)
+		_, err = opt.GitConfig.UnsetLocalSection(a.Section)
+	} else if opt.Worktree {
+		_, err = opt.GitConfig.UnsetWorktreeSection(a.Section)
 	} else if opt.System {
-		opt.GitConfig.UnsetSystemSection(a.Section)
+		_, err = opt.GitConfig.UnsetSystemSection(a.Section)
 	} else {
-		opt.GitConfig.UnsetGlobalSection(a.Section)
+		_, err = opt.GitConfig.UnsetGlobalSection(a.Section)
 	}
+	return err
 }
 
 // shouldReset determines whether or not a value is resettable given its current

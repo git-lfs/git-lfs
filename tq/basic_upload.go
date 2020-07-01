@@ -86,7 +86,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return nil
 	}
 
-	cbr := tools.NewBodyWithCallback(f, t.Size, ccb)
+	cbr := tools.NewFileBodyWithCallback(f, t.Size, ccb)
 	var reader lfsapi.ReadSeekCloser = cbr
 
 	// Signal auth was ok on first read; this frees up other workers to start

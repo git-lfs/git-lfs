@@ -21,7 +21,7 @@ var (
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic and ntlm authentication.
-func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*http.Response, error) {
+func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
 	res, err := c.doWithAuth(remote, access, req, nil)
 
 	if errors.IsAuthError(err) {
@@ -30,7 +30,7 @@ func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*h
 			// should have been authenticated but wasn't. Do
 			// not count this against our redirection
 			// maximum.
-			newAccess := c.Endpoints.AccessFor(access.url)
+			newAccess := c.Endpoints.AccessFor(access.URL())
 			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
 			return c.DoWithAuth(remote, newAccess, req)
 		}
@@ -42,7 +42,7 @@ func (c *Client) DoWithAuth(remote string, access Access, req *http.Request) (*h
 // DoWithAuthNoRetry sends an HTTP request to get an HTTP response. It works in
 // the same way as DoWithAuth, but will not retry the request if it fails with
 // an authorization error.
-func (c *Client) DoWithAuthNoRetry(remote string, access Access, req *http.Request) (*http.Response, error) {
+func (c *Client) DoWithAuthNoRetry(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
 	return c.doWithAuth(remote, access, req, nil)
 }
 
@@ -56,7 +56,7 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 	return c.DoWithAuth(remote, access, req)
 }
 
-func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.client.ExtraHeadersFor(req)
 
 	credWrapper, err := c.getCreds(remote, access, req)
@@ -86,14 +86,21 @@ func (c *Client) doWithAuth(remote string, access Access, req *http.Request, via
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access Access, via []*http.Request) (*http.Response, error) {
-	if access.Mode() == NTLMAccess {
+func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
+	if access.Mode() == creds.NTLMAccess {
 		return c.doWithNTLM(req, credWrapper)
+	} else if access.Mode() == creds.NegotiateAccess {
+		return c.doWithNegotiate(req, credWrapper)
 	}
 
 	req.Header.Set("User-Agent", lfshttp.UserAgent)
 
-	redirectedReq, res, err := c.client.DoWithRedirect(c.client.HttpClient(req.Host), req, "", via)
+	client, err := c.client.HttpClient(req.URL, access.Mode())
+	if err != nil {
+		return nil, err
+	}
+
+	redirectedReq, res, err := c.client.DoWithRedirect(client, req, "", via)
 	if err != nil || res != nil {
 		return res, err
 	}
@@ -119,13 +126,14 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 // 1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
 // 2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
 //    This URL used for the "lfs.URL.access" git config key, which determines
-//    what kind of auth the LFS server expects. Could be BasicAccess, NTLMAccess,
-//    or NoneAccess, in which the Git Credential Helper step is skipped. We do
-//    not want to prompt the user for a password to fetch public repository data.
+//    what kind of auth the LFS server expects. Could be BasicAccess,
+//    NTLMAccess, NegotiateAccess, or NoneAccess, in which the Git Credential
+//    Helper step is skipped. We do not want to prompt the user for a password
+//    to fetch public repository data.
 // 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
 //    This URL is used for the Git Credential Helper. This way existing https
 //    Git remote credentials can be re-used for LFS.
-func (c *Client) getCreds(remote string, access Access, req *http.Request) (creds.CredentialHelperWrapper, error) {
+func (c *Client) getCreds(remote string, access creds.Access, req *http.Request) (creds.CredentialHelperWrapper, error) {
 	ef := c.Endpoints
 	if ef == nil {
 		ef = defaultEndpointFinder
@@ -134,8 +142,8 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 
-	if access.Mode() != NTLMAccess {
-		if requestHasAuth(req) || access.Mode() == NoneAccess {
+	if access.Mode() != creds.NTLMAccess && access.Mode() != creds.NegotiateAccess {
+		if requestHasAuth(req) || access.Mode() == creds.NoneAccess {
 			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
 
@@ -157,7 +165,7 @@ func (c *Client) getCreds(remote string, access Access, req *http.Request) (cred
 		return credWrapper, err
 	}
 
-	// NTLM ONLY
+	// NTLM and Negotiate only
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
@@ -306,7 +314,7 @@ var (
 	authenticateHeaders = []string{"Lfs-Authenticate", "Www-Authenticate"}
 )
 
-func getAuthAccess(res *http.Response) AccessMode {
+func getAuthAccess(res *http.Response) creds.AccessMode {
 	for _, headerName := range authenticateHeaders {
 		for _, auth := range res.Header[headerName] {
 			pieces := strings.SplitN(strings.ToLower(auth), " ", 2)
@@ -314,14 +322,12 @@ func getAuthAccess(res *http.Response) AccessMode {
 				continue
 			}
 
-			switch AccessMode(pieces[0]) {
-			case NegotiateAccess, NTLMAccess:
-				// When server sends Www-Authentication: Negotiate, it supports both Kerberos and NTLM.
-				// Since git-lfs current does not support Kerberos, we will return NTLM in this case.
-				return NTLMAccess
+			switch creds.AccessMode(pieces[0]) {
+			case creds.NegotiateAccess, creds.NTLMAccess:
+				return creds.AccessMode(pieces[0])
 			}
 		}
 	}
 
-	return BasicAccess
+	return creds.BasicAccess
 }

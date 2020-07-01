@@ -99,7 +99,9 @@ Here are some tips for getting your question answered as quickly as possible:
 
 ### Prerequisites
 
-Git LFS depends on having a working Go 1.11.0+ environment.
+Git LFS depends on having a working Go development environment.  We officially
+support the latest version of Go, although we try not to break backwards
+compatibility with older versions if it's possible to avoid doing so.
 
 On RHEL etc. e.g. Red Hat Enterprise Linux Server release 7.2 (Maipo), you will neet the minimum packages installed to build Git LFS:
 

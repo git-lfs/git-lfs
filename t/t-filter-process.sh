@@ -105,5 +105,35 @@ begin_test "filter process: add a file with 1024 bytes"
 )
 end_test
 
+begin_test "filter process: hash-object --stdin --path does not hang"
+(
+  set -e
 
+  mkdir repo-hash-object
+  cd repo-hash-object
+  git init
+  git lfs track "*.dat"
+  contents="test"
+  contents_oid="$(calc_oid "$contents")"
+  expected=$(pointer "$contents_oid" 4 | git hash-object --stdin)
 
+  dd if=/dev/zero of=first.dat bs=1000 count=1
+  echo a > second.dat
+  # Works for existing file longer than this one.
+  output=$(printf test | git hash-object --path first.dat --stdin)
+  [ "$expected" = "$output" ]
+  # Works for existing file shorter than this one.
+  output=$(printf test | git hash-object --path second.dat --stdin)
+  [ "$expected" = "$output" ]
+  # Works for absent file.
+  output=$(printf test | git hash-object --path third.dat --stdin)
+  [ "$expected" = "$output" ]
+
+  dd if=/dev/zero of=large.dat bs=65537 count=1
+  oid=$(calc_oid_file large.dat)
+  expected=$(pointer "$oid" 65537 | git hash-object --stdin)
+  output=$(git hash-object --path third.dat --stdin <large.dat)
+  [ "$expected" = "$output" ]
+  git add .
+)
+end_test

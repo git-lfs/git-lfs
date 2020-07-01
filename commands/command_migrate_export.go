@@ -136,7 +136,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 			}
 
 			if _, err := os.Stat(downloadPath); os.IsNotExist(err) {
-				q.Add(p.Name, downloadPath, p.Oid, p.Size, false)
+				q.Add(p.Name, downloadPath, p.Oid, p.Size, false, nil)
 			}
 		})
 		gs.ScanRefs(opts.Include, opts.Exclude, nil)
@@ -187,7 +187,7 @@ func trackedFromExportFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
 
 	for _, include := range filter.Include() {
-		tracked.Add(fmt.Sprintf("%s text !filter !merge !diff", escapeAttrPattern(include)))
+		tracked.Add(fmt.Sprintf("%s !text !filter !merge !diff", escapeAttrPattern(include)))
 	}
 
 	for _, exclude := range filter.Exclude() {

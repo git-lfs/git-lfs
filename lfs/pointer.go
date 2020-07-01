@@ -253,7 +253,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) < 2 {
-			err = fmt.Errorf("error reading line %d: %s", line, text)
+			err = errors.NewNotAPointerError(fmt.Errorf("error reading line %d: %s", line, text))
 			return
 		}
 
@@ -261,7 +261,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		value := parts[1]
 
 		if numKeys <= line {
-			err = fmt.Errorf("extra line: %s", text)
+			err = errors.NewNotAPointerError(fmt.Errorf("extra line: %s", text))
 			return
 		}
 

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/lfshttp"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
@@ -17,10 +17,12 @@ import (
 
 const (
 	defaultBatchSize = 100
+	baseRetryDelayMs = 250
 )
 
 type retryCounter struct {
-	MaxRetries int `git:"lfs.transfer.maxretries"`
+	MaxRetries    int
+	MaxRetryDelay int
 
 	// cmu guards count
 	cmu sync.Mutex
@@ -28,26 +30,23 @@ type retryCounter struct {
 	count map[string]int
 }
 
-// newRetryCounter instantiates a new *retryCounter. It parses the gitconfig
-// value: `lfs.transfer.maxretries`, and falls back to defaultMaxRetries if none
-// was provided.
-//
-// If it encountered an error in Unmarshaling the *config.Configuration, it will
-// be returned, otherwise nil.
+// newRetryCounter instantiates a new *retryCounter.
 func newRetryCounter() *retryCounter {
 	return &retryCounter{
-		MaxRetries: defaultMaxRetries,
-		count:      make(map[string]int),
+		MaxRetries:    defaultMaxRetries,
+		MaxRetryDelay: defaultMaxRetryDelay,
+		count:         make(map[string]int),
 	}
 }
 
-// Increment increments the number of retries for a given OID. It is safe to
-// call across multiple goroutines.
-func (r *retryCounter) Increment(oid string) {
+// Increment increments the number of retries for a given OID and returns the
+// new value. It is safe to call across multiple goroutines.
+func (r *retryCounter) Increment(oid string) int {
 	r.cmu.Lock()
 	defer r.cmu.Unlock()
 
 	r.count[oid]++
+	return r.count[oid]
 }
 
 // CountFor returns the current number of retries for a given OID. It is safe to
@@ -64,6 +63,22 @@ func (r *retryCounter) CountFor(oid string) int {
 func (r *retryCounter) CanRetry(oid string) (int, bool) {
 	count := r.CountFor(oid)
 	return count, count < r.MaxRetries
+}
+
+// ReadyTime returns the time from now when the current retry can occur or the
+// zero time if the retry can occur immediately.
+func (r *retryCounter) ReadyTime(oid string) time.Time {
+	count := r.CountFor(oid)
+	if count < 1 {
+		return time.Time{}
+	}
+
+	maxDelayMs := 1000 * uint64(r.MaxRetryDelay)
+	delay := uint64(baseRetryDelayMs) * (1 << uint(count-1))
+	if delay == 0 || delay > maxDelayMs {
+		delay = maxDelayMs
+	}
+	return time.Now().Add(time.Duration(delay) * time.Millisecond)
 }
 
 // batch implements the sort.Interface interface and enables sorting on a slice
@@ -295,6 +310,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	}
 
 	q.rc.MaxRetries = q.manifest.maxRetries
+	q.rc.MaxRetryDelay = q.manifest.maxRetryDelay
 	q.client.MaxRetries = q.manifest.maxRetries
 
 	if q.batchSize <= 0 {
@@ -324,7 +340,12 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 //
 // Only one file will be transferred to/from the Path element of the first
 // transfer.
-func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool) {
+func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool, err error) {
+	if err != nil {
+		q.errorc <- err
+		return
+	}
+
 	t := &objectTuple{
 		Name:    name,
 		Path:    path,
@@ -442,7 +463,7 @@ func (q *TransferQueue) collectBatches() {
 		// don't process further batches.  Abort the wait queue so that
 		// we don't deadlock waiting for objects to complete when they
 		// never will.
-		if err != nil {
+		if err != nil && !errors.IsRetriableError(err) {
 			q.wait.Abort()
 			break
 		}
@@ -501,6 +522,24 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
+	enqueueRetry := func(t *objectTuple, err error, readyTime *time.Time) {
+		count := q.rc.Increment(t.Oid)
+
+		if readyTime == nil {
+			t.ReadyTime = q.rc.ReadyTime(t.Oid)
+		} else {
+			t.ReadyTime = *readyTime
+		}
+		delay := time.Until(t.ReadyTime).Seconds()
+
+		var errMsg string
+		if err != nil {
+			errMsg = fmt.Sprintf(": %s", err)
+		}
+		tracerx.Printf("tq: enqueue retry #%d after %.2fs for %q (size: %d)%s", count, delay, t.Oid, t.Size, errMsg)
+		next = append(next, t)
+	}
+
 	q.meter.Pause()
 	var bRes *BatchResponse
 	if q.manifest.standaloneTransferAgent != "" {
@@ -525,20 +564,16 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// retried, they will be marked as failed.
 			for _, t := range batch {
 				if q.canRetryObject(t.Oid, err) {
-					q.rc.Increment(t.Oid)
-
-					next = append(next, t)
+					enqueueRetry(t, err, nil)
 				} else if readyTime, canRetry := q.canRetryObjectLater(t.Oid, err); canRetry {
-					tracerx.Printf("tq: retrying object %s after %s seconds.", t.Oid, time.Until(readyTime).Seconds())
 					err = nil
-					t.ReadyTime = readyTime
-					next = append(next, t)
+					enqueueRetry(t, err, &readyTime)
 				} else {
 					q.wait.Done()
 				}
 			}
 
-			return next, err
+			return next, errors.NewRetriableError(err)
 		}
 	}
 
@@ -594,13 +629,8 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			tr := newTransfer(o, objects.First().Name, objects.First().Path)
 
 			if a, err := tr.Rel(q.direction.String()); err != nil {
-				// XXX(taylor): duplication
 				if q.canRetryObject(tr.Oid, err) {
-					q.rc.Increment(tr.Oid)
-					count := q.rc.CountFor(tr.Oid)
-
-					tracerx.Printf("tq: enqueue retry #%d for %q (size: %d): %s", count, tr.Oid, tr.Size, err)
-					next = append(next, objects.First())
+					enqueueRetry(objects.First(), err, nil)
 				} else {
 					q.errorc <- errors.Errorf("[%v] %v", tr.Name, err)
 
@@ -619,12 +649,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 
 	retries := q.addToAdapter(bRes.endpoint, toTransfer)
 	for t := range retries {
-		q.rc.Increment(t.Oid)
-		count := q.rc.CountFor(t.Oid)
-
-		tracerx.Printf("tq: enqueue retry #%d for %q (size: %d)", count, t.Oid, t.Size)
-
-		next = append(next, t)
+		enqueueRetry(t, nil, nil)
 	}
 
 	return next, nil
@@ -882,7 +907,7 @@ func (q *TransferQueue) toAdapterCfg(e lfshttp.Endpoint) AdapterConfig {
 	apiClient := q.manifest.APIClient()
 	concurrency := q.manifest.ConcurrentTransfers()
 	access := apiClient.Endpoints.AccessFor(e.Url)
-	if access.Mode() == lfsapi.NTLMAccess {
+	if access.Mode() == creds.NTLMAccess {
 		concurrency = 1
 	}
 

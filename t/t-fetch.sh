@@ -63,7 +63,7 @@ begin_test "fetch"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
+  git lfs fetch
   assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
@@ -92,7 +92,7 @@ begin_test "fetch with remote"
   cd clone
   rm -rf .git/lfs/objects
 
-  git lfs fetch origin 2>&1 | grep "Downloading LFS objects: 100% (1/1), 1 B"
+  git lfs fetch origin
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
 
@@ -617,5 +617,25 @@ begin_test "fetch with invalid remote"
   cd repo
   git lfs fetch not-a-remote 2>&1 | tee fetch.log
   grep "Invalid remote name" fetch.log
+)
+end_test
+
+begin_test "fetch fails when LFS directory has wrong permissions"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  # Root is exempt from permissions.
+  [ "$(id -u)" -eq 0 ] && exit 0
+
+  cd shared
+  rm -rf .git/lfs/objects
+  mkdir .git/lfs/objects
+  chmod 400 .git/lfs/objects
+
+  git lfs fetch 2>&1 | tee fetch.log
+  grep "error trying to create local storage directory" fetch.log
 )
 end_test

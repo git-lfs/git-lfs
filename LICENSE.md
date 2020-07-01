@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2014-2018 GitHub, Inc. and Git LFS contributors
+Copyright (c) 2014-2020 GitHub, Inc. and Git LFS contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Note that Git LFS uses components from other Go modules (included in `vendor/`)
+which are under different licenses.  See those LICENSE files for details.

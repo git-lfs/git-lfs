@@ -1181,6 +1181,28 @@ begin_test "pre-push with pushDefault and explicit remote"
 )
 end_test
 
+begin_test "pre-push uses optimization if remote URL matches"
+(
+  set -e
+  reponame="pre-push-remote-url-optimization"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  endpoint=$(git config remote.origin.url)
+  contents_oid=$(calc_oid 'hi\n')
+  git config "lfs.$endpoint.locksverify" false
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  refute_server_object "$reponame" $contents_oid "refs/heads/master"
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  grep 'rev-list.*--not --remotes=origin' push.log
+)
+end_test
+
 begin_test "pre-push does not traverse Git objects server has"
 (
   set -e
@@ -1198,10 +1220,10 @@ begin_test "pre-push does not traverse Git objects server has"
 
   refute_server_object "$reponame" $contents_oid "refs/heads/master"
 
-  # We use a URL instead of a named remote so that we can't make use of the
-  # optimization that ignores objects we already have in remote tracking
-  # branches.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  # We use a different URL instead of a named remote or the remote URL so that
+  # we can't make use of the optimization that ignores objects we already have
+  # in remote tracking branches.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
 
   assert_server_object "$reponame" $contents_oid "refs/heads/master"
 
@@ -1212,7 +1234,7 @@ begin_test "pre-push does not traverse Git objects server has"
 
   refute_server_object "$reponame" $contents2_oid "refs/heads/master"
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
 
   assert_server_object "$reponame" $contents2_oid "refs/heads/master"
 
@@ -1220,5 +1242,63 @@ begin_test "pre-push does not traverse Git objects server has"
   # pushed before; i.e., we didn't see it because we ignored its Git object
   # during traversal.
   ! grep $contents_oid push.log
+)
+end_test
+
+begin_test "pre-push with force-pushed ref"
+(
+  set -e
+  reponame="pre-push-force-pushed-ref"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" false
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git tag -a -m tagname tagname
+
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+
+  git push origin master tagname
+
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+
+  # We pick a different message so that we get different object IDs even if both
+  # commands run in the same second.
+  git tag -f -a -m tagname2 tagname
+  # Prune the old tag object.
+  git reflog expire --all --expire=now
+  git gc --prune=now
+  # Make sure we deal with us missing the object for the old value of the tag ref.
+  git push origin +tagname
+)
+end_test
+
+begin_test "pre-push with local path"
+(
+  set -e
+  reponame="pre-push-local-path"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame-2"
+  cd ..
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "hi" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  # Push to the other repo.
+  git push "../$reponame-2" master:foo
+
+  # Push to . to make sure that works.
+  git push "." master:foo
+
+  git lfs fsck
+  cd "../$reponame-2"
+  git checkout foo
+  git lfs fsck
 )
 end_test

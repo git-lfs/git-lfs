@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -30,6 +31,7 @@ const (
 	RefTypeLocalBranch  = RefType(iota)
 	RefTypeRemoteBranch = RefType(iota)
 	RefTypeLocalTag     = RefType(iota)
+	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
 
@@ -178,7 +180,14 @@ func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
 }
 
-func DiffIndex(ref string, cached bool) (*bufio.Scanner, error) {
+func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
+	if refresh {
+		_, err := gitSimple("update-index", "-q", "--refresh")
+		if err != nil {
+			return nil, lfserrors.Wrap(err, "Failed to run git update-index")
+		}
+	}
+
 	args := []string{"diff-index", "-M"}
 	if cached {
 		args = append(args, "--cached")
@@ -344,10 +353,58 @@ func RemoteList() ([]string, error) {
 	return ret, nil
 }
 
+func RemoteURLs(push bool) (map[string][]string, error) {
+	cmd := gitNoLFS("remote", "-v")
+
+	outp, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to call git remote -v: %v", err)
+	}
+	cmd.Start()
+	defer cmd.Wait()
+
+	scanner := bufio.NewScanner(outp)
+
+	text := "(fetch)"
+	if push {
+		text = "(push)"
+	}
+	ret := make(map[string][]string)
+	for scanner.Scan() {
+		// [remote, urlpair-text]
+		pair := strings.Split(strings.TrimSpace(scanner.Text()), "\t")
+		if len(pair) != 2 {
+			continue
+		}
+		// [url, "(fetch)" | "(push)"]
+		urlpair := strings.Split(pair[1], " ")
+		if len(urlpair) != 2 || urlpair[1] != text {
+			continue
+		}
+		ret[pair[0]] = append(ret[pair[0]], urlpair[0])
+	}
+
+	return ret, nil
+}
+
+func MapRemoteURL(url string, push bool) (string, bool) {
+	urls, err := RemoteURLs(push)
+	if err != nil {
+		return url, false
+	}
+
+	for name, remotes := range urls {
+		if len(remotes) == 1 && url == remotes[0] {
+			return name, true
+		}
+	}
+	return url, false
+}
+
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
-	cmd := gitNoLFS("show-ref", "--heads", "--tags")
+	cmd := gitNoLFS("show-ref")
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -444,6 +501,34 @@ func ValidateRemoteURL(remote string) error {
 	default:
 		return fmt.Errorf("invalid remote url protocol %q in %q", u.Scheme, remote)
 	}
+}
+
+func RewriteLocalPathAsURL(path string) string {
+	var slash string
+	if abs, err := filepath.Abs(path); err == nil {
+		// Required for Windows paths to work.
+		if !strings.HasPrefix(abs, "/") {
+			slash = "/"
+		}
+		path = abs
+	}
+
+	var gitpath string
+	if filepath.Base(path) == ".git" {
+		gitpath = path
+		path = filepath.Dir(path)
+	} else {
+		gitpath = filepath.Join(path, ".git")
+	}
+
+	if _, err := os.Stat(gitpath); err == nil {
+		path = gitpath
+	} else if _, err := os.Stat(path); err != nil {
+		// Not a local path.  We check down here because we perform
+		// canonicalization by stripping off the .git above.
+		return path
+	}
+	return fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))
 }
 
 func UpdateIndexFromStdin() *subprocess.Cmd {
@@ -597,6 +682,13 @@ func GitAndRootDirs() (string, string, error) {
 	out, err := cmd.Output()
 	output := string(out)
 	if err != nil {
+		// If we got a fatal error, it's possible we're on a newer
+		// (2.24+) Git and we're not in a worktree, so fall back to just
+		// looking up the repo directory.
+		if e, ok := err.(*exec.ExitError); ok && e.ProcessState.ExitCode() == 128 {
+			absGitDir, err := GitDir()
+			return absGitDir, "", err
+		}
 		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
 
@@ -604,7 +696,12 @@ func GitAndRootDirs() (string, string, error) {
 	pathLen := len(paths)
 
 	for i := 0; i < pathLen; i++ {
-		paths[i], err = tools.TranslateCygwinPath(paths[i])
+		if paths[i] != "" {
+			paths[i], err = tools.TranslateCygwinPath(paths[i])
+			if err != nil {
+				return "", "", fmt.Errorf("error translating cygwin path: %s", err)
+			}
+		}
 	}
 
 	if pathLen == 0 {
@@ -652,9 +749,12 @@ func RootDir() (string, error) {
 
 func GitDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--git-dir")
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
 	out, err := cmd.Output()
+
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -674,8 +774,10 @@ func GitCommonDir() (string, error) {
 
 	cmd := gitNoLFS("rev-parse", "--git-common-dir")
 	out, err := cmd.Output()
+	buf := &bytes.Buffer{}
+	cmd.Stderr = buf
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call git rev-parse --git-common-dir: %v %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -1017,7 +1119,7 @@ func Fetch(remotes ...string) error {
 }
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
-// accessing the remote vir git ls-remote
+// accessing the remote via git ls-remote.
 func RemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
 	cmd := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
@@ -1039,7 +1141,11 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 			}
 
 			sha := match[1]
-			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
+			typ := RefTypeRemoteBranch
+			if match[2] == "tags" {
+				typ = RefTypeRemoteTag
+			}
+			ret = append(ret, &Ref{name, typ, sha})
 		}
 	}
 	return ret, cmd.Wait()

@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	spnego "github.com/dpotapov/go-spnego"
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
@@ -37,6 +38,11 @@ hint: standalone transfer agent.  See section "Using a Custom Transfer Type
 hint: without the API server" in custom-transfers.md for details.
 `)
 
+type hostData struct {
+	host string
+	mode creds.AccessMode
+}
+
 type Client struct {
 	SSH SSHResolver
 
@@ -50,7 +56,7 @@ type Client struct {
 	DebuggingVerbose bool
 	VerboseOut       io.Writer
 
-	hostClients map[string]*http.Client
+	hostClients map[hostData]*http.Client
 	clientMu    sync.Mutex
 
 	httpLogger *syncLogger
@@ -83,7 +89,7 @@ func NewClient(ctx Context) (*Client, error) {
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
-		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 3),
+		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 8),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
@@ -164,16 +170,30 @@ func joinURL(prefix, suffix string) string {
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	req.Header = c.ExtraHeadersFor(req)
 
-	return c.do(req, "", nil)
+	return c.do(req, "", nil, creds.NoneAccess)
+}
+
+// DoWithAccess sends an HTTP request to get an HTTP response using the
+// specified access mode. It wraps net/http, adding extra headers, redirection
+// handling, and error reporting.
+func (c *Client) DoWithAccess(req *http.Request, mode creds.AccessMode) (*http.Response, error) {
+	req.Header = c.ExtraHeadersFor(req)
+
+	return c.do(req, "", nil, mode)
 }
 
 // do performs an *http.Request respecting redirects, and handles the response
 // as defined in c.handleResponse. Notably, it does not alter the headers for
 // the request argument in any way.
-func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
+func (c *Client) do(req *http.Request, remote string, via []*http.Request, mode creds.AccessMode) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	res, err := c.doWithRedirects(c.HttpClient(req.Host), req, remote, via)
+	client, err := c.HttpClient(req.URL, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.doWithRedirects(client, req, remote, via)
 	if err != nil {
 		return res, err
 	}
@@ -341,9 +361,28 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
-func (c *Client) HttpClient(host string) *http.Client {
-	c.clientMu.Lock()
-	defer c.clientMu.Unlock()
+func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
+	version, _ := c.uc.Get("http", u.String(), "version")
+	switch version {
+	case "HTTP/1.1":
+		// This disables HTTP/2, according to the documentation.
+		tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+	case "HTTP/2":
+		if u.Scheme != "https" {
+			return fmt.Errorf("HTTP/2 cannot be used except with TLS")
+		}
+		http2.ConfigureTransport(tr)
+		delete(tr.TLSNextProto, "http/1.1")
+	case "":
+		http2.ConfigureTransport(tr)
+	default:
+		return fmt.Errorf("Unknown HTTP version %q", version)
+	}
+	return nil
+}
+
+func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripper, error) {
+	host := u.Host
 
 	if c.gitEnv == nil {
 		c.gitEnv = make(testEnv)
@@ -351,14 +390,6 @@ func (c *Client) HttpClient(host string) *http.Client {
 
 	if c.osEnv == nil {
 		c.osEnv = make(testEnv)
-	}
-
-	if c.hostClients == nil {
-		c.hostClients = make(map[string]*http.Client)
-	}
-
-	if client, ok := c.hostClients[host]; ok {
-		return client
 	}
 
 	concurrentTransfers := c.ConcurrentTransfers
@@ -380,7 +411,6 @@ func (c *Client) HttpClient(host string) *http.Client {
 	if tlstime < 1 {
 		tlstime = 30
 	}
-
 	tr := &http.Transport{
 		Proxy:               proxyFromClient(c),
 		TLSHandshakeTimeout: time.Duration(tlstime) * time.Second,
@@ -388,7 +418,7 @@ func (c *Client) HttpClient(host string) *http.Client {
 	}
 
 	activityTimeout := 30
-	if v, ok := c.uc.Get("lfs", fmt.Sprintf("https://%v", host), "activitytimeout"); ok {
+	if v, ok := c.uc.Get("lfs", u.String(), "activitytimeout"); ok {
 		if i, err := strconv.Atoi(v); err == nil {
 			activityTimeout = i
 		} else {
@@ -419,7 +449,9 @@ func (c *Client) HttpClient(host string) *http.Client {
 		tr.DialContext = dialer.DialContext
 	}
 
-	tr.TLSClientConfig = &tls.Config{}
+	tr.TLSClientConfig = &tls.Config{
+		Renegotiation: tls.RenegotiateFreelyAsClient,
+	}
 
 	if isClientCertEnabledForHost(c, host) {
 		tracerx.Printf("http: client cert for %s", host)
@@ -436,7 +468,38 @@ func (c *Client) HttpClient(host string) *http.Client {
 		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
 	}
 
-	http2.ConfigureTransport(tr)
+	if err := c.configureProtocols(u, tr); err != nil {
+		return nil, err
+	}
+
+	if access == creds.NegotiateAccess {
+		// This technically copies a mutex, but we know since we've just created
+		// the object that this mutex is unlocked.
+		return &spnego.Transport{Transport: *tr}, nil
+	}
+	return tr, nil
+}
+
+func (c *Client) HttpClient(u *url.URL, access creds.AccessMode) (*http.Client, error) {
+	c.clientMu.Lock()
+	defer c.clientMu.Unlock()
+
+	host := u.Host
+
+	if c.hostClients == nil {
+		c.hostClients = make(map[hostData]*http.Client)
+	}
+
+	hd := hostData{host: host, mode: access}
+
+	if client, ok := c.hostClients[hd]; ok {
+		return client, nil
+	}
+
+	tr, err := c.Transport(u, access)
+	if err != nil {
+		return nil, err
+	}
 
 	httpClient := &http.Client{
 		Transport: tr,
@@ -454,12 +517,12 @@ func (c *Client) HttpClient(host string) *http.Client {
 		}
 	}
 
-	c.hostClients[host] = httpClient
+	c.hostClients[hd] = httpClient
 	if c.VerboseOut == nil {
 		c.VerboseOut = os.Stderr
 	}
 
-	return httpClient
+	return httpClient, nil
 }
 
 func (c *Client) CurrentUser() (string, string) {

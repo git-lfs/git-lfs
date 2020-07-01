@@ -60,7 +60,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 // Windows path of "\foo\bar" will be normalized to "foo/bar".
 //
 // If the root directory, working directory, or file cannot be
-// determined/opened, an error will be returned. If the file in question is
+// determined, an error will be returned. If the file in question is
 // actually a directory, an error will be returned. Otherwise, the cleaned path
 // will be returned.
 //
@@ -96,15 +96,11 @@ func lockPath(file string) (string, error) {
 		return "", fmt.Errorf("lfs: unable to canonicalize path %q", path)
 	}
 
-	if stat, err := os.Stat(abs); err != nil {
-		return "", err
-	} else {
-		if stat.IsDir() {
-			return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
-		}
-
-		return filepath.ToSlash(path), nil
+	if stat, err := os.Stat(abs); err == nil && stat.IsDir() {
+		return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
 	}
+
+	return filepath.ToSlash(path), nil
 }
 
 func init() {

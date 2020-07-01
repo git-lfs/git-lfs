@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/spf13/cobra"
 )
@@ -10,6 +11,7 @@ import (
 var (
 	forceInstall      = false
 	localInstall      = false
+	worktreeInstall   = false
 	manualInstall     = false
 	systemInstall     = false
 	skipSmudgeInstall = false
@@ -23,7 +25,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 		os.Exit(2)
 	}
 
-	if !skipRepoInstall && (localInstall || cfg.InRepo()) {
+	if !skipRepoInstall && (localInstall || worktreeInstall || cfg.InRepo()) {
 		installHooksCommand(cmd, args)
 	}
 
@@ -33,12 +35,17 @@ func installCommand(cmd *cobra.Command, args []string) {
 func cmdInstallOptions() *lfs.FilterOptions {
 	requireGitVersion()
 
-	if localInstall {
+	if localInstall || worktreeInstall {
 		requireInRepo()
 	}
 
-	if localInstall && systemInstall {
+	switch {
+	case localInstall && worktreeInstall:
+		Exit("Only one of --local and --worktree options can be specified.")
+	case localInstall && systemInstall:
 		Exit("Only one of --local and --system options can be specified.")
+	case worktreeInstall && systemInstall:
+		Exit("Only one of --worktree and --system options can be specified.")
 	}
 
 	// This call will return -1 on Windows; don't warn about this there,
@@ -52,6 +59,7 @@ func cmdInstallOptions() *lfs.FilterOptions {
 		GitConfig:  cfg.GitConfig(),
 		Force:      forceInstall,
 		Local:      localInstall,
+		Worktree:   worktreeInstall,
 		System:     systemInstall,
 		SkipSmudge: skipSmudgeInstall,
 	}
@@ -76,6 +84,9 @@ func init() {
 	RegisterCommand("install", installCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&forceInstall, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
+		if git.IsGitVersionAtLeast("2.20.0") {
+			cmd.Flags().BoolVarP(&worktreeInstall, "worktree", "w", false, "Set the Git LFS config for the current Git working tree, if multiple working trees are configured; otherwise, the same as --local.")
+		}
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
 		cmd.Flags().BoolVarP(&skipRepoInstall, "skip-repo", "", false, "Skip repo setup, just install global filters.")

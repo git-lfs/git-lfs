@@ -63,21 +63,10 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	ptrs := make(map[string]*lfs.Pointer)
 
 	var q *tq.TransferQueue
-	closeOnce := new(sync.Once)
-	available := make(chan *tq.Transfer)
-
-	if supportsDelay {
-		q = tq.NewTransferQueue(
-			tq.Download,
-			getTransferManifestOperationRemote("download", cfg.Remote()),
-			cfg.Remote(),
-			tq.RemoteRef(currentRemoteRef()),
-		)
-		go infiniteTransferBuffer(q, available)
-	}
-
 	var malformed []string
 	var malformedOnWindows []string
+	var closeOnce *sync.Once
+	var available chan *tq.Transfer
 	gitfilter := lfs.NewGitFilter(cfg)
 	for s.Scan() {
 		var n int64
@@ -99,6 +88,19 @@ func filterCommand(cmd *cobra.Command, args []string) {
 				n = ptr.Size
 			}
 		case "smudge":
+			if q == nil && supportsDelay {
+				closeOnce = new(sync.Once)
+				available = make(chan *tq.Transfer)
+
+				q = tq.NewTransferQueue(
+					tq.Download,
+					getTransferManifestOperationRemote("download", cfg.Remote()),
+					cfg.Remote(),
+					tq.RemoteRef(currentRemoteRef()),
+				)
+				go infiniteTransferBuffer(q, available)
+			}
+
 			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			if req.Header["can-delay"] == "1" {
 				var ptr *lfs.Pointer
@@ -124,8 +126,8 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			closeOnce.Do(func() {
 				// The first time that Git sends us the
 				// 'list_available_blobs' command, it is given
-				// that no more smudge commands will be issued
-				// with _new_ checkout entries.
+				// that now it waiting until all delayed blobs
+				// are available within this smudge filter call
 				//
 				// This means that, by the time that we're here,
 				// we have seen all entries in the checkout, and
@@ -158,6 +160,12 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					// accept it later.
 					paths = append(paths, fmt.Sprintf("pathname=%s", path))
 				}
+				// At this point all items have been completely processed,
+				// so we explicitly close transfer queue. If Git issues
+				// another `smudge` command the transfer queue will be
+				// created from scratch. Transfer queue needs to be recreated
+				// because it has been already partially closed by `q.Wait()`
+				q = nil
 			}
 			err = s.WriteList(paths)
 		default:
@@ -201,7 +209,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if len(malformedOnWindows) > 0 {
+	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", true) {
 		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n", len(malformedOnWindows))
 
 		for _, m := range malformedOnWindows {

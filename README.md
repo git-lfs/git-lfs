@@ -1,8 +1,9 @@
 # Git Large File Storage
 
-![CI status][1]
+[![CI status][ci_badge]][ci_url]
 
-[1]: https://github.com/git-lfs/git-lfs/workflows/CI/badge.svg
+[ci_badge]: https://github.com/git-lfs/git-lfs/workflows/CI/badge.svg
+[ci_url]: https://github.com/git-lfs/git-lfs/actions?query=workflow%3ACI
 
 [Git LFS](https://git-lfs.github.com) is a command line extension and
 [specification](docs/spec.md) for managing large files with Git.
@@ -56,6 +57,23 @@ running:
 $ git lfs install
 ```
 
+#### Verifying releases
+
+Releases are signed with the OpenPGP key of one of the core team members.  To
+get these keys, you can run the following command, which will print them to
+standard output:
+
+```ShellSession
+$ curl -L https://api.github.com/repos/git-lfs/git-lfs/tarball/core-gpg-keys | tar -Ozxf -
+```
+
+Once you have the keys, you can download the `sha256sums.asc` file and verify
+the file you want like so:
+
+```ShellSession
+$ gpg -d sha256sums.asc | grep git-lfs-linux-amd64-v2.10.0.tar.gz | shasum -a 256 -c
+```
+
 ## Example Usage
 
 To begin using Git LFS within a Git repository that is not already configured
@@ -95,7 +113,7 @@ $ git commit -m "add psd"
 > in your history to use Git LFS, use `git lfs migrate`. For example:
 >
 > ```
-> $ git lfs migrate import --include="*.psd"
+> $ git lfs migrate import --include="*.psd" --everything
 > ```
 >
 > For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/master/docs/man/git-lfs-migrate.1.ronn).
@@ -155,13 +173,15 @@ These are the humans that form the Git LFS core team, which runs the project.
 
 In alphabetical order:
 
-| [@bk2204][bk2204-user] | [@larsxschneider][larsxschneider-user] |
-|---|---|
-| [![][bk2204-img]][bk2204-user] | [![][larsxschneider-img]][larsxschneider-user] |
+| [@bk2204][bk2204-user] | [@chrisd8088][chrisd8088-user] | [@larsxschneider][larsxschneider-user] |
+|---|---|---|
+| [![][bk2204-img]][bk2204-user] | [![][chrisd8088-img]][chrisd8088-user] | [![][larsxschneider-img]][larsxschneider-user] |
 
 [bk2204-img]: https://avatars1.githubusercontent.com/u/497054?s=100&v=4
+[chrisd8088-img]: https://avatars1.githubusercontent.com/u/28857117?s=100&v=4
 [larsxschneider-img]: https://avatars1.githubusercontent.com/u/477434?s=100&v=4
 [bk2204-user]: https://github.com/bk2204
+[chrisd8088-user]: https://github.com/chrisd8088
 [larsxschneider-user]: https://github.com/larsxschneider
 
 ### Alumni

@@ -100,3 +100,32 @@ begin_test "migrate import (--fixup, --no-rewrite)"
   grep -q "fatal: --no-rewrite and --fixup cannot be combined" migrate.log
 )
 end_test
+
+begin_test "migrate import (--fixup with remote tags)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  git lfs uninstall
+
+  base64 < /dev/urandom | head -c 120 > b.txt
+  git add b.txt
+  git commit -m "b.txt"
+
+  git tag -m tag1 -a tag1
+  git reset --hard HEAD^
+
+  git lfs install
+
+  cwd=$(pwd)
+  cd "$TRASHDIR"
+
+  git clone "$cwd" "$reponame-2"
+  cd "$reponame-2"
+
+  # We're checking here that this succeeds even though it does nothing in this
+  # case.
+  git lfs migrate import --fixup --yes master
+)
+end_test

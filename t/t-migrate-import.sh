@@ -439,6 +439,38 @@ EOF)
 )
 end_test
 
+begin_test "migrate import (--exclude with existing .gitattributes)"
+(
+  set -e
+
+  setup_local_branch_with_gitattrs
+
+  pwd
+
+  master="$(git rev-parse refs/heads/master)"
+
+  txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
+
+  git lfs migrate import --yes --include-ref=refs/heads/master --include="*.txt" --exclude="*.bin"
+
+  assert_local_object "$txt_master_oid" "120"
+
+  master="$(git rev-parse refs/heads/master)"
+  prev="$(git rev-parse refs/heads/master^1)"
+
+  diff -u <(git cat-file -p $master:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.other filter=lfs diff=lfs merge=lfs -text
+*.bin !text -filter -merge -diff
+EOF)
+
+  diff -u <(git cat-file -p $prev:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.bin !text -filter -merge -diff
+EOF)
+)
+end_test
+
 begin_test "migrate import (identical contents, different permissions)"
 (
   set -e
@@ -464,6 +496,32 @@ begin_test "migrate import (identical contents, different permissions)"
 
   # Verify we have executable permissions.
   ls -la foo.dat | grep 'rwx'
+)
+end_test
+
+begin_test "migrate import (tags with same name as branches)"
+(
+  set -e
+
+  setup_multiple_local_branches
+  git checkout master
+
+  contents="hello"
+  oid=$(calc_oid "$contents")
+  printf "$contents" >hello.dat
+  git add .
+  git commit -m "add file"
+
+  git branch foo
+  git tag foo
+  git tag bar
+
+  git lfs migrate import --everything --include="*.dat"
+
+  [ "$(git rev-parse refs/heads/foo)" = "$(git rev-parse refs/tags/foo)" ]
+  [ "$(git rev-parse refs/heads/foo)" = "$(git rev-parse refs/tags/bar)" ]
+
+  assert_pointer "refs/heads/foo" hello.dat "$oid" 5
 )
 end_test
 

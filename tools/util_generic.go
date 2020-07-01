@@ -1,4 +1,4 @@
-// +build !linux !cgo
+// +build !linux
 // +build !darwin !cgo
 // +build !windows
 
@@ -20,8 +20,4 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 
 func CloneFileByPath(_, _ string) (bool, error) {
 	return false, nil
-}
-
-func TryRename(oldname, newname string) error {
-	return RenameFileCopyPermissions(oldname, newname)
 }

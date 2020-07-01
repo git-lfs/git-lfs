@@ -33,6 +33,10 @@ commands and low level ("plumbing") commands.
     Display the Git LFS environment.
 * git-lfs-checkout(1):
     Populate working copy with real content from Git LFS files.
+* git-lfs-dedup(1):
+    De-duplicate Git LFS files.
+* git-lfs-ext(1):
+    Display Git LFS extension details.
 * git-lfs-fetch(1):
     Download Git LFS files from a remote.
 * git-lfs-fsck(1):
@@ -75,14 +79,22 @@ commands and low level ("plumbing") commands.
 
 * git-lfs-clean(1):
     Git clean filter that converts large files to pointers.
-* git-lfs-pointer(1):
-    Build and compare pointers.
-* git-lfs-pre-push(1):
-    Git pre-push hook implementation.
 * git-lfs-filter-process(1):
     Git process filter that converts between large files and pointers.
+* git-lfs-pointer(1):
+    Build and compare pointers.
+* git-lfs-post-checkout(1):
+    Git post-checkout hook implementation.
+* git-lfs-post-commit(1):
+    Git post-commit hook implementation.
+* git-lfs-post-merge(1):
+    Git post-merge hook implementation.
+* git-lfs-pre-push(1):
+    Git pre-push hook implementation.
 * git-lfs-smudge(1):
     Git smudge filter that converts pointer in blobs to the actual content.
+* git-lfs-standalone-file(1):
+    Git LFS standalone transfer adapter for file URLs (local paths).
 
 ## EXAMPLES
 

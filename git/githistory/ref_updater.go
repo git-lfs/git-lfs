@@ -79,10 +79,11 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 		return errors.Wrapf(err, "could not decode: %q", ref.Sha)
 	}
 
-	if _, ok := seen[ref.Name]; ok {
+	refspec := ref.Refspec()
+	if _, ok := seen[refspec]; ok {
 		return nil
 	}
-	seen[ref.Name] = struct{}{}
+	seen[refspec] = struct{}{}
 
 	to, ok := r.CacheFn(sha1)
 

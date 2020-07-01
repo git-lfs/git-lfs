@@ -33,6 +33,10 @@ func dedupTestCommand(*cobra.Command, []string) {
 		Exit("This system does not support deduplication. %s", err)
 	}
 
+	if len(cfg.Extensions()) > 0 {
+		Exit("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.")
+	}
+
 	Print("OK: This platform and repository support file de-duplication.")
 }
 
@@ -47,6 +51,10 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {
 		Exit("This system does not support deduplication.")
+	}
+
+	if len(cfg.Extensions()) > 0 {
+		Exit("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.")
 	}
 
 	if dirty, err := git.IsWorkingCopyDirty(); err != nil {

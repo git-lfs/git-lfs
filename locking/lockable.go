@@ -44,10 +44,10 @@ func (c *Client) refreshLockablePatterns() {
 	c.lockablePatterns = make([]string, 0, len(paths))
 	for _, p := range paths {
 		if p.Lockable {
-			c.lockablePatterns = append(c.lockablePatterns, p.Path)
+			c.lockablePatterns = append(c.lockablePatterns, filepath.ToSlash(p.Path))
 		}
 	}
-	c.lockableFilter = filepathfilter.New(c.lockablePatterns, nil)
+	c.lockableFilter = filepathfilter.New(c.lockablePatterns, nil, filepathfilter.DefaultValue(false))
 }
 
 // IsFileLockable returns whether a specific file path is marked as Lockable,

@@ -86,7 +86,6 @@ begin_test "uninstall inside repository with --skip-repo"
 )
 end_test
 
-
 begin_test "uninstall inside repository with default pre-push hook"
 (
   set -e
@@ -174,6 +173,47 @@ begin_test "uninstall hooks inside repository"
 )
 end_test
 
+begin_test "uninstall --local outside repository"
+(
+  set -e
+
+  # If run inside the git-lfs source dir this will update its .git/config & cause issues
+  if [ "$GIT_LFS_TEST_DIR" == "" ]; then
+    echo "Skipping uninstall --local because GIT_LFS_TEST_DIR is not set"
+    exit 0
+  fi
+
+  has_test_dir || exit 0
+
+  set +e
+  git lfs uninstall --local >out.log
+  res=$?
+  set -e
+
+  [ "Not in a git repository." = "$(cat out.log)" ]
+  [ "0" != "$res" ]
+)
+end_test
+
+begin_test "uninstall --local with conflicting scope"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-scope-conflict"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  set +e
+  git lfs uninstall --local --system 2>err.log
+  res=$?
+  set -e
+
+  [ "Only one of --local and --system options can be specified." = "$(cat err.log)" ]
+  [ "0" != "$res" ]
+)
+end_test
+
 begin_test "uninstall --local"
 (
   set -e
@@ -190,8 +230,11 @@ begin_test "uninstall --local"
   git lfs install --local
 
   # local configs are correct
+  [ "git-lfs smudge -- %f" = "$(git config filter.lfs.smudge)" ]
   [ "git-lfs smudge -- %f" = "$(git config --local filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config filter.lfs.clean)" ]
   [ "git-lfs clean -- %f" = "$(git config --local filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config filter.lfs.process)" ]
   [ "git-lfs filter-process" = "$(git config --local filter.lfs.process)" ]
 
   # global configs
@@ -207,8 +250,11 @@ begin_test "uninstall --local"
   grep -v "Global Git LFS configuration has been removed." uninstall.log
 
   # global configs
+  [ "global smudge" = "$(git config filter.lfs.smudge)" ]
   [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config filter.lfs.clean)" ]
   [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config filter.lfs.process)" ]
   [ "global filter" = "$(git config --global filter.lfs.process)" ]
 
   # local configs are empty

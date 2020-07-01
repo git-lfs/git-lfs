@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/git"
 )
 
 const UrlUnknown = "<unknown>"
@@ -107,10 +109,7 @@ func EndpointFromHttpUrl(u *url.URL) Endpoint {
 }
 
 func EndpointFromLocalPath(path string) Endpoint {
-	if !strings.HasSuffix(path, ".git") {
-		path = fmt.Sprintf("%s/.git", path)
-	}
-	return Endpoint{Url: fmt.Sprintf("file://%s", path)}
+	return Endpoint{Url: git.RewriteLocalPathAsURL(path)}
 }
 
 // Construct a new endpoint from a file URL

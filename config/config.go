@@ -268,7 +268,10 @@ func (c *Configuration) PushRemote() string {
 
 func (c *Configuration) SetValidRemote(name string) error {
 	if err := git.ValidateRemote(name); err != nil {
-		return err
+		name := git.RewriteLocalPathAsURL(name)
+		if err := git.ValidateRemote(name); err != nil {
+			return err
+		}
 	}
 	c.SetRemote(name)
 	return nil
@@ -276,7 +279,10 @@ func (c *Configuration) SetValidRemote(name string) error {
 
 func (c *Configuration) SetValidPushRemote(name string) error {
 	if err := git.ValidateRemote(name); err != nil {
-		return err
+		name := git.RewriteLocalPathAsURL(name)
+		if err := git.ValidateRemote(name); err != nil {
+			return err
+		}
 	}
 	c.SetPushRemote(name)
 	return nil
@@ -324,7 +330,14 @@ func (c *Configuration) HookDir() (string, error) {
 	if git.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
-			return tools.ExpandPath(hp, false)
+			path, err := tools.ExpandPath(hp, false)
+			if err != nil {
+				return "", err
+			}
+			if filepath.IsAbs(path) {
+				return path, nil
+			}
+			return filepath.Join(c.LocalWorkingDir(), path), nil
 		}
 	}
 	return filepath.Join(c.LocalGitStorageDir(), "hooks"), nil
@@ -449,6 +462,10 @@ func (c *Configuration) FindGitLocalKey(key string) string {
 	return c.gitConfig.FindLocal(key)
 }
 
+func (c *Configuration) FindGitWorktreeKey(key string) string {
+	return c.gitConfig.FindWorktree(key)
+}
+
 func (c *Configuration) SetGitGlobalKey(key, val string) (string, error) {
 	return c.gitConfig.SetGlobal(key, val)
 }
@@ -461,6 +478,10 @@ func (c *Configuration) SetGitLocalKey(key, val string) (string, error) {
 	return c.gitConfig.SetLocal(key, val)
 }
 
+func (c *Configuration) SetGitWorktreeKey(key, val string) (string, error) {
+	return c.gitConfig.SetWorktree(key, val)
+}
+
 func (c *Configuration) UnsetGitGlobalSection(key string) (string, error) {
 	return c.gitConfig.UnsetGlobalSection(key)
 }
@@ -471,6 +492,10 @@ func (c *Configuration) UnsetGitSystemSection(key string) (string, error) {
 
 func (c *Configuration) UnsetGitLocalSection(key string) (string, error) {
 	return c.gitConfig.UnsetLocalSection(key)
+}
+
+func (c *Configuration) UnsetGitWorktreeSection(key string) (string, error) {
+	return c.gitConfig.UnsetWorktreeSection(key)
 }
 
 func (c *Configuration) UnsetGitLocalKey(key string) (string, error) {

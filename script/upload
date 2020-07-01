@@ -44,7 +44,12 @@ categorize_os () {
 categorize_arch () {
   local arch="$1"
 
-  echo "$arch" | tr a-z A-Z
+  if [ "$arch" = "ppc64le" ]
+  then
+    echo "Little-endian 64-bit PowerPC"
+  else
+    echo "$arch" | tr a-z A-Z
+  fi
 }
 
 # Categorize a release asset and print its human readable name to standard

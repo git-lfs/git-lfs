@@ -126,14 +126,14 @@ func currentRemoteRef() *git.Ref {
 	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).Right()
 }
 
-func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string) *filepathfilter.Filter {
-	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg)
+func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) *filepathfilter.Filter {
+	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
 	return filepathfilter.New(inc, exc)
 }
 
-func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool) {
-	path, _ = cfg.Filesystem().ObjectPath(p.Oid)
-	return p.Name, path, p.Oid, p.Size, false
+func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
+	path, err = cfg.Filesystem().ObjectPath(p.Oid)
+	return p.Name, path, p.Oid, p.Size, false, err
 }
 
 // Get user-readable manual install steps for hooks
@@ -449,14 +449,22 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	}
 }
 
-func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string) (include, exclude []string) {
+func determineIncludeExcludePaths(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) (include, exclude []string) {
 	if includeArg == nil {
-		include = config.FetchIncludePaths()
+		if useFetchOptions {
+			include = config.FetchIncludePaths()
+		} else {
+			include = []string{}
+		}
 	} else {
 		include = tools.CleanPaths(*includeArg, ",")
 	}
 	if excludeArg == nil {
-		exclude = config.FetchExcludePaths()
+		if useFetchOptions {
+			exclude = config.FetchExcludePaths()
+		} else {
+			exclude = []string{}
+		}
 	} else {
 		exclude = tools.CleanPaths(*excludeArg, ",")
 	}

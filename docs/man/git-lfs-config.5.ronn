@@ -83,6 +83,12 @@ be scoped inside the configuration for a remote.
 
   Default: `lfs` in Git repository directory (usually `.git/lfs`).
 
+* `lfs.largefilewarning`
+
+  Warn when a file is 4 GiB or larger. Such files will be corrupted when using
+  Windows (unless smudging is disabled) due to a limitation in Git.  Default:
+  true.
+
 ### Transfer (upload / download) settings
 
   These settings control how the upload and download of LFS content occurs.
@@ -153,6 +159,18 @@ be scoped inside the configuration for a remote.
   transfer as failed. Must be an integer which is at least one. If the value is
   not an integer, is less than one, or is not given, a value of eight will be
   used instead.
+
+* `lfs.transfer.maxretrydelay`
+
+  Specifies the maximum time in seconds LFS will wait between each retry
+  attempt. LFS uses exponential backoff for retries, doubling the time between
+  each retry until reaching this limit. If a server requests a delay using the
+  `Retry-After` header, the header value overrides the exponential delay for
+  that attempt and is not limited by this option.
+  
+  Must be an integer which is not negative. Use zero to disable delays between
+  retries unless requested by a server. If the value is not an integer, is
+  negative, or is not given, a value of ten will be used instead.
 
 * `lfs.transfer.maxverifies`
 
@@ -373,9 +391,6 @@ including and limited to:
 - lfs.locksverify
 - lfs.pushurl
 - lfs.url
-- lfs.extension.{name}.clean
-- lfs.extension.{name}.smudge
-- lfs.extension.{name}.priority
 - remote.{name}.lfsurl
 - lfs.{*}.access
 

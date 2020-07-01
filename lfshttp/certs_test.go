@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/creds"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,6 +48,12 @@ var sslCAInfoMatchedHostTests = []struct {
 	{"git-lfs.local", true},
 	{"git-lfs.local:8443", false},
 	{"wronghost.com", false},
+}
+
+func clientForHost(c *Client, host string) *http.Client {
+	u, _ := url.Parse(fmt.Sprintf("https://%v", host))
+	client, _ := c.HttpClient(u, creds.BasicAccess)
+	return client
 }
 
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
@@ -115,6 +123,53 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	}
 }
 
+func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
+	tempfile, err := ioutil.TempFile("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSL_CAINFO": tempfile.Name(),
+	}, map[string]string{
+		"http.sslbackend": "schannel",
+	}))
+	assert.Nil(t, err)
+
+	// Should match any host at all
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		assert.Nil(t, pool)
+	}
+}
+
+func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
+	tempfile, err := ioutil.TempFile("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"GIT_SSL_CAINFO": tempfile.Name(),
+	}, map[string]string{
+		"http.sslbackend":           "schannel",
+		"http.schannelusesslcainfo": "1",
+	}))
+	assert.Nil(t, err)
+
+	// Should match any host at all
+	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
+		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		assert.NotNil(t, pool)
+	}
+}
+
 func TestCertFromSSLCAPathConfig(t *testing.T) {
 	tempdir, err := ioutil.TempDir("", "testcertdir")
 	assert.Nil(t, err, "Error creating temp cert dir")
@@ -158,7 +213,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 
 func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 	empty, _ := NewClient(nil)
-	httpClient := empty.HttpClient("anyhost.com")
+	httpClient := clientForHost(empty, "anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -170,7 +225,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	httpClient = c.HttpClient("anyhost.com")
+	httpClient = clientForHost(c, "anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -179,7 +234,7 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 
 func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 	def, _ := NewClient(nil)
-	httpClient := def.HttpClient("anyhost.com")
+	httpClient := clientForHost(def, "anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -190,7 +245,7 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 	}))
 	assert.Nil(t, err)
 
-	httpClient = c.HttpClient("anyhost.com")
+	httpClient = clientForHost(c, "anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -199,13 +254,13 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 
 func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	def, _ := NewClient(nil)
-	httpClient := def.HttpClient("specifichost.com")
+	httpClient := clientForHost(def, "specifichost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	httpClient = def.HttpClient("otherhost.com")
+	httpClient = clientForHost(def, "otherhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
@@ -216,13 +271,13 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	}))
 	assert.Nil(t, err)
 
-	httpClient = c.HttpClient("specifichost.com")
+	httpClient = clientForHost(c, "specifichost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	httpClient = c.HttpClient("otherhost.com")
+	httpClient = clientForHost(c, "otherhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
