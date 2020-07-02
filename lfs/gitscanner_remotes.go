@@ -15,30 +15,22 @@ func calcSkippedRefs(remote string) []string {
 	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote)
 	actualRemoteRefs, _ := git.RemoteRefs(remote)
 
+	// The set of remote refs can be very large. Since CachedRemoteRefs only
+	// returns branches, filter the remote refs and convert them to a set for
+	// faster lookups in the skip calculation loop.
+	actualRemoteBranchRefs := tools.NewStringSet()
+	for _, ref := range actualRemoteRefs {
+		if ref.Type == git.RefTypeRemoteBranch {
+			actualRemoteBranchRefs.Add(ref.Name)
+		}
+	}
+
 	// Only check for missing refs on remote; if the ref is different it has moved
 	// forward probably, and if not and the ref has changed to a non-descendant
 	// (force push) then that will cause a re-evaluation in a subsequent command.
-	missingRefs := tools.NewStringSet()
+	var skippedRefs []string
 	for _, cachedRef := range cachedRemoteRefs {
-		found := false
-		for _, realRemoteRef := range actualRemoteRefs {
-			if cachedRef.Type == realRemoteRef.Type && cachedRef.Name == realRemoteRef.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			missingRefs.Add(cachedRef.Name)
-		}
-	}
-
-	if len(missingRefs) == 0 {
-		return nil
-	}
-
-	skippedRefs := make([]string, 0, len(cachedRemoteRefs)-missingRefs.Cardinality())
-	for _, cachedRef := range cachedRemoteRefs {
-		if !missingRefs.Contains(cachedRef.Name) {
+		if actualRemoteBranchRefs.Contains(cachedRef.Name) {
 			skippedRefs = append(skippedRefs, "^"+cachedRef.Sha)
 		}
 	}
