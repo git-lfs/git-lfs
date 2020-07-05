@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	lfserrors "github.com/git-lfs/git-lfs/errors"
@@ -685,9 +686,13 @@ func GitAndRootDirs() (string, string, error) {
 		// If we got a fatal error, it's possible we're on a newer
 		// (2.24+) Git and we're not in a worktree, so fall back to just
 		// looking up the repo directory.
-		if e, ok := err.(*exec.ExitError); ok && e.ProcessState.ExitCode() == 128 {
-			absGitDir, err := GitDir()
-			return absGitDir, "", err
+		if e, ok := err.(*exec.ExitError); ok {
+			var ws syscall.WaitStatus
+			ws, ok = e.ProcessState.Sys().(syscall.WaitStatus)
+			if ok && ws.ExitStatus() == 128 {
+				absGitDir, err := GitDir()
+				return absGitDir, "", err
+			}
 		}
 		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
