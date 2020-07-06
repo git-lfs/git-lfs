@@ -1091,20 +1091,30 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
 
-	r := regexp.MustCompile(fmt.Sprintf(`([0-9a-fA-F]{40})\s+refs/remotes/%v/(.*)`, remoteName))
+	refPrefix := fmt.Sprintf("refs/remotes/%v/", remoteName)
 	for scanner.Scan() {
-		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
-			name := strings.TrimSpace(match[2])
+		if sha, name, ok := parseShowRefLine(refPrefix, scanner.Text()); ok {
 			// Don't match head
 			if name == "HEAD" {
 				continue
 			}
-
-			sha := match[1]
 			ret = append(ret, &Ref{name, RefTypeRemoteBranch, sha})
 		}
 	}
 	return ret, cmd.Wait()
+}
+
+func parseShowRefLine(refPrefix, line string) (sha, name string, ok bool) {
+	// line format: <sha> <space> <ref>
+	space := strings.IndexByte(line, ' ')
+	if space < 0 {
+		return "", "", false
+	}
+	ref := line[space+1:]
+	if !strings.HasPrefix(ref, refPrefix) {
+		return "", "", false
+	}
+	return line[:space], strings.TrimSpace(ref[len(refPrefix):]), true
 }
 
 // Fetch performs a fetch with no arguments against the given remotes.
@@ -1136,24 +1146,44 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
 
-	r := regexp.MustCompile(`([0-9a-fA-F]{40})\s+refs/(heads|tags)/(.*)`)
 	for scanner.Scan() {
-		if match := r.FindStringSubmatch(scanner.Text()); match != nil {
-			name := strings.TrimSpace(match[3])
+		if sha, ns, name, ok := parseLsRemoteLine(scanner.Text()); ok {
 			// Don't match head
 			if name == "HEAD" {
 				continue
 			}
 
-			sha := match[1]
 			typ := RefTypeRemoteBranch
-			if match[2] == "tags" {
+			if ns == "tags" {
 				typ = RefTypeRemoteTag
 			}
 			ret = append(ret, &Ref{name, typ, sha})
 		}
 	}
 	return ret, cmd.Wait()
+}
+
+func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
+	const headPrefix = "refs/heads/"
+	const tagPrefix = "refs/tags/"
+
+	// line format: <sha> <tab> <ref>
+	tab := strings.IndexByte(line, '\t')
+	if tab < 0 {
+		return "", "", "", false
+	}
+	ref := line[tab+1:]
+	switch {
+	case strings.HasPrefix(ref, headPrefix):
+		ns = "heads"
+		name = ref[len(headPrefix):]
+	case strings.HasPrefix(ref, tagPrefix):
+		ns = "tags"
+		name = ref[len(tagPrefix):]
+	default:
+		return "", "", "", false
+	}
+	return line[:tab], ns, strings.TrimSpace(name), true
 }
 
 // AllRefs returns a slice of all references in a Git repository in the current
