@@ -14,6 +14,26 @@ type Cmd struct {
 	pipes []io.Closer
 }
 
+func (c *Cmd) Run() error {
+	c.trace()
+	return c.Cmd.Run()
+}
+
+func (c *Cmd) Start() error {
+	c.trace()
+	return c.Cmd.Start()
+}
+
+func (c *Cmd) Output() ([]byte, error) {
+	c.trace()
+	return c.Cmd.Output()
+}
+
+func (c *Cmd) CombinedOutput() ([]byte, error) {
+	c.trace()
+	return c.Cmd.CombinedOutput()
+}
+
 func (c *Cmd) StdoutPipe() (io.ReadCloser, error) {
 	stdout, err := c.Cmd.StdoutPipe()
 	c.pipes = append(c.pipes, stdout)
@@ -38,6 +58,14 @@ func (c *Cmd) Wait() error {
 	}
 
 	return c.Cmd.Wait()
+}
+
+func (c *Cmd) trace() {
+	if len(c.Args) > 0 {
+		Trace(c.Args[0], c.Args[1:]...)
+	} else {
+		Trace(c.Path)
+	}
 }
 
 func newCmd(cmd *exec.Cmd) *Cmd {
