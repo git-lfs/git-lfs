@@ -29,13 +29,13 @@ begin_test "prune unreferenced and old"
 
   # Remember for something to be 'too old' it has to appear on the MINUS side
   # of the diff outside the prune window, i.e. it's not when it was introduced
-  # but when it disappeared from relevance. That's why changes to file1.dat on master
+  # but when it disappeared from relevance. That's why changes to file1.dat on main
   # from 7d ago are included even though the commit itself is outside of the window,
   # that content of file1.dat was relevant until it was removed with a commit, inside the window
   # think of it as windows of relevance that overlap until the content is replaced
 
-  # we also make sure we commit today on master so that the recent commits measured
-  # from latest commit on master tracks back from there
+  # we also make sure we commit today on main so that the recent commits measured
+  # from latest commit on main tracks back from there
   echo "[
   {
     \"CommitDate\":\"$(get_date -20d)\",
@@ -55,13 +55,13 @@ begin_test "prune unreferenced and old"
       {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"old.dat\",\"Size\":${#content_retain2}, \"Data\":\"$content_retain2\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
   git branch -D branch_to_delete
 
   git config lfs.fetchrecentrefsdays 5
@@ -134,7 +134,7 @@ begin_test "prune keep unpushed"
   },
   {
     \"CommitDate\":\"$(get_date -31d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch_unpushed\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch1}, \"Data\":\"$content_keepunpushedbranch1\"}]
@@ -151,7 +151,7 @@ begin_test "prune keep unpushed"
   },
   {
     \"CommitDate\":\"$(get_date -21d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedhead2}, \"Data\":\"$content_keepunpushedhead2\"}]
   },
@@ -169,8 +169,8 @@ begin_test "prune keep unpushed"
 
   git lfs prune
 
-  # Now push master and show that older versions on master will be removed
-  git push origin master
+  # Now push main and show that older versions on main will be removed
+  git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
   grep "prune: 6 local object(s), 4 retained" prune.log
@@ -180,13 +180,13 @@ begin_test "prune keep unpushed"
   refute_local_object "$oid_keepunpushedhead1"
   refute_local_object "$oid_keepunpushedhead2"
 
-  # MERGE the secondary branch, delete the branch then push master, then make sure
+  # MERGE the secondary branch, delete the branch then push main, then make sure
   # we delete the intermediate commits but also make sure they're on server
   # resolve conflicts by taking other branch
   git merge -Xtheirs branch_unpushed
   git branch -D branch_unpushed
   git lfs prune --dry-run
-  git push origin master
+  git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
   grep "prune: 4 local object(s), 1 retained" prune.log
@@ -270,7 +270,7 @@ begin_test "prune keep recent"
   },
   {
     \"CommitDate\":\"$(get_date -9d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch1\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch1}, \"Data\":\"$content_prunecommitbranch1\"}]
@@ -287,7 +287,7 @@ begin_test "prune keep recent"
   },
   {
     \"CommitDate\":\"$(get_date -17d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch2\",
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_prunecommitbranch2}, \"Data\":\"$content_prunecommitbranch2\"}]
@@ -304,7 +304,7 @@ begin_test "prune keep recent"
   },
   {
     \"CommitDate\":\"$(get_date -1d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file.dat\",\"Size\":${#content_keephead}, \"Data\":\"$content_keephead\"}]
   }
@@ -317,7 +317,7 @@ begin_test "prune keep recent"
   git config lfs.pruneoffsetdays 1
 
   # push everything so that's not a reason to retain
-  git push origin master:master branch_old:branch_old branch1:branch1 branch2:branch2
+  git push origin main:main branch_old:branch_old branch1:branch1 branch2:branch2
 
 
   git lfs prune --verbose 2>&1 | tee prune.log
@@ -417,7 +417,7 @@ begin_test "prune remote tests"
   setup_remote_repo "remote2_$reponame"
   cd "$TRASHDIR/$reponame"
   git remote add not_origin "$GITSERVER/remote1_$reponame"
-  git push not_origin master
+  git push not_origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
   grep "prune: 4 local object(s), 4 retained, done." prune.log
@@ -480,7 +480,7 @@ begin_test "prune verify"
   ]" | lfstest-testutils addcommits
 
   # push all so no unpushed reason to not prune
-  git push origin master
+  git push origin main
 
   # set no recents so max ability to prune normally
   git config lfs.fetchrecentrefsdays 0
@@ -574,14 +574,14 @@ begin_test "prune verify large numbers of refs"
   ]" | lfstest-testutils addcommits
 
   # Generate a large number of refs to old commits make sure prune has a lot of data to read
-  git checkout $(git log --pretty=oneline  master | tail -2 | awk '{print $1}' | head -1)
+  git checkout $(git log --pretty=oneline  main | tail -2 | awk '{print $1}' | head -1)
   for i in $(seq 0 1000); do
     git tag v$i
   done
-  git checkout master
+  git checkout main
 
   # push all so no unpushed reason to not prune
-  # git push origin master
+  # git push origin main
 
   # set no recents so max ability to prune normally
   git config lfs.fetchrecentrefsdays 3

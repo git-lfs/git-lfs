@@ -26,7 +26,7 @@ begin_test "malformed pointers"
     add *.dat
   git commit -m "add malformed pointer"
 
-  git push origin master
+  git push origin main
 
   pushd .. >/dev/null
     clone_repo "$reponame" "$reponame-assert"
@@ -78,7 +78,7 @@ begin_test "empty pointers"
   [ "0" -eq "$(git cat-file -p :empty.dat | wc -c)" ]
   [ "0" -eq "$(wc -c < empty.dat)" ]
 
-  git push origin master
+  git push origin main
 
   pushd .. >/dev/null
     clone_repo "$reponame" "$reponame-assert"

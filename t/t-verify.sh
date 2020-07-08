@@ -22,7 +22,7 @@ begin_test "verify with retries"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
   grep "Authorization: Basic * * * * *" push.log
 
@@ -51,7 +51,7 @@ begin_test "verify with retries (success without retry)"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
   grep "Authorization: Basic * * * * *" push.log
 
@@ -81,7 +81,7 @@ begin_test "verify with retries (insufficient retries)"
   git commit -m "add a.dat"
 
   set +e
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "verify: expected \"git push\" to fail, didn't ..."
     exit 1
@@ -115,7 +115,7 @@ begin_test "verify with retries (bad .gitconfig)"
   git add a.dat
   git commit -m "add a.dat"
 
-  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
   grep "Authorization: Basic * * * * *" push.log
 

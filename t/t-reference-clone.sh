@@ -38,7 +38,7 @@ begin_test "clone with reference"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1
-  git push origin master
+  git push origin main
 
   delete_server_object "$reponame" "$oid"
 
@@ -49,7 +49,7 @@ begin_test "clone with reference"
 
   cd "$TRASHDIR/$repo"
 
-  assert_pointer "master" "a.dat" "$oid" 1
+  assert_pointer "main" "a.dat" "$oid" 1
   assert_same_inode "$repo_dir" "$ref_repo_dir" "$oid"
 )
 end_test
@@ -79,15 +79,15 @@ begin_test "fetch from clone reference"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1
-  git push origin master
+  git push origin main
 
   delete_server_object "$reponame" "$oid"
 
   cd "$repo_dir"
-  GIT_LFS_SKIP_SMUDGE=1 git pull
+  GIT_LFS_SKIP_SMUDGE=1 git pull origin main
   git lfs pull
 
-  assert_pointer "master" "a.dat" "$oid" 1
+  assert_pointer "main" "a.dat" "$oid" 1
   assert_same_inode "$TRASHDIR/$repo" "$TRASHDIR/$ref_repo" "$oid"
 )
 end_test

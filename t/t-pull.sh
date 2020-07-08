@@ -29,7 +29,7 @@ begin_test "pull"
   printf "%s" "$contents3" > dir/dir.dat
   git add .
   git commit -m "add files" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -39,18 +39,18 @@ begin_test "pull"
   [ "A" = "$(cat "á.dat")" ]
   [ "dir" = "$(cat "dir/dir.dat")" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
-  assert_pointer "master" "á.dat" "$contents2_oid" 1
-  assert_pointer "master" "dir/dir.dat" "$contents3_oid" 3
+  assert_pointer "main" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "á.dat" "$contents2_oid" 1
+  assert_pointer "main" "dir/dir.dat" "$contents3_oid" 3
 
   refute_server_object "$reponame" "$contents_oid"
   refute_server_object "$reponame" "$contents2_oid"
   refute_server_object "$reponame" "$contents33oid"
 
   echo "initial push"
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (3/3), 5 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
   assert_server_object "$reponame" "$contents_oid"
   assert_server_object "$reponame" "$contents2_oid"
@@ -60,6 +60,8 @@ begin_test "pull"
   cd ../clone
 
   echo "normal pull"
+  git config branch.main.remote origin
+  git config branch.main.merge refs/heads/main
   git pull 2>&1
 
   [ "a" = "$(cat a.dat)" ]
@@ -201,7 +203,7 @@ begin_test "pull with raw remote url"
   git lfs install --local --skip-smudge
 
   git remote add origin $GITSERVER/t-pull
-  git pull origin master
+  git pull origin main
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -230,7 +232,7 @@ begin_test "pull with multiple remotes"
 
   git remote add origin "$GITSERVER/t-pull"
   git remote add bad-remote "invalid-url"
-  git pull origin master
+  git pull origin main
 
   contents="a"
   contents_oid=$(calc_oid "$contents")
@@ -259,7 +261,7 @@ begin_test "pull with invalid insteadof"
   git lfs install --local --skip-smudge
 
   git remote add origin "$GITSERVER/t-pull"
-  git pull origin master
+  git pull origin main
 
   # set insteadOf to rewrite the href of downloading LFS object.
   git config url."$GITSERVER/storage/invalid".insteadOf "$GITSERVER/storage/"
@@ -296,6 +298,8 @@ begin_test "pull: with missing object"
   refute_server_object "$reponame" "$contents_oid"
 
   # should return non-zero, but should also download all the other valid files too
+  git config branch.main.remote origin
+  git config branch.main.merge refs/heads/main
   git lfs pull 2>&1 | tee pull.log
   pull_exit="${PIPESTATUS[0]}"
   [ "$pull_exit" != "0" ]

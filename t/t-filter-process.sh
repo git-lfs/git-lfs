@@ -50,10 +50,10 @@ begin_test "filter process: checking out a branch"
 
     cd "$reponame-assert"
 
-    # Assert that we are on the "master" branch, and have a.dat
-    [ "master" = "$(git rev-parse --abbrev-ref HEAD)" ]
+    # Assert that we are on the "main" branch, and have a.dat
+    [ "main" = "$(git rev-parse --abbrev-ref HEAD)" ]
     [ "$contents_a" = "$(cat a.dat)" ]
-    assert_pointer "master" "a.dat" "$contents_a_oid" 10
+    assert_pointer "main" "a.dat" "$contents_a_oid" 10
 
     git checkout b
 

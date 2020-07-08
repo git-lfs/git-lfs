@@ -18,7 +18,7 @@ begin_test "alternates (single)"
   alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
   echo "$(native_path "$alternate")" > .git/objects/info/alternates
 
-  GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
+  GIT_TRACE=1 git lfs fetch origin main 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
 )
 end_test
@@ -45,7 +45,7 @@ begin_test "alternates (multiple)"
   echo "$(native_path "$alternate")" > .git/objects/info/alternates
   echo "$(native_path "$alternate_stale")" >> .git/objects/info/alternates
 
-  GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
+  GIT_TRACE=1 git lfs fetch origin main 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
 )
 end_test
@@ -66,7 +66,7 @@ begin_test "alternates (commented)"
   alternate="$TRASHDIR/${reponame}_alternate/.git/objects"
   echo "# $alternate" > .git/objects/info/alternates
 
-  GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
+  GIT_TRACE=1 git lfs fetch origin main 2>&1 | tee fetch.log
   [ "1" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
 )
 end_test
@@ -91,7 +91,7 @@ begin_test "alternates (quoted)"
   alternate=$(native_path "$TRASHDIR/${reponame}_alternate/.git/objects" | sed -e 's,\\,/,g')
   echo "\"$alternate\"" > .git/objects/info/alternates
 
-  GIT_TRACE=1 git lfs fetch origin master 2>&1 | tee fetch.log
+  GIT_TRACE=1 git lfs fetch origin main 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
 )
 end_test
@@ -115,10 +115,10 @@ begin_test "alternates (OS environment, single)"
 
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate" \
   GIT_TRACE=1 \
-    git lfs fetch origin master 2>&1 | tee fetch.log
+    git lfs fetch origin main 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate" \
-    git lfs push "$(git config remote.origin.url)" master
+    git lfs push "$(git config remote.origin.url)" main
 )
 end_test
 
@@ -147,9 +147,9 @@ begin_test "alternates (OS environment, multiple)"
 
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate_stale$sep$alternate" \
   GIT_TRACE=1 \
-    git lfs fetch origin master 2>&1 | tee fetch.log
+    git lfs fetch origin main 2>&1 | tee fetch.log
   [ "0" -eq "$(grep -c "sending batch of size 1" fetch.log)" ]
   GIT_ALTERNATE_OBJECT_DIRECTORIES="$alternate_stale$sep$alternate" \
-    git lfs push "$(git config remote.origin.url)" master
+    git lfs push "$(git config remote.origin.url)" main
 )
 end_test

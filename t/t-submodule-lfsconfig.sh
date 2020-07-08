@@ -25,7 +25,7 @@ begin_test "submodule env with .lfsconfig"
   printf "%s" "$submodcontent" > dir/test.dat
   git add .lfsconfig .gitattributes dir
   git commit -m "create submodule"
-  git push origin master
+  git push origin main
 
   assert_server_object "$lfsname" "$submodoid"
 
@@ -33,7 +33,7 @@ begin_test "submodule env with .lfsconfig"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo
   git config -f .lfsconfig lfs.url "$GITSERVER/$lfsname.git/info/lfs"
-  git submodule add "$GITSERVER/$submodname" sub
+  git submodule add -b main "$GITSERVER/$submodname" sub
   git submodule update
   git lfs track "*.dat"
   mkdir dir
@@ -42,7 +42,7 @@ begin_test "submodule env with .lfsconfig"
   printf "%s" "$repocontent" > dir/test.dat
   git add .gitattributes .lfsconfig .gitmodules dir sub
   git commit -m "create repo"
-  git push origin master
+  git push origin main
 
   assert_server_object "$lfsname" "$repooid"
 

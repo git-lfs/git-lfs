@@ -40,7 +40,7 @@ begin_test "status"
   file_3_new_oid_short="$(echo "$file_3_new_oid" | head -c 7)"
   printf "%s" "$file_3_new" > file3.dat
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -135,7 +135,7 @@ begin_test "status in a sub-directory"
 
   printf "ASDF" > file.dat
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -243,7 +243,7 @@ begin_test "status shows multiple copies of partially staged files"
   contents_2_oid_short="$(echo "$contents_2_oid" | head -c 7)"
   printf "%s" "$contents_2" > a.dat
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -285,7 +285,7 @@ begin_test "status: LFS to LFS change"
   printf "%s" "$contents_new" > a.dat
   git add a.dat
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -325,7 +325,7 @@ begin_test "status: Git to LFS change"
   printf "%s" "$contents_new" > a.dat
   git add a.dat
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -358,7 +358,7 @@ begin_test "status: Git to LFS conversion"
   git add .gitattributes
   git commit -m "track *.dat"
 
-  git push origin master
+  git push origin main
 
   pushd "$TRASHDIR" > /dev/null
     clone_repo "$reponame" "$reponame-2"
@@ -371,8 +371,8 @@ begin_test "status: Git to LFS conversion"
       exit 1
     fi
 
-    expected="On branch master
-Objects to be pushed to origin/master:
+    expected="On branch main
+Objects to be pushed to origin/main:
 
 
 Objects to be committed:
@@ -426,7 +426,7 @@ begin_test "status (unpushed objects)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git push origin master
+  git push -u origin main
 
   contents="a"
   oid="$(calc_oid "$contents")"
@@ -435,8 +435,8 @@ begin_test "status (unpushed objects)"
   git add a.dat
   git commit -m "add a large file"
 
-  expected="On branch master
-Objects to be pushed to origin/master:
+  expected="On branch main
+Objects to be pushed to origin/main:
 
 	a.dat ($oid)
 
@@ -477,7 +477,7 @@ begin_test "status (deleted files)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  git push origin master
+  git push -u origin main
 
   contents="a"
   oid="$(calc_oid "$contents")"
@@ -489,8 +489,8 @@ begin_test "status (deleted files)"
 
   git rm a.dat
 
-  expected="On branch master
-Objects to be pushed to origin/master:
+  expected="On branch main
+Objects to be pushed to origin/main:
 
 	a.dat ($oid)
 
@@ -536,7 +536,7 @@ begin_test "status (file to dir)"
   git reset HEAD~
   git add test
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 
@@ -582,7 +582,7 @@ begin_test "status: permission change"
     exit 1
   fi
 
-  expected="On branch master
+  expected="On branch main
 
 Objects to be committed:
 

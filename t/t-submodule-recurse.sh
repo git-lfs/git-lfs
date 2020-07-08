@@ -19,13 +19,13 @@ begin_test "submodule with submodule.recurse = true"
   echo "foo" > file.dat
   git add .gitattributes file.dat
   git commit -a -m "add file"
-  git push origin master
+  git push origin main
   subcommit1=$(git rev-parse HEAD)
 
   echo "bar" > file.dat
   git add file.dat
   git commit -a -m "update file"
-  git push origin master
+  git push origin main
   subcommit2=$(git rev-parse HEAD)
 
   clone_repo "$reponame" repo
@@ -34,7 +34,7 @@ begin_test "submodule with submodule.recurse = true"
   git -C submodule reset --hard "$subcommit1"
   git add .gitmodules submodule
   git commit -m "add submodule"
-  git push origin master
+  git push origin main
 
   git checkout -b feature
   git -C submodule reset --hard "$subcommit2"

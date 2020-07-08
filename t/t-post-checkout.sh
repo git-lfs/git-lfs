@@ -53,14 +53,14 @@ begin_test "post-checkout"
 
   # skipped setting read-only above to make bulk load simpler (no read-only issues)
 
-  git push -u origin master branch2
+  git push -u origin main branch2
 
   # re-clone the repo so we start fresh
   cd ..
   rm -rf "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  # this will be master
+  # this will be main
 
   [ "$(cat file1.dat)" == "file 1 updated commit 2" ]
   [ "$(cat file2.dat)" == "file 2 updated commit 3" ]
@@ -168,14 +168,14 @@ begin_test "post-checkout with subdirectories"
 
   # skipped setting read-only above to make bulk load simpler (no read-only issues)
 
-  git push -u origin master branch2
+  git push -u origin main branch2
 
   # re-clone the repo so we start fresh
   cd ..
   rm -rf "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  # this will be master
+  # this will be main
 
   [ "$(cat bin/file1.dat)" == "file 1 updated commit 2" ]
   [ "$(cat bin/file2.dat)" == "file 2 updated commit 3" ]

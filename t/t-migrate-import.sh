@@ -15,21 +15,21 @@ begin_test "migrate import (default branch)"
 
   git lfs migrate import
 
-  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
 
   assert_local_object "$md_oid" "140"
   assert_local_object "$txt_oid" "120"
   refute_local_object "$md_feature_oid" "30"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   [ ! $(git cat-file -p "$feature:.gitattributes") ]
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 
   # Ensure that hooks are installed. If we find 'git-lfs' somewhere in
   # .git/hooks/pre-push we assume that the rest went correctly, too.
@@ -61,21 +61,21 @@ begin_test "migrate import (given branch)"
 
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
   assert_pointer "refs/heads/my-feature" "a.txt" "$txt_oid" "120"
-  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
 
   assert_local_object "$md_oid" "140"
   assert_local_object "$md_feature_oid" "30"
   assert_local_object "$txt_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
@@ -93,20 +93,20 @@ begin_test "migrate import (default branch with filter)"
 
   git lfs migrate import --include "*.md"
 
-  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
 
   assert_local_object "$md_oid" "140"
   refute_local_object "$txt_oid" "120"
   refute_local_object "$md_feature_oid" "30"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   [ ! $(git cat-file -p "$feature:.gitattributes") ]
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
 
@@ -129,14 +129,14 @@ begin_test "migrate import (given branch with filter)"
   assert_local_object "$md_feature_oid" "30"
   refute_local_object "$txt_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
 )
@@ -148,29 +148,29 @@ begin_test "migrate import (default branch, exclude remote refs)"
 
   setup_single_remote_branch
 
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
-  md_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  txt_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
+  md_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  txt_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
 
   git lfs migrate import
 
-  assert_pointer "refs/heads/master" "a.md" "$md_oid" "50"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "30"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "50"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "30"
 
   assert_local_object "$md_oid" "50"
   assert_local_object "$txt_oid" "30"
   refute_local_object "$md_remote_oid" "140"
   refute_local_object "$txt_remote_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
-  remote="$(git rev-parse refs/remotes/origin/master)"
+  main="$(git rev-parse refs/heads/main)"
+  remote="$(git rev-parse refs/remotes/origin/main)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   [ ! $(git cat-file -p "$remote:.gitattributes") ]
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
 
@@ -180,37 +180,37 @@ begin_test "migrate import (given branch, exclude remote refs)"
 
   setup_multiple_remote_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
   git lfs migrate import my-feature
 
-  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "21"
+  assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "21"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "20"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "20"
   assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30"
 
   assert_local_object "$md_feature_oid" "31"
-  assert_local_object "$md_master_oid" "21"
+  assert_local_object "$md_main_oid" "21"
   assert_local_object "$txt_feature_oid" "30"
-  assert_local_object "$txt_master_oid" "20"
+  assert_local_object "$txt_main_oid" "20"
   refute_local_object "$md_remote_oid" "11"
   refute_local_object "$txt_remote_oid" "10"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
-  remote="$(git rev-parse refs/remotes/origin/master)"
+  remote="$(git rev-parse refs/remotes/origin/main)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   [ ! $(git cat-file -p "$remote:.gitattributes") ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
 )
@@ -222,36 +222,36 @@ begin_test "migrate import (given ref, --skip-fetch)"
 
   setup_single_remote_branch
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
 
-  git tag pseudo-remote "$(git rev-parse refs/remotes/origin/master)"
-  # Remove the refs/remotes/origin/master ref, and instruct 'git lfs migrate' to
+  git tag pseudo-remote "$(git rev-parse refs/remotes/origin/main)"
+  # Remove the refs/remotes/origin/main ref, and instruct 'git lfs migrate' to
   # not fetch it.
-  git update-ref -d refs/remotes/origin/master
+  git update-ref -d refs/remotes/origin/main
 
   git lfs migrate import --skip-fetch
 
-  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "50"
+  assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "50"
   assert_pointer "pseudo-remote" "a.md" "$md_remote_oid" "140"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "30"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "30"
   assert_pointer "pseudo-remote" "a.txt" "$txt_remote_oid" "120"
 
-  assert_local_object "$md_master_oid" "50"
-  assert_local_object "$txt_master_oid" "30"
+  assert_local_object "$md_main_oid" "50"
+  assert_local_object "$txt_main_oid" "30"
   assert_local_object "$md_remote_oid" "140"
   assert_local_object "$txt_remote_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   remote="$(git rev-parse pseudo-remote)"
 
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
   remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
 
-  echo "$master_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
   echo "$remote_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$remote_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
@@ -263,12 +263,12 @@ begin_test "migrate import (un-annotated tags)"
 
   setup_single_local_branch_with_tags
 
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
 
   git lfs migrate import --everything
 
-  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "2"
-  assert_local_object "$txt_master_oid" "2"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "2"
+  assert_local_object "$txt_main_oid" "2"
 
   git tag --points-at "$(git rev-parse HEAD)" | grep -q "v1.0.0"
 )
@@ -280,12 +280,12 @@ begin_test "migrate import (annotated tags)"
 
   setup_single_local_branch_with_annotated_tags
 
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
 
   git lfs migrate import --everything
 
-  assert_pointer "refs/heads/master" "a.txt" "$txt_master_oid" "2"
-  assert_local_object "$txt_master_oid" "2"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "2"
+  assert_local_object "$txt_main_oid" "2"
 
   git tag --points-at "$(git rev-parse HEAD)" | grep -q "v1.0.0"
 )
@@ -297,32 +297,32 @@ begin_test "migrate import (include/exclude ref)"
 
   setup_multiple_remote_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
   git lfs migrate import \
     --include-ref=refs/heads/my-feature \
-    --exclude-ref=refs/heads/master
+    --exclude-ref=refs/heads/main
 
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
   assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30"
 
   assert_local_object "$md_feature_oid" "31"
-  refute_local_object "$md_master_oid" "21"
+  refute_local_object "$md_main_oid" "21"
   assert_local_object "$txt_feature_oid" "30"
-  refute_local_object "$txt_master_oid" "20"
+  refute_local_object "$txt_main_oid" "20"
   refute_local_object "$md_remote_oid" "11"
   refute_local_object "$txt_remote_oid" "10"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
-  remote="$(git rev-parse refs/remotes/origin/master)"
+  remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$master:.gitattributes") ]
+  [ ! $(git cat-file -p "$main:.gitattributes") ]
   [ ! $(git cat-file -p "$remote:.gitattributes") ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
@@ -337,30 +337,30 @@ begin_test "migrate import (include/exclude ref args)"
 
   setup_multiple_remote_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
-  git lfs migrate import my-feature ^master
+  git lfs migrate import my-feature ^main
 
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "31"
   assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30"
 
   assert_local_object "$md_feature_oid" "31"
-  refute_local_object "$md_master_oid" "21"
+  refute_local_object "$md_main_oid" "21"
   assert_local_object "$txt_feature_oid" "30"
-  refute_local_object "$txt_master_oid" "20"
+  refute_local_object "$txt_main_oid" "20"
   refute_local_object "$md_remote_oid" "11"
   refute_local_object "$txt_remote_oid" "10"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
-  remote="$(git rev-parse refs/remotes/origin/master)"
+  remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$master:.gitattributes") ]
+  [ ! $(git cat-file -p "$main:.gitattributes") ]
   [ ! $(git cat-file -p "$remote:.gitattributes") ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
@@ -375,32 +375,32 @@ begin_test "migrate import (include/exclude ref with filter)"
 
   setup_multiple_remote_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.md")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  md_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.md")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
-  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  txt_remote_oid="$(calc_oid "$(git cat-file -p "refs/remotes/origin/main:a.txt")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
   git lfs migrate import \
     --include="*.txt" \
     --include-ref=refs/heads/my-feature \
-    --exclude-ref=refs/heads/master
+    --exclude-ref=refs/heads/main
 
   assert_pointer "refs/heads/my-feature" "a.txt" "$txt_feature_oid" "30"
 
   refute_local_object "$md_feature_oid" "31"
-  refute_local_object "$md_master_oid" "21"
+  refute_local_object "$md_main_oid" "21"
   assert_local_object "$txt_feature_oid" "30"
-  refute_local_object "$txt_master_oid" "20"
+  refute_local_object "$txt_main_oid" "20"
   refute_local_object "$md_remote_oid" "11"
   refute_local_object "$txt_remote_oid" "10"
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
   feature="$(git rev-parse refs/heads/my-feature)"
-  remote="$(git rev-parse refs/remotes/origin/master)"
+  remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$master:.gitattributes") ]
+  [ ! $(git cat-file -p "$main:.gitattributes") ]
   [ ! $(git cat-file -p "$remote:.gitattributes") ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
@@ -417,18 +417,18 @@ begin_test "migrate import (existing .gitattributes)"
 
   pwd
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
 
-  txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "$main:a.txt")")"
 
-  git lfs migrate import --yes --include-ref=refs/heads/master --include="*.txt"
+  git lfs migrate import --yes --include-ref=refs/heads/main --include="*.txt"
 
-  assert_local_object "$txt_master_oid" "120"
+  assert_local_object "$txt_main_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
-  prev="$(git rev-parse refs/heads/master^1)"
+  main="$(git rev-parse refs/heads/main)"
+  prev="$(git rev-parse refs/heads/main^1)"
 
-  diff -u <(git cat-file -p $master:.gitattributes) <(cat <<-EOF
+  diff -u <(git cat-file -p $main:.gitattributes) <(cat <<-EOF
 *.txt filter=lfs diff=lfs merge=lfs -text
 *.other filter=lfs diff=lfs merge=lfs -text
 EOF)
@@ -447,18 +447,18 @@ begin_test "migrate import (--exclude with existing .gitattributes)"
 
   pwd
 
-  master="$(git rev-parse refs/heads/master)"
+  main="$(git rev-parse refs/heads/main)"
 
-  txt_master_oid="$(calc_oid "$(git cat-file -p "$master:a.txt")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "$main:a.txt")")"
 
-  git lfs migrate import --yes --include-ref=refs/heads/master --include="*.txt" --exclude="*.bin"
+  git lfs migrate import --yes --include-ref=refs/heads/main --include="*.txt" --exclude="*.bin"
 
-  assert_local_object "$txt_master_oid" "120"
+  assert_local_object "$txt_main_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
-  prev="$(git rev-parse refs/heads/master^1)"
+  main="$(git rev-parse refs/heads/main)"
+  prev="$(git rev-parse refs/heads/main^1)"
 
-  diff -u <(git cat-file -p $master:.gitattributes) <(cat <<-EOF
+  diff -u <(git cat-file -p $main:.gitattributes) <(cat <<-EOF
 *.txt filter=lfs diff=lfs merge=lfs -text
 *.other filter=lfs diff=lfs merge=lfs -text
 *.bin !text -filter -merge -diff
@@ -479,7 +479,7 @@ begin_test "migrate import (identical contents, different permissions)"
   [ "$IS_WINDOWS" -eq 1 ] && exit 0
 
   setup_multiple_local_branches
-  git checkout master
+  git checkout main
 
   echo "foo" >foo.dat
   git add .
@@ -504,7 +504,7 @@ begin_test "migrate import (tags with same name as branches)"
   set -e
 
   setup_multiple_local_branches
-  git checkout master
+  git checkout main
 
   contents="hello"
   oid=$(calc_oid "$contents")
@@ -533,7 +533,7 @@ begin_test "migrate import (bare repository)"
   make_bare
 
   git lfs migrate import \
-    --include-ref=master
+    --include-ref=main
 )
 end_test
 
@@ -576,19 +576,19 @@ begin_test "migrate import (--everything)"
   set -e
 
   setup_multiple_local_branches
-  git checkout master
+  git checkout main
 
-  master_txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
-  master_md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
+  main_txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  main_md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
   feature_md_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
-  master_txt_size="$(git cat-file -p :a.txt | wc -c | awk '{ print $1 }')"
-  master_md_size="$(git cat-file -p :a.md | wc -c | awk '{ print $1 }')"
+  main_txt_size="$(git cat-file -p :a.txt | wc -c | awk '{ print $1 }')"
+  main_md_size="$(git cat-file -p :a.md | wc -c | awk '{ print $1 }')"
   feature_md_size="$(git cat-file -p my-feature:a.md | wc -c | awk '{ print $1 }')"
 
   git lfs migrate import --everything
 
-  assert_pointer "master" "a.txt" "$master_txt_oid" "$master_txt_size"
-  assert_pointer "master" "a.md" "$master_md_oid" "$master_md_size"
+  assert_pointer "main" "a.txt" "$main_txt_oid" "$main_txt_size"
+  assert_pointer "main" "a.md" "$main_md_oid" "$main_md_size"
   assert_pointer "my-feature" "a.md" "$feature_md_oid" "$feature_md_size"
 )
 end_test
@@ -614,7 +614,7 @@ begin_test "migrate import (--everything with args)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate import --everything master 2>&1)" = \
+  [ "$(git lfs migrate import --everything main 2>&1)" = \
     "fatal: cannot use --everything with explicit reference arguments" ]
 )
 end_test
@@ -625,7 +625,7 @@ begin_test "migrate import (--everything with --include-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate import --everything --include-ref=refs/heads/master 2>&1)" = \
+  [ "$(git lfs migrate import --everything --include-ref=refs/heads/main 2>&1)" = \
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
@@ -636,7 +636,7 @@ begin_test "migrate import (--everything with --exclude-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/master 2>&1)" = \
+  [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/main 2>&1)" = \
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
@@ -647,19 +647,19 @@ begin_test "migrate import (--everything and --include with glob pattern)"
 
   setup_multiple_local_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
   git lfs migrate import --verbose --everything --include='*.[mM][dD]'
 
-  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "140"
+  assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "140"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
-  assert_local_object "$md_master_oid" "140"
+  assert_local_object "$md_main_oid" "140"
   assert_local_object "$md_feature_oid" "30"
-  refute_local_object "$txt_master_oid"
+  refute_local_object "$txt_main_oid"
   refute_local_object "$txt_feature_oid"
 )
 end_test
@@ -670,27 +670,27 @@ begin_test "migrate import (--everything with tag pointing to tag)"
 
   setup_multiple_local_branches
 
-  md_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.md")")"
-  txt_master_oid="$(calc_oid "$(git cat-file -p "refs/heads/master:a.txt")")"
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
-  git tag -a -m abc abc refs/heads/master
+  git tag -a -m abc abc refs/heads/main
   git tag -a -m def def refs/tags/abc
 
   git lfs migrate import --verbose --everything --include='*.[mM][dD]'
 
-  assert_pointer "refs/heads/master" "a.md" "$md_master_oid" "140"
-  assert_pointer "refs/tags/abc" "a.md" "$md_master_oid" "140"
-  assert_pointer "refs/tags/def" "a.md" "$md_master_oid" "140"
+  assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "140"
+  assert_pointer "refs/tags/abc" "a.md" "$md_main_oid" "140"
+  assert_pointer "refs/tags/def" "a.md" "$md_main_oid" "140"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
   git tag --points-at refs/tags/abc | grep -q def
   ! git tag --points-at refs/tags/def | grep -q abc
 
-  assert_local_object "$md_master_oid" "140"
+  assert_local_object "$md_main_oid" "140"
   assert_local_object "$md_feature_oid" "30"
-  refute_local_object "$txt_master_oid"
+  refute_local_object "$txt_main_oid"
   refute_local_object "$txt_feature_oid"
 )
 end_test
@@ -706,7 +706,7 @@ begin_test "migrate import (nested sub-trees and --include with wildcard)"
 
   git lfs migrate import --include="**/*ar/**"
 
-  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid" "$size"
+  assert_pointer "refs/heads/main" "foo/bar/baz/a.txt" "$oid" "$size"
   assert_local_object "$oid" "$size"
 )
 end_test
@@ -729,7 +729,7 @@ begin_test "migrate import (handle copies of files)"
   # only import objects under "foo"
   git lfs migrate import --include="foo/**"
 
-  assert_pointer "refs/heads/master" "foo/bar/baz/a.txt" "$oid_tree" "$size"
+  assert_pointer "refs/heads/main" "foo/bar/baz/a.txt" "$oid_tree" "$size"
   assert_local_object "$oid_tree" "$size"
 
   # "a.txt" is not under "foo" and therefore should not be in LFS
@@ -765,7 +765,7 @@ begin_test "migrate import (--include with space)"
 
   git lfs migrate import --include "a file.txt"
 
-  assert_pointer "refs/heads/master" "a file.txt" "$oid" 50
+  assert_pointer "refs/heads/main" "a file.txt" "$oid" 50
   cat .gitattributes
   if [ 1 -ne "$(grep -c "a\[\[:space:\]\]file.txt" .gitattributes)" ]; then
     echo >&2 "fatal: expected \"a[[:space:]]file.txt\" to appear in .gitattributes"
@@ -787,7 +787,7 @@ begin_test "migrate import (handle symbolic link)"
 
   git lfs migrate import --include="*.txt"
 
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
 
   assert_local_object "$txt_oid" "120"
   # "link.txt" is a symbolic link so it should be not in LFS
@@ -819,13 +819,13 @@ begin_test "migrate import (multiple remotes)"
 
   setup_multiple_remotes
 
-  original_master="$(git rev-parse master)"
+  original_main="$(git rev-parse main)"
 
   git lfs migrate import
 
-  migrated_master="$(git rev-parse master)"
+  migrated_main="$(git rev-parse main)"
 
-  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "main" "$original_main" "$migrated_main"
 )
 end_test
 
@@ -835,14 +835,14 @@ begin_test "migrate import (dirty copy, negative answer)"
 
   setup_local_branch_with_dirty_copy
 
-  original_master="$(git rev-parse master)"
+  original_main="$(git rev-parse main)"
 
   echo "n" | git lfs migrate import --everything 2>&1 | tee migrate.log
   grep "migrate: working copy must not be dirty" migrate.log
 
-  migrated_master="$(git rev-parse master)"
+  migrated_main="$(git rev-parse main)"
 
-  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "main" "$original_main" "$migrated_main"
 )
 end_test
 
@@ -852,7 +852,7 @@ begin_test "migrate import (dirty copy, unknown then negative answer)"
 
   setup_local_branch_with_dirty_copy
 
-  original_master="$(git rev-parse master)"
+  original_main="$(git rev-parse main)"
 
   echo "x\nn" | git lfs migrate import --everything 2>&1 | tee migrate.log
 
@@ -862,9 +862,9 @@ begin_test "migrate import (dirty copy, unknown then negative answer)"
     | wc -l | awk '{ print $1 }')" ]
   grep "migrate: working copy must not be dirty" migrate.log
 
-  migrated_master="$(git rev-parse master)"
+  migrated_main="$(git rev-parse main)"
 
-  assert_ref_unmoved "master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "main" "$original_main" "$migrated_main"
 )
 end_test
 
@@ -880,7 +880,7 @@ begin_test "migrate import (dirty copy, positive answer)"
   grep "migrate: changes in your working copy will be overridden ..." \
     migrate.log
 
-  assert_pointer "refs/heads/master" "a.txt" "$oid" "5"
+  assert_pointer "refs/heads/main" "a.txt" "$oid" "5"
   assert_local_object "$oid" "5"
 )
 end_test
@@ -897,8 +897,8 @@ begin_test "migrate import (non-standard refs)"
 
   git lfs migrate import --everything
 
-  assert_pointer "refs/heads/master" "a.md" "$md_oid" "140"
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
   assert_pointer "refs/pull/1/base" "a.md" "$md_oid" "140"
   assert_pointer "refs/pull/1/base" "a.txt" "$txt_oid" "120"
 

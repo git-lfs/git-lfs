@@ -38,7 +38,7 @@ begin_test "migrate info (given branch)"
 
   setup_multiple_local_branches
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info my-feature 2>&1 | tail -n 2) <(cat <<-EOF
@@ -46,10 +46,10 @@ begin_test "migrate info (given branch)"
 	*.txt	120 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -68,7 +68,7 @@ begin_test "migrate info (default branch with filter)"
 
   migrated_head="$(git rev-parse HEAD)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_head" "$migrated_head"
+  assert_ref_unmoved "refs/heads/main" "$original_head" "$migrated_head"
 )
 end_test
 
@@ -78,17 +78,17 @@ begin_test "migrate info (given branch with filter)"
 
   setup_multiple_local_branches
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info --include "*.md" my-feature 2>&1 | tail -n 1) <(cat <<-EOF
 	*.md	170 B	2/2 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -101,19 +101,19 @@ begin_test "migrate info (default branch, exclude remote refs)"
 
   git show-ref
 
-  original_remote="$(git rev-parse refs/remotes/origin/master)"
-  original_master="$(git rev-parse refs/heads/master)"
+  original_remote="$(git rev-parse refs/remotes/origin/main)"
+  original_main="$(git rev-parse refs/heads/main)"
 
   diff -u <(git lfs migrate info 2>&1 | tail -n 2) <(cat <<-EOF
 	*.md 	50 B	1/1 files(s)	100%
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_remote="$(git rev-parse refs/remotes/origin/master)"
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_remote="$(git rev-parse refs/remotes/origin/main)"
+  migrated_main="$(git rev-parse refs/heads/main)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
-  assert_ref_unmoved "refs/remotes/origin/master" "$original_remote" "$migrated_remote"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
+  assert_ref_unmoved "refs/remotes/origin/main" "$original_remote" "$migrated_remote"
 )
 end_test
 
@@ -123,8 +123,8 @@ begin_test "migrate info (given branch, exclude remote refs)"
 
   setup_multiple_remote_branches
 
-  original_remote="$(git rev-parse refs/remotes/origin/master)"
-  original_master="$(git rev-parse refs/heads/master)"
+  original_remote="$(git rev-parse refs/remotes/origin/main)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info my-feature 2>&1 | tail -n 2) <(cat <<-EOF
@@ -132,12 +132,12 @@ begin_test "migrate info (given branch, exclude remote refs)"
 	*.txt	50 B	2/2 files(s)	100%
 	EOF)
 
-  migrated_remote="$(git rev-parse refs/remotes/origin/master)"
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_remote="$(git rev-parse refs/remotes/origin/main)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/remotes/origin/master" "$original_remote" "$migrated_remote"
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/remotes/origin/main" "$original_remote" "$migrated_remote"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -148,13 +148,13 @@ begin_test "migrate info (given ref, --skip-fetch)"
 
   setup_single_remote_branch
 
-  original_remote="$(git rev-parse refs/remotes/origin/master)"
-  original_master="$(git rev-parse refs/heads/master)"
+  original_remote="$(git rev-parse refs/remotes/origin/main)"
+  original_main="$(git rev-parse refs/heads/main)"
 
   git tag pseudo-remote "$original_remote"
-  # Remove the refs/remotes/origin/master ref, and instruct 'git lfs migrate' to
+  # Remove the refs/remotes/origin/main ref, and instruct 'git lfs migrate' to
   # not fetch it.
-  git update-ref -d refs/remotes/origin/master
+  git update-ref -d refs/remotes/origin/main
 
   diff -u <(git lfs migrate info --skip-fetch 2>&1 | tail -n 2) <(cat <<-EOF
 	*.md 	190 B	2/2 files(s)	100%
@@ -162,10 +162,10 @@ begin_test "migrate info (given ref, --skip-fetch)"
 	EOF)
 
   migrated_remote="$(git rev-parse pseudo-remote)"
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
 
-  assert_ref_unmoved "refs/remotes/origin/master" "$original_remote" "$migrated_remote"
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/remotes/origin/main" "$original_remote" "$migrated_remote"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
 )
 end_test
 
@@ -175,20 +175,20 @@ begin_test "migrate info (include/exclude ref)"
 
   setup_multiple_remote_branches
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info \
     --include-ref=refs/heads/my-feature \
-    --exclude-ref=refs/heads/master 2>&1 | tail -n 2) <(cat <<-EOF
+    --exclude-ref=refs/heads/main 2>&1 | tail -n 2) <(cat <<-EOF
 	*.md 	31 B	1/1 files(s)	100%
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -199,19 +199,19 @@ begin_test "migrate info (include/exclude ref args)"
 
   setup_multiple_remote_branches
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info \
-    my-feature ^master 2>&1 | tail -n 2) <(cat <<-EOF
+    my-feature ^main 2>&1 | tail -n 2) <(cat <<-EOF
 	*.md 	31 B	1/1 files(s)	100%
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -222,20 +222,20 @@ begin_test "migrate info (include/exclude ref with filter)"
 
   setup_multiple_remote_branches
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info \
     --include="*.txt" \
     --include-ref=refs/heads/my-feature \
-    --exclude-ref=refs/heads/master 2>&1 | tail -n 1) <(cat <<-EOF
+    --exclude-ref=refs/heads/main 2>&1 | tail -n 1) <(cat <<-EOF
 	*.txt	30 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -246,15 +246,15 @@ begin_test "migrate info (nested sub-trees, no filter)"
 
   setup_single_local_branch_deep_trees
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
 
   diff -u <(git lfs migrate info 2>/dev/null) <(cat <<-EOF
 	*.txt	120 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
 )
 end_test
 
@@ -336,8 +336,8 @@ begin_test "migrate info (empty set)"
   setup_multiple_local_branches
 
   migrate="$(git lfs migrate info \
-    --include-ref=refs/heads/master \
-    --exclude-ref=refs/heads/master 2>/dev/null
+    --include-ref=refs/heads/main \
+    --exclude-ref=refs/heads/main 2>/dev/null
   )"
 
   [ "0" -eq "$(echo -n "$migrate" | wc -l | awk '{ print $1 }')" ]
@@ -349,9 +349,9 @@ begin_test "migrate info (no-extension files)"
   set -e
 
   setup_multiple_local_branches_with_alternate_names
-  git checkout master
+  git checkout main
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   git lfs migrate info --everything
@@ -361,10 +361,10 @@ begin_test "migrate info (no-extension files)"
 	*.txt       	170 B	2/2 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -374,9 +374,9 @@ begin_test "migrate info (--everything)"
   set -e
 
   setup_multiple_local_branches
-  git checkout master
+  git checkout main
 
-  original_master="$(git rev-parse refs/heads/master)"
+  original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
   diff -u <(git lfs migrate info --everything 2>&1 | tail -n 2) <(cat <<-EOF
@@ -384,10 +384,10 @@ begin_test "migrate info (--everything)"
 	*.txt	120 B	1/1 files(s)	100%
 	EOF)
 
-  migrated_master="$(git rev-parse refs/heads/master)"
+  migrated_main="$(git rev-parse refs/heads/main)"
   migrated_feature="$(git rev-parse refs/heads/my-feature)"
 
-  assert_ref_unmoved "refs/heads/master" "$original_master" "$migrated_master"
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
 )
 end_test
@@ -413,7 +413,7 @@ begin_test "migrate info (--everything with args)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything master 2>&1)" = \
+  [ "$(git lfs migrate info --everything main 2>&1)" = \
     "fatal: cannot use --everything with explicit reference arguments" ]
 )
 end_test
@@ -424,7 +424,7 @@ begin_test "migrate info (--everything with --include-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything --include-ref=refs/heads/master 2>&1)" = \
+  [ "$(git lfs migrate info --everything --include-ref=refs/heads/main 2>&1)" = \
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
@@ -437,7 +437,7 @@ begin_test "migrate info (--everything with --exclude-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything --exclude-ref=refs/heads/master 2>&1)" = \
+  [ "$(git lfs migrate info --everything --exclude-ref=refs/heads/main 2>&1)" = \
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test

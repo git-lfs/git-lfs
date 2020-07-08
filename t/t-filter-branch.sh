@@ -34,8 +34,8 @@ begin_test "filter-branch (git-lfs/git-lfs#1773)"
     ' --tag-name-filter cat -- --all
 
 
-  assert_pointer "master" "a.dat" "$(calc_oid "$contents_a")" 12
-  assert_pointer "master" "b.dat" "$(calc_oid "$contents_b")" 12
-  assert_pointer "master" "c.dat" "$(calc_oid "$contents_c")" 12
+  assert_pointer "main" "a.dat" "$(calc_oid "$contents_a")" 12
+  assert_pointer "main" "b.dat" "$(calc_oid "$contents_b")" 12
+  assert_pointer "main" "c.dat" "$(calc_oid "$contents_c")" 12
 )
 end_test

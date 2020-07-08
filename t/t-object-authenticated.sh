@@ -18,6 +18,6 @@ begin_test "download authenticated object"
   git add .gitattributes
   git commit -m "initial commit"
 
-  GIT_CURL_VERBOSE=1 GIT_TERMINAL_PROMPT=0 git lfs push origin master
+  GIT_CURL_VERBOSE=1 GIT_TERMINAL_PROMPT=0 git lfs push origin main
 )
 end_test

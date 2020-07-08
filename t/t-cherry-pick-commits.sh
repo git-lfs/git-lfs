@@ -26,7 +26,7 @@ begin_test "cherry-pick two commits without lfs cache"
   git commit -m "add a.dat"
   commit2=$(git log -n1 --format="%H")
 
-  git push origin master
+  git push origin main
 
   git checkout secondbranch
   rm -rf .git/lfs/objects

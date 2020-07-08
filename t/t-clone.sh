@@ -38,7 +38,7 @@ begin_test "clone"
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
 
   # Now clone again, test specific clone dir
   cd "$TRASHDIR"
@@ -116,7 +116,7 @@ begin_test "cloneSSL"
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
 
   # Now SSL clone again with 'git lfs clone', test specific clone dir
   cd "$TRASHDIR"
@@ -181,7 +181,7 @@ begin_test "clone ClientCert"
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
 
   # Now clone again with 'git lfs clone', test specific clone dir
   cd "$TRASHDIR"
@@ -247,14 +247,14 @@ begin_test "clone with flags"
   },
   {
     \"CommitDate\":\"$(get_date -3d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file3.dat\",\"Size\":120},
       {\"Filename\":\"file4.dat\",\"Size\":30}]
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master branch2
+  git push origin main branch2
 
   # Now clone again, test specific clone dir
   cd "$TRASHDIR"
@@ -330,7 +330,7 @@ begin_test "clone (with include/exclude args)"
 
   git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "5 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 a-dupe.dat" commit.log
@@ -338,8 +338,8 @@ begin_test "clone (with include/exclude args)"
   grep "create mode 100644 b.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
   grep "Uploading LFS objects: 100% (2/2), 2 B" push.log
 
   cd "$TRASHDIR"
@@ -389,7 +389,7 @@ begin_test "clone (with .lfsconfig)"
 
   git add a.dat b.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "3 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 b.dat" commit.log
@@ -398,12 +398,12 @@ begin_test "clone (with .lfsconfig)"
   git config -f ".lfsconfig" "lfs.fetchinclude" "a*"
   git add ".lfsconfig"
   git commit -m "config lfs.fetchinclude a*" 2>&1 | tee commit.log
-  grep "master" commit.log
+  grep "main" commit.log
   grep "1 file changed" commit.log
   grep "create mode 100644 .lfsconfig" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
   grep "Uploading LFS objects: 100% (2/2), 2 B" push.log
 
   pushd "$TRASHDIR"
@@ -443,10 +443,10 @@ begin_test "clone (with .lfsconfig)"
   git config -f ".lfsconfig" "lfs.fetchexclude" "a*"
   git add .lfsconfig
   git commit -m "config lfs.fetchinclude a*" 2>&1 | tee commit.log
-  grep "master" commit.log
+  grep "main" commit.log
   grep "1 file changed" commit.log
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
 
   pushd "$TRASHDIR"
 
@@ -490,10 +490,10 @@ begin_test "clone (without clean filter)"
 
   git add *.dat .gitattributes
   git commit -m "add a.dat, b.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   cd "$TRASHDIR"
@@ -542,7 +542,7 @@ begin_test "clone with submodules"
   printf "%s" "$contents_sub2" > "sub2.dat"
   git add sub2.dat .gitattributes
   git commit -m "Nested submodule level 2"
-  git push origin master
+  git push origin main
 
   clone_repo "$submodname1" submod1
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -556,7 +556,7 @@ begin_test "clone with submodules"
   git submodule update
   git add sub2 sub1.dat .gitattributes
   git commit -m "Nested submodule level 1"
-  git push origin master
+  git push origin main
 
   clone_repo "$reponame" rootrepo
   git lfs track "*.dat" 2>&1 | tee track.log
@@ -570,7 +570,7 @@ begin_test "clone with submodules"
   git submodule update
   git add sub1 root.dat .gitattributes
   git commit -m "Root repo"
-  git push origin master
+  git push origin main
 
   pushd "$TRASHDIR"
 
@@ -614,12 +614,12 @@ begin_test "clone in current directory"
   git add .gitattributes a.dat
 
   git commit -m "initial commit" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   pushd $TRASHDIR
     mkdir "$reponame-clone"
@@ -707,7 +707,7 @@ begin_test "clone (HTTP server/proxy require cookies)"
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
 
   # Now clone again, test specific clone dir
   cd "$TRASHDIR"

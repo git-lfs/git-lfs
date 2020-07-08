@@ -23,7 +23,7 @@ begin_test "resume-http-range"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -64,7 +64,7 @@ begin_test "resume-http-range-fallback"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -107,7 +107,7 @@ begin_test "resume-http-range-retry"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 

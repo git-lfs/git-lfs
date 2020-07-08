@@ -21,7 +21,7 @@ begin_test "push: upload to bad dns"
   git config lfs.url "http://git-lfs-bad-dns:$port"
 
   set +e
-  GIT_TERMINAL_PROMPT=0 git push origin master 2>&1 | tee push.log
+  GIT_TERMINAL_PROMPT=0 git push origin main 2>&1 | tee push.log
   res="${PIPESTATUS[0]}"
   set -e
 

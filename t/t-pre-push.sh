@@ -5,7 +5,7 @@
 begin_test "pre-push with good ref"
 (
   set -e
-  reponame="pre-push-master-branch-required"
+  reponame="pre-push-main-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -15,13 +15,13 @@ begin_test "pre-push with good ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
 
   # for some reason, using 'tee' and $PIPESTATUS does not work here
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 > push.log
 
-  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
 )
 end_test
 
@@ -41,8 +41,8 @@ begin_test "pre-push with tracked ref"
   refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/tracked"
 
   # for some reason, using 'tee' and $PIPESTATUS does not work here
-  echo "refs/heads/master master refs/heads/tracked 0000000000000000000000000000000000000000" |
-    git lfs pre-push origin master 2>&1 > push.log
+  echo "refs/heads/main main refs/heads/tracked 0000000000000000000000000000000000000000" |
+    git lfs pre-push origin main 2>&1 > push.log
 
   assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/tracked"
 )
@@ -65,7 +65,7 @@ begin_test "pre-push with bad ref"
 
   # for some reason, using 'tee' and $PIPESTATUS does not work here
   set +e
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2> push.log
   pushcode=$?
   set -e
@@ -75,7 +75,7 @@ begin_test "pre-push with bad ref"
     exit 1
   fi
 
-  grep 'Expected ref "refs/heads/other", got "refs/heads/master"' push.log
+  grep 'Expected ref "refs/heads/other", got "refs/heads/main"' push.log
 
   refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/other"
 )
@@ -95,7 +95,7 @@ begin_test "pre-push"
 
   git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" |
     tee push.log
   # no output if nothing to do
@@ -110,7 +110,7 @@ begin_test "pre-push"
   refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 3 B" push.log
@@ -133,7 +133,7 @@ begin_test "pre-push dry-run"
 
   git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" |
     tee push.log
 
@@ -147,7 +147,7 @@ begin_test "pre-push dry-run"
 
   refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push --dry-run origin "$GITSERVER/$reponame" |
     tee push.log
   grep "push 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b => hi.dat" push.log
@@ -180,7 +180,7 @@ begin_test "pre-push 307 redirects"
   git show
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/redirect307/rel/$reponame.git/info/lfs" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 3 B" push.log
@@ -196,7 +196,7 @@ begin_test "pre-push 307 redirects"
   git show
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/redirect307/abs/$reponame.git/info/lfs" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 3 B" push.log
@@ -222,7 +222,7 @@ begin_test "pre-push with existing file"
   git commit -m "add new file through git lfs"
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
@@ -247,7 +247,7 @@ begin_test "pre-push with existing pointer"
   echo "new" > .git/lfs/objects/7a/a7/7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
@@ -270,7 +270,7 @@ begin_test "pre-push with missing pointer not on server"
 
   # assert that push fails
   set +e
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   set -e
@@ -298,7 +298,7 @@ begin_test "pre-push with missing pointer which is on server"
   git commit -m "add first file"
 
   # push file to the git lfs server
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 11 B" push.log
@@ -311,7 +311,7 @@ begin_test "pre-push with missing pointer which is on server"
   git add common2.dat
   git commit -m "add second file, same content"
   rm -rf .git/lfs/objects
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   # make sure there were no errors reported
@@ -354,7 +354,7 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
 
   git config lfs.allowincompletepush true
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
 
@@ -403,7 +403,7 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
   missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
   rm "$missing_oid_path"
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
 
@@ -453,21 +453,21 @@ begin_test "pre-push multiple branches"
       {\"Filename\":\"file2.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch2\",
     \"CommitDate\":\"$(get_date -5d)\",
     \"Files\":[
       {\"Filename\":\"file3.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch3\",
     \"CommitDate\":\"$(get_date -2d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch4\",
     \"CommitDate\":\"$(get_date -1d)\",
     \"Files\":[
@@ -476,7 +476,7 @@ begin_test "pre-push multiple branches"
   ]" | lfstest-testutils addcommits
 
   # make sure when called via git push all branches are updated
-  git push origin master branch1 branch2 branch3 branch4
+  git push origin main branch1 branch2 branch3 branch4
   for ((a=0; a < NUMFILES ; a++))
   do
     assert_server_object "$reponame" "${oid[$a]}"
@@ -491,7 +491,7 @@ begin_test "pre-push with bad remote"
 
   cd repo
 
-  echo "refs/heads/master master refs/heads/master 0000000000000000000000000000000000000000" |
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push not-a-remote "$GITSERVER/$reponame" 2>&1 |
     tee pre-push.log
   grep "Invalid remote name" pre-push.log
@@ -547,7 +547,7 @@ begin_test "pre-push unfetched deleted remote branch & server GC"
   ]" | lfstest-testutils addcommits
 
   # push only the first 2 branches
-  git push origin master branch-to-delete
+  git push origin main branch-to-delete
   for ((a=0; a < 3 ; a++))
   do
     assert_server_object "$reponame" "${oid[$a]}"
@@ -612,7 +612,7 @@ begin_test "pre-push delete branch"
       {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -0d)\",
     \"Files\":[
       {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
@@ -620,7 +620,7 @@ begin_test "pre-push delete branch"
   ]" | lfstest-testutils addcommits
 
   # push all branches
-  git push origin master branch-to-delete
+  git push origin main branch-to-delete
   for ((a=0; a < NUMFILES ; a++))
   do
     assert_server_object "$reponame" "${oid[$a]}"
@@ -649,7 +649,7 @@ begin_test "pre-push with our lock"
   git add locked.dat
   git commit -m "add locked.dat"
 
-  git push origin master
+  git push origin main
 
   git lfs lock --json "locked.dat" | tee lock.log
 
@@ -660,7 +660,7 @@ begin_test "pre-push with our lock"
   git add locked.dat
   git commit -m "add unauthorized changes"
 
-  GIT_CURL_VERBOSE=1 git push origin master 2>&1 | tee push.log
+  GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
   grep "Consider unlocking your own locked files" push.log
   grep "* locked.dat" push.log
 
@@ -687,7 +687,7 @@ begin_test "pre-push with their lock on lfs file"
   git add locked_theirs.dat
   git commit -m "add locked_theirs.dat"
 
-  git push origin master
+  git push origin main
 
   git lfs lock --json "locked_theirs.dat" | tee lock.log
   id=$(assert_lock lock.log locked_theirs.dat)
@@ -702,7 +702,7 @@ begin_test "pre-push with their lock on lfs file"
     # --no-verify is used to avoid the pre-commit hook which is not under test
     git commit --no-verify -m "add unauthorized changes"
 
-    git push origin master 2>&1 | tee push.log
+    git push origin main 2>&1 | tee push.log
     res="${PIPESTATUS[0]}"
     if [ "0" -eq "$res" ]; then
       echo "push should fail"
@@ -737,7 +737,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
   git add readme.txt tiny_locked_theirs.dat large_locked_theirs.dat
   git commit -m "add initial files"
 
-  git push origin master
+  git push origin main
 
   git lfs lock --json "tiny_locked_theirs.dat" | tee lock.log
   id=$(assert_lock lock.log tiny_locked_theirs.dat)
@@ -758,7 +758,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
     # --no-verify is used to avoid the pre-commit hook which is not under test
     git commit --no-verify -am "add unauthorized changes"
 
-    git push origin master 2>&1 | tee push.log
+    git push origin main 2>&1 | tee push.log
     res="${PIPESTATUS[0]}"
     if [ "0" -eq "$res" ]; then
       echo "push should fail"
@@ -795,7 +795,7 @@ begin_test "pre-push locks verify 5xx with verification enabled"
 
   git config "lfs.$endpoint.locksverify" true
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "\"origin\" does not support the LFS locking API" push.log
   grep "git config lfs.$endpoint.locksverify false" push.log
 
@@ -822,7 +822,7 @@ begin_test "pre-push disable locks verify on exact url"
 
   git config "lfs.$endpoint.locksverify" false
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
 
   assert_server_object "$reponame" "$contents_oid"
@@ -848,7 +848,7 @@ begin_test "pre-push disable locks verify on partial url"
 
   git config "lfs.$endpoint.locksverify" false
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
 
   assert_server_object "$reponame" "$contents_oid"
@@ -859,7 +859,7 @@ begin_test "pre-push locks verify 403 with good ref"
 (
   set -e
 
-  reponame="lock-verify-master-branch-required"
+  reponame="lock-verify-main-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -871,9 +871,9 @@ begin_test "pre-push locks verify 403 with good ref"
   git commit --message "initial commit"
 
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
-  assert_server_object "$reponame" "$contents_oid" "refs/heads/master"
+  assert_server_object "$reponame" "$contents_oid" "refs/heads/main"
 )
 end_test
 
@@ -893,7 +893,8 @@ begin_test "pre-push locks verify 403 with good tracked ref"
   git commit --message "initial commit"
 
   git config push.default upstream
-  git config branch.master.merge refs/heads/tracked
+  git config branch.main.merge refs/heads/tracked
+  git config branch.main.remote origin
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
   git push 2>&1 | tee push.log
 
@@ -917,7 +918,7 @@ begin_test "pre-push locks verify 403 with explicit ref"
   git commit --message "initial commit"
 
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
-  git push origin master:explicit 2>&1 | tee push.log
+  git push origin main:explicit 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid" "refs/heads/explicit"
 )
@@ -939,7 +940,7 @@ begin_test "pre-push locks verify 403 with bad ref"
   git commit --message "initial commit"
 
   git config "lfs.$GITSERVER/$reponame.git.locksverify" true
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "failed to push some refs" push.log
   refute_server_object "$reponame" "$contents_oid" "refs/heads/other"
 )
@@ -964,7 +965,7 @@ begin_test "pre-push locks verify 5xx with verification unset"
 
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "\"origin\" does not support the LFS locking API" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -990,7 +991,7 @@ begin_test "pre-push locks verify 501 with verification enabled"
 
   git config "lfs.$endpoint.locksverify" true
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
@@ -1017,7 +1018,7 @@ begin_test "pre-push locks verify 501 with verification disabled"
 
   git config "lfs.$endpoint.locksverify" false
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
@@ -1043,7 +1044,7 @@ begin_test "pre-push locks verify 501 with verification unset"
 
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
@@ -1068,7 +1069,7 @@ begin_test "pre-push locks verify 200"
   git add .gitattributes a.dat
   git commit --message "initial commit"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   grep "Locking support detected on remote \"origin\"." push.log
   grep "git config lfs.$endpoint.locksverify true" push.log
@@ -1095,7 +1096,7 @@ begin_test "pre-push locks verify 403 with verification enabled"
 
   git config "lfs.$endpoint.locksverify" true
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "ERROR: Authentication error" push.log
 
   refute_server_object "$reponame" "$contents_oid"
@@ -1122,7 +1123,7 @@ begin_test "pre-push locks verify 403 with verification disabled"
 
   git config "lfs.$endpoint.locksverify" false
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
 
   assert_server_object "$reponame" "$contents_oid"
   [ "false" = "$(git config "lfs.$endpoint.locksverify")" ]
@@ -1148,7 +1149,7 @@ begin_test "pre-push locks verify 403 with verification unset"
 
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "WARNING: Authentication error" push.log
 
   assert_server_object "$reponame" "$contents_oid"
@@ -1172,11 +1173,11 @@ begin_test "pre-push with pushDefault and explicit remote"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee push.log
 
-  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
   ! grep wrong-url push.log
 )
 end_test
@@ -1196,9 +1197,9 @@ begin_test "pre-push uses optimization if remote URL matches"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  refute_server_object "$reponame" $contents_oid "refs/heads/master"
+  refute_server_object "$reponame" $contents_oid "refs/heads/main"
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint" main 2>&1 | tee push.log
   grep 'rev-list.*--not --remotes=origin' push.log
 )
 end_test
@@ -1218,25 +1219,25 @@ begin_test "pre-push does not traverse Git objects server has"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  refute_server_object "$reponame" $contents_oid "refs/heads/master"
+  refute_server_object "$reponame" $contents_oid "refs/heads/main"
 
   # We use a different URL instead of a named remote or the remote URL so that
   # we can't make use of the optimization that ignores objects we already have
   # in remote tracking branches.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" main 2>&1 | tee push.log
 
-  assert_server_object "$reponame" $contents_oid "refs/heads/master"
+  assert_server_object "$reponame" $contents_oid "refs/heads/main"
 
   contents2_oid=$(calc_oid 'hello\n')
   echo "hello" > b.dat
   git add .gitattributes b.dat
   git commit -m "add b.dat"
 
-  refute_server_object "$reponame" $contents2_oid "refs/heads/master"
+  refute_server_object "$reponame" $contents2_oid "refs/heads/main"
 
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" master 2>&1 | tee push.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push "$endpoint.git" main 2>&1 | tee push.log
 
-  assert_server_object "$reponame" $contents2_oid "refs/heads/master"
+  assert_server_object "$reponame" $contents2_oid "refs/heads/main"
 
   # Verify that we haven't tried to push or query for the object we already
   # pushed before; i.e., we didn't see it because we ignored its Git object
@@ -1259,11 +1260,11 @@ begin_test "pre-push with force-pushed ref"
   git commit -m "add a.dat"
   git tag -a -m tagname tagname
 
-  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  refute_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
 
-  git push origin master tagname
+  git push origin main tagname
 
-  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/master"
+  assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
 
   # We pick a different message so that we get different object IDs even if both
   # commands run in the same second.
@@ -1291,10 +1292,10 @@ begin_test "pre-push with local path"
   git commit -m "add a.dat"
 
   # Push to the other repo.
-  git push "../$reponame-2" master:foo
+  git push "../$reponame-2" main:foo
 
   # Push to . to make sure that works.
-  git push "." master:foo
+  git push "." main:foo
 
   git lfs fsck
   cd "../$reponame-2"

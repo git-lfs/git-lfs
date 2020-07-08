@@ -48,14 +48,14 @@ begin_test "init fetch-recent"
   },
   {
     \"CommitDate\":\"$(get_date -1d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content2}, \"Data\":\"$content2\"},
       {\"Filename\":\"file2.dat\",\"Size\":${#content3}, \"Data\":\"$content3\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
   git push origin other_branch
   assert_server_object "$reponame" "$oid0"
   assert_server_object "$reponame" "$oid1"
@@ -66,7 +66,7 @@ begin_test "init fetch-recent"
   # This clone is used for subsequent tests
   clone_repo "$reponame" clone
   git checkout other_branch
-  git checkout master
+  git checkout main
 )
 end_test
 
@@ -83,7 +83,7 @@ begin_test "fetch-recent normal"
   git config lfs.fetchrecentcommitsdays 7
 
   # fetch normally, should just get the last state for file1/2
-  git lfs fetch origin master
+  git lfs fetch origin main
   assert_local_object "$oid2" "${#content2}"
   assert_local_object "$oid3" "${#content3}"
   assert_local_object "$oid5" "${#content5}"
@@ -106,7 +106,7 @@ begin_test "fetch-recent commits"
   git config lfs.fetchrecentcommitsdays 7
 
   git lfs fetch --recent origin
-  # that should have fetched master plus previous state needed within 7 days
+  # that should have fetched main plus previous state needed within 7 days
   # current state
   assert_local_object "$oid2" "${#content2}"
   assert_local_object "$oid3" "${#content3}"
@@ -131,7 +131,7 @@ begin_test "fetch-recent days"
   git config lfs.fetchrecentcommitsdays 7
 
   git lfs fetch --recent origin
-  # that should have fetched master plus previous state needed within 7 days
+  # that should have fetched main plus previous state needed within 7 days
   # current state PLUS refs within 6 days (& their commits within 7)
   assert_local_object "$oid2" "${#content2}"
   assert_local_object "$oid3" "${#content3}"

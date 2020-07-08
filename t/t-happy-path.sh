@@ -34,7 +34,7 @@ begin_test "happy path"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -42,25 +42,25 @@ begin_test "happy path"
   [ "a" = "$(cat a.dat)" ]
 
   # This is a small shell function that runs several git commands together.
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "a.dat" "$contents_oid" 1
 
   refute_server_object "$reponame" "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 
   # change to the clone's working directory
   cd ../clone
 
-  git pull
+  git pull origin main
 
   [ "a" = "$(cat a.dat)" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "a.dat" "$contents_oid" 1
 )
 end_test
 
@@ -75,7 +75,7 @@ begin_test "happy path on non-origin remote"
   git lfs track "*.dat"
   git add .gitattributes
   git commit -m "track"
-  git push origin master
+  git push origin main
 
   clone_repo "$reponame" clone-without-origin
   git remote rename origin happy-path
@@ -84,12 +84,12 @@ begin_test "happy path on non-origin remote"
   echo "a" > a.dat
   git add a.dat
   git commit -m "boom"
-  git push origin master
+  git push origin main
 
   cd ../clone-without-origin
   echo "remotes:"
   git remote
-  git pull happy-path master
+  git pull happy-path main
 )
 end_test
 
@@ -97,7 +97,7 @@ begin_test "happy path on good ref"
 (
   set -e
 
-  reponame="happy-path-master-branch-required"
+  reponame="happy-path-main-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -106,12 +106,12 @@ begin_test "happy path on good ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push origin master
+  git push origin main
 
   # $ echo "a" | shasum -a 256
   oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
   assert_local_object "$oid" 2
-  assert_server_object "$reponame" "$oid" "refs/heads/master"
+  assert_server_object "$reponame" "$oid" "refs/heads/main"
 
   clone_repo "$reponame" "$reponame-clone"
   assert_local_object "$oid" 2
@@ -131,7 +131,7 @@ begin_test "happy path on tracked ref"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git push origin master:tracked
+  git push origin main:tracked
 
   # $ echo "a" | shasum -a 256
   oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
@@ -142,7 +142,7 @@ begin_test "happy path on tracked ref"
 
   git config credential.helper lfstest
   git config push.default upstream
-  git config branch.master.merge refs/heads/tracked
+  git config branch.main.merge refs/heads/tracked
 
   git checkout
   assert_local_object "$oid" 2

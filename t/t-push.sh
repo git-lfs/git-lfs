@@ -20,9 +20,9 @@ push_repo_setup() {
 begin_test "push with good ref"
 (
   set -e
-  push_repo_setup "push-master-branch-required"
+  push_repo_setup "push-main-branch-required"
 
-  git lfs push origin master
+  git lfs push origin main
 )
 end_test
 
@@ -33,8 +33,8 @@ begin_test "push with tracked ref"
   push_repo_setup "push-tracked-branch-required"
 
   git config push.default upstream
-  git config branch.master.merge refs/heads/tracked
-  git lfs push origin master
+  git config branch.main.merge refs/heads/tracked
+  git lfs push origin main
 )
 end_test
 
@@ -43,13 +43,13 @@ begin_test "push with bad ref"
   set -e
   push_repo_setup "push-other-branch-required"
 
-  git lfs push origin master 2>&1 | tee push.log
+  git lfs push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo "expected command to fail"
     exit 1
   fi
 
-  grep 'batch response: Expected ref "refs/heads/other", got "refs/heads/master"' push.log
+  grep 'batch response: Expected ref "refs/heads/other", got "refs/heads/main"' push.log
 )
 end_test
 
@@ -60,7 +60,7 @@ begin_test "push with given remote, configured pushRemote"
 
   git remote add bad-remote "invalid-url"
 
-  git config branch.master.pushRemote bad-remote
+  git config branch.main.pushRemote bad-remote
 
   git lfs push --all origin
 )
@@ -81,11 +81,11 @@ begin_test "push"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  git lfs push --dry-run origin master 2>&1 | tee push.log
+  git lfs push --dry-run origin main 2>&1 | tee push.log
   grep "push 4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 => a.dat" push.log
   [ $(grep -c "^push " push.log) -eq 1 ]
 
-  git lfs push origin master 2>&1 | tee push.log
+  git lfs push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
 
   git checkout -b push-b
@@ -120,7 +120,7 @@ push_all_setup() {
   content2="update"
   content3="branch"
   content4="tagged"
-  content5="master"
+  content5="main"
   extracontent="extra"
   oid1=$(calc_oid "$content1")
   oid2=$(calc_oid "$content2")
@@ -158,7 +158,7 @@ push_all_setup() {
   },
   {
     \"CommitDate\":\"$(get_date -4m)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Tags\":[\"tag\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content4},\"Data\":\"$content4\"}
@@ -200,7 +200,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "^push " < push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  [ $(grep -c "Uploading LFS objects: 100% (6/6), 36 B" push.log) -eq 1 ]
+  [ $(grep -c "Uploading LFS objects: 100% (6/6)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -232,7 +232,7 @@ begin_test "push --all (no ref args)"
   [ $(grep -c "^push " push.log) -eq 6 ]
 
   git push --all origin 2>&1 | tee push.log
-  grep "Uploading LFS objects: 100% (6/6), 36 B" push.log
+  grep "Uploading LFS objects: 100% (6/6)" push.log
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -258,7 +258,7 @@ begin_test "push --all (1 ref arg)"
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
-  refute_server_object "$reponame-$suffix" "$oid4"     # in master and the tag
+  refute_server_object "$reponame-$suffix" "$oid4"     # in main and the tag
   refute_server_object "$reponame-$suffix" "$oid5"
   refute_server_object "$reponame-$suffix" "$extraoid"
 
@@ -310,7 +310,7 @@ begin_test "push --all (multiple ref args)"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
   assert_server_object "$reponame-$suffix" "$oid4"
-  refute_server_object "$reponame-$suffix" "$oid5"     # only in master
+  refute_server_object "$reponame-$suffix" "$oid5"     # only in main
   refute_server_object "$reponame-$suffix" "$extraoid"
 
   echo "push while missing old objects locally"
@@ -349,7 +349,7 @@ begin_test "push --all (ref with deleted files)"
 
   push_all_setup "ref-with-deleted"
 
-  git lfs push --dry-run --all origin master 2>&1 | tee push.log
+  git lfs push --dry-run --all origin main 2>&1 | tee push.log
   grep "push $oid1 => file1.dat" push.log
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
@@ -357,7 +357,7 @@ begin_test "push --all (ref with deleted files)"
   grep "push $extraoid => file2.dat" push.log
   [ $(grep -c "^push " push.log) -eq 5 ]
 
-  git lfs push --all origin master 2>&1 | tee push.log
+  git lfs push --all origin main 2>&1 | tee push.log
   grep "5 files" push.log
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
@@ -379,7 +379,7 @@ begin_test "push --all (ref with deleted files)"
   rm ".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
 
   # dry run doesn't change
-  git lfs push --dry-run --all origin master 2>&1 | tee push.log
+  git lfs push --dry-run --all origin main 2>&1 | tee push.log
   grep "push $oid1 => file1.dat" push.log
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
@@ -387,7 +387,7 @@ begin_test "push --all (ref with deleted files)"
   grep "push $extraoid => file2.dat" push.log
   [ $(grep -c "^push " push.log) -eq 5 ]
 
-  git push --all origin master 2>&1 | tee push.log
+  git push --all origin main 2>&1 | tee push.log
   grep "5 files, 1 skipped" push.log # should be 5?
   assert_server_object "$reponame-$suffix-2" "$oid2"
   refute_server_object "$reponame-$suffix-2" "$oid3"
@@ -469,14 +469,14 @@ begin_test "push modified files"
   },
   {
     \"CommitDate\":\"$(get_date -1m)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content3}, \"Data\":\"$content3\"},
       {\"Filename\":\"file2.dat\",\"Size\":${#content4}, \"Data\":\"$content4\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  git lfs push origin master
+  git lfs push origin main
   git lfs push origin other_branch
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
@@ -534,7 +534,7 @@ begin_test "push ambiguous branch name"
       {\"Filename\":\"file4.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -1d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
@@ -544,8 +544,8 @@ begin_test "push ambiguous branch name"
   # create tag with same name as branch
   git tag ambiguous
 
-  # lfs push master, should work
-  git lfs push origin master
+  # lfs push main, should work
+  git lfs push origin main
 
   # push ambiguous, does not fail since lfs scans git with sha, not ref name
   git lfs push origin ambiguous
@@ -568,12 +568,12 @@ begin_test "push (retry with expired actions)"
   git add .gitattributes a.dat
 
   git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  GIT_TRACE=1 git push origin master 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
 
   expected="enqueue retry #1 after 0.25s for \"$contents_oid\" (size: $contents_size): LFS: tq: action \"upload\" expires at"
 
@@ -599,14 +599,14 @@ begin_test "push to raw remote url"
   printf "%s" "$contents" > raw.dat
   git add raw.dat .gitattributes
   git commit -m "add" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 raw.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
   refute_server_object push-raw "$contents_oid"
 
-  git lfs push $GITSERVER/push-raw master
+  git lfs push $GITSERVER/push-raw main
 
   assert_server_object push-raw "$contents_oid"
 )
@@ -626,13 +626,13 @@ begin_test "push (with invalid object size)"
 
   git add a.dat .gitattributes
   git commit -m "add a.dat, .gitattributes" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
   set +e
-  git push origin master 2>&1 2> push.log
+  git push origin main 2>&1 2> push.log
   res="$?"
   set -e
 
@@ -662,7 +662,7 @@ begin_test "push with deprecated _links"
   git add a.dat
   git commit -m "add a.dat"
 
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 )
@@ -680,7 +680,7 @@ begin_test "push with invalid pushInsteadof"
   git config lfs.transfer.enablehrefrewrite true
 
   set +e
-  git lfs push origin master > push.log 2>&1
+  git lfs push origin main > push.log 2>&1
   res=$?
 
   set -e
@@ -691,7 +691,7 @@ begin_test "push with invalid pushInsteadof"
 
   # lfs-push succeed after unsetting enableHrefRewrite config
   git config --unset lfs.transfer.enablehrefrewrite
-  git lfs push origin master
+  git lfs push origin main
 )
 end_test
 
@@ -713,7 +713,7 @@ begin_test 'push with data the server already has'
   git add a.dat
   git commit -m "add a.dat"
 
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -759,7 +759,7 @@ begin_test 'push with multiple refs and data the server already has'
   git add a.dat
   git commit -m "add a.dat"
 
-  git push origin master
+  git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -780,10 +780,10 @@ begin_test 'push with multiple refs and data the server already has'
   # We use the URL so that we cannot take advantage of the existing "origin/*"
   # refs that we know the server must have.
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 \
-    git push "$(git config remote.origin.url)" master v1.0.0 2>&1 | tee push.log
+    git push "$(git config remote.origin.url)" main v1.0.0 2>&1 | tee push.log
 
   # We should not find a batch request for the object which is in the earlier
-  # version of master, since we know the remote side has it.
+  # version of main, since we know the remote side has it.
   [ "$(grep -c "$contents_oid" push.log)" = 0 ]
 
   # Yet we should have pushed the new object successfully.
@@ -814,9 +814,9 @@ begin_test "push custom reference"
 
   # Create and try pushing a reference in a nonstandard namespace, that is,
   # outside of refs/heads, refs/tags, and refs/remotes.
-  git update-ref refs/custom/remote/heads/master refs/heads/master
+  git update-ref refs/custom/remote/heads/main refs/heads/main
 
-  git lfs push origin refs/custom/remote/heads/master
+  git lfs push origin refs/custom/remote/heads/main
   assert_server_object "$reponame" "$oid"
 )
 end_test

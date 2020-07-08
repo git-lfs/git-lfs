@@ -3,7 +3,7 @@
 # assert_pointer confirms that the pointer in the repository for $path in the
 # given $ref matches the given $oid and $size.
 #
-#   $ assert_pointer "master" "path/to/file" "some-oid" 123
+#   $ assert_pointer "main" "path/to/file" "some-oid" 123
 assert_pointer() {
   local ref="$1"
   local path="$2"
@@ -27,7 +27,7 @@ assert_pointer() {
 # refute_pointer confirms that the file in the repository for $path in the
 # given $ref is _not_ a pointer.
 #
-#   $ refute_pointer "master" "path/to/file"
+#   $ refute_pointer "main" "path/to/file"
 refute_pointer() {
   local ref="$1"
   local path="$2"
@@ -451,13 +451,13 @@ setup_remote_repo_with_file() {
   git add .gitattributes $filename
   git commit -m "add $filename" | tee commit.log
 
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 $filename" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  git push origin master 2>&1 | tee push.log
-  grep "master -> master" push.log
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
 }
 
 # substring_position returns the position of a substring in a 1-indexed search
@@ -703,18 +703,6 @@ get_date() {
         ARGS="$ARGS -v$var"
     done
     date $ARGS -u +%Y-%m-%dT%TZ
-  fi
-}
-
-# Convert potentially MinGW bash paths to native Windows paths
-# Needed to match generic built paths in test scripts to native paths generated from Go
-native_path() {
-  local arg=$1
-  if [ $IS_WINDOWS -eq 1 ]; then
-    # Use params form to avoid interpreting any '\' characters
-    printf '%s' "$(cygpath -w $arg)"
-  else
-    printf '%s' "$arg"
   fi
 }
 

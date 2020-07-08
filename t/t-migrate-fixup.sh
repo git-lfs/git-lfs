@@ -13,12 +13,12 @@ begin_test "migrate import (--fixup)"
 
   git lfs migrate import --everything --fixup --yes
 
-  assert_pointer "refs/heads/master" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
   assert_local_object "$txt_oid" "120"
 
-  master="$(git rev-parse refs/heads/master)"
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  main="$(git rev-parse refs/heads/main)"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
 
@@ -33,17 +33,17 @@ begin_test "migrate import (--fixup, complex nested)"
 
   git lfs migrate import --everything --fixup --yes
 
-  assert_pointer "refs/heads/master" "a.txt" "$a_oid" "1"
-  refute_pointer "refs/heads/master" "b.txt"
+  assert_pointer "refs/heads/main" "a.txt" "$a_oid" "1"
+  refute_pointer "refs/heads/main" "b.txt"
 
   assert_local_object "$a_oid" "1"
   refute_local_object "$b_oid" "1"
 
-  master="$(git rev-parse refs/heads/master)"
-  master_attrs="$(git cat-file -p "$master:.gitattributes")"
-  master_dir_attrs="$(git cat-file -p "$master:dir/.gitattributes")"
-  echo "$master_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
-  echo "$master_dir_attrs" | grep -q "*.txt !filter !diff !merge"
+  main="$(git rev-parse refs/heads/main)"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+  main_dir_attrs="$(git cat-file -p "$main:dir/.gitattributes")"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_dir_attrs" | grep -q "*.txt !filter !diff !merge"
 )
 end_test
 
@@ -126,6 +126,6 @@ begin_test "migrate import (--fixup with remote tags)"
 
   # We're checking here that this succeeds even though it does nothing in this
   # case.
-  git lfs migrate import --fixup --yes master
+  git lfs migrate import --fixup --yes main
 )
 end_test

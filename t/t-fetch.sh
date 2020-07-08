@@ -24,7 +24,7 @@ begin_test "init for fetch tests"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -35,9 +35,9 @@ begin_test "init for fetch tests"
 
   refute_server_object "$reponame" "$contents_oid"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -107,11 +107,11 @@ begin_test "fetch with remote and branches"
   cd clone
 
   git checkout newbranch
-  git checkout master
+  git checkout main
 
   rm -rf .git/lfs/objects
 
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
@@ -120,14 +120,14 @@ begin_test "fetch with remote and branches"
 )
 end_test
 
-begin_test "fetch with master commit sha1"
+begin_test "fetch with main commit sha1"
 (
   set -e
   cd clone
   rm -rf .git/lfs/objects
 
-  master_sha1=$(git rev-parse master)
-  git lfs fetch origin "$master_sha1"
+  main_sha1=$(git rev-parse main)
+  git lfs fetch origin "$main_sha1"
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid" 1
 
@@ -159,7 +159,7 @@ begin_test "fetch with include filters in gitconfig"
   rm -rf .git/lfs/objects
 
   git config "lfs.fetchinclude" "a*"
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
 
@@ -177,7 +177,7 @@ begin_test "fetch with exclude filters in gitconfig"
   rm -rf .git/lfs/objects
 
   git config "lfs.fetchexclude" "a*"
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
 
@@ -195,14 +195,14 @@ begin_test "fetch with include/exclude filters in gitconfig"
 
   git config "lfs.fetchinclude" "a*,b*"
   git config "lfs.fetchexclude" "c*,d*"
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
   rm -rf .git/lfs/objects
   git config "lfs.fetchinclude" "c*,d*"
   git config "lfs.fetchexclude" "a*,b*"
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
 )
@@ -216,7 +216,7 @@ begin_test "fetch with include filter in cli"
   git config --unset "lfs.fetchexclude"
   rm -rf .git/lfs/objects
 
-  git lfs fetch --include="a*" origin master newbranch
+  git lfs fetch --include="a*" origin main newbranch
   assert_local_object "$contents_oid" 1
   refute_local_object "$b_oid"
 )
@@ -227,7 +227,7 @@ begin_test "fetch with exclude filter in cli"
   set -e
   cd clone
   rm -rf .git/lfs/objects
-  git lfs fetch --exclude="a*" origin master newbranch
+  git lfs fetch --exclude="a*" origin main newbranch
   refute_local_object "$contents_oid"
   assert_local_object "$b_oid" 1
 )
@@ -238,12 +238,12 @@ begin_test "fetch with include/exclude filters in cli"
   set -e
   cd clone
   rm -rf .git/lfs/objects
-  git lfs fetch -I "a*,b*" -X "c*,d*" origin master newbranch
+  git lfs fetch -I "a*,b*" -X "c*,d*" origin main newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
   rm -rf .git/lfs/objects
-  git lfs fetch --include="c*,d*" --exclude="a*,b*" origin master newbranch
+  git lfs fetch --include="c*,d*" --exclude="a*,b*" origin main newbranch
   refute_local_object "$contents_oid"
   refute_local_object "$b_oid"
 )
@@ -255,7 +255,7 @@ begin_test "fetch with include filter overriding exclude filter"
   cd clone
   rm -rf .git/lfs/objects
   git config lfs.fetchexclude "b*"
-  git lfs fetch -I "b.dat" -X "" origin master newbranch
+  git lfs fetch -I "b.dat" -X "" origin main newbranch
   assert_local_object "$b_oid" "1"
 )
 end_test
@@ -272,7 +272,7 @@ begin_test "fetch with missing object"
 
   # should return non-zero, but should also download all the other valid files too
   set +e
-  git lfs fetch origin master newbranch
+  git lfs fetch origin main newbranch
   fetch_exit=$?
   set -e
   [ "$fetch_exit" != "0" ]
@@ -315,7 +315,7 @@ begin_test "fetch-all"
       {\"Filename\":\"file3.dat\",\"Size\":${#content[2]}, \"Data\":\"${content[2]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -100d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content[3]}, \"Data\":\"${content[3]}\"}]
@@ -327,7 +327,7 @@ begin_test "fetch-all"
       {\"Filename\":\"file2.dat\",\"Size\":${#content[4]}, \"Data\":\"${content[4]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -75d)\",
     \"Files\":[
       {\"Filename\":\"file4.dat\",\"Size\":${#content[5]}, \"Data\":\"${content[5]}\"}]
@@ -340,7 +340,7 @@ begin_test "fetch-all"
       {\"Filename\":\"file4.dat\",\"Size\":${#content[6]}, \"Data\":\"${content[6]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -60d)\",
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content[7]}, \"Data\":\"${content[7]}\"}]
@@ -353,20 +353,20 @@ begin_test "fetch-all"
   },
   {
     \"CommitDate\":\"$(get_date -40d)\",
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"file1.dat\",\"Size\":${#content[9]}, \"Data\":\"${content[9]}\"},
       {\"Filename\":\"file2.dat\",\"Size\":${#content[10]}, \"Data\":\"${content[10]}\"}]
   },
   {
-    \"ParentBranches\":[\"master\"],
+    \"ParentBranches\":[\"main\"],
     \"CommitDate\":\"$(get_date -30d)\",
     \"Files\":[
       {\"Filename\":\"file4.dat\",\"Size\":${#content[11]}, \"Data\":\"${content[11]}\"}]
   }
   ]" | lfstest-testutils addcommits
 
-  git push origin master
+  git push origin main
   git push origin branch1
   git push origin branch3
   git push origin remote_branch_only
@@ -394,8 +394,8 @@ begin_test "fetch-all"
 
   rm -rf .git/lfs/objects
 
-  # fetch all objects reachable from the master branch only
-  git lfs fetch --all origin master
+  # fetch all objects reachable from the main branch only
+  git lfs fetch --all origin main
   for a in 0 1 3 5 7 9 10 11
   do
     assert_local_object "${oid[$a]}" "${#content[$a]}"
@@ -432,8 +432,8 @@ begin_test "fetch-all"
 
   rm -rf lfs/objects
 
-  # fetch all objects reachable from the master branch only
-  git lfs fetch --all origin master
+  # fetch all objects reachable from the main branch only
+  git lfs fetch --all origin main
   for a in 0 1 3 5 7 9 10 11
   do
     assert_local_object "${oid[$a]}" "${#content[$a]}"
@@ -495,7 +495,7 @@ begin_test "fetch with no origin remote"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -506,16 +506,16 @@ begin_test "fetch with no origin remote"
 
   refute_server_object "$reponame" "$contents_oid"
 
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
 
   # change to the clone's working directory
   cd ../no-remote-clone
 
   # pull commits & lfs
-  git pull 2>&1
+  git pull origin main 2>&1
   assert_local_object "$contents_oid" 1
 
   # now checkout detached HEAD so we're not tracking anything on remote
@@ -572,7 +572,7 @@ begin_test "fetch --prune"
   ]" | lfstest-testutils addcommits
 
   # push all so no unpushed reason to not prune
-  git push origin master
+  git push origin main
 
   # set no recents so max ability to prune
   git config lfs.fetchrecentrefsdays 0
@@ -597,7 +597,7 @@ begin_test "fetch raw remote url"
   git lfs install --local --skip-smudge
 
   git remote add origin "$GITSERVER/$reponame"
-  git pull origin master
+  git pull origin main
 
   # LFS object not downloaded, pointer in working directory
   refute_local_object "$contents_oid"

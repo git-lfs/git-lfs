@@ -23,7 +23,7 @@ begin_test "push unusually named files"
   git add -- .gitattributes *.dat
   git commit -m "add files"
 
-  git push origin master | tee push.log
+  git push origin main | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 )
 end_test

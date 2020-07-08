@@ -26,7 +26,7 @@ push_fail_test() {
   git commit -m "welp"
 
   set +e
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   res="${PIPESTATUS[0]}"
   set -e
 

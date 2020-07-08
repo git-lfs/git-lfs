@@ -34,7 +34,7 @@ begin_test "chunked transfer encoding"
   git add a.dat
   git add .gitattributes
   git commit -m "add a.dat" 2>&1 | tee commit.log
-  grep "master (root-commit)" commit.log
+  grep "main (root-commit)" commit.log
   grep "2 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
@@ -42,24 +42,24 @@ begin_test "chunked transfer encoding"
   [ "a" = "$(cat a.dat)" ]
 
   # This is a small shell function that runs several git commands together.
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "a.dat" "$contents_oid" 1
 
   refute_server_object "$reponame" "$contents_oid"
 
   # This pushes to the remote repository set up at the top of the test.
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  grep "master -> master" push.log
+  grep "main -> main" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 
   # change to the clone's working directory
   cd ../clone
 
-  git pull 2>&1
+  git pull origin main 2>&1
 
   [ "a" = "$(cat a.dat)" ]
 
-  assert_pointer "master" "a.dat" "$contents_oid" 1
+  assert_pointer "main" "a.dat" "$contents_oid" 1
 )
 end_test

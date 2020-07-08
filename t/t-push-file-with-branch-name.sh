@@ -10,12 +10,12 @@ begin_test "push a file with the same name as a branch"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" repo
 
-  git lfs track "master"
-  echo "master" > master
-  git add .gitattributes master
-  git commit -m "add master"
+  git lfs track "main"
+  echo "main" > main
+  git add .gitattributes main
+  git commit -m "add main"
 
-  git lfs push --all origin master 2>&1 | tee push.log
-  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
+  git lfs push --all origin main 2>&1 | tee push.log
+  grep "Uploading LFS objects: 100% (1/1), [0-9] B" push.log
 )
 end_test

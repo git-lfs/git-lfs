@@ -21,7 +21,7 @@ begin_test "transfer queue rejects unknown OIDs"
   git commit -m "add objects"
 
   set +e
-  git push origin master 2>&1 | tee push.log
+  git push origin main 2>&1 | tee push.log
   res="${PIPESTATUS[0]}"
   set -e
 
