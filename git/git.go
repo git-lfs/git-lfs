@@ -5,6 +5,8 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -35,6 +37,9 @@ const (
 	RefTypeRemoteTag    = RefType(iota)
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
+
+	SHA1HexSize   = sha1.Size * 2
+	SHA256HexSize = sha256.Size * 2
 
 	// A ref which can be used as a placeholder for before the first commit
 	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
