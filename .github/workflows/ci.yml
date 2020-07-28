@@ -44,6 +44,8 @@ jobs:
     - run: set GOPATH=%HOME%\go
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
+    - run: choco uninstall git.install -y --force
+    - run: cinst git --version 2.26.2 -y --force
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
       shell: bash
