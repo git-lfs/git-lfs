@@ -76,7 +76,7 @@ func NewIn(workdir, gitdir string) *Configuration {
 
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
-			sources, err := gitConf.Sources(filepath.Join(c.LocalWorkingDir(), ".lfsconfig"))
+			sources, err := gitConf.Sources(c.LocalWorkingDir(), ".lfsconfig")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
 			}
