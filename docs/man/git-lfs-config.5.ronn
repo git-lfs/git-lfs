@@ -167,7 +167,7 @@ be scoped inside the configuration for a remote.
   each retry until reaching this limit. If a server requests a delay using the
   `Retry-After` header, the header value overrides the exponential delay for
   that attempt and is not limited by this option.
-  
+
   Must be an integer which is not negative. Use zero to disable delays between
   retries unless requested by a server. If the value is not an integer, is
   negative, or is not given, a value of ten will be used instead.

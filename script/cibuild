@@ -38,8 +38,11 @@ pushd t >/dev/null
 popd >/dev/null
 
 echo "Looking for trailing whitespace..."
-! git grep -lE '[[:space:]]+$' | \
-  grep -vE '(^vendor/|\.git/(objects/|index)|\.bat$)'
+if git grep -lE '[[:space:]]+$' | \
+   grep -vE '(^vendor/|\.git/(objects/|index)|\.bat$)'
+then
+  exit 1
+fi
 
 echo "Formatting files..."
 # Building and installing goimports and goversioninfo will have modified go.mod
