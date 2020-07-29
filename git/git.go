@@ -5,6 +5,8 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,12 +19,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	lfserrors "github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/rubyist/tracerx"
 )
 
@@ -36,9 +40,17 @@ const (
 	RefTypeHEAD         = RefType(iota) // current checkout
 	RefTypeOther        = RefType(iota) // stash or unknown
 
-	// A ref which can be used as a placeholder for before the first commit
-	// Equivalent to git mktree < /dev/null, useful for diffing before first commit
-	RefBeforeFirstCommit = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+	SHA1HexSize   = sha1.Size * 2
+	SHA256HexSize = sha256.Size * 2
+)
+
+var (
+	ObjectIDRegex = fmt.Sprintf("(?:[0-9a-f]{%d}(?:[0-9a-f]{%d})?)", SHA1HexSize, SHA256HexSize-SHA1HexSize)
+	// ObjectIDLengths is a slice of valid Git hexadecimal object ID
+	// lengths in increasing order.
+	ObjectIDLengths = []int{SHA1HexSize, SHA256HexSize}
+	emptyTree       = ""
+	emptyTreeMutex  = &sync.Mutex{}
 )
 
 type IndexStage int
@@ -113,6 +125,41 @@ func (r *Ref) Refspec() string {
 	}
 
 	return r.Name
+}
+
+// HasValidObjectIDLength returns true if `s` has a length that is a valid
+// hexadecimal Git object ID length.
+func HasValidObjectIDLength(s string) bool {
+	for _, length := range ObjectIDLengths {
+		if len(s) == length {
+			return true
+		}
+	}
+	return false
+}
+
+// IsZeroObjectID returns true if the string is a valid hexadecimal Git object
+// ID and represents the all-zeros object ID for some hash algorithm.
+func IsZeroObjectID(s string) bool {
+	for _, length := range ObjectIDLengths {
+		if s == strings.Repeat("0", length) {
+			return true
+		}
+	}
+	return false
+}
+
+func EmptyTree() string {
+	emptyTreeMutex.Lock()
+	defer emptyTreeMutex.Unlock()
+
+	if len(emptyTree) == 0 {
+		cmd := gitNoLFS("hash-object", "-t", "tree", "/dev/null")
+		cmd.Stdin = nil
+		out, _ := cmd.Output()
+		emptyTree = strings.TrimSpace(string(out))
+	}
+	return emptyTree
 }
 
 // Some top level information about a commit (only first line of message)
@@ -422,7 +469,7 @@ func LocalRefs() ([]*Ref, error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		parts := strings.SplitN(line, " ", 2)
-		if len(parts) != 2 || len(parts[0]) != 40 || len(parts[1]) < 1 {
+		if len(parts) != 2 || !HasValidObjectIDLength(parts[0]) || len(parts[1]) < 1 {
 			tracerx.Printf("Invalid line from git show-ref: %q", line)
 			continue
 		}
@@ -560,7 +607,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 	// refs/remotes/origin/master ad3b29b773e46ad6870fdf08796c33d97190fe93 2015-08-13 16:50:37 +0100
 
 	// Output is ordered by latest commit date first, so we can stop at the threshold
-	regex := regexp.MustCompile(`^(refs/[^/]+/\S+)\s+([0-9A-Za-z]{40})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`)
+	regex := regexp.MustCompile(fmt.Sprintf(`^(refs/[^/]+/\S+)\s+(%s)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}\:\d{2}\:\d{2}\s+[\+\-]\d{4})`, ObjectIDRegex))
 	tracerx.Printf("RECENT: Getting refs >= %v", since)
 	var ret []*Ref
 	for scanner.Scan() {
@@ -1377,4 +1424,24 @@ func IsWorkingCopyDirty() (bool, error) {
 		return false, err
 	}
 	return len(out) != 0, nil
+}
+
+func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.ObjectDatabase, error) {
+	var options []gitobj.Option
+	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+	if alternates != "" {
+		options = append(options, gitobj.Alternates(alternates))
+	}
+	hashAlgo, _ := gitEnv.Get("extensions.objectformat")
+	if hashAlgo != "" {
+		options = append(options, gitobj.ObjectFormat(gitobj.ObjectFormatAlgorithm(hashAlgo)))
+	}
+	odb, err := gitobj.FromFilesystem(filepath.Join(gitdir, "objects"), tempdir, options...)
+	if err != nil {
+		return nil, err
+	}
+	if odb.Hasher() == nil {
+		return nil, fmt.Errorf("unsupported repository hash algorithm %q", hashAlgo)
+	}
+	return odb, nil
 }

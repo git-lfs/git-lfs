@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
@@ -30,10 +29,10 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	scanIndexAt := "HEAD"
 	if ref == nil {
-		scanIndexAt = git.RefBeforeFirstCommit
+		scanIndexAt = git.EmptyTree()
 	}
 
-	scanner, err := lfs.NewPointerScanner(cfg.OSEnv())
+	scanner, err := lfs.NewPointerScanner(cfg.GitEnv(), cfg.OSEnv())
 	if err != nil {
 		ExitWithError(err)
 	}
@@ -87,8 +86,6 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-var z40 = regexp.MustCompile(`\^?0{40}`)
-
 func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 	fromSha, fromSrc, err := blobInfoFrom(s, entry)
 	if err != nil {
@@ -111,7 +108,7 @@ func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 
 func blobInfoFrom(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
 	var blobSha string = entry.SrcSha
-	if z40.MatchString(blobSha) {
+	if git.IsZeroObjectID(blobSha) {
 		blobSha = entry.DstSha
 	}
 
@@ -128,7 +125,7 @@ func blobInfoTo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from str
 }
 
 func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, err error) {
-	if !z40.MatchString(blobSha) {
+	if !git.IsZeroObjectID(blobSha) {
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
 			if git.IsMissingObject(err) {

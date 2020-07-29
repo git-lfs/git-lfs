@@ -3,6 +3,7 @@ package pack
 import (
 	"compress/zlib"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 )
@@ -17,6 +18,9 @@ type Packfile struct {
 	// idx is the corresponding "pack-*.idx" file giving the positions of
 	// objects in this packfile.
 	idx *Index
+
+	// hash is the hash algorithm used in this pack.
+	hash hash.Hash
 
 	// r is an io.ReaderAt that allows read access to the packfile itself.
 	r io.ReaderAt
@@ -181,11 +185,13 @@ func (p *Packfile) find(offset int64) (Chain, error) {
 func (p *Packfile) findBase(typ PackedObjectType, offset, objOffset int64) (Chain, int64, error) {
 	var baseOffset int64
 
-	// We assume that we have to read at least 20 bytes (the SHA-1 length in
-	// the case of a OBJ_REF_DELTA, or greater than the length of the base
-	// offset encoded in an OBJ_OFS_DELTA).
-	var sha [20]byte
-	if _, err := p.r.ReadAt(sha[:], offset); err != nil {
+	hashlen := p.hash.Size()
+
+	// We assume that we have to read at least an object ID's worth (the
+	// hash length in the case of a OBJ_REF_DELTA, or greater than the
+	// length of the base offset encoded in an OBJ_OFS_DELTA).
+	var sha [32]byte
+	if _, err := p.r.ReadAt(sha[:hashlen], offset); err != nil {
 		return nil, baseOffset, err
 	}
 
@@ -213,13 +219,13 @@ func (p *Packfile) findBase(typ PackedObjectType, offset, objOffset int64) (Chai
 		// If the delta is an OBJ_REFS_DELTA, find the location of its
 		// base by reading the SHA-1 name and looking it up in the
 		// corresponding pack index file.
-		e, err := p.idx.Entry(sha[:])
+		e, err := p.idx.Entry(sha[:hashlen])
 		if err != nil {
 			return nil, baseOffset, err
 		}
 
 		baseOffset = int64(e.PackOffset)
-		offset += 20
+		offset += int64(hashlen)
 	default:
 		// If we did not receive an OBJ_OFS_DELTA, or OBJ_REF_DELTA, the
 		// type given is not a delta-fied type. Return an error.

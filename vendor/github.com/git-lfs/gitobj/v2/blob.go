@@ -3,6 +3,7 @@ package gitobj
 import (
 	"bytes"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 )
@@ -75,7 +76,7 @@ func (b *Blob) Type() ObjectType { return BlobObjectType }
 // stream, which is always zero.
 //
 // If any errors are encountered while reading the blob, they will be returned.
-func (b *Blob) Decode(r io.Reader, size int64) (n int, err error) {
+func (b *Blob) Decode(hash hash.Hash, r io.Reader, size int64) (n int, err error) {
 	b.Size = size
 	b.Contents = io.LimitReader(r, size)
 

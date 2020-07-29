@@ -152,7 +152,7 @@ func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 
 		// no need to compile these regexes on every `git-lfs` call, just ones that
 		// use the scanner.
-		commitHeaderRegex:    regexp.MustCompile(`^lfs-commit-sha: ([A-Fa-f0-9]{40})(?: ([A-Fa-f0-9]{40}))*`),
+		commitHeaderRegex:    regexp.MustCompile(fmt.Sprintf(`^lfs-commit-sha: (%s)(?: (%s))*`, git.ObjectIDRegex, git.ObjectIDRegex)),
 		fileHeaderRegex:      regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`),
 		fileMergeHeaderRegex: regexp.MustCompile(`diff --cc (.+)`),
 		pointerDataRegex:     regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`),

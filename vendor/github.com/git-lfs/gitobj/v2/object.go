@@ -1,6 +1,9 @@
 package gitobj
 
-import "io"
+import (
+	"hash"
+	"io"
+)
 
 // Object is an interface satisfied by any concrete type that represents a loose
 // Git object.
@@ -29,7 +32,7 @@ type Object interface {
 	//
 	// If an(y) error was encountered, it should be returned immediately,
 	// along with the number of bytes read up to that point.
-	Decode(from io.Reader, size int64) (n int, err error)
+	Decode(hash hash.Hash, from io.Reader, size int64) (n int, err error)
 
 	// Type returns the ObjectType constant that represents an instance of
 	// the implementing type.

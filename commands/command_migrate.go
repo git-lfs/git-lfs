@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/tasklog"
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -82,8 +81,8 @@ func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open root")
 	}
-	alternates, _ := cfg.OSEnv().Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
-	return gitobj.FromFilesystemWithAlternates(filepath.Join(dir, "objects"), cfg.TempDir(), alternates)
+
+	return git.ObjectDatabase(cfg.OSEnv(), cfg.GitEnv(), dir, cfg.TempDir())
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/git-lfs/gitobj"
+	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 )
 

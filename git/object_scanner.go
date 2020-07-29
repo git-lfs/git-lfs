@@ -4,10 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"path/filepath"
 
-	"github.com/git-lfs/gitobj"
-	"github.com/git-lfs/gitobj/errors"
+	"github.com/git-lfs/gitobj/v2"
+	"github.com/git-lfs/gitobj/v2/errors"
 )
 
 // object represents a generic Git object of any type.
@@ -42,14 +41,13 @@ type ObjectScanner struct {
 // command, they will be returned immediately.
 //
 // Otherwise, an `*ObjectScanner` is returned with no error.
-func NewObjectScanner(osEnv Environment) (*ObjectScanner, error) {
+func NewObjectScanner(gitEnv, osEnv Environment) (*ObjectScanner, error) {
 	gitdir, err := GitCommonDir()
 	if err != nil {
 		return nil, err
 	}
 
-	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
-	gitobj, err := gitobj.FromFilesystemWithAlternates(filepath.Join(gitdir, "objects"), "", alternates)
+	gitobj, err := ObjectDatabase(osEnv, gitEnv, gitdir, "")
 	if err != nil {
 		return nil, err
 	}

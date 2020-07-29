@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
 )
@@ -88,24 +89,26 @@ func (s *catFileBatchCheckScanner) next() (string, string, bool) {
 	line := s.s.Text()
 	lineLen := len(line)
 
+	oidLen := strings.IndexByte(line, ' ')
+
 	// Format is:
-	// <sha1> <type> <size>
+	// <hash> <type> <size>
 	// type is at a fixed spot, if we see that it's "blob", we can avoid
 	// splitting the line just to get the size.
-	if lineLen < 46 {
+	if oidLen == -1 || lineLen < oidLen+6 {
 		return "", "", hasNext
 	}
 
-	if line[41:45] != "blob" {
+	if line[oidLen+1:oidLen+5] != "blob" {
 		return "", "", hasNext
 	}
 
-	size, err := strconv.Atoi(line[46:lineLen])
+	size, err := strconv.Atoi(line[oidLen+6 : lineLen])
 	if err != nil {
 		return "", "", hasNext
 	}
 
-	blobSha := line[0:40]
+	blobSha := line[0:oidLen]
 	if size >= s.limit {
 		return "", blobSha, hasNext
 	}
