@@ -43,6 +43,10 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if cfg.Os.Bool("GIT_LFS_SKIP_PUSH", false) {
+		return
+	}
+
 	requireGitVersion()
 
 	// Remote is first arg

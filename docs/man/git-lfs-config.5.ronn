@@ -360,6 +360,13 @@ be scoped inside the configuration for a remote.
   `git lfs smudge` and `git lfs filter-process`. If unset, or set to 'false',
   '0', 'off', or similar, Git LFS will smudge files as normal.
 
+* `GIT_LFS_SKIP_PUSH`
+
+  Sets whether or not Git LFS will attempt to upload new Git LFS object in a
+  pre-push hook. If 'true', '1', 'on', or similar, Git LFS will skip the
+  pre-push hook, so no new Git LFS objects will be uploaded. If unset, or set to
+  'false', '0', 'off', or similar, Git LFS will proceed as normal.
+
 * `GIT_LFS_SET_LOCKABLE_READONLY`
   `lfs.setlockablereadonly`
 

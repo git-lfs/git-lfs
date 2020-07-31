@@ -22,6 +22,12 @@ the Git objects in this branch.
 
 In the case of deleting a branch, no attempts to push Git LFS objects will be
 made.
+
+## OPTIONS
+
+* `GIT_LFS_SKIP_PUSH`:
+    Do nothing on pre-push. For more, see: git-lfs-config(5).
+
 ## SEE ALSO
 
 git-lfs-clean(1), git-lfs-push(1).
