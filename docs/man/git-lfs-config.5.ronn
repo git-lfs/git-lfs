@@ -12,6 +12,11 @@ details. This configuration file is useful for setting options such as the LFS
 URL or access type for all users of a repository, especially when these differ
 from the default. The `.lfsconfig` file uses the same format as `.gitconfig`.
 
+If the `.lfsconfig` file is missing, the index is checked for a version of the
+file, and that is used instead.  If both are missing, `HEAD` is checked for the
+file.  If the repository is bare, only `HEAD` is checked.  This order may change
+for checkouts in the future to better match Git's behavior.
+
 Settings from Git configuration files override the `.lfsconfig` file. This
 allows you to override settings like `lfs.url` in your local environment without
 having to modify the `.lfsconfig` file.
