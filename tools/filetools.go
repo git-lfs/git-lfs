@@ -304,6 +304,8 @@ func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
 	}
 
 	go func() {
+		defer w.Wait()
+
 		dirFi, err := os.Stat(w.rootDir)
 		if err != nil {
 			w.ch <- fastWalkInfo{Err: err}
@@ -311,7 +313,6 @@ func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
 		}
 
 		w.Walk(true, "", dirFi, excludePaths)
-		w.Wait()
 	}()
 	return w
 }
