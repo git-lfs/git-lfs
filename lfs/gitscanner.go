@@ -192,6 +192,16 @@ func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerFoundPointer) erro
 	return scanUnpushed(callback, remote)
 }
 
+// ScanStashed scans for all LFS pointers referenced solely by a stash
+func (s *GitScanner) ScanStashed(cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	if err != nil {
+		return err
+	}
+
+	return scanStashed(callback, s)
+}
+
 // ScanPreviousVersions scans changes reachable from ref (commit) back to since.
 // Returns channel of pointers for *previous* versions that overlap that time.
 // Does not include pointers which were still in use at ref (use ScanRefsToChan

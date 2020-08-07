@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -61,6 +62,32 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 
 	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
 	return nil
+}
+
+func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
+	// First get the SHAs of all stashes
+	// git reflog show --format="%H" stash
+	reflogArgs := []string{"show", "--format=%H", "stash"}
+
+	cmd, err := git.RefLog(reflogArgs...)
+	if err != nil {
+		return err
+	}
+
+	cmd.Start()
+	defer cmd.Wait()
+
+	scanner := bufio.NewScanner(cmd.Stdout)
+
+	for scanner.Scan() {
+		err = s.ScanRef(strings.TrimSpace(scanner.Text()), cb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd) {

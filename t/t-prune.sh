@@ -594,3 +594,46 @@ begin_test "prune verify large numbers of refs"
 
 )
 end_test
+
+begin_test "prune keep stashed changes"
+(
+  set -e
+
+  reponame="prune_keep_stashed"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate content we'll use
+  content_inrepo="This is the original committed data"
+  oid_inrepo=$(calc_oid "$content_inrepo")
+  content_stashed="This data will be stashed and should not be deleted"
+  oid_stashed=$(calc_oid "$content_stashed")
+
+  # We just need one commit of base data, makes it easier to test stash
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # now modify the file, and stash it
+  echo -n "$content_stashed" > stashedfile.dat
+   
+  git stash
+
+  # Prove that the stashed data was stored in LFS (should call clean filter)
+  assert_local_object "$oid_stashed" "${#content_stashed}"
+
+  # Prune data, should NOT delete stashed file
+  git lfs prune
+
+  assert_local_object "$oid_stashed" "${#content_stashed}"
+
+)
+end_test
