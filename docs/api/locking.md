@@ -6,9 +6,9 @@ The File Locking API is used to create, list, and delete locks, as well as
 verify that locks are respected in Git pushes. The locking URLs are built
 by adding a suffix to the LFS Server URL.
 
-Git remote: https://git-server.com/foo/bar
-LFS server: https://git-server.com/foo/bar.git/info/lfs
-Locks API: https://git-server.com/foo/bar.git/info/lfs/locks
+Git remote: https://git-server.com/foo/bar<br>
+LFS server: https://git-server.com/foo/bar.git/info/lfs<br>
+Locks API: https://git-server.com/foo/bar.git/info/lfs/locks<br>
 
 See the [Server Discovery doc](./server-discovery.md) for more info on how LFS
 builds the LFS server URL.
