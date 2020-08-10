@@ -624,7 +624,7 @@ begin_test "prune keep stashed changes"
 
   # now modify the file, and stash it
   echo -n "$content_stashed" > stashedfile.dat
-   
+
   git stash
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
