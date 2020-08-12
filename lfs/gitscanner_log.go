@@ -66,10 +66,9 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 
 func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 	// First get the SHAs of all stashes
-	// git reflog show --format="%H" stash
-	reflogArgs := []string{"show", "--format=%H", "stash"}
+	logArgs := []string{"-g", "--format=%H", "refs/stash", "--"}
 
-	cmd, err := git.RefLog(reflogArgs...)
+	cmd, err := git.Log(logArgs...)
 	if err != nil {
 		return err
 	}
