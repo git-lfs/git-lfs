@@ -12,6 +12,7 @@ Prune operates by enumerating all the locally stored objects, and then deleting
 any which are not referenced by at least ONE of the following:
 
 * the current checkout
+* all existing stashes
 * a 'recent branch'; see [RECENT FILES]
 * a 'recent commit' on the current branch or recent branches; see [RECENT FILES]
 * a commit which has not been pushed; see [UNPUSHED LFS FILES]
