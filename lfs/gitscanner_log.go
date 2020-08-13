@@ -107,7 +107,6 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 		// A = Parent commit of the stash (ignore, not part of the stash)
 		// B = Index changes for the hash
 		// C = Untracked files (optional, only present if -u)
-		// So we need to scan refs for A, C and optionally D
 		showScanner := bufio.NewScanner(showCmd.Stdout)
 
 		for showScanner.Scan() {
@@ -257,7 +256,7 @@ func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 		commitHeaderRegex:    regexp.MustCompile(fmt.Sprintf(`^lfs-commit-sha: (%s)(?: (%s))*`, git.ObjectIDRegex, git.ObjectIDRegex)),
 		fileHeaderRegex:      regexp.MustCompile(`diff --git a\/(.+?)\s+b\/(.+)`),
 		fileMergeHeaderRegex: regexp.MustCompile(`diff --cc (.+)`),
-		// stash diff can have up to 3 +/- characters. We only capture the first one
+		// stash diff can have up to 3 +/- characters
 		pointerDataRegex: regexp.MustCompile(`^([\+\- ]{1,3})(version https://git-lfs|oid sha256|size|ext-).*$`),
 	}
 }
