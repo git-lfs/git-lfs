@@ -693,3 +693,62 @@ begin_test "prune keep stashed changes in index"
   git checkout .
 )
 end_test
+
+begin_test "prune keep stashed untracked files"
+(
+  set -e
+
+  reponame="prune_keep_stashed_untracked"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate content we'll use
+  content_inrepo="This is the original committed data"
+  oid_inrepo=$(calc_oid "$content_inrepo")
+  content_indexstashed="This data will be stashed from the index and should not be deleted"
+  oid_indexstashed=$(calc_oid "$content_indexstashed")
+  content_stashed="This data will be stashed and should not be deleted"
+  oid_stashed=$(calc_oid "$content_stashed")
+  content_untrackedstashed="This UNTRACKED FILE data will be stashed and should not be deleted"
+  oid_untrackedstashed=$(calc_oid "$content_untrackedstashed")
+
+  # We just need one commit of base data, makes it easier to test stash
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # now modify the file, and add it to the index
+  echo -n "$content_indexstashed" > stashedfile.dat
+  git add stashedfile.dat
+
+  # now modify the file again, and stash it
+  echo -n "$content_stashed" > stashedfile.dat
+
+  # Also create an untracked file
+  echo -n "$content_untrackedstashed" > untrackedfile.dat
+
+  # stash, including untracked
+  git stash -u
+
+  # Prove that ALL stashed data was stored in LFS (should call clean filter)
+  assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
+
+  # Prune data, should NOT delete stashed file or stashed changes to index
+  git lfs prune
+
+  assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
+
+)
+end_test

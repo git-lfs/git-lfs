@@ -349,7 +349,26 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 				// Include only the entirety of one side of the diff
 				// -U3 will ensure we always get all of it, even if only
 				// the SHA changed (version & size the same)
+
 				changeType := match[1][0]
+
+				if len(match[1]) > 1 {
+					// A merge diff doesn't just have 1 +/- char, for example:
+					// @@@@ -1,3 -1,3 -1,0 +1,3 @@@@
+					//   +version https://git-lfs.github.com/spec/v1
+					// -  oid sha256:8e1c163c2a04e25158962537cbff2540ded60d4612506a27bc04d059c7ae16dd
+					//  - oid sha256:f2f84832183a0fca648c1ef49cfd32632b16b47ef5f17ac07dcfcb0ae00b86e5
+					// -- size 16
+					// +++oid sha256:b23f7e7314c5921e3e1cd87456d7867a51ccbe0c2c19ee4df64525c468d775df
+					// +++size 30
+
+					// To simplify, we're going to take "+" to mean "contains +"
+					// and - will only register as the first character as before
+					// We will ignore the " - " line entirely (changeIsBlank = false)
+					if strings.Contains(match[1], "+") {
+						changeType = '+'
+					}
+				}
 				// merge lines can have 2-3 chars so can't just use changeType==' ' for blank
 				changeIsBlank := len(strings.TrimSpace(match[1])) == 0
 
