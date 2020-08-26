@@ -1,3 +1,9 @@
+git-lfs (2.12.0) stable; urgency=low
+
+  * New upstream version
+
+ -- brian m. carlson <bk2204@github.com>  Tue, 1 Sep 2020 14:29:00 -0000
+
 git-lfs (2.11.0) stable; urgency=low
 
   * New upstream version

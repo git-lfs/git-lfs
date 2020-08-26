@@ -1,5 +1,55 @@
 # Git LFS Changelog
 
+## 2.12.0 (1 Sep 2020)
+
+This release introduces several new features, such as support for the SHA-256
+repositories coming in a future version of Git, restored support for Go 1.11,
+the ability to read the contents of .lfsconfig from the repository, signed and
+notarized binaries on macOS, and pre-built 32-bit ARM binaries on Linux.  In
+addition, several bugs have been fixed and miscellaneous fixes included.
+
+Note that macOS releases are now shipped as zip files, not tarballs, since it is
+not possible to notarize tarballs.  macOS releases are now also built on macOS,
+so `git lfs dedup` should now function.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @saracen for adding support for ARM binaries
+* @mversluys for improving locking support
+* @cccfeng for updating our documentation to make it more readable
+* @bluekeyes for improving performance and tracing
+* @gertcuykens for adding missing parts of our documentation
+
+### Features
+
+* config: optionally read .lfsconfig from the repository #4200 (@bk2204)
+* Support SHA-256 repositories #4186 (@bk2204)
+* allow Go 1.11 builds by using WaitStatus.ExitStatus() #4183 (@chrisd8088)
+* add --worktree option to install and uninstall commands #4159 (@chrisd8088)
+* Sign and notarize binaries on macOS #4143 (@bk2204)
+* Makefile: add linux arm build and release targets #4126 (@saracen)
+* Allow locking and unlocking non-existent files #3992 (@mversluys)
+
+### Bugs
+
+* docs/api/locking: add an explicit <br> #4208 (@cccfeng)
+* Fix hang when the user lacks permissions #4207 (@bk2204)
+* Don't mark unlocked files that aren't lockable as read-only #4171 (@bk2204)
+* locking: make patterns with slashes work on Windows #4139 (@bk2204)
+* git: consider full refspec when determining seen refs #4133 (@bk2204)
+
+### Misc
+
+* Fix Windows CI #4199 (@bk2204)
+* Fix testsuite when working with non-master default branch #4174 (@bk2204)
+* git: improve performance of remote ref listing #4176 (@bluekeyes)
+* subprocess: trace all command execution #4175 (@bluekeyes)
+* Update git-lfs-migrate.1.ronn #3869 (@gertcuykens)
+* t: use repo v1 with extensions #4177 (@bk2204)
+* Makefile: ensure temp Go modules can be deleted #4157 (@chrisd8088)
+* Improve test suite robustness via environment #4132 (@bk2204)
+
 ## 2.11.0 (8 May 2020)
 
 This release introduces several new features, such as better support for unnamed
