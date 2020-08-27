@@ -269,11 +269,6 @@ func Log(args ...string) (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered(logArgs...)
 }
 
-func Show(args ...string) (*subprocess.BufferedCmd, error) {
-	logArgs := append([]string{"show"}, args...)
-	return gitNoLFSBuffered(logArgs...)
-}
-
 func LsRemote(remote, remoteRef string) (string, error) {
 	if remote == "" {
 		return "", errors.New("remote required")

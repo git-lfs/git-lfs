@@ -65,19 +65,23 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 }
 
 func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
-
 	// Stashes are actually 2-3 commits, each containing one of:
-	// 1. Working copy modified files
+	// 1. Working copy (WIP) modified files
 	// 2. Index changes
-	// 3. Untracked files, if -u was used
-	// We need to get the diff of all 3 of these commits to ensure we have all
-	// of the LFS objects necessary to pop the stash
+	// 3. Untracked files (but only if "git stash -u" was used)
+	// The first of these, the WIP commit, is a merge whose first parent
+	// is HEAD and whose other parent(s) are commits 2 and 3 above.
 
-	// First get the list of stashes
-	// In recent version of git you can get parents directly from
-	// this command, avoiding the intermediate "git show"
-	// However older gits (at least <=2.7) don't report merge parents in the reflog
-	// So we need to do it in 2 stages
+	// We need to get the individual diff of each of these commits to
+	// ensure we have all of the LFS objects referenced by the stash,
+	// so a future "git stash pop" can restore them all.
+
+	// First we get the list of SHAs of the WIP merge commits from the
+	// reflog using "git log -g --format=%h refs/stash --".  Because
+	// older Git versions (at least <=2.7) don't report merge parents in
+	// the reflog, we can't extract the parent SHAs from "Merge:" lines
+	// in the log; we can, however, use the "git log -m" option to force
+	// individual diffs of all the merge parents in a second step.
 	logArgs := []string{"-g", "--format=%h", "refs/stash", "--"}
 
 	cmd, err := git.Log(logArgs...)
@@ -87,42 +91,9 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 
 	scanner := bufio.NewScanner(cmd.Stdout)
 
-	var allStashShas []string
+	var stashMergeShas []string
 	for scanner.Scan() {
-		leafSha := strings.TrimSpace(scanner.Text())
-
-		allStashShas = append(allStashShas, leafSha)
-
-		// For each leaf, use "git show" to expand parents & thus get
-		// all 2-3 shas involved in the stash
-		// As mentioned newer gits could do this in the reflog output but not gteed
-		showArgs := []string{"--quiet", "--format=%p", leafSha}
-		showCmd, err := git.Show(showArgs...)
-		if err != nil {
-			return err
-		}
-
-		// gets the abbreviated parent hashes as :
-		//      A B [C]
-		// A = Parent commit of the stash (ignore, not part of the stash)
-		// B = Index changes for the hash
-		// C = Untracked files (optional, only present if -u)
-		showScanner := bufio.NewScanner(showCmd.Stdout)
-
-		for showScanner.Scan() {
-			line := strings.TrimSpace(showScanner.Text())
-			refs := strings.Split(line, " ")
-			for i, ref := range refs {
-				if i > 0 { // Extra merge parents
-					allStashShas = append(allStashShas, ref)
-				}
-			}
-		}
-		err = showCmd.Wait()
-		if err != nil {
-			return err
-		}
-
+		stashMergeShas = append(stashMergeShas, strings.TrimSpace(scanner.Text()))
 	}
 	err = cmd.Wait()
 	if err != nil {
@@ -130,40 +101,22 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 		return nil
 	}
 
-	// Now we need to specifically use "git show" to parse results
-	// We can't use "git log" because weirdly that omits the index changes
-	// in the diff display, it collapses both into one diff and only shows the
-	// final change (not a 3-way like show). Only "show" on all the shas
-	// above displays them separately
-
-	// The "leaf" stash actually shows both the index and working copy, like this:
-
-	// -  oid sha256:8e1c163c2a04e25158962537cbff2540ded60d4612506a27bc04d059c7ae16dd
-	//  - oid sha256:f2f84832183a0fca648c1ef49cfd32632b16b47ef5f17ac07dcfcb0ae00b86e5
-	// -- size 16
-	// +++oid sha256:b23f7e7314c5921e3e1cd87456d7867a51ccbe0c2c19ee4df64525c468d775df
-	// +++size 30
-
-	// The second "-" entry has a space prefix which shows this as a 3-way diff
-	// However since we include all 2-3 commits explicitly in the git show,
-	// We get this line as a "+" entry in the other commit
-	// So we only need to care about the "+" entries
 	// We can use the log parser if we provide the -m option to get
-	// merge diffs show individually.
+	// merge diffs shown individually
+	logArgs = []string{"-m"}
 
-	showArgs := []string{
-		"-m"} // show diffs for individual parents of a merge
-	showArgs = append(showArgs, logLfsSearchArgs...)
-	showArgs = append(showArgs, allStashShas...)
+	// Add standard search args to find lfs references
+	logArgs = append(logArgs, logLfsSearchArgs...)
 
-	cmd, err = git.Show(showArgs...)
+	logArgs = append(logArgs, stashMergeShas...)
+
+	cmd, err = git.Log(logArgs...)
 	if err != nil {
 		return err
 	}
 
 	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
 	return nil
-
 }
 
 func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd) {
