@@ -290,7 +290,7 @@ RELEASE_TARGETS = \
 
 # RELEASE_INCLUDES are the names of additional files that are added to each
 # release artifact.
-RELEASE_INCLUDES = README.md CHANGELOG.md
+RELEASE_INCLUDES = README.md CHANGELOG.md man
 
 # release is a phony target that builds all of the release artifacts, and then
 # shows the SHA 256 signature of each.
@@ -319,8 +319,9 @@ bin/releases/git-lfs-darwin-%-$(VERSION).zip : \
 $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 	dir=bin/releases/darwin-$* && \
 	mkdir -p $$dir && \
-	cp $^ $$dir && mv $$dir/git-lfs-darwin-$* $$dir/git-lfs && \
+	cp -R $^ $$dir && mv $$dir/git-lfs-darwin-$* $$dir/git-lfs && \
 	zip -j $@ $$dir/* && \
+	zip -u $@ man/* && \
 	$(RM) -r $$dir
 
 # bin/releases/git-lfs-windows-$(VERSION).zip generates a ZIP compression of all
@@ -331,6 +332,7 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
 	zip -j -l $@ $^
+	zip -u $@ man/*
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
