@@ -10,6 +10,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - run: gem install ronn
     - run: script/cibuild
     - run: CGO_ENABLED=0 make release
     - run: mkdir -p bin/assets
@@ -35,6 +37,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
     - run: |
         echo "::add-path::C:\Program Files\Git\mingw64\bin"
         echo "::add-path::C:\Program Files\Git\usr\bin"
@@ -47,6 +50,10 @@ jobs:
     - run: choco uninstall git.install -y --force
     - run: cinst git --version 2.26.2 -y --force
     - run: refreshenv
+    - run: gem install ronn
+      shell: bash
+    - run: make man
+      shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" script/cibuild

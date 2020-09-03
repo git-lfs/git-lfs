@@ -22,6 +22,7 @@ jobs:
     - run: cinst zip -y
     - run: cinst jq -y
     - run: cinst windows-sdk-10.0 -y
+    - run: gem install ronn
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
       shell: bash
@@ -52,6 +53,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
     - run: brew install mitchellh/gon/gon
+    - run: gem install ronn
     - run: make release
     - run: CERT_FILE="$HOME/cert.p12" make release-write-certificate
       env:
@@ -83,6 +85,7 @@ jobs:
     - uses: actions/download-artifact@v1
       with:
         name: macos-assets
+    - run: gem install ronn
     - run: CGO_ENABLED=0 make release
     - run: rm -f bin/releases/*windows* bin/releases/*darwin*
     - run: 'find windows-assets -name "*windows*" -type f | xargs -L1 -I{} mv {} bin/releases'
