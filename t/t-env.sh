@@ -975,3 +975,68 @@ UploadTransfers=basic,lfs-standalone-file
   contains_same_elements "$expected" "$actual"
 )
 end_test
+
+
+begin_test "env with unicode"
+(
+  set -e
+  # This contains a Unicode apostrophe, an E with grave accent, and a Euro sign.
+  # Only the middle one is representable in ISO-8859-1.
+  reponame="env-d’autre-nom-très-bizarr€"
+  unset_vars
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin "$GITSERVER/env-origin-remote"
+  git remote add other "$GITSERVER/env-other-remote"
+
+  touch a.txt
+  git add a.txt
+  git commit -m "initial commit"
+
+  # Set by the testsuite.
+  unset LC_ALL
+
+  endpoint="$GITSERVER/env-origin-remote.git/info/lfs (auth=none)"
+  endpoint2="$GITSERVER/env-other-remote.git/info/lfs (auth=none)"
+  localwd=$(canonical_path "$TRASHDIR/$reponame")
+  localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
+  localgitstore=$(canonical_path "$TRASHDIR/$reponame/.git")
+  lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
+  localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
+  tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
+  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  expected=$(printf '%s
+%s
+
+Endpoint=%s
+Endpoint (other)=%s
+LocalWorkingDir=%s
+LocalGitDir=%s
+LocalGitStorageDir=%s
+LocalMediaDir=%s
+LocalReferenceDirs=
+TempDir=%s
+ConcurrentTransfers=8
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=%s
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+  actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
+  contains_same_elements "$expected" "$actual"
+)
+end_test

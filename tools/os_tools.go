@@ -29,6 +29,15 @@ func Getwd() (dir string, err error) {
 
 func translateCygwinPath(path string) (string, error) {
 	cmd := subprocess.ExecCommand("cygpath", "-w", path)
+	// cygpath uses ISO-8850-1 as the default encoding if the locale is not
+	// set, resulting in breakage, since we want a UTF-8 path.
+	env := make([]string, 0, len(cmd.Env)+1)
+	for _, val := range cmd.Env {
+		if !strings.HasPrefix(val, "LC_ALL=") {
+			env = append(env, val)
+		}
+	}
+	cmd.Env = append(env, "LC_ALL=C.UTF-8")
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 	out, err := cmd.Output()
