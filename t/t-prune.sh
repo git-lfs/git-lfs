@@ -623,7 +623,7 @@ begin_test "prune keep stashed changes"
   ]" | lfstest-testutils addcommits
 
   # now modify the file, and stash it
-  echo -n "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashed" > stashedfile.dat
 
   git stash
 
@@ -668,11 +668,11 @@ begin_test "prune keep stashed changes in index"
   ]" | lfstest-testutils addcommits
 
   # now modify the file, and add it to the index
-  echo -n "$content_indexstashed" > stashedfile.dat
+  printf '%s' "$content_indexstashed" > stashedfile.dat
   git add stashedfile.dat
 
   # now modify the file again, and stash it
-  echo -n "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashed" > stashedfile.dat
 
   git stash
 
@@ -726,14 +726,14 @@ begin_test "prune keep stashed untracked files"
   ]" | lfstest-testutils addcommits
 
   # now modify the file, and add it to the index
-  echo -n "$content_indexstashed" > stashedfile.dat
+  printf '%s' "$content_indexstashed" > stashedfile.dat
   git add stashedfile.dat
 
   # now modify the file again, and stash it
-  echo -n "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashed" > stashedfile.dat
 
   # Also create an untracked file
-  echo -n "$content_untrackedstashed" > untrackedfile.dat
+  printf '%s' "$content_untrackedstashed" > untrackedfile.dat
 
   # stash, including untracked
   git stash -u

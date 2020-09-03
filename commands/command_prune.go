@@ -73,7 +73,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// each main process can Add() to the wg itself if it subdivides the task
 	taskwait.Add(5) // 1..5: localObjects, current & recent refs, unpushed, worktree, stashes
 	if verifyRemote {
-		taskwait.Add(1) // 5
+		taskwait.Add(1) // 6
 	}
 
 	progressChan := make(PruneProgressChan, 100)
