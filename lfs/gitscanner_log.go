@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -55,6 +56,61 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 	logArgs = append(logArgs, logLfsSearchArgs...)
 
 	cmd, err := git.Log(logArgs...)
+	if err != nil {
+		return err
+	}
+
+	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
+	return nil
+}
+
+func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
+	// Stashes are actually 2-3 commits, each containing one of:
+	// 1. Working copy (WIP) modified files
+	// 2. Index changes
+	// 3. Untracked files (but only if "git stash -u" was used)
+	// The first of these, the WIP commit, is a merge whose first parent
+	// is HEAD and whose other parent(s) are commits 2 and 3 above.
+
+	// We need to get the individual diff of each of these commits to
+	// ensure we have all of the LFS objects referenced by the stash,
+	// so a future "git stash pop" can restore them all.
+
+	// First we get the list of SHAs of the WIP merge commits from the
+	// reflog using "git log -g --format=%h refs/stash --".  Because
+	// older Git versions (at least <=2.7) don't report merge parents in
+	// the reflog, we can't extract the parent SHAs from "Merge:" lines
+	// in the log; we can, however, use the "git log -m" option to force
+	// individual diffs of all the merge parents in a second step.
+	logArgs := []string{"-g", "--format=%h", "refs/stash", "--"}
+
+	cmd, err := git.Log(logArgs...)
+	if err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(cmd.Stdout)
+
+	var stashMergeShas []string
+	for scanner.Scan() {
+		stashMergeShas = append(stashMergeShas, strings.TrimSpace(scanner.Text()))
+	}
+	err = cmd.Wait()
+	if err != nil {
+		// Ignore this error, it really only happens when there's no refs/stash
+		return nil
+	}
+
+	// We can use the log parser if we provide the -m option to get
+	// merge diffs shown individually
+	logArgs = []string{"-m"}
+
+	// Add standard search args to find lfs references
+	logArgs = append(logArgs, logLfsSearchArgs...)
+
+	logArgs = append(logArgs, stashMergeShas...)
+
+	cmd, err = git.Log(logArgs...)
 	if err != nil {
 		return err
 	}

@@ -71,9 +71,9 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// Add all the base funcs to the waitgroup before starting them, in case
 	// one completes really fast & hits 0 unexpectedly
 	// each main process can Add() to the wg itself if it subdivides the task
-	taskwait.Add(4) // 1..4: localObjects, current & recent refs, unpushed, worktree
+	taskwait.Add(5) // 1..5: localObjects, current & recent refs, unpushed, worktree, stashes
 	if verifyRemote {
-		taskwait.Add(1) // 5
+		taskwait.Add(1) // 6
 	}
 
 	progressChan := make(PruneProgressChan, 100)
@@ -99,6 +99,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	go pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
 	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
 	go pruneTaskGetRetainedWorktree(gitscanner, retainChan, errorChan, &taskwait, sem)
+	go pruneTaskGetRetainedStashed(gitscanner, retainChan, errorChan, &taskwait, sem)
 	if verifyRemote {
 		reachableObjects = tools.NewStringSetWithCapacity(100)
 		go pruneTaskGetReachableObjects(gitscanner, &reachableObjects, errorChan, &taskwait, sem)
@@ -473,6 +474,25 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, retainChan chan st
 			// Don't need to 'cd' to worktree since we share same repo
 			go pruneTaskGetRetainedAtRef(gitscanner, ref.Sha, retainChan, errorChan, waitg, sem)
 		}
+	}
+}
+
+// Background task, must call waitg.Done() once at end
+func pruneTaskGetRetainedStashed(gitscanner *lfs.GitScanner, retainChan chan string, errorChan chan error, waitg *sync.WaitGroup, sem *semaphore.Weighted) {
+	defer waitg.Done()
+
+	err := gitscanner.ScanStashed(func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			errorChan <- err
+		} else {
+			retainChan <- p.Pointer.Oid
+			tracerx.Printf("RETAIN: %v stashed", p.Pointer.Oid)
+		}
+	})
+
+	if err != nil {
+		errorChan <- err
+		return
 	}
 }
 
