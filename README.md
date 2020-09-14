@@ -167,6 +167,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for info on working on Git LFS and
 sending patches. Related projects are listed on the [Implementations wiki
 page](https://github.com/git-lfs/git-lfs/wiki/Implementations).
 
+See also [SECURITY.md](SECURITY.md) for info on how to submit reports
+of security vulnerabilities.
+
 ## Core Team
 
 These are the humans that form the Git LFS core team, which runs the project.
@@ -174,8 +177,9 @@ These are the humans that form the Git LFS core team, which runs the project.
 In alphabetical order:
 
 | [@bk2204][bk2204-user] | [@chrisd8088][chrisd8088-user] | [@larsxschneider][larsxschneider-user] |
-|---|---|---|
+| :---: | :---: | :---: |
 | [![][bk2204-img]][bk2204-user] | [![][chrisd8088-img]][chrisd8088-user] | [![][larsxschneider-img]][larsxschneider-user] |
+| [PGP 0223B187][bk2204-pgp] | [PGP 088335A9][chrisd8088-pgp] | [PGP A5795889][larsxschneider-pgp] |
 
 [bk2204-img]: https://avatars1.githubusercontent.com/u/497054?s=100&v=4
 [chrisd8088-img]: https://avatars1.githubusercontent.com/u/28857117?s=100&v=4
@@ -183,6 +187,9 @@ In alphabetical order:
 [bk2204-user]: https://github.com/bk2204
 [chrisd8088-user]: https://github.com/chrisd8088
 [larsxschneider-user]: https://github.com/larsxschneider
+[bk2204-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x88ace9b29196305ba9947552f1ba225c0223b187
+[chrisd8088-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x09b4bf756670b76d63515717506c7945088335a9
+[larsxschneider-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xaa3b3450295830d2de6db90caba67be5a5795889
 
 ### Alumni
 
@@ -193,7 +200,7 @@ not be possible without them.
 In alphabetical order:
 
 | [@andyneff][andyneff-user] | [@PastelMobileSuit][PastelMobileSuit-user] | [@rubyist][rubyist-user] | [@sinbad][sinbad-user] | [@technoweenie][technoweenie-user] | [@ttaylorr][ttaylorr-user] |
-|---|---|---|---|---|---|
+| :---: | :---: | :---: | :---: | :---: | :---: |
 | [![][andyneff-img]][andyneff-user] | [![][PastelMobileSuit-img]][PastelMobileSuit-user] | [![][rubyist-img]][rubyist-user] | [![][sinbad-img]][sinbad-user] | [![][technoweenie-img]][technoweenie-user] | [![][ttaylorr-img]][ttaylorr-user] |
 
 [andyneff-img]: https://avatars1.githubusercontent.com/u/7596961?v=3&s=100
