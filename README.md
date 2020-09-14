@@ -151,7 +151,8 @@ $ git lfs help <subcommand>
 ```
 
 The [official documentation](docs) has command references and specifications for
-the tool.
+the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) on
+the wiki which answers some common questions.
 
 You can always [open an issue](https://github.com/git-lfs/git-lfs/issues), and
 one of the Core Team members will respond to you. Please be sure to include:
