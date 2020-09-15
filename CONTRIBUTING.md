@@ -1,7 +1,7 @@
 ## Contributing to Git Large File Storage
 
 Hi there! We're thrilled that you'd like to contribute to this project. Your
-help is essential for keeping it great.
+help is essential for making it the best it can be.
 
 Contributions to this project are [released](https://help.github.com/articles/github-terms-of-service/#6-contributions-under-repository-license) to the public under the [project's open source license](LICENSE.md).
 
@@ -82,10 +82,12 @@ Here are some tips for getting your question answered as quickly as possible:
 * It's helpful if your issue includes the output of `git lfs env`, plus any
   relevant information about platform or configuration (e.g., container or CI
   usage, Cygwin, WSL, or non-Basic authentication).
-* Take a look at the [troubleshooting](https://github.com/git-lfs/git-lfs/wiki/Troubleshooting)
-  page on the wiki. We update it from time to time with information on how to
-  track down problems. If it seems relevant, include any information you've
-  learned by following those steps.
+* Take a look at the
+  [troubleshooting](https://github.com/git-lfs/git-lfs/wiki/Troubleshooting) and
+  [FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) pages on the wiki. We
+  update them from time to time with information on how to track down problems.
+  If it seems relevant, include any information you've learned by following
+  those steps.
 * If you're having problems with GitHub's server-side LFS support, it's best to
   reach out to [GitHub's support team](https://github.com/contact) to get help.
   We aren't able to address GitHub-specific issues in this project, but the
