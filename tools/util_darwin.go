@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"unsafe"
+	"syscall"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"golang.org/x/sys/unix"
@@ -112,30 +112,11 @@ func CloneFileByPath(dst, src string) (bool, error) {
 }
 
 func cloneFileSyscall(dst, src string) *CloneFileError {
-	srcCString, err := unix.BytePtrFromString(src)
+	err := unix.Clonefileat(C.AT_FDCWD, src, C.AT_FDCWD, dst, C.CLONE_NOFOLLOW)
 	if err != nil {
-		return &CloneFileError{errorString: err.Error()}
-	}
-	dstCString, err := unix.BytePtrFromString(dst)
-	if err != nil {
-		return &CloneFileError{errorString: err.Error()}
-	}
-
-	atFDCwd := C.AT_FDCWD // current directory.
-
-	_, _, errNo := unix.Syscall6(
-		unix.SYS_CLONEFILEAT,
-		uintptr(atFDCwd),
-		uintptr(unsafe.Pointer(srcCString)),
-		uintptr(atFDCwd),
-		uintptr(unsafe.Pointer(dstCString)),
-		uintptr(C.CLONE_NOFOLLOW),
-		0,
-	)
-	if errNo != 0 {
 		return &CloneFileError{
-			Unsupported: errNo == C.ENOTSUP,
-			errorString: fmt.Sprintf("%s. from %v to %v", unix.ErrnoName(errNo), src, dst),
+			Unsupported: err == syscall.ENOTSUP,
+			errorString: fmt.Sprintf("%s. from %v to %v", err, src, dst),
 		}
 	}
 
