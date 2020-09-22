@@ -27,6 +27,10 @@ func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 			return nil, nil
 		}
 
+		if strings.HasPrefix(proxy, "socks5h://") {
+			proxy = strings.Replace(proxy, "socks5h://", "socks5://", 1)
+		}
+
 		cfg := &httpproxy.Config{
 			HTTPProxy:  proxy,
 			HTTPSProxy: proxy,
