@@ -6,14 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"syscall"
-)
 
-const (
-	// This is the FICLONE ioctl value found in linux/fs.h on a typical
-	// system.  It's equivalent to the older BTRFS_IOC_CLONE.  We hard-code
-	// the value here to avoid a dependency on cgo.
-	ioctlFiClone = 0x40049409
+	"golang.org/x/sys/unix"
 )
 
 // CheckCloneFileSupported runs explicit test of clone file on supplied directory.
@@ -44,7 +38,7 @@ func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
 	fdst, fdstFound := writer.(*os.File)
 	fsrc, fsrcFound := reader.(*os.File)
 	if fdstFound && fsrcFound {
-		if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, fdst.Fd(), ioctlFiClone, fsrc.Fd()); err != 0 {
+		if err := unix.IoctlFileClone(int(fdst.Fd()), int(fsrc.Fd())); err != nil {
 			return false, err
 		}
 		return true, nil
