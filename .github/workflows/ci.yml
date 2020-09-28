@@ -87,7 +87,7 @@ jobs:
     - uses: actions/checkout@v1
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
-    - run: script/cibuild
+    - run: GIT_DEFAULT_HASH=sha256 script/cibuild
   build-earliest:
     name: Build with earliest Git
     strategy:
