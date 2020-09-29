@@ -158,6 +158,44 @@ begin_test "pre-push dry-run"
 )
 end_test
 
+begin_test "pre-push skip-push"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-skip-push"
+  setup_remote_repo "$reponame"
+
+  clone_repo "$reponame" repo-skip-push
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "add git attributes"
+
+  git config "lfs.$(repo_endpoint $GITSERVER $reponame).locksverify" true
+
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
+    GIT_LFS_SKIP_PUSH=true git lfs pre-push origin "$GITSERVER/$reponame" |
+    tee push.log
+
+  [ "" = "$(cat push.log)" ]
+
+  git lfs track "*.dat"
+  echo "dry" > hi.dat
+  git add hi.dat
+  git commit -m "add hi.dat"
+  git show
+
+  refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
+
+  echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
+    GIT_LFS_SKIP_PUSH=true git lfs pre-push origin "$GITSERVER/$reponame" |
+    tee push.log
+
+  [ "" = "$(cat push.log)" ]
+
+  refute_server_object "$reponame" 2840e0eafda1d0760771fe28b91247cf81c76aa888af28a850b5648a338dc15b
+)
+end_test
+
 begin_test "pre-push 307 redirects"
 (
   set -e
