@@ -14,6 +14,20 @@ the following format:
 
 It also takes the remote name and URL as arguments.
 
+If any of those Git objects are associated with Git LFS objects, those
+objects will be pushed to the Git LFS API.
+
+In the case of pushing a new branch, the list of Git objects will be all of
+the Git objects in this branch.
+
+In the case of deleting a branch, no attempts to push Git LFS objects will be
+made.
+
+## OPTIONS
+
+* `GIT_LFS_SKIP_PUSH`:
+    Do nothing on pre-push. For more, see: git-lfs-config(5).
+
 ## SEE ALSO
 
 git-lfs-clean(1), git-lfs-push(1).
