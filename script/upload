@@ -21,6 +21,10 @@ abort () {
   exit 2
 }
 
+uri_encode () {
+  ruby -e 'print ARGV[0].gsub(/[^A-Za-z0-9_.-]/) { |x| "%%%02x" % x.ord }' "$1"
+}
+
 curl () {
   if [ -n "$GITHUB_TOKEN" ]
   then
@@ -232,8 +236,8 @@ upload_assets () {
     base=$(basename "$file")
     desc=$(categorize_asset "$base")
     ct=$(content_type "$base")
-    encbase=$(ruby -ruri -e 'print URI.escape(ARGV[0])' "$base")
-    encdesc=$(ruby -ruri -e 'print URI.escape(ARGV[0])' "$desc")
+    encbase=$(uri_encode "$base")
+    encdesc=$(uri_encode "$desc")
 
     say "\tUploading %s as \"%s\" (Content-Type %s)..." "$base" "$desc" "$ct"
     curl --data-binary "@$file" -H'Accept: application/vnd.github.v3+json' \
