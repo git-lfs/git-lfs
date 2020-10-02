@@ -316,15 +316,49 @@ func requireInRepo() {
 // that it not be bare. If it is bare (or the state of the repository could not
 // be determined), this function will terminate the program.
 func requireWorkingCopy() {
+	if cfg.LocalWorkingDir() == "" {
+		Print("This operation must be run in a work tree.")
+		os.Exit(128)
+	}
+}
+
+func setupRepository() {
+	requireInRepo()
 	bare, err := git.IsBare()
 	if err != nil {
 		ExitWithError(errors.Wrap(
 			err, "fatal: could not determine bareness"))
 	}
 
-	if bare {
-		Print("This operation must be run in a work tree.")
-		os.Exit(128)
+	if !bare {
+		changeToWorkingCopy()
+	}
+}
+
+func setupWorkingCopy() {
+	requireInRepo()
+	requireWorkingCopy()
+	changeToWorkingCopy()
+}
+
+func changeToWorkingCopy() {
+	workingDir := cfg.LocalWorkingDir()
+	cwd, err := tools.Getwd()
+	if err != nil {
+		ExitWithError(errors.Wrap(
+			err, "fatal: could not determine current working directory"))
+	}
+	cwd, err = filepath.EvalSymlinks(cwd)
+	if err != nil {
+		ExitWithError(errors.Wrap(
+			err, "fatal: could not canonicalize current working directory"))
+	}
+
+	// If the current working directory is not within the repository's
+	// working directory, then let's change directories accordingly.  This
+	// should only occur if GIT_WORK_TREE is set.
+	if !(strings.HasPrefix(cwd, workingDir) && (cwd == workingDir || (len(cwd) > len(workingDir) && cwd[len(workingDir)] == os.PathSeparator))) {
+		os.Chdir(workingDir)
 	}
 }
 

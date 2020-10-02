@@ -61,7 +61,7 @@ var (
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
 // as a BlobRewriteFn to apply, and performs a migration.
 func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *githistory.RewriteOptions) {
-	requireInRepo()
+	setupRepository()
 
 	opts, err := rewriteOptions(args, opts, l)
 	if err != nil {

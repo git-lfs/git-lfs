@@ -102,7 +102,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		UpdateRefs: true,
 	}
 
-	requireInRepo()
+	setupRepository()
 
 	opts, err = rewriteOptions(args, opts, l)
 	if err != nil {

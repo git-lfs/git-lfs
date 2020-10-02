@@ -20,7 +20,7 @@ var (
 )
 
 func checkoutCommand(cmd *cobra.Command, args []string) {
-	requireInRepo()
+	setupRepository()
 
 	stage, err := whichCheckout()
 	if err != nil {

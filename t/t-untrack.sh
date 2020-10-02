@@ -158,3 +158,21 @@ begin_test "untrack removes escaped pattern in .gitattributes"
   fi
 )
 end_test
+
+begin_test "untrack works with GIT_WORK_TREE"
+(
+  set -e
+
+  reponame="untrack-work-tree"
+  export GIT_WORK_TREE="$reponame" GIT_DIR="$reponame-git"
+  mkdir "$GIT_WORK_TREE" "$GIT_DIR"
+  git init
+  git lfs track '*.bin'
+
+  grep -F '*.bin filter=lfs diff=lfs merge=lfs -text' "$reponame/.gitattributes"
+
+  git lfs untrack '*.bin'
+
+  [ ! -s "$reponame/.gitattributes" ]
+)
+end_test

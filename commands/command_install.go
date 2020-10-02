@@ -36,7 +36,7 @@ func cmdInstallOptions() *lfs.FilterOptions {
 	requireGitVersion()
 
 	if localInstall || worktreeInstall {
-		requireInRepo()
+		setupRepository()
 	}
 
 	switch {

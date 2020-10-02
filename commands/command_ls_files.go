@@ -20,7 +20,7 @@ var (
 )
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
-	requireInRepo()
+	setupRepository()
 
 	var ref string
 	var otherRef string

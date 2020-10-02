@@ -15,7 +15,7 @@ var (
 // .git/lfs.
 func updateCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
-	requireInRepo()
+	setupRepository()
 
 	lfsAccessRE := regexp.MustCompile(`\Alfs\.(.*)\.access\z`)
 	for key, _ := range cfg.Git.All() {

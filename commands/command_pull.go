@@ -17,7 +17,7 @@ import (
 
 func pullCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
-	requireInRepo()
+	setupRepository()
 
 	if len(args) > 0 {
 		// Remote is first arg
