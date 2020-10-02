@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/rubyist/tracerx"
 )
@@ -128,6 +129,7 @@ func quotedArgs(args []string) string {
 
 // An env for an exec.Command without GIT_TRACE and GIT_INTERNAL_SUPER_PREFIX
 var env []string
+var envMu sync.Mutex
 var traceEnv = "GIT_TRACE="
 
 // Don't pass GIT_INTERNAL_SUPER_PREFIX back to Git. Git passes this environment
@@ -138,7 +140,20 @@ var traceEnv = "GIT_TRACE="
 // support --super-prefix and would immediately exit with an error as a result.
 var superPrefixEnv = "GIT_INTERNAL_SUPER_PREFIX="
 
-func init() {
+func fetchEnvironment() []string {
+	envMu.Lock()
+	defer envMu.Unlock()
+
+	return fetchEnvironmentInternal()
+}
+
+// fetchEnvironmentInternal should only be called from fetchEnvironment or
+// ResetEnvironment, who will hold the required lock.
+func fetchEnvironmentInternal() []string {
+	if env != nil {
+		return env
+	}
+
 	realEnv := os.Environ()
 	env = make([]string, 0, len(realEnv))
 
@@ -148,4 +163,16 @@ func init() {
 		}
 		env = append(env, kv)
 	}
+	return env
+}
+
+// ResetEnvironment resets the cached environment that's used in subprocess
+// calls.
+func ResetEnvironment() {
+	envMu.Lock()
+	defer envMu.Unlock()
+
+	env = nil
+	// Reinitialize the environment settings.
+	fetchEnvironmentInternal()
 }
