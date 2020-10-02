@@ -92,6 +92,8 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 
 	root.Flags().BoolVarP(&rootVersion, "version", "v", false, "")
 
+	canonicalizeEnvironment()
+
 	cfg = config.New()
 
 	for _, f := range commandFuncs {

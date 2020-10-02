@@ -20,6 +20,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
@@ -38,6 +39,8 @@ var (
 	cfg       *config.Configuration
 	apiClient *lfsapi.Client
 	global    sync.Mutex
+
+	oldEnv = make(map[string]string)
 
 	includeArg string
 	excludeArg string
@@ -325,6 +328,24 @@ func requireWorkingCopy() {
 	}
 }
 
+func canonicalizeEnvironment() {
+	vars := []string{"GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR"}
+	for _, v := range vars {
+		val, ok := os.LookupEnv(v)
+		if ok {
+			path, err := tools.CanonicalizePath(val, true)
+			// We have existing code which relies on users being
+			// able to pass invalid paths, so don't fail if the path
+			// cannot be canonicalized.
+			if err == nil {
+				oldEnv[v] = val
+				os.Setenv(v, path)
+			}
+		}
+	}
+	subprocess.ResetEnvironment()
+}
+
 func handlePanic(err error) string {
 	if err == nil {
 		return ""
@@ -438,7 +459,7 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	fmt.Fprint(w, le+"ENV:"+le)
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
+	for _, env := range lfs.Environ(cfg, getTransferManifest(), oldEnv) {
 		fmt.Fprint(w, env+le)
 	}
 

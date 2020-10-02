@@ -15,7 +15,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
+func Environ(cfg *config.Configuration, manifest *tq.Manifest, envOverrides map[string]string) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
 
@@ -23,6 +23,10 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	if err != nil {
 		// TODO(@ttaylorr): don't panic
 		panic(err.Error())
+	}
+
+	if envOverrides == nil {
+		envOverrides = make(map[string]string, 0)
 	}
 
 	download := api.Endpoints.AccessFor(api.Endpoints.Endpoint("download", cfg.Remote()).Url)
@@ -72,10 +76,15 @@ func Environ(cfg *config.Configuration, manifest *tq.Manifest) []string {
 	}
 
 	for _, e := range osEnviron {
-		if !strings.Contains(strings.SplitN(e, "=", 2)[0], "GIT_") {
+		key := strings.SplitN(e, "=", 2)[0]
+		if !strings.HasPrefix(key, "GIT_") {
 			continue
 		}
-		env = append(env, e)
+		if val, ok := envOverrides[key]; ok {
+			env = append(env, fmt.Sprintf("%s=%s", key, val))
+		} else {
+			env = append(env, e)
+		}
 	}
 
 	return env
