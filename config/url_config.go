@@ -113,7 +113,7 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 		}
 
 		// Rule #3: Port Number must match exactly
-		if searchURL.Port() != configURL.Port() {
+		if portForURL(searchURL) != portForURL(configURL) {
 			continue
 		}
 
@@ -163,6 +163,23 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 	}
 
 	return c.git.GetAll(bestMatch.key)
+}
+
+func portForURL(u *url.URL) string {
+	port := u.Port()
+	if port != "" {
+		return port
+	}
+	switch u.Scheme {
+	case "http":
+		return "80"
+	case "https":
+		return "443"
+	case "ssh":
+		return "22"
+	default:
+		return ""
+	}
 }
 
 // compareHosts compares a hostname with a configuration hostname to determine
