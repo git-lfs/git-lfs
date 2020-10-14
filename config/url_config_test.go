@@ -8,17 +8,19 @@ import (
 
 func TestURLConfig(t *testing.T) {
 	u := NewURLConfig(EnvironmentOf(MapFetcher(map[string][]string{
-		"http.key":                           []string{"root", "root-2"},
-		"http.https://host.com.key":          []string{"host", "host-2"},
-		"http.https://user@host.com/a.key":   []string{"user-a", "user-b"},
-		"http.https://user@host.com.key":     []string{"user", "user-2"},
-		"http.https://host.com/a.key":        []string{"host-a", "host-b"},
-		"http.https://host.com:8080.key":     []string{"port", "port-2"},
-		"http.https://host.com/repo.git.key": []string{".git"},
-		"http.https://host.com/repo.key":     []string{"no .git"},
-		"http.https://host.com/repo2.key":    []string{"no .git"},
-		"http.http://host.com/repo.key":      []string{"http"},
-		"http.https://host.*/a.key":          []string{"wild"},
+		"http.key":                                []string{"root", "root-2"},
+		"http.https://host.com.key":               []string{"host", "host-2"},
+		"http.https://user@host.com/a.key":        []string{"user-a", "user-b"},
+		"http.https://user@host.com.key":          []string{"user", "user-2"},
+		"http.https://host.com/a.key":             []string{"host-a", "host-b"},
+		"http.https://host.com:8080.key":          []string{"port", "port-2"},
+		"http.https://host.com/repo.git.key":      []string{".git"},
+		"http.https://host.com/repo.key":          []string{"no .git"},
+		"http.https://host.com/repo2.key":         []string{"no .git"},
+		"http.http://host.com/repo.key":           []string{"http"},
+		"http.https://host.com:443/repo3.git.key": []string{"port"},
+		"http.ssh://host.com:22/repo3.git.key":    []string{"ssh-port"},
+		"http.https://host.*/a.key":               []string{"wild"},
 	})))
 
 	getOne := map[string]string{
@@ -34,10 +36,14 @@ func TestURLConfig(t *testing.T) {
 		"https://host.com/repo":                       "no .git",
 		"https://host.com/repo2.git/info/lfs/foo/bar": "no .git",
 		"https://host.com/repo2.git/info/lfs":         "no .git",
+		"https://host.com:443/repo2.git/info/lfs":     "no .git",
 		"https://host.com/repo2.git/info":             "host-2", // doesn't match /.git/info/lfs\Z/
 		"https://host.com/repo2.git":                  "host-2", // ditto
+		"https://host.com/repo3.git/info/lfs":         "port",
+		"ssh://host.com/repo3.git/info/lfs":           "ssh-port",
 		"https://host.com/repo2":                      "no .git",
 		"http://host.com/repo":                        "http",
+		"http://host.com:80/repo":                     "http",
 		"https://host.wild/a/b/c":                     "wild",
 	}
 
