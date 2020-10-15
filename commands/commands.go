@@ -20,6 +20,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/lfsapi"
 	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tq"
 )
@@ -38,6 +39,8 @@ var (
 	cfg       *config.Configuration
 	apiClient *lfsapi.Client
 	global    sync.Mutex
+
+	oldEnv = make(map[string]string)
 
 	includeArg string
 	excludeArg string
@@ -313,16 +316,68 @@ func requireInRepo() {
 // that it not be bare. If it is bare (or the state of the repository could not
 // be determined), this function will terminate the program.
 func requireWorkingCopy() {
+	if cfg.LocalWorkingDir() == "" {
+		Print("This operation must be run in a work tree.")
+		os.Exit(128)
+	}
+}
+
+func setupRepository() {
+	requireInRepo()
 	bare, err := git.IsBare()
 	if err != nil {
 		ExitWithError(errors.Wrap(
 			err, "fatal: could not determine bareness"))
 	}
 
-	if bare {
-		Print("This operation must be run in a work tree.")
-		os.Exit(128)
+	if !bare {
+		changeToWorkingCopy()
 	}
+}
+
+func setupWorkingCopy() {
+	requireInRepo()
+	requireWorkingCopy()
+	changeToWorkingCopy()
+}
+
+func changeToWorkingCopy() {
+	workingDir := cfg.LocalWorkingDir()
+	cwd, err := tools.Getwd()
+	if err != nil {
+		ExitWithError(errors.Wrap(
+			err, "fatal: could not determine current working directory"))
+	}
+	cwd, err = filepath.EvalSymlinks(cwd)
+	if err != nil {
+		ExitWithError(errors.Wrap(
+			err, "fatal: could not canonicalize current working directory"))
+	}
+
+	// If the current working directory is not within the repository's
+	// working directory, then let's change directories accordingly.  This
+	// should only occur if GIT_WORK_TREE is set.
+	if !(strings.HasPrefix(cwd, workingDir) && (cwd == workingDir || (len(cwd) > len(workingDir) && cwd[len(workingDir)] == os.PathSeparator))) {
+		os.Chdir(workingDir)
+	}
+}
+
+func canonicalizeEnvironment() {
+	vars := []string{"GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR"}
+	for _, v := range vars {
+		val, ok := os.LookupEnv(v)
+		if ok {
+			path, err := tools.CanonicalizePath(val, true)
+			// We have existing code which relies on users being
+			// able to pass invalid paths, so don't fail if the path
+			// cannot be canonicalized.
+			if err == nil {
+				oldEnv[v] = val
+				os.Setenv(v, path)
+			}
+		}
+	}
+	subprocess.ResetEnvironment()
 }
 
 func handlePanic(err error) string {
@@ -438,7 +493,7 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	fmt.Fprint(w, le+"ENV:"+le)
 
 	// log the environment
-	for _, env := range lfs.Environ(cfg, getTransferManifest()) {
+	for _, env := range lfs.Environ(cfg, getTransferManifest(), oldEnv) {
 		fmt.Fprint(w, env+le)
 	}
 

@@ -24,7 +24,7 @@ var (
 )
 
 func dedupTestCommand(*cobra.Command, []string) {
-	requireInRepo()
+	setupRepository()
 
 	if supported, err := tools.CheckCloneFileSupported(cfg.TempDir()); err != nil || !supported {
 		if err == nil {
@@ -46,7 +46,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	requireInRepo()
+	setupRepository()
 	if gitDir, err := git.GitDir(); err != nil {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {

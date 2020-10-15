@@ -224,3 +224,29 @@ begin_test "checkout: conflicts"
   popd > /dev/null
 )
 end_test
+
+
+begin_test "checkout: GIT_WORK_TREE"
+(
+  set -e
+
+  reponame="checkout-work-tree"
+  remotename="$(basename "$0" ".sh")"
+  export GIT_WORK_TREE="$reponame" GIT_DIR="$reponame-git"
+  mkdir "$GIT_WORK_TREE" "$GIT_DIR"
+  git init
+  git remote add origin "$GITSERVER/$remotename"
+
+  git lfs uninstall --skip-repo
+
+  git fetch origin
+  git checkout -B main origin/main
+
+  git lfs install
+  git lfs fetch
+  git lfs checkout
+
+  contents="something something"
+  [ "$contents" = "$(cat "$reponame/file1.dat")" ]
+)
+end_test

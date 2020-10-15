@@ -70,7 +70,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	// Make sure we pop back to dir we started in at the end
 	defer os.Chdir(cwd)
 
-	requireInRepo()
+	setupRepository()
 
 	// Support --origin option to clone
 	if len(cloneFlags.Origin) > 0 {

@@ -12,14 +12,7 @@ import (
 // untrackCommand takes a list of paths as an argument, and removes each path from the
 // default attributes file (.gitattributes), if it exists.
 func untrackCommand(cmd *cobra.Command, args []string) {
-	if cfg.LocalGitDir() == "" {
-		Print("Not a git repository.")
-		os.Exit(128)
-	}
-	if cfg.LocalWorkingDir() == "" {
-		Print("This operation must be run in a work tree.")
-		os.Exit(128)
-	}
+	setupWorkingCopy()
 
 	installHooks(false)
 

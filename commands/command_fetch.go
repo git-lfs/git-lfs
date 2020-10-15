@@ -34,7 +34,7 @@ func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 }
 
 func fetchCommand(cmd *cobra.Command, args []string) {
-	requireInRepo()
+	setupRepository()
 
 	var refs []*git.Ref
 

@@ -26,7 +26,7 @@ var (
 // chain a lfs-fsck, but I don't think it does.
 func fsckCommand(cmd *cobra.Command, args []string) {
 	installHooks(false)
-	requireInRepo()
+	setupRepository()
 
 	ref, err := git.CurrentRef()
 	if err != nil {

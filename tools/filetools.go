@@ -478,3 +478,27 @@ func ExecutablePermissions(perms os.FileMode) os.FileMode {
 	// Copy read bits to executable bits.
 	return perms | ((perms & 0444) >> 2)
 }
+
+// CanonicalizePath takes a path and produces a canonical absolute path,
+// performing any OS- or environment-specific path transformations (within the
+// limitations of the Go standard library).  If the path is empty, it returns
+// the empty path with no error.  If missingOk is true, then if the
+// canonicalized path does not exist, an absolute path is given instead.
+func CanonicalizePath(path string, missingOk bool) (string, error) {
+	path, err := TranslateCygwinPath(path)
+	if err != nil {
+		return "", err
+	}
+	if len(path) > 0 {
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		result, err := filepath.EvalSymlinks(path)
+		if err != nil && os.IsNotExist(err) && missingOk {
+			return path, nil
+		}
+		return result, err
+	}
+	return "", nil
+}
