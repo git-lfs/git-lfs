@@ -4,14 +4,9 @@ package tools
 
 import (
 	"os"
-	"syscall"
 
 	"github.com/avast/retry-go"
-)
-
-const (
-	// This is private in [go]/src/internal/syscall/windows/syscall_windows.go :(
-	ERROR_SHARING_VIOLATION syscall.Errno = 32
+	"golang.org/x/sys/windows"
 )
 
 func underlyingError(err error) error {
@@ -29,10 +24,10 @@ func underlyingError(err error) error {
 // isEphemeralError returns true if err may be resolved by waiting.
 func isEphemeralError(err error) bool {
 	// TODO: Use this instead for Go >= 1.13
-	// return errors.Is(err, ERROR_SHARING_VIOLATION)
+	// return errors.Is(err, windows.ERROR_SHARING_VIOLATION)
 
 	err = underlyingError(err)
-	return err == ERROR_SHARING_VIOLATION
+	return err == windows.ERROR_SHARING_VIOLATION
 }
 
 func RobustRename(oldpath, newpath string) error {
