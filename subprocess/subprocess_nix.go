@@ -10,5 +10,6 @@ import (
 func ExecCommand(name string, arg ...string) *Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.Env = env
+	cmd.Path, _ = LookPath(name)
 	return newCmd(cmd)
 }
