@@ -28,7 +28,10 @@ License: Expat
 Files: vendor/github.com/alexbrainman/sspi/*
  vendor/golang.org/x/*
  vendor/github.com/jcmturner/gofork/*
-Copyright: 2009, 2012, 2017 The Go Authors
+ subprocess/path.go
+ subprocess/path_nix.go
+ subprocess/path_windows.go
+Copyright: 2009, 2010, 2012, 2017 The Go Authors
 License: Go
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are

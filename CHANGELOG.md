@@ -1,5 +1,28 @@
 # Git LFS Changelog
 
+## 2.12.1 (4 Nov 2020)
+
+This release introduces a security fix for Windows systems, which has been
+assigned CVE-2020-27955.
+
+On Windows, if Git LFS operates on a malicious repository with a git.bat or
+git.exe file in the current directory, that program is executed, permitting the
+attacker to execute arbitrary code.  This security problem does not affect Unix
+systems.
+
+This occurs because on Windows, Go includes (and prefers) the current directory
+when the name of a command run does not contain a directory separator.  This has
+been solved by always using PATH to pre-resolve paths before handing them to Go.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dawidgolunski for reporting this to us responsibly
+
+### Bugs
+
+* subprocess: avoid using relative program names (@bk2204)
+
 ## 2.12.0 (1 Sep 2020)
 
 This release introduces several new features, such as support for the SHA-256
