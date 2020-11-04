@@ -1,5 +1,19 @@
 # Git LFS Changelog
 
+## 2.12.2 (4 Nov 2020)
+
+This release backports a fix for a build problem.  It is otherwise identical to
+2.12.1.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @stanhu for fixing a build error on macOS
+
+### Bugs
+
+* tools/util_darwin.go: Remove use of direct syscalls #4251 (@stanhu)
+
 ## 2.12.1 (4 Nov 2020)
 
 This release introduces a security fix for Windows systems, which has been
