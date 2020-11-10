@@ -128,46 +128,71 @@ const (
 	sep byte = '/'
 )
 
-func NewPattern(p string) Pattern {
-	pp := p
+type patternOptions struct {
+	strict bool
+}
 
-	// Special case: the below patterns match anything according to existing
-	// behavior.
-	switch pp {
-	case `*`, `.`, `./`, `.\`:
-		pp = join("**", "*")
+type patternOption func(*patternOptions)
+
+// Strict is an option representing whether to strictly match wildmatch patterns
+// the way Git does.  If disabled, additional modifications are made to patterns
+// for backwards compatibility.
+func Strict(val bool) patternOption {
+	return func(args *patternOptions) {
+		args.strict = val
+	}
+}
+
+func NewPattern(p string, setters ...patternOption) Pattern {
+	args := &patternOptions{strict: false}
+	for _, setter := range setters {
+		setter(args)
 	}
 
-	dirs := strings.Contains(pp, string(sep))
-	rooted := strings.HasPrefix(pp, string(sep))
-	wild := strings.Contains(pp, "*")
+	pp := p
 
-	if !dirs && !wild {
-		// Special case: if pp is a literal string (optionally including
-		// a character class), rewrite it is a substring match.
-		pp = join("**", pp, "**")
-	} else {
-		if dirs && !rooted {
-			// Special case: if there are any directory separators,
-			// rewrite "pp" as a substring match.
-			if !wild {
-				pp = join("**", pp, "**")
-			}
+	dirs := strings.Contains(pp, string(sep))
+
+	if !args.strict {
+
+		// Special case: the below patterns match anything according to existing
+		// behavior.
+		switch pp {
+		case `*`, `.`, `./`, `.\`:
+			pp = join("**", "*")
+		}
+
+		dirs = strings.Contains(pp, string(sep))
+		rooted := strings.HasPrefix(pp, string(sep))
+		wild := strings.Contains(pp, "*")
+
+		if !dirs && !wild {
+			// Special case: if pp is a literal string (optionally including
+			// a character class), rewrite it is a substring match.
+			pp = join("**", pp, "**")
 		} else {
-			if rooted {
-				// Special case: if there are not any directory
-				// separators, rewrite "pp" as a substring
-				// match.
-				pp = join(pp, "**")
+			if dirs && !rooted {
+				// Special case: if there are any directory separators,
+				// rewrite "pp" as a substring match.
+				if !wild {
+					pp = join("**", pp, "**")
+				}
 			} else {
-				// Special case: if there are not any directory
-				// separators, rewrite "pp" as a substring
-				// match.
-				pp = join("**", pp)
+				if rooted {
+					// Special case: if there are not any directory
+					// separators, rewrite "pp" as a substring
+					// match.
+					pp = join(pp, "**")
+				} else {
+					// Special case: if there are not any directory
+					// separators, rewrite "pp" as a substring
+					// match.
+					pp = join("**", pp)
+				}
 			}
 		}
 	}
-	tracerx.Printf("filepathfilter: rewrite %q as %q", p, pp)
+	tracerx.Printf("filepathfilter: rewrite %q as %q (strict: %v)", p, pp, args.strict)
 
 	return &wm{
 		p: p,
@@ -195,10 +220,10 @@ func join(paths ...string) string {
 	return joined
 }
 
-func convertToWildmatch(rawpatterns []string) []Pattern {
+func convertToWildmatch(rawpatterns []string, setters ...patternOption) []Pattern {
 	patterns := make([]Pattern, len(rawpatterns))
 	for i, raw := range rawpatterns {
-		patterns[i] = NewPattern(raw)
+		patterns[i] = NewPattern(raw, setters...)
 	}
 	return patterns
 }
