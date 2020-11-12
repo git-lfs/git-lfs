@@ -42,11 +42,15 @@ $distro_name_map = {
     "sles/12.1", # LTSS ends 31 May 2020
     "sles/12.2", # LTSS ends 31 Mar 2021
     "sles/12.3", # LTSS ends 30 Jun 2022
-    "sles/15.0"  # Current
+    "sles/12.4",
+    "sles/12.5",
+    "sles/15.0",
+    "sles/15.1",  # Current
   ],
   "centos/8" => [
     "el/8",
     "fedora/31", # EOL ~2021
+    "fedora/32",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
