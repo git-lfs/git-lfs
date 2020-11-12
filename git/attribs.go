@@ -159,7 +159,7 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	for _, path := range paths {
 		// Convert all separators to `/` before creating a pattern to
 		// avoid characters being escaped in situations like `subtree\*.md`
-		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path)))
+		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.Strict(true)))
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)

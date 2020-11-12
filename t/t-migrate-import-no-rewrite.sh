@@ -225,3 +225,41 @@ begin_test "migrate import --no-rewrite (with empty commit message)"
   fi
 )
 end_test
+
+begin_test "migrate import --no-rewrite (strict .gitattributes)"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-strict-match"
+  clone_repo "$reponame" repo-strict-match
+
+  mkdir -p major-oak/mainst/.yarn-offline-mirror/
+  mkdir -p major-oak/major-oak/frontend/.yarn-offline-mirror/
+  foo_contents="foo"
+  foo_oid=$(calc_oid "$foo_contents")
+  bar_contents="bar"
+  bar_oid=$(calc_oid "$bar_contents")
+  printf "$foo_contents" > major-oak/mainst/.yarn-offline-mirror/typescript-3.4.3.tgz
+  printf "$bar_contents" > major-oak/major-oak/frontend/.yarn-offline-mirror/typescript-2.9.2.tgz
+  git add .
+  git commit -m 'Initial import'
+
+  cat >.gitattributes <<EOF
+major-oak/mainst/.yarn-offline-mirror/typescript-3.4.3.tgz filter=lfs diff=lfs merge=lfs -text
+major-oak/major-oak/frontend/.yarn-offline-mirror/typescript-2.9.2.tgz filter=lfs diff=lfs merge=lfs -text
+EOF
+
+  git add .
+  git commit -m '.gitattributes'
+
+  git lfs migrate import --yes --no-rewrite \
+    major-oak/mainst/.yarn-offline-mirror/typescript-3.4.3.tgz \
+    major-oak/major-oak/frontend/.yarn-offline-mirror/typescript-2.9.2.tgz
+
+  assert_pointer "refs/heads/main" "major-oak/mainst/.yarn-offline-mirror/typescript-3.4.3.tgz" "$foo_oid" "3"
+  assert_pointer "refs/heads/main" "major-oak/major-oak/frontend/.yarn-offline-mirror/typescript-2.9.2.tgz" "$bar_oid" "3"
+
+  assert_local_object "$foo_oid" "3"
+  assert_local_object "$bar_oid" "3"
+)
+end_test
