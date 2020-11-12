@@ -27,10 +27,6 @@ $client = Packagecloud::Client.new(credentials)
 # https://packagecloud.io/docs#os_distro_version
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
-  "centos/6" => [
-    "el/6", # End of Extended Support June 30, 2024
-    "scientific/6",
-  ],
   "centos/7" => [
     "el/7",
     "scientific/7",
