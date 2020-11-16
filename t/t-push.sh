@@ -820,3 +820,16 @@ begin_test "push custom reference"
   assert_server_object "$reponame" "$oid"
 )
 end_test
+
+begin_test "push --object-id (invalid value)"
+(
+  set -e
+
+  push_all_setup "everything"
+
+  git lfs push --object-id origin '' 2>&1 | tee push.log
+  git lfs push --object-id origin "${oid1:1:4}" 2>&1 | tee -a push.log
+
+  [ "$(grep -c 'too short object ID' push.log)" -eq 2 ]
+)
+end_test
