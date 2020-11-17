@@ -112,10 +112,10 @@ begin_test "push"
 )
 end_test
 
-# sets up the tests for the next few push --all tests
+# helper used by the next few push --all tests to set up their repos
 push_all_setup() {
   suffix="$1"
-  reponame="$(basename "$0" ".sh")-all"
+  reponame="$(basename "$0" ".sh")-all-$suffix"
   content1="initial"
   content2="update"
   content3="branch"
@@ -129,10 +129,7 @@ push_all_setup() {
   oid5=$(calc_oid "$content5")
   extraoid=$(calc_oid "$extracontent")
 
-  # if the local repo exists, it has already been bootstrapped
-  [ -d "push-all" ] && exit 0
-
-  clone_repo "$reponame" "push-all"
+  clone_repo "$reponame" "push-all-$suffix"
   git config "lfs.$(repo_endpoint "$GITSERVER" "$reponame").locksverify" true
   git lfs track "*.dat"
 
@@ -254,7 +251,7 @@ begin_test "push --all (1 ref arg)"
   [ $(grep -c "^push " < push.log) -eq 3 ]
 
   git lfs push --all origin branch 2>&1 | tee push.log
-  grep "3 files" push.log
+  [ $(grep -c "Uploading LFS objects: 100% (3/3)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -281,8 +278,8 @@ begin_test "push --all (1 ref arg)"
   grep "push $oid3 => file1.dat" push.log
   [ $(grep -c "^push " push.log) -eq 3 ]
 
-  git push --all origin branch 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  git push origin branch 2>&1 | tee push.log
+  [ $(grep -c "Uploading LFS objects: 100% (3/3)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   refute_server_object "$reponame-$suffix-2" "$oid4"
@@ -305,7 +302,7 @@ begin_test "push --all (multiple ref args)"
   [ $(grep -c "^push " push.log) -eq 4 ]
 
   git lfs push --all origin branch tag 2>&1 | tee push.log
-  grep "4 files" push.log
+  [ $(grep -c "Uploading LFS objects: 100% (4/4)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   assert_server_object "$reponame-$suffix" "$oid3"
@@ -331,10 +328,10 @@ begin_test "push --all (multiple ref args)"
   grep "push $oid2 => file1.dat" push.log
   grep "push $oid3 => file1.dat" push.log
   grep "push $oid4 => file1.dat" push.log
-  [ $(grep -c "^push " push.log) -eq 3 ]
+  [ $(grep -c "^push " push.log) -eq 4 ]
 
-  git push --all origin branch tag 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  git push origin branch refs/tags/tag 2>&1 | tee push.log
+  [ $(grep -c "Uploading LFS objects: 100% (4/4)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   assert_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -358,7 +355,7 @@ begin_test "push --all (ref with deleted files)"
   [ $(grep -c "^push " push.log) -eq 5 ]
 
   git lfs push --all origin main 2>&1 | tee push.log
-  grep "5 files" push.log
+  [ $(grep -c "Uploading LFS objects: 100% (5/5)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix" "$oid1"
   assert_server_object "$reponame-$suffix" "$oid2"
   refute_server_object "$reponame-$suffix" "$oid3" # only in the branch
@@ -387,8 +384,8 @@ begin_test "push --all (ref with deleted files)"
   grep "push $extraoid => file2.dat" push.log
   [ $(grep -c "^push " push.log) -eq 5 ]
 
-  git push --all origin main 2>&1 | tee push.log
-  grep "5 files, 1 skipped" push.log # should be 5?
+  git push origin main 2>&1 | tee push.log
+  [ $(grep -c "Uploading LFS objects: 100% (5/5)" push.log) -eq 1 ]
   assert_server_object "$reponame-$suffix-2" "$oid2"
   refute_server_object "$reponame-$suffix-2" "$oid3"
   assert_server_object "$reponame-$suffix-2" "$oid4"
@@ -818,5 +815,18 @@ begin_test "push custom reference"
 
   git lfs push origin refs/custom/remote/heads/main
   assert_server_object "$reponame" "$oid"
+)
+end_test
+
+begin_test "push --object-id (invalid value)"
+(
+  set -e
+
+  push_all_setup "push-invalid-oid"
+
+  git lfs push --object-id origin '' 2>&1 | tee push.log
+  git lfs push --object-id origin "${oid1:0:3}" 2>&1 | tee -a push.log
+
+  [ "$(grep -c 'too short object ID' push.log)" -eq 2 ]
 )
 end_test
