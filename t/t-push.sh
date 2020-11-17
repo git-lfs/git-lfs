@@ -822,10 +822,10 @@ begin_test "push --object-id (invalid value)"
 (
   set -e
 
-  push_all_setup "everything"
+  push_all_setup "push-invalid-oid"
 
   git lfs push --object-id origin '' 2>&1 | tee push.log
-  git lfs push --object-id origin "${oid1:1:4}" 2>&1 | tee -a push.log
+  git lfs push --object-id origin "${oid1:0:3}" 2>&1 | tee -a push.log
 
   [ "$(grep -c 'too short object ID' push.log)" -eq 2 ]
 )
