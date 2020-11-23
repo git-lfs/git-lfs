@@ -422,7 +422,7 @@ begin_test "migrate import (above)"
   # was converted into a git-lfs pointer by the migration.
   assert_local_object "$md_main_oid" "140"
   assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "140"
-  refute_pointer "refs/heads/main" "a.txt" "$md_main_oid" "120"
+  refute_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "120"
   refute_local_object "$txt_main_oid" "120"
 
   # The migration should have identified that *.md files are now
