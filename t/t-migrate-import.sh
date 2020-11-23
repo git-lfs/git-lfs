@@ -434,6 +434,31 @@ begin_test "migrate import (above)"
 )
 end_test
 
+begin_test "migrate import (above without extension)"
+(
+  set -e
+  setup_single_local_branch_untracked "just-b"
+
+  b_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:just-b")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+
+  git lfs migrate import --above 121B
+  # Ensure that 'b', whose size is above our 121 byte threshold
+  # was converted into a git-lfs pointer by the migration.
+  assert_local_object "$b_main_oid" "140"
+  assert_pointer "refs/heads/main" "just-b" "$b_main_oid" "140"
+  refute_pointer "refs/heads/main" "a.txt" "$txt_main_oid" "120"
+  refute_local_object "$txt_main_oid" "120"
+
+  # The migration should have identified that /b is now tracked
+  # because it migrated it.
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+
+  echo "$main_attrs" | grep -q "/just-b filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+)
+end_test
+
 begin_test "migrate import (existing .gitattributes)"
 (
   set -e

@@ -95,6 +95,8 @@ setup_local_branch_with_nested_gitattrs() {
 setup_single_local_branch_untracked() {
   set -e
 
+  local name="${1:-a.md}"
+
   reponame="single-local-branch-untracked"
 
   remove_and_create_local_repo "$reponame"
@@ -102,10 +104,10 @@ setup_single_local_branch_untracked() {
   git commit --allow-empty -m "initial commit"
 
   base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  base64 < /dev/urandom | head -c 140 > "$name"
 
-  git add a.txt a.md
-  git commit -m "add a.{txt,md}"
+  git add a.txt "$name"
+  git commit -m "add a.txt and $name"
 }
 
 # setup_single_local_branch_tracked creates a repository as follows:
