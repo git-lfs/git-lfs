@@ -1,0 +1,5 @@
+‏export341613840@gc.edu.as=$(/usr/libexec/java_home -v14)
+
+‏export 341613840@gc.edu.as =$(/usr/libexec/java_home -v1.8)
+‏export 341613840@gc.edu.as =$(/usr/libexec/java_home -v11)
+‏export 341613840@gc.edu.as =$(/usr/libexec/java_home -v14)
