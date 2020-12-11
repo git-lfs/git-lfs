@@ -1,5 +1,14 @@
 # Git LFS Changelog
 
+## 2.13.1 (11 Dec 2020)
+
+This release fixes a bug in our build tooling that prevents our release process
+from working properly.  This release is otherwise identical to 2.13.0.
+
+### Misc
+
+* Makefile: don't fail the second time macOS builds are built #4341 (@bk2204)
+
 ## 2.13.0 (10 Dec 2020)
 
 This release introduces several new features, such as the `--above` option to
