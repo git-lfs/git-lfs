@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -59,7 +60,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
-		"send-verify-action", "send-deprecated-links", "redirect-storage-upload",
+		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
@@ -697,6 +698,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Setting header to: ", strconv.Itoa(timeLeft))
 				return
 			}
+		case "storage-compress":
+			if r.Header.Get("Accept-Encoding") != "gzip" {
+				w.WriteHeader(500)
+				w.Write([]byte("not encoded"))
+				return
+			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -730,6 +737,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		statusCode := 200
 		byteLimit := 0
 		resumeAt := int64(0)
+		compress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
 			if len(by) == len("storage-download-retry-later") && string(by) == "storage-download-retry-later" {
@@ -743,6 +751,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
 					statusCode = 500
 					by = []byte("malformed content")
+				}
+			} else if len(by) == len("storage-compress") && string(by) == "storage-compress" {
+				if r.Header.Get("Accept-Encoding") != "gzip" {
+					statusCode = 500
+					by = []byte("not encoded")
+				} else {
+					compress = true
 				}
 			} else if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
 				// Resume if header includes range, otherwise deliberately interrupt
@@ -802,13 +817,21 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+			var wrtr io.Writer = w
+			if compress {
+				w.Header().Set("Content-Encoding", "gzip")
+				gz := gzip.NewWriter(w)
+				defer gz.Close()
+
+				wrtr = gz
+			}
 			w.WriteHeader(statusCode)
 			if byteLimit > 0 {
-				w.Write(by[0:byteLimit])
+				wrtr.Write(by[0:byteLimit])
 			} else if resumeAt > 0 {
-				w.Write(by[resumeAt:])
+				wrtr.Write(by[resumeAt:])
 			} else {
-				w.Write(by)
+				wrtr.Write(by)
 			}
 			return
 		}
