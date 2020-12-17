@@ -7,8 +7,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dpotapov/go-spnego v0.0.0-20190506202455-c2c609116ad0 h1:Hhh7nu7CfFVlnBJqmDDUh+j1H5fqjLMzM4czZzNNJGM=
 github.com/dpotapov/go-spnego v0.0.0-20190506202455-c2c609116ad0/go.mod h1:P4f4MSk7h52F2PK0lCapn5+fu47Uf8aRdxDSqgezxZE=
-github.com/git-lfs/gitobj/v2 v2.0.0 h1:2Nm6MQo6coYxv1yYptgBQfny9HFRLHHdbYetBDIkJyg=
-github.com/git-lfs/gitobj/v2 v2.0.0/go.mod h1:q6aqxl6Uu3gWsip5GEKpw+7459F97er8COmU45ncAxw=
+github.com/git-lfs/gitobj/v2 v2.0.1 h1:mUGOWP+fU36rs7TY7a5Lol9FuockOBjPFUW/lwOM7Mo=
+github.com/git-lfs/gitobj/v2 v2.0.1/go.mod h1:q6aqxl6Uu3gWsip5GEKpw+7459F97er8COmU45ncAxw=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
 github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066 h1:f5UyyCnv3o2EHy+zsqOyYa8jB5bZR/N9ZEideqeDYag=
