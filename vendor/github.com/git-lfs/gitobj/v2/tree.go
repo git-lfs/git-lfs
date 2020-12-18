@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/git-lfs/gitobj/v2/pack"
 )
 
 // Tree encapsulates a Git tree object.
@@ -53,7 +55,7 @@ func (t *Tree) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err er
 		n += len(fname)
 		fname = strings.TrimSuffix(fname, "\x00")
 
-		var sha [32]byte
+		var sha [pack.MaxHashSize]byte
 		if _, err = io.ReadFull(buf, sha[:hashlen]); err != nil {
 			return n, err
 		}

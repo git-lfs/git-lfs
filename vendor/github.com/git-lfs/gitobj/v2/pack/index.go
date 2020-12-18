@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-const maxHashSize = sha256.Size
+const MaxHashSize = sha256.Size
 
 // Index stores information about the location of objects in a corresponding
 // packfile.

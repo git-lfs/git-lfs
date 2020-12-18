@@ -4,7 +4,7 @@ require (
 	github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
 	github.com/avast/retry-go v2.4.2+incompatible
 	github.com/dpotapov/go-spnego v0.0.0-20190506202455-c2c609116ad0
-	github.com/git-lfs/gitobj/v2 v2.0.0
+	github.com/git-lfs/gitobj/v2 v2.0.1
 	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 	github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066
 	github.com/git-lfs/wildmatch v1.0.4

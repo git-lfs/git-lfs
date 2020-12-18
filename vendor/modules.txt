@@ -8,7 +8,7 @@ github.com/avast/retry-go
 github.com/davecgh/go-spew/spew
 # github.com/dpotapov/go-spnego v0.0.0-20190506202455-c2c609116ad0
 github.com/dpotapov/go-spnego
-# github.com/git-lfs/gitobj/v2 v2.0.0
+# github.com/git-lfs/gitobj/v2 v2.0.1
 github.com/git-lfs/gitobj/v2
 github.com/git-lfs/gitobj/v2/errors
 github.com/git-lfs/gitobj/v2/pack
