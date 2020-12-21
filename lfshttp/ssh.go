@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -83,7 +82,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	}
 
 	exe, args := sshGetLFSExeAndArgs(c.os, c.git, e, method)
-	cmd := exec.Command(exe, args...)
+	cmd := subprocess.ExecCommand(exe, args...)
 
 	// Save stdout and stderr in separate buffers
 	var outbuf, errbuf bytes.Buffer
