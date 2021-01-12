@@ -7,7 +7,6 @@ const (
 	BasicAccess     AccessMode = "basic"
 	PrivateAccess   AccessMode = "private"
 	NegotiateAccess AccessMode = "negotiate"
-	NTLMAccess      AccessMode = "ntlm"
 	EmptyAccess     AccessMode = ""
 )
 

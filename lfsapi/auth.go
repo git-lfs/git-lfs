@@ -20,7 +20,7 @@ var (
 
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
-// supporting basic and ntlm authentication.
+// supporting basic authentication.
 func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
 	res, err := c.doWithAuth(remote, access, req, nil)
 
@@ -87,9 +87,7 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 }
 
 func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
-	if access.Mode() == creds.NTLMAccess {
-		return c.doWithNTLM(req, credWrapper)
-	} else if access.Mode() == creds.NegotiateAccess {
+	if access.Mode() == creds.NegotiateAccess {
 		return c.doWithNegotiate(req, credWrapper)
 	}
 
@@ -142,7 +140,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 	operation := getReqOperation(req)
 	apiEndpoint := ef.Endpoint(operation, remote)
 
-	if access.Mode() != creds.NTLMAccess && access.Mode() != creds.NegotiateAccess {
+	if access.Mode() != creds.NegotiateAccess {
 		if requestHasAuth(req) || access.Mode() == creds.NoneAccess {
 			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, nil
 		}
@@ -165,7 +163,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 		return credWrapper, err
 	}
 
-	// NTLM and Negotiate only
+	// Negotiate only
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
@@ -292,7 +290,6 @@ func setRequestAuthFromURL(req *http.Request, u *url.URL) bool {
 }
 
 func setRequestAuth(req *http.Request, user, pass string) {
-	// better not be NTLM!
 	if len(user) == 0 && len(pass) == 0 {
 		return
 	}
@@ -323,7 +320,7 @@ func getAuthAccess(res *http.Response) creds.AccessMode {
 			}
 
 			switch creds.AccessMode(pieces[0]) {
-			case creds.NegotiateAccess, creds.NTLMAccess:
+			case creds.NegotiateAccess:
 				return creds.AccessMode(pieces[0])
 			}
 		}

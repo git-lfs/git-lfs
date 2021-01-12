@@ -28,10 +28,6 @@ func TestAuthenticateHeaderAccess(t *testing.T) {
 		"basic 123":       creds.BasicAccess,
 		"basic":           creds.BasicAccess,
 		"unknown":         creds.BasicAccess,
-		"NTLM":            creds.NTLMAccess,
-		"ntlm":            creds.NTLMAccess,
-		"NTLM 1 2 3":      creds.NTLMAccess,
-		"ntlm 1 2 3":      creds.NTLMAccess,
 		"NEGOTIATE":       creds.NegotiateAccess,
 		"negotiate":       creds.NegotiateAccess,
 		"NEGOTIATE 1 2 3": creds.NegotiateAccess,
@@ -442,26 +438,6 @@ func TestGetCreds(t *testing.T) {
 				},
 			},
 		},
-		"ntlm": getCredsTest{
-			Remote:   "origin",
-			Method:   "GET",
-			Href:     "https://git-server.com/repo/lfs/locks",
-			Endpoint: "https://git-server.com/repo/lfs",
-			Config: map[string]string{
-				"lfs.url": "https://git-server.com/repo/lfs",
-				"lfs.https://git-server.com/repo/lfs.access": "ntlm",
-			},
-			Expected: getCredsExpected{
-				Access:   creds.NTLMAccess,
-				CredsURL: "https://git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
-				},
-			},
-		},
 		"custom auth": getCredsTest{
 			Remote:   "origin",
 			Method:   "GET",
@@ -663,11 +639,6 @@ func TestGetCreds(t *testing.T) {
 		assert.Equal(t, test.Expected.Authorization, req.Header.Get("Authorization"), "authorization")
 
 		if test.Expected.Creds != nil {
-			if desc == "ntlm" {
-				// For NTLM we initially try with no provided credentials to test SSPI and then prompt.  We want to test both sets.
-				assert.Nil(t, credWrapper.Creds, "creds")
-				credWrapper.FillCreds()
-			}
 			assert.EqualValues(t, test.Expected.Creds, credWrapper.Creds)
 		} else {
 			assert.Nil(t, credWrapper.Creds, "creds")
