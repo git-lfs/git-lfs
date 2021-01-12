@@ -21,6 +21,10 @@ type FetchPruneConfig struct {
 	PruneVerifyRemoteAlways bool
 	// Name of remote to check for unpushed and verify checks
 	PruneRemoteName string
+	// Whether to ignore all recent options.
+	PruneRecent bool
+	// Whether to delete everything pushed.
+	PruneForce bool
 }
 
 func NewFetchPruneConfig(git config.Environment) FetchPruneConfig {
@@ -37,5 +41,7 @@ func NewFetchPruneConfig(git config.Environment) FetchPruneConfig {
 		PruneOffsetDays:               git.Int("lfs.pruneoffsetdays", 3),
 		PruneVerifyRemoteAlways:       git.Bool("lfs.pruneverifyremotealways", false),
 		PruneRemoteName:               pruneRemote,
+		PruneRecent:                   false,
+		PruneForce:                    false,
 	}
 }
