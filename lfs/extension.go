@@ -8,10 +8,10 @@ import (
 	"hash"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/subprocess"
 )
 
 type pipeRequest struct {
@@ -33,7 +33,7 @@ type pipeExtResult struct {
 }
 
 type extCommand struct {
-	cmd    *exec.Cmd
+	cmd    *subprocess.Cmd
 	out    io.WriteCloser
 	err    *bytes.Buffer
 	hasher hash.Hash
@@ -75,7 +75,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 			arg := strings.Replace(value, "%f", request.fileName, -1)
 			args = append(args, arg)
 		}
-		cmd := exec.Command(name, args...)
+		cmd := subprocess.ExecCommand(name, args...)
 		ec := &extCommand{cmd: cmd, result: &pipeExtResult{name: e.Name}}
 		extcmds = append(extcmds, ec)
 	}
