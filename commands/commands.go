@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -282,7 +281,7 @@ func PipeMediaCommand(name string, args ...string) error {
 }
 
 func PipeCommand(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
+	cmd := subprocess.ExecCommand(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
