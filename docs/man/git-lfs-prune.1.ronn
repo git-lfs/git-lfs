@@ -34,6 +34,14 @@ details about `lfs.storage` option.
 * `--dry-run` `-d`
   Don't actually delete anything, just report on what would have been done
 
+* `--force` `-f`
+  Prune all objects except unpushed objects, including objects required for
+  currently checked out refs.  Implies `--recent`.
+
+* `--recent`
+  Prune even objects that would normally be preserved by the configuration
+  options specified below in [RECENT FILES].
+
 * `--verify-remote` `-c`
   Contact the remote and check that copies of the files we would delete
   definitely exist before deleting. See [VERIFY REMOTE].
