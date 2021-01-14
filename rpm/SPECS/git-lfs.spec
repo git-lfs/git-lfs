@@ -65,7 +65,6 @@ export SKIPAPITESTCOMPILE=1
 
 pushd src/github.com/git-lfs/%{name}
   make test
-  go get github.com/git-lfs/go-ntlm/ntlm
   make -C t PROVE_EXTRA_ARGS=-j4 test
 popd
 
