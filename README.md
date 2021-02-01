@@ -116,7 +116,7 @@ $ git commit -m "add psd"
 > $ git lfs migrate import --include="*.psd" --everything
 > ```
 >
-> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/master/docs/man/git-lfs-migrate.1.ronn).
+> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.1.ronn).
 
 You can confirm that Git LFS is managing your PSD file:
 
