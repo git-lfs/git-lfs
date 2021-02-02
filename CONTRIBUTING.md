@@ -50,16 +50,16 @@ The Git LFS teams mark issues and pull requests with the following labels:
 
 ## Branching strategy
 
-In general, contributors should develop on branches based off of `master` and pull requests should be to `master`.
+In general, contributors should develop on branches based off of `main` and pull requests should be to `main`.
 
 ## Submitting a pull request
 
 1. [Fork][] and clone the repository
 1. Configure and install the dependencies: `make`
 1. Make sure the tests pass on your machine: `make test`
-1. Create a new branch based on `master`: `git checkout -b <my-branch-name> master`
+1. Create a new branch based on `main`: `git checkout -b <my-branch-name> main`
 1. Make your change, add tests, and make sure the tests still pass
-1. Push to your fork and [submit a pull request][pr] from your branch to `master`
+1. Push to your fork and [submit a pull request][pr] from your branch to `main`
 1. Pat yourself on the back and wait for your pull request to be reviewed
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
