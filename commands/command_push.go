@@ -31,7 +31,7 @@ var (
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print("Specify a remote and a remote branch name (`git lfs push origin master`)")
+		Print("Specify a remote and a remote branch name (`git lfs push origin main`)")
 		os.Exit(1)
 	}
 

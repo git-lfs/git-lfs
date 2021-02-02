@@ -11,8 +11,6 @@ github.com/git-lfs/gitobj/v2 v2.0.1 h1:mUGOWP+fU36rs7TY7a5Lol9FuockOBjPFUW/lwOM7
 github.com/git-lfs/gitobj/v2 v2.0.1/go.mod h1:q6aqxl6Uu3gWsip5GEKpw+7459F97er8COmU45ncAxw=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18 h1:7Th0eBA4rT8WJNiM1vppjaIv9W5WJinhpbCJvRJxloI=
 github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
-github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066 h1:f5UyyCnv3o2EHy+zsqOyYa8jB5bZR/N9ZEideqeDYag=
-github.com/git-lfs/go-ntlm v0.0.0-20190401175752-c5056e7fa066/go.mod h1:YnCP1lAyul0ITv9nT/OqXseZmGeaqvMVa2uvl8ssQvE=
 github.com/git-lfs/wildmatch v1.0.4 h1:Mj6LPnNZ6QSHLAAPDCH596pu6A/Z1xVm2Vk0+s3CtkY=
 github.com/git-lfs/wildmatch v1.0.4/go.mod h1:SdHAGnApDpnFYQ0vAxbniWR0sn7yLJ3QXo9RRfhn2ew=
 github.com/hashicorp/go-uuid v1.0.1 h1:fv1ep09latC32wFoVwnqcnKJGnMSdBanPczbHAYm1BE=

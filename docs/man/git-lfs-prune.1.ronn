@@ -119,7 +119,7 @@ When identifying [UNPUSHED LFS FILES] and performing [VERIFY REMOTE], a single
 remote, 'origin', is normally used as the reference.  This one remote is
 considered canonical; even if you use multiple remotes, you probably want to
 retain your local copies until they've made it to that remote. 'origin' is used
-by default because that will usually be a master central repo, or your fork of
+by default because that will usually be a main central repo, or your fork of
 it - in both cases that's a valid remote backup of your work. If origin doesn't
 exist then by default nothing will be pruned because everything is treated as
 'unpushed'.

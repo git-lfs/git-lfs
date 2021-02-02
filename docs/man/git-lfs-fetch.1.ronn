@@ -128,9 +128,9 @@ What changes are considered 'recent' is based on a number of gitconfig options:
   `git lfs fetch upstream`
 
 * Fetch all the LFS objects from the default remote that are referenced by any
-  commit in the `master` and `develop` branches
+  commit in the `main` and `develop` branches
 
-  `git lfs fetch --all origin master develop`
+  `git lfs fetch --all origin main develop`
 
 * Fetch the LFS objects for a branch from origin
 
@@ -138,7 +138,7 @@ What changes are considered 'recent' is based on a number of gitconfig options:
 
 * Fetch the LFS objects for 2 branches and a commit from origin
 
-  `git lfs fetch origin master mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
+  `git lfs fetch origin main mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
 
 ## SEE ALSO
 

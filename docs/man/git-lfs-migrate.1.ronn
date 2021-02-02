@@ -192,25 +192,25 @@ include by `--include-ref` and not reachable by `--exclude-ref`.
        /         \
   A---B------C    refs/heads/my-feature
    \          \
-    \          refs/heads/master
+    \          refs/heads/main
      \
-      refs/remotes/origin/master
+      refs/remotes/origin/main
 ```
 
 In the above configuration, the following commits are reachable by each ref:
 
 ```
-refs/heads/master:         C, B, A
+refs/heads/main:           C, B, A
 refs/heads/my-feature:     F, E, D, B, A
-refs/remote/origin/master: A
+refs/remote/origin/main:   A
 ```
 
 The following configuration:
 
 ```
   --include-ref=refs/heads/my-feature
-  --include-ref=refs/heads/master
-  --exclude-ref=refs/remotes/origin/master
+  --include-ref=refs/heads/main
+  --exclude-ref=refs/remotes/origin/main
 ```
 
 Would, therefore, include commits: F, E, D, C, B, but exclude commit A.
@@ -248,7 +248,7 @@ $ git lfs migrate import --include="*.mp3,*.psd"
 migrate: Fetching remote refs: ..., done
 migrate: Sorting commits: ..., done
 migrate: Rewriting commits: 100% (1/1), done
-  master	d2b959babd099fe70da1c1512e2475e8a24de163 -> 136e706bf1ae79643915c134e17a6c933fd53c61
+  main	d2b959babd099fe70da1c1512e2475e8a24de163 -> 136e706bf1ae79643915c134e17a6c933fd53c61
 migrate: Updating refs: ..., done
 ```
 
@@ -257,8 +257,8 @@ migrate: Updating refs: ..., done
 You can also migrate the entire history of your repository:
 
 ```
-# Check for large files in your local master branch
-$ git lfs migrate info --include-ref=master
+# Check for large files in your local main branch
+$ git lfs migrate info --include-ref=main
 
 # Check for large files in every branch
 $ git lfs migrate info --everything
@@ -267,8 +267,8 @@ $ git lfs migrate info --everything
 The same flags will work in `import` mode:
 
 ```
-# Convert all zip files in your master branch
-$ git lfs migrate import --include-ref=master --include="*.zip"
+# Convert all zip files in your main branch
+$ git lfs migrate import --include-ref=main --include="*.zip"
 
 # Convert all zip files in every local branch
 $ git lfs migrate import --everything --include="*.zip"
