@@ -476,10 +476,10 @@ func TestSetAccess(t *testing.T) {
 	assert.Equal(t, creds.NoneAccess, access.Mode())
 	assert.Equal(t, url, access.URL())
 
-	finder.SetAccess(access.Upgrade(creds.NTLMAccess))
+	finder.SetAccess(access.Upgrade(creds.NegotiateAccess))
 
 	newAccess := finder.AccessFor(url)
-	assert.Equal(t, creds.NTLMAccess, newAccess.Mode())
+	assert.Equal(t, creds.NegotiateAccess, newAccess.Mode())
 	assert.Equal(t, url, newAccess.URL())
 }
 
@@ -493,10 +493,10 @@ func TestChangeAccess(t *testing.T) {
 	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.Equal(t, url, access.URL())
 
-	finder.SetAccess(access.Upgrade(creds.NTLMAccess))
+	finder.SetAccess(access.Upgrade(creds.NegotiateAccess))
 
 	newAccess := finder.AccessFor(url)
-	assert.Equal(t, creds.NTLMAccess, newAccess.Mode())
+	assert.Equal(t, creds.NegotiateAccess, newAccess.Mode())
 	assert.Equal(t, url, newAccess.URL())
 }
 

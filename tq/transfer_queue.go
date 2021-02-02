@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfshttp"
@@ -906,10 +905,6 @@ func (q *TransferQueue) ensureAdapterBegun(e lfshttp.Endpoint) error {
 func (q *TransferQueue) toAdapterCfg(e lfshttp.Endpoint) AdapterConfig {
 	apiClient := q.manifest.APIClient()
 	concurrency := q.manifest.ConcurrentTransfers()
-	access := apiClient.Endpoints.AccessFor(e.Url)
-	if access.Mode() == creds.NTLMAccess {
-		concurrency = 1
-	}
 
 	return &adapterConfig{
 		concurrentTransfers: concurrency,

@@ -19,18 +19,6 @@ func TestManifestIsConfigurable(t *testing.T) {
 	assert.Equal(t, 3, m.MaxRetries())
 }
 
-func TestManifestChecksNTLM(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
-		"lfs.url":                 "http://foo",
-		"lfs.http://foo.access":   "ntlm",
-		"lfs.concurrenttransfers": "3",
-	}))
-	require.Nil(t, err)
-
-	m := NewManifest(nil, cli, "", "")
-	assert.Equal(t, 8, m.MaxRetries())
-}
-
 func TestManifestClampsValidValues(t *testing.T) {
 	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "-1",
