@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/ssh"
 )
 
 const UrlUnknown = "<unknown>"
@@ -14,7 +15,7 @@ const UrlUnknown = "<unknown>"
 // An Endpoint describes how to access a Git LFS server.
 type Endpoint struct {
 	Url         string
-	SSHMetadata SSHMetadata
+	SSHMetadata ssh.SSHMetadata
 	Operation   string
 }
 

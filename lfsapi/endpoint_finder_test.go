@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/lfshttp"
+	"github.com/git-lfs/git-lfs/ssh"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -557,7 +558,7 @@ func TestEndpointParsing(t *testing.T) {
 			"git@github.com:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "https://github.com/git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "git@github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
@@ -569,7 +570,7 @@ func TestEndpointParsing(t *testing.T) {
 			"[git@lfshttp.github.com:443]:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "https://lfshttp.github.com/git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "git@lfshttp.github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "443",
@@ -581,7 +582,7 @@ func TestEndpointParsing(t *testing.T) {
 			"github.com:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "https://github.com/git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
@@ -593,7 +594,7 @@ func TestEndpointParsing(t *testing.T) {
 			"github:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "https://github/git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "github",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
@@ -605,7 +606,7 @@ func TestEndpointParsing(t *testing.T) {
 			"gh:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "https://github.com/git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
@@ -617,7 +618,7 @@ func TestEndpointParsing(t *testing.T) {
 			"remote::git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
 				Url: "remote::git-lfs/git-lfs.git",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
@@ -656,7 +657,7 @@ func TestInsteadOf(t *testing.T) {
 			"download",
 			lfshttp.Endpoint{
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
@@ -669,7 +670,7 @@ func TestInsteadOf(t *testing.T) {
 			"upload",
 			lfshttp.Endpoint{
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
@@ -682,7 +683,7 @@ func TestInsteadOf(t *testing.T) {
 			"download",
 			lfshttp.Endpoint{
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
@@ -695,7 +696,7 @@ func TestInsteadOf(t *testing.T) {
 			"upload",
 			lfshttp.Endpoint{
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
-				SSHMetadata: lfshttp.SSHMetadata{
+				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
