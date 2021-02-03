@@ -219,7 +219,7 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthRespo
 
 		tracerx.Printf(
 			"ssh: %s failed, error: %s, message: %s (try: %d/%d)",
-			e.SshUserAndHost, err.Error(), sshRes.Message, i,
+			e.SSHMetadata.UserAndHost, err.Error(), sshRes.Message, i,
 			requests,
 		)
 	}

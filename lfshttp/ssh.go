@@ -32,19 +32,19 @@ type sshCache struct {
 }
 
 func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
-	if len(e.SshUserAndHost) == 0 {
+	if len(e.SSHMetadata.UserAndHost) == 0 {
 		return sshAuthResponse{}, nil
 	}
 
-	key := strings.Join([]string{e.SshUserAndHost, e.SshPort, e.SshPath, method}, "//")
+	key := strings.Join([]string{e.SSHMetadata.UserAndHost, e.SSHMetadata.Port, e.SSHMetadata.Path, method}, "//")
 	if res, ok := c.endpoints[key]; ok {
 		if _, expired := res.IsExpiredWithin(5 * time.Second); !expired {
 			tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
-				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+				e.SSHMetadata.UserAndHost, e.SSHMetadata.Path, endpointOperation(e, method))
 			return *res, nil
 		} else {
 			tracerx.Printf("ssh cache expired: %s git-lfs-authenticate %s %s",
-				e.SshUserAndHost, e.SshPath, endpointOperation(e, method))
+				e.SSHMetadata.UserAndHost, e.SSHMetadata.Path, endpointOperation(e, method))
 		}
 	}
 
@@ -77,11 +77,11 @@ type sshAuthClient struct {
 
 func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	res := sshAuthResponse{}
-	if len(e.SshUserAndHost) == 0 {
+	if len(e.SSHMetadata.UserAndHost) == 0 {
 		return res, nil
 	}
 
-	exe, args := sshGetLFSExeAndArgs(c.os, c.git, e, method)
+	exe, args := sshGetLFSExeAndArgs(c.os, c.git, &e.SSHMetadata, endpointOperation(e, method), method)
 	cmd := subprocess.ExecCommand(exe, args...)
 
 	// Save stdout and stderr in separate buffers
@@ -115,6 +115,12 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	return res, err
 }
 
+type SSHMetadata struct {
+	UserAndHost string
+	Port        string
+	Path        string
+}
+
 func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	if !needShell {
 		return cmd, args
@@ -123,10 +129,9 @@ func sshFormatArgs(cmd string, args []string, needShell bool) (string, []string)
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func sshGetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint, method string) (string, []string) {
-	exe, args, needShell := sshGetExeAndArgs(osEnv, gitEnv, e)
-	operation := endpointOperation(e, method)
-	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", e.SshPath, operation))
+func sshGetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation, method string) (string, []string) {
+	exe, args, needShell := sshGetExeAndArgs(osEnv, gitEnv, meta)
+	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", meta.Path, operation))
 	exe, args = sshFormatArgs(exe, args, needShell)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args
@@ -147,7 +152,7 @@ func sshParseShellCommand(command string, existing string) (ssh string, cmd stri
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e Endpoint) (exe string, baseargs []string, needShell bool) {
+func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata) (exe string, baseargs []string, needShell bool) {
 	var cmd string
 
 	isPlink := false
@@ -184,19 +189,19 @@ func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e End
 		args = append(args, "-batch")
 	}
 
-	if len(e.SshPort) > 0 {
+	if len(meta.Port) > 0 {
 		if isPlink || isTortoise {
 			args = append(args, "-P")
 		} else {
 			args = append(args, "-p")
 		}
-		args = append(args, e.SshPort)
+		args = append(args, meta.Port)
 	}
 
 	if sep, ok := sshSeparators[basessh]; ok {
 		// inserts a separator between cli -options and host/cmd commands
 		// example: $ ssh -p 12345 -- user@host.com git-lfs-authenticate ...
-		args = append(args, sep, e.SshUserAndHost)
+		args = append(args, sep, meta.UserAndHost)
 	} else {
 		// no prefix supported, strip leading - off host to prevent cmd like:
 		// $ git config lfs.url ssh://-proxycmd=whatever
@@ -204,7 +209,7 @@ func sshGetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, e End
 		//
 		// Instead, it'll attempt this, and eventually return an error
 		// $ plink -P 12345 proxycmd=foo git-lfs-authenticate ...
-		args = append(args, sshOptPrefixRE.ReplaceAllString(e.SshUserAndHost, ""))
+		args = append(args, sshOptPrefixRE.ReplaceAllString(meta.UserAndHost, ""))
 	}
 
 	return cmd, args, needShell
