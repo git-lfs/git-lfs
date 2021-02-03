@@ -75,7 +75,7 @@ func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environm
 	if urlCfg != nil {
 		gitProxy, ok := urlCfg.Get("http", u.String(), "proxy")
 		if len(gitProxy) > 0 && ok {
-			if strings.HasPrefix(gitProxy, "https://") {
+			if u.Scheme == "https" {
 				httpsProxy = gitProxy
 			}
 			httpProxy = gitProxy

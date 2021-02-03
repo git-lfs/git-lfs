@@ -69,6 +69,34 @@ func TestProxyFromEnvironment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestHTTPSProxyFromEnvironment(t *testing.T) {
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"HTTPS_PROXY": "http://proxy-from-env:8080",
+	}, nil))
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", "https://some-host.com:123/foo/bar", nil)
+	require.Nil(t, err)
+
+	proxyURL, err := proxyFromClient(c)(req)
+	assert.Equal(t, "proxy-from-env:8080", proxyURL.Host)
+	assert.Nil(t, err)
+}
+
+func TestHTTPProxyFromEnvironment(t *testing.T) {
+	c, err := NewClient(NewContext(nil, map[string]string{
+		"HTTPS_PROXY": "http://proxy-from-env:8080",
+	}, nil))
+	require.Nil(t, err)
+
+	req, err := http.NewRequest("GET", "http://some-host.com:123/foo/bar", nil)
+	require.Nil(t, err)
+
+	proxyURL, err := proxyFromClient(c)(req)
+	assert.Nil(t, proxyURL)
+	assert.Nil(t, err)
+}
+
 func TestProxyIsNil(t *testing.T) {
 	c, _ := NewClient(nil)
 
