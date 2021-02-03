@@ -95,8 +95,16 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return DecodePointer(f)
+	
+	// Since the lower level functions don't have any awareness of which file caused the error
+	// log the filename here when the error eventually bubbles up
+	p, err := DecodePointer(f)
+	if err != nil {
+		errors.NewNotAPointerError(errors.New("expected file to contain a pointer, but it didn't. File: " + file))
+	}
+	return p, err
 }
+
 func DecodePointer(reader io.Reader) (*Pointer, error) {
 	p, _, err := DecodeFrom(reader)
 	return p, err
