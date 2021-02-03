@@ -11,6 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/subprocess"
 	"github.com/rubyist/tracerx"
 )
 
@@ -232,7 +233,7 @@ func (a *AskPassCredentialHelper) getFromProgram(valueType credValueType, u *url
 
 	// 'cmd' will run the GIT_ASKPASS (or core.askpass) command prompting
 	// for the desired valueType (`Username` or `Password`)
-	cmd := exec.Command(a.Program, a.args(fmt.Sprintf("%s for %q", valueString, u))...)
+	cmd := subprocess.ExecCommand(a.Program, a.args(fmt.Sprintf("%s for %q", valueString, u))...)
 	cmd.Stderr = &err
 	cmd.Stdout = &value
 
@@ -292,7 +293,7 @@ func (h *commandCredentialHelper) Approve(creds Creds) error {
 
 func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, error) {
 	output := new(bytes.Buffer)
-	cmd := exec.Command("git", "credential", subcommand)
+	cmd := subprocess.ExecCommand("git", "credential", subcommand)
 	cmd.Stdin = bufferCreds(input)
 	cmd.Stdout = output
 	/*

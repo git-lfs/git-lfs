@@ -50,13 +50,13 @@ We package several artifacts for each tagged release. They are:
 
 ## Development Philosophy
 
-We do all major development on the `master` branch, and assume it to be passing
+We do all major development on the `main` branch, and assume it to be passing
 tests at all times. New features are added via the feature-branch workflow, or
 (optionally) from a contributor's fork.
 
-This is done so that `master` can progress and grow new features, while
+This is done so that `main` can progress and grow new features, while
 historical releases, such as `v2.n.0` can receive bug fixes as they are applied
-to master, eventually culminating in a `v2.n.1` (and so on) release.
+to main, eventually culminating in a `v2.n.1` (and so on) release.
 
 ## Building a release
 
@@ -89,7 +89,7 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
        the relevant files.
 
   2. Then, create a pull request of your changes with head `release-next`. If
-     you're building a MAJOR or MINOR release, set the base to `master`.
+     you're building a MAJOR or MINOR release, set the base to `main`.
      Otherwise, set the base to `release-2.n`.
 
      Run Continuous Integration, and ensure that it passes.
@@ -171,14 +171,14 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
 When building a MINOR release, we introduce a new `release-2.n` branch which
 will receive all new features and bug fixes since `release-2.n-1`. The change
 set described by `v2.n-1.0` and `v2.n.0` is as reported by `git log
-v2.n-1.0...master` at the time of release.
+v2.n-1.0...main` at the time of release.
 
   1. To introduce this new branch (after creating and merging `release-next`
-     into `master`), simply run:
+     into `main`), simply run:
 
      ```ShellSession
      $ git branch
-     * master
+     * main
      $ git checkout -b release-2.n
      ```
 
@@ -187,7 +187,7 @@ v2.n-1.0...master` at the time of release.
 ### Building `v2.n.m` (PATCH versions)
 
 When building a PATCH release, follow the same process as above, with the
-additional caveat that we must cherry-pick merges from master to the release
+additional caveat that we must cherry-pick merges from main to the release
 branch.
 
   1. To begin, checkout the branch `release-2.n`, and ensure that you have the
@@ -197,7 +197,7 @@ branch.
      with:
 
      ```ShellSession
-     $ git log --merges --first-parent v2.n.m-1...master
+     $ git log --merges --first-parent v2.n.m-1...main
      ```
 
    3. For each merge that you want to backport, run:

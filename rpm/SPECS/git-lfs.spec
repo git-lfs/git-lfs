@@ -1,5 +1,5 @@
 Name:           git-lfs
-Version:        2.12.0
+Version:        2.13.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
@@ -65,7 +65,6 @@ export SKIPAPITESTCOMPILE=1
 
 pushd src/github.com/git-lfs/%{name}
   make test
-  go get github.com/git-lfs/go-ntlm/ntlm
   make -C t PROVE_EXTRA_ARGS=-j4 test
 popd
 

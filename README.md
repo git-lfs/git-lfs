@@ -116,7 +116,7 @@ $ git commit -m "add psd"
 > $ git lfs migrate import --include="*.psd" --everything
 > ```
 >
-> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/master/docs/man/git-lfs-migrate.1.ronn).
+> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.1.ronn).
 
 You can confirm that Git LFS is managing your PSD file:
 
@@ -128,11 +128,11 @@ $ git lfs ls-files
 Once you've made your commits, push your files to the Git remote:
 
 ```bash
-$ git push origin master
+$ git push origin main
 Uploading LFS objects: 100% (1/1), 810 B, 1.2 KB/s
 # ...
 To https://github.com/git-lfs/git-lfs-test
-   67fcf6a..47b2002  master -> master
+   67fcf6a..47b2002  main -> main
 ```
 
 Note: Git LFS requires at least Git 1.8.2 on Linux or 1.8.5 on macOS.

@@ -318,6 +318,7 @@ $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 bin/releases/git-lfs-darwin-%-$(VERSION).zip : \
 $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 	dir=bin/releases/darwin-$* && \
+	rm -f $@ && \
 	mkdir -p $$dir && \
 	cp -R $^ $$dir && mv $$dir/git-lfs-darwin-$* $$dir/git-lfs && \
 	zip -j $@ $$dir/* && \
@@ -331,6 +332,7 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 # CRLF in the non-binary components of the artifact.
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
+	rm -f $@
 	zip -j -l $@ $^
 	zip -u $@ man/*
 

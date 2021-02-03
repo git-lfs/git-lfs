@@ -84,6 +84,32 @@ setup_local_branch_with_nested_gitattrs() {
   git commit -m "add nested .gitattributes"
 }
 
+# setup_single_local_branch_untracked creates a repository as follows:
+#
+#   A---B
+#        \
+#         refs/heads/main
+#
+# - Commit 'A' has 120, in a.txt and 140 in a.md, with neither files tracked as
+#   pointers in Git LFS
+setup_single_local_branch_untracked() {
+  set -e
+
+  local name="${1:-a.md}"
+
+  reponame="single-local-branch-untracked"
+
+  remove_and_create_local_repo "$reponame"
+
+  git commit --allow-empty -m "initial commit"
+
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 140 > "$name"
+
+  git add a.txt "$name"
+  git commit -m "add a.txt and $name"
+}
+
 # setup_single_local_branch_tracked creates a repository as follows:
 #
 #   A---B

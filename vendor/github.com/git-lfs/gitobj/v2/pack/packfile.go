@@ -190,7 +190,7 @@ func (p *Packfile) findBase(typ PackedObjectType, offset, objOffset int64) (Chai
 	// We assume that we have to read at least an object ID's worth (the
 	// hash length in the case of a OBJ_REF_DELTA, or greater than the
 	// length of the base offset encoded in an OBJ_OFS_DELTA).
-	var sha [32]byte
+	var sha [MaxHashSize]byte
 	if _, err := p.r.ReadAt(sha[:hashlen], offset); err != nil {
 		return nil, baseOffset, err
 	}

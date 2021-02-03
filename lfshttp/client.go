@@ -311,6 +311,10 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 		return nil, nil, nil
 	}
 
+	if res.Uncompressed {
+		tracerx.Printf("http: decompressed gzipped response")
+	}
+
 	c.traceResponse(req, tracedReq, res)
 
 	if res.StatusCode != 301 &&

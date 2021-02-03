@@ -50,7 +50,7 @@ transfer adapters.
 {
   "operation": "download",
   "transfers": [ "basic" ],
-  "ref": { "name": "refs/heads/master" },
+  "ref": { "name": "refs/heads/main" },
   "objects": [
     {
       "oid": "12345678",
