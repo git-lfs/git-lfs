@@ -95,7 +95,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	defer f.Close()
-	
+
 	// Since the lower level functions don't have any awareness of which file caused the error
 	// log the filename here when the error eventually bubbles up
 	p, err := DecodePointer(f)
