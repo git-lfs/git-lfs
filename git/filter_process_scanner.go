@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/pktline"
 	"github.com/rubyist/tracerx"
 )
 
@@ -29,7 +30,7 @@ import (
 type FilterProcessScanner struct {
 	// pl is the *pktline instance used to read and write packets back and
 	// forth between Git.
-	pl *pktline
+	pl *pktline.Pktline
 
 	// req is a temporary variable used to hold the value accessible by the
 	// `Request()` function. It is cleared at the beginning of each `Scan()`
@@ -51,7 +52,7 @@ type FilterProcessScanner struct {
 // directly.
 func NewFilterProcessScanner(r io.Reader, w io.Writer) *FilterProcessScanner {
 	return &FilterProcessScanner{
-		pl: newPktline(r, w),
+		pl: pktline.NewPktline(r, w),
 	}
 }
 
@@ -70,7 +71,7 @@ func (o *FilterProcessScanner) Init() error {
 	tracerx.Printf("Initialize filter-process")
 	reqVer := "version=2"
 
-	initMsg, err := o.pl.readPacketText()
+	initMsg, err := o.pl.ReadPacketText()
 	if err != nil {
 		return errors.Wrap(err, "reading filter-process initialization")
 	}
@@ -78,7 +79,7 @@ func (o *FilterProcessScanner) Init() error {
 		return fmt.Errorf("invalid filter-process pkt-line welcome message: %s", initMsg)
 	}
 
-	supVers, err := o.pl.readPacketList()
+	supVers, err := o.pl.ReadPacketList()
 	if err != nil {
 		return errors.Wrap(err, "reading filter-process versions")
 	}
@@ -86,7 +87,7 @@ func (o *FilterProcessScanner) Init() error {
 		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
 	}
 
-	err = o.pl.writePacketList([]string{"git-filter-server", reqVer})
+	err = o.pl.WritePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
 		return errors.Wrap(err, "writing filter-process initialization failed")
 	}
@@ -101,7 +102,7 @@ func (o *FilterProcessScanner) Init() error {
 func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 	reqCaps := []string{"capability=clean", "capability=smudge"}
 
-	supCaps, err := o.pl.readPacketList()
+	supCaps, err := o.pl.ReadPacketList()
 	if err != nil {
 		return nil, fmt.Errorf("reading filter-process capabilities failed with %s", err)
 	}
@@ -119,7 +120,7 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 		}
 	}
 
-	err = o.pl.writePacketList(reqCaps)
+	err = o.pl.WritePacketList(reqCaps)
 	if err != nil {
 		return nil, fmt.Errorf("writing filter-process capabilities failed with %s", err)
 	}
@@ -172,14 +173,14 @@ func (o *FilterProcessScanner) Err() error { return o.err }
 // will read the body of the request. Since the body is _not_ offset, one
 // request should be read in its entirety before consuming the next request.
 func (o *FilterProcessScanner) readRequest() (*Request, error) {
-	requestList, err := o.pl.readPacketList()
+	requestList, err := o.pl.ReadPacketList()
 	if err != nil {
 		return nil, err
 	}
 
 	req := &Request{
 		Header:  make(map[string]string),
-		Payload: &pktlineReader{pl: o.pl},
+		Payload: pktline.NewPktlineReaderFromPktline(o.pl, 65536),
 	}
 
 	for _, pair := range requestList {
@@ -193,11 +194,11 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 // WriteList writes a list of strings to the underlying pktline data stream in
 // pktline format.
 func (o *FilterProcessScanner) WriteList(list []string) error {
-	return o.pl.writePacketList(list)
+	return o.pl.WritePacketList(list)
 }
 
 func (o *FilterProcessScanner) WriteStatus(status FilterProcessStatus) error {
-	return o.pl.writePacketList([]string{"status=" + status.String()})
+	return o.pl.WritePacketList([]string{"status=" + status.String()})
 }
 
 // isStringInSlice returns whether a given string "what" is contained in a

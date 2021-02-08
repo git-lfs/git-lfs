@@ -15,6 +15,8 @@ github.com/git-lfs/gitobj/v2/pack
 github.com/git-lfs/gitobj/v2/storage
 # github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
 github.com/git-lfs/go-netrc/netrc
+# github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
+github.com/git-lfs/pktline
 # github.com/git-lfs/wildmatch v1.0.4
 github.com/git-lfs/wildmatch
 # github.com/hashicorp/go-uuid v1.0.2

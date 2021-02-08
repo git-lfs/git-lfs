@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/git-lfs/pktline"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -12,20 +13,20 @@ import (
 func TestFilterProcessScannerInitializesWithCorrectSupportedValues(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
-	if err := pl.writePacketText("git-filter-client"); err != nil {
+	pl := pktline.NewPktline(nil, &from)
+	if err := pl.WritePacketText("git-filter-client"); err != nil {
 		t.Fatalf("expected... %v", err.Error())
 	}
 
-	require.Nil(t, pl.writePacketText("git-filter-client"))
-	require.Nil(t, pl.writePacketList([]string{"version=2"}))
+	require.Nil(t, pl.WritePacketText("git-filter-client"))
+	require.Nil(t, pl.WritePacketList([]string{"version=2"}))
 
 	fps := NewFilterProcessScanner(&from, &to)
 	err := fps.Init()
 
 	assert.Nil(t, err)
 
-	out, err := newPktline(&to, nil).readPacketList()
+	out, err := pktline.NewPktline(&to, nil).ReadPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"git-filter-server", "version=2"}, out)
 }
@@ -33,9 +34,9 @@ func TestFilterProcessScannerInitializesWithCorrectSupportedValues(t *testing.T)
 func TestFilterProcessScannerRejectsUnrecognizedInitializationMessages(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
-	require.Nil(t, pl.writePacketText("git-filter-client-unknown"))
-	require.Nil(t, pl.writeFlush())
+	pl := pktline.NewPktline(nil, &from)
+	require.Nil(t, pl.WritePacketText("git-filter-client-unknown"))
+	require.Nil(t, pl.WriteFlush())
 
 	fps := NewFilterProcessScanner(&from, &to)
 	err := fps.Init()
@@ -48,10 +49,10 @@ func TestFilterProcessScannerRejectsUnrecognizedInitializationMessages(t *testin
 func TestFilterProcessScannerRejectsUnsupportedFilters(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
-	require.Nil(t, pl.writePacketText("git-filter-client"))
+	pl := pktline.NewPktline(nil, &from)
+	require.Nil(t, pl.WritePacketText("git-filter-client"))
 	// Write an unsupported version
-	require.Nil(t, pl.writePacketList([]string{"version=0"}))
+	require.Nil(t, pl.WritePacketList([]string{"version=0"}))
 
 	fps := NewFilterProcessScanner(&from, &to)
 	err := fps.Init()
@@ -64,8 +65,8 @@ func TestFilterProcessScannerRejectsUnsupportedFilters(t *testing.T) {
 func TestFilterProcessScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
-	require.Nil(t, pl.writePacketList([]string{
+	pl := pktline.NewPktline(nil, &from)
+	require.Nil(t, pl.WritePacketList([]string{
 		"capability=clean", "capability=smudge", "capability=not-invented-yet",
 	}))
 
@@ -76,7 +77,7 @@ func TestFilterProcessScannerNegotitatesSupportedCapabilities(t *testing.T) {
 	assert.Contains(t, caps, "capability=smudge")
 	assert.Nil(t, err)
 
-	out, err := newPktline(&to, nil).readPacketList()
+	out, err := pktline.NewPktline(&to, nil).ReadPacketList()
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"capability=clean", "capability=smudge"}, out)
 }
@@ -84,9 +85,9 @@ func TestFilterProcessScannerNegotitatesSupportedCapabilities(t *testing.T) {
 func TestFilterProcessScannerDoesNotNegotitatesUnsupportedCapabilities(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
+	pl := pktline.NewPktline(nil, &from)
 	// Write an unsupported capability
-	require.Nil(t, pl.writePacketList([]string{
+	require.Nil(t, pl.WritePacketList([]string{
 		"capability=unsupported",
 	}))
 
@@ -102,15 +103,15 @@ func TestFilterProcessScannerDoesNotNegotitatesUnsupportedCapabilities(t *testin
 func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	var from, to bytes.Buffer
 
-	pl := newPktline(nil, &from)
+	pl := pktline.NewPktline(nil, &from)
 	// Headers
-	require.Nil(t, pl.writePacketList([]string{
+	require.Nil(t, pl.WritePacketList([]string{
 		"foo=bar", "other=woot", "crazy='sq',\\$x=.bin",
 	}))
 	// Multi-line packet
-	require.Nil(t, pl.writePacketText("first"))
-	require.Nil(t, pl.writePacketText("second"))
-	require.Nil(t, pl.writeFlush())
+	require.Nil(t, pl.WritePacketText("first"))
+	require.Nil(t, pl.WritePacketText("second"))
+	require.Nil(t, pl.WriteFlush())
 
 	req, err := readRequest(NewFilterProcessScanner(&from, &to))
 
@@ -126,13 +127,13 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 
 func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	from := bytes.NewBuffer([]byte{
-		0x30, 0x30, 0x30, 0x34, // 0004 (invalid packet length)
+		0x30, 0x30, 0x30, 0x33, // 0003 (invalid packet length)
 	})
 
 	req, err := readRequest(NewFilterProcessScanner(from, nil))
 
 	require.NotNil(t, err)
-	assert.Equal(t, "invalid packet length", err.Error())
+	assert.Equal(t, "Invalid packet length.", err.Error())
 
 	assert.Nil(t, req)
 }
