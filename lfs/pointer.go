@@ -95,8 +95,8 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	defer f.Close()
-	
-	return DecodePointer(f)	
+
+	return DecodePointer(f)
 }
 
 func DecodePointer(reader io.Reader) (*Pointer, error) {
