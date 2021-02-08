@@ -34,6 +34,14 @@ details about `lfs.storage` option.
 * `--dry-run` `-d`
   Don't actually delete anything, just report on what would have been done
 
+* `--force` `-f`
+  Prune all objects except unpushed objects, including objects required for
+  currently checked out refs.  Implies `--recent`.
+
+* `--recent`
+  Prune even objects that would normally be preserved by the configuration
+  options specified below in [RECENT FILES].
+
 * `--verify-remote` `-c`
   Contact the remote and check that copies of the files we would delete
   definitely exist before deleting. See [VERIFY REMOTE].
@@ -111,7 +119,7 @@ When identifying [UNPUSHED LFS FILES] and performing [VERIFY REMOTE], a single
 remote, 'origin', is normally used as the reference.  This one remote is
 considered canonical; even if you use multiple remotes, you probably want to
 retain your local copies until they've made it to that remote. 'origin' is used
-by default because that will usually be a master central repo, or your fork of
+by default because that will usually be a main central repo, or your fork of
 it - in both cases that's a valid remote backup of your work. If origin doesn't
 exist then by default nothing will be pruned because everything is treated as
 'unpushed'.

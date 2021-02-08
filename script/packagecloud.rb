@@ -27,10 +27,6 @@ $client = Packagecloud::Client.new(credentials)
 # https://packagecloud.io/docs#os_distro_version
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
-  "centos/6" => [
-    "el/6", # End of Extended Support June 30, 2024
-    "scientific/6",
-  ],
   "centos/7" => [
     "el/7",
     "scientific/7",
@@ -46,19 +42,19 @@ $distro_name_map = {
     "sles/12.1", # LTSS ends 31 May 2020
     "sles/12.2", # LTSS ends 31 Mar 2021
     "sles/12.3", # LTSS ends 30 Jun 2022
-    "sles/15.0"  # Current
+    "sles/12.4",
+    "sles/12.5",
+    "sles/15.0",
+    "sles/15.1",  # Current
   ],
   "centos/8" => [
     "el/8",
     "fedora/31", # EOL ~2021
+    "fedora/32",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
-  "debian/8" => [
-    "debian/jessie",     # EOL June 30, 2020
-    "ubuntu/trusty",     # ESM April 2022
-  ],
   "debian/9" => [
     "debian/stretch",   # EOL June 2022
     "linuxmint/sarah",  # EOL April 2021
@@ -126,6 +122,7 @@ package_files.each do |full_path|
   when /centos\/5/  then ["RPM RHEL 5/CentOS 5", "el/5"]
   when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
+  when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
   end
 
   next unless os

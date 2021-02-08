@@ -115,7 +115,7 @@ To get started with Git LFS, the following commands can be used.
 
         git add .gitattributes
 
- 3. Commit, push and work with the files normally:
+ 4. Commit, push and work with the files normally:
 
         git add file.iso
         git commit -m "Add disk image"

@@ -1,5 +1,75 @@
 # Git LFS Changelog
 
+## 2.13.0 (10 Dec 2020)
+
+This release introduces several new features, such as the `--above` option to
+`git lfs migrate import` and support for `socks5h` proxies.  In addition, many
+bugs have been fixed and several miscellaneous fixes have been included.
+
+Unless someone steps up to fix and maintain NTLM support, this will be the last
+Git LFS release to support NTLM.  See #4247 for more details.  Note that Git LFS
+supports Kerberos as well, which is far more secure and may be a viable
+replacement in many situations.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @EliRibble for adding support for the `--above` option to `git lfs migrate import`
+* @andrewshadura for adding support for the `GIT_LFS_SKIP_PUSH` environment variable
+* @sinbad for fixing problems with retaining objects used by stashes
+* @tklauser for cleaning up our use of error constants in the code
+
+### Features
+
+* Add --above parameter to 'migrate import'. #4276 (@EliRibble)
+* Add GIT_LFS_SKIP_PUSH to allow skipping the pre-push hook #4202 (@andrewshadura)
+* lfshttp: add support for socks5h proxies #4259 (@bk2204)
+* Add manual pages to release assets #4230 (@bk2204)
+* Honor GIT_WORK_TREE #4269 (@bk2204)
+
+### Bugs
+
+* Make git lfs migrate import handle missing extensions #4318 (@bk2204)
+* fs: don't panic when using a too-short object ID to push #4307 (@bk2204)
+* Fix pattern matching for .gitattributes #4301 (@bk2204)
+* config: map missing port to default for HTTP key lookups #4282 (@bk2204)
+* tools: use IoctlFileClone from golang.org/x/sys/unix #4261 (@tklauser)
+* tools/util_darwin.go: Remove use of direct syscalls #4251 (@stanhu)
+* tools: always force a UTF-8 locale for cygpath #4231 (@bk2204)
+* prune: fix deleting objects referred to by stashes #4209 (@sinbad)
+
+### Misc
+
+* migrate import: warn about refs on case insensitive file systems #4332 (@larsxschneider)
+* Drop obsolete OS support #4328 (@bk2204)
+* tools: use ERROR_SHARING_VIOLATION const from golang.org/x/sys/windows #4291 (@tklauser)
+* pull: gracefully handle merge conflicts #4289 (@bk2204)
+* script/upload: avoid using Ruby's URI.escape #4266 (@bk2204)
+* add documentation of security bug report process #4244 (@chrisd8088)
+
+## 2.12.1 (4 Nov 2020)
+
+This release introduces a security fix for Windows systems, which has been
+assigned CVE-2020-27955.
+
+On Windows, if Git LFS operates on a malicious repository with a git.bat or
+git.exe file in the current directory, that program is executed, permitting the
+attacker to execute arbitrary code.  This security problem does not affect Unix
+systems.
+
+This occurs because on Windows, Go includes (and prefers) the current directory
+when the name of a command run does not contain a directory separator.  This has
+been solved by always using PATH to pre-resolve paths before handing them to Go.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dawidgolunski for reporting this to us responsibly
+
+### Bugs
+
+* subprocess: avoid using relative program names (@bk2204)
+
 ## 2.12.0 (1 Sep 2020)
 
 This release introduces several new features, such as support for the SHA-256

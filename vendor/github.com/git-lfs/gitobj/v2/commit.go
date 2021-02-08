@@ -97,7 +97,7 @@ func (c *Commit) Decode(hash hash.Hash, from io.Reader, size int64) (n int, err 
 	var messageParts []string
 
 	s := bufio.NewScanner(from)
-	s.Buffer(nil, 1024*1024)
+	s.Buffer(nil, 10*1024*1024)
 	for s.Scan() {
 		text := s.Text()
 		n = n + len(text+"\n")

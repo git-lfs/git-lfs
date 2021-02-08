@@ -1,4 +1,4 @@
-// +build darwin,cgo
+// +build darwin
 
 package tools
 
@@ -9,18 +9,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"golang.org/x/sys/unix"
 )
-
-/*
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/clonefile.h>
-*/
-import "C"
 
 var cloneFileSupported bool
 
@@ -112,10 +104,10 @@ func CloneFileByPath(dst, src string) (bool, error) {
 }
 
 func cloneFileSyscall(dst, src string) *CloneFileError {
-	err := unix.Clonefileat(C.AT_FDCWD, src, C.AT_FDCWD, dst, C.CLONE_NOFOLLOW)
+	err := unix.Clonefileat(unix.AT_FDCWD, src, unix.AT_FDCWD, dst, unix.CLONE_NOFOLLOW)
 	if err != nil {
 		return &CloneFileError{
-			Unsupported: err == syscall.ENOTSUP,
+			Unsupported: err == unix.ENOTSUP,
 			errorString: fmt.Sprintf("%s. from %v to %v", err, src, dst),
 		}
 	}

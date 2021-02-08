@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
@@ -133,12 +134,19 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	gitfilter := lfs.NewGitFilter(cfg)
 
 	var fixups *gitattr.Tree
+	above, err := humanize.ParseBytes(migrateImportAboveFmt)
+	if err != nil {
+		ExitWithError(errors.Wrap(err, "fatal: cannot parse --above=<n>"))
+	}
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
+				return b, nil
+			}
+			if (above > 0) && (uint64(b.Size) < above) {
 				return b, nil
 			}
 
@@ -164,6 +172,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			if ext := filepath.Ext(path); len(ext) > 0 {
 				exts.Add(fmt.Sprintf("*%s filter=lfs diff=lfs merge=lfs -text", ext))
+			} else {
+				exts.Add(fmt.Sprintf("/%s filter=lfs diff=lfs merge=lfs -text", path))
 			}
 
 			return &gitobj.Blob{

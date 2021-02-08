@@ -133,7 +133,7 @@ be scoped inside the configuration for a remote.
   using any mechanism you like (rather than just HTTP). `path` should point to
   the process you wish to invoke. The protocol between the git-lfs client and
   the custom transfer process is documented at
-  https://github.com/git-lfs/git-lfs/blob/master/docs/custom-transfers.md
+  https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md
 
   <name> must be a unique identifier that the LFS server understands. When
   calling the LFS API the client will include a list of supported transfer

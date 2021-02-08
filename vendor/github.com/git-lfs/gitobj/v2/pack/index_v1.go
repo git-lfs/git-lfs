@@ -13,7 +13,7 @@ type V1 struct {
 // Name implements IndexVersion.Name by returning the 20 byte SHA-1 object name
 // for the given entry at offset "at" in the v1 index file "idx".
 func (v *V1) Name(idx *Index, at int64) ([]byte, error) {
-	var sha [maxHashSize]byte
+	var sha [MaxHashSize]byte
 
 	hashlen := v.hash.Size()
 

@@ -2,20 +2,15 @@ package lfsapi
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
-	"github.com/git-lfs/go-ntlm/ntlm"
 )
 
 type Client struct {
 	Endpoints   EndpointFinder
 	Credentials creds.CredentialHelper
-
-	ntlmSessions map[string]ntlm.ClientSession
-	ntlmMu       sync.Mutex
 
 	credContext *creds.CredentialHelperContext
 
