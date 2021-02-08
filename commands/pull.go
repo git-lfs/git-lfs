@@ -72,7 +72,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 			return
 		}
 
-		LoggedError(err, "Checkout error: %s", err)
+		LoggedError(err, "Checkout error: %s\n File: %q \n ", err, cwdfilepath)
 		return
 	}
 
