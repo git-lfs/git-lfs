@@ -30,7 +30,7 @@ type Manifest struct {
 	uploadAdapterFuncs      map[string]NewAdapterFunc
 	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
-	tqClient                *tqClient
+	batchClientAdapter      BatchClient
 	mu                      sync.Mutex
 }
 
@@ -54,11 +54,11 @@ func (m *Manifest) IsStandaloneTransfer() bool {
 	return m.standaloneTransferAgent != ""
 }
 
-func (m *Manifest) batchClient() *tqClient {
+func (m *Manifest) batchClient() BatchClient {
 	if r := m.MaxRetries(); r > 0 {
-		m.tqClient.MaxRetries = r
+		m.batchClientAdapter.SetMaxRetries(r)
 	}
-	return m.tqClient
+	return m.batchClientAdapter
 }
 
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *Manifest {
@@ -74,7 +74,7 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 	m := &Manifest{
 		fs:                   f,
 		apiClient:            apiClient,
-		tqClient:             &tqClient{Client: apiClient},
+		batchClientAdapter:   &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
 	}
