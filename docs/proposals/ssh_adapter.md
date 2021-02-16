@@ -95,6 +95,22 @@ to those used if the request is made over HTTP.
 The response code should be 200 if the version is accepted or 400 if it is not.
 Other values are possible if other errors occur.
 
+When the protocol is complete, the client sends a quit request:
+
+```
+quit-request = PKT-LINE("quit" LF) flush-pkt
+```
+
+The server must respond with success and then terminate the connection:
+
+```
+quit-response = PKT-LINE("status 200" LF)
+                flush-pkt
+```
+
+This command exists to help distinguish expected termination from unexpected
+termination.
+
 ### Requests to transfer objects
 
 These commands may be used if the operation was `upload` or `download`.
