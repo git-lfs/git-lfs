@@ -42,8 +42,7 @@ To initiate a connection, Git LFS should run the following command:
 
 If authentication fails, or some other connection error occurs, errors will be
 read from standard error and displayed to the user.  The operation may be
-`upload`, `download`, or `lock`.  Other operations may be implemented in the
-future.
+`upload`, `download`.  Other operations may be implemented in the future.
 
 Once the connection is established, the server should send a capability
 advertisement:
@@ -258,8 +257,6 @@ generic-success-command = PKT-LINE("status 200" LF)
 
 ### Locks
 
-These commands may be used if the operation was `lock`.
-
 The `lock` command may be used to lock a file on a ref:
 ```
 lock-request = lock-command
@@ -342,3 +339,11 @@ unlock-command = PKT-LINE("unlock " lock-id LF)
 The `force` and `refname` arguments have the same meaning as their corresponding
 values in the HTTP JSON API.  The response matches the `generic-status-response`
 production.
+
+The `lock` and `unlock` commands may be issued when the command was `upload`.
+If the remote side has a concept of a repository administrator, it is
+recommended that unlocking a lock that the user does not own be reserved to the
+administrator.
+
+The `list-lock` commands may be issued when the command was `upload` or
+`download`.
