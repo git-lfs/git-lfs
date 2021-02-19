@@ -29,6 +29,8 @@ var (
 	// Arguments to append to a git log call which will limit the output to
 	// lfs changes and format the output suitable for parseLogOutput.. method(s)
 	logLfsSearchArgs = []string{
+		"--no-ext-diff",
+		"--no-textconv",
 		"-G", "oid sha256:", // only diffs which include an lfs file SHA change
 		"-p",                             // include diff so we can read the SHA
 		"-U12",                           // Make sure diff context is always big enough to support 10 extension lines to get whole pointer
