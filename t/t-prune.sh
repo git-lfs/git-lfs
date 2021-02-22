@@ -752,3 +752,22 @@ begin_test "prune keep stashed untracked files"
 
 )
 end_test
+
+begin_test "prune does not invoke external diff programs"
+(
+  set -e
+
+  reponame="prune-external-diff"
+  setup_remote_repo "remote-$reponame"
+
+  clone_repo "remote-$reponame" "clone-$reponame"
+
+  git config diff.word.textconv 'false'
+  echo "*.dot diff=word" >.git/info/attributes
+
+  for n in $(seq 1000); do (echo "$n" > "$n.dot") done
+  git add .
+  git commit -am "initial"
+  git lfs prune
+)
+end_test
