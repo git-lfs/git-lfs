@@ -71,7 +71,7 @@ jobs:
     needs:
       - build-windows
       - build-macos
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -91,7 +91,7 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   build-docker:
     name: Build Linux Packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
