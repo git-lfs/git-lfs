@@ -7,10 +7,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04, macos-latest]
+        go: ['1.16.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
     - run: gem install ronn
     - run: script/cibuild
     - run: CGO_ENABLED=0 make release
@@ -28,7 +32,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-go@v1
+    - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
