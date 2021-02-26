@@ -589,7 +589,8 @@ begin_test "prune verify large numbers of refs"
   git config lfs.fetchrecentcommitsdays 3
   git config lfs.pruneoffsetdays 3
 
-  # confirm that prune does not hang
+  # confirm that prune does not hang or fail, even under low FD limits
+  ulimit -n 256 || true
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
 
 )
