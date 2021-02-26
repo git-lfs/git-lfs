@@ -1040,3 +1040,41 @@ UploadTransfers=basic,lfs-standalone-file
   contains_same_elements "$expected" "$actual"
 )
 end_test
+
+begin_test "env with duplicate endpoints"
+(
+  set -e
+  reponame="env-duplicate-endpoints"
+  unset_vars
+  mkdir $reponame
+  cd $reponame
+  git init
+  git remote add origin "$GITSERVER/env-origin-remote"
+  git remote add other "$GITSERVER/env-other-remote"
+
+  touch a.txt
+  git add a.txt
+  git commit -m "initial commit"
+
+  cat <<EOF >>.git/config
+[url "https://host.example/domain/"]
+	insteadOf = git@host.example:domain/
+[url "https://host.example/domain/"]
+	insteadOf = git@host.example:domain/
+EOF
+
+  git lfs env 2>&1 | tee test.log
+  if grep 'WARNING.*same alias' test.log
+  then
+    exit 1
+  fi
+
+  cat <<EOF >>.git/config
+[url "https://somewhere-else.example/domain/"]
+	insteadOf = git@host.example:domain/
+EOF
+
+  git lfs env 2>&1 | tee test.log
+  grep 'WARNING.*same alias' test.log
+)
+end_test
