@@ -347,7 +347,7 @@ func changeToWorkingCopy() {
 		ExitWithError(errors.Wrap(
 			err, "fatal: could not determine current working directory"))
 	}
-	cwd, err = filepath.EvalSymlinks(cwd)
+	cwd, err = tools.CanonicalizeSystemPath(cwd)
 	if err != nil {
 		ExitWithError(errors.Wrap(
 			err, "fatal: could not canonicalize current working directory"))

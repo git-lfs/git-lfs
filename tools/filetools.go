@@ -60,7 +60,7 @@ func ResolveSymlinks(path string) string {
 		return path
 	}
 
-	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+	if resolved, err := CanonicalizeSystemPath(path); err == nil {
 		return resolved
 	}
 	return path

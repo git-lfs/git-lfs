@@ -9,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -79,7 +80,7 @@ func lockPath(file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	wd, err = filepath.EvalSymlinks(wd)
+	wd, err = tools.CanonicalizeSystemPath(wd)
 	if err != nil {
 		return "", errors.Wrapf(err,
 			"could not follow symlinks for %s", wd)
