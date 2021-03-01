@@ -31,6 +31,7 @@ Files: vendor/github.com/alexbrainman/sspi/*
  subprocess/path.go
  subprocess/path_nix.go
  subprocess/path_windows.go
+ tools/filetools_windows.go
 Copyright: 2009, 2010, 2012, 2017 The Go Authors
 License: Go
  Redistribution and use in source and binary forms, with or without

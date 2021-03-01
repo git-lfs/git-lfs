@@ -494,7 +494,7 @@ func CanonicalizePath(path string, missingOk bool) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		result, err := filepath.EvalSymlinks(path)
+		result, err := CanonicalizeSystemPath(path)
 		if err != nil && os.IsNotExist(err) && missingOk {
 			return path, nil
 		}
