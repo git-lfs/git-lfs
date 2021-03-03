@@ -256,3 +256,23 @@ begin_test "config: ignoring unsafe lfsconfig keys"
   grep "  core.askpass" status.log
 )
 end_test
+
+begin_test "config respects include.* directives when GIT_CONFIG is set"
+(
+  set -e
+
+  mkdir include-directives
+  cd include-directives
+
+  git init
+
+  git config lfs.url "http://some-url/rest"
+  GIT_CONFIG="$(pwd)/.git/config" git lfs env | tee env.log
+  grep "Endpoint=http://some-url/rest (auth=none)" env.log
+
+  git config --file ./.git/b.config url."http://other-url/".insteadOf "http://some-url/"
+  git config include.path "$(pwd)/.git/b.config"
+  GIT_CONFIG="$(pwd)/.git/config" git lfs env | tee env.log
+  grep "Endpoint=http://other-url/rest (auth=none)" env.log
+)
+end_test
