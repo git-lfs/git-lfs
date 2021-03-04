@@ -199,7 +199,7 @@ func (c *Configuration) Source() (*ConfigurationSource, error) {
 }
 
 func (c *Configuration) gitConfig(args ...string) (string, error) {
-	args = append([]string{"config"}, args...)
+	args = append([]string{"config", "--includes"}, args...)
 	cmd := subprocess.ExecCommand("git", args...)
 	if len(c.GitDir) > 0 {
 		cmd.Dir = c.GitDir
