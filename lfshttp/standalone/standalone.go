@@ -137,7 +137,7 @@ func gitDirAtPath(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(gitdir)
+	return tools.CanonicalizeSystemPath(gitdir)
 }
 
 func fixUrlPath(path string) string {
