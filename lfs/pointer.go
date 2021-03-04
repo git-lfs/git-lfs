@@ -22,7 +22,7 @@ var (
 	}
 	latest      = "https://git-lfs.github.com/spec/v1"
 	oidType     = "sha256"
-	oidRE       = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+	oidRE       = regexp.MustCompile(`\A[0-9a-f]{64}\z`)
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	extRE       = regexp.MustCompile(`\Aext-\d{1}-\w+`)
 	pointerKeys = []string{"version", "oid", "size"}
