@@ -170,6 +170,11 @@ The [official documentation](docs) has command references and specifications for
 the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) on
 the wiki which answers some common questions.
 
+If you have a question on how to use Git LFS, aren't sure about something, or
+are looking for input from others on tips about best practices or use cases,
+feel free to
+[start a discussion](https://github.com/git-lfs/git-lfs/discussions).
+
 You can always [open an issue](https://github.com/git-lfs/git-lfs/issues), and
 one of the Core Team members will respond to you. Please be sure to include:
 
