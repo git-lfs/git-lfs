@@ -74,6 +74,17 @@ them as separate pull requests.
 * Explain the rationale for your change in the pull request. You can often use
   part of a good commit message as a starting point.
 
+## Discussions
+
+[Our discussions](https://github.com/git-lfs/git-lfs/discussions) are the
+perfect place to ask a question if you're not sure on something, provide
+feedback that isn't a bug report or feature request, or learn about use cases or
+best practices with Git LFS.  There's even a search box to help you see if
+someone has already answered your question!
+
+You can also check [the FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) to see
+if your question is well known and already has an easy answer.
+
 ## Issues
 
 If you think you've found a bug or have an issue, we'd love to hear about it!
