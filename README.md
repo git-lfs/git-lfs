@@ -137,6 +137,22 @@ To https://github.com/git-lfs/git-lfs-test
 
 Note: Git LFS requires at least Git 1.8.2 on Linux or 1.8.5 on macOS.
 
+### Uninstalling
+
+If you've decided that Git LFS isn't right for you, you can convert your
+repository back to a plain Git repository with `git lfs migrate` as well.  For
+example:
+
+```ShellSession
+$ git lfs migrate export --include="*.psd" --everything
+```
+
+Note that this will rewrite history and change all of the Git object IDs in your
+repository, just like the import version of this command.
+
+If there's some reason that things aren't working out for you, please let us
+know in an issue, and we'll definitely try to help or get it fixed.
+
 ## Limitations
 
 Git LFS maintains a list of currently known limitations, which you can find and
