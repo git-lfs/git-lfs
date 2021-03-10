@@ -152,6 +152,7 @@ func (c *ExpandConfigPathTestCase) Assert(t *testing.T) {
 }
 
 func TestExpandConfigPath(t *testing.T) {
+	os.Unsetenv("XDG_CONFIG_HOME")
 	for desc, c := range map[string]*ExpandConfigPathTestCase{
 		"unexpanded full path": {
 			Path: "/path/to/attributes",
