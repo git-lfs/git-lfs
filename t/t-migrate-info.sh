@@ -282,10 +282,52 @@ begin_test "migrate info (above threshold, top)"
 
   setup_multiple_local_branches
 
+  base64 < /dev/urandom | head -c 160 > b.bin
+  git add b.bin
+  git commit -m "b.bin"
+
   original_head="$(git rev-parse HEAD)"
 
+  # Ensure command reports only single highest entry due to --top=1 argument.
   diff -u <(git lfs migrate info --above=130B --top=1 2>&1 | tail -n 1) <(cat <<-EOF
-	*.md	140 B	1/1 files(s)	100%
+	*.bin	160 B	1/1 files(s)	100%
+	EOF)
+
+  migrated_head="$(git rev-parse HEAD)"
+
+  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate info (top)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  base64 < /dev/urandom | head -c 160 > b.bin
+  git add b.bin
+  git commit -m "b.bin"
+
+  original_head="$(git rev-parse HEAD)"
+
+  # Ensure command reports nothing if --top argument is less than zero.
+  [ "0" -eq "$(git lfs migrate info --everything --top=-1 2>/dev/null | wc -l)" ]
+
+  # Ensure command reports nothing if --top argument is zero.
+  [ "0" -eq "$(git lfs migrate info --everything --top=0 2>/dev/null | wc -l)" ]
+
+  # Ensure command reports no more entries than specified by --top argument.
+  diff -u <(git lfs migrate info --everything --top=2 2>&1 | tail -n 2) <(cat <<-EOF
+	*.md 	170 B	2/2 files(s)	100%
+	*.bin	160 B	1/1 files(s)	100%
+	EOF)
+
+  # Ensure command succeeds if --top argument is greater than total number of entries.
+  diff -u <(git lfs migrate info --everything --top=10 2>&1 | tail -n 3) <(cat <<-EOF
+	*.md 	170 B	2/2 files(s)	100%
+	*.bin	160 B	1/1 files(s)	100%
+	*.txt	120 B	1/1 files(s)	100%
 	EOF)
 
   migrated_head="$(git rev-parse HEAD)"

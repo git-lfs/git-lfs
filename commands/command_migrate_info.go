@@ -108,7 +108,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	migrateInfoTopN = tools.ClampInt(migrateInfoTopN, 0, len(entries))
 
-	entries = entries[:tools.MaxInt(0, migrateInfoTopN)]
+	entries = entries[:migrateInfoTopN]
 
 	entries.Print(os.Stdout)
 }
