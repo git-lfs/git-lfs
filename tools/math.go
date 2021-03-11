@@ -20,7 +20,7 @@ func MaxInt(a, b int) int {
 
 // ClampInt returns the integer "n" bounded between "min" and "max".
 func ClampInt(n, min, max int) int {
-	return MinInt(min, MaxInt(max, n))
+	return MinInt(max, MaxInt(min, n))
 }
 
 // MinInt64 returns the smaller of two `int`s, "a", or "b".

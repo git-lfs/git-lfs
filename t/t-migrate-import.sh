@@ -465,8 +465,6 @@ begin_test "migrate import (existing .gitattributes)"
 
   setup_local_branch_with_gitattrs
 
-  pwd
-
   main="$(git rev-parse refs/heads/main)"
 
   txt_main_oid="$(calc_oid "$(git cat-file -p "$main:a.txt")")"
@@ -494,8 +492,6 @@ begin_test "migrate import (--exclude with existing .gitattributes)"
   set -e
 
   setup_local_branch_with_gitattrs
-
-  pwd
 
   main="$(git rev-parse refs/heads/main)"
 
