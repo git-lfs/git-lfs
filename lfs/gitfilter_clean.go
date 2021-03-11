@@ -80,7 +80,7 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 	n, rerr := buf.Read(by)
 	by = by[:n]
 
-	if rerr != nil || (err == nil && len(by) < 512) {
+	if rerr != nil || (err == nil && len(by) < blobSizeCutoff) {
 		err = errors.NewCleanPointerError(ptr, by)
 		return
 	}
