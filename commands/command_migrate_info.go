@@ -89,7 +89,6 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			}
 
 			entry.Total++
-			entry.BytesTotal += b.Size
 
 			if b.Size > int64(migrateInfoAbove) {
 				entry.TotalAbove++
@@ -124,8 +123,6 @@ type MigrateInfoEntry struct {
 	BytesAbove int64
 	// TotalAbove is the count of all files above a given size threshold.
 	TotalAbove int64
-	// BytesTotal is the number of bytes of all files
-	BytesTotal int64
 	// Total is the count of all files.
 	Total int64
 }
