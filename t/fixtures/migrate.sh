@@ -179,7 +179,7 @@ setup_single_local_branch_complex_tracked() {
 setup_single_local_branch_tracked_corrupt() {
   set -e
 
-  reponame="migrate-single-locla-branch-with-attrs-corrupt"
+  reponame="migrate-single-local-branch-with-attrs-corrupt"
 
   remove_and_create_local_repo "$reponame"
 
