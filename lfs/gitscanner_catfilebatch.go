@@ -133,7 +133,7 @@ func (s *PointerScanner) next(blob string) (string, string, *WrappedPointer, err
 
 	var buf *bytes.Buffer
 	var to io.Writer = sha
-	if size <= blobSizeCutoff {
+	if size < blobSizeCutoff {
 		buf = bytes.NewBuffer(make([]byte, 0, size))
 		to = io.MultiWriter(to, buf)
 	}
@@ -150,7 +150,7 @@ func (s *PointerScanner) next(blob string) (string, string, *WrappedPointer, err
 	var pointer *WrappedPointer
 	var contentsSha string
 
-	if size <= blobSizeCutoff {
+	if size < blobSizeCutoff {
 		if p, err := DecodePointer(bytes.NewReader(buf.Bytes())); err != nil {
 			contentsSha = fmt.Sprintf("%x", sha.Sum(nil))
 		} else {

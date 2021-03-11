@@ -87,7 +87,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if stat.Size() > blobSizeCutoff {
+	if stat.Size() >= blobSizeCutoff {
 		return nil, errors.NewNotAPointerError(errors.New("file size exceeds lfs pointer size cutoff"))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
