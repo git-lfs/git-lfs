@@ -106,7 +106,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	entries = removeEmptyEntries(entries)
 	sort.Sort(sort.Reverse(entries))
 
-	migrateInfoTopN = tools.ClampInt(migrateInfoTopN, len(entries), 0)
+	migrateInfoTopN = tools.ClampInt(migrateInfoTopN, 0, len(entries))
 
 	entries = entries[:tools.MaxInt(0, migrateInfoTopN)]
 
