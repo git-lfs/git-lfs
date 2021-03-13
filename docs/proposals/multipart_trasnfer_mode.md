@@ -175,9 +175,6 @@ The following is a response for the same request, given an imaginary storage bac
 }
 ```
 
-## Chunk sizing
-It is up to the LFS server to decide the size of each file chunk.
-
 ## Uploaded Part Digest
 Some storage backends will support, or even require, uploading clients to send a digest of the uploaded part as part
 of the request. This is a useful capability even if not required, as it allows backends to validate each part 
@@ -257,8 +254,27 @@ In this  case, clients should follow the following process to try and recover fr
 * If `parts` is empty, it is possible that the file exists in storage but is corrupt / has wrong size. In this case 
   it is recommended to issue an `abort` and re-attempt the same upload again
 * It is recommended to take special note of the number of retries, to avoid infinite recovery attempt loops
- 
-## Storage Backend Implementation Considerations
+
+## Additional Considerations
+
+### Chunk sizing
+It is up to the LFS server to decide the size of each file chunk.
+
+### Action lifetime considerations
+As multipart uploads tend to require much more time than simple uploads, it is recommended to allow for longer `expires_in` 
+values than one would consider for `basic` uploads. It is possible that the process of uploading a single object in multiple
+parts may take several hours from `batch` to `verify`.
+
+### Falling back to `basic` transfer for small files
+Using multipart upload APIs has some complexity and speed overhead, and for this reason it is recommended that servers
+implement a "fallback" to `basic` transfers if the uploaded object is small enough to handle in a single part. 
+
+Clients *should* support such fallback natively, as it rides on existing transfer method negotiation capabilities. 
+
+The server can simply respond with `{"transfer": "basic", ...}`, even if `mutipart` was request by the client 
+and *is supported* by the server in order to achieve this.
+
+## Implementation Notes
 
 ### Hiding initialization / commit complexities from clients
 While `part` requests are typically quite similar between vendors, the specifics of multipart upload initialization and
@@ -278,17 +294,3 @@ For this reason, it is expected that any initialization actions will be handled 
 `batch` request handling. In most cases, the `verify` action will also be responsible for any finalization / commit actions. 
 The `params` attribute of the `verify` action is designed specifically to transfer some vendor-specific "state" between 
 initialization and finalization of the upload process. 
-
-### Falling back to `basic` transfer for small files
-Using multipart upload APIs has some complexity and speed overhead, and for this reason it is recommended that servers
-implement a "fallback" to `basic` transfers if the uploaded object is small enough to handle in a single part. 
-
-Clients *should* support such fallback natively, as it "rides" on existing transfer method negotiation capabilities. 
-
-The server must simply respond with `{"transfer": "basic", ...}`, even if `mutipart-basic` was request by the client 
-and *is supported* by the server in order to achieve this.
-
-### Request Lifetime Considerations
-As multipart uploads tend to require much more time than simple uploads, it is recommended to allow for longer `"expires_in"` 
-values than one would consider for `basic` uploads. It is possible that the process of uploading a single object in multiple
-parts may take several hours from `init` to `commit`.
