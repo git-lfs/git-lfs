@@ -34,6 +34,10 @@ of paths to include/exclude in the fetch (wildcard matching as per gitignore).
 Only paths which are matched by fetchinclude and not matched by fetchexclude
 will have objects fetched for them.
 
+Note that using the command-line options `-I` and `-X` override the respective
+configuration settings.  Setting either option to an empty string clears the
+value.
+
 ## DEFAULT REMOTE
 
 Without arguments, pull downloads from the default remote. The default remote is
