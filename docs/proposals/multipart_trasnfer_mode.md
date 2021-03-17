@@ -70,7 +70,7 @@ beginning of the file) is assumed.
 * `size` is the size of the part in bytes. If `size` is omitted, default to read until the end of file.
 * If both `pos` and `size` are omitted, the action is expected to be a single-part upload of the entire file
 
-In adition, `parts` actions may include the following parameters:
+In addition, `parts` actions may include the following parameters:
 * `method`, with `PUT` as the default method if none is specified. This allows customizing the HTTP method used when uploading
 object parts.
 * `want_digest` to specify an expected HTTP `Digest` header, as described below.
@@ -186,7 +186,7 @@ feature is highly inspired by these RFCs).
 
 Possible values include a comma-separated list of q-factor flagged algorithms, such as SHA-256 and SHA-512.
 Of one or more of these are specified, the digest of the payload is to be specified by the client as part of
-the Digest header, using the format specified by [RFC-3230 section 4.3.2](https://tools.ietf.org/html/rfc3230#section-4.3.1).
+the Digest header, using the format specified by [RFC-3230 section 4.3.1](https://tools.ietf.org/html/rfc3230#section-4.3.1).
 
 It should be noted that digests based on `MD5` or `SHA-1` algorithms are not supported by this transfer mode,
 as they are no longer to be considered secure. Therefore, the `contentMD5`, `MD5` and `SHA` values are not to be used as
@@ -271,7 +271,7 @@ implement a "fallback" to `basic` transfers if the uploaded object is small enou
 
 Clients *should* support such fallback natively, as it rides on existing transfer method negotiation capabilities.
 
-The server can simply respond with `{"transfer": "basic", ...}`, even if `mutipart` was request by the client
+The server can simply respond with `{"transfer": "basic", ...}`, even if `multipart` was request by the client
 and *is supported* by the server in order to achieve this.
 
 ## Implementation Notes
