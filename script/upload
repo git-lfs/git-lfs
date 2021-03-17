@@ -161,8 +161,12 @@ release_files () {
 
   [ -n "$version" ] || return 1
 
-  find "$assets" -name '*.tar.gz' -o -name '*386*.zip' -o \
-    -name '*amd64*.zip' -o -name '*.exe' -o -name 'sha256sums.asc' | \
+  find "$assets" -name '*.tar.gz' -o \
+      -name '*386*.zip' -o \
+      -name '*amd64*.zip' -o \
+      -name '*arm64*.zip' -o \
+      -name '*.exe' -o \
+      -name 'sha256sums.asc' | \
     grep -E "$version|sha256sums.asc" | \
     grep -v "assets" | \
     LC_ALL=C sort

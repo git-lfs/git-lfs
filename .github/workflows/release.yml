@@ -7,9 +7,15 @@ jobs:
   build-windows:
     name: Build Windows Assets
     runs-on: windows-latest
+    strategy:
+      matrix:
+        go: ['1.16.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
@@ -45,9 +51,15 @@ jobs:
   build-macos:
     name: Build macOS Assets
     runs-on: macos-latest
+    strategy:
+      matrix:
+        go: ['1.16.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
     - run: brew install mitchellh/gon/gon
     - run: gem install ronn
     - run: make release
@@ -71,10 +83,16 @@ jobs:
     needs:
       - build-windows
       - build-macos
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        go: ['1.16.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
     - uses: actions/download-artifact@v1
       with:
         name: windows-assets
@@ -91,7 +109,7 @@ jobs:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   build-docker:
     name: Build Linux Packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
