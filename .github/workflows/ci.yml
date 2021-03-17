@@ -6,11 +6,15 @@ jobs:
     name: Build with default Git
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
+        go: ['1.16.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
     - run: gem install ronn
     - run: script/cibuild
     - run: CGO_ENABLED=0 make release
@@ -25,10 +29,10 @@ jobs:
     strategy:
       matrix:
         go: ['1.11.x', '1.12.x', '1.13.x', '1.14.x']
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-go@v1
+    - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
@@ -77,7 +81,7 @@ jobs:
     name: Build with latest Git
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -88,7 +92,7 @@ jobs:
     name: Build with earliest Git
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -97,7 +101,7 @@ jobs:
     - run: script/cibuild
   build-docker:
     name: Build Linux packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
