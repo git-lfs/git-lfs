@@ -25,9 +25,7 @@ func (a *basicDownloadAdapter) ClearTempStorage() error {
 }
 
 func (a *basicDownloadAdapter) tempDir() string {
-	// Must be dedicated to this adapter as deleted by ClearTempStorage
-	// Also make local to this repo not global, and separate to localstorage temp,
-	// which gets cleared at the end of every invocation
+	// Shared with the SSH adapter.
 	d := filepath.Join(a.fs.LFSStorageDir, "incomplete")
 	if err := tools.MkdirAll(d, a.fs); err != nil {
 		return os.TempDir()

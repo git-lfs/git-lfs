@@ -47,8 +47,8 @@ PruneRemoteName=origin
 LfsStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
@@ -83,8 +83,8 @@ PruneRemoteName=origin
 LfsStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs")
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 $(escape_path "$(env | grep "^GIT")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")

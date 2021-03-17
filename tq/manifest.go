@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/ssh"
 	"github.com/rubyist/tracerx"
 )
 
@@ -30,6 +31,7 @@ type Manifest struct {
 	uploadAdapterFuncs      map[string]NewAdapterFunc
 	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
+	sshTransfer             *ssh.SSHTransfer
 	batchClientAdapter      BatchClient
 	mu                      sync.Mutex
 }
@@ -71,12 +73,25 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		apiClient = cli
 	}
 
+	var sshTransfer *ssh.SSHTransfer
+	var err error
+	endpoint := apiClient.Endpoints.RemoteEndpoint(operation, remote)
+	if len(endpoint.SSHMetadata.UserAndHost) > 0 {
+		ctx := apiClient.Context()
+		tracerx.Printf("attempting pure SSH protocol connection")
+		sshTransfer, err = ssh.NewSSHTransfer(ctx.OSEnv(), ctx.GitEnv(), &endpoint.SSHMetadata, operation)
+		if err != nil {
+			tracerx.Printf("pure SSH protocol connection failed: %s", err)
+		}
+	}
+
 	m := &Manifest{
 		fs:                   f,
 		apiClient:            apiClient,
 		batchClientAdapter:   &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
+		sshTransfer:          sshTransfer,
 	}
 
 	var tusAllowed bool
@@ -109,11 +124,21 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 
+	if sshTransfer != nil {
+		// Multiple concurrent transfers are not yet supported.
+		m.concurrentTransfers = 1
+		m.batchClientAdapter = &SSHBatchClient{
+			maxRetries: m.maxRetries,
+			transfer:   sshTransfer,
+		}
+	}
+
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
 	if tusAllowed {
 		configureTusAdapter(m)
 	}
+	configureSSHAdapter(m)
 	return m
 }
 
@@ -130,7 +155,7 @@ func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) str
 		return v
 	}
 
-	ep := client.Endpoints.RemoteEndpoint(operation, remote)
+	ep := client.Endpoints.Endpoint(operation, remote)
 	aep := client.Endpoints.Endpoint(operation, remote)
 	uc := config.NewURLConfig(client.GitEnv())
 	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")

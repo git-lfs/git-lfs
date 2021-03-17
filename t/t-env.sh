@@ -51,8 +51,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -104,8 +104,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -164,8 +164,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -222,8 +222,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -281,8 +281,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -342,8 +342,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -403,8 +403,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -472,8 +472,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -528,8 +528,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -582,8 +582,8 @@ PruneRemoteName=origin
 LfsStorageDir=lfs
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 git config filter.lfs.process = ""
 git config filter.lfs.smudge = ""
@@ -618,8 +618,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -651,8 +651,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -697,8 +697,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 " "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -777,8 +777,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -810,8 +810,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -843,8 +843,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVarsEnabled" "$envInitConfig")
@@ -906,8 +906,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file,supertransfer
-UploadTransfers=basic,lfs-standalone-file,supertransfer,tus
+DownloadTransfers=basic,lfs-standalone-file,ssh,supertransfer
+UploadTransfers=basic,lfs-standalone-file,ssh,supertransfer,tus
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -966,8 +966,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
@@ -1031,8 +1031,8 @@ PruneRemoteName=origin
 LfsStorageDir=%s
 AccessDownload=none
 AccessUpload=none
-DownloadTransfers=basic,lfs-standalone-file
-UploadTransfers=basic,lfs-standalone-file
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
 ' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
