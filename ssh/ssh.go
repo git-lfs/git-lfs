@@ -26,9 +26,9 @@ func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation, method string) (string, []string) {
+func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string) (string, []string) {
 	exe, args, needShell := GetExeAndArgs(osEnv, gitEnv, meta)
-	args = append(args, fmt.Sprintf("git-lfs-authenticate %s %s", meta.Path, operation))
+	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
 	exe, args = FormatArgs(exe, args, needShell)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args

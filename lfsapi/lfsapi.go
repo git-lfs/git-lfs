@@ -14,7 +14,8 @@ type Client struct {
 
 	credContext *creds.CredentialHelperContext
 
-	client *lfshttp.Client
+	client  *lfshttp.Client
+	context lfshttp.Context
 }
 
 func NewClient(ctx lfshttp.Context) (*Client, error) {
@@ -33,8 +34,13 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 	c := &Client{
 		Endpoints:   NewEndpointFinder(ctx),
 		client:      httpClient,
+		context:     ctx,
 		credContext: creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
 
 	return c, nil
+}
+
+func (c *Client) Context() lfshttp.Context {
+	return c.context
 }
