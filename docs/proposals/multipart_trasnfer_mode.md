@@ -113,7 +113,7 @@ The following is a response for the same request, given an imaginary storage bac
       "actions": {
         "parts": [
           {
-            "href": "https://foo.cloud.com/storage/upload/20492a4d0d84?part=0",
+            "href": "https://storage.cloud.example/storage/upload/20492a4d0d84?part=0",
             "header": {
               "Authorization": "Bearer someauthorizationtokenwillbesethere"
             },
@@ -122,7 +122,7 @@ The following is a response for the same request, given an imaginary storage bac
             "expires_in": 86400
           },
           {
-            "href": "https://foo.cloud.com/storage/upload/20492a4d0d84?part=1",
+            "href": "https://storage.cloud.example/storage/upload/20492a4d0d84?part=1",
             "header": {
               "Authorization": "Bearer someauthorizationtokenwillbesethere"
             },
@@ -131,7 +131,7 @@ The following is a response for the same request, given an imaginary storage bac
             "expires_in": 86400
           },
           {
-            "href": "https://foo.cloud.com/storage/upload/20492a4d0d84?part=2",
+            "href": "https://storage.cloud.example/storage/upload/20492a4d0d84?part=2",
             "header": {
               "Authorization": "Bearer someauthorizationtokenwillbesethere"
             },
@@ -140,7 +140,7 @@ The following is a response for the same request, given an imaginary storage bac
             "expires_in": 86400
           },
           {
-            "href": "https://foo.cloud.com/storage/upload/20492a4d0d84?part=3",
+            "href": "https://storage.cloud.example/storage/upload/20492a4d0d84?part=3",
             "header": {
               "Authorization": "Bearer someauthorizationtokenwillbesethere"
             },
@@ -149,7 +149,7 @@ The following is a response for the same request, given an imaginary storage bac
           }
         ],
         "verify": {
-          "href": "https://lfs.mycompany.com/myorg/myrepo/multipart/verify",
+          "href": "https://lfs.mycompany.example/myorg/myrepo/multipart/verify",
           "authenticated": true,
           "header": {
             "Authorization": "Basic 123abc123abc123abc123abc123="
@@ -161,7 +161,7 @@ The following is a response for the same request, given an imaginary storage bac
           }
         },
         "abort": {
-          "href": "https://foo.cloud.com/storage/upload/20492a4d0d84",
+          "href": "https://storage.cloud.example/storage/upload/20492a4d0d84",
           "authenticated": true,
           "header": {
             "Authorization": "Basic 123abc123abc123abc123abc123="
@@ -205,7 +205,7 @@ With SHA-512 as a preferred algorithm, and SHA-256 as a less preferred option if
   "actions": {
     "parts": [
       {
-        "href": "https://foo.cloud.com/storage/upload/20492a4d0d84?part=3",
+        "href": "https://storage.cloud.example/storage/upload/20492a4d0d84?part=3",
         "header": {
           "Authorization": "Bearer someauthorizationtokenwillbesethere"
         },
