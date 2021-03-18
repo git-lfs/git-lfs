@@ -176,30 +176,35 @@ The following is a response for the same request, given an imaginary storage bac
 ```
 
 ## Uploaded Part Digest
-Some storage backends will support, or even require, uploading clients to send a digest of the uploaded part as part
-of the request. This is a useful capability even if not required, as it allows backends to validate each part
+Some storage backends will support, or even require, uploading clients to send a digest of the uploaded part when
+uploading the part. This is a useful capability even if not required, as it allows backends to validate each part
 separately as it is uploaded.
 
-To support this, `parts` request objects may include a `want_digest` value, which may be any value specified by
-[RFC-3230](https://tools.ietf.org/html/rfc3230) or [RFC-5843](https://tools.ietf.org/html/rfc5843) (the design for this
-feature is highly inspired by these RFCs).
+To support this, `parts` request objects may include a `want_digest` value, which is expected to be a list of digest
+algorithms in the same format of the `Want-Digest` HTTP header specified by [RFC-3230](https://tools.ietf.org/html/rfc3230).
 
-Possible values include a comma-separated list of q-factor flagged algorithms, such as SHA-256 and SHA-512.
-Of one or more of these are specified, the digest of the payload is to be specified by the client as part of
-the Digest header, using the format specified by [RFC-3230 section 4.3.1](https://tools.ietf.org/html/rfc3230#section-4.3.1).
+Any cryptographically secure digest algorithm [registered with IANA](https://www.iana.org/assignments/http-dig-alg/http-dig-alg.xhtml)
+via the process outlined in [RFC-3230](https://tools.ietf.org/html/rfc3230) may be specified in `want_digest`. Algorithms
+considered cryptographically insecure, including `MD5` and `SHA-1`, should not be accepted. Namely, `contentMD5` is
+**not** an accepted value of `want_digest`.
 
-It should be noted that digests based on `MD5` or `SHA-1` algorithms are not supported by this transfer mode,
-as they are no longer to be considered secure. Therefore, the `contentMD5`, `MD5` and `SHA` values are not to be used as
-part of `want_digest` headers.
+If one or more digest algorithms with non-zero q-value is specified in `want_digest`, clients *should* select a favored
+supported algorithm, calculate the part digest using that algorithm, and send it when uploading the part using the `Digest` HTTP
+header as specified by [RFC-3230 section 4.3.1](https://tools.ietf.org/html/rfc3230#section-4.3.1).
 
-Clients, when receiving a `parts` object with a `want_digest` value, must include in the request to upload the part
-a digest of the part, using the `Digest` HTTP header.
+While clients may include the part digest calculated using more than one algorithm, this is typically not required and
+should be avoided.
+
+Note that if `want_digest` is specified but the client cannot support any of the requested algorithms, the client may
+still choose to continue uploading parts without sending a `Digest` header. However, the storage server may choose
+to reject the request in such cases.
 
 ### Uploaded Part Digest Example
 
 #### Examples of a batch response with `want_digest` in the reply
 
 With SHA-512 as a preferred algorithm, and SHA-256 as a less preferred option if SHA-512 is not possible:
+
 ```json
 {
   "actions": {
@@ -219,12 +224,12 @@ With SHA-512 as a preferred algorithm, and SHA-256 as a less preferred option if
 
 #### Example of part upload request send to the storage server
 Following on the `want_digest` value specified in the last example, the client should now send the following headers
-to the server when uploading the part:
+to the storage server when uploading the part, assuming `SHA-512` is supported:
 
 ```
 HTTP/1.1 PUT /storage/upload/20492a4d0d84?part=3
 Authorization: Bearer someauthorizationtokenwillbesethere
-Digest: SHA-256=thvDyvhfIqlvFe+A9MYgxAfm1q5=,SHA-512=thvDyvhfIqlvFe+A9MYgxAfm1q5thvDyvhfIqlvFe+A9MYgxAfm1q5=
+Digest: SHA-512=thvDyvhfIqlvFe+A9MYgxAfm1q5thvDyvhfIqlvFe+A9MYgxAfm1q5=
 ```
 
 ## Expected HTTP Responses
