@@ -266,13 +266,34 @@ values than one would consider for `basic` uploads. It is possible that the proc
 parts may take several hours from `batch` to `verify`.
 
 ### Falling back to `basic` transfer for small files
-Using multipart upload APIs has some complexity and speed overhead, and for this reason it is recommended that servers
-implement a "fallback" to `basic` transfers if the uploaded object is small enough to handle in a single part.
+Using multipart upload APIs has some complexity and speed overhead. For this reason, if a client specifies support for
+both `multipart` and `basic` transfer modes in a batch request, and the object(s) uploaded are small enough to fit in a
+single part upload, servers *may* choose to respond with a `basic` transfer mode even if `multipart` is supported:
 
-Clients *should* support such fallback natively, as it rides on existing transfer method negotiation capabilities.
+For example a small (2mb) upload batch request:
+```
+{
+  "transfers": ["multipart", "basic"],
+  "operation": "upload",
+  "objects": [
+    {
+      "oid": "13aea96040f2133033d103008d5d96cfe98b3361f7202d77bea97b2424a7a6cd",
+      "size": 2000000
+    }
+  ]
+}
+```
 
-The server can simply respond with `{"transfer": "basic", ...}`, even if `multipart` was request by the client
-and *is supported* by the server in order to achieve this.
+May be responded with:
+```
+{
+  "transfer": "basic",
+  "objects": [
+    ...
+  ]
+}
+```
+Even if the server does support `multipart`, as `basic` can be preferrable in this case.
 
 ## Implementation Notes
 
