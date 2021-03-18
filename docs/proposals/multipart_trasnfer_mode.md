@@ -77,8 +77,8 @@ object parts.
 
 ### `verify` action
 The `verify` action is similar to `basic` transfer mode `verify`, with the following additional parameters:
-* `params` - an object with additional parameters to send to the server as part of the `POST` JSON body.
-  These parameters are to be sent as provided back to the server.
+* `params` - an object with additional parameters to send to the server when sending the `verify` request.
+These parameters are to be sent to the server exactly as provided, as the value of the `params` JSON attribute.
 
 ### `abort` action
 The `abort` action may include the `params` and `method` attributes, exactly as specified above.
