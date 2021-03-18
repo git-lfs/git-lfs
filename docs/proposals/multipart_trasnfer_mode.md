@@ -81,7 +81,7 @@ The `verify` action is similar to `basic` transfer mode `verify`, with the follo
 These parameters are to be sent to the server exactly as provided, as the value of the `params` JSON attribute.
 
 ### `abort` action
-The `abort` action may include the `params` and `method` attributes, exactly as specified above.
+The `abort` action may include the `method` attribute as specified for `parts` actions above.
 
 ## Batch Request / Response Examples
 
@@ -173,6 +173,38 @@ The following is a response for the same request, given an imaginary storage bac
     }
   ]
 }
+```
+
+### `verify` request example
+Given the `batch` response above, after all parts have been uploaded the client should send the following `verify`
+request to `https://lfs.mycompany.example/myorg/myrepo/multipart/verify`:
+
+```
+POST /myorg/myrepo/multipart/verify
+Host: lfs.mycompany.example
+Authorization: Basic 123abc123abc123abc123abc123=
+Content-type: application/json
+
+{
+  "oid": "20492a4d0d84f8beb1767f6616229f85d44c2827b64bdbfb260ee12fa1109e0e",
+  "size": 10000000,
+  "params": {
+    "uploadId": "20492a4d0d84",
+    "partIds": [0, 1, 2, 3]
+  }
+}
+```
+
+Assuming that all parts were uploaded successfully, the server should respond with a `200 OK` response.
+
+### `abort` request example
+Given the `batch` response above, the client may choose to cancel the upload by sending the following
+`abort` request to `https://storage.cloud.example/storage/upload/20492a4d0d84`:
+
+```
+> DELETE /storage/upload/20492a4d0d84
+> Host: storage.cloud.example
+> Content-length: 0
 ```
 
 ## Uploaded Part Digest
@@ -320,3 +352,16 @@ For this reason, it is expected that any initialization actions will be handled 
 `batch` request handling. In most cases, the `verify` action will also be responsible for any finalization / commit actions.
 The `params` attribute of the `verify` action is designed specifically to transfer some vendor-specific "state" between
 initialization and finalization of the upload process.
+
+### Implementing Complex `abort` actions
+Some storage backends will accept a simple `DELETE` or `POST` request to a URL, with no request body, in order to abort
+the upload. In such cases, `abort` may refer directly to the storage backend. However, in cases where aborting the upload
+requires more complex logic or some payload in the request body, `abort` actions should point to an endpoint of the LFS
+server, and it should be up to the LFS server to abort the upload and clean up any partially uploaded parts.
+
+As `abort` requests do not have a body, any parameters required by the LFS server in order to complete the request should
+be passed as part of the URL in the `href` parameter.
+
+It should be noted that clients will not always be able to `abort` partial uploads cleanly. Implementors are expected to
+ensure proper cleanup of partially uploaded files via other means, such as a periodcal cron job that locates uncommitted
+uploaded parts and deletes them.
