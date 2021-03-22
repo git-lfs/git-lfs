@@ -1,6 +1,22 @@
 # Git LFS Changelog
 
-## 2.13.2 (13 Jan 2020)
+## 2.13.3 (26 Mar 2021)
+
+This release fixes two bugs that caused `git lfs prune` to hang, updates some
+dependencies to versions which lack a security issue (which did not affect Git
+LFS), and adds support for ARM64 builds on macOS.
+
+### Bugs
+
+* lfs: don't invoke diff drivers when pruning repositories #4407 (@bk2204)
+* Parse stash log entries parsimonously in prune command #4449 (@chrisd8088)
+
+### Misc
+
+* Darwin ARM64 support #4437 (@bk2204)
+* vendor,go.{mod,sum}: update x/net and dependencies #4398 (@chrisd8088)
+
+## 2.13.2 (13 Jan 2021)
 
 This release introduces a security fix for Windows systems, which has been
 assigned CVE-2021-21237.
