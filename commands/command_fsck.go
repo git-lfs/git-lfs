@@ -33,6 +33,39 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	ok := true
+	var corruptOids []string
+	corruptOids = doFsckObjects(ref)
+	ok = ok && corruptOids == nil
+
+	if ok {
+		Print("Git LFS fsck OK")
+		return
+	}
+
+	if fsckDryRun {
+		return
+	}
+
+	if len(corruptOids) != 0 {
+		badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
+		Print("Moving corrupt objects to %s", badDir)
+
+		if err := tools.MkdirAll(badDir, cfg); err != nil {
+			ExitWithError(err)
+		}
+
+		for _, oid := range corruptOids {
+			badFile := filepath.Join(badDir, oid)
+			if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
+				ExitWithError(err)
+			}
+		}
+	}
+}
+
+// doFsckObjects checks that the objects in the given ref are correct and exist.
+func doFsckObjects(ref *git.Ref) []string {
 	var corruptOids []string
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
@@ -64,29 +97,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	gitscanner.Close()
-
-	if len(corruptOids) == 0 {
-		Print("Git LFS fsck OK")
-		return
-	}
-
-	if fsckDryRun {
-		return
-	}
-
-	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
-	Print("Moving corrupt objects to %s", badDir)
-
-	if err := tools.MkdirAll(badDir, cfg); err != nil {
-		ExitWithError(err)
-	}
-
-	for _, oid := range corruptOids {
-		badFile := filepath.Join(badDir, oid)
-		if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
-			ExitWithError(err)
-		}
-	}
+	return corruptOids
 }
 
 func fsckPointer(name, oid string, size int64) (bool, error) {
