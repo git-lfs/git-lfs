@@ -178,6 +178,59 @@ func TestDecodeFromEmptyReader(t *testing.T) {
 	assert.Empty(t, by)
 }
 
+func TestDecodeCanonical(t *testing.T) {
+	canonicalExamples := []string{
+		// standard
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+`,
+		// extensions
+		`version https://git-lfs.github.com/spec/v1
+ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ext-1-bar sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+`,
+	}
+
+	nonCanonicalExamples := []string{
+		// missing trailing newline
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
+		// carriage returns
+		"version https://git-lfs.github.com/spec/v1\r\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\r\nsize 12345\r\n",
+		// trailing whitespace
+		"version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 12345   \n",
+		// unsorted extensions
+		`version https://git-lfs.github.com/spec/v1
+ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ext-1-bar sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345
+`,
+	}
+
+	for _, ex := range canonicalExamples {
+		p, err := DecodePointer(bytes.NewBufferString(ex))
+		if err != nil {
+			t.Errorf("Error decoding: %v", err)
+		}
+		assert.Equal(t, p.Canonical, true)
+	}
+
+	for _, ex := range nonCanonicalExamples {
+		p, err := DecodePointer(bytes.NewBufferString(ex))
+		if err != nil {
+			t.Errorf("Error decoding: %v", err)
+		}
+		assert.Equal(t, p.Canonical, false)
+	}
+}
+
 func TestDecodeInvalid(t *testing.T) {
 	examples := []string{
 		"invalid stuff",
