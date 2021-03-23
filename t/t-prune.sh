@@ -608,19 +608,39 @@ begin_test "prune keep stashed changes"
   grep "Tracking \"\*.dat\"" track.log
 
   # generate content we'll use
+  content_oldandpushed="To delete: pushed and too old"
+  oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_retain1="Retained content 1"
+  oid_retain1=$(calc_oid "$content_retain1")
+
   content_inrepo="This is the original committed data"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_stashed="This data will be stashed and should not be deleted"
   oid_stashed=$(calc_oid "$content_stashed")
 
-  # We just need one commit of base data, makes it easier to test stash
+  # We need to test with older commits to ensure they get pruned as expected
   echo "[
+  {
+    \"CommitDate\":\"$(get_date -20d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_oldandpushed}, \"Data\":\"$content_oldandpushed\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
+  },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
+
+  git push origin main
+
+  assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and stash it
   printf '%s' "$content_stashed" > stashedfile.dat
@@ -633,8 +653,9 @@ begin_test "prune keep stashed changes"
   # Prune data, should NOT delete stashed file
   git lfs prune
 
+  refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
-
 )
 end_test
 
@@ -651,6 +672,11 @@ begin_test "prune keep stashed changes in index"
   grep "Tracking \"\*.dat\"" track.log
 
   # generate content we'll use
+  content_oldandpushed="To delete: pushed and too old"
+  oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_retain1="Retained content 1"
+  oid_retain1=$(calc_oid "$content_retain1")
+
   content_inrepo="This is the original committed data"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_indexstashed="This data will be stashed from the index and should not be deleted"
@@ -658,14 +684,29 @@ begin_test "prune keep stashed changes in index"
   content_stashed="This data will be stashed and should not be deleted"
   oid_stashed=$(calc_oid "$content_stashed")
 
-  # We just need one commit of base data, makes it easier to test stash
+  # We need to test with older commits to ensure they get pruned as expected
   echo "[
+  {
+    \"CommitDate\":\"$(get_date -20d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_oldandpushed}, \"Data\":\"$content_oldandpushed\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
+  },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
+
+  git push origin main
+
+  assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and add it to the index
   printf '%s' "$content_indexstashed" > stashedfile.dat
@@ -683,6 +724,8 @@ begin_test "prune keep stashed changes in index"
   # Prune data, should NOT delete stashed file or stashed changes to index
   git lfs prune
 
+  refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
 
@@ -707,6 +750,11 @@ begin_test "prune keep stashed untracked files"
   grep "Tracking \"\*.dat\"" track.log
 
   # generate content we'll use
+  content_oldandpushed="To delete: pushed and too old"
+  oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_retain1="Retained content 1"
+  oid_retain1=$(calc_oid "$content_retain1")
+
   content_inrepo="This is the original committed data"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_indexstashed="This data will be stashed from the index and should not be deleted"
@@ -716,14 +764,29 @@ begin_test "prune keep stashed untracked files"
   content_untrackedstashed="This UNTRACKED FILE data will be stashed and should not be deleted"
   oid_untrackedstashed=$(calc_oid "$content_untrackedstashed")
 
-  # We just need one commit of base data, makes it easier to test stash
+  # We need to test with older commits to ensure they get pruned as expected
   echo "[
+  {
+    \"CommitDate\":\"$(get_date -20d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_oldandpushed}, \"Data\":\"$content_oldandpushed\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
+  },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
+
+  git push origin main
+
+  assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and add it to the index
   printf '%s' "$content_indexstashed" > stashedfile.dat
@@ -746,10 +809,11 @@ begin_test "prune keep stashed untracked files"
   # Prune data, should NOT delete stashed file or stashed changes to index
   git lfs prune
 
+  refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
   assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
-
 )
 end_test
 
@@ -769,6 +833,8 @@ begin_test "prune recent changes with --recent"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_new="this data will be recent"
   oid_new=$(calc_oid "$content_new")
+  content_stashed="This data will be stashed and should not be deleted"
+  oid_stashed=$(calc_oid "$content_stashed")
 
   echo "[
   {
@@ -778,10 +844,14 @@ begin_test "prune recent changes with --recent"
   }
   ]" | lfstest-testutils addcommits
 
-  # now modify the file, and stash it
+  # now modify the file, and commit it
   printf '%s' "$content_new" > file.dat
   git add .
   git commit -m 'Update file.dat'
+
+  # now modify the file, and stash it
+  printf '%s' "$content_stashed" > file.dat
+  git stash
 
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
@@ -789,12 +859,14 @@ begin_test "prune recent changes with --recent"
 
   assert_local_object "$oid_new" "${#content_new}"
   assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 
   # prune data, should not delete.
   git lfs prune --recent
 
   assert_local_object "$oid_new" "${#content_new}"
   assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 
   git push origin HEAD
 
@@ -803,6 +875,7 @@ begin_test "prune recent changes with --recent"
 
   assert_local_object "$oid_new" "${#content_new}"
   refute_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 )
 end_test
 
@@ -822,6 +895,8 @@ begin_test "prune --force"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_new="this data will be recent"
   oid_new=$(calc_oid "$content_new")
+  content_stashed="This data will be stashed and should not be deleted"
+  oid_stashed=$(calc_oid "$content_stashed")
 
   echo "[
   {
@@ -831,10 +906,14 @@ begin_test "prune --force"
   }
   ]" | lfstest-testutils addcommits
 
-  # now modify the file, and stash it
+  # now modify the file, and commit it
   printf '%s' "$content_new" > file.dat
   git add .
   git commit -m 'Update file.dat'
+
+  # now modify the file, and stash it
+  printf '%s' "$content_stashed" > file.dat
+  git stash
 
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
@@ -842,12 +921,14 @@ begin_test "prune --force"
 
   assert_local_object "$oid_new" "${#content_new}"
   assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 
   # prune data, should not delete.
   git lfs prune --force
 
   assert_local_object "$oid_new" "${#content_new}"
   assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 
   git push origin HEAD
 
@@ -856,6 +937,7 @@ begin_test "prune --force"
 
   refute_local_object "$oid_new" "${#content_new}"
   refute_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 )
 end_test
 
