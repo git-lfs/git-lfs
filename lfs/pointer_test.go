@@ -170,11 +170,11 @@ size 12345`
 
 func TestDecodeFromEmptyReader(t *testing.T) {
 	p, buf, err := DecodeFrom(strings.NewReader(""))
-	by, rerr := ioutil.ReadAll(buf)
+	by, _ := ioutil.ReadAll(buf)
 
-	assert.Nil(t, rerr)
-	assert.EqualError(t, err, "Pointer file error: invalid header")
-	assert.Nil(t, p)
+	assert.Nil(t, err)
+	assert.Equal(t, p.Oid, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+	assert.Equal(t, p.Size, int64(0))
 	assert.Empty(t, by)
 }
 
@@ -193,6 +193,8 @@ ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345
 `,
+		// empty file
+		"",
 	}
 
 	nonCanonicalExamples := []string{

@@ -3,6 +3,8 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -79,6 +81,11 @@ func (p *Pointer) Encoded() string {
 	return buffer.String()
 }
 
+func EmptyPointer() *Pointer {
+	oid := hex.EncodeToString(sha256.New().Sum(nil))
+	return NewPointer(oid, 0, nil)
+}
+
 func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 	return writer.Write([]byte(pointer.Encoded()))
 }
@@ -130,6 +137,10 @@ func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 
 	if err != nil && err != io.EOF {
 		return nil, contents, err
+	}
+
+	if len(buf) == 0 {
+		return EmptyPointer(), contents, nil
 	}
 
 	p, err := decodeKV(bytes.TrimSpace(buf))
