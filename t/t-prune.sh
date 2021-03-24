@@ -718,22 +718,16 @@ begin_test "prune keep stashed changes in index"
   git stash
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
-  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 
   # Prune data, should NOT delete stashed file or stashed changes to index
   git lfs prune
 
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
-  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
-
-  # Restore working tree from stash
-  git stash pop --index
-
-  # Reset working tree to index from stash
-  git checkout .
+  assert_local_object "$oid_stashed" "${#content_stashed}"
 )
 end_test
 
@@ -802,8 +796,8 @@ begin_test "prune keep stashed untracked files"
   git stash -u
 
   # Prove that ALL stashed data was stored in LFS (should call clean filter)
-  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
 
   # Prune data, should NOT delete stashed file or stashed changes to index
@@ -811,8 +805,8 @@ begin_test "prune keep stashed untracked files"
 
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
-  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
 )
 end_test
