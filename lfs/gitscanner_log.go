@@ -83,7 +83,7 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 	// older Git versions (at least <=2.7) don't report merge parents in
 	// the reflog, we can't extract the parent SHAs from "Merge:" lines
 	// in the log; we can, however, use the "git log -m" option to force
-	// individual diffs of all the merge parents in a second step.
+	// an individual diff with the first merge parent in a second step.
 	logArgs := []string{"-g", "--format=%h", "refs/stash", "--"}
 
 	cmd, err := git.Log(logArgs...)
@@ -95,7 +95,8 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 
 	var stashMergeShas []string
 	for scanner.Scan() {
-		stashMergeShas = append(stashMergeShas, strings.TrimSpace(scanner.Text()))
+		stashMergeSha := strings.TrimSpace(scanner.Text())
+		stashMergeShas = append(stashMergeShas, fmt.Sprintf("%v^..%v", stashMergeSha, stashMergeSha))
 	}
 	err = cmd.Wait()
 	if err != nil {
@@ -103,21 +104,26 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 		return nil
 	}
 
-	// We can use the log parser if we provide the -m option to get
-	// merge diffs shown individually
-	logArgs = []string{"-m"}
+	// We can use the log parser if we provide the -m and --first-parent
+	// options to get the first WIP merge diff shown individually, then
+	// no additional options to get the second index merge diff and
+	// possible third untracked files merge diff in a subsequent step.
+	stashMergeLogArgs := [][]string{{"-m", "--first-parent"}, {}}
 
-	// Add standard search args to find lfs references
-	logArgs = append(logArgs, logLfsSearchArgs...)
+	for _, logArgs := range stashMergeLogArgs {
+		// Add standard search args to find lfs references
+		logArgs = append(logArgs, logLfsSearchArgs...)
 
-	logArgs = append(logArgs, stashMergeShas...)
+		logArgs = append(logArgs, stashMergeShas...)
 
-	cmd, err = git.Log(logArgs...)
-	if err != nil {
-		return err
+		cmd, err = git.Log(logArgs...)
+		if err != nil {
+			return err
+		}
+
+		parseScannerLogOutput(cb, LogDiffAdditions, cmd)
 	}
 
-	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
 	return nil
 }
 
