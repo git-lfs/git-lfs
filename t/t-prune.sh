@@ -610,6 +610,8 @@ begin_test "prune keep stashed changes"
   # generate content we'll use
   content_oldandpushed="To delete: pushed and too old"
   oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_unreferenced="To delete: unreferenced"
+  oid_unreferenced=$(calc_oid "$content_unreferenced")
   content_retain1="Retained content 1"
   oid_retain1=$(calc_oid "$content_retain1")
 
@@ -631,7 +633,14 @@ begin_test "prune keep stashed changes"
       {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
   },
   {
+    \"CommitDate\":\"$(get_date -4d)\",
+    \"NewBranch\":\"branch_to_delete\",
+    \"Files\":[
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+  },
+  {
     \"CommitDate\":\"$(get_date -1d)\",
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
@@ -640,12 +649,14 @@ begin_test "prune keep stashed changes"
   git push origin main
 
   assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and stash it
   printf '%s' "$content_stashed" > stashedfile.dat
 
   git stash
+  git branch -D branch_to_delete
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_stashed" "${#content_stashed}"
@@ -654,6 +665,7 @@ begin_test "prune keep stashed changes"
   git lfs prune
 
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
 )
@@ -674,6 +686,8 @@ begin_test "prune keep stashed changes in index"
   # generate content we'll use
   content_oldandpushed="To delete: pushed and too old"
   oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_unreferenced="To delete: unreferenced"
+  oid_unreferenced=$(calc_oid "$content_unreferenced")
   content_retain1="Retained content 1"
   oid_retain1=$(calc_oid "$content_retain1")
 
@@ -697,7 +711,14 @@ begin_test "prune keep stashed changes in index"
       {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
   },
   {
+    \"CommitDate\":\"$(get_date -4d)\",
+    \"NewBranch\":\"branch_to_delete\",
+    \"Files\":[
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+  },
+  {
     \"CommitDate\":\"$(get_date -1d)\",
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
@@ -706,6 +727,7 @@ begin_test "prune keep stashed changes in index"
   git push origin main
 
   assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and add it to the index
@@ -716,6 +738,7 @@ begin_test "prune keep stashed changes in index"
   printf '%s' "$content_stashed" > stashedfile.dat
 
   git stash
+  git branch -D branch_to_delete
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
@@ -725,6 +748,7 @@ begin_test "prune keep stashed changes in index"
   git lfs prune
 
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
@@ -746,6 +770,8 @@ begin_test "prune keep stashed untracked files"
   # generate content we'll use
   content_oldandpushed="To delete: pushed and too old"
   oid_oldandpushed=$(calc_oid "$content_oldandpushed")
+  content_unreferenced="To delete: unreferenced"
+  oid_unreferenced=$(calc_oid "$content_unreferenced")
   content_retain1="Retained content 1"
   oid_retain1=$(calc_oid "$content_retain1")
 
@@ -771,7 +797,14 @@ begin_test "prune keep stashed untracked files"
       {\"Filename\":\"old.dat\",\"Size\":${#content_retain1}, \"Data\":\"$content_retain1\"}]
   },
   {
+    \"CommitDate\":\"$(get_date -4d)\",
+    \"NewBranch\":\"branch_to_delete\",
+    \"Files\":[
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+  },
+  {
     \"CommitDate\":\"$(get_date -1d)\",
+    \"ParentBranches\":[\"main\"],
     \"Files\":[
       {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
@@ -780,6 +813,7 @@ begin_test "prune keep stashed untracked files"
   git push origin main
 
   assert_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
   # now modify the file, and add it to the index
@@ -794,6 +828,7 @@ begin_test "prune keep stashed untracked files"
 
   # stash, including untracked
   git stash -u
+  git branch -D branch_to_delete
 
   # Prove that ALL stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
@@ -804,6 +839,7 @@ begin_test "prune keep stashed untracked files"
   git lfs prune
 
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
+  refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
