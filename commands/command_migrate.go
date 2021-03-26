@@ -331,7 +331,7 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 		answer := bufio.NewReader(in)
 	L:
 		for {
-			fmt.Fprintf(out, "migrate: override changes in your working copy? [Y/n] ")
+			fmt.Fprintf(out, "migrate: override changes in your working copy?  All uncommitted changes will be lost! [y/N] ")
 			s, err := answer.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
@@ -342,10 +342,10 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 			}
 
 			switch strings.TrimSpace(s) {
-			case "n", "N":
+			case "n", "N", "":
 				proceed = false
 				break L
-			case "y", "Y", "":
+			case "y", "Y":
 				proceed = true
 				break L
 			}

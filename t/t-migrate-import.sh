@@ -875,6 +875,23 @@ begin_test "migrate import (multiple remotes)"
 )
 end_test
 
+begin_test "migrate import (dirty copy, default negative answer)"
+(
+  set -e
+
+  setup_local_branch_with_dirty_copy
+
+  original_main="$(git rev-parse main)"
+
+  echo | git lfs migrate import --everything 2>&1 | tee migrate.log
+  grep "migrate: working copy must not be dirty" migrate.log
+
+  migrated_main="$(git rev-parse main)"
+
+  assert_ref_unmoved "main" "$original_main" "$migrated_main"
+)
+end_test
+
 begin_test "migrate import (dirty copy, negative answer)"
 (
   set -e
