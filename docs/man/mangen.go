@@ -66,9 +66,9 @@ func main() {
 	out.WriteString("\t// THIS FILE IS GENERATED, DO NOT EDIT\n")
 	out.WriteString("\t// Use 'go generate ./commands' to update\n")
 	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.\d.ronn`)
-	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9 ]+)`)
+	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9\(\) ]+)`)
 	// only pick up caps in links to avoid matching optional args
-	linkregex := regexp.MustCompile(`\[([A-Z\- ]+)\]`)
+	linkregex := regexp.MustCompile(`\[([A-Z\-\(\) ]+)\]`)
 	// man links
 	manlinkregex := regexp.MustCompile(`(git)(?:-(lfs))?-([a-z\-]+)\(\d\)`)
 	count := 0
