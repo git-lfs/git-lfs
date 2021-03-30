@@ -12,6 +12,15 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+type sshVariant string
+
+const (
+	variantSSH      = sshVariant("ssh")
+	variantSimple   = sshVariant("simple")
+	variantPutty    = sshVariant("putty")
+	variantTortoise = sshVariant("tortoiseplink")
+)
+
 type SSHMetadata struct {
 	UserAndHost string
 	Port        string
@@ -47,13 +56,51 @@ func parseShellCommand(command string, existing string) (ssh string, cmd string,
 	return
 }
 
+func findVariant(variant string) (bool, sshVariant) {
+	switch variant {
+	case "ssh", "simple", "putty", "tortoiseplink":
+		return false, sshVariant(variant)
+	case "plink":
+		return false, variantPutty
+	case "auto":
+		return true, ""
+	default:
+		return false, variantSSH
+	}
+}
+
+func autodetectVariant(osEnv config.Environment, gitEnv config.Environment, basessh string) sshVariant {
+	if basessh != defaultSSHCmd {
+		// Strip extension for easier comparison
+		if ext := filepath.Ext(basessh); len(ext) > 0 {
+			basessh = basessh[:len(basessh)-len(ext)]
+		}
+		if strings.EqualFold(basessh, "plink") {
+			return variantPutty
+		}
+		if strings.EqualFold(basessh, "tortoiseplink") {
+			return variantTortoise
+		}
+	}
+	return "ssh"
+}
+
+func getVariant(osEnv config.Environment, gitEnv config.Environment, basessh string) sshVariant {
+	variant, ok := osEnv.Get("GIT_SSH_VARIANT")
+	if !ok {
+		variant, ok = gitEnv.Get("ssh.variant")
+	}
+	autodetect, val := findVariant(variant)
+	if ok && !autodetect {
+		return val
+	}
+	return autodetectVariant(osEnv, gitEnv, basessh)
+}
+
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
 func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata) (exe string, baseargs []string, needShell bool) {
 	var cmd string
-
-	isPlink := false
-	isTortoise := false
 
 	ssh, _ := osEnv.Get("GIT_SSH")
 	sshCmd, _ := osEnv.Get("GIT_SSH_COMMAND")
@@ -69,25 +116,17 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 	}
 
 	basessh := filepath.Base(ssh)
-
-	if basessh != defaultSSHCmd {
-		// Strip extension for easier comparison
-		if ext := filepath.Ext(basessh); len(ext) > 0 {
-			basessh = basessh[:len(basessh)-len(ext)]
-		}
-		isPlink = strings.EqualFold(basessh, "plink")
-		isTortoise = strings.EqualFold(basessh, "tortoiseplink")
-	}
+	variant := getVariant(osEnv, gitEnv, basessh)
 
 	args := make([]string, 0, 7)
 
-	if isTortoise {
+	if variant == variantTortoise {
 		// TortoisePlink requires the -batch argument to behave like ssh/plink
 		args = append(args, "-batch")
 	}
 
 	if len(meta.Port) > 0 {
-		if isPlink || isTortoise {
+		if variant == variantPutty || variant == variantTortoise {
 			args = append(args, "-P")
 		} else {
 			args = append(args, "-p")
@@ -95,10 +134,10 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 		args = append(args, meta.Port)
 	}
 
-	if sep, ok := sshSeparators[basessh]; ok {
+	if variant == variantSSH {
 		// inserts a separator between cli -options and host/cmd commands
 		// example: $ ssh -p 12345 -- user@host.com git-lfs-authenticate ...
-		args = append(args, sep, meta.UserAndHost)
+		args = append(args, "--", meta.UserAndHost)
 	} else {
 		// no prefix supported, strip leading - off host to prevent cmd like:
 		// $ git config lfs.url ssh://-proxycmd=whatever
@@ -116,8 +155,4 @@ const defaultSSHCmd = "ssh"
 
 var (
 	sshOptPrefixRE = regexp.MustCompile(`\A\-+`)
-	sshSeparators  = map[string]string{
-		"ssh":          "--",
-		"lfs-ssh-echo": "--", // used in lfs integration tests only
-	}
 )
