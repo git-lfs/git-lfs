@@ -25,6 +25,7 @@ type Pktline interface {
 }
 
 type TraceablePktline struct {
+	id int
 	pl *pktline.Pktline
 }
 
@@ -36,9 +37,9 @@ func (tp *TraceablePktline) ReadPacketList() ([]string, error) {
 			return nil, err
 		}
 		if pktLen <= 1 {
-			tracerx.Printf("packet < %04x", pktLen)
+			tracerx.Printf("packet %02x < %04x", tp.id, pktLen)
 		} else {
-			tracerx.Printf("packet < %s", data)
+			tracerx.Printf("packet %02x < %s", tp.id, data)
 		}
 
 		if pktLen == 0 {
@@ -58,9 +59,9 @@ func (tp *TraceablePktline) ReadPacketTextWithLength() (string, int, error) {
 	}
 
 	if pktLen <= 1 {
-		tracerx.Printf("packet < %04x", pktLen)
+		tracerx.Printf("packet %02x < %04x", tp.id, pktLen)
 	} else {
-		tracerx.Printf("packet < %s", s)
+		tracerx.Printf("packet %02x < %s", tp.id, s)
 	}
 	return s, pktLen, nil
 }
@@ -71,16 +72,16 @@ func (tp *TraceablePktline) WritePacket(b []byte) error {
 }
 
 func (tp *TraceablePktline) WritePacketText(s string) error {
-	tracerx.Printf("packet > %s", s)
+	tracerx.Printf("packet %02x > %s", tp.id, s)
 	return tp.pl.WritePacketText(s)
 }
 
 func (tp *TraceablePktline) WriteDelim() error {
-	tracerx.Printf("packet > 0001")
+	tracerx.Printf("packet %02x > 0001", tp.id)
 	return tp.pl.WriteDelim()
 }
 
 func (tp *TraceablePktline) WriteFlush() error {
-	tracerx.Printf("packet > 0000")
+	tracerx.Printf("packet %02x > 0000", tp.id)
 	return tp.pl.WriteFlush()
 }

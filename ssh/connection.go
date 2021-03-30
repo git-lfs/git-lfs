@@ -18,7 +18,7 @@ type SSHTransfer struct {
 }
 
 func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*SSHTransfer, error) {
-	conn, err := startConnection(osEnv, gitEnv, meta, operation)
+	conn, err := startConnection(0, osEnv, gitEnv, meta, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 	}, nil
 }
 
-func startConnection(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, error) {
+func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, error) {
 	exe, args := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation)
 	cmd := subprocess.ExecCommand(exe, args...)
 	r, err := cmd.StdoutPipe()
@@ -50,7 +50,7 @@ func startConnection(osEnv config.Environment, gitEnv config.Environment, meta *
 
 	var pl Pktline
 	if osEnv.Bool("GIT_TRACE_PACKET", false) {
-		pl = &TraceablePktline{pl: pktline.NewPktline(r, w)}
+		pl = &TraceablePktline{id: id, pl: pktline.NewPktline(r, w)}
 	} else {
 		pl = pktline.NewPktline(r, w)
 	}
@@ -110,7 +110,7 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		tr.conn = tr.conn[0:n]
 	} else if n > count {
 		for i := count; i < n; i++ {
-			conn, err := startConnection(tr.osEnv, tr.gitEnv, tr.meta, tr.operation)
+			conn, err := startConnection(i, tr.osEnv, tr.gitEnv, tr.meta, tr.operation)
 			if err != nil {
 				return err
 			}
