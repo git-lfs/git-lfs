@@ -238,12 +238,12 @@ The `verify-object` command is used to verify an object:
 verify-object-request = verify-object-command
                         *argument
                         flush-pkt
-verify-object-command = PKT-LINE("verify-object " oid " " size LF)
+verify-object-command = PKT-LINE("verify-object " oid LF)
 ```
 
-The `size` production represents the size of the object represented by `oid` as
-a decimal integer in bytes.  The `id` and `token` items from the batch request
-must be passed as arguments here, if specified.
+A `size` argument identical to the one used in `put-object` is mandatory.  The
+`id` and `token` items from the batch request must also be passed as arguments
+here, if specified.
 
 The response matches the following:
 
