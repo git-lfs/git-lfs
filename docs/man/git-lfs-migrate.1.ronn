@@ -5,6 +5,100 @@ git-lfs-migrate(1) - Migrate history to or from Git LFS
 
 `git lfs migrate` <mode> [options] [--] [branch ...]
 
+## DESCRIPTION
+
+Convert files in a Git repository to or from Git LFS pointers, or
+summarize Git file sizes by file type.  The `import` mode converts Git
+files (i.e., blobs) to Git LFS, while the `export` mode does the reverse,
+and the `info` mode provides an informational summary which may be useful
+in deciding which files to import or export.
+
+In all modes, by default `git lfs migrate` operates only on the currently
+checked-out branch, and only on files (of any size and type) added in
+commits which do not exist on any remote.  Multiple options are available
+to override these defaults.
+
+When converting files to or from Git LFS, the `git lfs migrate` command will
+only make changes to your local repository and working copy, never any
+remotes.  This is intentional as the `import` and `export` modes are
+generally "destructive" in the sense that they rewrite your Git history,
+changing commits and generating new commit SHAs.  (The exception is the
+"no-rewrite" `import` sub-mode; see [IMPORT (NO REWRITE)] for details.)
+
+You should therefore always first commit or stash any uncommitted work
+before using the `import` or `export` modes, and then validate the result of
+the migration before pushing the changes to your remotes, for instance by
+running the `info` mode and by examining your rewritten commit history.
+
+Once you are satisfied with the changes, you will need to force-push the
+new Git history of any rewritten branches to all your remotes.  This is
+a step which should be taken with care, since you will be altering the
+Git history on your remotes.
+
+To examine or modify files in branches other than the currently checked-out
+one, branch refs may be specified directly, or provided in one or more
+`--include-ref` options.  They may also be excluded by prefixing them
+with `^` or providing them in `--exclude-ref` options.  Use the `--everything`
+option to specify that all refs should be examined, including all remote refs.
+See [INCLUDE AND EXCLUDE (REFS)] for details.
+
+For the `info` and `import` modes, all file types are considered by default;
+while useful in the `info` mode, this is often not desirable when importing,
+so either filename patterns (pathspecs) or the `--fixup` option should
+normally be specified in that case.  (At least one include pathspec is
+required for the `export` mode.)  Pathspecs may be defined using the
+`--include` and `--exclude` options (`-I` and `-X` for short), as described
+in [INCLUDE AND EXCLUDE].
+
+As typical Git LFS usage depends on tracking specific file types using
+filename patterns defined in `.gitattributes` files, the `git lfs migrate`
+command will examine, create, and modify `.gitattributes` files as
+necessary.
+
+The `import` mode (see [IMPORT]) will convert Git objects of the file types
+specified (e.g., with `--include`) to Git LFS pointers, and will add entries
+for those file types to `.gitattributes` files, creating those files if they
+do not exist.  The result should be as if `git lfs track` commands had been
+run at the points in your Git history corresponding to where each type of
+converted file first appears.  The exception is if the `--fixup` option is
+given, in which case the `import` mode will only examine any existing
+`.gitattributes` files and then convert Git objects which should be tracked
+by Git LFS but are not yet.
+
+The `export` mode (see [EXPORT]) works as the reverse operation to the
+`import` mode, converting any Git LFS pointers that match the file types
+specified with `--include`, which must be given at least once.  Note that
+`.gitattributes` entries will not be removed, nor will the files; instead,
+the `export` mode inserts "do not track" entries similar to those created
+by the `git lfs untrack` command.  The `--remote` option is available in
+the `export`  mode to specify the remote from which Git LFS objects should
+be fetched if they do not exist in the local Git LFS object cache; if not
+provided, `origin` is used by default.
+
+The `info` mode (see [INFO]) summarizes by file type (i.e., by filename
+extension) the total number and size of files in a repository.  Note that
+like the other two modes, by default the `info` mode operates only on
+the currently checked-out branch and only on commits which do not exist on
+any remote, so to get a summary of the entire repository across all branches,
+use the `--everything` option.  If objects have already been converted to
+Git LFS pointers, the size of the pointers is totaled, not the size of
+the Git LFS objects to which they refer.
+
+When using the `--everything` option, take note that it means all refs
+(local and remote) will be considered, but not necessarily all file types.
+The `import` and `info` modes consider all file types by default, although
+the `--include` and `--exclude` options constrain this behavior.  Also
+note that after importing across all branches with the `--everything` option
+(and then checking to ensure the results are satisfactory!) it may be
+convenient to update multiple branches on your remotes by using the `--all`
+option to `git push`.
+
+Unless the `--skip-fetch` option is given, `git lfs migrate` always begins by
+fetching updated lists of refs from all the remotes returned by `git remote`,
+but as noted above, after making changes to your local Git history while
+converting objects, it will never automatically push those changes to your
+remotes.
+
 ## MODES
 
 * `info`
