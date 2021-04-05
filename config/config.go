@@ -433,6 +433,9 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 }
 
 func (c *Configuration) Cleanup() error {
+	if c == nil {
+		return nil
+	}
 	c.loading.Lock()
 	defer c.loading.Unlock()
 	return c.fs.Cleanup()
