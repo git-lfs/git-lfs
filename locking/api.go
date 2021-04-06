@@ -10,7 +10,14 @@ import (
 	"github.com/git-lfs/git-lfs/lfshttp"
 )
 
-type lockClient struct {
+type lockClient interface {
+	Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error)
+	Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error)
+	Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error)
+	SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error)
+}
+
+type httpLockClient struct {
 	*lfsapi.Client
 }
 
@@ -50,7 +57,7 @@ type lockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error) {
+func (c *httpLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks", lockReq)
 	if err != nil {
@@ -101,7 +108,7 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
+func (c *httpLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
 	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{
@@ -198,7 +205,7 @@ type lockList struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error) {
+func (c *httpLockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error) {
 	e := c.Endpoints.Endpoint("download", remote)
 	req, err := c.NewRequest("GET", e, "locks", nil)
 	if err != nil {
@@ -267,7 +274,7 @@ type lockVerifiableList struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error) {
+func (c *httpLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
 	if err != nil {

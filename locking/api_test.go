@@ -60,7 +60,7 @@ func TestAPILock(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
+	lc := &httpLockClient{Client: c}
 	lockRes, status, err := lc.Lock("", &lockRequest{Path: "request", Ref: &lockRef{Name: "refs/heads/master"}})
 	require.Nil(t, err)
 	assert.Equal(t, 200, status)
@@ -108,7 +108,7 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
+	lc := &httpLockClient{Client: c}
 	unlockRes, status, err := lc.Unlock(&git.Ref{
 		Name: "master",
 		Sha:  "6161616161616161616161616161616161616161",
@@ -156,7 +156,7 @@ func TestAPISearch(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
+	lc := &httpLockClient{Client: c}
 	locks, status, err := lc.Search("", &lockSearchRequest{
 		Filters: []lockFilter{
 			{Property: "a", Value: "A"},
@@ -211,7 +211,7 @@ func TestAPISearchVerifiable(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
+	lc := &httpLockClient{Client: c}
 	locks, status, err := lc.SearchVerifiable("", &lockVerifiableRequest{
 		Cursor: "cursor",
 		Limit:  5,
