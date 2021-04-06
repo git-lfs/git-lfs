@@ -33,7 +33,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 }
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, error) {
-	exe, args := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation)
+	exe, args := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true)
 	cmd := subprocess.ExecCommand(exe, args...)
 	r, err := cmd.StdoutPipe()
 	if err != nil {
@@ -118,4 +118,8 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		}
 	}
 	return nil
+}
+
+func (tr *SSHTransfer) Shutdown() error {
+	return tr.SetConnectionCount(0)
 }

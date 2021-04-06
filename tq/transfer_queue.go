@@ -943,6 +943,10 @@ func (q *TransferQueue) Wait() {
 	q.meter.Flush()
 	q.errorwait.Wait()
 
+	if q.manifest.sshTransfer != nil {
+		q.manifest.sshTransfer.Shutdown()
+	}
+
 	if q.unsupportedContentType {
 		for _, line := range contentTypeWarning {
 			fmt.Fprintf(os.Stderr, "info: %s\n", line)

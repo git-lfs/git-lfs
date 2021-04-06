@@ -141,7 +141,8 @@ type SSHAdapter struct {
 // WorkerStarting is called when a worker goroutine starts to process jobs
 // Implementations can run some startup logic here & return some context if needed
 func (a *SSHAdapter) WorkerStarting(workerNum int) (interface{}, error) {
-	return nil, nil
+	a.transfer.SetConnectionCountAtLeast(workerNum + 1)
+	return a.transfer.Connection(workerNum), nil
 }
 
 // WorkerEnding is called when a worker goroutine is shutting down
@@ -163,14 +164,16 @@ func (a *SSHAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallbac
 	if authOkFunc != nil {
 		authOkFunc()
 	}
+	conn := ctx.(*ssh.PktlineConnection)
 	if a.adapterBase.direction == Upload {
-		return a.upload(t, cb)
+		return a.upload(t, conn, cb)
 	} else {
-		return a.download(t, cb)
+		return a.download(t, conn, cb)
 	}
 }
 
-func (a *SSHAdapter) download(t *Transfer, cb ProgressCallback) error {
+func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
+	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	rel, err := t.Rel("download")
 	if err != nil {
 		return err
@@ -191,12 +194,11 @@ func (a *SSHAdapter) download(t *Transfer, cb ProgressCallback) error {
 		os.Remove(tmpName)
 	}()
 
-	return a.doDownload(t, f, cb)
+	return a.doDownload(t, conn, f, cb)
 }
 
 // doDownload starts a download. f is expected to be an existing file open in RW mode
-func (a *SSHAdapter) doDownload(t *Transfer, f *os.File, cb ProgressCallback) error {
-	conn := a.transfer.Connection(0)
+func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.File, cb ProgressCallback) error {
 	args := a.argumentsForTransfer(t, "download")
 	conn.Lock()
 	defer conn.Unlock()
@@ -265,8 +267,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, f *os.File, cb ProgressCallback) er
 	return err
 }
 
-func (a *SSHAdapter) verifyUpload(t *Transfer) error {
-	conn := a.transfer.Connection(0)
+func (a *SSHAdapter) verifyUpload(t *Transfer, conn *ssh.PktlineConnection) error {
 	args := a.argumentsForTransfer(t, "upload")
 	conn.Lock()
 	defer conn.Unlock()
@@ -287,8 +288,7 @@ func (a *SSHAdapter) verifyUpload(t *Transfer) error {
 	return nil
 }
 
-func (a *SSHAdapter) doUpload(t *Transfer, f *os.File, cb ProgressCallback) (int, []string, []string, error) {
-	conn := a.transfer.Connection(0)
+func (a *SSHAdapter) doUpload(t *Transfer, conn *ssh.PktlineConnection, f *os.File, cb ProgressCallback) (int, []string, []string, error) {
 	args := a.argumentsForTransfer(t, "upload")
 
 	// Ensure progress callbacks made while uploading
@@ -313,7 +313,7 @@ func (a *SSHAdapter) doUpload(t *Transfer, f *os.File, cb ProgressCallback) (int
 }
 
 // upload starts an upload.
-func (a *SSHAdapter) upload(t *Transfer, cb ProgressCallback) error {
+func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
 	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
@@ -328,7 +328,7 @@ func (a *SSHAdapter) upload(t *Transfer, cb ProgressCallback) error {
 	}
 	defer f.Close()
 
-	status, _, lines, err := a.doUpload(t, f, cb)
+	status, _, lines, err := a.doUpload(t, conn, f, cb)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func (a *SSHAdapter) upload(t *Transfer, cb ProgressCallback) error {
 
 	}
 
-	return a.verifyUpload(t)
+	return a.verifyUpload(t, conn)
 }
 
 func (a *SSHAdapter) argumentsForTransfer(t *Transfer, action string) []string {

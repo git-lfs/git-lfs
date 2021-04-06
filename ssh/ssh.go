@@ -2,9 +2,12 @@ package ssh
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/subprocess"
@@ -35,8 +38,8 @@ func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string) (string, []string) {
-	exe, args, needShell := GetExeAndArgs(osEnv, gitEnv, meta)
+func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool) (string, []string) {
+	exe, args, needShell := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired)
 	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
 	exe, args = FormatArgs(exe, args, needShell)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
@@ -97,9 +100,36 @@ func getVariant(osEnv config.Environment, gitEnv config.Environment, basessh str
 	return autodetectVariant(osEnv, gitEnv, basessh)
 }
 
+// findRuntimeDir returns a path to the runtime directory if one exists and is
+// guaranteed to be private.
+func findRuntimeDir(osEnv config.Environment) string {
+	if dir, ok := osEnv.Get("XDG_RUNTIME_DIR"); ok {
+		return dir
+	}
+	return ""
+}
+
+func getControlDir(osEnv config.Environment) (string, error) {
+	dir := findRuntimeDir(osEnv)
+	if dir == "" {
+		return ioutil.TempDir("", "sock-*")
+	}
+	dir = filepath.Join(dir, "git-lfs")
+	err := os.Mkdir(dir, 0700)
+	if err != nil {
+		// Ideally we would use errors.Is here to check against
+		// os.ErrExist, but that's not available on Go 1.11.
+		perr, ok := err.(*os.PathError)
+		if !ok || perr.Err != syscall.EEXIST {
+			return ioutil.TempDir("", "sock-*")
+		}
+	}
+	return dir, nil
+}
+
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata) (exe string, baseargs []string, needShell bool) {
+func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool) (exe string, baseargs []string, needShell bool) {
 	var cmd string
 
 	ssh, _ := osEnv.Get("GIT_SSH")
@@ -123,6 +153,15 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 	if variant == variantTortoise {
 		// TortoisePlink requires the -batch argument to behave like ssh/plink
 		args = append(args, "-batch")
+	}
+
+	multiplexEnabled := gitEnv.Bool("lfs.ssh.automultiplex", true)
+	if variant == variantSSH && multiplexDesired && multiplexEnabled {
+		controlPath, err := getControlDir(osEnv)
+		if err != nil {
+			controlPath = filepath.Join(controlPath, "sock-%C")
+			args = append(args, "-oControlMaster=auto", fmt.Sprintf("-oControlPath=%s", controlPath))
+		}
 	}
 
 	if len(meta.Port) > 0 {

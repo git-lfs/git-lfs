@@ -79,7 +79,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 		return res, nil
 	}
 
-	exe, args := ssh.GetLFSExeAndArgs(c.os, c.git, &e.SSHMetadata, "git-lfs-authenticate", endpointOperation(e, method))
+	exe, args := ssh.GetLFSExeAndArgs(c.os, c.git, &e.SSHMetadata, "git-lfs-authenticate", endpointOperation(e, method), false)
 	cmd := subprocess.ExecCommand(exe, args...)
 
 	// Save stdout and stderr in separate buffers
