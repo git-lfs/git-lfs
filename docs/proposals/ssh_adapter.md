@@ -309,7 +309,7 @@ lock-spec = lock-decl
             path-id
             locked-at
             ownername-id
-            owner-id
+            *owner-id
 lock-decl = PKT-LINE("lock " lock-id LF)
 lock-id = value
 path-id = PKT-LINE("path " lock-id path LF)
@@ -328,6 +328,9 @@ for easier parsing.
 The `next-cursor` argument indicates the next value of the `cursor` argument to
 be passed to the `list-lock` command.  If there is no `next-cursor` argument,
 this is the final response.
+
+The `owner-id` specification is optional if the user specified the command as
+`download` but is required if the command is `upload`.
 
 ```
 unlock-request = unlock-command
