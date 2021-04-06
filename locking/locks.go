@@ -270,14 +270,12 @@ func (c *Client) SearchLocksVerifiable(limit int, cached bool) (ourLocks, theirL
 		c.cache.Clear()
 
 		for {
-			list, res, err := c.client.SearchVerifiable(c.Remote, body)
-			if res != nil {
-				switch res.StatusCode {
-				case http.StatusNotFound, http.StatusNotImplemented:
-					return ourLocks, theirLocks, errors.NewNotImplementedError(err)
-				case http.StatusForbidden:
-					return ourLocks, theirLocks, errors.NewAuthError(err)
-				}
+			list, status, err := c.client.SearchVerifiable(c.Remote, body)
+			switch status {
+			case http.StatusNotFound, http.StatusNotImplemented:
+				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+			case http.StatusForbidden:
+				return ourLocks, theirLocks, errors.NewAuthError(err)
 			}
 
 			if err != nil {
