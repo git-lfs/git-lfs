@@ -61,6 +61,46 @@ func TestRemoteBranchPushDefault(t *testing.T) {
 	assert.Equal(t, "c", cfg.PushRemote())
 }
 
+func TestLFSDefault(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"remote.lfspushdefault": []string{"a"},
+			"remote.pushdefault":    []string{"b"},
+			"remote.lfsdefault":     []string{"c"},
+		},
+	})
+
+	assert.Equal(t, "c", cfg.Remote())
+	assert.Equal(t, "a", cfg.PushRemote())
+}
+
+func TestLFSDefaultSimple(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"remote.lfsdefault": []string{"a"},
+		},
+	})
+
+	assert.Equal(t, "a", cfg.Remote())
+	assert.Equal(t, "a", cfg.PushRemote())
+}
+
+func TestLFSDefaultBranch(t *testing.T) {
+	cfg := NewFrom(Values{
+		Git: map[string][]string{
+			"branch.main.remote":     []string{"a"},
+			"remote.pushdefault":     []string{"b"},
+			"branch.main.pushremote": []string{"c"},
+			"remote.lfspushdefault":  []string{"d"},
+			"remote.lfsdefault":      []string{"e"},
+		},
+	})
+	cfg.ref = &git.Ref{Name: "main"}
+
+	assert.Equal(t, "a", cfg.Remote())
+	assert.Equal(t, "c", cfg.PushRemote())
+}
+
 func TestBasicTransfersOnlySetValue(t *testing.T) {
 	cfg := NewFrom(Values{
 		Git: map[string][]string{
