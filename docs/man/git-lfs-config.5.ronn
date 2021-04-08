@@ -405,6 +405,7 @@ including and limited to:
 - lfs.url
 - remote.{name}.lfsurl
 - lfs.{*}.access
+- lfs.skipdownloaderrors
 
 The set of keys allowed in this file is restricted for security reasons.
 

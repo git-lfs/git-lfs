@@ -190,4 +190,5 @@ var safeKeys = []string{
 	"lfs.locksverify",
 	"lfs.pushurl",
 	"lfs.url",
+	"lfs.skipdownloaderrors",
 }
