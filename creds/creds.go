@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -85,9 +86,13 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 	if !ok {
 		askpass, _ = osEnv.Get("SSH_ASKPASS")
 	}
-	if len(askpass) > 0 {
+	askpassfile, err := tools.TranslateCygwinPath(askpass)
+	if err != nil {
+		tracerx.Printf("Error reading askpass helper %q: %v", askpassfile, err)
+	}
+	if len(askpassfile) > 0 {
 		c.askpassCredHelper = &AskPassCredentialHelper{
-			Program: askpass,
+			Program: askpassfile,
 		}
 	}
 
