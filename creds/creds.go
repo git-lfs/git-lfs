@@ -89,7 +89,7 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 	if isCygwin() {
 		askpass, err = translateCygwinPath(askpass)
 		if err != nil {
-			tracerx.Printf("Error reading askpass helper %v: %v", askpass, err)
+			tracerx.Printf("Error reading askpass helper %q: %v", askpass, err)
 			askpass = ""
 		}
 	}
