@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"tools"
 
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/errors"
@@ -84,6 +85,13 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 	}
 	if !ok {
 		askpass, _ = osEnv.Get("SSH_ASKPASS")
+	}
+	if isCygwin() {
+		askpass, err = translateCygwinPath(askpass)
+		if err != nil {
+			// print error
+			askpass = ""
+		}
 	}
 	if len(askpass) > 0 {
 		c.askpassCredHelper = &AskPassCredentialHelper{
