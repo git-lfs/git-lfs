@@ -402,9 +402,10 @@ including and limited to:
 - lfs.gitprotocol
 - lfs.locksverify
 - lfs.pushurl
+- lfs.skipdownloaderrors
 - lfs.url
-- remote.{name}.lfsurl
 - lfs.{*}.access
+- remote.{name}.lfsurl
 
 The set of keys allowed in this file is restricted for security reasons.
 
