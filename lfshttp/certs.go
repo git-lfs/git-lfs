@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -149,7 +150,11 @@ func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x
 }
 
 func appendCertsFromFilesInDir(pool *x509.CertPool, dir string) *x509.CertPool {
-	files, err := ioutil.ReadDir(dir)
+	dirpath, errpath := tools.TranslateCygwinPath(dir)
+	if errpath != nil {
+		tracerx.Printf("Error reading cert dir %q: %v", dirpath, errpath)
+	}
+	files, err := ioutil.ReadDir(dirpath)
 	if err != nil {
 		tracerx.Printf("Error reading cert dir %q: %v", dir, err)
 		return pool
@@ -161,7 +166,11 @@ func appendCertsFromFilesInDir(pool *x509.CertPool, dir string) *x509.CertPool {
 }
 
 func appendCertsFromFile(pool *x509.CertPool, filename string) *x509.CertPool {
-	data, err := ioutil.ReadFile(filename)
+	filenamepath, errfile := tools.TranslateCygwinPath(filename)
+	if errfile != nil {
+		tracerx.Printf("Error reading cert dir %q: %v", filenamepath, errfile)
+	}
+	data, err := ioutil.ReadFile(filenamepath)
 	if err != nil {
 		tracerx.Printf("Error reading cert file %q: %v", filename, err)
 		return pool
