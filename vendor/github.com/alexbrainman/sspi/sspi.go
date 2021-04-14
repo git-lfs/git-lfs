@@ -7,6 +7,7 @@
 package sspi
 
 import (
+	"fmt"
 	"syscall"
 	"time"
 	"unsafe"
@@ -50,13 +51,26 @@ type Credentials struct {
 	expiry syscall.Filetime
 }
 
-func AcquireCredentials(pkgname string, creduse uint32, authdata *byte) (*Credentials, error) {
+// AcquireCredentials calls the windows AcquireCredentialsHandle function and
+// returns Credentials containing a security handle that can be used for
+// InitializeSecurityContext or AcceptSecurityContext operations.
+// As a special case, passing an empty string as the principal parameter will
+// pass a null string to the underlying function.
+func AcquireCredentials(principal string, pkgname string, creduse uint32, authdata *byte) (*Credentials, error) {
+	var principalName *uint16
+	if principal != "" {
+		var err error
+		principalName, err = syscall.UTF16PtrFromString(principal)
+		if err != nil {
+			return nil, err
+		}
+	}
 	name, err := syscall.UTF16PtrFromString(pkgname)
 	if err != nil {
 		return nil, err
 	}
 	var c Credentials
-	ret := AcquireCredentialsHandle(nil, name, creduse, nil, authdata, 0, 0, &c.Handle, &c.expiry)
+	ret := AcquireCredentialsHandle(principalName, name, creduse, nil, authdata, 0, 0, &c.Handle, &c.expiry)
 	if ret != SEC_E_OK {
 		return nil, ret
 	}
@@ -64,6 +78,9 @@ func AcquireCredentials(pkgname string, creduse uint32, authdata *byte) (*Creden
 }
 
 func (c *Credentials) Release() error {
+	if c == nil {
+		return nil
+	}
 	ret := FreeCredentialsHandle(&c.Handle)
 	if ret != SEC_E_OK {
 		return ret
@@ -125,6 +142,9 @@ func (c *Context) Update(targname *uint16, out, in *SecBufferDesc) syscall.Errno
 }
 
 func (c *Context) Release() error {
+	if c == nil {
+		return nil
+	}
 	ret := DeleteSecurityContext(c.Handle)
 	if ret != SEC_E_OK {
 		return ret
@@ -164,6 +184,35 @@ func (c *Context) Sizes() (uint32, uint32, uint32, uint32, error) {
 		return 0, 0, 0, 0, ret
 	}
 	return s.MaxToken, s.MaxSignature, s.BlockSize, s.SecurityTrailer, nil
+}
+
+// VerifyFlags determines if all flags used to construct the context
+// were honored (see NewClientContext).  It should be called after c.Update.
+func (c *Context) VerifyFlags() error {
+	return c.VerifySelectiveFlags(c.RequestedFlags)
+}
+
+// VerifySelectiveFlags determines if the given flags were honored (see NewClientContext).
+// It should be called after c.Update.
+func (c *Context) VerifySelectiveFlags(flags uint32) error {
+	if valid, missing, extra := verifySelectiveFlags(flags, c.RequestedFlags); !valid {
+		return fmt.Errorf("sspi: invalid flags check: desired=%b requested=%b missing=%b extra=%b", flags, c.RequestedFlags, missing, extra)
+	}
+	if valid, missing, extra := verifySelectiveFlags(flags, c.EstablishedFlags); !valid {
+		return fmt.Errorf("sspi: invalid flags: desired=%b established=%b missing=%b extra=%b", flags, c.EstablishedFlags, missing, extra)
+	}
+	return nil
+}
+
+// verifySelectiveFlags determines if all bits requested in flags are set in establishedFlags.
+// missing represents the bits set in flags that are not set in establishedFlags.
+// extra represents the bits set in establishedFlags that are not set in flags.
+// valid is true and missing is zero when establishedFlags has all of the requested flags.
+func verifySelectiveFlags(flags, establishedFlags uint32) (valid bool, missing, extra uint32) {
+	missing = flags&establishedFlags ^ flags
+	extra = flags | establishedFlags ^ flags
+	valid = missing == 0
+	return valid, missing, extra
 }
 
 // NewSecBufferDesc returns an initialized SecBufferDesc describing the
