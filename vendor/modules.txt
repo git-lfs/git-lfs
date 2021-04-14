@@ -1,11 +1,12 @@
-# github.com/alexbrainman/sspi v0.0.0-20180125232955-4729b3d4d858
+# github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74
 github.com/alexbrainman/sspi
+github.com/alexbrainman/sspi/internal/common
 github.com/alexbrainman/sspi/negotiate
 # github.com/avast/retry-go v2.4.2+incompatible
 github.com/avast/retry-go
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dpotapov/go-spnego v0.0.0-20190506202455-c2c609116ad0
+# github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430
 github.com/dpotapov/go-spnego
 # github.com/git-lfs/gitobj/v2 v2.0.1
 github.com/git-lfs/gitobj/v2
@@ -16,13 +17,55 @@ github.com/git-lfs/gitobj/v2/storage
 github.com/git-lfs/go-netrc/netrc
 # github.com/git-lfs/wildmatch v1.0.4
 github.com/git-lfs/wildmatch
-# github.com/hashicorp/go-uuid v1.0.1
+# github.com/hashicorp/go-uuid v1.0.2
 github.com/hashicorp/go-uuid
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
+# github.com/jcmturner/aescts/v2 v2.0.0
+github.com/jcmturner/aescts/v2
+# github.com/jcmturner/dnsutils/v2 v2.0.0
+github.com/jcmturner/dnsutils/v2
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/jcmturner/goidentity/v6 v6.0.1
+github.com/jcmturner/goidentity/v6
+# github.com/jcmturner/gokrb5/v8 v8.4.2
+github.com/jcmturner/gokrb5/v8/asn1tools
+github.com/jcmturner/gokrb5/v8/client
+github.com/jcmturner/gokrb5/v8/config
+github.com/jcmturner/gokrb5/v8/credentials
+github.com/jcmturner/gokrb5/v8/crypto
+github.com/jcmturner/gokrb5/v8/crypto/common
+github.com/jcmturner/gokrb5/v8/crypto/etype
+github.com/jcmturner/gokrb5/v8/crypto/rfc3961
+github.com/jcmturner/gokrb5/v8/crypto/rfc3962
+github.com/jcmturner/gokrb5/v8/crypto/rfc4757
+github.com/jcmturner/gokrb5/v8/crypto/rfc8009
+github.com/jcmturner/gokrb5/v8/gssapi
+github.com/jcmturner/gokrb5/v8/iana
+github.com/jcmturner/gokrb5/v8/iana/addrtype
+github.com/jcmturner/gokrb5/v8/iana/adtype
+github.com/jcmturner/gokrb5/v8/iana/asnAppTag
+github.com/jcmturner/gokrb5/v8/iana/chksumtype
+github.com/jcmturner/gokrb5/v8/iana/errorcode
+github.com/jcmturner/gokrb5/v8/iana/etypeID
+github.com/jcmturner/gokrb5/v8/iana/flags
+github.com/jcmturner/gokrb5/v8/iana/keyusage
+github.com/jcmturner/gokrb5/v8/iana/msgtype
+github.com/jcmturner/gokrb5/v8/iana/nametype
+github.com/jcmturner/gokrb5/v8/iana/patype
+github.com/jcmturner/gokrb5/v8/kadmin
+github.com/jcmturner/gokrb5/v8/keytab
+github.com/jcmturner/gokrb5/v8/krberror
+github.com/jcmturner/gokrb5/v8/messages
+github.com/jcmturner/gokrb5/v8/pac
+github.com/jcmturner/gokrb5/v8/service
+github.com/jcmturner/gokrb5/v8/spnego
+github.com/jcmturner/gokrb5/v8/types
+# github.com/jcmturner/rpc/v2 v2.0.3
+github.com/jcmturner/rpc/v2/mstypes
+github.com/jcmturner/rpc/v2/ndr
 # github.com/mattn/go-isatty v0.0.4
 github.com/mattn/go-isatty
 # github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
@@ -39,7 +82,7 @@ github.com/spf13/cobra
 github.com/spf13/pflag
 # github.com/ssgelm/cookiejarparser v1.0.1
 github.com/ssgelm/cookiejarparser
-# github.com/stretchr/testify v1.5.1
+# github.com/stretchr/testify v1.6.1
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
@@ -48,7 +91,7 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+# golang.org/x/crypto v0.0.0-20201112155050-0c6587e931a9
 golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
 # golang.org/x/net v0.0.0-20210119194325-5f4716e94777
@@ -69,43 +112,5 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# gopkg.in/jcmturner/aescts.v1 v1.0.1
-gopkg.in/jcmturner/aescts.v1
-# gopkg.in/jcmturner/dnsutils.v1 v1.0.1
-gopkg.in/jcmturner/dnsutils.v1
-# gopkg.in/jcmturner/gokrb5.v5 v5.3.0
-gopkg.in/jcmturner/gokrb5.v5/asn1tools
-gopkg.in/jcmturner/gokrb5.v5/client
-gopkg.in/jcmturner/gokrb5.v5/config
-gopkg.in/jcmturner/gokrb5.v5/credentials
-gopkg.in/jcmturner/gokrb5.v5/crypto
-gopkg.in/jcmturner/gokrb5.v5/crypto/common
-gopkg.in/jcmturner/gokrb5.v5/crypto/etype
-gopkg.in/jcmturner/gokrb5.v5/crypto/rfc3961
-gopkg.in/jcmturner/gokrb5.v5/crypto/rfc3962
-gopkg.in/jcmturner/gokrb5.v5/crypto/rfc4757
-gopkg.in/jcmturner/gokrb5.v5/crypto/rfc8009
-gopkg.in/jcmturner/gokrb5.v5/gssapi
-gopkg.in/jcmturner/gokrb5.v5/iana
-gopkg.in/jcmturner/gokrb5.v5/iana/addrtype
-gopkg.in/jcmturner/gokrb5.v5/iana/adtype
-gopkg.in/jcmturner/gokrb5.v5/iana/asnAppTag
-gopkg.in/jcmturner/gokrb5.v5/iana/chksumtype
-gopkg.in/jcmturner/gokrb5.v5/iana/errorcode
-gopkg.in/jcmturner/gokrb5.v5/iana/etypeID
-gopkg.in/jcmturner/gokrb5.v5/iana/flags
-gopkg.in/jcmturner/gokrb5.v5/iana/keyusage
-gopkg.in/jcmturner/gokrb5.v5/iana/msgtype
-gopkg.in/jcmturner/gokrb5.v5/iana/nametype
-gopkg.in/jcmturner/gokrb5.v5/iana/patype
-gopkg.in/jcmturner/gokrb5.v5/kadmin
-gopkg.in/jcmturner/gokrb5.v5/keytab
-gopkg.in/jcmturner/gokrb5.v5/krberror
-gopkg.in/jcmturner/gokrb5.v5/messages
-gopkg.in/jcmturner/gokrb5.v5/mstypes
-gopkg.in/jcmturner/gokrb5.v5/pac
-gopkg.in/jcmturner/gokrb5.v5/types
-# gopkg.in/jcmturner/rpc.v0 v0.0.2
-gopkg.in/jcmturner/rpc.v0/ndr
-# gopkg.in/yaml.v2 v2.2.8
-gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3

@@ -33,7 +33,7 @@ func (b *SecBuffer) Bytes() []byte {
 	if b.Buffer == nil || b.BufferSize <= 0 {
 		return nil
 	}
-	return (*[2 << 20]byte)(unsafe.Pointer(b.Buffer))[:b.BufferSize]
+	return (*[(1 << 31) - 1]byte)(unsafe.Pointer(b.Buffer))[:b.BufferSize]
 }
 
 func (b *SecBuffer) WriteAll(w io.Writer) (int, error) {

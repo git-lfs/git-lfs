@@ -8,14 +8,15 @@ import (
 	"os/user"
 	"strings"
 
-	"gopkg.in/jcmturner/gokrb5.v5/client"
-	"gopkg.in/jcmturner/gokrb5.v5/config"
-	"gopkg.in/jcmturner/gokrb5.v5/credentials"
+	"github.com/jcmturner/gokrb5/v8/client"
+	"github.com/jcmturner/gokrb5/v8/config"
+	"github.com/jcmturner/gokrb5/v8/credentials"
+	"github.com/jcmturner/gokrb5/v8/spnego"
 )
 
 type krb5 struct {
 	cfg *config.Config
-	cl  client.Client
+	cl  *client.Client
 }
 
 // New constructs OS specific implementation of spnego.Provider interface
@@ -60,15 +61,8 @@ func (k *krb5) makeClient() error {
 		return err
 	}
 
-	cl, err := client.NewClientFromCCache(ccache)
-	if err != nil {
-		return err
-	}
-
-	cl.GoKrb5Conf.DisablePAFXFast = true
-	cl.WithConfig(k.cfg)
-	k.cl = cl
-	return nil
+	k.cl, err = client.NewFromCCache(ccache, k.cfg, client.DisablePAFXFAST(true))
+	return err
 }
 
 func (k *krb5) SetSPNEGOHeader(req *http.Request) error {
@@ -85,5 +79,5 @@ func (k *krb5) SetSPNEGOHeader(req *http.Request) error {
 		return err
 	}
 
-	return k.cl.SetSPNEGOHeader(req, "HTTP/"+h)
+	return spnego.SetSPNEGOHeader(k.cl, req, "HTTP/"+h)
 }
