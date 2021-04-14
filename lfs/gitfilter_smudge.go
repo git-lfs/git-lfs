@@ -112,8 +112,9 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 			} else {
 				multiErr = e
 			}
-			return 0, errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
 		}
+
+		return 0, errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
 	}
 
 	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
