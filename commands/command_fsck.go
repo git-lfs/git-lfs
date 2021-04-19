@@ -49,7 +49,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 
 	if len(corruptOids) != 0 {
 		badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
-		Print("Moving corrupt objects to %s", badDir)
+		Print("objects: repair: moving corrupt objects to %s", badDir)
 
 		if err := tools.MkdirAll(badDir, cfg); err != nil {
 			ExitWithError(err)
@@ -111,7 +111,7 @@ func fsckPointer(name, oid string, size int64) (bool, error) {
 		if size == 0 {
 			return true, nil
 		}
-		Print("Object %s (%s) could not be checked: %s", name, oid, pErr.Err)
+		Print("objects: openError: %s (%s) could not be checked: %s", name, oid, pErr.Err)
 		return false, nil
 	}
 
@@ -131,7 +131,7 @@ func fsckPointer(name, oid string, size int64) (bool, error) {
 		return true, nil
 	}
 
-	Print("Object %s (%s) is corrupt", name, oid)
+	Print("objects: corruptObject: %s (%s) is corrupt", name, oid)
 	return false, nil
 }
 

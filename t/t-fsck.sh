@@ -39,8 +39,8 @@ begin_test "fsck default"
   echo "CORRUPTION" >> .git/lfs/objects/$aOid12/$aOid34/$aOid
 
   moved=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/bad")
-  expected="$(printf 'Object a.dat (%s) is corrupt
-Moving corrupt objects to %s' "$aOid" "$moved")"
+  expected="$(printf 'objects: corruptObject: a.dat (%s) is corrupt
+objects: repair: moving corrupt objects to %s' "$aOid" "$moved")"
   [ "$expected" = "$(git lfs fsck)" ]
 
   [ -e ".git/lfs/bad/$aOid" ]
@@ -84,7 +84,7 @@ begin_test "fsck dry run"
 
   echo "CORRUPTION" >> .git/lfs/objects/$aOid12/$aOid34/$aOid
 
-  [ "Object a.dat ($aOid) is corrupt" = "$(git lfs fsck --dry-run)" ]
+  [ "objects: corruptObject: a.dat ($aOid) is corrupt" = "$(git lfs fsck --dry-run)" ]
 
   if [ "$aOid" = "$(calc_oid_file .git/lfs/objects/$aOid12/$aOid34/$aOid)" ]; then
     echo "oid for a.dat still matches match"
