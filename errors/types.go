@@ -90,6 +90,19 @@ func IsNotAPointerError(err error) bool {
 	return false
 }
 
+// IsNotAPointerError indicates the parsed data is not an LFS pointer.
+func IsPointerScanError(err error) bool {
+	if e, ok := err.(interface {
+		PointerScanError() bool
+	}); ok {
+		return e.PointerScanError()
+	}
+	if parent := parentOf(err); parent != nil {
+		return IsPointerScanError(parent)
+	}
+	return false
+}
+
 // IsBadPointerKeyError indicates that the parsed data has an invalid key.
 func IsBadPointerKeyError(err error) bool {
 	if e, ok := err.(interface {
@@ -317,6 +330,30 @@ func (e notAPointerError) NotAPointerError() bool {
 
 func NewNotAPointerError(err error) error {
 	return notAPointerError{newWrappedError(err, "Pointer file error")}
+}
+
+// Definitions for IsPointerScanError()
+
+type PointerScanError struct {
+	treeishOid string
+	path       string
+	*wrappedError
+}
+
+func (e PointerScanError) PointerScanError() bool {
+	return true
+}
+
+func (e PointerScanError) OID() string {
+	return e.treeishOid
+}
+
+func (e PointerScanError) Path() string {
+	return e.path
+}
+
+func NewPointerScanError(err error, treeishOid, path string) error {
+	return PointerScanError{treeishOid, path, newWrappedError(err, "Pointer error")}
 }
 
 type badPointerKeyError struct {
