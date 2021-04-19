@@ -40,6 +40,20 @@ be scoped inside the configuration for a remote.
   The url used to call the Git LFS remote API when pushing. Default blank (derive
   from either LFS non-push urls or clone url).
 
+* `remote.lfsdefault`
+
+  The remote used to find the Git LFS remote API.  `lfs.url` and
+  `branch.*.remote` for the current branch override this setting.  If this
+  setting is not specified and there is exactly one remote, that remote is
+  picked; otherwise, the default is `origin`.
+
+* `remote.lfspushdefault`
+
+  The remote used to find the Git LFS remote API when pushing.  `lfs.url` and
+  `branch.*.pushremote` for the current branch override this setting.  If this
+  setting is not set, `remote.pushdefault` is used, or if that is not set, the
+  order of selection is used as specified in the `remote.lfsdefault` above.
+
 * `lfs.dialtimeout`
 
   Sets the maximum time, in seconds, that the HTTP client will wait to initiate
