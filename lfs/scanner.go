@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/tools"
 )
 
@@ -90,11 +91,11 @@ func NewStringChannelWrapper(stringChan <-chan string, errorChan <-chan error) *
 // See NewTreeBlobChannelWrapper for construction / use
 type TreeBlobChannelWrapper struct {
 	*tools.BaseChannelWrapper
-	Results <-chan TreeBlob
+	Results <-chan git.TreeBlob
 }
 
 // Construct a new channel wrapper for TreeBlob
 // Caller can use s.Results directly for normal processing then call Wait() to finish & check for errors
-func NewTreeBlobChannelWrapper(treeBlobChan <-chan TreeBlob, errorChan <-chan error) *TreeBlobChannelWrapper {
+func NewTreeBlobChannelWrapper(treeBlobChan <-chan git.TreeBlob, errorChan <-chan error) *TreeBlobChannelWrapper {
 	return &TreeBlobChannelWrapper{tools.NewBaseChannelWrapper(errorChan), treeBlobChan}
 }
