@@ -382,7 +382,7 @@ begin_test "migrate info (empty set)"
     --exclude-ref=refs/heads/main 2>/dev/null
   )"
 
-  [ "0" -eq "$(echo -n "$migrate" | wc -l | awk '{ print $1 }')" ]
+  [ "0" -eq "$(echo -n "$migrate" | wc -c | awk '{ print $1 }')" ]
 )
 end_test
 
@@ -470,8 +470,6 @@ begin_test "migrate info (--everything with --include-ref)"
     "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
-
-exit 0
 
 begin_test "migrate info (--everything with --exclude-ref)"
 (
