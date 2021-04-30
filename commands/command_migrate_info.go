@@ -160,7 +160,13 @@ func (e EntriesBySize) Len() int { return len(e) }
 
 // Less returns the whether or not the MigrateInfoEntry given at `i` takes up
 // less total size than the MigrateInfoEntry given at `j`.
-func (e EntriesBySize) Less(i, j int) bool { return e[i].BytesAbove < e[j].BytesAbove }
+func (e EntriesBySize) Less(i, j int) bool {
+	if e[i].BytesAbove == e[j].BytesAbove {
+		return e[i].Qualifier > e[j].Qualifier
+	} else {
+		return e[i].BytesAbove < e[j].BytesAbove
+	}
+}
 
 // Swap swaps the entries given at i, j.
 func (e EntriesBySize) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
