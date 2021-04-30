@@ -81,8 +81,12 @@ like the other two modes, by default the `info` mode operates only on
 the currently checked-out branch and only on commits which do not exist on
 any remote, so to get a summary of the entire repository across all branches,
 use the `--everything` option.  If objects have already been converted to
-Git LFS pointers, the size of the pointers is totaled, not the size of
-the Git LFS objects to which they refer.
+Git LFS pointers, then by default the size of the pointers is totaled, not
+the size of the Git LFS objects to which they refer.  This is done to retain
+compatability with previous versions of Git LFS.  However, if you have already
+have Git LFS objects in your repository, it may be preferable to either
+ignore them by using `--pointers=ignore` or report them separately using
+`--pointers=follow`.
 
 When using the `--everything` option, take note that it means all refs
 (local and remote) will be considered, but not necessarily all file types.
@@ -169,7 +173,10 @@ It supports all the core `migrate` options and these additional ones:
 
 * `--top=<n>`
     Only display the top `n` entries, ordered by how many total files match the
-    given pathspec. Default: top 5 entries.
+    given pathspec.  The default is to show only the top 5 entries.  When
+    `--pointers=follow` is specified and existing Git LFS objects are found,
+    an extra, separate "LFS Objects" line is output in addition to the top
+    `n` entries.
 
 * `--unit=<unit>`
     Format the number of bytes in each entry as a quantity of the storage unit
@@ -179,6 +186,18 @@ It supports all the core `migrate` options and these additional ones:
 
     If a `--unit` is not specified, the largest unit that can fit the number of
     counted bytes as a whole number quantity is chosen.
+
+* `--pointers=[no-follow|follow|ignore]`
+    Treat existing Git LFS pointers in the history according to one of three
+    alternatives.  In the `no-follow` mode, Git LFS pointers are treated as if
+    they were regular files, so the contents of the pointers themselves are
+    reported in the output totals, rather than the contents of the Git LFS
+    objects to which they refer.  This is the default when `--pointers` is not
+    specified, to maintain backwards consistency; however, the other modes may
+    be more intuitive.  The `ignore` mode excludes all Git LFS pointers from
+    the output totals, while the `follow` mode outputs an additional separate
+    "LFS Objects" line item which summarizes the total number and size of the
+    Git LFS objects referenced by pointers.
 
 The format of the output shows the filename pattern, the total size of the
 file objects (excluding those below the `--above` threshold, if one was
@@ -374,6 +393,10 @@ $ git lfs migrate info --include-ref=main
 
 # Check for large files in every branch
 $ git lfs migrate info --everything
+
+# Check for large files in every branch, counting existing Git LFS objects
+# separately, and listing the top 100 or fewer results
+$ git lfs migrate info --everything --pointers=follow --top=100
 ```
 
 The same flags will work in `import` mode:
