@@ -125,7 +125,8 @@ setup_single_local_branch_tracked() {
 
   remove_and_create_local_repo "$reponame"
 
-  git lfs track "*.txt" "*.md"
+  echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+  echo "*.md filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
 
   git add .gitattributes
   git commit -m "initial commit"
@@ -183,7 +184,7 @@ setup_single_local_branch_tracked_corrupt() {
 
   remove_and_create_local_repo "$reponame"
 
-  git lfs track "*.txt"
+  echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
   git lfs uninstall
 
   base64 < /dev/urandom | head -c 120 > a.txt
@@ -303,7 +304,8 @@ setup_multiple_local_branches_tracked() {
 
   remove_and_create_local_repo "$reponame"
 
-  git lfs track "*.txt" "*.md"
+  echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+  echo "*.md filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
   git add .gitattributes
   git commit -m "initial commit"
 
