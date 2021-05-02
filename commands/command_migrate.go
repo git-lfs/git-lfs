@@ -368,6 +368,7 @@ func init() {
 	info.Flags().IntVar(&migrateInfoTopN, "top", 5, "--top=<n>")
 	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "", "--above=<n>")
 	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
+	info.Flags().StringVar(&migrateInfoPointers, "pointers", "", "Ignore, dereference, or include LFS pointer files")
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().StringVar(&migrateImportAboveFmt, "above", "", "--above=<n>")

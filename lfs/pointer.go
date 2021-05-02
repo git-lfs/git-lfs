@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/gitobj/v2"
 )
 
 var (
@@ -79,6 +80,14 @@ func (p *Pointer) Encoded() string {
 
 func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 	return writer.Write([]byte(pointer.Encoded()))
+}
+
+func DecodePointerFromBlob(b *gitobj.Blob) (*Pointer, error) {
+	// Check size before reading
+	if b.Size >= blobSizeCutoff {
+		return nil, errors.NewNotAPointerError(errors.New("blob size exceeds lfs pointer size cutoff"))
+	}
+	return DecodePointer(b.Contents)
 }
 
 func DecodePointerFromFile(file string) (*Pointer, error) {

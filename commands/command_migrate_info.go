@@ -10,11 +10,20 @@ import (
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/git/githistory"
+	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
 	"github.com/git-lfs/git-lfs/tools"
 	"github.com/git-lfs/git-lfs/tools/humanize"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
+)
+
+type migrateInfoPointersType int
+
+const (
+	migrateInfoPointersNoFollow = migrateInfoPointersType(iota)
+	migrateInfoPointersFollow   = migrateInfoPointersType(iota)
+	migrateInfoPointersIgnore   = migrateInfoPointersType(iota)
 )
 
 var (
@@ -37,6 +46,13 @@ var (
 	// migrateInfoUnit is the number of bytes in the unit given as
 	// migrateInfoUnitFmt.
 	migrateInfoUnit uint64
+
+	// migrateInfoPointers is an option given to the git-lfs-migrate(1)
+	// subcommand 'info' specifying how to treat Git LFS pointers.
+	migrateInfoPointers string
+	// migrateInfoPointersMode is the Git LFS pointer treatment mode
+	// parsed from migrateInfoPointers.
+	migrateInfoPointersMode migrateInfoPointersType
 )
 
 func migrateInfoCommand(cmd *cobra.Command, args []string) {
@@ -68,34 +84,49 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		migrateInfoUnit = unit
 	}
 
+	if pointers := cmd.Flag("pointers"); pointers.Changed {
+		switch pointers.Value.String() {
+		case "no-follow":
+			migrateInfoPointersMode = migrateInfoPointersNoFollow
+		case "follow":
+			migrateInfoPointersMode = migrateInfoPointersFollow
+		case "ignore":
+			migrateInfoPointersMode = migrateInfoPointersIgnore
+		default:
+			Exit("Unsupported --pointers option value")
+		}
+	}
+
 	migrateInfoAbove = above
+	pointersInfoEntry := &MigrateInfoEntry{Qualifier: "LFS Objects", Separate: true}
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
-			ext := fmt.Sprintf("*%s", filepath.Ext(path))
+			var entry *MigrateInfoEntry
+			var size int64
+			var p *lfs.Pointer
+			var err error
 
-			// If extension exists, group all items under extension,
-			// else just use the file name.
-			var groupName string
-			if len(ext) > 1 {
-				groupName = ext
-			} else {
-				groupName = filepath.Base(path)
+			if migrateInfoPointersMode != migrateInfoPointersNoFollow {
+				p, err = lfs.DecodePointerFromBlob(b)
 			}
-
-			entry := exts[groupName]
-			if entry == nil {
-				entry = &MigrateInfoEntry{Qualifier: groupName}
+			if p != nil && err == nil {
+				if migrateInfoPointersMode == migrateInfoPointersIgnore {
+					return b, nil
+				}
+				entry = pointersInfoEntry
+				size = p.Size
+			} else {
+				entry = findEntryByExtension(exts, path)
+				size = b.Size
 			}
 
 			entry.Total++
 
-			if b.Size > int64(migrateInfoAbove) {
+			if size > int64(migrateInfoAbove) {
 				entry.TotalAbove++
-				entry.BytesAbove += b.Size
+				entry.BytesAbove += size
 			}
-
-			exts[groupName] = entry
 
 			return b, nil
 		},
@@ -109,6 +140,9 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	migrateInfoTopN = tools.ClampInt(migrateInfoTopN, 0, len(entries))
 
 	entries = entries[:migrateInfoTopN]
+	if pointersInfoEntry.Total > 0 {
+		entries = append(entries, pointersInfoEntry)
+	}
 
 	entries.Print(os.Stdout)
 }
@@ -118,6 +152,8 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 type MigrateInfoEntry struct {
 	// Qualifier is the filepath's extension.
 	Qualifier string
+	// Separate indicates if the entry should be printed separately.
+	Separate bool
 
 	// BytesAbove is total size of all files above a given threshold.
 	BytesAbove int64
@@ -125,6 +161,30 @@ type MigrateInfoEntry struct {
 	TotalAbove int64
 	// Total is the count of all files.
 	Total int64
+}
+
+// findEntryByExtension finds or creates an entry from the given map that
+// corresponds with the given path's file extension (or the path's file name
+// if there is no file extension).
+func findEntryByExtension(exts map[string]*MigrateInfoEntry, path string) *MigrateInfoEntry {
+	ext := fmt.Sprintf("*%s", filepath.Ext(path))
+
+	// If extension exists, group all items under extension,
+	// else just use the file name.
+	var groupName string
+	if len(ext) > 1 {
+		groupName = ext
+	} else {
+		groupName = filepath.Base(path)
+	}
+
+	entry := exts[groupName]
+	if entry == nil {
+		entry = &MigrateInfoEntry{Qualifier: groupName}
+		exts[groupName] = entry
+	}
+
+	return entry
 }
 
 // MapToEntries creates a set of `*MigrateInfoEntry`'s for a given map of
@@ -180,6 +240,7 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 	}
 
 	extensions := make([]string, 0, len(e))
+	separateFlags := make([]bool, 0, len(e))
 	sizes := make([]string, 0, len(e))
 	stats := make([]string, 0, len(e))
 	percentages := make([]string, 0, len(e))
@@ -203,6 +264,7 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 
 		extensions = append(extensions, entry.Qualifier)
+		separateFlags = append(separateFlags, entry.Separate)
 		sizes = append(sizes, size)
 		stats = append(stats, stat)
 		percentages = append(percentages, percentage)
@@ -222,6 +284,9 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 
 		line := strings.Join([]string{extension, size, stat, percentage}, "\t")
 
+		if i > 0 && separateFlags[i] {
+			output = append(output, "")
+		}
 		output = append(output, line)
 	}
 
