@@ -21,8 +21,8 @@ import (
 type migrateInfoPointersType int
 
 const (
-	migrateInfoPointersNoFollow = migrateInfoPointersType(iota)
 	migrateInfoPointersFollow   = migrateInfoPointersType(iota)
+	migrateInfoPointersNoFollow = migrateInfoPointersType(iota)
 	migrateInfoPointersIgnore   = migrateInfoPointersType(iota)
 )
 
@@ -86,10 +86,10 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	if pointers := cmd.Flag("pointers"); pointers.Changed {
 		switch pointers.Value.String() {
-		case "no-follow":
-			migrateInfoPointersMode = migrateInfoPointersNoFollow
 		case "follow":
 			migrateInfoPointersMode = migrateInfoPointersFollow
+		case "no-follow":
+			migrateInfoPointersMode = migrateInfoPointersNoFollow
 		case "ignore":
 			migrateInfoPointersMode = migrateInfoPointersIgnore
 		default:
