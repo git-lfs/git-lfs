@@ -340,8 +340,15 @@ unlock-command = PKT-LINE("unlock " lock-id LF)
 ```
 
 The `force` and `refname` arguments have the same meaning as their corresponding
-values in the HTTP JSON API.  The response matches the `generic-status-response`
-production.
+values in the HTTP JSON API.  The response is as follows:
+
+```
+unlock-response = unlock-success-response | status-error-response
+unlock-success-response = unlock-success-command
+                          *argument
+                          flush-pkt
+unlock-success-command = PKT-LINE("status 200" LF)
+```
 
 The `lock` and `unlock` commands may be issued when the command was `upload`.
 If the remote side has a concept of a repository administrator, it is
