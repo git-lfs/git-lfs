@@ -30,49 +30,44 @@ $distro_name_map = {
   "centos/7" => [
     "el/7",
     "scientific/7",
-    # Fedora EOL check https://fedoraproject.org/wiki/End_of_life
-    # or https://en.wikipedia.org/wiki/Fedora_version_history#Version_history
-    "fedora/29", # EOL ~2020
-    "fedora/30", # EOL ~2020
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
     "opensuse/15.1", # EOL 2020-11
     # SLES EOL https://www.suse.com/lifecycle/
     "sles/11.4", # LTSS ends 31 Mar 2022
-    "sles/12.1", # LTSS ends 31 May 2020
-    "sles/12.2", # LTSS ends 31 Mar 2021
     "sles/12.3", # LTSS ends 30 Jun 2022
     "sles/12.4",
     "sles/12.5",
     "sles/15.0",
-    "sles/15.1",  # Current
+    "sles/15.1",
+    "sles/15.2",  # Current
   ],
   "centos/8" => [
     "el/8",
-    "fedora/31", # EOL ~2021
     "fedora/32",
+    "fedora/33",
+    "fedora/34",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
   "debian/9" => [
     "debian/stretch",   # EOL June 2022
-    "linuxmint/sarah",  # EOL April 2021
-    "linuxmint/serena", # EOL April 2021
-    "linuxmint/sonya",  # EOL April 2021
-    "linuxmint/sylvia", # EOL April 2021
     "linuxmint/tara",   # EOL April 2023
     "linuxmint/tessa",  # EOL April 2023
     "linuxmint/tina",   # EOL April 2023
     "linuxmint/tricia", # EOL April 2023
     "ubuntu/xenial",    # ESM April 2024
     "ubuntu/bionic",    # ESM April 2028
-    "ubuntu/disco",     # EOL April 2020
   ],
   "debian/10" => [
     "debian/buster",    # Current
-    "ubuntu/eoan",      # EOL July 2020
-    "ubuntu/focal",     # Current
+    "linuxmint/ulyana", # EOL April 2025
+    "linuxmint/ulyssa", # EOL April 2025
+    "ubuntu/focal",     # EOL April 2025
+    "ubuntu/groovy",    # EOL July 2021
+    "ubuntu/hirsute",   # EOL January 2022
+    "ubuntu/impish",    # Current
   ]
 }
 
