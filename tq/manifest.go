@@ -73,17 +73,7 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		apiClient = cli
 	}
 
-	var sshTransfer *ssh.SSHTransfer
-	var err error
-	endpoint := apiClient.Endpoints.RemoteEndpoint(operation, remote)
-	if len(endpoint.SSHMetadata.UserAndHost) > 0 {
-		ctx := apiClient.Context()
-		tracerx.Printf("attempting pure SSH protocol connection")
-		sshTransfer, err = ssh.NewSSHTransfer(ctx.OSEnv(), ctx.GitEnv(), &endpoint.SSHMetadata, operation)
-		if err != nil {
-			tracerx.Printf("pure SSH protocol connection failed: %s", err)
-		}
-	}
+	sshTransfer := apiClient.SSHTransfer(operation, remote)
 
 	m := &Manifest{
 		fs:                   f,

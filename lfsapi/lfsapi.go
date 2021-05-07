@@ -6,6 +6,8 @@ import (
 	"github.com/git-lfs/git-lfs/creds"
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/lfshttp"
+	"github.com/git-lfs/git-lfs/ssh"
+	"github.com/rubyist/tracerx"
 )
 
 type Client struct {
@@ -43,4 +45,22 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 
 func (c *Client) Context() lfshttp.Context {
 	return c.context
+}
+
+// SSHTransfer returns either an suitable transfer object or nil if the
+// server is not using an SSH remote or the git-lfs-transfer style of SSH
+// remote.
+func (c *Client) SSHTransfer(operation, remote string) *ssh.SSHTransfer {
+	endpoint := c.Endpoints.Endpoint(operation, remote)
+	if len(endpoint.SSHMetadata.UserAndHost) > 0 {
+		ctx := c.Context()
+		tracerx.Printf("attempting pure SSH protocol connection")
+		sshTransfer, err := ssh.NewSSHTransfer(ctx.OSEnv(), ctx.GitEnv(), &endpoint.SSHMetadata, operation)
+		if err != nil {
+			tracerx.Printf("pure SSH protocol connection failed: %s", err)
+			return nil
+		}
+		return sshTransfer
+	}
+	return nil
 }
