@@ -63,7 +63,7 @@ type Client struct {
 func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
 	return &Client{
 		Remote:             remote,
-		client:             &httpLockClient{Client: lfsClient},
+		client:             newGenericLockClient(lfsClient),
 		cache:              &nilLockCacher{},
 		cfg:                cfg,
 		ModifyIgnoredFiles: lfsClient.GitEnv().Bool("lfs.lockignoredfiles", false),
