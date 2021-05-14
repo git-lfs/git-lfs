@@ -789,3 +789,24 @@ urlify() {
     echo "$1"
   fi
 }
+
+setup_pure_ssh() {
+  export PATH="$ROOTDIR/t/scutiger/bin:$PATH"
+  if ! command -v git-lfs-transfer >/dev/null 2>&1
+  then
+    if [ -z "$CI" ]
+    then
+      echo "No git-lfs-transfer.  Skipping..."
+      exit 0
+    else
+      echo "No git-lfs-transfer.  Failing.."
+      exit 1
+    fi
+  elif [ "$GIT_DEFAULT_HASH" = sha256 ]
+  then
+      # Scutiger's git-lfs-transfer uses libgit2, which doesn't yet do SHA-256
+      # repos.
+      echo "Using SHA-256 repositories.  Skipping..."
+      exit 0
+  fi
+}
