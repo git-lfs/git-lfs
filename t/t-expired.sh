@@ -37,7 +37,7 @@ for typ in "${expiration_types[@]}"; do
 done
 
 for typ in "${expiration_types[@]}"; do
-  begin_test "ssh expired ($typ time)"
+  begin_test "ssh expired ($typ time; git-lfs-authenticate)"
   (
     set -e
 
