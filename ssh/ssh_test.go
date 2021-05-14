@@ -154,7 +154,7 @@ func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentSsh(t *testing.T) {
 	meta.UserAndHost = "user@foo.com"
 	meta.Port = "8888"
 
-	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta))
+	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, plink, exe)
 	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
 }

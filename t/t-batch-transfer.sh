@@ -101,7 +101,7 @@ begin_test "batch transfers occur in reverse order by size"
 )
 end_test
 
-begin_test "batch transfers with ssh endpoint"
+begin_test "batch transfers with ssh endpoint (git-lfs-authenticate)"
 (
   set -e
 
@@ -120,5 +120,34 @@ begin_test "batch transfers with ssh endpoint"
   git commit -m "initial commit"
 
   git push origin main 2>&1
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="batch-ssh-transfer"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  contents="test"
+  oid="$(calc_oid "$contents")"
+  git lfs track "*.dat"
+  printf "%s" "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  git push origin main 2>&1
+  cd ..
+  GIT_TRACE=1 git clone $sshurl "$reponame-2" 2>&1 | tee trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  cd "$reponame-2"
+  git lfs fsck
 )
 end_test
