@@ -170,6 +170,24 @@ assert_server_object() {
   }
 }
 
+check_server_lock_ssh() {
+  local reponame="$1"
+  local id="$2"
+  local refspec="$3"
+  local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
+
+  (
+    pktize_text 'version 1'
+    pktize_flush
+    pktize_text 'list-lock'
+    pktize_text "id=$id"
+    pktize_text "refname=$refname"
+    pktize_flush
+    pktize_text 'quit'
+    pktize_flush
+  ) | lfs-ssh-echo git@127.0.0.1 "git-lfs-transfer '$destination' download" 2>&1
+}
+
 # This asserts the lock path and returns the lock ID by parsing the response of
 #
 #   git lfs lock --json <path>
@@ -206,6 +224,22 @@ assert_server_lock() {
   }
 }
 
+# assert that a lock with the given ID exists on the test server
+assert_server_lock_ssh() {
+  local reponame="$1"
+  local id="$2"
+  local refspec="$3"
+
+  check_server_lock_ssh "$reponame" "$id" "$refspec" |
+    tee output.log
+
+  grep "status 200" output.log
+  grep "$id" output.log || {
+    cat output.log
+    exit 1
+  }
+}
+
 # refute that a lock with the given ID exists on the test server
 refute_server_lock() {
   local reponame="$1"
@@ -220,6 +254,24 @@ refute_server_lock() {
   grep "200 OK" http.log
 
   [ $(grep -c "$id" http.json) -eq 0 ]
+}
+
+# refute that a lock with the given ID exists on the test server
+refute_server_lock_ssh() {
+  local reponame="$1"
+  local id="$2"
+  local refspec="$3"
+  local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
+
+  check_server_lock_ssh "$reponame" "$id" "$refspec" |
+    tee output.log
+
+  grep "status 200" output.log
+  if grep "$id" output.log
+  then
+    cat output.log
+    exit 1
+  fi
 }
 
 # Assert that .gitattributes contains a given attribute N times
@@ -817,4 +869,24 @@ ssh_remote() {
   # Prepend a slash iff it lacks one.  Windows compatibiity.
   [ -z "${destination##/*}" ] || destination="/$destination"
   echo "ssh://git@127.0.0.1$destination"
+}
+
+# Create a pkt-line message from s, which is an argument string to printf(1).
+pktize() {
+  local s="$1"
+  local len=$(printf "$s" | wc -c)
+  printf "%04x$s" $((len + 4))
+}
+
+pktize_text() {
+  local s="$1"
+  pktize "$s"'\n'
+}
+
+pktize_delim() {
+  printf '0001'
+}
+
+pktize_flush() {
+  printf '0000'
 }

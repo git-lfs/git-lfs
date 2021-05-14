@@ -336,3 +336,23 @@ begin_test "lock with .gitignore and lfs.lockignoredfiles"
   refute_file_writeable a.txt
 )
 end_test
+
+begin_test "lock with git-lfs-transfer"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="lock-with-git-lfs-transfer"
+  setup_remote_repo_with_file "$reponame" "f.dat"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  GIT_TRACE_PACKET=1 git lfs lock --json "f.dat" | tee lock.log
+
+  id=$(assert_lock lock.log f.dat)
+  assert_server_lock_ssh "$reponame" "$id" "refs/heads/main"
+)
+end_test
