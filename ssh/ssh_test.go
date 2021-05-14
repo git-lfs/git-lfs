@@ -439,11 +439,11 @@ func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
 	t.Logf("ENDPOINT: %+v", e)
 	assert.Equal(t, "12345", e.SSHMetadata.Port)
 	assert.Equal(t, "git@host.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "repo", e.SSHMetadata.Path)
+	assert.Equal(t, "/repo", e.SSHMetadata.Path)
 
 	exe, args := ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &e.SSHMetadata, "git-lfs-authenticate", "download", false)
 	assert.Equal(t, "not-ssh", exe)
-	assert.Equal(t, []string{"-p", "12345", "git@host.com", "git-lfs-authenticate repo download"}, args)
+	assert.Equal(t, []string{"-p", "12345", "git@host.com", "git-lfs-authenticate /repo download"}, args)
 }
 
 func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
@@ -457,11 +457,11 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 	e := lfshttp.EndpointFromSshUrl(u)
 	t.Logf("ENDPOINT: %+v", e)
 	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "repo", e.SSHMetadata.Path)
+	assert.Equal(t, "/repo", e.SSHMetadata.Path)
 
 	exe, args := ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &e.SSHMetadata, "git-lfs-authenticate", "download", false)
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
+	assert.Equal(t, []string{"--", "-oProxyCommand=gnome-calculator", "git-lfs-authenticate /repo download"}, args)
 }
 
 func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
@@ -478,11 +478,11 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
 	e := lfshttp.EndpointFromSshUrl(u)
 	t.Logf("ENDPOINT: %+v", e)
 	assert.Equal(t, "--oProxyCommand=gnome-calculator", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "repo", e.SSHMetadata.Path)
+	assert.Equal(t, "/repo", e.SSHMetadata.Path)
 
 	exe, args := ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &e.SSHMetadata, "git-lfs-authenticate", "download", false)
 	assert.Equal(t, "not-ssh", exe)
-	assert.Equal(t, []string{"oProxyCommand=gnome-calculator", "git-lfs-authenticate repo download"}, args)
+	assert.Equal(t, []string{"oProxyCommand=gnome-calculator", "git-lfs-authenticate /repo download"}, args)
 }
 
 func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
@@ -515,7 +515,7 @@ func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
 	e := lfshttp.EndpointFromSshUrl(u)
 	t.Logf("ENDPOINT: %+v", e)
 	assert.Equal(t, "git@git-host.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "-oProxyCommand=gnome-calculator", e.SSHMetadata.Path)
+	assert.Equal(t, "/-oProxyCommand=gnome-calculator", e.SSHMetadata.Path)
 
 	exe, args, needShell := ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &e.SSHMetadata, false)
 	assert.Equal(t, "ssh", exe)

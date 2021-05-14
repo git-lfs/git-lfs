@@ -54,14 +54,7 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 		endpoint.SSHMetadata.Port = match[2]
 	}
 
-	// u.Path includes a preceding '/', strip off manually
-	// rooted paths in the URL will be '//path/to/blah'
-	// this is just how Go's URL parsing works
-	if strings.HasPrefix(u.Path, "/") {
-		endpoint.SSHMetadata.Path = u.Path[1:]
-	} else {
-		endpoint.SSHMetadata.Path = u.Path
-	}
+	endpoint.SSHMetadata.Path = u.Path
 
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
@@ -98,7 +91,11 @@ func EndpointFromBareSshUrl(rawurl string) Endpoint {
 		return Endpoint{Url: UrlUnknown}
 	}
 
-	return EndpointFromSshUrl(newu)
+	endpoint := EndpointFromSshUrl(newu)
+	if strings.HasPrefix(endpoint.SSHMetadata.Path, "/") {
+		endpoint.SSHMetadata.Path = endpoint.SSHMetadata.Path[1:]
+	}
+	return endpoint
 }
 
 // Construct a new endpoint from a HTTP URL

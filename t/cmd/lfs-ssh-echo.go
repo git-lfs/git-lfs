@@ -100,11 +100,11 @@ func main() {
 		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], repo),
 	}
 	switch repo {
-	case "ssh-expired-absolute":
+	case "/ssh-expired-absolute":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
-	case "ssh-expired-relative":
+	case "/ssh-expired-relative":
 		r.ExpiresIn = -5
-	case "ssh-expired-both":
+	case "/ssh-expired-both":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
 		r.ExpiresIn = -5
 	}

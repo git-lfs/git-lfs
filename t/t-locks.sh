@@ -72,7 +72,7 @@ begin_test "list a single lock (SSH)"
   [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
   grep "Git LFS Tests" locks.log
-  grep "lfs-ssh-echo.*git-lfs-authenticate $reponame download" trace.log
+  grep "lfs-ssh-echo.*git-lfs-authenticate /$reponame download" trace.log
 )
 end_test
 

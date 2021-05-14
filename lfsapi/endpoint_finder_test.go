@@ -155,7 +155,7 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
@@ -167,7 +167,7 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
 }
 
@@ -179,7 +179,7 @@ func TestGitSSHEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
@@ -191,7 +191,7 @@ func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
 }
 
@@ -203,7 +203,7 @@ func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
@@ -215,7 +215,7 @@ func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	e := finder.Endpoint("download", "")
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
-	assert.Equal(t, "foo/bar", e.SSHMetadata.Path)
+	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
 }
 
@@ -672,7 +672,7 @@ func TestInsteadOf(t *testing.T) {
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
 				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
-					Path:        "git-lfs/git-lfs.git",
+					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
 				Operation: "upload",
@@ -685,7 +685,7 @@ func TestInsteadOf(t *testing.T) {
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
 				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
-					Path:        "git-lfs/git-lfs.git",
+					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
 				Operation: "download",
@@ -698,7 +698,7 @@ func TestInsteadOf(t *testing.T) {
 				Url: "https://example.com/git-lfs/git-lfs.git/info/lfs",
 				SSHMetadata: ssh.SSHMetadata{
 					UserAndHost: "example.com",
-					Path:        "git-lfs/git-lfs.git",
+					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
 				Operation: "upload",
