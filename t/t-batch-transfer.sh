@@ -114,7 +114,6 @@ begin_test "batch transfers with ssh endpoint"
   git lfs env
 
   contents="test"
-  oid="$(calc_oid "$contents")"
   git lfs track "*.dat"
   printf "%s" "$contents" > test.dat
   git add .gitattributes test.dat
