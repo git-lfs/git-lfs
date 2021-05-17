@@ -396,8 +396,6 @@ begin_test "migrate info (no-extension files)"
   original_main="$(git rev-parse refs/heads/main)"
   original_feature="$(git rev-parse refs/heads/my-feature)"
 
-  git lfs migrate info --everything
-
   diff -u <(git lfs migrate info --everything 2>&1 | tail -n 2) <(cat <<-EOF
 	no_extension	220 B	2/2 files(s)	100%
 	*.txt       	170 B	2/2 files(s)	100%
