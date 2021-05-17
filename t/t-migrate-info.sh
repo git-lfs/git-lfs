@@ -450,6 +450,16 @@ begin_test "migrate info (all files tracked)"
   migrated_head="$(git rev-parse HEAD)"
 
   assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --pointers=follow)"
+(
+  set -e
+
+  setup_single_local_branch_tracked
+
+  original_head="$(git rev-parse HEAD)"
 
   # Ensure "follow" command reports objects if all files are tracked by LFS.
   diff -u <(git lfs migrate info --pointers=follow 2>&1 | tail -n 3) <(cat <<-EOF
@@ -461,6 +471,16 @@ begin_test "migrate info (all files tracked)"
   migrated_head="$(git rev-parse HEAD)"
 
   assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --pointers=no-follow)"
+(
+  set -e
+
+  setup_single_local_branch_tracked
+
+  original_head="$(git rev-parse HEAD)"
 
   # Ensure "no-follow" command reports pointers if all files are tracked by LFS.
   diff -u <(git lfs migrate info --pointers=no-follow 2>&1 | tail -n 3) <(cat <<-EOF
@@ -472,6 +492,16 @@ begin_test "migrate info (all files tracked)"
   migrated_head="$(git rev-parse HEAD)"
 
   assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --pointers=ignore)"
+(
+  set -e
+
+  setup_single_local_branch_tracked
+
+  original_head="$(git rev-parse HEAD)"
 
   # Ensure "ignore" command reports no objects if all files are tracked by LFS.
   diff -u <(git lfs migrate info --pointers=ignore 2>&1 | tail -n 1) <(cat <<-EOF
@@ -484,7 +514,7 @@ begin_test "migrate info (all files tracked)"
 )
 end_test
 
-begin_test "migrate info (--everything, all files tracked)"
+begin_test "migrate info (all files tracked, --everything)"
 (
   set -e
 
@@ -505,6 +535,41 @@ begin_test "migrate info (--everything, all files tracked)"
 
   assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --everything and --pointers=follow)"
+(
+  set -e
+
+  setup_multiple_local_branches_tracked
+
+  original_main="$(git rev-parse refs/heads/main)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
+
+  # Ensure "follow" command reports objects if all files are tracked by LFS.
+  diff -u <(git lfs migrate info --everything --pointers=follow 2>&1 | tail -n 3) <(cat <<-EOF
+	*.gitattributes	83 B 	1/1 files(s)	100%
+
+	LFS Objects    	290 B	3/3 files(s)	100%
+	EOF)
+
+  migrated_main="$(git rev-parse refs/heads/main)"
+  migrated_feature="$(git rev-parse refs/heads/my-feature)"
+
+  assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
+  assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --everything and --pointers=no-follow)"
+(
+  set -e
+
+  setup_multiple_local_branches_tracked
+
+  original_main="$(git rev-parse refs/heads/main)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
 
   # Ensure "no-follow" command reports pointers if all files are tracked by LFS.
   diff -u <(git lfs migrate info --everything --pointers=no-follow 2>&1 | tail -n 3) <(cat <<-EOF
@@ -518,6 +583,17 @@ begin_test "migrate info (--everything, all files tracked)"
 
   assert_ref_unmoved "refs/heads/main" "$original_main" "$migrated_main"
   assert_ref_unmoved "refs/heads/my-feature" "$original_feature" "$migrated_feature"
+)
+end_test
+
+begin_test "migrate info (all files tracked, --everything and --pointers=ignore)"
+(
+  set -e
+
+  setup_multiple_local_branches_tracked
+
+  original_main="$(git rev-parse refs/heads/main)"
+  original_feature="$(git rev-parse refs/heads/my-feature)"
 
   # Ensure "ignore" command reports no objects if all files are tracked by LFS.
   diff -u <(git lfs migrate info --everything --pointers=ignore 2>&1 | tail -n 1) <(cat <<-EOF
