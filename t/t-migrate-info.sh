@@ -596,8 +596,15 @@ begin_test "migrate info (--everything with args)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything main 2>&1)" = \
-    "fatal: cannot use --everything with explicit reference arguments" ]
+  git lfs migrate info --everything main 2>&1 | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 1 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: cannot use --everything with explicit reference arguments" \
+    migrate.log
 )
 end_test
 
@@ -607,8 +614,16 @@ begin_test "migrate info (--everything with --include-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything --include-ref=refs/heads/main 2>&1)" = \
-    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+  git lfs migrate info --everything --include-ref=refs/heads/main 2>&1 | \
+    tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 1 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: cannot use --everything with --include-ref or --exclude-ref" \
+    migrate.log
 )
 end_test
 
@@ -618,8 +633,16 @@ begin_test "migrate info (--everything with --exclude-ref)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --everything --exclude-ref=refs/heads/main 2>&1)" = \
-    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+  git lfs migrate info --everything --exclude-ref=refs/heads/main 2>&1 | \
+    tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 1 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: cannot use --everything with --include-ref or --exclude-ref" \
+    migrate.log
 )
 end_test
 
@@ -629,7 +652,13 @@ begin_test "migrate info (--pointers invalid)"
 
   setup_multiple_local_branches
 
-  [ "$(git lfs migrate info --pointers=foo main 2>&1)" = \
-    "fatal: unsupported --pointers option value" ]
+  git lfs migrate info --everything --pointers=foo 2>&1 | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 1 ]; then
+    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -q "fatal: unsupported --pointers option value" migrate.log
 )
 end_test
