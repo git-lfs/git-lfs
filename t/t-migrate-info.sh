@@ -630,6 +630,6 @@ begin_test "migrate info (--pointers invalid)"
   setup_multiple_local_branches
 
   [ "$(git lfs migrate info --pointers=foo main 2>&1)" = \
-    "Unsupported --pointers option value" ]
+    "fatal: unsupported --pointers option value" ]
 )
 end_test

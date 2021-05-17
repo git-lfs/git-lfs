@@ -93,7 +93,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		case "ignore":
 			migrateInfoPointersMode = migrateInfoPointersIgnore
 		default:
-			Exit("Unsupported --pointers option value")
+			ExitWithError(errors.Errorf("fatal: unsupported --pointers option value"))
 		}
 	}
 
