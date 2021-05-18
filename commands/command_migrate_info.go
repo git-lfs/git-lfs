@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 	"github.com/git-lfs/git-lfs/git/githistory"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tasklog"
@@ -84,7 +85,8 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		migrateInfoUnit = unit
 	}
 
-	if pointers := cmd.Flag("pointers"); pointers.Changed {
+	pointers := cmd.Flag("pointers")
+	if pointers.Changed {
 		switch pointers.Value.String() {
 		case "follow":
 			migrateInfoPointersMode = migrateInfoPointersFollow
@@ -93,12 +95,24 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		case "ignore":
 			migrateInfoPointersMode = migrateInfoPointersIgnore
 		default:
-			Exit("Unsupported --pointers option value")
+			ExitWithError(errors.Errorf("fatal: unsupported --pointers option value"))
 		}
+	}
+
+	if migrateFixup {
+		include, exclude := getIncludeExcludeArgs(cmd)
+		if include != nil || exclude != nil {
+			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --include, --exclude"))
+		}
+		if pointers.Changed && migrateInfoPointersMode != migrateInfoPointersIgnore {
+			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --pointers=%s", pointers.Value.String()))
+		}
+		migrateInfoPointersMode = migrateInfoPointersIgnore
 	}
 
 	migrateInfoAbove = above
 	pointersInfoEntry := &MigrateInfoEntry{Qualifier: "LFS Objects", Separate: true}
+	var fixups *gitattr.Tree
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
@@ -106,6 +120,23 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			var size int64
 			var p *lfs.Pointer
 			var err error
+
+			if migrateFixup {
+				if filepath.Base(path) == ".gitattributes" {
+					return b, nil
+				}
+
+				var ok bool
+				attrs := fixups.Applied(path)
+				for _, attr := range attrs {
+					if attr.K == "filter" {
+						ok = attr.V == "lfs"
+					}
+				}
+				if !ok {
+					return b, nil
+				}
+			}
 
 			if migrateInfoPointersMode != migrateInfoPointersNoFollow {
 				p, err = lfs.DecodePointerFromBlob(b)
@@ -129,6 +160,19 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			}
 
 			return b, nil
+		},
+
+		TreePreCallbackFn: func(path string, t *gitobj.Tree) error {
+			if migrateFixup && path == "/" {
+				var err error
+
+				fixups, err = gitattr.New(db, t)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			return nil
 		},
 	})
 	l.Close()

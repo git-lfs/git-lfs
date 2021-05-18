@@ -369,6 +369,7 @@ func init() {
 	info.Flags().StringVar(&migrateInfoAboveFmt, "above", "", "--above=<n>")
 	info.Flags().StringVar(&migrateInfoUnitFmt, "unit", "", "--unit=<unit>")
 	info.Flags().StringVar(&migrateInfoPointers, "pointers", "", "Ignore, dereference, or include LFS pointer files")
+	info.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().StringVar(&migrateImportAboveFmt, "above", "", "--above=<n>")
