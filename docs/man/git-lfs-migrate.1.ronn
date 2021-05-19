@@ -391,6 +391,11 @@ migrate: Rewriting commits: 100% (1/1), done
 migrate: Updating refs: ..., done
 ```
 
+If after conversion you find that some files in your working directory have
+been replaced with Git LFS pointers, this is normal, and the working copies
+of these files can be repopulated with their full expected contents by using
+`git lfs checkout`.
+
 ### Migrate local history
 
 You can also migrate the entire history of your repository:
@@ -446,6 +451,6 @@ $ git lfs migrate import --no-rewrite \
 
 ## SEE ALSO
 
-git-lfs-track(1), git-lfs-untrack(1), gitattributes(5).
+git-lfs-checkout(1), git-lfs-track(1), git-lfs-untrack(1), gitattributes(5).
 
 Part of the git-lfs(1) suite.
