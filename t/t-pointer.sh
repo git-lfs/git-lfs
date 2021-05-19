@@ -330,8 +330,8 @@ begin_test "pointer --check (with invalid pointer)"
 
   echo "not-a-pointer" > bad.ptr
 
-  ! git lfs pointer --check --file bad.ptr
-  ! git lfs pointer --check --stdin < bad.ptr
+  git lfs pointer --check --file bad.ptr && exit 1
+  git lfs pointer --check --stdin < bad.ptr && exit 1
 )
 end_test
 
@@ -346,12 +346,15 @@ begin_test "pointer --check (with invalid arguments)"
   touch a.txt
 
   # git-lfs-pointer(1) --check with invalid combination --compare
-  ! git lfs pointer --check --compare
+  git lfs pointer --check --compare && exit 1
 
   # git-lfs-pointer(1) --check without --file or --stdin
-  ! git lfs pointer --check
+  git lfs pointer --check && exit 1
 
   # git-lfs-pointer(1) --check with --file and --stdin
-  ! git lfs pointer --check --file a.txt --stdin
+  git lfs pointer --check --file a.txt --stdin && exit 1
+
+  # Make the result of the subshell a success.
+  true
 )
 end_test
