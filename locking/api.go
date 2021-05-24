@@ -64,7 +64,14 @@ func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *
 	}
 
 	lockRes := &lockResponse{}
-	return lockRes, res, lfshttp.DecodeJSON(res, lockRes)
+	err = lfshttp.DecodeJSON(res, lockRes)
+	if err != nil {
+		return nil, res, err
+	}
+	if lockRes.Lock == nil && len(lockRes.Message) == 0 {
+		return nil, res, fmt.Errorf("invalid server response")
+	}
+	return lockRes, res, nil
 }
 
 // UnlockRequest encapsulates the data sent in an API request to remove a lock.
@@ -110,7 +117,13 @@ func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unloc
 
 	unlockRes := &unlockResponse{}
 	err = lfshttp.DecodeJSON(res, unlockRes)
-	return unlockRes, res, err
+	if err != nil {
+		return nil, res, err
+	}
+	if unlockRes.Lock == nil && len(unlockRes.Message) == 0 {
+		return nil, res, fmt.Errorf("invalid server response")
+	}
+	return unlockRes, res, nil
 }
 
 // Filter represents a single qualifier to apply against a set of locks.
