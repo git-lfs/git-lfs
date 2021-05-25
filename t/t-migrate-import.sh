@@ -429,8 +429,9 @@ begin_test "migrate import (above)"
   # tracked because it migrated a.md
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
 
-  echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "/a.md filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "/a.txt filter=lfs diff=lfs merge=lfs"
+  git check-attr filter -- a.txt | grep -vq lfs
 )
 end_test
 
@@ -455,7 +456,34 @@ begin_test "migrate import (above without extension)"
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
 
   echo "$main_attrs" | grep -q "/just-b filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -vq "/a.txt filter=lfs diff=lfs merge=lfs"
+  git check-attr filter -- a.txt | grep -vq lfs
+)
+end_test
+
+begin_test "migrate import (above with multiple files)"
+(
+  set -e
+  # It is important that this file sort after "a.txt".
+  setup_single_local_branch_untracked "b.txt"
+
+  a_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+  b_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:b.txt")")"
+
+  git lfs migrate import --above 121B
+  # Ensure that 'a.md', whose size is above our 121 byte threshold
+  # was converted into a git-lfs pointer by the migration.
+  assert_local_object "$b_main_oid" "140"
+  assert_pointer "refs/heads/main" "b.txt" "$b_main_oid" "140"
+  refute_pointer "refs/heads/main" "a.txt" "$a_main_oid" "120"
+  refute_local_object "$a_main_oid" "120"
+
+  # The migration should have identified that *.md files are now
+  # tracked because it migrated a.md
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+
+  echo "$main_attrs" | grep -q "/b.txt filter=lfs diff=lfs merge=lfs"
+  git check-attr filter -- a.txt | grep -vq lfs
 )
 end_test
 
