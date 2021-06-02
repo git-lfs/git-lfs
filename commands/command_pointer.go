@@ -16,10 +16,12 @@ import (
 )
 
 var (
-	pointerFile    string
-	pointerCompare string
-	pointerStdin   bool
-	pointerCheck   bool
+	pointerFile     string
+	pointerCompare  string
+	pointerStdin    bool
+	pointerCheck    bool
+	pointerStrict   bool
+	pointerNoStrict bool
 )
 
 func pointerCommand(cmd *cobra.Command, args []string) {
@@ -31,6 +33,10 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 	if pointerCheck {
 		var r io.ReadCloser
 		var err error
+
+		if pointerStrict && pointerNoStrict {
+			ExitWithError(fmt.Errorf("fatal: cannot combine --strict with --no-strict"))
+		}
 
 		if len(pointerCompare) > 0 {
 			ExitWithError(fmt.Errorf("fatal: cannot combine --check with --compare"))
@@ -50,9 +56,12 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(fmt.Errorf("fatal: must specify either --file or --stdin with --compare"))
 		}
 
-		_, err = lfs.DecodePointer(r)
+		p, err := lfs.DecodePointer(r)
 		if err != nil {
 			os.Exit(1)
+		}
+		if pointerStrict && !p.Canonical {
+			os.Exit(2)
 		}
 		r.Close()
 		return
@@ -162,5 +171,7 @@ func init() {
 		cmd.Flags().StringVarP(&pointerCompare, "pointer", "p", "", "Path to a local file containing a pointer built by another Git LFS implementation.")
 		cmd.Flags().BoolVarP(&pointerStdin, "stdin", "", false, "Read a pointer built by another Git LFS implementation through STDIN.")
 		cmd.Flags().BoolVarP(&pointerCheck, "check", "", false, "Check whether the given file is a Git LFS pointer.")
+		cmd.Flags().BoolVarP(&pointerStrict, "strict", "", false, "Check whether the given Git LFS pointer is canonical.")
+		cmd.Flags().BoolVarP(&pointerNoStrict, "no-strict", "", false, "Don't check whether the given Git LFS pointer is canonical.")
 	})
 }
