@@ -101,6 +101,47 @@ begin_test "batch transfers occur in reverse order by size"
 )
 end_test
 
+begin_test "batch transfers succeed with an empty hash algorithm"
+(
+  set -e
+
+  reponame="batch-test-empty-algo"
+  contents="batch-hash-algo-empty"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  printf "hi" > good.dat
+  printf "%s" "$contents" > special.dat
+  git add .gitattributes good.dat special.dat
+  git commit -m "hi"
+
+  git push origin main 2>&1 | tee push.log
+  assert_server_object "$reponame" "$(calc_oid "$contents")"
+)
+end_test
+
+begin_test "batch transfers fail with an unknown hash algorithm"
+(
+  set -e
+
+  reponame="batch-test-invalid-algo"
+  contents="batch-hash-algo-invalid"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  printf "hi" > good.dat
+  printf "%s" "$contents" > special.dat
+  git add .gitattributes good.dat special.dat
+  git commit -m "hi"
+
+  git push origin main 2>&1 | tee push.log
+  grep 'unsupported hash algorithm' push.log
+  refute_server_object "$reponame" "$(calc_oid "$contents")"
+)
+end_test
+
 begin_test "batch transfers with ssh endpoint (git-lfs-authenticate)"
 (
   set -e
