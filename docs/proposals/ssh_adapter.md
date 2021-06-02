@@ -132,7 +132,8 @@ size = 1*DIGIT
 
 The `transfer` argument is equivalent to the corresponding value in the HTTP
 JSON API.  The `refname` argument is equivalent to the `name` argument of the
-`ref` object in the HTTP JSON API.
+`ref` object in the HTTP JSON API.  The `hash-algo` argument is equivalent to
+the `hash_algo` argument in the HTTP JSON API.
 
 Unknown arguments should be ignored, as should unknown key-value pairs in the
 `oid-line` production.
@@ -164,6 +165,9 @@ another string, `token`, which is an opaque identifier relevant only to the
 server to help it manage authentication.  These strings must meet the syntax for
 the `value` production above; if arbitrary bytes are needed, Base64 encoding is
 recommended.
+
+The `hash-algo` argument has the same meaning as the `hash_algo` field in the
+HTTP JSON API.
 
 The `expires-in` and `expires-at` key-value pairs have the same meaning as their
 corresponding items from the HTTP JSON API.
