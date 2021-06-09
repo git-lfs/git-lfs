@@ -159,6 +159,19 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 	return scanLeftRightToChan(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
+// ScanRefByTree scans through all trees in the current ref.
+func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	if err != nil {
+		return err
+	}
+
+	opts := s.opts(ScanRefsMode)
+	opts.SkipDeletedBlobs = true
+	opts.CommitsOnly = true
+	return scanRefsByTree(s, callback, []string{ref}, []string{}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+}
+
 // ScanAll scans through all objects in the git repository.
 func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
@@ -257,6 +270,7 @@ type ScanRefsOptions struct {
 	ScanMode         ScanningMode
 	RemoteName       string
 	SkipDeletedBlobs bool
+	CommitsOnly      bool
 	skippedRefs      []string
 	nameMap          map[string]string
 	mutex            *sync.Mutex

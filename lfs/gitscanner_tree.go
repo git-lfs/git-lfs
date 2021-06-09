@@ -3,10 +3,14 @@ package lfs
 import (
 	"fmt"
 	"io/ioutil"
+	"path"
+	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
 	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/git/gitattr"
 )
 
 func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
@@ -119,4 +123,116 @@ func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChann
 	}()
 
 	return NewTreeBlobChannelWrapper(blobs, errchan), nil
+}
+
+func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.Environment) (map[string]*WrappedPointer, *filepathfilter.Filter, error) {
+	pscanner, err := NewPointerScanner(gitEnv, osEnv)
+	if err != nil {
+		return nil, nil, err
+	}
+	oscanner, err := git.NewObjectScanner(gitEnv, osEnv)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pointers := make(map[string]*WrappedPointer)
+
+	paths := make([]git.AttributePath, 0)
+	processor := gitattr.NewMacroProcessor()
+
+	hasNext := true
+	for t := range treeblobs.Results {
+		if path.Base(t.Filename) == ".gitattributes" {
+			hasNext = oscanner.Scan(t.Oid)
+
+			if rdr := oscanner.Contents(); rdr != nil {
+				paths = append(paths, git.AttrPathsFromReader(
+					processor,
+					t.Filename,
+					"",
+					rdr,
+					t.Filename == ".gitattributes", // Read macros from the top-level attributes
+				)...)
+			}
+
+			if err := oscanner.Err(); err != nil {
+				return nil, nil, err
+			}
+		} else if t.Size < blobSizeCutoff {
+			hasNext = pscanner.Scan(t.Oid)
+
+			// It's intentional that we insert nil for
+			// non-pointers; we want to keep track of them
+			// as well as pointers.
+			p := pscanner.Pointer()
+			if p != nil {
+				p.Name = t.Filename
+			}
+			pointers[t.Filename] = p
+
+			if err := pscanner.Err(); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			pointers[t.Filename] = nil
+		}
+
+		if !hasNext {
+			break
+		}
+	}
+
+	// If the scanner quit early, we may still have treeblobs to
+	// read, so waiting for it to close will cause a deadlock.
+	if hasNext {
+		// Deal with nested error from incoming treeblobs
+		err := treeblobs.Wait()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if err = pscanner.Close(); err != nil {
+		return nil, nil, err
+	}
+	if err = oscanner.Close(); err != nil {
+		return nil, nil, err
+	}
+
+	patterns := make([]filepathfilter.Pattern, 0, len(paths))
+	for _, path := range paths {
+		// Convert all separators to `/` before creating a pattern to
+		// avoid characters being escaped in situations like `subtree\*.md`
+		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.Strict(true)))
+	}
+
+	return pointers, filepathfilter.NewFromPatterns(patterns, nil), nil
+}
+
+func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv config.Environment) error {
+	treeShas, err := lsTreeBlobs(tree, func(t *git.TreeBlob) bool {
+		return t != nil
+	})
+	if err != nil {
+		return err
+	}
+
+	pointers, filter, err := catFileBatchTreeForPointers(treeShas, gitEnv, osEnv)
+	if err != nil {
+		return err
+	}
+
+	for name, p := range pointers {
+		// This file matches the patterns in .gitattributes, so it
+		// should be a pointer.  If it is not, then it is a plain Git
+		// blob, which we report as an error.
+		if filter.Allows(name) {
+			if p == nil {
+				cb(nil, errors.NewPointerScanError(errors.NewNotAPointerError(nil), tree, name))
+			} else {
+				cb(p, nil)
+			}
+		}
+	}
+	return nil
 }
