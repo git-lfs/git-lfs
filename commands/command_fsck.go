@@ -37,7 +37,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
 			var pointerOk bool
-			pointerOk, err = fsckPointer(p.Name, p.Oid)
+			pointerOk, err = fsckPointer(p.Name, p.Oid, p.Size)
 			if !pointerOk {
 				corruptOids = append(corruptOids, p.Oid)
 			}
@@ -89,13 +89,17 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func fsckPointer(name, oid string) (bool, error) {
+func fsckPointer(name, oid string, size int64) (bool, error) {
 	path := cfg.Filesystem().ObjectPathname(oid)
 
 	Debug("Examining %v (%v)", name, path)
 
 	f, err := os.Open(path)
 	if pErr, pOk := err.(*os.PathError); pOk {
+		// This is an empty file.  No problem here.
+		if size == 0 {
+			return true, nil
+		}
 		Print("Object %s (%s) could not be checked: %s", name, oid, pErr.Err)
 		return false, nil
 	}
