@@ -137,3 +137,40 @@ begin_test "fsck: outside git repository"
   grep "Not in a git repository" fsck.log
 )
 end_test
+
+begin_test "fsck detects invalid pointers"
+(
+  set -e
+
+  reponame="fsck-pointers"
+  git init $reponame
+  cd $reponame
+
+  # Create a commit with some files tracked by git-lfs
+  git lfs track *.dat
+  echo "test data" > a.dat
+  echo "test data 2" > b.dat
+  git add .gitattributes *.dat
+
+  git cat-file blob :a.dat | awk '{ sub(/$/, "\r"); print }' >crlf.dat
+  base64 /dev/urandom | head -c 1025 > large.dat
+  git \
+    -c "filter.lfs.process=" \
+    -c "filter.lfs.clean=cat" \
+    -c "filter.lfs.required=false" \
+    add *.dat
+  git commit -m "first commit"
+
+  set +e
+  git lfs fsck >test.log 2>&1
+  RET=$?
+  git lfs fsck --pointers >>test.log 2>&1
+  RET2=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ "$RET2" -eq 1 ]
+  [ $(grep -c 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log) -eq 2 ]
+  [ $(grep -c 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log) -eq 2 ]
+)
+end_test

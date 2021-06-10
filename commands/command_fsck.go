@@ -72,25 +72,24 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if fsckDryRun {
-		return
+	if fsckDryRun || len(corruptOids) == 0 {
+		os.Exit(1)
 	}
 
-	if len(corruptOids) != 0 {
-		badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
-		Print("objects: repair: moving corrupt objects to %s", badDir)
+	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
+	Print("objects: repair: moving corrupt objects to %s", badDir)
 
-		if err := tools.MkdirAll(badDir, cfg); err != nil {
+	if err := tools.MkdirAll(badDir, cfg); err != nil {
+		ExitWithError(err)
+	}
+
+	for _, oid := range corruptOids {
+		badFile := filepath.Join(badDir, oid)
+		if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
 			ExitWithError(err)
 		}
-
-		for _, oid := range corruptOids {
-			badFile := filepath.Join(badDir, oid)
-			if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
-				ExitWithError(err)
-			}
-		}
 	}
+	os.Exit(1)
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
