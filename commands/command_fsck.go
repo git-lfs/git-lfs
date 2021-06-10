@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/errors"
 	"github.com/git-lfs/git-lfs/filepathfilter"
@@ -45,9 +46,30 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	installHooks(false)
 	setupRepository()
 
-	ref, err := git.CurrentRef()
-	if err != nil {
-		ExitWithError(err)
+	useIndex := false
+	start := ""
+	end := "HEAD"
+
+	switch len(args) {
+	case 0:
+		useIndex = true
+		ref, err := git.CurrentRef()
+		if err != nil {
+			ExitWithError(err)
+		}
+		end = ref.Sha
+	case 1:
+		pieces := strings.SplitN(args[0], "..", 2)
+		refs, err := git.ResolveRefs(pieces)
+		if err != nil {
+			ExitWithError(err)
+		}
+		if len(refs) == 2 {
+			start = refs[0].Sha
+			end = refs[1].Sha
+		} else {
+			end = refs[0].Sha
+		}
 	}
 
 	if !fsckPointers && !fsckObjects {
@@ -93,7 +115,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
-func doFsckObjects(ref *git.Ref) []string {
+func doFsckObjects(start, end string, useIndex bool) []string {
 	var corruptOids []string
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
@@ -116,12 +138,20 @@ func doFsckObjects(ref *git.Ref) []string {
 	// Attach a filepathfilter to avoid _only_ the excluded paths.
 	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths())
 
-	if err := gitscanner.ScanRef(ref.Sha, nil); err != nil {
-		ExitWithError(err)
+	if start == "" {
+		if err := gitscanner.ScanRef(end, nil); err != nil {
+			ExitWithError(err)
+		}
+	} else {
+		if err := gitscanner.ScanRefRange(start, end, nil); err != nil {
+			ExitWithError(err)
+		}
 	}
 
-	if err := gitscanner.ScanIndex("HEAD", nil); err != nil {
-		ExitWithError(err)
+	if useIndex {
+		if err := gitscanner.ScanIndex("HEAD", nil); err != nil {
+			ExitWithError(err)
+		}
 	}
 
 	gitscanner.Close()
@@ -161,8 +191,14 @@ func doFsckPointers(start, end string) []corruptPointer {
 		}
 	})
 
-	if err := gitscanner.ScanRefByTree(ref.Sha, nil); err != nil {
-		ExitWithError(err)
+	if start == "" {
+		if err := gitscanner.ScanRefByTree(end, nil); err != nil {
+			ExitWithError(err)
+		}
+	} else {
+		if err := gitscanner.ScanRefRangeByTree(start, end, nil); err != nil {
+			ExitWithError(err)
+		}
 	}
 
 	gitscanner.Close()

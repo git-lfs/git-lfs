@@ -140,6 +140,20 @@ func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer)
 	return scanLeftRightToChan(s, callback, left, right, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
+// ScanRefRangeByTree scans through all trees from the given left and right
+// refs.
+func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	if err != nil {
+		return err
+	}
+
+	opts := s.opts(ScanRefsMode)
+	opts.SkipDeletedBlobs = false
+	opts.CommitsOnly = true
+	return scanRefsByTree(s, callback, []string{right}, []string{left}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+}
+
 // ScanRefWithDeleted scans through all objects in the given ref, including
 // git objects that have been modified or deleted.
 func (s *GitScanner) ScanRefWithDeleted(ref string, cb GitScannerFoundPointer) error {
