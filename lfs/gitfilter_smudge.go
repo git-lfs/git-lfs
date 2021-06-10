@@ -71,7 +71,9 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 
 	var n int64
 
-	if statErr != nil || stat == nil {
+	if ptr.Size == 0 {
+		return 0, nil
+	} else if statErr != nil || stat == nil {
 		if download {
 			n, err = f.downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
 		} else {
