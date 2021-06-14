@@ -49,7 +49,10 @@ $ ./install.sh
 
 #### From source
 
-- Place the `git-lfs` binary on your system’s executable `$PATH` or equivalent.
+- Ensure you have the latest version of Go, GNU make, and a standard Unix-compatible build environment installed.
+- On Windows, install `goversioninfo` with `go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo`.
+- Run `make`.
+- Place the `git-lfs` binary, which can be found in `bin`, on your system’s executable `$PATH` or equivalent.
 - Git LFS requires global configuration changes once per-machine. This can be done by
 running:
 
