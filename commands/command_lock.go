@@ -19,9 +19,8 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		Print("Usage: git lfs lock <path>")
-		return
+	if len(args) != 1 {
+		Exit("Usage: git lfs lock <path>")
 	}
 
 	path, err := lockPath(args[0])
