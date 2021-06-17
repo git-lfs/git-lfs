@@ -85,7 +85,15 @@ func lockPath(file string) (string, error) {
 			"could not follow symlinks for %s", wd)
 	}
 
-	abs := filepath.Join(wd, file)
+	var abs string
+	if filepath.IsAbs(file) {
+		abs, err = tools.CanonicalizeSystemPath(file)
+		if err != nil {
+			return "", fmt.Errorf("lfs: unable to canonicalize path %q: %v", file, err)
+		}
+	} else {
+		abs = filepath.Join(wd, file)
+	}
 	path, err := filepath.Rel(repo, abs)
 	if err != nil {
 		return "", err

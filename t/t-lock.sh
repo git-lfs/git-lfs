@@ -95,6 +95,27 @@ begin_test "lock multiple files"
 )
 end_test
 
+begin_test "lock absolute path"
+(
+  set -e
+
+  reponame="lock-absolute-path"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  echo "b" > b.dat
+  git add .gitattributes a.dat b.dat
+  git commit -m "add dat files"
+  git push origin main:other
+
+  git lfs lock --json "$(pwd)/a.dat" | tee lock.json
+  id=$(assert_lock lock.json a.dat)
+  assert_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "create lock with server using client cert"
 (
   set -e
