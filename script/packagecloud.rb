@@ -43,6 +43,7 @@ $distro_name_map = {
     "sles/15.2",  # Current
   ],
   "centos/8" => [
+    "almalinux/8",
     "el/8",
     "fedora/32",
     "fedora/33",

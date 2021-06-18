@@ -14,7 +14,7 @@ else #Basically Centos 5/6
 fi
 
 case "${OS_NAME}" in
-  centos*|red*)
+  centos*|red*|almalinux)
     RPM_DIST=".el${VERSION_ID}"
     ;;
   fedora)
