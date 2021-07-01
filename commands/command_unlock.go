@@ -29,9 +29,10 @@ var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
 func unlockCommand(cmd *cobra.Command, args []string) {
 	hasPath := len(args) > 0
 	hasId := len(unlockCmdFlags.Id) > 0
-	if hasPath == hasId {
+	if hasPath == hasId || len(args) > 1 {
 		// If there is both an `--id` AND a `<path>`, or there is
-		// neither, print the usage and quit.
+		// neither, or there are multiple paths, print the usage and
+		// quit.
 		Exit(unlockUsage)
 	}
 
