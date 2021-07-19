@@ -317,6 +317,10 @@ begin_test "pointer --check (with valid pointer)"
 
   git lfs pointer --check --file good.ptr
   git lfs pointer --check --stdin < good.ptr
+  git lfs pointer --check --no-strict --file good.ptr
+  git lfs pointer --check --no-strict --stdin < good.ptr
+  git lfs pointer --check --strict --file good.ptr
+  git lfs pointer --check --strict --stdin < good.ptr
 )
 end_test
 
@@ -330,8 +334,83 @@ begin_test "pointer --check (with invalid pointer)"
 
   echo "not-a-pointer" > bad.ptr
 
-  ! git lfs pointer --check --file bad.ptr
-  ! git lfs pointer --check --stdin < bad.ptr
+  git lfs pointer --check --file bad.ptr && exit 1
+  git lfs pointer --check --stdin < bad.ptr && exit 1
+  git lfs pointer --check --no-strict --file bad.ptr && exit 1
+  git lfs pointer --check --no-strict --stdin < bad.ptr && exit 1
+  git lfs pointer --check --strict --file bad.ptr && exit 1
+  git lfs pointer --check --strict --stdin < bad.ptr && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test
+
+begin_test "pointer --check (with empty file)"
+(
+  set -e
+
+  reponame="pointer---check-empty-file"
+  git init "$reponame"
+  cd "$reponame"
+
+  touch empty.ptr
+
+  git lfs pointer --check --file empty.ptr
+  git lfs pointer --check --stdin < empty.ptr
+  git lfs pointer --check --no-strict --file empty.ptr
+  git lfs pointer --check --no-strict --stdin < empty.ptr
+  git lfs pointer --check --strict --file empty.ptr
+  git lfs pointer --check --strict --stdin < empty.ptr
+)
+end_test
+
+begin_test "pointer --check (with size 0 pointer)"
+(
+  set -e
+
+  reponame="pointer---check-size-0"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '%s\n' \
+      'version https://git-lfs.github.com/spec/v1' \
+      'oid sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' \
+      'size 0' \
+   >zero.ptr
+
+  git lfs pointer --check --file zero.ptr
+  git lfs pointer --check --stdin < zero.ptr
+  git lfs pointer --check --no-strict --file zero.ptr
+  git lfs pointer --check --no-strict --stdin < zero.ptr
+  git lfs pointer --check --strict --file zero.ptr && exit 1
+  git lfs pointer --check --strict --stdin < zero.ptr && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test
+
+begin_test "pointer --check (with CRLF endings)"
+(
+  set -e
+
+  reponame="pointer---check-crlf"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '%s\r\n' \
+    'version https://git-lfs.github.com/spec/v1' \
+    'oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393' \
+    'size 12345' \
+    >crlf.ptr
+
+  git lfs pointer --check --file crlf.ptr
+  git lfs pointer --check --stdin < crlf.ptr
+  git lfs pointer --check --no-strict --file crlf.ptr
+  git lfs pointer --check --no-strict --stdin < crlf.ptr
+  git lfs pointer --check --strict --file crlf.ptr && exit 1
+  git lfs pointer --check --strict --stdin < crlf.ptr && exit 1
+  # Make the result of the subshell a success.
+  true
 )
 end_test
 
@@ -346,12 +425,15 @@ begin_test "pointer --check (with invalid arguments)"
   touch a.txt
 
   # git-lfs-pointer(1) --check with invalid combination --compare
-  ! git lfs pointer --check --compare
+  git lfs pointer --check --compare && exit 1
 
   # git-lfs-pointer(1) --check without --file or --stdin
-  ! git lfs pointer --check
+  git lfs pointer --check && exit 1
 
   # git-lfs-pointer(1) --check with --file and --stdin
-  ! git lfs pointer --check --file a.txt --stdin
+  git lfs pointer --check --file a.txt --stdin && exit 1
+
+  # Make the result of the subshell a success.
+  true
 )
 end_test

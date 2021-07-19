@@ -32,6 +32,13 @@ between different Git LFS implementations.
     the invocation is invalid. Exits 0 if the data read is a valid Git LFS
     pointer. Exits 1 otherwise.
 
+* `--strict`:
+* `--no-strict`:
+    In conjunction with `--check`, `--strict` verifies that the pointer is
+    canonical; that is, it would be the one created by Git LFS.  If it is not,
+    exits 2.  The default, for backwards compatibility, is `--no-strict`, but
+    this may change in a future version.
+
 ## SEE ALSO
 
 Part of the git-lfs(1) suite.

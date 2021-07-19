@@ -3,6 +3,8 @@ package lfs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -35,6 +37,7 @@ type Pointer struct {
 	Size       int64
 	OidType    string
 	Extensions []*PointerExtension
+	Canonical  bool
 }
 
 // A PointerExtension is parsed from the Git LFS Pointer file.
@@ -52,7 +55,7 @@ func (p ByPriority) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p ByPriority) Less(i, j int) bool { return p[i].Priority < p[j].Priority }
 
 func NewPointer(oid string, size int64, exts []*PointerExtension) *Pointer {
-	return &Pointer{latest, oid, size, oidType, exts}
+	return &Pointer{latest, oid, size, oidType, exts, true}
 }
 
 func NewPointerExtension(name string, priority int, oid string) *PointerExtension {
@@ -76,6 +79,11 @@ func (p *Pointer) Encoded() string {
 	buffer.WriteString(fmt.Sprintf("oid %s:%s\n", p.OidType, p.Oid))
 	buffer.WriteString(fmt.Sprintf("size %d\n", p.Size))
 	return buffer.String()
+}
+
+func EmptyPointer() *Pointer {
+	oid := hex.EncodeToString(sha256.New().Sum(nil))
+	return NewPointer(oid, 0, nil)
 }
 
 func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
@@ -131,7 +139,14 @@ func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 		return nil, contents, err
 	}
 
+	if len(buf) == 0 {
+		return EmptyPointer(), contents, nil
+	}
+
 	p, err := decodeKV(bytes.TrimSpace(buf))
+	if err == nil && p != nil {
+		p.Canonical = p.Encoded() == string(buf)
+	}
 	return p, contents, err
 }
 

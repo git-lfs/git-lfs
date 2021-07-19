@@ -3,13 +3,29 @@ git-lfs-fsck(1) -- Check GIT LFS files for consistency
 
 ## SYNOPSIS
 
-`git lfs fsck`
+`git lfs fsck` [options] [revisions]
 
 ## DESCRIPTION
 
 Checks all GIT LFS files in the current HEAD for consistency.
 
 Corrupted files are moved to ".git/lfs/bad".
+
+The revisions may be specified as either a single committish, in which case only
+that commit is inspected; specified as a range of the form `A..B` (and only this
+form), in which case that range is inspected; or omitted entirely, in which case
+HEAD (and, for --objects, the index) is examined.
+
+The default is to perform all checks.
+
+## OPTIONS
+
+* `--objects`:
+  Check that each object in HEAD matches its expected hash and that each object
+  exists on disk.
+* `--pointers`:
+  Check that each pointer is canonical and that each file which should be stored
+  as a Git LFS file is so stored.
 
 ## SEE ALSO
 
