@@ -60,10 +60,10 @@ func TestAPILock(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
-	lockRes, res, err := lc.Lock("", &lockRequest{Path: "request", Ref: &lockRef{Name: "refs/heads/master"}})
+	lc := &httpLockClient{Client: c}
+	lockRes, status, err := lc.Lock("", &lockRequest{Path: "request", Ref: &lockRef{Name: "refs/heads/master"}})
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
+	assert.Equal(t, 200, status)
 	assert.Equal(t, "1", lockRes.Lock.Id)
 	assert.Equal(t, "response", lockRes.Lock.Path)
 }
@@ -108,14 +108,14 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
-	unlockRes, res, err := lc.Unlock(&git.Ref{
+	lc := &httpLockClient{Client: c}
+	unlockRes, status, err := lc.Unlock(&git.Ref{
 		Name: "master",
 		Sha:  "6161616161616161616161616161616161616161",
 		Type: git.RefTypeLocalBranch,
 	}, "", "123", true)
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
+	assert.Equal(t, 200, status)
 	assert.Equal(t, "123", unlockRes.Lock.Id)
 	assert.Equal(t, "response", unlockRes.Lock.Path)
 }
@@ -156,8 +156,8 @@ func TestAPISearch(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
-	locks, res, err := lc.Search("", &lockSearchRequest{
+	lc := &httpLockClient{Client: c}
+	locks, status, err := lc.Search("", &lockSearchRequest{
 		Filters: []lockFilter{
 			{Property: "a", Value: "A"},
 		},
@@ -165,7 +165,7 @@ func TestAPISearch(t *testing.T) {
 		Limit:  5,
 	})
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
+	assert.Equal(t, 200, status)
 	assert.Equal(t, 2, len(locks.Locks))
 	assert.Equal(t, "1", locks.Locks[0].Id)
 	assert.Equal(t, "2", locks.Locks[1].Id)
@@ -211,13 +211,13 @@ func TestAPISearchVerifiable(t *testing.T) {
 	}))
 	require.Nil(t, err)
 
-	lc := &lockClient{Client: c}
-	locks, res, err := lc.SearchVerifiable("", &lockVerifiableRequest{
+	lc := &httpLockClient{Client: c}
+	locks, status, err := lc.SearchVerifiable("", &lockVerifiableRequest{
 		Cursor: "cursor",
 		Limit:  5,
 	})
 	require.Nil(t, err)
-	assert.Equal(t, 200, res.StatusCode)
+	assert.Equal(t, 200, status)
 	assert.Equal(t, 2, len(locks.Ours))
 	assert.Equal(t, "1", locks.Ours[0].Id)
 	assert.Equal(t, "2", locks.Ours[1].Id)

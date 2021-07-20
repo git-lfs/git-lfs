@@ -1,9 +1,7 @@
-package git
+package pktline
 
 import (
 	"io"
-
-	"github.com/git-lfs/git-lfs/tools"
 )
 
 // PktlineWriter is an implementation of `io.Writer` which writes data buffers
@@ -14,7 +12,7 @@ type PktlineWriter struct {
 	// flush.
 	buf []byte
 	// pl is the place where packets get written.
-	pl *pktline
+	pl *Pktline
 }
 
 var _ io.Writer = new(PktlineWriter)
@@ -31,7 +29,17 @@ func NewPktlineWriter(w io.Writer, c int) *PktlineWriter {
 
 	return &PktlineWriter{
 		buf: make([]byte, 0, c),
-		pl:  newPktline(nil, w),
+		pl:  NewPktline(nil, w),
+	}
+}
+
+// NewPktlineWriterFromPktline returns a new *PktlineWriter based on the
+// underlying *Pktline object.  The internal buffer is initialized with the
+// given capacity, "c".
+func NewPktlineWriterFromPktline(pl *Pktline, c int) *PktlineWriter {
+	return &PktlineWriter{
+		buf: make([]byte, 0, c),
+		pl:  pl,
 	}
 }
 
@@ -61,7 +69,7 @@ func (w *PktlineWriter) Write(p []byte) (int, error) {
 		// While there is still data left to process in "p", grab as
 		// much of it as we can while not allowing the internal buffer
 		// to exceed the MaxPacketLength const.
-		m := tools.MinInt(len(p[n:]), MaxPacketLength-len(w.buf))
+		m := minInt(len(p[n:]), MaxPacketLength-len(w.buf))
 
 		// Append on all of the data that we could into the internal
 		// buffer.
@@ -95,7 +103,7 @@ func (w *PktlineWriter) Flush() error {
 		return err
 	}
 
-	if err := w.pl.writeFlush(); err != nil {
+	if err := w.pl.WriteFlush(); err != nil {
 		return err
 	}
 
@@ -112,11 +120,11 @@ func (w *PktlineWriter) flush() (int, error) {
 	var n int
 
 	for len(w.buf) > 0 {
-		if err := w.pl.writePacket(w.buf); err != nil {
+		if err := w.pl.WritePacket(w.buf); err != nil {
 			return 0, err
 		}
 
-		m := tools.MinInt(len(w.buf), MaxPacketLength)
+		m := minInt(len(w.buf), MaxPacketLength)
 
 		w.buf = w.buf[m:]
 

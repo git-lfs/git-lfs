@@ -13,6 +13,9 @@ if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
   export GIT_LFS_LOCK_ACQUIRE_DISABLED=1
 fi
 
+# Build git-lfs-transfer from scutiger.
+cargo install --root t/scutiger scutiger-lfs
+
 # Set GOPATH if it isn't already set.
 eval "$(go env | grep GOPATH)"
 go get golang.org/x/tools/cmd/goimports

@@ -9,6 +9,7 @@ man/*
 *.test
 tmp
 t/remote
+t/scutiger
 t/test_count
 t/test_count.lock
 

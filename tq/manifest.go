@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/config"
 	"github.com/git-lfs/git-lfs/fs"
 	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/ssh"
 	"github.com/rubyist/tracerx"
 )
 
@@ -30,7 +31,8 @@ type Manifest struct {
 	uploadAdapterFuncs      map[string]NewAdapterFunc
 	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
-	tqClient                *tqClient
+	sshTransfer             *ssh.SSHTransfer
+	batchClientAdapter      BatchClient
 	mu                      sync.Mutex
 }
 
@@ -54,11 +56,11 @@ func (m *Manifest) IsStandaloneTransfer() bool {
 	return m.standaloneTransferAgent != ""
 }
 
-func (m *Manifest) batchClient() *tqClient {
+func (m *Manifest) batchClient() BatchClient {
 	if r := m.MaxRetries(); r > 0 {
-		m.tqClient.MaxRetries = r
+		m.batchClientAdapter.SetMaxRetries(r)
 	}
-	return m.tqClient
+	return m.batchClientAdapter
 }
 
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *Manifest {
@@ -71,12 +73,15 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		apiClient = cli
 	}
 
+	sshTransfer := apiClient.SSHTransfer(operation, remote)
+
 	m := &Manifest{
 		fs:                   f,
 		apiClient:            apiClient,
-		tqClient:             &tqClient{Client: apiClient},
+		batchClientAdapter:   &tqClient{Client: apiClient},
 		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
 		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
+		sshTransfer:          sshTransfer,
 	}
 
 	var tusAllowed bool
@@ -109,11 +114,20 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 		m.concurrentTransfers = defaultConcurrentTransfers
 	}
 
+	if sshTransfer != nil {
+		// Multiple concurrent transfers are not yet supported.
+		m.batchClientAdapter = &SSHBatchClient{
+			maxRetries: m.maxRetries,
+			transfer:   sshTransfer,
+		}
+	}
+
 	configureBasicDownloadAdapter(m)
 	configureBasicUploadAdapter(m)
 	if tusAllowed {
 		configureTusAdapter(m)
 	}
+	configureSSHAdapter(m)
 	return m
 }
 
@@ -130,7 +144,7 @@ func findStandaloneTransfer(client *lfsapi.Client, operation, remote string) str
 		return v
 	}
 
-	ep := client.Endpoints.RemoteEndpoint(operation, remote)
+	ep := client.Endpoints.Endpoint(operation, remote)
 	aep := client.Endpoints.Endpoint(operation, remote)
 	uc := config.NewURLConfig(client.GitEnv())
 	v, ok := uc.Get("lfs", ep.Url, "standalonetransferagent")

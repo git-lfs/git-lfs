@@ -2,15 +2,6 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-urlify () {
-  if [ "$IS_WINDOWS" -eq 1 ]
-  then
-    echo "$1" | sed -e 's,\\,/,g' -e 's,:,%3a,g' -e 's, ,%20,g'
-  else
-    echo "$1"
-  fi
-}
-
 do_upload_download_test () {
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log

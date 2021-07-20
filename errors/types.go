@@ -117,6 +117,20 @@ func IsBadPointerKeyError(err error) bool {
 	return false
 }
 
+// IsProtocolError indicates that the SSH pkt-line protocol data is invalid.
+func IsProtocolError(err error) bool {
+	if e, ok := err.(interface {
+		ProtocolError() bool
+	}); ok {
+		return e.ProtocolError()
+	}
+
+	if parent := parentOf(err); parent != nil {
+		return IsProtocolError(parent)
+	}
+	return false
+}
+
 // If an error is abad pointer error of any type, returns NotAPointerError
 func StandardizeBadPointerError(err error) error {
 	if IsBadPointerKeyError(err) {
@@ -444,6 +458,20 @@ func (e retriableError) RetriableError() bool {
 
 func NewRetriableError(err error) error {
 	return retriableError{newWrappedError(err, "")}
+}
+
+// Definitions for IsProtocolError()
+
+type protocolError struct {
+	*wrappedError
+}
+
+func (e protocolError) ProtocolError() bool {
+	return true
+}
+
+func NewProtocolError(message string, err error) error {
+	return protocolError{newWrappedError(err, message)}
 }
 
 func parentOf(err error) error {

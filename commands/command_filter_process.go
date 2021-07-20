@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/git"
 	"github.com/git-lfs/git-lfs/lfs"
 	"github.com/git-lfs/git-lfs/tq"
+	"github.com/git-lfs/pktline"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +27,7 @@ const (
 	// smudgeFilterBufferCapacity is the desired capacity of the
 	// `*git.PacketWriter`'s internal buffer when the filter protocol
 	// dictates the "smudge" command.
-	smudgeFilterBufferCapacity = git.MaxPacketLength
+	smudgeFilterBufferCapacity = pktline.MaxPacketLength
 )
 
 // filterSmudgeSkip is a command-line flag owned by the `filter-process` command
@@ -72,14 +73,14 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		var n int64
 		var err error
 		var delayed bool
-		var w *git.PktlineWriter
+		var w *pktline.PktlineWriter
 
 		req := s.Request()
 
 		switch req.Header["command"] {
 		case "clean":
 			s.WriteStatus(statusFromErr(nil))
-			w = git.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
+			w = pktline.NewPktlineWriter(os.Stdout, cleanFilterBufferCapacity)
 
 			var ptr *lfs.Pointer
 			ptr, err = clean(gitfilter, w, req.Payload, req.Header["pathname"], -1)
@@ -101,7 +102,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 				go infiniteTransferBuffer(q, available)
 			}
 
-			w = git.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
+			w = pktline.NewPktlineWriter(os.Stdout, smudgeFilterBufferCapacity)
 			if req.Header["can-delay"] == "1" {
 				var ptr *lfs.Pointer
 

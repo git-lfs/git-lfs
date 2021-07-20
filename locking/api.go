@@ -10,7 +10,14 @@ import (
 	"github.com/git-lfs/git-lfs/lfshttp"
 )
 
-type lockClient struct {
+type lockClient interface {
+	Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error)
+	Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error)
+	Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error)
+	SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error)
+}
+
+type httpLockClient struct {
 	*lfsapi.Client
 }
 
@@ -50,28 +57,31 @@ type lockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, *http.Response, error) {
+func (c *httpLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks", lockReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.lock")
 	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
-		return nil, res, err
+		if res != nil {
+			return nil, res.StatusCode, err
+		}
+		return nil, 0, err
 	}
 
 	lockRes := &lockResponse{}
 	err = lfshttp.DecodeJSON(res, lockRes)
 	if err != nil {
-		return nil, res, err
+		return nil, res.StatusCode, err
 	}
 	if lockRes.Lock == nil && len(lockRes.Message) == 0 {
-		return nil, res, fmt.Errorf("invalid server response")
+		return nil, res.StatusCode, fmt.Errorf("invalid server response")
 	}
-	return lockRes, res, nil
+	return lockRes, res.StatusCode, nil
 }
 
 // UnlockRequest encapsulates the data sent in an API request to remove a lock.
@@ -98,7 +108,7 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, *http.Response, error) {
+func (c *httpLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
 	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{
@@ -106,24 +116,27 @@ func (c *lockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unloc
 		Ref:   &lockRef{Name: ref.Refspec()},
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.unlock")
 	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
-		return nil, res, err
+		if res != nil {
+			return nil, res.StatusCode, err
+		}
+		return nil, 0, err
 	}
 
 	unlockRes := &unlockResponse{}
 	err = lfshttp.DecodeJSON(res, unlockRes)
 	if err != nil {
-		return nil, res, err
+		return nil, res.StatusCode, err
 	}
 	if unlockRes.Lock == nil && len(unlockRes.Message) == 0 {
-		return nil, res, fmt.Errorf("invalid server response")
+		return nil, res.StatusCode, fmt.Errorf("invalid server response")
 	}
-	return unlockRes, res, nil
+	return unlockRes, res.StatusCode, nil
 }
 
 // Filter represents a single qualifier to apply against a set of locks.
@@ -192,11 +205,11 @@ type lockList struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, *http.Response, error) {
+func (c *httpLockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error) {
 	e := c.Endpoints.Endpoint("download", remote)
 	req, err := c.NewRequest("GET", e, "locks", nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	q := req.URL.Query()
@@ -208,7 +221,10 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 	req = c.Client.LogRequest(req, "lfs.locks.search")
 	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
-		return nil, res, err
+		if res != nil {
+			return nil, res.StatusCode, err
+		}
+		return nil, 0, err
 	}
 
 	locks := &lockList{}
@@ -216,7 +232,7 @@ func (c *lockClient) Search(remote string, searchReq *lockSearchRequest) (*lockL
 		err = lfshttp.DecodeJSON(res, locks)
 	}
 
-	return locks, res, err
+	return locks, res.StatusCode, err
 }
 
 // lockVerifiableRequest encapsulates the request sent to the server when the
@@ -258,17 +274,20 @@ type lockVerifiableList struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, *http.Response, error) {
+func (c *httpLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	req, err := c.NewRequest("POST", e, "locks/verify", vreq)
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 
 	req = c.Client.LogRequest(req, "lfs.locks.verify")
 	res, err := c.DoAPIRequestWithAuth(remote, req)
 	if err != nil {
-		return nil, res, err
+		if res != nil {
+			return nil, res.StatusCode, err
+		}
+		return nil, 0, err
 	}
 
 	locks := &lockVerifiableList{}
@@ -276,7 +295,7 @@ func (c *lockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest
 		err = lfshttp.DecodeJSON(res, locks)
 	}
 
-	return locks, res, err
+	return locks, res.StatusCode, err
 }
 
 // User represents the owner of a lock.
@@ -293,4 +312,56 @@ func NewUser(name string) *User {
 // String implements the fmt.Stringer interface.
 func (u *User) String() string {
 	return u.Name
+}
+
+type lockClientInfo struct {
+	remote    string
+	operation string
+}
+
+type genericLockClient struct {
+	client   *lfsapi.Client
+	lclients map[lockClientInfo]lockClient
+}
+
+func newGenericLockClient(client *lfsapi.Client) *genericLockClient {
+	return &genericLockClient{
+		client:   client,
+		lclients: make(map[lockClientInfo]lockClient),
+	}
+}
+
+func (c *genericLockClient) getClient(remote, operation string) lockClient {
+	info := lockClientInfo{
+		remote:    remote,
+		operation: operation,
+	}
+	if client := c.lclients[info]; client != nil {
+		return client
+	}
+	transfer := c.client.SSHTransfer(operation, remote)
+	var lclient lockClient
+	if transfer != nil {
+		lclient = &sshLockClient{transfer: transfer, Client: c.client}
+	} else {
+		lclient = &httpLockClient{Client: c.client}
+	}
+	c.lclients[info] = lclient
+	return lclient
+}
+
+func (c *genericLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error) {
+	return c.getClient(remote, "upload").Lock(remote, lockReq)
+}
+
+func (c *genericLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
+	return c.getClient(remote, "upload").Unlock(ref, remote, id, force)
+}
+
+func (c *genericLockClient) Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error) {
+	return c.getClient(remote, "download").Search(remote, searchReq)
+}
+
+func (c *genericLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error) {
+	return c.getClient(remote, "upload").SearchVerifiable(remote, vreq)
 }

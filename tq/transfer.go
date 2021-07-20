@@ -134,6 +134,8 @@ type Action struct {
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 	ExpiresIn int               `json:"expires_in,omitempty"`
+	Id        string            `json:"-"`
+	Token     string            `json:"-"`
 
 	createdAt time.Time
 }

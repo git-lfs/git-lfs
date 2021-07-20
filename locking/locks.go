@@ -42,7 +42,7 @@ type LockCacher interface {
 type Client struct {
 	Remote    string
 	RemoteRef *git.Ref
-	client    *lockClient
+	client    lockClient
 	cache     LockCacher
 	cacheDir  string
 	cfg       *config.Configuration
@@ -63,7 +63,7 @@ type Client struct {
 func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
 	return &Client{
 		Remote:             remote,
-		client:             &lockClient{Client: lfsClient},
+		client:             newGenericLockClient(lfsClient),
 		cache:              &nilLockCacher{},
 		cfg:                cfg,
 		ModifyIgnoredFiles: lfsClient.GitEnv().Bool("lfs.lockignoredfiles", false),
@@ -270,14 +270,12 @@ func (c *Client) SearchLocksVerifiable(limit int, cached bool) (ourLocks, theirL
 		c.cache.Clear()
 
 		for {
-			list, res, err := c.client.SearchVerifiable(c.Remote, body)
-			if res != nil {
-				switch res.StatusCode {
-				case http.StatusNotFound, http.StatusNotImplemented:
-					return ourLocks, theirLocks, errors.NewNotImplementedError(err)
-				case http.StatusForbidden:
-					return ourLocks, theirLocks, errors.NewAuthError(err)
-				}
+			list, status, err := c.client.SearchVerifiable(c.Remote, body)
+			switch status {
+			case http.StatusNotFound, http.StatusNotImplemented:
+				return ourLocks, theirLocks, errors.NewNotImplementedError(err)
+			case http.StatusForbidden:
+				return ourLocks, theirLocks, errors.NewAuthError(err)
 			}
 
 			if err != nil {

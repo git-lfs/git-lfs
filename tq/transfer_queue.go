@@ -310,7 +310,7 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 
 	q.rc.MaxRetries = q.manifest.maxRetries
 	q.rc.MaxRetryDelay = q.manifest.maxRetryDelay
-	q.client.MaxRetries = q.manifest.maxRetries
+	q.client.SetMaxRetries(q.manifest.maxRetries)
 
 	if q.batchSize <= 0 {
 		q.batchSize = defaultBatchSize
@@ -942,6 +942,10 @@ func (q *TransferQueue) Wait() {
 
 	q.meter.Flush()
 	q.errorwait.Wait()
+
+	if q.manifest.sshTransfer != nil {
+		q.manifest.sshTransfer.Shutdown()
+	}
 
 	if q.unsupportedContentType {
 		for _, line := range contentTypeWarning {

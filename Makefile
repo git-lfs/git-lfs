@@ -126,6 +126,7 @@ PKGS += lfs
 PKGS += lfsapi
 PKGS += lfshttp
 PKGS += locking
+PKGS += ssh
 PKGS += subprocess
 PKGS += tasklog
 PKGS += tools

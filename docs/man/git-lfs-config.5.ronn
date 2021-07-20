@@ -76,6 +76,12 @@ be scoped inside the configuration for a remote.
   Sets the maximum time, in seconds, for the HTTP client to maintain keepalive
   connections. Default: 30 minutes.
 
+* `lfs.ssh.automultiplex`
+
+  When using the pure SSH-based protocol, whether to multiplex requests over a
+  single connection when possible.  This option requires the use of OpenSSH or a
+  compatible SSH client.  Default: true.
+
 * `lfs.ssh.retries`
 
   Specifies the number of times Git LFS will attempt to obtain authorization via
