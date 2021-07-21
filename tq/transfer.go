@@ -235,10 +235,8 @@ type Adapter interface {
 	// Adapter instances can only be one or the other, although the same
 	// type may be instantiated for each direction
 	Direction() Direction
-	// Begin a new batch of uploads or downloads. Call this first, followed by
-	// one or more Add calls. maxConcurrency controls the number of transfers
-	// that may be done at once. The passed in callback will receive updates on
-	// progress. Either argument may be nil if not required by the client.
+	// Begin a new batch of uploads or downloads. Call this first, followed by one
+	// or more Add calls. The passed in callback will receive updates on progress.
 	Begin(cfg AdapterConfig, cb ProgressCallback) error
 	// Add queues a download/upload, which will complete asynchronously and
 	// notify the callbacks given to Begin()
