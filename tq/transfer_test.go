@@ -33,10 +33,6 @@ func (a *testAdapter) Add(ts ...*Transfer) (retries <-chan TransferResult) {
 func (a *testAdapter) End() {
 }
 
-func (a *testAdapter) ClearTempStorage() error {
-	return nil
-}
-
 func newTestAdapter(name string, dir Direction) Adapter {
 	return &testAdapter{name, dir}
 }

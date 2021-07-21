@@ -33,8 +33,8 @@ func (s *lockableNameSet) Check(blobSha string) (string, bool) {
 func noopFoundLockable(name string) {}
 
 // scanRefsToChan scans through all commits reachable by refs contained in
-// "include" and not reachable by any refs included in "excluded" and returns
-// a channel of WrappedPointer objects for all Git LFS pointers it finds.
+// "include" and not reachable by any refs included in "exclude" and invokes
+// the provided callback for each pointer file, valid or invalid, that it finds.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {

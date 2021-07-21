@@ -20,10 +20,6 @@ type basicDownloadAdapter struct {
 	*adapterBase
 }
 
-func (a *basicDownloadAdapter) ClearTempStorage() error {
-	return os.RemoveAll(a.tempDir())
-}
-
 func (a *basicDownloadAdapter) tempDir() string {
 	// Shared with the SSH adapter.
 	d := filepath.Join(a.fs.LFSStorageDir, "incomplete")

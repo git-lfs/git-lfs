@@ -119,11 +119,6 @@ func (a *customAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	return a.adapterBase.Begin(&customAdapterConfig{AdapterConfig: cfg}, cb)
 }
 
-func (a *customAdapter) ClearTempStorage() error {
-	// no action required
-	return nil
-}
-
 func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	// Start a process per worker
 	// If concurrent = false we have already dialled back workers to 1

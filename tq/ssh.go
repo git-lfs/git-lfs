@@ -173,7 +173,6 @@ func (a *SSHAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallbac
 }
 
 func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
-	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	rel, err := t.Rel("download")
 	if err != nil {
 		return err
@@ -379,12 +378,6 @@ func (a *SSHAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	a.ctx = a.adapterBase.apiClient.Context()
 	a.debugging = a.ctx.OSEnv().Bool("GIT_TRANSFER_TRACE", false)
 	return nil
-}
-
-// ClearTempStorage clears any temporary files, such as unfinished downloads that
-// would otherwise be resumed
-func (a *SSHAdapter) ClearTempStorage() error {
-	return os.RemoveAll(a.tempDir())
 }
 
 func (a *SSHAdapter) Trace(format string, args ...interface{}) {
