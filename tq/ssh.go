@@ -380,12 +380,6 @@ func (a *SSHAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
 	return nil
 }
 
-// ClearTempStorage clears any temporary files, such as unfinished downloads that
-// would otherwise be resumed
-func (a *SSHAdapter) ClearTempStorage() error {
-	return os.RemoveAll(a.tempDir())
-}
-
 func (a *SSHAdapter) Trace(format string, args ...interface{}) {
 	if !a.adapterBase.debugging {
 		return

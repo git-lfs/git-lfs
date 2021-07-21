@@ -245,9 +245,6 @@ type Adapter interface {
 	// once the queued items have completed.
 	// This call blocks until all items have been processed
 	End()
-	// ClearTempStorage clears any temporary files, such as unfinished downloads that
-	// would otherwise be resumed
-	ClearTempStorage() error
 }
 
 // Result of a transfer returned through CompletionChannel()

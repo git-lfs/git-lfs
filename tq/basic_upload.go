@@ -25,13 +25,8 @@ type basicUploadAdapter struct {
 	*adapterBase
 }
 
-func (a *basicUploadAdapter) ClearTempStorage() error {
-	// Should be empty already but also remove dir
-	return os.RemoveAll(a.tempDir())
-}
-
 func (a *basicUploadAdapter) tempDir() string {
-	// Must be dedicated to this adapter as deleted by ClearTempStorage
+	// Dedicated to this adapter rather than shared with basic download.
 	d := filepath.Join(os.TempDir(), "git-lfs-basic-temp")
 	if err := tools.MkdirAll(d, a.fs); err != nil {
 		return os.TempDir()

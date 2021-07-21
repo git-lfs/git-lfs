@@ -23,11 +23,6 @@ type tusUploadAdapter struct {
 	*adapterBase
 }
 
-func (a *tusUploadAdapter) ClearTempStorage() error {
-	// nothing to do, all temp state is on the server end
-	return nil
-}
-
 func (a *tusUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	return nil, nil
 }
