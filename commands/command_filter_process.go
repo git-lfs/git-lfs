@@ -37,6 +37,7 @@ var filterSmudgeSkip bool
 
 func filterCommand(cmd *cobra.Command, args []string) {
 	requireStdin("This command should be run by the Git filter process")
+	setupRepository()
 	installHooks(false)
 
 	s := git.NewFilterProcessScanner(os.Stdin, os.Stdout)

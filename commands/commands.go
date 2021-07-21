@@ -328,15 +328,28 @@ func setupRepository() {
 		ExitWithError(errors.Wrap(
 			err, "fatal: could not determine bareness"))
 	}
+	verifyRepositoryVersion()
 
 	if !bare {
 		changeToWorkingCopy()
 	}
 }
 
+func verifyRepositoryVersion() {
+	key := "lfs.repositoryformatversion"
+	val := cfg.FindGitLocalKey(key)
+	if val == "" {
+		cfg.SetGitLocalKey(key, "0")
+	} else if val != "0" {
+		Print("Unknown repository format version: %s", val)
+		os.Exit(128)
+	}
+}
+
 func setupWorkingCopy() {
 	requireInRepo()
 	requireWorkingCopy()
+	verifyRepositoryVersion()
 	changeToWorkingCopy()
 }
 
