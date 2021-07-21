@@ -173,7 +173,6 @@ func (a *SSHAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallbac
 }
 
 func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
-	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	rel, err := t.Rel("download")
 	if err != nil {
 		return err
