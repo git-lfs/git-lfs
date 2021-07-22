@@ -9,6 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v2/errors"
 	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/locking"
 	"github.com/git-lfs/git-lfs/v2/tools"
 	"github.com/spf13/cobra"
 )
@@ -19,15 +20,6 @@ var (
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		Exit("Usage: git lfs lock <path>")
-	}
-
-	path, err := lockPath(args[0])
-	if err != nil {
-		Exit(err.Error())
-	}
-
 	if len(lockRemote) > 0 {
 		cfg.SetRemote(lockRemote)
 	}
@@ -37,19 +29,42 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
-	lock, err := lockClient.LockFile(path)
-	if err != nil {
-		Exit("Lock failed: %v", errors.Cause(err))
+	success := true
+	locks := make([]locking.Lock, 0, len(args))
+	for _, path := range args {
+		path, err := lockPath(path)
+		if err != nil {
+			Error(err.Error())
+			success = false
+			continue
+		}
+
+		lock, err := lockClient.LockFile(path)
+		if err != nil {
+			Error("Locking %s failed: %v", path, errors.Cause(err))
+			success = false
+			continue
+		}
+
+		locks = append(locks, lock)
+
+		if locksCmdFlags.JSON {
+			continue
+		}
+
+		Print("Locked %s", path)
 	}
 
 	if locksCmdFlags.JSON {
-		if err := json.NewEncoder(os.Stdout).Encode(lock); err != nil {
+		if err := json.NewEncoder(os.Stdout).Encode(locks); err != nil {
 			Error(err.Error())
+			success = false
 		}
-		return
 	}
 
-	Print("Locked %s", path)
+	if !success {
+		os.Exit(2)
+	}
 }
 
 // lockPaths relativizes the given filepath such that it is relative to the root

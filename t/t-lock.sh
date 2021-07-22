@@ -70,7 +70,7 @@ begin_test "lock with bad ref"
     exit 1
   fi
 
-  grep 'Lock failed: Expected ref "refs/heads/other", got "refs/heads/main"' lock.json
+  grep 'Locking a.dat failed: Expected ref "refs/heads/other", got "refs/heads/main"' lock.json
 )
 end_test
 
@@ -89,9 +89,31 @@ begin_test "lock multiple files"
   git commit -m "add dat files"
   git push origin main:other
 
-  git lfs lock *.dat >log 2>&1 && exit 1
+  GIT_TRACE=0 git lfs lock *.dat >log 2>errlog
+  [ $(grep -c "Locked [ab].dat" log) -eq 2 ]
+  grep -v CREDS errlog && exit 1
+  grep "Usage:" errlog && exit 1
+  true
+)
+end_test
 
-  grep "Usage:" log
+begin_test "lock multiple files (JSON)"
+(
+  set -e
+
+  reponame="lock-multiple-files-json"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  echo "b" > b.dat
+  git add .gitattributes a.dat b.dat
+  git commit -m "add dat files"
+  git push origin main:other
+
+  git lfs lock --json *.dat | tee lock.json
+  grep -E '\[{"id":"[^"]+","path":"a\.dat","owner":{"name":"Git LFS Tests"},"locked_at":"[^"]+"},{"id":"[^"]+","path":"b\.dat","owner":{"name":"Git LFS Tests"},"locked_at":"[^"]+"}\]' lock.json
 )
 end_test
 
