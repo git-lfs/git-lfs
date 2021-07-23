@@ -98,6 +98,9 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 		stashMergeSha := strings.TrimSpace(scanner.Text())
 		stashMergeShas = append(stashMergeShas, fmt.Sprintf("%v^..%v", stashMergeSha, stashMergeSha))
 	}
+	if err := scanner.Err(); err != nil {
+		fmt.Errorf("error while scanning git log for stashed refs: %v", err)
+	}
 	err = cmd.Wait()
 	if err != nil {
 		// Ignore this error, it really only happens when there's no refs/stash
@@ -136,6 +139,10 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 			if p := scanner.Pointer(); p != nil {
 				ch <- gitscannerResult{Pointer: p}
 			}
+		}
+		if err := scanner.Err(); err != nil {
+			ioutil.ReadAll(cmd.Stdout)
+			ch <- gitscannerResult{Err: fmt.Errorf("error while scanning git log: %v", err)}
 		}
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
