@@ -198,7 +198,8 @@ type logScanner struct {
 	// the exclude patterns are skipped.
 	Filter *filepathfilter.Filter
 
-	s       *bufio.Scanner
+	r       *bufio.Reader
+	err     error
 	dir     LogDiffDirection
 	pointer *WrappedPointer
 
@@ -216,7 +217,7 @@ type logScanner struct {
 // r: a stream of output from git log with at least logLfsSearchArgs specified
 func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 	return &logScanner{
-		s:                   bufio.NewScanner(r),
+		r:                   bufio.NewReader(r),
 		dir:                 dir,
 		pointerData:         &bytes.Buffer{},
 		currentFileIncluded: true,
@@ -235,7 +236,7 @@ func (s *logScanner) Pointer() *WrappedPointer {
 }
 
 func (s *logScanner) Err() error {
-	return s.s.Err()
+	return s.err
 }
 
 func (s *logScanner) Scan() bool {
@@ -279,8 +280,16 @@ func (s *logScanner) finishLastPointer() *WrappedPointer {
 // There can be multiple diffs per commit (multiple binaries)
 // Also when a binary is changed the diff will include a '-' line for the old SHA
 func (s *logScanner) scan() (*WrappedPointer, bool) {
-	for s.s.Scan() {
-		line := s.s.Text()
+	for {
+		line, err := s.r.ReadString('\n')
+
+		if err != nil && err != io.EOF {
+			s.err = err
+			return nil, false
+		}
+
+		// remove trailing newline delimiter and optional single carriage return
+		line = strings.TrimSuffix(strings.TrimRight(line, "\n"), "\r")
 
 		if match := s.commitHeaderRegex.FindStringSubmatch(line); match != nil {
 			// Currently we're not pulling out commit groupings, but could if we wanted
@@ -326,6 +335,10 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 					s.pointerData.WriteString("\n") // newline was stripped off by scanner
 				}
 			}
+		}
+
+		if err == io.EOF {
+			break
 		}
 	}
 

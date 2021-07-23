@@ -1061,7 +1061,7 @@ begin_test "prune doesn't hang on long lines in diff"
     git lfs untrack "*.dat" 2>&1 | tee untrack.log
     grep "Untracking \"\*.dat\"" untrack.log
 
-    # Exceed the buffer size used by lfs.logScanner
+    # Exceed the default buffer size that would be used by bufio.Scanner
     dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
     git add .gitattributes test.dat
 
@@ -1090,7 +1090,7 @@ begin_test "prune doesn't hang on long lines in stash diff"
     git lfs untrack "*.dat" 2>&1 | tee untrack.log
     grep "Untracking \"\*.dat\"" untrack.log
 
-    # Exceed the buffer size used by lfs.logScanner
+    # Exceed the default buffer size that would be used by bufio.Scanner
     dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
     git stash
 
