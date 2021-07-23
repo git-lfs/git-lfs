@@ -1041,3 +1041,59 @@ begin_test "prune does not invoke external diff programs"
   git lfs prune
 )
 end_test
+
+begin_test "prune doesn't hang on long lines in diff"
+(
+    set -e
+
+    reponame="prune_longlines"
+    git init "$reponame"
+    cd "$reponame"
+
+    git lfs track "*.dat" 2>&1 | tee track.log
+    grep "Tracking \"\*.dat\"" track.log
+
+    echo "test data" >test.dat
+    git add .gitattributes test.dat
+
+    git commit -m tracked
+
+    git lfs untrack "*.dat" 2>&1 | tee untrack.log
+    grep "Untracking \"\*.dat\"" untrack.log
+
+    # Exceed the buffer size used by lfs.logScanner
+    dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
+    git add .gitattributes test.dat
+
+    git commit -m untracked
+
+    git lfs prune
+)
+end_test
+
+begin_test "prune doesn't hang on long lines in stash diff"
+(
+    set -e
+
+    reponame="prune_longlines"
+    git init "$reponame"
+    cd "$reponame"
+
+    git lfs track "*.dat" 2>&1 | tee track.log
+    grep "Tracking \"\*.dat\"" track.log
+
+    echo "test data" >test.dat
+    git add .gitattributes test.dat
+
+    git commit -m tracked
+
+    git lfs untrack "*.dat" 2>&1 | tee untrack.log
+    grep "Untracking \"\*.dat\"" untrack.log
+
+    # Exceed the buffer size used by lfs.logScanner
+    dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
+    git stash
+
+    git lfs prune
+)
+end_test
