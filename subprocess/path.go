@@ -58,16 +58,16 @@ func LookPath(file string) (string, error) {
 		}
 		path := filepath.Join(dir, file)
 		if resolved, err := findExecutable(path, exts); err == nil {
-            // Check the validity of the file by comparing absolute path
-            abs, _ := filepath.Abs(resolved)
-            if resolved != abs {
-                fmt.Println("You are going to use", abs, "which may be dangerous. Are you sure? [y/N] ")
-                response := ""
-                fmt.Scanln(&response)
-                if response != "y" && response != "Y" {
-                    continue
-                }
-            }
+			// Check the validity of the file by comparing absolute path
+			abs, _ := filepath.Abs(resolved)
+			if resolved != abs {
+				fmt.Println("You are going to use", abs, "which may be dangerous. Are you sure? [y/N] ")
+				response := ""
+				fmt.Scanln(&response)
+				if response != "y" && response != "Y" {
+					continue
+				}
+			}
 			return resolved, nil
 		}
 	}
