@@ -33,7 +33,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"fmt"
+	"runtime"
 )
 
 // LookPath searches for an executable named file in the
@@ -53,21 +53,15 @@ func LookPath(file string) (string, error) {
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
 		if dir == "" {
+			// Avoid using current directory on Windows
+			if runtime.GOOS == "windows" {
+				continue
+			}
 			// Unix shell semantics: path element "" means "."
 			dir = "."
 		}
 		path := filepath.Join(dir, file)
 		if resolved, err := findExecutable(path, exts); err == nil {
-			// Check the validity of the file by comparing absolute path
-			abs, _ := filepath.Abs(resolved)
-			if resolved != abs {
-				fmt.Println("You are going to use", abs, "which may be dangerous. Are you sure? [y/N] ")
-				response := ""
-				fmt.Scanln(&response)
-				if response != "y" && response != "Y" {
-					continue
-				}
-			}
 			return resolved, nil
 		}
 	}
