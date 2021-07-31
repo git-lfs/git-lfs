@@ -54,7 +54,7 @@ func LookPath(file string) (string, error) {
 	for _, dir := range filepath.SplitList(path) {
 		if dir == "" {
 			// Avoid using current directory on Windows
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == "windows" && file == "git" {
 				continue
 			}
 			// Unix shell semantics: path element "" means "."
