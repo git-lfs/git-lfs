@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/fs"
-	"github.com/git-lfs/git-lfs/lfsapi"
+	"github.com/git-lfs/git-lfs/v2/fs"
+	"github.com/git-lfs/git-lfs/v2/lfsapi"
 	"github.com/rubyist/tracerx"
 )
 

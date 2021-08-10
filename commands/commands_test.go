@@ -3,7 +3,7 @@ package commands
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/config"
+	"github.com/git-lfs/git-lfs/v2/config"
 	"github.com/stretchr/testify/assert"
 )
 

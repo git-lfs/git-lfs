@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/git"
 )
 
 // runCatFileBatch uses 'git cat-file --batch' to get the object contents of a

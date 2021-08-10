@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/lfsapi"
+	"github.com/git-lfs/git-lfs/v2/tools"
 )
 
 var cfg = config.New()

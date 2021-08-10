@@ -17,10 +17,10 @@ import (
 	"time"
 
 	spnego "github.com/dpotapov/go-spnego"
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/creds"
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/creds"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/tools"
 	"github.com/rubyist/tracerx"
 	"golang.org/x/net/http2"
 )

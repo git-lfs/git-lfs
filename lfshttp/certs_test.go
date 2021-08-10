@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/creds"
+	"github.com/git-lfs/git-lfs/v2/creds"
 	"github.com/stretchr/testify/assert"
 )
 

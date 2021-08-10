@@ -5,9 +5,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/fs"
-	"github.com/git-lfs/git-lfs/lfs"
-	test "github.com/git-lfs/git-lfs/t/cmd/util"
+	"github.com/git-lfs/git-lfs/v2/fs"
+	"github.com/git-lfs/git-lfs/v2/lfs"
+	test "github.com/git-lfs/git-lfs/v2/t/cmd/util"
 	"github.com/stretchr/testify/assert"
 )
 

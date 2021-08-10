@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/creds"
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/lfshttp"
+	"github.com/git-lfs/git-lfs/v2/creds"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/lfshttp"
 	"github.com/rubyist/tracerx"
 )
 

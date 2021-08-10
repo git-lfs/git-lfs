@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/v2/subprocess"
 	"github.com/rubyist/tracerx"
 )
 

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/git/gitattr"
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/git/gitattr"
+	"github.com/git-lfs/git-lfs/v2/tools"
 	"github.com/spf13/cobra"
 )
 

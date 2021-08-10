@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/ssh"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/ssh"
 )
 
 const UrlUnknown = "<unknown>"

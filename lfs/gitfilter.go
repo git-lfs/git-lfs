@@ -1,9 +1,9 @@
 package lfs
 
 import (
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/fs"
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/fs"
+	"github.com/git-lfs/git-lfs/v2/git"
 )
 
 // GitFilter provides clean and smudge capabilities

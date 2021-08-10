@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/v2/git"
 )
 
 // Attribute wraps the structure and some operations of Git's conception of an

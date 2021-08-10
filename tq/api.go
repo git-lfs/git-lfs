@@ -3,10 +3,10 @@ package tq
 import (
 	"time"
 
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/lfshttp"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/lfsapi"
+	"github.com/git-lfs/git-lfs/v2/lfshttp"
 	"github.com/rubyist/tracerx"
 )
 

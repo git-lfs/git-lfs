@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/v2/subprocess"
 )
 
 var (

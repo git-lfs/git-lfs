@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/tools"
 )
 
 type cleanedAsset struct {

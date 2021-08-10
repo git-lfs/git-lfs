@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/v2/errors"
 	"golang.org/x/sys/unix"
 )
 

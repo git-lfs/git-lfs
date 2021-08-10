@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/git-lfs/git-lfs/filepathfilter"
-	"github.com/git-lfs/git-lfs/git/gitattr"
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/filepathfilter"
+	"github.com/git-lfs/git-lfs/v2/git/gitattr"
+	"github.com/git-lfs/git-lfs/v2/tools"
 	"github.com/rubyist/tracerx"
 )
 

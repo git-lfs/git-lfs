@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/git-lfs/git-lfs/lfshttp/standalone"
+	"github.com/git-lfs/git-lfs/v2/lfshttp/standalone"
 	"github.com/spf13/cobra"
 )
 
