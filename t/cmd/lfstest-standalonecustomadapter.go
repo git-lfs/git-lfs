@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/tools"
+	"github.com/git-lfs/git-lfs/v2/tools"
 )
 
 var backupDir string

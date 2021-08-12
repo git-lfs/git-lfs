@@ -10,8 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/lfs"
 	"github.com/spf13/cobra"
 )
 

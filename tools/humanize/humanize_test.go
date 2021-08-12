@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/tools/humanize"
+	"github.com/git-lfs/git-lfs/v2/tools/humanize"
 	"github.com/stretchr/testify/assert"
 )
 

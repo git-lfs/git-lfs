@@ -1,4 +1,4 @@
-module github.com/git-lfs/git-lfs
+module github.com/git-lfs/git-lfs/v2
 
 require (
 	github.com/avast/retry-go v2.4.2+incompatible

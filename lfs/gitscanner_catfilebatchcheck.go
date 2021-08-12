@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/git"
+	"github.com/git-lfs/git-lfs/v2/git"
 )
 
 // runCatFileBatchCheck uses 'git cat-file --batch-check' to get the type and

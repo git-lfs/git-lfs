@@ -4,10 +4,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/fs"
-	"github.com/git-lfs/git-lfs/lfsapi"
-	"github.com/git-lfs/git-lfs/ssh"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/fs"
+	"github.com/git-lfs/git-lfs/v2/lfsapi"
+	"github.com/git-lfs/git-lfs/v2/ssh"
 	"github.com/rubyist/tracerx"
 )
 

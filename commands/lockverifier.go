@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfshttp"
-	"github.com/git-lfs/git-lfs/locking"
-	"github.com/git-lfs/git-lfs/tq"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/lfshttp"
+	"github.com/git-lfs/git-lfs/v2/locking"
+	"github.com/git-lfs/git-lfs/v2/tq"
 )
 
 type verifyState byte

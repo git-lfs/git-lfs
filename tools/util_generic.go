@@ -7,7 +7,7 @@ package tools
 import (
 	"io"
 
-	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/v2/errors"
 )
 
 func CheckCloneFileSupported(dir string) (supported bool, err error) {

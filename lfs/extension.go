@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/subprocess"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/subprocess"
 )
 
 type pipeRequest struct {

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/errors"
-	"github.com/git-lfs/git-lfs/filepathfilter"
+	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v2/filepathfilter"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 )

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/git-lfs/git-lfs/git"
-	test "github.com/git-lfs/git-lfs/t/cmd/util"
+	. "github.com/git-lfs/git-lfs/v2/git"
+	test "github.com/git-lfs/git-lfs/v2/t/cmd/util"
 	"github.com/stretchr/testify/assert"
 )
 

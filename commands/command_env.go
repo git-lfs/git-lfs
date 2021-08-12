@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/config"
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/lfs"
+	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/lfs"
 	"github.com/spf13/cobra"
 )
 

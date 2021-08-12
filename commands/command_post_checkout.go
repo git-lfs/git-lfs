@@ -3,8 +3,8 @@ package commands
 import (
 	"os"
 
-	"github.com/git-lfs/git-lfs/git"
-	"github.com/git-lfs/git-lfs/locking"
+	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v2/locking"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )

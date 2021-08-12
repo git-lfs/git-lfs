@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/errors"
+	"github.com/git-lfs/git-lfs/v2/errors"
 )
 
 type httpError interface {
