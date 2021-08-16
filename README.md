@@ -213,7 +213,7 @@ In alphabetical order:
 [chrisd8088-user]: https://github.com/chrisd8088
 [larsxschneider-user]: https://github.com/larsxschneider
 [bk2204-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x88ace9b29196305ba9947552f1ba225c0223b187
-[chrisd8088-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x09b4bf756670b76d63515717506c7945088335a9
+[chrisd8088-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x86cd3297749375bcf8206715f54fe648088335a9
 [larsxschneider-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xaa3b3450295830d2de6db90caba67be5a5795889
 
 ### Alumni
