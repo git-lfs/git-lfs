@@ -161,6 +161,12 @@ know in an issue, and we'll definitely try to help or get it fixed.
 Git LFS maintains a list of currently known limitations, which you can find and
 edit [here](https://github.com/git-lfs/git-lfs/wiki/Limitations).
 
+Git LFS source code utilizes Go modules in its build system, and therefore this
+project contains a `go.mod` file with a defined Go module path.  However, we
+do not maintain a stable Go language API or ABI, as Git LFS is intended to be
+used solely as a compiled binary utility.  Please do not import the `git-lfs`
+module into other Go code and do not rely on it as a source code dependency.
+
 ## Need Help?
 
 You can get help on specific commands directly:
@@ -213,7 +219,7 @@ In alphabetical order:
 [chrisd8088-user]: https://github.com/chrisd8088
 [larsxschneider-user]: https://github.com/larsxschneider
 [bk2204-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x88ace9b29196305ba9947552f1ba225c0223b187
-[chrisd8088-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x09b4bf756670b76d63515717506c7945088335a9
+[chrisd8088-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x86cd3297749375bcf8206715f54fe648088335a9
 [larsxschneider-pgp]: https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xaa3b3450295830d2de6db90caba67be5a5795889
 
 ### Alumni
