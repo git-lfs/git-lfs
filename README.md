@@ -161,6 +161,12 @@ know in an issue, and we'll definitely try to help or get it fixed.
 Git LFS maintains a list of currently known limitations, which you can find and
 edit [here](https://github.com/git-lfs/git-lfs/wiki/Limitations).
 
+Git LFS source code utilizes Go modules in its build system, and therefore this
+project contains a `go.mod` file with a defined Go module path.  However, we
+do not maintain a stable Go language API or ABI, as Git LFS is intended to be
+used solely as a compiled binary utility.  Please do not import the `git-lfs`
+module into other Go code and do not rely on it as a source code dependency.
+
 ## Need Help?
 
 You can get help on specific commands directly:
