@@ -156,7 +156,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		smudgeSkip = true
 	}
-	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths())
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitAttributes)
 	gitfilter := lfs.NewGitFilter(cfg)
 
 	if n, err := smudge(gitfilter, os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {

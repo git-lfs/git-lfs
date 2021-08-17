@@ -152,7 +152,7 @@ func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
-	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil)
+	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil, filepathfilter.GitAttributes)
 
 	// addition, + side
 	assertNextScan(t, scanner)
@@ -169,7 +169,7 @@ func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
-	scanner.Filter = filepathfilter.New(nil, []string{"wave*"})
+	scanner.Filter = filepathfilter.New(nil, []string{"wave*"}, filepathfilter.GitAttributes)
 
 	// modification, + side
 	assertNextScan(t, scanner)
@@ -257,7 +257,7 @@ func TestLogScannerDeletionsNoFiltering(t *testing.T) {
 func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffDeletions, r)
-	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil)
+	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil, filepathfilter.GitAttributes)
 
 	// deletion, - side with extensions
 	assertNextScan(t, scanner)
@@ -274,7 +274,7 @@ func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 func TestLogScannerDeletionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffDeletions, r)
-	scanner.Filter = filepathfilter.New(nil, []string{"flare*"})
+	scanner.Filter = filepathfilter.New(nil, []string{"flare*"}, filepathfilter.GitAttributes)
 
 	// deletion, - side
 	assertNextScan(t, scanner)

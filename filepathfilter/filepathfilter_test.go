@@ -7,19 +7,14 @@ import (
 )
 
 func TestPatternMatch(t *testing.T) {
-	for _, wildcard := range []string{`*`, `.`, `./`, `.\`} {
-		assertPatternMatch(t, wildcard,
-			"a",
-			"a/",
-			"a.a",
-			"a/b",
-			"a/b/",
-			"a/b.b",
-			"a/b/c",
-			"a/b/c/",
-			"a/b/c.c",
-		)
-	}
+	assertPatternMatch(t, "*",
+		"a",
+		"a.a",
+		"a/b",
+		"a/b.b",
+		"a/b/c",
+		"a/b/c.c",
+	)
 
 	assertPatternMatch(t, "filename.txt", "filename.txt")
 	assertPatternMatch(t, "*.txt", "filename.txt")
@@ -53,70 +48,87 @@ func TestPatternMatch(t *testing.T) {
 
 	// Path specific
 	assertPatternMatch(t, "sub",
-		"sub/",
 		"sub",
+		"top/sub",
+	)
+	refutePatternMatch(t, "sub",
+		"subfilename.txt",
+		"sub/filename.txt",
+		"top/sub/filename.txt",
+	)
+
+	assertPatternMatch(t, "/sub",
+		"sub",
+	)
+	refutePatternMatch(t, "/sub",
+		"subfilename.txt",
+		"sub/filename.txt",
+		"top/sub",
+		"top/sub/filename.txt",
+	)
+
+	refutePatternMatch(t, "sub/",
+		"sub",
+		"subfilename.txt",
+		"sub/filename.txt",
+		"top/sub",
+		"top/sub/filename.txt",
+	)
+	assertPatternMatchIgnore(t, "sub/",
+		"sub/",
 		"sub/filename.txt",
 		"top/sub/",
+		"top/sub/filename.txt",
+	)
+	refutePatternMatchIgnore(t, "sub/",
+		"subfilename.txt",
+	)
+
+	refutePatternMatch(t, "/sub/",
+		"sub",
+		"subfilename.txt",
+		"sub/filename.txt",
 		"top/sub",
 		"top/sub/filename.txt",
 	)
-
-	assertPatternMatch(t, "sub/", "sub/filename.txt", "top/sub/filename.txt")
-	assertPatternMatch(t, "/sub", "sub/", "sub", "sub/filename.txt")
-	assertPatternMatch(t, "/sub/", "sub/filename.txt")
-	refutePatternMatch(t, "/sub", "subfilename.txt", "top/sub/", "top/sub", "top/sub/filename.txt")
-	refutePatternMatch(t, "sub", "subfilename.txt")
-	refutePatternMatch(t, "sub/", "subfilename.txt")
-	refutePatternMatch(t, "/sub/", "subfilename.txt", "top/sub/filename.txt")
-
-	// nested path
-	assertPatternMatch(t, "top/sub",
-		"top/sub/filename.txt",
-		"top/sub/",
+	assertPatternMatchIgnore(t, "/sub/",
+		"sub/",
+		"sub/filename.txt",
+	)
+	refutePatternMatchIgnore(t, "/sub/",
+		"subfilename.txt",
 		"top/sub",
-		"root/top/sub/filename.txt",
-		"root/top/sub/",
-		"root/top/sub",
-	)
-	assertPatternMatch(t, "top/sub/", "top/sub/filename.txt")
-	assertPatternMatch(t, "top/sub/", "root/top/sub/filename.txt")
-
-	assertPatternMatch(t, "/top/sub", "top/sub/", "top/sub", "top/sub/filename.txt")
-	assertPatternMatch(t, "/top/sub/", "top/sub/filename.txt")
-
-	refutePatternMatch(t, "top/sub", "top/subfilename.txt")
-	refutePatternMatch(t, "top/sub/", "top/subfilename.txt")
-	refutePatternMatch(t, "/top/sub",
-		"top/subfilename.txt",
-		"root/top/sub/filename.txt",
-		"root/top/sub/",
-		"root/top/sub",
-	)
-
-	refutePatternMatch(t, "/top/sub/",
-		"root/top/sub/filename.txt",
-		"top/subfilename.txt",
+		"top/sub/filename.txt",
 	)
 
 	// Absolute
 	assertPatternMatch(t, "*.dat", "/path/to/sub/.git/test.dat")
 	assertPatternMatch(t, "**/.git", "/path/to/sub/.git")
-
-	// Match anything
-	assertPatternMatch(t, ".", "path.txt")
-	assertPatternMatch(t, "./", "path.txt")
-	assertPatternMatch(t, ".\\", "path.txt")
 }
 
 func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern)
+	p := NewPattern(pattern, GitAttributes)
+	for _, filename := range filenames {
+		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
+	}
+}
+
+func assertPatternMatchIgnore(t *testing.T, pattern string, filenames ...string) {
+	p := NewPattern(pattern, GitIgnore)
 	for _, filename := range filenames {
 		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
 	}
 }
 
 func refutePatternMatch(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern)
+	p := NewPattern(pattern, GitAttributes)
+	for _, filename := range filenames {
+		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
+	}
+}
+
+func refutePatternMatchIgnore(t *testing.T, pattern string, filenames ...string) {
+	p := NewPattern(pattern, GitIgnore)
 	for _, filename := range filenames {
 		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
 	}
@@ -130,13 +142,13 @@ type filterTest struct {
 }
 
 func TestFilterReportsIncludePatterns(t *testing.T) {
-	filter := New([]string{"*.foo", "*.bar"}, nil)
+	filter := New([]string{"*.foo", "*.bar"}, nil, GitAttributes)
 
 	assert.Equal(t, []string{"*.foo", "*.bar"}, filter.Include())
 }
 
 func TestFilterReportsExcludePatterns(t *testing.T) {
-	filter := New(nil, []string{"*.baz", "*.quux"})
+	filter := New(nil, []string{"*.baz", "*.quux"}, GitAttributes)
 
 	assert.Equal(t, []string{"*.baz", "*.quux"}, filter.Exclude())
 }

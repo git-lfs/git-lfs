@@ -285,8 +285,8 @@ type fastWalker struct {
 // rootDir - Absolute path to the top of the repository working directory
 func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
 	excludePaths := []filepathfilter.Pattern{
-		filepathfilter.NewPattern(".git"),
-		filepathfilter.NewPattern("**/.git"),
+		filepathfilter.NewPattern(".git", filepathfilter.GitIgnore),
+		filepathfilter.NewPattern("**/.git", filepathfilter.GitIgnore),
 	}
 
 	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))

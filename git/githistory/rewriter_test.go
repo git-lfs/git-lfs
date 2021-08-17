@@ -205,7 +205,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	include := []string{"*.txt"}
 	exclude := []string{"subdir/*.txt"}
 
-	filter := filepathfilter.New(include, exclude)
+	filter := filepathfilter.New(include, exclude, filepathfilter.GitIgnore)
 
 	db := DatabaseFromFixture(t, "non-repeated-subtrees.git")
 	r := NewRewriter(db, WithFilter(filter))
@@ -464,7 +464,7 @@ func TestHistoryRewriterUpdatesRefs(t *testing.T) {
 }
 
 func TestHistoryRewriterReturnsFilter(t *testing.T) {
-	f := filepathfilter.New([]string{"a"}, []string{"b"})
+	f := filepathfilter.New([]string{"a"}, []string{"b"}, filepathfilter.GitIgnore)
 	r := NewRewriter(nil, WithFilter(f))
 
 	expected := reflect.ValueOf(f).Elem().Addr().Pointer()

@@ -47,7 +47,7 @@ func (c *Client) refreshLockablePatterns() {
 			c.lockablePatterns = append(c.lockablePatterns, filepath.ToSlash(p.Path))
 		}
 	}
-	c.lockableFilter = filepathfilter.New(c.lockablePatterns, nil, filepathfilter.DefaultValue(false))
+	c.lockableFilter = filepathfilter.New(c.lockablePatterns, nil, filepathfilter.GitAttributes, filepathfilter.DefaultValue(false))
 }
 
 // IsFileLockable returns whether a specific file path is marked as Lockable,
@@ -100,10 +100,10 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 	var lockableFilter *filepathfilter.Filter
 	var unlockableFilter *filepathfilter.Filter
 	if lockablePatterns != nil {
-		lockableFilter = filepathfilter.New(lockablePatterns, nil)
+		lockableFilter = filepathfilter.New(lockablePatterns, nil, filepathfilter.GitAttributes)
 	}
 	if unlockablePatterns != nil {
-		unlockableFilter = filepathfilter.New(unlockablePatterns, nil)
+		unlockableFilter = filepathfilter.New(unlockablePatterns, nil, filepathfilter.GitAttributes)
 	}
 
 	return c.fixFileWriteFlags(absPath, c.LocalWorkingDir, lockableFilter, unlockableFilter)

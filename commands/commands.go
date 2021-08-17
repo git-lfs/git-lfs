@@ -130,7 +130,7 @@ func currentRemoteRef() *git.Ref {
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
-	return filepathfilter.New(inc, exc)
+	return filepathfilter.New(inc, exc, filepathfilter.GitIgnore)
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
