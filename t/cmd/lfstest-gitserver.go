@@ -409,6 +409,17 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		}
 	}
 
+	if strings.HasSuffix(repo, "batch-retry-later") {
+		if timeLeft, isWaiting := checkRateLimit("batch", "", repo, ""); isWaiting {
+			w.Header().Set("Retry-After", strconv.Itoa(timeLeft))
+			w.WriteHeader(http.StatusTooManyRequests)
+
+			w.Write([]byte("rate limit reached"))
+			fmt.Println("Setting header to: ", strconv.Itoa(timeLeft))
+			return
+		}
+	}
+
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(r)
 	testingTus := testingTusUploadInBatchReq(r)
