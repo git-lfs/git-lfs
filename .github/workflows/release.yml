@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -53,7 +53,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
