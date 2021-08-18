@@ -105,6 +105,9 @@ begin_test "fetch-recent commits"
   git config lfs.fetchrecentremoterefs false
   git config lfs.fetchrecentcommitsdays 7
 
+  # force color codes in git diff meta-information
+  git config color.diff always
+
   git lfs fetch --recent origin
   # that should have fetched main plus previous state needed within 7 days
   # current state
