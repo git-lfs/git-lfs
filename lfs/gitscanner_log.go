@@ -31,6 +31,7 @@ var (
 	logLfsSearchArgs = []string{
 		"--no-ext-diff",
 		"--no-textconv",
+		"--color=never",
 		"-G", "oid sha256:", // only diffs which include an lfs file SHA change
 		"-p",                             // include diff so we can read the SHA
 		"-U12",                           // Make sure diff context is always big enough to support 10 extension lines to get whole pointer
