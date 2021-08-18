@@ -167,6 +167,9 @@ begin_test "prune keep unpushed"
   git config lfs.fetchrecentcommitsdays 0 # only keep AT refs, no recents
   git config lfs.pruneoffsetdays 2
 
+  # force color codes in git diff meta-information
+  git config color.diff always
+
   git lfs prune
 
   # Now push main and show that older versions on main will be removed
@@ -315,6 +318,9 @@ begin_test "prune keep recent"
   git config lfs.fetchrecentremoterefs true
   git config lfs.fetchrecentcommitsdays 1
   git config lfs.pruneoffsetdays 1
+
+  # force color codes in git diff meta-information
+  git config color.diff always
 
   # push everything so that's not a reason to retain
   git push origin main:main branch_old:branch_old branch1:branch1 branch2:branch2
@@ -669,6 +675,9 @@ begin_test "prune keep stashed changes"
   assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
 
+  # force color codes in git diff meta-information
+  git config color.diff always
+
   # Prune data, should NOT delete stashed files
   git lfs prune
 
@@ -766,6 +775,9 @@ begin_test "prune keep stashed changes in index"
   assert_local_object "$oid_stashed" "${#content_stashed}"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+
+  # force color codes in git diff meta-information
+  git config color.diff always
 
   # Prune data, should NOT delete stashed file or stashed changes to index
   git lfs prune
@@ -883,6 +895,9 @@ begin_test "prune keep stashed untracked files"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
   assert_local_object "$oid_untrackedstashedbranch" "${#content_untrackedstashedbranch}"
+
+  # force color codes in git diff meta-information
+  git config color.diff always
 
   # Prune data, should NOT delete stashed file or stashed changes to index
   git lfs prune
