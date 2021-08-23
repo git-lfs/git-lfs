@@ -30,7 +30,7 @@ mkdir -p ${PACKAGE_DIR}/centos || :
 mkdir -p ${PACKAGE_DIR}/debian || :
 
 #If you are not in docker group and you have sudo, default value is sudo
-: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && command -v sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 function split_image_name()
 { #$1 - image dockerfile
