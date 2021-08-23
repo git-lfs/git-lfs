@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/git-lfs/wildmatch"
+	"github.com/git-lfs/wildmatch/v2"
 	"github.com/rubyist/tracerx"
 )
 
