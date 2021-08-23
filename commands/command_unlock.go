@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/git-lfs/git-lfs/v2/errors"
@@ -26,13 +27,32 @@ type unlockFlags struct {
 
 var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
 
+type unlockResponse struct {
+	Id       string `json:"id,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Unlocked bool   `json:"unlocked"`
+	Reason   string `json:"reason,omitempty"`
+}
+
+func handleUnlockError(locks []unlockResponse, id string, path string, err error) []unlockResponse {
+	Error(err.Error())
+	if locksCmdFlags.JSON {
+		locks = append(locks, unlockResponse{
+			Id:       id,
+			Path:     path,
+			Unlocked: false,
+			Reason:   err.Error(),
+		})
+	}
+	return locks
+}
+
 func unlockCommand(cmd *cobra.Command, args []string) {
 	hasPath := len(args) > 0
 	hasId := len(unlockCmdFlags.Id) > 0
-	if hasPath == hasId || len(args) > 1 {
+	if hasPath == hasId {
 		// If there is both an `--id` AND a `<path>`, or there is
-		// neither, or there are multiple paths, print the usage and
-		// quit.
+		// neither, print the usage and quit.
 		Exit(unlockUsage)
 	}
 
@@ -45,26 +65,41 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	lockClient.RemoteRef = refUpdate.Right()
 	defer lockClient.Close()
 
+	locks := make([]unlockResponse, 0, len(args))
+	success := true
 	if hasPath {
-		path, err := lockPath(args[0])
-		if err != nil {
-			if !unlockCmdFlags.Force {
-				Exit("Unable to determine path: %v", err.Error())
+		for _, pathspec := range args {
+			path, err := lockPath(pathspec)
+			if err != nil {
+				if !unlockCmdFlags.Force {
+					locks = handleUnlockError(locks, "", path, fmt.Errorf("Unable to determine path: %v", err.Error()))
+					success = false
+					continue
+				}
+				path = pathspec
 			}
-			path = args[0]
-		}
 
-		// This call can early-out
-		unlockAbortIfFileModified(path)
+			if err := unlockAbortIfFileModified(path); err != nil {
+				locks = handleUnlockError(locks, "", path, err)
+				success = false
+				continue
+			}
 
-		err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
-		if err != nil {
-			Exit("%s", errors.Cause(err))
-		}
+			err = lockClient.UnlockFile(path, unlockCmdFlags.Force)
+			if err != nil {
+				locks = handleUnlockError(locks, "", path, errors.Cause(err))
+				success = false
+				continue
+			}
 
-		if !locksCmdFlags.JSON {
-			Print("Unlocked %s", path)
-			return
+			if !locksCmdFlags.JSON {
+				Print("Unlocked %s", path)
+				continue
+			}
+			locks = append(locks, unlockResponse{
+				Path:     path,
+				Unlocked: true,
+			})
 		}
 	} else if unlockCmdFlags.Id != "" {
 		// This call can early-out
@@ -72,26 +107,26 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
-			Exit("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))
-		}
-
-		if !locksCmdFlags.JSON {
+			locks = handleUnlockError(locks, unlockCmdFlags.Id, "", fmt.Errorf("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err)))
+			success = false
+		} else if !locksCmdFlags.JSON {
 			Print("Unlocked Lock %s", unlockCmdFlags.Id)
-			return
 		}
 	} else {
 		Error(unlockUsage)
 	}
 
-	if err := json.NewEncoder(os.Stdout).Encode(struct {
-		Unlocked bool `json:"unlocked"`
-	}{true}); err != nil {
-		Error(err.Error())
+	if locksCmdFlags.JSON {
+		if err := json.NewEncoder(os.Stdout).Encode(locks); err != nil {
+			Error(err.Error())
+		}
 	}
-	return
+	if !success {
+		os.Exit(2)
+	}
 }
 
-func unlockAbortIfFileModified(path string) {
+func unlockAbortIfFileModified(path string) error {
 	modified, err := git.IsFileModified(path)
 
 	if err != nil {
@@ -102,9 +137,9 @@ func unlockAbortIfFileModified(path string) {
 			//
 			// Unlocking a files that does not exist with
 			// --force is OK.
-			return
+			return nil
 		}
-		Exit(err.Error())
+		return err
 	}
 
 	if modified {
@@ -112,13 +147,14 @@ func unlockAbortIfFileModified(path string) {
 			// Only a warning
 			Error("Warning: unlocking with uncommitted changes because --force")
 		} else {
-			Exit("Cannot unlock file with uncommitted changes")
+			return fmt.Errorf("Cannot unlock file with uncommitted changes")
 		}
 
 	}
+	return nil
 }
 
-func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
+func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) error {
 	// Get the path so we can check the status
 	filter := map[string]string{"id": id}
 	// try local cache first
@@ -130,10 +166,10 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) {
 
 	if len(locks) == 0 {
 		// Don't block if we can't determine the path, may be cleaning up old data
-		return
+		return nil
 	}
 
-	unlockAbortIfFileModified(locks[0].Path)
+	return unlockAbortIfFileModified(locks[0].Path)
 }
 
 func init() {
