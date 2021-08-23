@@ -559,7 +559,7 @@ setup() {
     mkdir "$REMOTEDIR"
   fi
 
-  echo "# Git LFS: ${LFS_BIN:-$(which git-lfs)}"
+  echo "# Git LFS: ${LFS_BIN:-$(command -v git-lfs)}"
   git lfs version | sed -e 's/^/# /g'
   git version | sed -e 's/^/# /g'
 

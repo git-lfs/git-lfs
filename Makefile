@@ -518,7 +518,7 @@ vendor : go.mod
 # still performs the linting sequence, but gracefully skips over running a
 # non-existent command.
 .PHONY : fmt
-ifeq ($(shell test -x "`which $(GOIMPORTS)`"; echo $$?),0)
+ifeq ($(shell test -x "`command -v $(GOIMPORTS)`"; echo $$?),0)
 fmt : $(SOURCES) | lint
 	@$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
 else
