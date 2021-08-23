@@ -1,5 +1,5 @@
-//go:build windows
-// +build windows
+//go:build windows && !arm64
+// +build windows,!arm64
 
 //go:generate goversioninfo
 

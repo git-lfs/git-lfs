@@ -10,6 +10,11 @@
   #pragma error PathToX64Binary + " does not exist, please build it first."
 #endif
 
+#define PathToARM64Binary "..\..\git-lfs-arm64.exe"
+#ifnexist PathToARM64Binary
+  #pragma error PathToARM6464Binary + " does not exist, please build it first."
+#endif
+
 ; Arbitrarily choose the x86 executable here as both have the version embedded.
 #define MyVersionInfoVersion GetFileVersion(PathToX86Binary)
 
@@ -32,7 +37,7 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 AppVersion={#MyAppVersion}
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64 arm64
 ChangesEnvironment=yes
 Compression=lzma
 DefaultDirName={code:GetDefaultDirName}
@@ -59,8 +64,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Filename: "{code:GetExistingGitInstallation}\git-lfs-uninstaller.exe"; Parameters: "/S"; Flags: skipifdoesntexist
 
 [Files]
-Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: not Is64BitInstallMode
-Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: Is64BitInstallMode
+Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86
+Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64
+Source: {#PathToARM64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsARM64
 
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: IsAdminLoggedOn and NeedsAddPath('{app}')
@@ -99,8 +105,10 @@ begin
       if not (Pos('Git\cmd', ExtractFilePath(ExecStdOut)) = 0) then begin
         // Proxy Git path detected
         Result := ExpandConstant('{pf}');
-      if Is64BitInstallMode then
+      if IsX64 then
         Result := Result + '\Git\mingw64\bin'
+      else if IsARM64 then
+        Result := Result + '\Git\arm64\bin'
       else
         Result := Result + '\Git\mingw32\bin';
       end else begin
