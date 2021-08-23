@@ -62,13 +62,15 @@ $distro_name_map = {
     "ubuntu/bionic",    # ESM April 2028
   ],
   "debian/10" => [
-    "debian/buster",    # Current
+    "debian/buster",
     "linuxmint/ulyana", # EOL April 2025
     "linuxmint/ulyssa", # EOL April 2025
     "ubuntu/focal",     # EOL April 2025
     "ubuntu/groovy",    # EOL July 2021
     "ubuntu/hirsute",   # EOL January 2022
     "ubuntu/impish",    # Current
+  ],
+  "debian/11" => [
   ]
 }
 
@@ -115,6 +117,7 @@ package_files.each do |full_path|
   when /debian\/8/  then ["Debian 8",  "debian/jessie"]
   when /debian\/9/  then ["Debian 9",  "debian/stretch"]
   when /debian\/10/ then ["Debian 10", "debian/buster"]
+  when /debian\/11/ then ["Debian 11", "debian/bullseye"]
   when /centos\/5/  then ["RPM RHEL 5/CentOS 5", "el/5"]
   when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
