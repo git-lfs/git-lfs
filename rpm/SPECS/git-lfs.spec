@@ -53,7 +53,7 @@ install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 git lfs install --system
 
 %preun
-git lfs uninstall
+git lfs uninstall --system
 
 %check
 export GIT_LFS_TEST_DIR=$(mktemp -d)
