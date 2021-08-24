@@ -50,10 +50,14 @@ install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
 %post
-git lfs install --system
+# The --skip-repo option prevents failure if / is a Git repository with existing
+# non-git-lfs hooks.
+git lfs install --skip-repo --system
 
 %preun
-git lfs uninstall --system
+# The --skip-repo option avoids mutating / if it is a Git repository. (Maybe the
+# user wants to replace this package with a different installation.)
+git lfs uninstall --skip-repo --system
 
 %check
 export GIT_LFS_TEST_DIR=$(mktemp -d)

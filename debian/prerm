@@ -1,2 +1,5 @@
 #!/bin/sh
-git lfs uninstall --system
+
+# The --skip-repo option avoids mutating / if it is a Git repository. (Maybe the
+# user wants to replace this package with a different installation.)
+git lfs uninstall --skip-repo --system

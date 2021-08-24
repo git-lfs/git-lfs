@@ -1,2 +1,5 @@
 #!/bin/sh
-git lfs install --system
+
+# The --skip-repo option prevents failure if / is a Git repository with existing
+# non-git-lfs hooks.
+git lfs install --skip-repo --system
