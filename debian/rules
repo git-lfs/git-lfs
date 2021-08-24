@@ -14,7 +14,7 @@ else ifeq ($(DEB_HOST_ARCH), arm64)
 endif
 
 BUILD_DIR := obj-$(DEB_HOST_GNU_TYPE)
-export DH_GOPKG := github.com/git-lfs/git-lfs
+export DH_GOPKG := github.com/git-lfs/git-lfs/v2
 # DH_GOLANG_EXCLUDES typically incorporates vendor exclusions
 export DH_GOLANG_EXCLUDES := test github.com/olekukonko/ts/* github.com/xeipuuv/* github.com/spf13/cobra/* github.com/kr/* github.com/pkg/errors github.com/alexbrainman/sspi/*
 export DH_GOLANG_GO_GENERATE := 1
@@ -56,8 +56,8 @@ override_dh_auto_install:
 	cp $(BUILD_DIR)/bin/git-lfs debian/git-lfs/usr/bin/
 
 override_dh_auto_test:
-	ln -s ../../../../../../commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/commands/repos
-	ln -s ../../../../bin $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/bin
+	ln -s ../../../../../../../commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/v2/commands/repos
+	ln -s ../../../../../bin $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/v2/bin
 	#dh_golang uses the wrong dir to test on. This tricks everything into being happy
 	DEB_BUILD_GNU_TYPE=$(DEB_HOST_GNU_TYPE) dh_auto_test
-	rm $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/bin
+	rm $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/v2/commands/repos $(BUILD_DIR)/src/github.com/git-lfs/git-lfs/v2/bin
