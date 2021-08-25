@@ -36,13 +36,13 @@ if [[ ${NODEPS:-0} != 0 ]]; then
   RPMBUILD=("${RPMBUILD[@]}" --nodeps)
 fi
 
-SUDO=${SUDO=`if which sudo > /dev/null 2>&1; then echo sudo; fi`}
+SUDO=${SUDO=`if command -v sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
 
 set -vx
 
 echo "Downloading/checking for some essentials..."
-if which git > /dev/null 2>&1; then
+if command -v git > /dev/null 2>&1; then
   GIT_VERSION=($(git --version))
   IFS_OLD=${IFS}
   IFS=.
@@ -59,7 +59,7 @@ if [[ ${VERSION_ID[0]} == 5 ]]; then
     $SUDO yum install -y epel-release
   fi
 fi
-$SUDO yum install -y make curl which rpm-build tar bison perl-Digest-SHA
+$SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
@@ -72,7 +72,7 @@ if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_V
   fi
 fi
 
-if ! which go; then
+if ! command -v go; then
   echo "Installing go... one way or another"
   if [[ ${VERSION_ID[0]} == 5 ]]; then
     $SUDO yum install -y curl.x86_64 glibc gcc
@@ -89,7 +89,7 @@ if ! which go; then
   fi
 fi
 
-if which ruby > /dev/null 2>&1; then
+if command -v ruby > /dev/null 2>&1; then
   IFS_OLD=${IFS}
   IFS=.
   RUBY_VERSION=($(ruby -e "print RUBY_VERSION"))
@@ -124,7 +124,7 @@ if [[ ${VERSION_ID[0]} == 8 ]]; then
   $SUDO yum install -y rubygems-devel
 fi
 
-if ! which ronn; then
+if ! command -v ronn; then
   echo "Downloading some ruby gems..."
   pushd ${CURDIR}/SOURCES
     curl -L -O https://rubygems.org/downloads/rdiscount-2.1.8.gem

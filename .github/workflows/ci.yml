@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04, macos-latest]
-        go: ['1.16.x']
+        go: ['1.17.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -42,6 +42,9 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.17.x'
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
@@ -66,6 +69,11 @@ jobs:
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=amd64 -B
       shell: bash
     - run: mv bin\git-lfs.exe git-lfs-x64.exe
+    - run: rm -f commands/mancontent_gen.go
+      shell: bash
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=arm64 -B
+      shell: bash
+    - run: mv bin\git-lfs.exe git-lfs-arm64.exe
     - run: iscc script\windows-installer\inno-setup-git-lfs-installer.iss
     - run: mkdir -p bin/assets
       shell: bash

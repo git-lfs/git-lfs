@@ -1,3 +1,4 @@
+//go:build testtools
 // +build testtools
 
 package main
@@ -405,6 +406,17 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			json.NewEncoder(w).Encode(struct {
 				Message string `json:"message"`
 			}{fmt.Sprintf("Expected ref %q, got %q", "refs/heads/"+parts[lenParts-3], objs.RefName())})
+			return
+		}
+	}
+
+	if strings.HasSuffix(repo, "batch-retry-later") {
+		if timeLeft, isWaiting := checkRateLimit("batch", "", repo, ""); isWaiting {
+			w.Header().Set("Retry-After", strconv.Itoa(timeLeft))
+			w.WriteHeader(http.StatusTooManyRequests)
+
+			w.Write([]byte("rate limit reached"))
+			fmt.Println("Setting header to: ", strconv.Itoa(timeLeft))
 			return
 		}
 	}

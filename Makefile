@@ -186,7 +186,8 @@ BUILD_TARGETS = \
 	bin/git-lfs-freebsd-amd64 \
 	bin/git-lfs-freebsd-386 \
 	bin/git-lfs-windows-amd64.exe \
-	bin/git-lfs-windows-386.exe
+	bin/git-lfs-windows-386.exe \
+	bin/git-lfs-windows-arm64.exe
 
 # mangen is a shorthand for ensuring that commands/mancontent_gen.go is kept
 # up-to-date with the contents of docs/man/*.ronn.
@@ -236,6 +237,8 @@ bin/git-lfs-windows-amd64.exe : resource.syso $(SOURCES) mangen
 	$(call BUILD,windows,amd64,-windows-amd64.exe)
 bin/git-lfs-windows-386.exe : resource.syso $(SOURCES) mangen
 	$(call BUILD,windows,386,-windows-386.exe)
+bin/git-lfs-windows-arm64.exe : resource.syso $(SOURCES) mangen
+	$(call BUILD,windows,arm64,-windows-arm64.exe)
 
 # .DEFAULT_GOAL sets the operating system-appropriate Git LFS binary as the
 # default output of 'make'.
@@ -291,6 +294,7 @@ RELEASE_TARGETS = \
 	bin/releases/git-lfs-freebsd-386-$(VERSION).tar.gz \
 	bin/releases/git-lfs-windows-amd64-$(VERSION).zip \
 	bin/releases/git-lfs-windows-386-$(VERSION).zip \
+	bin/releases/git-lfs-windows-arm64-$(VERSION).zip \
 	bin/releases/git-lfs-$(VERSION).tar.gz
 
 # RELEASE_INCLUDES are the names of additional files that are added to each
@@ -367,10 +371,13 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	@# work properly.
 	$(MAKE) -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
 	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
+	$(MAKE) -B GOARCH=arm64 && cp ./bin/git-lfs.exe ./git-lfs-arm64.exe
 	@echo Signing git-lfs-x64.exe
 	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
 	@echo Signing git-lfs-x86.exe
 	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
+	@echo Signing git-lfs-arm64.exe
+	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-arm64.exe
 	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
 	@# This file will be named according to the version number in the
 	@# versioninfo.json, not according to $(VERSION).
@@ -379,9 +386,10 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
 	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
+	mv git-lfs-arm64.exe git-lfs-windows-arm64.exe
 	@# We use tar because Git Bash doesn't include zip.
-	tar -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
-	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows.exe
+	tar -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
+	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
 
 # release-windows-rebuild takes the archive produced by release-windows and
 # incorporates the signed binaries into the existing zip archives.
@@ -391,7 +399,7 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 	file="$$PWD/$^"; \
 		( \
 			tar -C "$$temp" -xzf "$$file" && \
-			for i in 386 amd64; do \
+			for i in 386 amd64 arm64; do \
 				cp "$$temp/git-lfs-windows-$$i.exe" "$$temp/git-lfs.exe" && \
 				zip -d bin/releases/git-lfs-windows-$$i-$(VERSION).zip "git-lfs-windows-$$i.exe" && \
 				zip -j -l bin/releases/git-lfs-windows-$$i-$(VERSION).zip  "$$temp/git-lfs.exe";  \
@@ -510,7 +518,7 @@ vendor : go.mod
 # still performs the linting sequence, but gracefully skips over running a
 # non-existent command.
 .PHONY : fmt
-ifeq ($(shell test -x "`which $(GOIMPORTS)`"; echo $$?),0)
+ifeq ($(shell test -x "`command -v $(GOIMPORTS)`"; echo $$?),0)
 fmt : $(SOURCES) | lint
 	@$(GOIMPORTS) $(GOIMPORTS_EXTRA_OPTS) $?;
 else

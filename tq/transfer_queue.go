@@ -557,22 +557,30 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		var err error
 		bRes, err = Batch(q.manifest, q.direction, q.remote, q.ref, batch.ToTransfers())
 		if err != nil {
+			var hasNonScheduledErrors = false
 			// If there was an error making the batch API call, mark all of
 			// the objects for retry, and return them along with the error
 			// that was encountered. If any of the objects couldn't be
 			// retried, they will be marked as failed.
 			for _, t := range batch {
 				if q.canRetryObject(t.Oid, err) {
+					hasNonScheduledErrors = true
 					enqueueRetry(t, err, nil)
 				} else if readyTime, canRetry := q.canRetryObjectLater(t.Oid, err); canRetry {
-					err = nil
 					enqueueRetry(t, err, &readyTime)
 				} else {
+					hasNonScheduledErrors = true
 					q.wait.Done()
 				}
 			}
 
-			return next, errors.NewRetriableError(err)
+			// Only return error and mark operation as failure if at least one object
+			// was not enqueued for retrial at a later point.
+			if hasNonScheduledErrors {
+				return next, errors.NewRetriableError(err)
+			} else {
+				return next, nil
+			}
 		}
 	}
 

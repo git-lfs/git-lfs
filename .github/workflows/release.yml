@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -38,6 +38,8 @@ jobs:
       shell: bash
     - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-386-$(git describe).zip
       shell: bash
+    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-arm64-$(git describe).zip
+      shell: bash
     - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
       env:
@@ -53,7 +55,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -86,7 +88,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        go: ['1.16.x']
+        go: ['1.17.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
