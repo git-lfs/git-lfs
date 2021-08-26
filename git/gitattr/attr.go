@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/wildmatch"
+	"github.com/git-lfs/wildmatch/v2"
 )
 
 const attrPrefix = "[attr]"
@@ -133,6 +133,7 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 		if pattern != "" {
 			matchPattern = wildmatch.NewWildmatch(pattern,
 				wildmatch.Basename, wildmatch.SystemCase,
+				wildmatch.GitAttributes,
 			)
 		}
 

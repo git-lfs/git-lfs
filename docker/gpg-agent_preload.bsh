@@ -8,7 +8,7 @@ CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 IMAGE_NAME=andyneff/gpg_agent
 CONTAINER_NAME=git-lfs-gpg
 
-: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && command -v sudo > /dev/null 2>&1; then echo sudo; fi`}
 
 if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
   ${CUR_DIR}/gpg-agent_stop.bsh

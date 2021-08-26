@@ -97,7 +97,6 @@ type PathConverter interface {
 // Convert filenames expressed relative to the root of the repo relative to the
 // current working dir. Useful when needing to calling git with results from a rooted command,
 // but the user is in a subdir of their repo
-// Pass in a channel which you will fill with relative files & receive a channel which will get results
 func NewRepoToCurrentPathConverter(cfg *config.Configuration) (PathConverter, error) {
 	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
@@ -134,7 +133,6 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 // Convert filenames expressed relative to the current directory to be
 // relative to the repo root. Useful when calling git with arguments that requires them
 // to be rooted but the user is in a subdir of their repo & expects to use relative args
-// Pass in a channel which you will fill with relative files & receive a channel which will get results
 func NewCurrentToRepoPathConverter(cfg *config.Configuration) (PathConverter, error) {
 	r, c, p, err := pathConverterArgs(cfg)
 	if err != nil {
@@ -171,6 +169,41 @@ func (p *currentToRepoPathConverter) Convert(filename string) string {
 		return abs
 	}
 	return filepath.ToSlash(reltoroot)
+}
+
+// Convert filenames expressed relative to the current directory to be relative
+// to the repo root and convert them into wildmatch patterns.
+func NewCurrentToRepoPatternConverter(cfg *config.Configuration) (PathConverter, error) {
+	r, c, p, err := pathConverterArgs(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &currentToRepoPatternConverter{
+		c: &currentToRepoPathConverter{
+			repoDir:     r,
+			currDir:     c,
+			passthrough: p,
+		},
+	}, nil
+}
+
+type currentToRepoPatternConverter struct {
+	c *currentToRepoPathConverter
+}
+
+func (p *currentToRepoPatternConverter) Convert(filename string) string {
+	pattern := p.c.Convert(filename)
+	if st, err := os.Stat(filename); err == nil && st.IsDir() {
+		pattern += "/"
+	}
+	if strings.HasPrefix(pattern, "./") {
+		pattern = pattern[2:]
+		if len(pattern) == 0 {
+			pattern = "**"
+		}
+	}
+	return pattern
 }
 
 func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {

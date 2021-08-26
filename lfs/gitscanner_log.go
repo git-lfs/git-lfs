@@ -183,7 +183,7 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 	includePaths, excludePaths []string, results chan *WrappedPointer) {
 	scanner := newLogScanner(dir, log)
 	if len(includePaths)+len(excludePaths) > 0 {
-		scanner.Filter = filepathfilter.New(includePaths, excludePaths)
+		scanner.Filter = filepathfilter.New(includePaths, excludePaths, filepathfilter.GitAttributes)
 	}
 	for scanner.Scan() {
 		if p := scanner.Pointer(); p != nil {

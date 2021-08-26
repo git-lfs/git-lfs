@@ -17,8 +17,8 @@ github.com/git-lfs/gitobj/v2/storage
 github.com/git-lfs/go-netrc/netrc
 # github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 github.com/git-lfs/pktline
-# github.com/git-lfs/wildmatch v1.0.4
-github.com/git-lfs/wildmatch
+# github.com/git-lfs/wildmatch/v2 v2.0.1
+github.com/git-lfs/wildmatch/v2
 # github.com/hashicorp/go-uuid v1.0.2
 github.com/hashicorp/go-uuid
 # github.com/inconshreveable/mousetrap v1.0.0
