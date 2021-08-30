@@ -71,7 +71,7 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 
 	config := c.git.All()
 
-	re := regexp.MustCompile(fmt.Sprintf(`%s.(\S+).%s`, prefix, key))
+	re := regexp.MustCompile(fmt.Sprintf(`\A%s\.(\S+)\.%s\z`, prefix, key))
 
 	bestMatch := urlMatch{
 		key:       "",

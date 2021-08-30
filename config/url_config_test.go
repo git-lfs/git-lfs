@@ -21,6 +21,7 @@ func TestURLConfig(t *testing.T) {
 		"http.https://host.com:443/repo3.git.key": []string{"port"},
 		"http.ssh://host.com:22/repo3.git.key":    []string{"ssh-port"},
 		"http.https://host.*/a.key":               []string{"wild"},
+		"httpXhttps://host.*/aXkey":               []string{"invalid"},
 	})))
 
 	getOne := map[string]string{
@@ -51,6 +52,11 @@ func TestURLConfig(t *testing.T) {
 		value, _ := u.Get("http", rawurl, "key")
 		assert.Equal(t, expected, value, "get one: "+rawurl)
 	}
+
+	value, _ := u.Get("http", "https://host.wild/a/b/c", "k")
+	assert.Equal(t, value, "")
+	value, _ = u.Get("ttp", "https://host.wild/a/b/c", "key")
+	assert.Equal(t, value, "")
 
 	getAll := map[string][]string{
 		"https://root.com/a/b/c":           []string{"root", "root-2"},
