@@ -32,6 +32,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -52,6 +53,11 @@ func LookPath(file string) (string, error) {
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
 		if dir == "" {
+			// Windows often has empty components in the PATH and
+			// treating them as "." is not expected.
+			if runtime.GOOS == "windows" {
+				continue
+			}
 			// Unix shell semantics: path element "" means "."
 			dir = "."
 		}
