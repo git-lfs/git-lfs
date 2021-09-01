@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 )
 
 // ScanIndex returns a slice of WrappedPointer objects for all Git LFS pointers

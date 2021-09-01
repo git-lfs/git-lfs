@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/ssh"
-	"github.com/git-lfs/git-lfs/v2/subprocess"
-	"github.com/git-lfs/git-lfs/v2/tools"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/ssh"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
 )
 

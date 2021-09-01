@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/git-lfs/git-lfs/v2/t/cmd/util"
+	. "github.com/git-lfs/git-lfs/v3/t/cmd/util"
 )
 
 type TestUtilRepoCallback struct{}

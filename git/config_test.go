@@ -3,7 +3,7 @@ package git_test // to avoid import cycles
 import (
 	"testing"
 
-	. "github.com/git-lfs/git-lfs/v2/git"
+	. "github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
 )
 

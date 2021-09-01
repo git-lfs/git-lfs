@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/rubyist/tracerx"
 )
 

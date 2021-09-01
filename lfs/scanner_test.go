@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/stretchr/testify/assert"
 )
 

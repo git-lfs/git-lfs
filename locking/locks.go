@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/lfsapi"
-	"github.com/git-lfs/git-lfs/v2/tools"
-	"github.com/git-lfs/git-lfs/v2/tools/kv"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tools/kv"
 	"github.com/rubyist/tracerx"
 )
 

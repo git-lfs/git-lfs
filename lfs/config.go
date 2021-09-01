@@ -1,6 +1,6 @@
 package lfs
 
-import "github.com/git-lfs/git-lfs/v2/config"
+import "github.com/git-lfs/git-lfs/v3/config"
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
 type FetchPruneConfig struct {

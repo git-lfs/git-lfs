@@ -4,9 +4,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/creds"
-	"github.com/git-lfs/git-lfs/v2/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/creds"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 )
 
 func (c *Client) NewRequest(method string, e lfshttp.Endpoint, suffix string, body interface{}) (*http.Request, error) {

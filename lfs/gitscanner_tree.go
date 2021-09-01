@@ -6,11 +6,11 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/git/gitattr"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 )
 
 func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {

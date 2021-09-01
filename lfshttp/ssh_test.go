@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	sshp "github.com/git-lfs/git-lfs/v2/ssh"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	sshp "github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/stretchr/testify/assert"
 )
 

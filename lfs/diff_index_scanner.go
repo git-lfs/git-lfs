@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git"
 )
 
 // Status represents the status of a file that appears in the output of `git

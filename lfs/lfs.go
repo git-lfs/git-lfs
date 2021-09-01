@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/lfsapi"
-	"github.com/git-lfs/git-lfs/v2/tools"
-	"github.com/git-lfs/git-lfs/v2/tq"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/rubyist/tracerx"
 )
 

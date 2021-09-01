@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/lfsapi"
-	"github.com/git-lfs/git-lfs/v2/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

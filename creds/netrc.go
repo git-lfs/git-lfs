@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )

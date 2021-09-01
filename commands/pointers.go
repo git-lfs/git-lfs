@@ -1,6 +1,6 @@
 package commands
 
-import "github.com/git-lfs/git-lfs/v2/lfs"
+import "github.com/git-lfs/git-lfs/v3/lfs"
 
 func collectPointers(pointerCh *lfs.PointerChannelWrapper) ([]*lfs.WrappedPointer, error) {
 	var pointers []*lfs.WrappedPointer

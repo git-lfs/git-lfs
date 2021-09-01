@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/rubyist/tracerx"
 )
 

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/subprocess"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/rubyist/tracerx"
 )
 

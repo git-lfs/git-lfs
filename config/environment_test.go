@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	. "github.com/git-lfs/git-lfs/v2/config"
+	. "github.com/git-lfs/git-lfs/v3/config"
 	"github.com/stretchr/testify/assert"
 )
 

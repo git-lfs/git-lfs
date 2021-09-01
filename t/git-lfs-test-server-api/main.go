@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/fs"
-	"github.com/git-lfs/git-lfs/v2/lfsapi"
-	"github.com/git-lfs/git-lfs/v2/lfshttp"
-	t "github.com/git-lfs/git-lfs/v2/t/cmd/util"
-	"github.com/git-lfs/git-lfs/v2/tasklog"
-	"github.com/git-lfs/git-lfs/v2/tq"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/fs"
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	t "github.com/git-lfs/git-lfs/v3/t/cmd/util"
+	"github.com/git-lfs/git-lfs/v3/tasklog"
+	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/spf13/cobra"
 )
 

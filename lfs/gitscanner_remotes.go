@@ -1,8 +1,8 @@
 package lfs
 
 import (
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/tools"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tools"
 )
 
 // calcSkippedRefs checks that locally cached versions of remote refs are still

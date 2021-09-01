@@ -198,7 +198,7 @@ mangen : commands/mancontent_gen.go
 # 'commands' of Git LFS. It depends upon the contents of the 'docs' directory
 # and converts those manpages into code.
 commands/mancontent_gen.go : $(wildcard docs/man/*.ronn)
-	GOOS= GOARCH= $(GO) generate github.com/git-lfs/git-lfs/v2/commands
+	GOOS= GOARCH= $(GO) generate github.com/git-lfs/git-lfs/v3/commands
 
 # Targets 'all' and 'build' build binaries of Git LFS for the above release
 # matrix.

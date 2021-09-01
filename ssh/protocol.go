@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/subprocess"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 )
 
 type PktlineConnection struct {

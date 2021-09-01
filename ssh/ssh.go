@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/subprocess"
-	"github.com/git-lfs/git-lfs/v2/tools"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
 )
 

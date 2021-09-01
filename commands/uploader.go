@@ -10,12 +10,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/lfs"
-	"github.com/git-lfs/git-lfs/v2/tasklog"
-	"github.com/git-lfs/git-lfs/v2/tools"
-	"github.com/git-lfs/git-lfs/v2/tq"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/tasklog"
+	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/rubyist/tracerx"
 )
 

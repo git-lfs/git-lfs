@@ -12,16 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/filepathfilter"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/lfs"
-	"github.com/git-lfs/git-lfs/v2/lfsapi"
-	"github.com/git-lfs/git-lfs/v2/locking"
-	"github.com/git-lfs/git-lfs/v2/subprocess"
-	"github.com/git-lfs/git-lfs/v2/tools"
-	"github.com/git-lfs/git-lfs/v2/tq"
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/locking"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tq"
 )
 
 // Populate man pages

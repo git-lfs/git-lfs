@@ -10,10 +10,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v2/creds"
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/creds"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

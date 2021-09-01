@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/tools"
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
 )
 
