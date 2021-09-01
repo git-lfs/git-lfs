@@ -40,10 +40,10 @@ $distro_name_map = {
     "sles/12.5",
     "sles/15.0",
     "sles/15.1",
-    "sles/15.2",  # Current
+    "sles/15.2",
+    "sles/15.3",  # Current
   ],
   "centos/8" => [
-    "almalinux/8",
     "el/8",
     "fedora/32",
     "fedora/33",
@@ -68,9 +68,9 @@ $distro_name_map = {
     "ubuntu/focal",     # EOL April 2025
     "ubuntu/groovy",    # EOL July 2021
     "ubuntu/hirsute",   # EOL January 2022
-    "ubuntu/impish",    # Current
   ],
   "debian/11" => [
+    "debian/bookworm",  # Current
   ]
 }
 
