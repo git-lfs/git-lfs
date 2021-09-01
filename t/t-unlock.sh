@@ -136,9 +136,31 @@ begin_test "unlock multiple files"
 
   git lfs lock a.dat
   git lfs lock b.dat
-  git lfs unlock *.dat >log 2>&1 && exit 1
+  git lfs unlock *.dat >log 2>&1
+  grep "Usage:" log && exit 1
+  true
+)
+end_test
 
-  grep "Usage:" log
+begin_test "unlock multiple files (JSON)"
+(
+  set -e
+
+  reponame="unlock-multiple-files-json"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  echo "b" > b.dat
+  git add .gitattributes a.dat b.dat
+  git commit -m "add dat files"
+  git push origin main:other
+
+  git lfs lock a.dat
+  git lfs lock b.dat
+  git lfs unlock --json *.dat | tee lock.json
+  grep -F '[{"path":"a.dat","unlocked":true},{"path":"b.dat","unlocked":true}]' lock.json
 )
 end_test
 
