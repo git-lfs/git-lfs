@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/git-lfs/git-lfs/v2/subprocess"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 )
 
 type cygwinSupport byte

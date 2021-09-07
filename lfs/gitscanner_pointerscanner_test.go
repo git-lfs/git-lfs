@@ -9,7 +9,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v2/git"
+	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

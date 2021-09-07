@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
+	"github.com/git-lfs/git-lfs/v3/errors"
 
 	"github.com/stretchr/testify/assert"
 )

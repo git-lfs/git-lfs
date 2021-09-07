@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/errors"
-	"github.com/git-lfs/git-lfs/v2/git"
-	"github.com/git-lfs/git-lfs/v2/git/githistory"
-	"github.com/git-lfs/git-lfs/v2/tasklog"
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/githistory"
+	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )

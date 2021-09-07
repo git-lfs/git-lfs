@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v2/lfshttp"
-	"github.com/git-lfs/git-lfs/v2/ssh"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

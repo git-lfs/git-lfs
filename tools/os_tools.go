@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/subprocess"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/pkg/errors"
 )
 

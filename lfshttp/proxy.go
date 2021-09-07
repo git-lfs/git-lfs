@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v3/config"
 	"golang.org/x/net/http/httpproxy"
 )
 

@@ -3,7 +3,7 @@ package locking
 import (
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v2/tools/kv"
+	"github.com/git-lfs/git-lfs/v3/tools/kv"
 )
 
 const (

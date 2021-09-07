@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/git-lfs/git-lfs/v2/config"
+	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/spf13/cobra"
 )
 

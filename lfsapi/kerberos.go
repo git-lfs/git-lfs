@@ -3,7 +3,7 @@ package lfsapi
 import (
 	"net/http"
 
-	"github.com/git-lfs/git-lfs/v2/creds"
+	"github.com/git-lfs/git-lfs/v3/creds"
 )
 
 func (c *Client) doWithNegotiate(req *http.Request, credWrapper creds.CredentialHelperWrapper) (*http.Response, error) {

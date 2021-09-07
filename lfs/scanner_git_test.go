@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v2/config"
-	. "github.com/git-lfs/git-lfs/v2/lfs"
-	test "github.com/git-lfs/git-lfs/v2/t/cmd/util"
+	"github.com/git-lfs/git-lfs/v3/config"
+	. "github.com/git-lfs/git-lfs/v3/lfs"
+	test "github.com/git-lfs/git-lfs/v3/t/cmd/util"
 	"github.com/stretchr/testify/assert"
 )
 

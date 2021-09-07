@@ -1,6 +1,6 @@
 // The Git LFS project does not maintain a stable API or ABI for this module.
 // Please do not import this module outside of the Git LFS project.
-module github.com/git-lfs/git-lfs/v2
+module github.com/git-lfs/git-lfs/v3
 
 require (
 	github.com/avast/retry-go v2.4.2+incompatible
