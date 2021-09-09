@@ -71,6 +71,7 @@ $distro_name_map = {
   ],
   "debian/11" => [
     "debian/bullseye",  # Current stable
+    "debian/bookworm", # Current testing
   ]
 }
 
