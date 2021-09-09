@@ -70,7 +70,8 @@ $distro_name_map = {
     "ubuntu/hirsute",   # EOL January 2022
   ],
   "debian/11" => [
-    "debian/bookworm",  # Current
+    "debian/bullseye",  # Current stable
+    "debian/bookworm", # Current testing
   ]
 }
 
