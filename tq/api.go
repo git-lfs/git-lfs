@@ -1,6 +1,7 @@
 package tq
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -24,11 +25,13 @@ type batchRequest struct {
 	Objects              []*Transfer `json:"objects"`
 	TransferAdapterNames []string    `json:"transfers,omitempty"`
 	Ref                  *batchRef   `json:"ref"`
+	HashAlgorithm        string      `json:"hash_algo"`
 }
 
 type BatchResponse struct {
 	Objects             []*Transfer `json:"objects"`
 	TransferAdapterName string      `json:"transfer"`
+	HashAlgorithm       string      `json:"hash_algo"`
 	endpoint            lfshttp.Endpoint
 }
 
@@ -42,6 +45,7 @@ func Batch(m *Manifest, dir Direction, remote string, remoteRef *git.Ref, object
 		Objects:              objects,
 		TransferAdapterNames: m.GetAdapterNames(dir),
 		Ref:                  &batchRef{Name: remoteRef.Refspec()},
+		HashAlgorithm:        "sha256",
 	})
 }
 
@@ -93,6 +97,10 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 
 	if err := lfshttp.DecodeJSON(res, bRes); err != nil {
 		return bRes, errors.Wrap(err, "batch response")
+	}
+
+	if bRes.HashAlgorithm != "" && bRes.HashAlgorithm != "sha256" {
+		return bRes, errors.Wrap(fmt.Errorf("unsupported hash algorithm"), "batch response")
 	}
 
 	if res.StatusCode != 200 {

@@ -24,20 +24,20 @@ type SSHBatchClient struct {
 	transfer   *ssh.SSHTransfer
 }
 
-func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int, []string, error) {
+func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int, []string, []string, error) {
 	conn := a.transfer.Connection(0)
 	conn.Lock()
 	defer conn.Unlock()
 	err := conn.SendMessageWithLines("batch", args, batchLines)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "batch request")
+		return 0, nil, nil, errors.Wrap(err, "batch request")
 	}
 
-	status, _, lines, err := conn.ReadStatusWithLines()
+	status, args, lines, err := conn.ReadStatusWithLines()
 	if err != nil {
-		return status, nil, errors.Wrap(err, "batch response")
+		return status, nil, nil, errors.Wrap(err, "batch response")
 	}
-	return status, lines, err
+	return status, args, lines, err
 }
 
 func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, error) {
@@ -56,11 +56,11 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
 
 	requestedAt := time.Now()
-	args := []string{"transfer=ssh"}
+	args := []string{"transfer=ssh", "hash-algo=sha256"}
 	if bReq.Ref != nil {
 		args = append(args, fmt.Sprintf("refname=%s", bReq.Ref.Name))
 	}
-	status, lines, err := a.batchInternal(args, batchLines)
+	status, args, lines, err := a.batchInternal(args, batchLines)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +71,19 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 			msg = lines[0]
 		}
 		return nil, fmt.Errorf("batch response: status %d from server (%s)", status, msg)
+	}
+
+	for _, arg := range args {
+		entries := strings.SplitN(arg, "=", 2)
+		if len(entries) < 2 {
+			continue
+		}
+		if entries[0] == "hash-algo" {
+			bRes.HashAlgorithm = entries[1]
+			if bRes.HashAlgorithm != "sha256" {
+				return nil, fmt.Errorf("batch response: unsupported hash algorithm: %q", entries[1])
+			}
+		}
 	}
 
 	sort.Strings(lines)

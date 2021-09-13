@@ -59,7 +59,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
-		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress",
+		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
@@ -356,8 +356,9 @@ func (r *batchReq) RefName() string {
 }
 
 type batchResp struct {
-	Transfer string      `json:"transfer,omitempty"`
-	Objects  []lfsObject `json:"objects"`
+	Transfer      string      `json:"transfer,omitempty"`
+	Objects       []lfsObject `json:"objects"`
+	HashAlgorithm string      `json:"hash_algo,omitempty"`
 }
 
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
@@ -428,6 +429,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	testingCustomTransfer := testingCustomTransfer(r)
 	var transferChoice string
 	var searchForTransfer string
+	hashAlgo := "sha256"
 	if testingTus {
 		searchForTransfer = "tus"
 	} else if testingCustomTransfer {
@@ -492,6 +494,12 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 				o.Size = -1
 			}
 
+			if handler == "batch-hash-algo-empty" {
+				hashAlgo = ""
+			} else if handler == "batch-hash-algo-invalid" {
+				hashAlgo = "invalid"
+			}
+
 			if handler == "send-deprecated-links" {
 				o.Links = make(map[string]*lfsLink)
 			}
@@ -537,7 +545,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		res = append(res, o)
 	}
 
-	ores := batchResp{Transfer: transferChoice, Objects: res}
+	ores := batchResp{HashAlgorithm: hashAlgo, Transfer: transferChoice, Objects: res}
 
 	by, err := json.Marshal(ores)
 	if err != nil {

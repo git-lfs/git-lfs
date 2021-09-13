@@ -36,6 +36,8 @@ be assumed by the server.
 * `objects` - An Array of objects to download.
   * `oid` - String OID of the LFS object.
   * `size` - Integer byte size of the LFS object. Must be at least zero.
+* `hash_algo` - The hash algorithm used to name Git LFS objects.  Optional;
+  defaults to `sha256` if not specified.
 
 Note: Git LFS currently only supports the `basic` transfer adapter. This
 property was added for future compatibility with some experimental transfer
@@ -56,7 +58,8 @@ transfer adapters.
       "oid": "12345678",
       "size": 123
     }
-  ]
+  ],
+  "hash_algo": "sha256"
 }
 ```
 
@@ -148,6 +151,8 @@ omitted.
     * `expires_at` - String uppercase RFC 3339-formatted timestamp with second
       precision for when the given action expires (usually due to a temporary
       token).
+* `hash_algo` - The hash algorithm used to name Git LFS objects for this
+  repository.  Optional; defaults to `sha256` if not specified.
 
 Download operations MUST specify a `download` action, or an object error if the
 object cannot be downloaded for some reason. See "Response Errors" below.
@@ -179,7 +184,8 @@ completely. The client will then assume the server already has it.
         }
       }
     }
-  ]
+  ],
+  "hash_algo": "sha256"
 }
 ```
 
@@ -200,13 +206,15 @@ return a 200 status code, and provide per-object errors. Here is an example:
         "message": "Object does not exist"
       }
     }
-  ]
+  ],
+  "hash_algo": "sha256"
 }
 ```
 
 LFS object error codes should match HTTP status codes where possible:
 
 * 404 - The object does not exist on the server.
+* 409 - The specified hash algorithm disagrees with the server's acceptable options.
 * 410 - The object was removed by the owner.
 * 422 - Validation error.
 
