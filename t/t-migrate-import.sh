@@ -1001,3 +1001,18 @@ begin_test "migrate import (non-standard refs)"
   assert_local_object "$md_feature_oid" "30"
 )
 end_test
+
+begin_test "migrate import (copied file)"
+(
+  set -e
+
+  setup_local_branch_with_copied_file
+
+  git lfs migrate import --above=1b
+
+  # Expect attributes for "/dir/a" and "/a"
+  if ! grep -q "^/dir/a.txt" ./.gitattributes || ! grep -q "^/a.txt" ./.gitattributes; then
+    exit 1
+  fi
+)
+end_test
