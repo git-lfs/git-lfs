@@ -383,7 +383,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
 			continue
 		}
 
-		if cached := r.uncacheEntry(entry); cached != nil {
+		if cached := r.uncacheEntry(path, entry); cached != nil {
 			entries = append(entries, copyEntryMode(cached,
 				entry.Filemode))
 			continue
@@ -404,7 +404,7 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
 			return nil, err
 		}
 
-		entries = append(entries, r.cacheEntry(entry, &gitobj.TreeEntry{
+		entries = append(entries, r.cacheEntry(entry, path, &gitobj.TreeEntry{
 			Filemode: entry.Filemode,
 			Name:     entry.Name,
 			Oid:      oid,
@@ -590,11 +590,11 @@ func (r *Rewriter) Filter() *filepathfilter.Filter {
 
 // cacheEntry caches then given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
-func (r *Rewriter) cacheEntry(from, to *gitobj.TreeEntry) *gitobj.TreeEntry {
+func (r *Rewriter) cacheEntry(from *gitobj.TreeEntry, path string, to *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.entries[r.entryKey(from)] = to
+	r.entries[r.entryKey(path, from)] = to
 
 	return to
 }
@@ -602,16 +602,16 @@ func (r *Rewriter) cacheEntry(from, to *gitobj.TreeEntry) *gitobj.TreeEntry {
 // uncacheEntry returns a *TreeEntry that is cached from the given *TreeEntry
 // "from". That is to say, it returns the *TreeEntry that "from" should be
 // rewritten to, or nil if none could be found.
-func (r *Rewriter) uncacheEntry(from *gitobj.TreeEntry) *gitobj.TreeEntry {
+func (r *Rewriter) uncacheEntry(path string, from *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return r.entries[r.entryKey(from)]
+	return r.entries[r.entryKey(path, from)]
 }
 
 // entryKey returns a unique key for a given *TreeEntry "e".
-func (r *Rewriter) entryKey(e *gitobj.TreeEntry) string {
-	return fmt.Sprintf("%s:%x", e.Name, e.Oid)
+func (r *Rewriter) entryKey(path string, e *gitobj.TreeEntry) string {
+	return fmt.Sprintf("%s/%s:%x", path, e.Name, e.Oid)
 }
 
 // cacheEntry caches then given "from" commit so that it is always rewritten as
