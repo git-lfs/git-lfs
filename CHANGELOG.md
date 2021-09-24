@@ -1,5 +1,189 @@
 # Git LFS Changelog
 
+## 3.0.0 (24 Sep 2021)
+
+This release is a major new release and introduces several new features, such as
+a pure SSH-based protocol, packages for several new OS versions, support for
+ARM64 Windows, Git-compatible pattern matching, and locking multiple files on
+the command line, among other items.
+
+When connecting over SSH, the first attempt will be made to use
+`git-lfs-transfer`, the pure SSH protocol, and if it fails, Git LFS will fall
+back to the hybrid protocol using `git-lfs-authenticate`.  Note that no major
+forges are known to support the pure SSH protocol at this time.
+
+Because it is a major release, we've made some backwards-incompatible changes.
+A (possibly incomplete) list of them is as follows:
+
+* NTLM support has been completely removed, since nobody volunteered to fix
+  issues in it.  Users are advised to use Kerberos or Basic authentication
+  instead.
+* When using an SSH URL (that is, the syntax starting with `ssh://`), the
+  leading slash is not stripped off when invoking `git-lfs-authenticate` or
+  `git-lfs-transfer`.  This is compatible with the behavior of Git when invoking
+  commands over SSH.
+* `git lfs fsck` now additionally checks that pointers are canonical and that
+  files that are supposed to be LFS files actually are.  It also exits nonzero
+  if any problem is found.
+* Pattern matching should be stricter and should either match the behavior of
+  `.gitattributes` or `.gitignore`, as appropriate.  Deviations from Git's
+  behavior will henceforth be treated as bugs and fixed accordingly.
+* Git LFS will now write a Git LFS repository format version into the
+  repository.  This is designed to allow future extension with incompatible
+  changes.  Repositories without this version will be assumed to be version 0.
+  Note that this is different from, but modeled on, Git's repository format
+  version.
+* `git lfs lock` and `git lfs unlock` now handle multiple pathname arguments and
+  the JSON format has changed to handle multiple responses.
+* The Go package name now contains a version number.  This should have no effect
+  on users because we don't provide a stable Go ABI.
+* Empty components in `PATH` are no longer treated as the current directory on
+  Windows because unintentionally having such empty components is common and the
+  behavior was surprising.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @codykrieger for ensuring that we process includes correctly
+* @corngood for fixing a hang in prune
+* @dennisameling for adding support for Windows on ARM64
+* @fh1ch for fixing our 429 handling
+* @geki-yaba for fixing problems with askpass on Cygwin
+* @gison93 for fixing a bug in our documentation
+* @jvimr for ensuring our Debian packages are built properly
+* @opohorel for ensuring our copyright notices were up to date
+* @rhansen for fixing systems where / is a repository
+* @sergiou87 for improving support for cross builds
+* @slonopotamus for improving our error handling
+* @stanhu for improving our handling of invalid OIDs
+* @Timmmm for improving our support of .lfsconfig
+* @tklauser for avoiding the need for cgo on macOS
+
+### Features
+
+* Advertise hash algorithm supported in batch request #4624 (@bk2204)
+* Bump package version to v3 #4611 (@bk2204)
+* Update OS versions #4610 (@bk2204)
+* Add support for Debian 11 #4592 (@bk2204)
+* Support for locking and unlocking multiple files #4604 (@bk2204)
+* Add support for Windows ARM64 #4586 (@dennisameling)
+* LFS repository format version #4552 (@bk2204)
+* Pure SSH-based protocol #4446 (@bk2204)
+* Make fsck able to check for invalid pointers #4525 (@bk2204)
+* Add --fixup option to migrate info command #4501 (@chrisd8088)
+* Allow reporting of LFS pointers separately in migrate info command #4436 (@chrisd8088)
+* Add config variables for default remotes #4469 (@bk2204)
+* Make lfshttp package builds more portable #4476 (@bk2204)
+* Mark skipdownloaderrors as safe #4468 (@Timmmm)
+* Make migrate commands default to preserving uncommitted changes #4454 (@chrisd8088)
+* Darwin ARM64 support #4437 (@bk2204)
+* tools: implement cloneFileSyscall on darwin without cgo #4387 (@tklauser)
+* prune: add options to be more aggressive about pruning #4368 (@bk2204)
+
+### Bugs
+
+* corrected debian 11 & 12 derived variants #4622 (@jvimr)
+* urlconfig: anchor regexp for key matching #4598 (@bk2204)
+* filepathfilter: always use Git-compatible pattern matching #4556 (@bk2204)
+* debian and rpm: Pass `--skip-repo` to `install` and `uninstall` #4594 (@rhansen)
+* Fix hang in prune #4557 (@corngood)
+* Disable ANSI color codes while log parsing and anchor diff regular expressions #4585 (@chrisd8088)
+* Fix 429 retry-after handling for LFS batch API endpoint #4573 (@fh1ch)
+* go.mod: bump gitobj to v2.0.2 #4555 (@bk2204)
+* Fix locking with multiple paths and absolute paths #4535 (@bk2204)
+* locking: avoid nil pointer dereference with invalid response #4509 (@bk2204)
+* migrate import: make --above affect only individual files #4512 (@bk2204)
+* fs: be a little less aggressive with cleanup #4490 (@bk2204)
+* Fix downloadFile in gitfilter_smudge.go to actually propagate all errors #4478 (@slonopotamus)
+* Translate Cygwin path patches for askpass helper and cert dir/file #4473 (@geki-yaba)
+* Avoid panic on SIGINT by skipping cleanup when config uninitialized #4463 (@chrisd8088)
+* Parse stash log entries parsimonously in prune command #4449 (@chrisd8088)
+* docs: note that -I and -X override configuration settings #4442 (@bk2204)
+* Make all checks of blobSizeCutoff consistent #4435 (@chrisd8088)
+* Fix up handling of the "migrate info" command's --top option #4434 (@chrisd8088)
+* Tighten LFS pointer regexp #4421 (@stanhu)
+* invoke git-config with --includes to ensure it always evaluates `include.*` directives #4420 (@codykrieger)
+* Canonicalize Windows paths like Git does #4418 (@bk2204)
+* lfsapi: don't warn about duplicate but identical aliases #4413 (@bk2204)
+* lfs: don't invoke diff drivers when pruning repositories #4407 (@bk2204)
+* Consider scheme of request URL, not proxy URL, when choosing proxy #4396 (@bk2204)
+* Makefile: allow make release to be run twice in a row #4344 (@bk2204)
+* Makefile: don't fail the second time macOS builds are built #4341 (@bk2204)
+
+### Misc
+
+* subprocess: don't treat empty PATH component as . on Windows #4603 (@bk2204)
+* Switch from which to command -v #4591 (@bk2204)
+* Bump Go to 1.17 #4584 (@dennisameling)
+* Add cautions about unstable Go API and fix GPG key link #4582 (@chrisd8088)
+* Update go.mod module path with explicit v2 #4575 (@chrisd8088)
+* Drop unused ClearTempStorage() transfer adapter method and tune stale comments #4554 (@chrisd8088)
+* README: improve steps for building from source #4527 (@bk2204)
+* Update license year #4513 (@opohorel)
+* docs/man: add note re post-import use of checkout #4504 (@chrisd8088)
+* Bump transitive dependencies #4502 (@bk2204)
+* script/packagecloud: update distros #4494 (@bk2204)
+* Use host architecture and OS when running `go generate` #4492 (@sergiou87)
+* Bump go-spnego to the latest version #4482 (@bk2204)
+* Update git-lfs-migrate man page and add description section #4458 (@chrisd8088)
+* update x/text and dependencies #4455 (@opohorel)
+* Use blobSizeCutoff in clean pointer buffer length check #4433 (@chrisd8088)
+* tools: unset XDG_CONFIG_HOME for filetools test #4432 (@chrisd8088)
+* vendor,go.{mod,sum}: update x/net and dependencies #4398 (@chrisd8088)
+* Remove NTLM #4384 (@bk2204)
+* gitobj 2.0.1 #4348 (@bk2204)
+* Fix numbered list in git lfs examples #4347 (@gison93)
+* Add test for download gzip transport compression #4345 (@bk2204)
+
+## 2.13.3 (26 Mar 2021)
+
+This release fixes two bugs that caused `git lfs prune` to hang, updates some
+dependencies to versions which lack a security issue (which did not affect Git
+LFS), and adds support for ARM64 builds on macOS.
+
+### Bugs
+
+* lfs: don't invoke diff drivers when pruning repositories #4407 (@bk2204)
+* Parse stash log entries parsimonously in prune command #4449 (@chrisd8088)
+
+### Misc
+
+* Darwin ARM64 support #4437 (@bk2204)
+* vendor,go.{mod,sum}: update x/net and dependencies #4398 (@chrisd8088)
+
+## 2.13.2 (13 Jan 2021)
+
+This release introduces a security fix for Windows systems, which has been
+assigned CVE-2021-21237.
+
+On Windows, if Git LFS operates on a malicious repository with a git.bat or
+git.exe file in the current directory, that program is executed, permitting the
+attacker to execute arbitrary code.  This security problem does not affect Unix
+systems.  This is the same issue as CVE-2020-27955, but the fix for that issue
+was incomplete and certain options can still cause the problem to occur.
+
+This occurs because on Windows, Go includes (and prefers) the current directory
+when the name of a command run does not contain a directory separator.  This has
+been solved by always using PATH to pre-resolve paths before handing them to Go.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @Ry0taK for reporting this to us responsibly
+
+### Bugs
+
+* Use subprocess for invoking all commands (@bk2204)
+
+## 2.13.1 (11 Dec 2020)
+
+This release fixes a bug in our build tooling that prevents our release process
+from working properly.  This release is otherwise identical to 2.13.0.
+
+### Misc
+
+* Makefile: don't fail the second time macOS builds are built #4341 (@bk2204)
+
 ## 2.13.0 (10 Dec 2020)
 
 This release introduces several new features, such as the `--above` option to
