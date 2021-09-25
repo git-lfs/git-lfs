@@ -23,7 +23,6 @@ jobs:
     - run: cinst strawberryperl -y
     - run: cinst zip -y
     - run: cinst jq -y
-    - run: cinst windows-sdk-10.0 -y
     - run: gem install ronn
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
