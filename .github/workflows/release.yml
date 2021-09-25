@@ -34,11 +34,11 @@ jobs:
       shell: bash
       env:
         CERT_CONTENTS: ${{secrets.WINDOWS_CERT_BASE64}}
-    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-amd64-$(git describe).zip
+    - run: PATH="$HOME/go/bin:$PATH" GOARCH=amd64 go generate && make bin/releases/git-lfs-windows-amd64-$(git describe).zip
       shell: bash
-    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-386-$(git describe).zip
+    - run: PATH="$HOME/go/bin:$PATH" GOARCH=386 go generate && make bin/releases/git-lfs-windows-386-$(git describe).zip
       shell: bash
-    - run: PATH="$HOME/go/bin:$PATH" make bin/releases/git-lfs-windows-arm64-$(git describe).zip
+    - run: PATH="$HOME/go/bin:$PATH" GOARCH=arm64 go generate && make bin/releases/git-lfs-windows-arm64-$(git describe).zip
       shell: bash
     - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
