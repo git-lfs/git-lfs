@@ -178,7 +178,7 @@ func smudgeFilename(args []string) string {
 }
 
 func possiblyMalformedObjectSize(n int64) bool {
-	return n > 4*humanize.Gigabyte
+	return n >= 4*humanize.Gibibyte
 }
 
 func init() {
