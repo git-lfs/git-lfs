@@ -138,6 +138,14 @@ begin_test "pull"
   git lfs pull -I "*.dat"
   assert_clean_status
 
+  echo "lfs pull with empty file"
+  touch empty.dat
+  git add empty.dat
+  git commit -m 'empty'
+  git lfs pull
+  [ -z "$(cat empty.dat)" ]
+  assert_clean_status
+
   echo "lfs pull in subdir"
   cd dir
   git lfs pull

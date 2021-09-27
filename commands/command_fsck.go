@@ -107,7 +107,11 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 
 	for _, oid := range corruptOids {
 		badFile := filepath.Join(badDir, oid)
-		if err := os.Rename(cfg.Filesystem().ObjectPathname(oid), badFile); err != nil {
+		srcFile := cfg.Filesystem().ObjectPathname(oid)
+		if srcFile == os.DevNull {
+			continue
+		}
+		if err := os.Rename(srcFile, badFile); err != nil {
 			ExitWithError(err)
 		}
 	}

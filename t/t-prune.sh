@@ -1038,6 +1038,27 @@ begin_test "prune --force"
 )
 end_test
 
+begin_test "prune does not fail on empty files"
+(
+  set -e
+
+  reponame="prune-empty-file"
+  setup_remote_repo "remote-$reponame"
+
+  clone_repo "remote-$reponame" "clone-$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  touch empty.dat
+  git add .gitattributes empty.dat
+  git commit -m 'Add empty'
+  git push origin main
+
+  git lfs prune --force
+)
+end_test
+
 begin_test "prune does not invoke external diff programs"
 (
   set -e
