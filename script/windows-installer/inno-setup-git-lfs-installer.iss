@@ -12,7 +12,7 @@
 
 #define PathToARM64Binary "..\..\git-lfs-arm64.exe"
 #ifnexist PathToARM64Binary
-  #pragma error PathToARM6464Binary + " does not exist, please build it first."
+  #pragma error PathToARM64Binary + " does not exist, please build it first."
 #endif
 
 ; Arbitrarily choose the x86 executable here as both have the version embedded.
