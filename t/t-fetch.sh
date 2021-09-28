@@ -71,6 +71,23 @@ begin_test "fetch"
 )
 end_test
 
+begin_test "fetch (empty file)"
+(
+  set -e
+  cd clone
+  rm -rf .git/lfs/objects
+
+  touch empty.dat
+  git add empty.dat
+  git commit -m 'empty'
+
+  git lfs fetch
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
+)
+end_test
+
 begin_test "fetch (shared repository)"
 (
   set -e
