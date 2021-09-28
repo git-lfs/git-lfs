@@ -112,6 +112,10 @@ func dedup(p *lfs.WrappedPointer) (success bool, err error) {
 
 	// Do clone
 	srcFile := cfg.Filesystem().ObjectPathname(p.Oid)
+	if srcFile == os.DevNull {
+		return true, nil
+	}
+
 	dstFile := filepath.Join(cfg.LocalWorkingDir(), p.Name)
 
 	// Clone the file. This overwrites the destination if it exists.

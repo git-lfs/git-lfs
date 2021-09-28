@@ -3,8 +3,6 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/gitobj/v2"
 )
 
@@ -82,8 +81,7 @@ func (p *Pointer) Encoded() string {
 }
 
 func EmptyPointer() *Pointer {
-	oid := hex.EncodeToString(sha256.New().Sum(nil))
-	return NewPointer(oid, 0, nil)
+	return NewPointer(fs.EmptyObjectSHA256, 0, nil)
 }
 
 func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {

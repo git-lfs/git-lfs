@@ -307,6 +307,9 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
 			continue
 		}
+		if mediaFile == os.DevNull {
+			continue
+		}
 		err = os.Remove(mediaFile)
 		if err != nil {
 			problems.WriteString(fmt.Sprintf("Failed to remove file %v: %v\n", mediaFile, err))

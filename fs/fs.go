@@ -3,6 +3,8 @@ package fs
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,7 +18,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var oidRE = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+var (
+	oidRE             = regexp.MustCompile(`\A[[:alnum:]]{64}`)
+	EmptyObjectSHA256 = hex.EncodeToString(sha256.New().Sum(nil))
+)
 
 // Environment is a copy of a subset of the interface
 // github.com/git-lfs/git-lfs/config.Environment.
@@ -61,12 +66,18 @@ func (f *Filesystem) EachObject(fn func(Object) error) error {
 }
 
 func (f *Filesystem) ObjectExists(oid string, size int64) bool {
+	if size == 0 {
+		return true
+	}
 	return tools.FileExistsOfSize(f.ObjectPathname(oid), size)
 }
 
 func (f *Filesystem) ObjectPath(oid string) (string, error) {
 	if len(oid) < 4 {
 		return "", fmt.Errorf("too short object ID: %q", oid)
+	}
+	if oid == EmptyObjectSHA256 {
+		return os.DevNull, nil
 	}
 	dir := f.localObjectDir(oid)
 	if err := tools.MkdirAll(dir, f); err != nil {
@@ -76,6 +87,9 @@ func (f *Filesystem) ObjectPath(oid string) (string, error) {
 }
 
 func (f *Filesystem) ObjectPathname(oid string) string {
+	if oid == EmptyObjectSHA256 {
+		return os.DevNull
+	}
 	return filepath.Join(f.localObjectDir(oid), oid)
 }
 
