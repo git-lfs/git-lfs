@@ -1,5 +1,20 @@
 # Git LFS Changelog
 
+## 3.0.1 (28 Sep 2021)
+
+This release is a bugfix release which fixes the Windows ARM64 build process and
+addresses a regression in support for empty files in pull and fetch.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dennisameling for fixing support for Windows on ARM64
+
+### Bugs
+
+* Fix Windows arm64 release #4647 (@dennisameling)
+* fs: specify a file as existing if it's empty #4654 (@bk2204)
+
 ## 3.0.0 (24 Sep 2021)
 
 This release is a major new release and introduces several new features, such as

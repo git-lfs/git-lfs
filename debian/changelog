@@ -1,3 +1,9 @@
+git-lfs (3.0.1) stable; urgency=low
+
+  * New upstream version
+
+ -- brian m. carlson <bk2204@github.com>  Tue, 28 Sep 2021 14:29:00 -0000
+
 git-lfs (3.0.0) stable; urgency=low
 
   * New upstream version
