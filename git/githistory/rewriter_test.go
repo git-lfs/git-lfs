@@ -148,7 +148,7 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 	assert.Equal(t, string(contents), "Hello, world!\n")
 }
 
-func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
+func TestRewriterDoesVisitUnchangedSubtrees(t *testing.T) {
 	db := DatabaseFromFixture(t, "repeated-subtrees.git")
 	r := NewRewriter(db)
 
@@ -165,7 +165,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, 2, seen["a.txt"])
-	assert.Equal(t, 1, seen["subdir/b.txt"])
+	assert.Equal(t, 2, seen["subdir/b.txt"])
 }
 
 func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
@@ -221,7 +221,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, seen["a.txt"])
+	assert.Equal(t, 2, seen["a.txt"])
 	assert.Equal(t, 0, seen["subdir/b.txt"])
 }
 
@@ -366,15 +366,16 @@ func TestHistoryRewriterCallbacksSubtrees(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	assert.Len(t, calls, 8)
+	assert.Len(t, calls, 9)
 	assert.Equal(t, calls[0], &CallbackCall{Type: "tree-pre", Path: "/"})
 	assert.Equal(t, calls[1], &CallbackCall{Type: "blob", Path: "a.txt"})
 	assert.Equal(t, calls[2], &CallbackCall{Type: "tree-post", Path: "/"})
 	assert.Equal(t, calls[3], &CallbackCall{Type: "tree-pre", Path: "/"})
-	assert.Equal(t, calls[4], &CallbackCall{Type: "tree-pre", Path: "/subdir"})
-	assert.Equal(t, calls[5], &CallbackCall{Type: "blob", Path: "subdir/b.txt"})
-	assert.Equal(t, calls[6], &CallbackCall{Type: "tree-post", Path: "/subdir"})
-	assert.Equal(t, calls[7], &CallbackCall{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[4], &CallbackCall{Type: "blob", Path: "a.txt"})
+	assert.Equal(t, calls[5], &CallbackCall{Type: "tree-pre", Path: "/subdir"})
+	assert.Equal(t, calls[6], &CallbackCall{Type: "blob", Path: "subdir/b.txt"})
+	assert.Equal(t, calls[7], &CallbackCall{Type: "tree-post", Path: "/subdir"})
+	assert.Equal(t, calls[8], &CallbackCall{Type: "tree-post", Path: "/"})
 }
 
 func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
