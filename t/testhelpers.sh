@@ -846,7 +846,7 @@ setup_pure_ssh() {
   export PATH="$ROOTDIR/t/scutiger/bin:$PATH"
   if ! command -v git-lfs-transfer >/dev/null 2>&1
   then
-    if [ -z "$CI" ]
+    if [ -z "$CI" ] || [ -n "$TEST_SKIP_LFS_TRANSFER" ]
     then
       echo "No git-lfs-transfer.  Skipping..."
       exit 0
