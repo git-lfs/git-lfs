@@ -113,7 +113,7 @@ begin_test "lock multiple files (JSON)"
   git push origin main:other
 
   git lfs lock --json *.dat | tee lock.json
-  grep -E '\[{"id":"[^"]+","path":"a\.dat","owner":{"name":"Git LFS Tests"},"locked_at":"[^"]+"},{"id":"[^"]+","path":"b\.dat","owner":{"name":"Git LFS Tests"},"locked_at":"[^"]+"}\]' lock.json
+  grep -E '\[\{"id":"[^"]+","path":"a\.dat","owner":\{"name":"Git LFS Tests"\},"locked_at":"[^"]+"\},\{"id":"[^"]+","path":"b\.dat","owner":\{"name":"Git LFS Tests"\},"locked_at":"[^"]+"\}\]' lock.json
 )
 end_test
 
