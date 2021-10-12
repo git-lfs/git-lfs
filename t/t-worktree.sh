@@ -49,7 +49,7 @@ AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
-$(escape_path "$(env | grep "^GIT")")
+$(escape_path "$(env | grep "^GIT_")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
@@ -85,7 +85,7 @@ AccessDownload=none
 AccessUpload=none
 DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
-$(escape_path "$(env | grep "^GIT")")
+$(escape_path "$(env | grep "^GIT_")")
 %s
 " "$(git lfs version)" "$(git version)" "$envInitConfig")
     actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
