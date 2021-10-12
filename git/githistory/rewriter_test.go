@@ -21,7 +21,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			contents, err := ioutil.ReadAll(b.Contents)
 			if err != nil {
 				return nil, err
@@ -82,7 +82,7 @@ func TestRewriterRewritesOctopusMerges(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return &gitobj.Blob{
 				Contents: io.MultiReader(b.Contents, strings.NewReader("_new")),
 				Size:     b.Size + int64(len("_new")),
@@ -129,7 +129,7 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 	var contents []byte
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			var err error
 
 			contents, err = ioutil.ReadAll(b.Contents)
@@ -148,14 +148,14 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 	assert.Equal(t, string(contents), "Hello, world!\n")
 }
 
-func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
+func TestRewriterDoesVisitUnchangedSubtrees(t *testing.T) {
 	db := DatabaseFromFixture(t, "repeated-subtrees.git")
 	r := NewRewriter(db)
 
 	seen := make(map[string]int)
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			seen[path] = seen[path] + 1
 
 			return b, nil
@@ -165,7 +165,7 @@ func TestRewriterDoesntVisitUnchangedSubtrees(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, 2, seen["a.txt"])
-	assert.Equal(t, 1, seen["subdir/b.txt"])
+	assert.Equal(t, 2, seen["subdir/b.txt"])
 }
 
 func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
@@ -173,7 +173,7 @@ func TestRewriterVisitsUniqueEntriesWithIdenticalContents(t *testing.T) {
 	r := NewRewriter(db)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if path == "b.txt" {
 				return b, nil
 			}
@@ -213,7 +213,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	seen := make(map[string]int)
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			seen[path] = seen[path] + 1
 
 			return b, nil
@@ -221,7 +221,7 @@ func TestRewriterIgnoresPathsThatDontMatchFilter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, 1, seen["a.txt"])
+	assert.Equal(t, 2, seen["a.txt"])
 	assert.Equal(t, 0, seen["subdir/b.txt"])
 }
 
@@ -236,7 +236,7 @@ func TestRewriterAllowsAdditionalTreeEntries(t *testing.T) {
 	assert.Nil(t, err)
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return b, nil
 		},
 
@@ -307,7 +307,7 @@ var (
 	// is received.
 	collectCalls = func(calls *[]*CallbackCall) *RewriteOptions {
 		return &RewriteOptions{Include: []string{"refs/heads/master"},
-			BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+			BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 				*calls = append(*calls, &CallbackCall{
 					Type: "blob",
 					Path: path,
@@ -366,15 +366,16 @@ func TestHistoryRewriterCallbacksSubtrees(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	assert.Len(t, calls, 8)
+	assert.Len(t, calls, 9)
 	assert.Equal(t, calls[0], &CallbackCall{Type: "tree-pre", Path: "/"})
 	assert.Equal(t, calls[1], &CallbackCall{Type: "blob", Path: "a.txt"})
 	assert.Equal(t, calls[2], &CallbackCall{Type: "tree-post", Path: "/"})
 	assert.Equal(t, calls[3], &CallbackCall{Type: "tree-pre", Path: "/"})
-	assert.Equal(t, calls[4], &CallbackCall{Type: "tree-pre", Path: "/subdir"})
-	assert.Equal(t, calls[5], &CallbackCall{Type: "blob", Path: "subdir/b.txt"})
-	assert.Equal(t, calls[6], &CallbackCall{Type: "tree-post", Path: "/subdir"})
-	assert.Equal(t, calls[7], &CallbackCall{Type: "tree-post", Path: "/"})
+	assert.Equal(t, calls[4], &CallbackCall{Type: "blob", Path: "a.txt"})
+	assert.Equal(t, calls[5], &CallbackCall{Type: "tree-pre", Path: "/subdir"})
+	assert.Equal(t, calls[6], &CallbackCall{Type: "blob", Path: "subdir/b.txt"})
+	assert.Equal(t, calls[7], &CallbackCall{Type: "tree-post", Path: "/subdir"})
+	assert.Equal(t, calls[8], &CallbackCall{Type: "tree-post", Path: "/"})
 }
 
 func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
@@ -384,7 +385,7 @@ func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
 	r := NewRewriter(db)
 
 	_, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return b, nil
 		},
 
@@ -404,7 +405,7 @@ func TestHistoryRewriterUseOriginalParentsForPartialMigration(t *testing.T) {
 		Include: []string{"refs/heads/master"},
 		Exclude: []string{"refs/tags/middle"},
 
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			return b, nil
 		},
 	})
@@ -441,7 +442,7 @@ func TestHistoryRewriterUpdatesRefs(t *testing.T) {
 
 		UpdateRefs: true,
 
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			suffix := strings.NewReader("_suffix")
 
 			return &gitobj.Blob{
