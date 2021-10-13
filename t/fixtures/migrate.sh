@@ -674,6 +674,28 @@ setup_local_branch_with_copied_file() {
   git commit -m "initial commit"
 }
 
+# setup_local_branch_with_special_character_files creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/main
+#
+# - Commit 'A' has binary files with special characters
+setup_local_branch_with_special_character_files() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-special-filenames"
+  remove_and_create_local_repo "$reponame"
+
+  head -c 80 /dev/urandom > './test - special.bin'
+  head -c 100 /dev/urandom > './test (test2) special.bin'
+  # Windows does not allow creation of files with '*'
+  [ "$IS_WINDOWS" -eq '1' ] || head -c 120 /dev/urandom > './test * ** special.bin'
+
+  git add *.bin
+  git commit -m "initial commit"
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {
