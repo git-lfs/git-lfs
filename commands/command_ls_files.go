@@ -68,6 +68,10 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			return
 		}
 
+		if p.Size == 0 {
+			return
+		}
+
 		if !lsFilesScanAll && !scanRange {
 			if _, ok := seen[p.Name]; ok {
 				return
