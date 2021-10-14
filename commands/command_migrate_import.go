@@ -179,7 +179,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			if ext := filepath.Ext(path); len(ext) > 0 && above == 0 {
 				exts.Add(fmt.Sprintf("*%s filter=lfs diff=lfs merge=lfs -text", ext))
 			} else {
-				exts.Add(fmt.Sprintf("/%s filter=lfs diff=lfs merge=lfs -text", path))
+				exts.Add(fmt.Sprintf("/%s filter=lfs diff=lfs merge=lfs -text", escapeGlobCharacters(path)))
 			}
 
 			return &gitobj.Blob{

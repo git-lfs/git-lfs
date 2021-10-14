@@ -1016,3 +1016,17 @@ begin_test "migrate import (copied file)"
   fi
 )
 end_test
+
+begin_test "migrate import (filename special characters)"
+(
+  set -e
+  setup_local_branch_with_special_character_files
+  git lfs migrate import --above=1b
+  # Windows does not allow creation of files with '*', so expect 2 files, not 3
+  if [ "$IS_WINDOWS" -eq "1" ] ; then
+    test "$(git check-attr filter -- *.bin |grep lfs | wc -l)" -eq 2 || exit 1
+  else
+    test "$(git check-attr filter -- *.bin |grep lfs | wc -l)" -eq 3 || exit 1
+  fi
+)
+end_test
