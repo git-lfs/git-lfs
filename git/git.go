@@ -1404,6 +1404,10 @@ func IsWorkingCopyDirty() (bool, error) {
 
 func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.ObjectDatabase, error) {
 	var options []gitobj.Option
+	objdir, ok := osEnv.Get("GIT_OBJECT_DIRECTORY")
+	if !ok {
+		objdir = filepath.Join(gitdir, "objects")
+	}
 	alternates, _ := osEnv.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
 	if alternates != "" {
 		options = append(options, gitobj.Alternates(alternates))
@@ -1412,7 +1416,7 @@ func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.
 	if hashAlgo != "" {
 		options = append(options, gitobj.ObjectFormat(gitobj.ObjectFormatAlgorithm(hashAlgo)))
 	}
-	odb, err := gitobj.FromFilesystem(filepath.Join(gitdir, "objects"), tempdir, options...)
+	odb, err := gitobj.FromFilesystem(objdir, tempdir, options...)
 	if err != nil {
 		return nil, err
 	}
