@@ -180,6 +180,30 @@ begin_test "fsck detects invalid pointers"
 )
 end_test
 
+begin_test "fsck detects invalid pointers with GIT_OBJECT_DIRECTORY"
+(
+  set -e
+
+  reponame="fsck-pointers-object-directory"
+  setup_invalid_pointers
+
+  head=$(git rev-parse HEAD)
+  objdir="$(lfstest-realpath .git/objects)"
+  cd ..
+  git init "$reponame-2"
+  gitdir="$(lfstest-realpath "$reponame-2/.git")"
+  GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git update-ref refs/heads/main "$head"
+  set +e
+  GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git lfs fsck --pointers >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  grep 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log
+  grep 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e
