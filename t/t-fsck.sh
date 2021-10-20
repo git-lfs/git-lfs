@@ -204,6 +204,23 @@ begin_test "fsck detects invalid pointers with GIT_OBJECT_DIRECTORY"
 )
 end_test
 
+begin_test "fsck does not detect invalid pointers with no LFS objects"
+(
+  set -e
+
+  reponame="fsck-pointers-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "# README" > README.md
+  git add README.md
+  git commit -m "Add README"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e

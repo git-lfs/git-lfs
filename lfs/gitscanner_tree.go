@@ -206,7 +206,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes))
 	}
 
-	return pointers, filepathfilter.NewFromPatterns(patterns, nil), nil
+	return pointers, filepathfilter.NewFromPatterns(patterns, nil, filepathfilter.DefaultValue(false)), nil
 }
 
 func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv config.Environment) error {
