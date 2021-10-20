@@ -221,6 +221,26 @@ begin_test "fsck does not detect invalid pointers with no LFS objects"
 )
 end_test
 
+begin_test "fsck does not detect invalid pointers with symlinks"
+(
+  set -e
+
+  reponame="fsck-pointers-symlinks"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+
+  echo "# Test" > a.dat
+  ln -s a.dat b.dat
+  git add .gitattributes *.dat
+  git commit -m "Add files"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e

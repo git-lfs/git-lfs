@@ -211,7 +211,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 
 func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv config.Environment) error {
 	treeShas, err := lsTreeBlobs(tree, func(t *git.TreeBlob) bool {
-		return t != nil
+		return t != nil && (t.Mode == 0100644 || t.Mode == 0100755)
 	})
 	if err != nil {
 		return err
