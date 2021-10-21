@@ -241,6 +241,29 @@ begin_test "fsck does not detect invalid pointers with symlinks"
 )
 end_test
 
+begin_test "fsck does not detect invalid pointers with negated patterns"
+(
+  set -e
+
+  reponame="fsck-pointers-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  cat > .gitattributes <<EOF
+*.dat filter=lfs diff=lfs merge=lfs -text
+b.dat !filter !diff !merge text
+EOF
+
+  echo "# Test" > a.dat
+  cp a.dat b.dat
+  git add .gitattributes *.dat
+  git commit -m "Add files"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e
