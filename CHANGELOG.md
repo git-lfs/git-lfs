@@ -1,5 +1,33 @@
 # Git LFS Changelog
 
+## 3.0.2 (28 Oct 2021)
+
+This release is a bugfix release which fixes a variety of problems seen since
+3.0.0, including problems with empty files, `git lfs fsck --pointers`, and
+the testsuite.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @fh1ch for patches to make things work better on Alpine Linux
+* @pyckle for fixing our handling of filenames in `git lfs migrate import`
+* @ycongal-smile for fixing `git lfs migrate import` with similarly named files
+
+### Bugs
+
+* Fix two types of misdetection in git lfs fsck #4697 (@bk2204)
+* lfs: don't flag non-LFS files as invalid pointers #4691 (@bk2204)
+* git: honor GIT_OBJECT_DIRECTORY #4686 (@bk2204)
+* migrate: properly escape blob filenames #4683 (@pyckle)
+* ls-files: don't process empty files as pointers #4681 (@bk2204)
+* Call migrate() BlobFn on every blob #4671 (@ycongal-smile)
+* Correct t-lock regular expression to be musl compatible #4673 (@fh1ch)
+
+### Misc
+
+* Allow git-lfs-transfer integration tests to be skipped #4677 (@fh1ch)
+* Make CI environment GIT prefix grep more specific #4678 (@fh1ch)
+
 ## 3.0.1 (28 Sep 2021)
 
 This release is a bugfix release which fixes the Windows ARM64 build process and
