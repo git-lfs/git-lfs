@@ -199,19 +199,25 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 		return nil, nil, err
 	}
 
-	patterns := make([]filepathfilter.Pattern, 0, len(paths))
+	includes := make([]filepathfilter.Pattern, 0, len(paths))
+	excludes := make([]filepathfilter.Pattern, 0, len(paths))
 	for _, path := range paths {
 		// Convert all separators to `/` before creating a pattern to
 		// avoid characters being escaped in situations like `subtree\*.md`
-		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes))
+		pattern := filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes)
+		if path.Tracked {
+			includes = append(includes, pattern)
+		} else {
+			excludes = append(excludes, pattern)
+		}
 	}
 
-	return pointers, filepathfilter.NewFromPatterns(patterns, nil, filepathfilter.DefaultValue(false)), nil
+	return pointers, filepathfilter.NewFromPatterns(includes, excludes, filepathfilter.DefaultValue(false)), nil
 }
 
 func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv config.Environment) error {
 	treeShas, err := lsTreeBlobs(tree, func(t *git.TreeBlob) bool {
-		return t != nil
+		return t != nil && (t.Mode == 0100644 || t.Mode == 0100755)
 	})
 	if err != nil {
 		return err
