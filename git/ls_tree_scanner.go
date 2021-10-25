@@ -12,6 +12,7 @@ import (
 type TreeBlob struct {
 	Oid      string
 	Size     int64
+	Mode     int32
 	Filename string
 }
 
@@ -53,6 +54,11 @@ func (s *LsTreeScanner) next() (*TreeBlob, bool) {
 		return nil, hasNext
 	}
 
+	mode, err := strconv.ParseInt(strings.TrimSpace(attrs[0]), 8, 32)
+	if err != nil {
+		return nil, hasNext
+	}
+
 	if attrs[1] != "blob" {
 		return nil, hasNext
 	}
@@ -64,7 +70,7 @@ func (s *LsTreeScanner) next() (*TreeBlob, bool) {
 
 	oid := attrs[2]
 	filename := parts[1]
-	return &TreeBlob{Oid: oid, Size: sz, Filename: filename}, hasNext
+	return &TreeBlob{Oid: oid, Size: sz, Mode: int32(mode), Filename: filename}, hasNext
 }
 
 func scanNullLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
