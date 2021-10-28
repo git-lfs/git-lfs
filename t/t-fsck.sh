@@ -180,6 +180,90 @@ begin_test "fsck detects invalid pointers"
 )
 end_test
 
+begin_test "fsck detects invalid pointers with GIT_OBJECT_DIRECTORY"
+(
+  set -e
+
+  reponame="fsck-pointers-object-directory"
+  setup_invalid_pointers
+
+  head=$(git rev-parse HEAD)
+  objdir="$(lfstest-realpath .git/objects)"
+  cd ..
+  git init "$reponame-2"
+  gitdir="$(lfstest-realpath "$reponame-2/.git")"
+  GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git update-ref refs/heads/main "$head"
+  set +e
+  GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git lfs fsck --pointers >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  grep 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log
+  grep 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log
+)
+end_test
+
+begin_test "fsck does not detect invalid pointers with no LFS objects"
+(
+  set -e
+
+  reponame="fsck-pointers-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "# README" > README.md
+  git add README.md
+  git commit -m "Add README"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
+begin_test "fsck does not detect invalid pointers with symlinks"
+(
+  set -e
+
+  reponame="fsck-pointers-symlinks"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+
+  echo "# Test" > a.dat
+  ln -s a.dat b.dat
+  git add .gitattributes *.dat
+  git commit -m "Add files"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
+begin_test "fsck does not detect invalid pointers with negated patterns"
+(
+  set -e
+
+  reponame="fsck-pointers-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  cat > .gitattributes <<EOF
+*.dat filter=lfs diff=lfs merge=lfs -text
+b.dat !filter !diff !merge text
+EOF
+
+  echo "# Test" > a.dat
+  cp a.dat b.dat
+  git add .gitattributes *.dat
+  git commit -m "Add files"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e

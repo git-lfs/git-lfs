@@ -139,10 +139,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(errors.Wrap(err, "fatal: cannot parse --above=<n>"))
 	}
 
+	blobCache := make(map[string]bytes.Buffer)
+
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
-		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
 			}
@@ -166,14 +168,18 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
-				return nil, err
+			buf, cached := blobCache[hex.EncodeToString(origOid)]
+			if !cached {
+				if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
+					return nil, err
+				}
+				blobCache[hex.EncodeToString(origOid)] = buf
 			}
 
 			if ext := filepath.Ext(path); len(ext) > 0 && above == 0 {
 				exts.Add(fmt.Sprintf("*%s filter=lfs diff=lfs merge=lfs -text", ext))
 			} else {
-				exts.Add(fmt.Sprintf("/%s filter=lfs diff=lfs merge=lfs -text", path))
+				exts.Add(fmt.Sprintf("/%s filter=lfs diff=lfs merge=lfs -text", escapeGlobCharacters(path)))
 			}
 
 			return &gitobj.Blob{

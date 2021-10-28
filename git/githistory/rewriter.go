@@ -116,9 +116,11 @@ func (r *RewriteOptions) treeFn() TreeCallbackFn {
 // instance, a file "b.txt" in directory "dir" would be given as "/dir/b.txt",
 // where as a file "a.txt" in the root would be given as "/a.txt".
 //
+// The origOid argument is the OID (i.e. the SHA) of the blob to be rewritten.
+//
 // As above, the path separators are OS specific, and equivalent to the result
 // of filepath.Join(...) or os.PathSeparator.
-type BlobRewriteFn func(path string, b *gitobj.Blob) (*gitobj.Blob, error)
+type BlobRewriteFn func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error)
 
 // TreePreCallbackFn specifies a function to call upon opening a new tree for
 // rewriting.
@@ -176,7 +178,7 @@ var (
 
 	// noopBlobFn is a no-op implementation of the BlobRewriteFn. It returns
 	// the blob that it was given, and returns no error.
-	noopBlobFn = func(path string, b *gitobj.Blob) (*gitobj.Blob, error) { return b, nil }
+	noopBlobFn = func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) { return b, nil }
 	// noopTreePreFn is a no-op implementation of the TreePreRewriteFn. It
 	// returns the tree that it was given, and returns no error.
 	noopTreePreFn = func(path string, t *gitobj.Tree) error { return nil }
@@ -383,12 +385,6 @@ func (r *Rewriter) rewriteTree(commitOID []byte, treeOID []byte, path string,
 			continue
 		}
 
-		if cached := r.uncacheEntry(entry); cached != nil {
-			entries = append(entries, copyEntryMode(cached,
-				entry.Filemode))
-			continue
-		}
-
 		var oid []byte
 
 		switch entry.Type() {
@@ -465,7 +461,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 		return nil, err
 	}
 
-	b, err := fn(path, blob)
+	b, err := fn(path, from, blob)
 	if err != nil {
 		return nil, err
 	}

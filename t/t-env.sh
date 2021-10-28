@@ -26,7 +26,7 @@ begin_test "env with no remote"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   expected=$(printf '%s
 %s
@@ -79,7 +79,7 @@ begin_test "env with origin remote"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -138,7 +138,7 @@ begin_test "env with multiple remotes"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -196,7 +196,7 @@ begin_test "env with other remote"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   expected=$(printf '%s
 %s
@@ -255,7 +255,7 @@ begin_test "env with multiple remotes and lfs.url config"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -316,7 +316,7 @@ begin_test "env with multiple remotes and lfs configs"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -377,7 +377,7 @@ begin_test "env with multiple remotes and batch configs"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -447,7 +447,7 @@ concurrenttransfers = 50
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -504,7 +504,7 @@ begin_test "env with environment variables"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree env | grep "^GIT_" | sort)"
   expected=$(printf '%s
 %s
 
@@ -553,7 +553,7 @@ UploadTransfers=basic,lfs-standalone-file,ssh
             | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual4"
 
-  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b env | grep "^GIT_" | sort)"
 
   # `a/b` is an invalid relative path from where we are now and results in an
   # error, so resulting output will have many fields blank or invalid
@@ -594,7 +594,7 @@ git config filter.lfs.clean = ""
   contains_same_elements "$expected5" "$actual5"
 
   cd $TRASHDIR/$reponame/a/b
-  envVars="$(GIT_DIR=$gitDir env | grep "^GIT" | sort)"
+  envVars="$(GIT_DIR=$gitDir env | grep "^GIT_" | sort)"
   expected7=$(printf '%s
 %s
 
@@ -627,7 +627,7 @@ UploadTransfers=basic,lfs-standalone-file,ssh
   contains_same_elements "$expected7" "$actual7"
 
   cd $TRASHDIR/$reponame/a
-  envVars="$(GIT_WORK_TREE=$workTree env | grep "^GIT" | sort)"
+  envVars="$(GIT_WORK_TREE=$workTree env | grep "^GIT_" | sort)"
   expected8=$(printf '%s
 %s
 
@@ -674,7 +674,7 @@ begin_test "env with bare repo"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   expected=$(printf "%s\n%s\n
 LocalWorkingDir=
@@ -744,7 +744,7 @@ begin_test "env with skip download errors"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   localwd=$(canonical_path "$TRASHDIR/$reponame")
   localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
@@ -752,7 +752,7 @@ begin_test "env with skip download errors"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   expectedenabled=$(printf '%s
 %s
@@ -819,7 +819,7 @@ UploadTransfers=basic,lfs-standalone-file,ssh
   contains_same_elements "$expecteddisabled" "$actual"
 
   # now enable via env var
-  envVarsEnabled=$(printf "%s" "$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 env | grep "^GIT")")
+  envVarsEnabled=$(printf "%s" "$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 env | grep "^GIT_")")
   expectedenabled2=$(printf '%s
 %s
 
@@ -873,7 +873,7 @@ begin_test "env with extra transfer methods"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   localwd=$(canonical_path "$TRASHDIR/$reponame")
   localgit=$(canonical_path "$TRASHDIR/$reponame/.git")
@@ -881,7 +881,7 @@ begin_test "env with extra transfer methods"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
 
   expectedenabled=$(printf '%s
 %s
@@ -940,7 +940,7 @@ begin_test "env with multiple remotes and ref"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 
@@ -1005,7 +1005,7 @@ begin_test "env with unicode"
   lfsstorage=$(canonical_path "$TRASHDIR/$reponame/.git/lfs")
   localmedia=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/objects")
   tempdir=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/tmp")
-  envVars=$(printf "%s" "$(env | grep "^GIT")")
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
   expected=$(printf '%s
 %s
 

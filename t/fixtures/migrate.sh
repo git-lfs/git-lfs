@@ -652,6 +652,50 @@ setup_local_branch_with_dirty_copy() {
   printf "2" >> a.txt
 }
 
+# setup_local_branch_with_copied_file creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/main
+#
+# - Commit 'A' has the contents "a.txt" in a.txt, and anoter identical file
+# (same name and content) in another directory.
+setup_local_branch_with_copied_file() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-copied-file"
+  remove_and_create_local_repo "$reponame"
+
+  printf "a.txt" > a.txt
+  mkdir dir
+  cp a.txt dir/
+
+  git add a.txt dir/a.txt
+  git commit -m "initial commit"
+}
+
+# setup_local_branch_with_special_character_files creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/main
+#
+# - Commit 'A' has binary files with special characters
+setup_local_branch_with_special_character_files() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-special-filenames"
+  remove_and_create_local_repo "$reponame"
+
+  head -c 80 /dev/urandom > './test - special.bin'
+  head -c 100 /dev/urandom > './test (test2) special.bin'
+  # Windows does not allow creation of files with '*'
+  [ "$IS_WINDOWS" -eq '1' ] || head -c 120 /dev/urandom > './test * ** special.bin'
+
+  git add *.bin
+  git commit -m "initial commit"
+}
+
 # make_bare converts the existing full checkout of a repository into a bare one,
 # and then `cd`'s into it.
 make_bare() {
