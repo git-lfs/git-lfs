@@ -780,7 +780,7 @@ func GitDir() (string, error) {
 	out, err := cmd.Output()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v: %v", err, string(out), buf.String())
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %w %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	return tools.CanonicalizePath(path, false)
