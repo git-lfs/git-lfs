@@ -1,9 +1,12 @@
 package errors
 
 import (
+	goerrors "errors"
 	"fmt"
 	"net/url"
+	"os/exec"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -486,4 +489,15 @@ func parentOf(err error) error {
 	}
 
 	return nil
+}
+
+func ExitStatus(err error) int {
+	var eerr *exec.ExitError
+	if goerrors.As(err, &eerr) {
+		ws, ok := eerr.ProcessState.Sys().(syscall.WaitStatus)
+		if ok {
+			return ws.ExitStatus()
+		}
+	}
+	return -1
 }

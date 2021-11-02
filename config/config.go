@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -375,8 +376,7 @@ func (c *Configuration) loadGitDirs() {
 	if err != nil {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
-		if !strings.Contains(strings.ToLower(errMsg),
-			"not a git repository") {
+		if errors.ExitStatus(err) != 128 {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
 		c.gitDir = &gitdir

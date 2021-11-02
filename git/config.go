@@ -140,31 +140,29 @@ func (c *Configuration) Sources(dir string, optionalFilename string) ([]*Configu
 	if err != nil {
 		return nil, err
 	}
+	configs := make([]*ConfigurationSource, 0, 2)
 
 	bare, err := IsBare()
-	if err != nil {
-		return nil, err
-	}
-
-	// First try to read from the working directory and then the index if
-	// the file is missing from the working directory.
-	var fileconfig *ConfigurationSource
-	if !bare {
-		fileconfig, err = c.FileSource(filepath.Join(dir, optionalFilename))
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
+	if err == nil {
+		// First try to read from the working directory and then the index if
+		// the file is missing from the working directory.
+		var fileconfig *ConfigurationSource
+		if !bare {
+			fileconfig, err = c.FileSource(filepath.Join(dir, optionalFilename))
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return nil, err
+				}
+				fileconfig, _ = c.RevisionSource(fmt.Sprintf(":%s", optionalFilename))
 			}
-			fileconfig, _ = c.RevisionSource(fmt.Sprintf(":%s", optionalFilename))
 		}
-	}
-	if fileconfig == nil {
-		fileconfig, _ = c.RevisionSource(fmt.Sprintf("HEAD:%s", optionalFilename))
-	}
+		if fileconfig == nil {
+			fileconfig, _ = c.RevisionSource(fmt.Sprintf("HEAD:%s", optionalFilename))
+		}
 
-	configs := make([]*ConfigurationSource, 0, 2)
-	if fileconfig != nil {
-		configs = append(configs, fileconfig)
+		if fileconfig != nil {
+			configs = append(configs, fileconfig)
+		}
 	}
 
 	return append(configs, gitconfig), nil

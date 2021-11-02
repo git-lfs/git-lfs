@@ -14,13 +14,11 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	lfserrors "github.com/git-lfs/git-lfs/v3/errors"
@@ -733,13 +731,9 @@ func GitAndRootDirs() (string, string, error) {
 		// If we got a fatal error, it's possible we're on a newer
 		// (2.24+) Git and we're not in a worktree, so fall back to just
 		// looking up the repo directory.
-		if e, ok := err.(*exec.ExitError); ok {
-			var ws syscall.WaitStatus
-			ws, ok = e.ProcessState.Sys().(syscall.WaitStatus)
-			if ok && ws.ExitStatus() == 128 {
-				absGitDir, err := GitDir()
-				return absGitDir, "", err
-			}
+		if lfserrors.ExitStatus(err) == 128 {
+			absGitDir, err := GitDir()
+			return absGitDir, "", err
 		}
 		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
 	}
@@ -786,7 +780,7 @@ func GitDir() (string, error) {
 	out, err := cmd.Output()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %v %v: %v", err, string(out), buf.String())
+		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %w %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	return tools.CanonicalizePath(path, false)

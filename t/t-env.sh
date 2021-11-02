@@ -1041,6 +1041,54 @@ UploadTransfers=basic,lfs-standalone-file,ssh
 )
 end_test
 
+begin_test "env outside a repository"
+(
+  set -e
+  unset_vars
+
+  # This may or may not work, depending on the system, but it should at least
+  # potentially cause Git to print non-English messages.
+  export LC_ALL=fr_FR.UTF-8
+
+  localmedia="$(native_path "lfs/objects")"
+  lfsstorage=lfs
+  tempdir="$(native_path "lfs/tmp")"
+  envVars=$(printf "%s" "$(env | grep "^GIT_")")
+  expected=$(printf '%s
+%s
+
+LocalWorkingDir=
+LocalGitDir=
+LocalGitStorageDir=
+LocalMediaDir=%s
+LocalReferenceDirs=
+TempDir=%s
+ConcurrentTransfers=8
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=%s
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic,lfs-standalone-file,ssh
+UploadTransfers=basic,lfs-standalone-file,ssh
+%s
+%s
+' "$(git lfs version)" "$(git version)" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+  # We redirect the standard error here because we should not get any error
+  # messages, and if we do, we want to fail.
+  actual=$(git lfs env 2>&1 | grep -v "^GIT_EXEC_PATH=")
+  contains_same_elements "$expected" "$actual"
+)
+end_test
+
 begin_test "env with duplicate endpoints"
 (
   set -e
