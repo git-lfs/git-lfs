@@ -13,7 +13,7 @@ import (
 )
 
 type NetrcFinder interface {
-	FindMachine(string) *netrc.Machine
+	FindMachine(string, string) *netrc.Machine
 }
 
 func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
@@ -33,7 +33,7 @@ func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 
 type noFinder struct{}
 
-func (f *noFinder) FindMachine(host string) *netrc.Machine {
+func (f *noFinder) FindMachine(host string, loginName string) *netrc.Machine {
 	return nil
 }
 
@@ -72,7 +72,7 @@ func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
 	if c.skip[host] {
 		return nil, credHelperNoOp
 	}
-	if machine := c.netrcFinder.FindMachine(host); machine != nil {
+	if machine := c.netrcFinder.FindMachine(host, what["username"]); machine != nil {
 		creds := make(Creds)
 		creds["username"] = machine.Login
 		creds["password"] = machine.Password
@@ -81,8 +81,8 @@ func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
 		creds["scheme"] = what["scheme"]
 		creds["path"] = what["path"]
 		creds["source"] = "netrc"
-		tracerx.Printf("netrc: git credential fill (%q, %q, %q)",
-			what["protocol"], what["host"], what["path"])
+		tracerx.Printf("netrc: git credential fill (%q, %q, %q, %q)",
+			what["protocol"], what["host"], machine.Login, what["path"])
 		return creds, nil
 	}
 

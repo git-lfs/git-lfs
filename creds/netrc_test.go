@@ -74,7 +74,7 @@ func TestNetrcWithBadHost(t *testing.T) {
 
 type fakeNetrc struct{}
 
-func (n *fakeNetrc) FindMachine(host string) *netrc.Machine {
+func (n *fakeNetrc) FindMachine(host string, loginName string) *netrc.Machine {
 	if strings.Contains(host, "netrc") {
 		return &netrc.Machine{Login: "abc", Password: "def"}
 	}
