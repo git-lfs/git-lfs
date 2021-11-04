@@ -13,7 +13,7 @@ github.com/git-lfs/gitobj/v2
 github.com/git-lfs/gitobj/v2/errors
 github.com/git-lfs/gitobj/v2/pack
 github.com/git-lfs/gitobj/v2/storage
-# github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
+# github.com/git-lfs/go-netrc v0.0.0-20210914205454-f0c862dd687a
 github.com/git-lfs/go-netrc/netrc
 # github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 github.com/git-lfs/pktline

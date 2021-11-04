@@ -45,14 +45,18 @@ type Netrc struct {
 }
 
 // FindMachine returns the Machine in n named by name. If a machine named by
-// name exists, it is returned. If no Machine with name name is found and there
+// name exists, it is returned. It would also compare login name if it's provided.
+// If no Machine with name name is found and there
 // is a ``default'' machine, the ``default'' machine is returned. Otherwise, nil
 // is returned.
-func (n *Netrc) FindMachine(name string) (m *Machine) {
+func (n *Netrc) FindMachine(name string, loginName string) (m *Machine) {
 	// TODO(bgentry): not safe for concurrency
 	var def *Machine
 	for _, m = range n.machines {
 		if m.Name == name {
+			if loginName != "" && m.Login != loginName {
+				continue
+			}
 			return m
 		}
 		if m.IsDefault() {
@@ -160,12 +164,15 @@ func (n *Netrc) insertMachineTokensBeforeDefault(m *Machine) {
 	return
 }
 
-func (n *Netrc) RemoveMachine(name string) {
+func (n *Netrc) RemoveMachine(name string, loginName string) {
 	n.updateLock.Lock()
 	defer n.updateLock.Unlock()
 
 	for i := range n.machines {
 		if n.machines[i] != nil && n.machines[i].Name == name {
+			if loginName != "" && n.machines[i].Login != loginName {
+				continue
+			}
 			m := n.machines[i]
 			for _, t := range []*token{
 				m.nametoken, m.logintoken, m.passtoken, m.accounttoken,
@@ -500,14 +507,15 @@ func Parse(r io.Reader) (*Netrc, error) {
 }
 
 // FindMachine parses the netrc file identified by filename and returns the
-// Machine named by name. If a problem occurs parsing the file at filename, an
+// Machine named by name. It would also compare login name if it's provided.
+// If a problem occurs parsing the file at filename, an
 // error is returned. If a machine named by name exists, it is returned. If no
 // Machine with name name is found and there is a ``default'' machine, the
 // ``default'' machine is returned. Otherwise, nil is returned.
-func FindMachine(filename, name string) (m *Machine, err error) {
+func FindMachine(filename, name string, loginName string) (m *Machine, err error) {
 	n, err := ParseFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	return n.FindMachine(name), nil
+	return n.FindMachine(name, loginName), nil
 }

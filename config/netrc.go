@@ -8,12 +8,12 @@ import (
 )
 
 type netrcfinder interface {
-	FindMachine(string) *netrc.Machine
+	FindMachine(string, string) *netrc.Machine
 }
 
 type noNetrc struct{}
 
-func (n *noNetrc) FindMachine(host string) *netrc.Machine {
+func (n *noNetrc) FindMachine(host string, loginName string) *netrc.Machine {
 	return nil
 }
 

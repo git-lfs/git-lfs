@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go v2.4.2+incompatible
 	github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430
 	github.com/git-lfs/gitobj/v2 v2.0.2
-	github.com/git-lfs/go-netrc v0.0.0-20180525200031-e0e9ca483a18
+	github.com/git-lfs/go-netrc v0.0.0-20210914205454-f0c862dd687a
 	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/git-lfs/wildmatch/v2 v2.0.1
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
