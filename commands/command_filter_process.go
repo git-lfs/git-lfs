@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/pktline"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +37,7 @@ const (
 var filterSmudgeSkip bool
 
 func filterCommand(cmd *cobra.Command, args []string) {
-	requireStdin("This command should be run by the Git filter process")
+	requireStdin(tr.Tr.Get("This command should be run by the Git filter process"))
 	setupRepository()
 	installHooks(false)
 
