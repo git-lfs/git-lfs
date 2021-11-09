@@ -11,6 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -56,6 +57,7 @@ func RegisterCommand(name string, runFn func(cmd *cobra.Command, args []string),
 // It returns an exit code.
 func Run() int {
 	log.SetOutput(ErrorWriter)
+	tr.InitializeLocale()
 
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
