@@ -61,6 +61,7 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
+    - run: brew install gettext
     - run: brew install mitchellh/gon/gon
     - run: gem install ronn
     - run: make release
@@ -94,6 +95,9 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
+    - run: sudo apt-get update && sudo apt-get -y install gettext
+      env:
+          DEBIAN_FRONTEND: noninteractive
     - uses: actions/download-artifact@v1
       with:
         name: windows-assets
