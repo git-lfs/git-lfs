@@ -68,6 +68,9 @@ github.com/jcmturner/gokrb5/v8/types
 # github.com/jcmturner/rpc/v2 v2.0.3
 github.com/jcmturner/rpc/v2/mstypes
 github.com/jcmturner/rpc/v2/ndr
+# github.com/leonelquinteros/gotext v1.5.0
+github.com/leonelquinteros/gotext
+github.com/leonelquinteros/gotext/plurals
 # github.com/mattn/go-isatty v0.0.4
 github.com/mattn/go-isatty
 # github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
@@ -110,6 +113,10 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.5
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
