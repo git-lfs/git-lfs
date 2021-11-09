@@ -33,5 +33,7 @@ docker/*.key
 src
 commands/mancontent_gen.go
 
+tr/tr_gen.go
+
 lfstest-*
 !lfstest-*.go
