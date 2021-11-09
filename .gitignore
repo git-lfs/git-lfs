@@ -33,6 +33,9 @@ docker/*.key
 src
 commands/mancontent_gen.go
 
+po/build
+*.mo
+*.pot
 tr/tr_gen.go
 
 lfstest-*
