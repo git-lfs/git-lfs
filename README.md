@@ -33,6 +33,9 @@ built from source using the latest version of [Go](https://golang.org), and the
 available instructions in our
 [Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
 
+Note that Debian and RPM packages are built for all OSes for amd64 and i386.
+For arm64, only Debian packages for the latest Debian release are built due to the cost of building in emulation.
+
 ### Installing
 
 #### From binary

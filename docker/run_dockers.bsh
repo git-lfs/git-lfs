@@ -43,9 +43,12 @@ function split_image_name()
 # Parse Arguments
 IMAGES=()
 PRUNE=
-while [[ $# > 0 ]]; do
+ARCH=amd64
+while [[ $# -gt 0 ]]; do
   if [ "$1" = "--prune" ]; then
     PRUNE=t
+  elif [[ "$1" == --arch=* ]]; then
+    ARCH="${1#--arch=}"
   elif [ "$1" == "--" ]; then
     shift
     DOCKER_CMD="${@}"
@@ -109,6 +112,7 @@ for IMAGE_NAME in "${IMAGES[@]}"; do
                    -e FINAL_GID=${FINAL_GID} \
                    -v "${MINGW_PATCH}${REPO_DIR}:/src" \
                    -v "${MINGW_PATCH}${IMAGE_REPO_DIR}:/repo" \
+                   --platform "$ARCH" \
                    gitlfs/build-dockers:${IMAGE_NAME} ${DOCKER_CMD-}
 
   if [ -n "$PRUNE" ]

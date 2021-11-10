@@ -122,3 +122,30 @@ jobs:
     - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
       env:
         PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
+  build-docker-cross:
+    name: Build Cross Linux packages
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        arch: [arm64]
+        container: [debian_11]
+    - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
+    - run: |
+        echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
+        sudo systemctl restart docker.service
+        docker version -f '{{.Server.Experimental}}'
+    - uses: docker/setup-qemu-action@v1
+    - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=$ARCH $CONTAINER)
+      env:
+        ARCH: ${{matrix.arch}}
+        CONTAINER: ${{matrix.container}}
+    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
+      env:
+        ARCH: ${{matrix.arch}}
+        CONTAINER: ${{matrix.container}}
+    # If this is a pre-release tag, don't upload anything to packagecloud.
+    - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
+      env:
+        PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
