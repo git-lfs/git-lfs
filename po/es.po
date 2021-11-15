@@ -1,0 +1,12 @@
+msgid ""
+msgstr ""
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: \n"
+"X-Generator: xgotext\n"
+
+#: command_filter_process.go:40
+msgid "This command should be run by the Git filter process"
+msgstr "Este comando debe ser invocado por el proceso de filtración de Git"

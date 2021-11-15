@@ -10,6 +10,7 @@ require (
 	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/git-lfs/wildmatch/v2 v2.0.1
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/leonelquinteros/gotext v1.5.0
 	github.com/mattn/go-isatty v0.0.4
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17

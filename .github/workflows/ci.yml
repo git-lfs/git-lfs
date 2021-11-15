@@ -15,6 +15,12 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
+    - run: brew install gettext
+      if: ${{ startsWith(matrix.os, 'macos-') }}
+    - run: sudo apt-get update && sudo apt-get -y install gettext
+      if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+      env:
+          DEBIAN_FRONTEND: noninteractive
     - run: gem install ronn
     - run: script/cibuild
     - run: CGO_ENABLED=0 make release
