@@ -173,18 +173,22 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 		args = append(args, meta.Port)
 	}
 
-	if variant == variantSSH {
-		// inserts a separator between cli -options and host/cmd commands
-		// example: $ ssh -p 12345 -- user@host.com git-lfs-authenticate ...
-		args = append(args, "--", meta.UserAndHost)
+	if sshOptPrefixRE.MatchString(meta.UserAndHost) {
+		if variant == variantSSH {
+			// inserts a separator between cli -options and host/cmd commands
+			// example: $ ssh -p 12345 -- user@host.com git-lfs-authenticate ...
+			args = append(args, "--", meta.UserAndHost)
+		} else {
+			// no prefix supported, strip leading - off host to prevent cmd like:
+			// $ git config lfs.url ssh://-proxycmd=whatever
+			// $ plink -P 12345 -proxycmd=foo git-lfs-authenticate ...
+			//
+			// Instead, it'll attempt this, and eventually return an error
+			// $ plink -P 12345 proxycmd=foo git-lfs-authenticate ...
+			args = append(args, sshOptPrefixRE.ReplaceAllString(meta.UserAndHost, ""))
+		}
 	} else {
-		// no prefix supported, strip leading - off host to prevent cmd like:
-		// $ git config lfs.url ssh://-proxycmd=whatever
-		// $ plink -P 12345 -proxycmd=foo git-lfs-authenticate ...
-		//
-		// Instead, it'll attempt this, and eventually return an error
-		// $ plink -P 12345 proxycmd=foo git-lfs-authenticate ...
-		args = append(args, sshOptPrefixRE.ReplaceAllString(meta.UserAndHost, ""))
+		args = append(args, meta.UserAndHost)
 	}
 
 	return cmd, args, needShell
