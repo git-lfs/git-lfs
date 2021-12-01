@@ -44,38 +44,34 @@ func spawnCommand(command string) error {
 	return err
 }
 
-func main() {
-	// expect args:
-	//   lfs-ssh-echo -p PORT -- git@127.0.0.1 "git-lfs-authenticate REPO OPERATION"
-	//   lfs-ssh-echo -p PORT -- git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
-	//   lfs-ssh-echo -- git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
-	//   lfs-ssh-echo git@127.0.0.1 "git-upload-pack REPO"
-	//   lfs-ssh-echo git@127.0.0.1 "git-receive-pack REPO"
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "got %d args: %v", len(os.Args), os.Args)
-		os.Exit(1)
-	}
-
-	offset := 4
-	if os.Args[1] == "--" {
-		offset = 2
-	} else if os.Args[1] == "git@127.0.0.1" {
-		offset = 1
-	} else if os.Args[1] != "-p" {
-		fmt.Fprintf(os.Stderr, "$1 expected \"-p\", got %q", os.Args[1])
-		os.Exit(1)
-	} else if os.Args[3] != "--" {
-		fmt.Fprintf(os.Stderr, "$3 expected \"--\", got %q", os.Args[3])
-		os.Exit(1)
-	}
-
+func checkSufficientArgs(offset int) {
 	if len(os.Args) < offset+2 {
 		fmt.Fprintf(os.Stderr, "got %d args: %v", len(os.Args), os.Args)
 		os.Exit(1)
 	}
+}
 
+func main() {
+	// expect args:
+	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-authenticate REPO OPERATION"
+	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
+	//   lfs-ssh-echo git@127.0.0.1 "git-upload-pack REPO"
+	//   lfs-ssh-echo git@127.0.0.1 "git-receive-pack REPO"
+	offset := 1
+
+	checkSufficientArgs(offset)
+	if os.Args[offset] == "-p" {
+		offset += 2
+	}
+
+	checkSufficientArgs(offset)
+	if os.Args[offset] == "--" {
+		offset += 1
+	}
+
+	checkSufficientArgs(offset)
 	if os.Args[offset] != "git@127.0.0.1" {
-		fmt.Fprintf(os.Stderr, "$4 expected \"git@127.0.0.1\", got %q", os.Args[offset])
+		fmt.Fprintf(os.Stderr, "expected \"git@127.0.0.1\", got %q", os.Args[offset])
 		os.Exit(1)
 	}
 

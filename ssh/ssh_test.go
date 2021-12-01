@@ -22,7 +22,6 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args := ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "download", false)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
-		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo download",
 	}, args)
@@ -30,7 +29,6 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 	exe, args = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false)
 	assert.Equal(t, "ssh", exe)
 	assert.Equal(t, []string{
-		"--",
 		"user@foo.com",
 		"git-lfs-authenticate user/repo upload",
 	}, args)
@@ -48,7 +46,7 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"--", "user@foo.com"}, args)
+	assert.Equal(t, []string{"user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
@@ -64,7 +62,7 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
+	assert.Equal(t, []string{"-p", "8888", "user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsPlink(t *testing.T) {
@@ -156,7 +154,7 @@ func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentSsh(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, plink, exe)
-	assert.Equal(t, []string{"-p", "8888", "--", "user@foo.com"}, args)
+	assert.Equal(t, []string{"-p", "8888", "user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
@@ -312,7 +310,7 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "sh", exe)
-	assert.Equal(t, []string{"-c", "sshcmd -p 8888 -- user@foo.com"}, args)
+	assert.Equal(t, []string{"-c", "sshcmd -p 8888 user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
@@ -328,7 +326,7 @@ func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "sh", exe)
-	assert.Equal(t, []string{"-c", "sshcmd --args 2 -- user@foo.com"}, args)
+	assert.Equal(t, []string{"-c", "sshcmd --args 2 user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
@@ -342,7 +340,7 @@ func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "sh", exe)
-	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' -- user@foo.com"}, args)
+	assert.Equal(t, []string{"-c", "sshcmd foo 'bar \"baz\"' user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
@@ -356,7 +354,7 @@ func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
 
 	exe, args := ssh.FormatArgs(ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, false))
 	assert.Equal(t, "sh", exe)
-	assert.Equal(t, []string{"-c", "sshcmd --args 1 -- user@foo.com"}, args)
+	assert.Equal(t, []string{"-c", "sshcmd --args 1 user@foo.com"}, args)
 }
 
 func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
@@ -519,7 +517,7 @@ func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
 
 	exe, args, needShell := ssh.GetExeAndArgs(cli.OSEnv(), cli.GitEnv(), &e.SSHMetadata, false)
 	assert.Equal(t, "ssh", exe)
-	assert.Equal(t, []string{"--", "git@git-host.com"}, args)
+	assert.Equal(t, []string{"git@git-host.com"}, args)
 	assert.Equal(t, false, needShell)
 }
 
