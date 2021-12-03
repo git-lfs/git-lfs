@@ -607,6 +607,30 @@ setup_single_local_branch_deep_trees() {
   git commit -m "initial commit"
 }
 
+# setup_single_local_branch_same_file_tree_ext creates a repository as follows:
+#
+#   A
+#    \
+#     refs/heads/main
+#
+# - Commit 'A' has 120 bytes of data in each of 'a.txt`, `foo/a.txt',
+#   `bar.txt/b.md`, and `bar.txt/b.txt`.
+setup_single_local_branch_same_file_tree_ext() {
+  set -e
+
+  reponame="migrate-single-local-branch-with-same-file-tree-ext"
+  remove_and_create_local_repo "$reponame"
+
+  mkdir -p foo bar.txt
+  base64 < /dev/urandom | head -c 120 > a.txt
+  base64 < /dev/urandom | head -c 120 > foo/a.txt
+  base64 < /dev/urandom | head -c 120 > bar.txt/b.md
+  base64 < /dev/urandom | head -c 120 > bar.txt/b.txt
+
+  git add a.txt foo bar.txt
+  git commit -m "initial commit"
+}
+
 # setup_local_branch_with_symlink creates a repository as follows:
 #
 #   A

@@ -630,7 +630,7 @@ begin_test "migrate import (prefix include(s))"
 (
   set -e
 
-  includes="foo/bar/baz foo/**/baz/a.txt *.txt"
+  includes="foo/bar/baz/** foo/**/baz/a.txt *.txt"
   for include in $includes; do
     setup_single_local_branch_deep_trees
 
@@ -809,6 +809,26 @@ begin_test "migrate import (handle copies of files)"
   # "a.txt" is not under "foo" and therefore should not be in LFS
   oid_root_after_migration="$(calc_oid "$(git cat-file -p :a.txt)")"
   [ "$oid_root" = "$oid_root_after_migration" ]
+)
+end_test
+
+begin_test "migrate import (filter matches files only)"
+(
+  set -e
+
+  setup_single_local_branch_same_file_tree_ext
+
+  txt_root_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  txt_foo_oid="$(calc_oid "$(git cat-file -p :foo/a.txt)")"
+  md_bar_oid="$(calc_oid "$(git cat-file -p :bar.txt/b.md)")"
+  txt_bar_oid="$(calc_oid "$(git cat-file -p :bar.txt/b.txt)")"
+
+  git lfs migrate import --include="*.txt"
+
+  assert_local_object "$txt_root_oid" "120"
+  assert_local_object "$txt_foo_oid" "120"
+  assert_local_object "$txt_bar_oid" "120"
+  refute_local_object "$md_bar_oid"
 )
 end_test
 

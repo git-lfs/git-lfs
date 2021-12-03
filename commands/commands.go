@@ -129,8 +129,12 @@ func currentRemoteRef() *git.Ref {
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) *filepathfilter.Filter {
+	return buildFilepathFilterWithPatternType(config, includeArg, excludeArg, useFetchOptions, filepathfilter.GitIgnore)
+}
+
+func buildFilepathFilterWithPatternType(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool, patternType filepathfilter.PatternType) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
-	return filepathfilter.New(inc, exc, filepathfilter.GitIgnore)
+	return filepathfilter.New(inc, exc, patternType)
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
