@@ -113,7 +113,7 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlockable *filepathfilter.Filter) error {
 
 	// Build a list of files
-	lsFiles, err := git.NewLsFiles(workingDir, !c.ModifyIgnoredFiles)
+	lsFiles, err := git.NewLsFiles(workingDir, !c.ModifyIgnoredFiles, false)
 	if err != nil {
 		return err
 	}

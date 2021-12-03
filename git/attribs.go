@@ -177,7 +177,7 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
-	lsFiles, err := NewLsFiles(workingDir, true)
+	lsFiles, err := NewLsFiles(workingDir, true, true)
 	if err != nil {
 		tracerx.Printf("Error finding .gitattributes: %v", err)
 		return paths

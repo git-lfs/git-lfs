@@ -20,17 +20,19 @@ type LsFiles struct {
 	FilesByName map[string][]*lsFileInfo
 }
 
-func NewLsFiles(workingDir string, standardExclude bool) (*LsFiles, error) {
+func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFiles, error) {
 
 	args := []string{
 		"ls-files",
 		"-z", // Use a NUL separator. This also disables the escaping of special characters.
-		"--others",
 		"--cached",
 	}
 
 	if standardExclude {
 		args = append(args, "--exclude-standard")
+	}
+	if untracked {
+		args = append(args, "--others")
 	}
 	cmd := gitNoLFS(args...)
 	cmd.Dir = workingDir
