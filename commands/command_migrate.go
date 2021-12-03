@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/githistory"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
@@ -307,7 +308,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 // filter given by the --include and --exclude arguments.
 func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklog.Logger) *githistory.Rewriter {
 	include, exclude := getIncludeExcludeArgs(cmd)
-	filter := buildFilepathFilter(cfg, include, exclude, false)
+	filter := buildFilepathFilterWithPatternType(cfg, include, exclude, false, filepathfilter.GitAttributes)
 
 	return githistory.NewRewriter(db,
 		githistory.WithFilter(filter), githistory.WithLogger(l))
