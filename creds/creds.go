@@ -86,13 +86,15 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 	if !ok {
 		askpass, _ = osEnv.Get("SSH_ASKPASS")
 	}
-	askpassfile, err := tools.TranslateCygwinPath(askpass)
-	if err != nil {
-		tracerx.Printf("Error reading askpass helper %q: %v", askpassfile, err)
-	}
-	if len(askpassfile) > 0 {
-		c.askpassCredHelper = &AskPassCredentialHelper{
-			Program: askpassfile,
+	if len(askpass) > 0 {
+		askpassfile, err := tools.TranslateCygwinPath(askpass)
+		if err != nil {
+			tracerx.Printf("Error reading askpass helper %q: %v", askpassfile, err)
+		}
+		if len(askpassfile) > 0 {
+			c.askpassCredHelper = &AskPassCredentialHelper{
+				Program: askpassfile,
+			}
 		}
 	}
 
