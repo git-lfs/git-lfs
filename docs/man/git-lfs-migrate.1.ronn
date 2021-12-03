@@ -320,6 +320,11 @@ matching format of `.gitattributes`.  In addition to simple file extension
 matches (e.g., `*.gif`) patterns may also specify directory paths, in which
 case the `path/**` format may be used to match recursively.
 
+Note that this form of pattern matching for the `--include` and `--exclude`
+options used by the `git lfs migrate` command is unique among the suite of
+`git lfs` commands.  Other commands which also take these options, such as
+`git lfs ls-files`, use the gitignore(5) form of pattern matching instead.
+
 ## INCLUDE AND EXCLUDE (REFS)
 
 You can specify that `git lfs migrate` should only convert files added
@@ -451,6 +456,7 @@ $ git lfs migrate import --no-rewrite \
 
 ## SEE ALSO
 
-git-lfs-checkout(1), git-lfs-track(1), git-lfs-untrack(1), gitattributes(5).
+git-lfs-checkout(1), git-lfs-ls-files(1), git-lfs-track(1),
+git-lfs-untrack(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.
