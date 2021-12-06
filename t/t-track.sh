@@ -446,6 +446,7 @@ begin_test "track lockable read-only/read-write"
   mkdir subfolder
   echo "sub blah blah" > subfolder/test.bin
   echo "sub foo bar" > subfolder/test.dat
+  git add *.bin *.dat subfolder
   # should start writeable
   assert_file_writeable test.bin
   assert_file_writeable test.dat

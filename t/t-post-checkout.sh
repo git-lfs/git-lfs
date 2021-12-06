@@ -62,6 +62,8 @@ begin_test "post-checkout"
 
   # this will be main
 
+  touch untracked.dat
+
   [ "$(cat file1.dat)" == "file 1 updated commit 2" ]
   [ "$(cat file2.dat)" == "file 2 updated commit 3" ]
   [ "$(cat file3.big)" == "file 3 creation" ]
@@ -71,6 +73,7 @@ begin_test "post-checkout"
   # without the post-checkout hook, any changed files would now be writeable
   refute_file_writeable file1.dat
   refute_file_writeable file2.dat
+  assert_file_writeable untracked.dat
   assert_file_writeable file3.big
   assert_file_writeable file4.big
 
@@ -81,6 +84,7 @@ begin_test "post-checkout"
   refute_file_writeable file1.dat
   refute_file_writeable file2.dat
   refute_file_writeable file5.dat
+  assert_file_writeable untracked.dat
   assert_file_writeable file3.big
   assert_file_writeable file4.big
   assert_file_writeable file6.big
