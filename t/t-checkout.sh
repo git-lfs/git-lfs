@@ -201,7 +201,24 @@ begin_test "checkout: conflicts"
     git checkout -b first
     echo "abc123" > file1.dat
     git add -u
+    echo "first" > other.txt
+    git add other.txt
     git commit -m "first"
+
+    git lfs checkout --to base.txt 2>&1 | tee output.txt
+    grep -- '--to and exactly one of --theirs, --ours, and --base must be used together' output.txt
+
+    git lfs checkout --base 2>&1 | tee output.txt
+    grep -- '--to and exactly one of --theirs, --ours, and --base must be used together' output.txt
+
+    git lfs checkout --to base.txt --ours --theirs 2>&1 | tee output.txt
+    grep -- 'at most one of --base, --theirs, and --ours is allowed' output.txt
+
+    git lfs checkout --to base.txt --base 2>&1 | tee output.txt
+    grep -- '--to requires exactly one Git LFS object file path' output.txt
+
+    git lfs checkout --to base.txt --base 2>&1 abc def | tee output.txt
+    grep -- '--to requires exactly one Git LFS object file path' output.txt
 
     git lfs checkout --to base.txt --base file1.dat 2>&1 | tee output.txt
     grep 'Could not checkout.*not in the middle of a merge' output.txt
@@ -209,6 +226,8 @@ begin_test "checkout: conflicts"
     git checkout -b second main
     echo "def456" > file1.dat
     git add -u
+    echo "second" > other.txt
+    git add other.txt
     git commit -m "second"
 
     # This will cause a conflict.
@@ -221,6 +240,9 @@ begin_test "checkout: conflicts"
     echo "file1.dat" | cmp - base.txt
     echo "abc123" | cmp - theirs.txt
     echo "def456" | cmp - ours.txt
+
+    git lfs checkout --to base.txt --ours other.txt 2>&1 | tee output.txt
+    grep 'Could not find decoder pointer for object' output.txt
   popd > /dev/null
 )
 end_test
