@@ -212,7 +212,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", true) {
+	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", !git.IsGitVersionAtLeast("2.34.0")) {
 		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n", len(malformedOnWindows))
 
 		for _, m := range malformedOnWindows {
