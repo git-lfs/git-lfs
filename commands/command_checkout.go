@@ -28,6 +28,9 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if checkoutTo != "" && stage != git.IndexStageDefault {
+		if len(args) != 1 {
+			Exit("--to requires exactly one Git LFS object file path")
+		}
 		checkoutConflict(rootedPaths(args)[0], stage)
 		return
 	} else if checkoutTo != "" || stage != git.IndexStageDefault {
