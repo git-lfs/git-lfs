@@ -18,6 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
@@ -137,6 +138,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	above, err := humanize.ParseBytes(migrateImportAboveFmt)
 	if err != nil {
 		ExitWithError(errors.Wrap(err, "fatal: cannot parse --above=<n>"))
+	}
+	if above > 0 {
+		include, exclude := getIncludeExcludeArgs(cmd)
+		if include != nil || exclude != nil || migrateFixup {
+			ExitWithError(errors.Errorf(tr.Tr.Get("fatal: cannot use --above with --include, --exclude, --fixup")))
+		}
 	}
 
 	blobCache := make(map[string]bytes.Buffer)
