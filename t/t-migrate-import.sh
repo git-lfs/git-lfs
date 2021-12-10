@@ -487,6 +487,22 @@ begin_test "migrate import (above with multiple files)"
 )
 end_test
 
+begin_test "migrate import (above with include or exclude)"
+(
+  set -e
+  setup_single_local_branch_untracked
+
+  md_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.md")")"
+  txt_main_oid="$(calc_oid "$(git cat-file -p "refs/heads/main:a.txt")")"
+
+  git lfs migrate import --above 121B --include "*.md" && exit 1
+  git lfs migrate import --above 121B --exclude "*.txt" && exit 1
+  git lfs migrate import --above 121B --fixup && exit 1
+  true
+)
+end_test
+
+
 begin_test "migrate import (existing .gitattributes)"
 (
   set -e
