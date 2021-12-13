@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +40,7 @@ var (
 // made.
 func prePushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print("This should be run through Git's pre-push hook.  Run `git lfs update` to install it.")
+		Print(tr.Tr.Get("This should be run through Git's pre-push hook.  Run `git lfs update` to install it."))
 		os.Exit(1)
 	}
 
@@ -52,7 +53,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	// Remote is first arg
 	remote, _ := git.MapRemoteURL(args[0], true)
 	if err := cfg.SetValidPushRemote(remote); err != nil {
-		Exit("Invalid remote name %q: %s", args[0], err)
+		Exit(tr.Tr.Get("Invalid remote name %q: %s", args[0], err))
 	}
 
 	ctx := newUploadContext(prePushDryRun)
