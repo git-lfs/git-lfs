@@ -15,8 +15,7 @@ import (
 )
 
 var (
-	lockRemote     string
-	lockRemoteHelp = "specify which remote to use when interacting with locks"
+	lockRemote string
 )
 
 func lockCommand(cmd *cobra.Command, args []string) {
