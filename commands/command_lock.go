@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +42,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 
 		lock, err := lockClient.LockFile(path)
 		if err != nil {
-			Error("Locking %s failed: %v", path, errors.Cause(err))
+			Error(tr.Tr.Get("Locking %s failed: %v", path, errors.Cause(err)))
 			success = false
 			continue
 		}
@@ -52,7 +53,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		Print("Locked %s", path)
+		Print(tr.Tr.Get("Locked %s", path))
 	}
 
 	if locksCmdFlags.JSON {
@@ -97,14 +98,14 @@ func lockPath(file string) (string, error) {
 	wd, err = tools.CanonicalizeSystemPath(wd)
 	if err != nil {
 		return "", errors.Wrapf(err,
-			"could not follow symlinks for %s", wd)
+			tr.Tr.Get("could not follow symlinks for %s", wd))
 	}
 
 	var abs string
 	if filepath.IsAbs(file) {
 		abs, err = tools.CanonicalizeSystemPath(file)
 		if err != nil {
-			return "", fmt.Errorf("lfs: unable to canonicalize path %q: %v", file, err)
+			return "", fmt.Errorf(tr.Tr.Get("lfs: unable to canonicalize path %q: %v", file, err))
 		}
 	} else {
 		abs = filepath.Join(wd, file)
@@ -116,11 +117,11 @@ func lockPath(file string) (string, error) {
 
 	path = filepath.ToSlash(path)
 	if strings.HasPrefix(path, "../") {
-		return "", fmt.Errorf("lfs: unable to canonicalize path %q", path)
+		return "", fmt.Errorf(tr.Tr.Get("lfs: unable to canonicalize path %q", path))
 	}
 
 	if stat, err := os.Stat(abs); err == nil && stat.IsDir() {
-		return path, fmt.Errorf("lfs: cannot lock directory: %s", file)
+		return path, fmt.Errorf(tr.Tr.Get("lfs: cannot lock directory: %s", file))
 	}
 
 	return filepath.ToSlash(path), nil
@@ -128,7 +129,7 @@ func lockPath(file string) (string, error) {
 
 func init() {
 	RegisterCommand("lock", lockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", "specify which remote to use when interacting with locks")
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
 	})
 }
