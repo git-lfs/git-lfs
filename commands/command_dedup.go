@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -30,11 +31,11 @@ func dedupTestCommand(*cobra.Command, []string) {
 		if err == nil {
 			err = errors.New("Unknown reason.")
 		}
-		Exit("This system does not support deduplication. %s", err)
+		Exit(tr.Tr.Get("This system does not support deduplication. %s", err))
 	}
 
 	if len(cfg.Extensions()) > 0 {
-		Exit("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.")
+		Exit(tr.Tr.Get("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used."))
 	}
 
 	Print("OK: This platform and repository support file de-duplication.")
@@ -50,30 +51,30 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 	if gitDir, err := git.GitDir(); err != nil {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {
-		Exit("This system does not support deduplication.")
+		Exit(tr.Tr.Get("This system does not support deduplication."))
 	}
 
 	if len(cfg.Extensions()) > 0 {
-		Exit("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.")
+		Exit(tr.Tr.Get("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used."))
 	}
 
 	if dirty, err := git.IsWorkingCopyDirty(); err != nil {
 		ExitWithError(err)
 	} else if dirty {
-		Exit("Working tree is dirty. Please commit or reset your change.")
+		Exit(tr.Tr.Get("Working tree is dirty. Please commit or reset your change."))
 	}
 
 	// We assume working tree is clean.
 	gitScanner := lfs.NewGitScanner(config.New(), func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			Exit("Could not scan for Git LFS tree: %s", err)
+			Exit(tr.Tr.Get("Could not scan for Git LFS tree: %s", err))
 			return
 		}
 
 		if success, err := dedup(p); err != nil {
-			Error("Skipped: %s (Size: %d)\n          %s", p.Name, p.Size, err)
+			Error(tr.Tr.Get("Skipped: %s (Size: %d)\n          %s", p.Name, p.Size, err))
 		} else if !success {
-			Error("Skipped: %s (Size: %d)", p.Name, p.Size)
+			Error(tr.Tr.Get("Skipped: %s (Size: %d)", p.Name, p.Size))
 		} else if success {
 			Print("Success: %s (Size: %d)", p.Name, p.Size)
 
