@@ -150,12 +150,12 @@ func buildManifest(r *t.Repo) (*tq.Manifest, error) {
 	}
 
 	apiClient, err := lfsapi.NewClient(r)
+	if err != nil {
+		return nil, err
+	}
 	apiClient.Endpoints = &constantEndpoint{
 		e:              endp,
 		EndpointFinder: apiClient.Endpoints,
-	}
-	if err != nil {
-		return nil, err
 	}
 	return tq.NewManifest(r.Filesystem(), apiClient, "", ""), nil
 }
