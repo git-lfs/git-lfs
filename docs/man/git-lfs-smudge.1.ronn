@@ -29,10 +29,9 @@ standard output.
 
 ## KNOWN BUGS
 
-On Windows, Git does not handle files in the working tree larger than 4
-gigabytes.
-
-For more information, see: https://github.com/git-lfs/git-lfs/issues/2434.
+On Windows, Git before 2.34.0 does not handle files in the working tree larger
+than 4 gigabytes.  Newer versions of Git, as well as Unix versions, are
+unaffected.
 
 ## SEE ALSO
 

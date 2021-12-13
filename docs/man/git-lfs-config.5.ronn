@@ -111,8 +111,9 @@ be scoped inside the configuration for a remote.
 * `lfs.largefilewarning`
 
   Warn when a file is 4 GiB or larger. Such files will be corrupted when using
-  Windows (unless smudging is disabled) due to a limitation in Git.  Default:
-  true.
+  Windows (unless smudging is disabled) with a Git for Windows version less than
+  2.34.0 due to a limitation in Git.  Default: true if the version is less than
+  2.34.0, false otherwise.
 
 ### Transfer (upload / download) settings
 
