@@ -110,6 +110,9 @@ PO = $(wildcard po/*.po)
 # MO is a list of all the mo (gettext compiled) files to be built.
 MO = $(patsubst po/%.po,po/build/%.mo,$(PO))
 
+# XGOTEXT is the string extractor for gotext.
+XGOTEXT ?= xgotext
+
 # PKGS is a listing of packages that are considered to be a part of Git LFS, and
 # are used in package-specific commands, such as the 'make test' targets. For
 # example:
@@ -230,6 +233,15 @@ po/build/%.mo: po/%.po po/build
 	if command -v $(MSGFMT) >/dev/null 2>&1; \
 	then \
 		$(MSGFMT) -o $@ $<; \
+	fi
+
+po/i-reverse.po: po/default.pot
+	script/gen-i-reverse $< $@
+
+po/default.pot:
+	if command -v $(XGOTEXT) >/dev/null 2>&1; \
+	then \
+		$(XGOTEXT) -in . -exclude .git,.github,vendor -out po -v; \
 	fi
 
 # Targets 'all' and 'build' build binaries of Git LFS for the above release
