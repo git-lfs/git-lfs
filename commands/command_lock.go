@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -105,7 +104,7 @@ func lockPath(file string) (string, error) {
 	if filepath.IsAbs(file) {
 		abs, err = tools.CanonicalizeSystemPath(file)
 		if err != nil {
-			return "", fmt.Errorf(tr.Tr.Get("lfs: unable to canonicalize path %q: %v", file, err))
+			return "", errors.New(tr.Tr.Get("lfs: unable to canonicalize path %q: %v", file, err))
 		}
 	} else {
 		abs = filepath.Join(wd, file)
@@ -117,11 +116,11 @@ func lockPath(file string) (string, error) {
 
 	path = filepath.ToSlash(path)
 	if strings.HasPrefix(path, "../") {
-		return "", fmt.Errorf(tr.Tr.Get("lfs: unable to canonicalize path %q", path))
+		return "", errors.New(tr.Tr.Get("lfs: unable to canonicalize path %q", path))
 	}
 
 	if stat, err := os.Stat(abs); err == nil && stat.IsDir() {
-		return path, fmt.Errorf(tr.Tr.Get("lfs: cannot lock directory: %s", file))
+		return path, errors.New(tr.Tr.Get("lfs: cannot lock directory: %s", file))
 	}
 
 	return filepath.ToSlash(path), nil
