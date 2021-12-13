@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -90,7 +91,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if ok {
-		Print("Git LFS fsck OK")
+		Print(tr.Tr.Get("Git LFS fsck OK"))
 		return
 	}
 
@@ -99,7 +100,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
-	Print("objects: repair: moving corrupt objects to %s", badDir)
+	Print("objects: repair: %s", tr.Tr.Get("moving corrupt objects to %s", badDir))
 
 	if err := tools.MkdirAll(badDir, cfg); err != nil {
 		ExitWithError(err)
@@ -131,7 +132,7 @@ func doFsckObjects(start, end string, useIndex bool) []string {
 		}
 
 		if err != nil {
-			Panic(err, "Error checking Git LFS files")
+			Panic(err, tr.Tr.Get("Error checking Git LFS files"))
 		}
 	})
 
@@ -167,12 +168,12 @@ func doFsckPointers(start, end string) []corruptPointer {
 	var corruptPointers []corruptPointer
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if p != nil {
-			Debug("Examining %v (%v)", p.Oid, p.Name)
+			Debug(tr.Tr.Get("Examining %v (%v)", p.Oid, p.Name))
 			if !p.Canonical {
 				cp := corruptPointer{
 					blobOid: p.Sha1,
 					lfsOid:  p.Oid,
-					message: fmt.Sprintf("Pointer for %s (blob %s) was not canonical", p.Oid, p.Sha1),
+					message: fmt.Sprintf(tr.Tr.Get("Pointer for %s (blob %s) was not canonical", p.Oid, p.Sha1)),
 					kind:    "nonCanonicalPointer",
 				}
 				Print("pointer: %s", cp.String())
@@ -184,7 +185,7 @@ func doFsckPointers(start, end string) []corruptPointer {
 				cp := corruptPointer{
 					treeOid: psErr.OID(),
 					path:    psErr.Path(),
-					message: fmt.Sprintf("%q (treeish %s) should have been a pointer but was not", psErr.Path(), psErr.OID()),
+					message: fmt.Sprintf(tr.Tr.Get("%q (treeish %s) should have been a pointer but was not", psErr.Path(), psErr.OID())),
 					kind:    "unexpectedGitObject",
 				}
 				Print("pointer: %s", cp.String())
@@ -212,7 +213,7 @@ func doFsckPointers(start, end string) []corruptPointer {
 func fsckPointer(name, oid string, size int64) (bool, error) {
 	path := cfg.Filesystem().ObjectPathname(oid)
 
-	Debug("Examining %v (%v)", name, path)
+	Debug(tr.Tr.Get("Examining %v (%v)", name, path))
 
 	f, err := os.Open(path)
 	if pErr, pOk := err.(*os.PathError); pOk {
@@ -220,7 +221,7 @@ func fsckPointer(name, oid string, size int64) (bool, error) {
 		if size == 0 {
 			return true, nil
 		}
-		Print("objects: openError: %s (%s) could not be checked: %s", name, oid, pErr.Err)
+		Print("objects: openError: %s", tr.Tr.Get("%s (%s) could not be checked: %s", name, oid, pErr.Err))
 		return false, nil
 	}
 
@@ -240,7 +241,7 @@ func fsckPointer(name, oid string, size int64) (bool, error) {
 		return true, nil
 	}
 
-	Print("objects: corruptObject: %s (%s) is corrupt", name, oid)
+	Print(fmt.Sprintf("objects: corruptObject: %s", tr.Tr.Get("%s (%s) is corrupt", name, oid)))
 	return false, nil
 }
 
