@@ -172,7 +172,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			}
 			err = s.WriteList(paths)
 		default:
-			ExitWithError(fmt.Errorf("unknown command %q", req.Header["command"]))
+			ExitWithError(errors.New(tr.Tr.Get("unknown command %q", req.Header["command"])))
 		}
 
 		if errors.IsNotAPointerError(err) {
@@ -206,20 +206,30 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformed) > 0 {
-		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that should have been pointers, but weren't:\n", len(malformed))
+		fmt.Fprintf(os.Stderr, tr.Tr.GetN(
+			"Encountered %d file that should have been pointers, but wasn't:\n",
+			"Encountered %d files that should have been pointers, but weren't:\n",
+			len(malformed),
+			len(malformed),
+		))
 		for _, m := range malformed {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
 	}
 
 	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", !git.IsGitVersionAtLeast("2.34.0")) {
-		fmt.Fprintf(os.Stderr, "Encountered %d file(s) that may not have been copied correctly on Windows:\n", len(malformedOnWindows))
+		fmt.Fprintf(os.Stderr, tr.Tr.GetN(
+			"Encountered %d file that may not have been copied correctly on Windows:\n",
+			"Encountered %d files that may not have been copied correctly on Windows:\n",
+			len(malformedOnWindows),
+			len(malformedOnWindows),
+		))
 
 		for _, m := range malformedOnWindows {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
 
-		fmt.Fprintf(os.Stderr, "\nSee: `git lfs help smudge` for more details.\n")
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("\nSee: `git lfs help smudge` for more details.\n"))
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
