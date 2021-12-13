@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -37,13 +38,13 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 	files, err := git.GetFilesChanged("HEAD", "")
 
 	if err != nil {
-		LoggedError(err, "Warning: post-commit failed: %v", err)
+		LoggedError(err, tr.Tr.Get("Warning: post-commit failed: %v", err))
 		os.Exit(1)
 	}
 	tracerx.Printf("post-commit: checking write flags on %v", files)
 	err = lockClient.FixLockableFileWriteFlags(files)
 	if err != nil {
-		LoggedError(err, "Warning: post-commit locked file check failed: %v", err)
+		LoggedError(err, tr.Tr.Get("Warning: post-commit locked file check failed: %v", err))
 	}
 
 }
