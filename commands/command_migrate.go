@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/githistory"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
@@ -150,7 +151,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 	}
 
 	if migrateEverything && len(args) > 0 {
-		return nil, nil, errors.New("fatal: cannot use --everything with explicit reference arguments")
+		return nil, nil, errors.New(tr.Tr.Get("Cannot use --everything with explicit reference arguments"))
 	}
 
 	for _, name := range args {
@@ -176,7 +177,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 
 	if hardcore {
 		if migrateEverything {
-			return nil, nil, errors.New("fatal: cannot use --everything with --include-ref or --exclude-ref")
+			return nil, nil, errors.New(tr.Tr.Get("Cannot use --everything with --include-ref or --exclude-ref"))
 		}
 
 		// If either --include-ref=<ref> or --exclude-ref=<ref> were
@@ -214,7 +215,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 	} else {
 		bare, err := git.IsBare()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "fatal: unable to determine bareness")
+			return nil, nil, errors.Wrap(err, tr.Tr.Get("Unable to determine bareness"))
 		}
 
 		if !bare {
@@ -251,7 +252,7 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 	}
 
 	if !migrateSkipFetch {
-		w := l.Waiter("migrate: Fetching remote refs")
+		w := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Fetching remote refs")))
 		if err := git.Fetch(remotes...); err != nil {
 			return nil, err
 		}
@@ -299,7 +300,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 	if current.Type == git.RefTypeOther ||
 		current.Type == git.RefTypeRemoteBranch {
 
-		return nil, errors.Errorf("fatal: cannot migrate non-local ref: %s", current.Name)
+		return nil, errors.Errorf(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
 	}
 	return current, nil
 }
@@ -318,7 +319,7 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	dirty, err := git.IsWorkingCopyDirty()
 	if err != nil {
 		ExitWithError(errors.Wrap(err,
-			"fatal: could not determine if working copy is dirty"))
+			tr.Tr.Get("Could not determine if working copy is dirty")))
 	}
 
 	if !dirty {
@@ -332,21 +333,23 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 		answer := bufio.NewReader(in)
 	L:
 		for {
-			fmt.Fprintf(out, "migrate: override changes in your working copy?  All uncommitted changes will be lost! [y/N] ")
+			fmt.Fprintf(out, "migrate: %s", tr.Tr.Get("override changes in your working copy?  All uncommitted changes will be lost! [y/N] "))
 			s, err := answer.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
 					break L
 				}
 				ExitWithError(errors.Wrap(err,
-					"fatal: could not read answer"))
+					tr.Tr.Get("Could not read answer")))
 			}
 
 			switch strings.TrimSpace(s) {
-			case "n", "N", "":
+			// TRANSLATORS: these are negative (no) responses.
+			case tr.Tr.Get("n"), tr.Tr.Get("N"), "":
 				proceed = false
 				break L
-			case "y", "Y":
+			// TRANSLATORS: these are positive (yes) responses.
+			case tr.Tr.Get("y"), tr.Tr.Get("Y"):
 				proceed = true
 				break L
 			}
@@ -358,9 +361,9 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	}
 
 	if proceed {
-		fmt.Fprintf(out, "migrate: changes in your working copy will be overridden ...\n")
+		fmt.Fprintf(out, "migrate: %s", tr.Tr.Get("changes in your working copy will be overridden ...\n"))
 	} else {
-		Exit("migrate: working copy must not be dirty")
+		Exit(tr.Tr.Get("migrate: working copy must not be dirty"))
 	}
 }
 

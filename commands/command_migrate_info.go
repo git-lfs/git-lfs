@@ -15,6 +15,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
@@ -73,13 +74,13 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 
 	above, err := humanize.ParseBytes(migrateInfoAboveFmt)
 	if err != nil {
-		ExitWithError(errors.Wrap(err, "cannot parse --above=<n>"))
+		ExitWithError(errors.Wrap(err, tr.Tr.Get("cannot parse --above=<n>")))
 	}
 
 	if u := cmd.Flag("unit"); u.Changed {
 		unit, err := humanize.ParseByteUnit(u.Value.String())
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "cannot parse --unit=<unit>"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("cannot parse --unit=<unit>")))
 		}
 
 		migrateInfoUnit = unit
@@ -95,17 +96,17 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		case "ignore":
 			migrateInfoPointersMode = migrateInfoPointersIgnore
 		default:
-			ExitWithError(errors.Errorf("fatal: unsupported --pointers option value"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Unsupported --pointers option value")))
 		}
 	}
 
 	if migrateFixup {
 		include, exclude := getIncludeExcludeArgs(cmd)
 		if include != nil || exclude != nil {
-			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --include, --exclude"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --fixup with --include, --exclude")))
 		}
 		if pointers.Changed && migrateInfoPointersMode != migrateInfoPointersIgnore {
-			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --pointers=%s", pointers.Value.String()))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --fixup with --pointers=%s", pointers.Value.String())))
 		}
 		migrateInfoPointersMode = migrateInfoPointersIgnore
 	}
@@ -302,8 +303,16 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 			size = humanize.FormatBytes(bytesAbove)
 		}
 
-		stat := fmt.Sprintf("%d/%d files(s)",
-			above, total)
+		// TRANSLATORS: The strings here are intended to have the same
+		// display width including spaces, so please insert trailing
+		// spaces as necessary for your language.
+		stat := fmt.Sprintf(tr.Tr.GetN(
+			"%d/%d file ",
+			"%d/%d files",
+			int(total),
+			above,
+			total,
+		))
 
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 

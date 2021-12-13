@@ -57,11 +57,11 @@ begin_test "migrate import (--fixup, --include)"
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    echo >&2 "Expected 'git lfs migrate ...' to fail, didn't ..."
     exit 1
   fi
 
-  grep -q "fatal: cannot use --fixup with --include, --exclude" migrate.log
+  grep -q "Cannot use --fixup with --include, --exclude" migrate.log
 )
 end_test
 
@@ -75,11 +75,11 @@ begin_test "migrate import (--fixup, --exclude)"
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    echo >&2 "Expected 'git lfs migrate ...' to fail, didn't ..."
     exit 1
   fi
 
-  grep -q "fatal: cannot use --fixup with --include, --exclude" migrate.log
+  grep -q "Cannot use --fixup with --include, --exclude" migrate.log
 )
 end_test
 
@@ -93,11 +93,11 @@ begin_test "migrate import (--fixup, --no-rewrite)"
     | tee migrate.log
 
   if [ "${PIPESTATUS[0]}" -eq 0 ]; then
-    echo >&2 "fatal: expected 'git lfs migrate ...' to fail, didn't ..."
+    echo >&2 "Expected 'git lfs migrate ...' to fail, didn't ..."
     exit 1
   fi
 
-  grep -q "fatal: --no-rewrite and --fixup cannot be combined" migrate.log
+  grep -qe "--no-rewrite and --fixup cannot be combined" migrate.log
 )
 end_test
 

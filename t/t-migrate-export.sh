@@ -204,7 +204,7 @@ begin_test "migrate export (no filter)"
     exit 1
   fi
 
-  grep "fatal: one or more files must be specified with --include" migrate.log
+  grep "One or more files must be specified with --include" migrate.log
 )
 end_test
 
@@ -439,7 +439,7 @@ begin_test "migrate export (invalid --remote)"
     exit 1
   fi
 
-  grep "fatal: invalid remote zz provided" migrate.log
+  grep "Invalid remote zz provided" migrate.log
 )
 end_test
 
