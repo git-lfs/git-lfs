@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -74,14 +75,14 @@ func (f *Filesystem) ObjectExists(oid string, size int64) bool {
 
 func (f *Filesystem) ObjectPath(oid string) (string, error) {
 	if len(oid) < 4 {
-		return "", fmt.Errorf("too short object ID: %q", oid)
+		return "", errors.New(tr.Tr.Get("too short object ID: %q", oid))
 	}
 	if oid == EmptyObjectSHA256 {
 		return os.DevNull, nil
 	}
 	dir := f.localObjectDir(oid)
 	if err := tools.MkdirAll(dir, f); err != nil {
-		return "", fmt.Errorf("error trying to create local storage directory in %q: %s", dir, err)
+		return "", errors.New(tr.Tr.Get("error trying to create local storage directory in %q: %s", dir, err))
 	}
 	return filepath.Join(dir, oid), nil
 }
