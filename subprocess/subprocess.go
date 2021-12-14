@@ -4,6 +4,7 @@ package subprocess
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -65,7 +67,7 @@ func Output(cmd *Cmd) (string, error) {
 		if len(cmd.Args) > 1 {
 			ran = fmt.Sprintf("%s %s", cmd.Path, quotedArgs(cmd.Args[1:]))
 		}
-		formattedErr := fmt.Errorf("error running %s: '%s' '%s'", ran, errorOutput, strings.TrimSpace(exitError.Error()))
+		formattedErr := errors.New(tr.Tr.Get("error running %s: '%s' '%s'", ran, errorOutput, strings.TrimSpace(exitError.Error())))
 
 		// return "" as output in error case, for callers that don't care about errors but rely on "" returned, in-case stdout != ""
 		return "", formattedErr
