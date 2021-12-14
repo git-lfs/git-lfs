@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type lockClient interface {
@@ -79,7 +81,7 @@ func (c *httpLockClient) Lock(remote string, lockReq *lockRequest) (*lockRespons
 		return nil, res.StatusCode, err
 	}
 	if lockRes.Lock == nil && len(lockRes.Message) == 0 {
-		return nil, res.StatusCode, fmt.Errorf("invalid server response")
+		return nil, res.StatusCode, errors.New(tr.Tr.Get("invalid server response"))
 	}
 	return lockRes, res.StatusCode, nil
 }
@@ -134,7 +136,7 @@ func (c *httpLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*u
 		return nil, res.StatusCode, err
 	}
 	if unlockRes.Lock == nil && len(unlockRes.Message) == 0 {
-		return nil, res.StatusCode, fmt.Errorf("invalid server response")
+		return nil, res.StatusCode, errors.New(tr.Tr.Get("invalid server response"))
 	}
 	return unlockRes, res.StatusCode, nil
 }

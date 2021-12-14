@@ -2,7 +2,6 @@ package locking
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/kv"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -112,23 +112,23 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		if len(lockRes.RequestID) > 0 {
 			tracerx.Printf("Server Request ID: %s", lockRes.RequestID)
 		}
-		return Lock{}, fmt.Errorf("server unable to create lock: %s", lockRes.Message)
+		return Lock{}, errors.New(tr.Tr.Get("server unable to create lock: %s", lockRes.Message))
 	}
 
 	lock := *lockRes.Lock
 	if err := c.cache.Add(lock); err != nil {
-		return Lock{}, errors.Wrap(err, "lock cache")
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("lock cache"))
 	}
 
 	abs, err := getAbsolutePath(path)
 	if err != nil {
-		return Lock{}, errors.Wrap(err, "make lockpath absolute")
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
 	}
 
 	// If the file exists, ensure that it's writeable on return
 	if tools.FileExists(abs) {
 		if err := tools.SetFileWriteFlag(abs, true); err != nil {
-			return Lock{}, errors.Wrap(err, "set file write flag")
+			return Lock{}, errors.Wrap(err, tr.Tr.Get("set file write flag"))
 		}
 	}
 
@@ -156,7 +156,7 @@ func getAbsolutePath(p string) (string, error) {
 func (c *Client) UnlockFile(path string, force bool) error {
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
-		return fmt.Errorf("unable to get lock id: %v", err)
+		return errors.New(tr.Tr.Get("unable to get lock id: %v", err))
 	}
 
 	return c.UnlockFileById(id, force)
@@ -174,17 +174,17 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		if len(unlockRes.RequestID) > 0 {
 			tracerx.Printf("Server Request ID: %s", unlockRes.RequestID)
 		}
-		return fmt.Errorf("server unable to unlock: %s", unlockRes.Message)
+		return errors.New(tr.Tr.Get("server unable to unlock: %s", unlockRes.Message))
 	}
 
 	if err := c.cache.RemoveById(id); err != nil {
-		return fmt.Errorf("error caching unlock information: %v", err)
+		return errors.New(tr.Tr.Get("error caching unlock information: %v", err))
 	}
 
 	if unlockRes.Lock != nil {
 		abs, err := getAbsolutePath(unlockRes.Lock.Path)
 		if err != nil {
-			return errors.Wrap(err, "make lockpath absolute")
+			return errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
 		}
 
 		// Make non-writeable if required
@@ -218,7 +218,7 @@ func (c *Client) SearchLocks(filter map[string]string, limit int, localOnly bool
 		return c.searchLocalLocks(filter, limit)
 	} else if cached {
 		if len(filter) > 0 || limit != 0 {
-			return []Lock{}, errors.New("can't search cached locks when filter or limit is set")
+			return []Lock{}, errors.New(tr.Tr.Get("can't search cached locks when filter or limit is set"))
 		}
 
 		locks := []Lock{}
@@ -248,7 +248,7 @@ func (c *Client) SearchLocksVerifiable(limit int, cached bool) (ourLocks, theirL
 
 	if cached {
 		if limit != 0 {
-			return []Lock{}, []Lock{}, errors.New("can't search cached locks when limit is set")
+			return []Lock{}, []Lock{}, errors.New(tr.Tr.Get("can't search cached locks when limit is set"))
 		}
 
 		locks := &lockVerifiableList{}
@@ -286,7 +286,7 @@ func (c *Client) SearchLocksVerifiable(limit int, cached bool) (ourLocks, theirL
 				if len(list.RequestID) > 0 {
 					tracerx.Printf("Server Request ID: %s", list.RequestID)
 				}
-				return ourLocks, theirLocks, fmt.Errorf("server error searching locks: %s", list.Message)
+				return ourLocks, theirLocks, errors.New(tr.Tr.Get("server error searching locks: %s", list.Message))
 			}
 
 			for _, l := range list.Ours {
@@ -367,7 +367,7 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 			if len(list.RequestID) > 0 {
 				tracerx.Printf("Server Request ID: %s", list.RequestID)
 			}
-			return locks, fmt.Errorf("server error searching for locks: %s", list.Message)
+			return locks, errors.New(tr.Tr.Get("server error searching for locks: %s", list.Message))
 		}
 
 		for _, l := range list.Locks {
@@ -443,15 +443,15 @@ func (c *Client) prepareCacheDirectory(kind string) (string, error) {
 	stat, err := os.Stat(cacheDir)
 	if err == nil {
 		if !stat.IsDir() {
-			return cacheDir, errors.New("init cache directory " + cacheDir + " failed: already exists, but is no directory")
+			return cacheDir, errors.New(tr.Tr.Get("inititalization of cache directory %s failed: already exists, but is no directory", cacheDir))
 		}
 	} else if os.IsNotExist(err) {
 		err = tools.MkdirAll(cacheDir, c.cfg)
 		if err != nil {
-			return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed: directory creation failed")
+			return cacheDir, errors.Wrap(err, tr.Tr.Get("initiailization of cache directory %s failed: directory creation failed", cacheDir))
 		}
 	} else {
-		return cacheDir, errors.Wrap(err, "init cache directory "+cacheDir+" failed")
+		return cacheDir, errors.Wrap(err, tr.Tr.Get("initialization of cache directory %s failed", cacheDir))
 	}
 
 	return filepath.Join(cacheDir, kind), nil
@@ -466,7 +466,7 @@ func (c *Client) readLocksFromCacheFile(kind string, decoder func(*json.Decoder)
 	_, err = os.Stat(cacheFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return errors.New("no cached locks present")
+			return errors.New(tr.Tr.Get("no cached locks present"))
 		}
 
 		return err

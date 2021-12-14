@@ -5,9 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/ssh"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type sshLockClient struct {
@@ -40,13 +42,13 @@ func (c *sshLockClient) parseLockResponse(status int, args []string, lines []str
 			} else if strings.HasPrefix(entry, "locked-at=") {
 				lock.LockedAt, err = time.Parse(time.RFC3339, entry[10:])
 				if err != nil {
-					return lock, "", fmt.Errorf("lock response: invalid locked-at: %s", entry)
+					return lock, "", errors.New(tr.Tr.Get("lock response: invalid locked-at: %s", entry))
 				}
 				seen["locked-at"] = struct{}{}
 			}
 		}
 		if len(seen) != 4 {
-			return nil, "", fmt.Errorf("incomplete fields for lock")
+			return nil, "", errors.New(tr.Tr.Get("incomplete fields for lock"))
 		}
 	}
 	if status > 299 && len(lines) > 0 {
@@ -79,7 +81,7 @@ func (c *sshLockClient) parseListLockResponse(status int, args []string, lines [
 		for _, entry := range args {
 			if strings.HasPrefix(entry, "next-cursor=") {
 				if len(nextCursor) > 0 {
-					return nil, nil, nil, "", "", fmt.Errorf("lock response: multiple next-cursor responses")
+					return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: multiple next-cursor responses"))
 				}
 				nextCursor = entry[12:]
 			}
@@ -92,18 +94,18 @@ func (c *sshLockClient) parseListLockResponse(status int, args []string, lines [
 			}
 			if cmd == "lock" {
 				if len(values) != 2 {
-					return nil, nil, nil, "", "", fmt.Errorf("lock response: invalid response: %q", entry)
+					return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: invalid response: %q", entry))
 				} else if last != nil && c.lockDataIsIncomplete(last) {
-					return nil, nil, nil, "", "", fmt.Errorf("lock response: incomplete lock data")
+					return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: incomplete lock data"))
 				}
 				id := values[1]
 				last = &lockData{who: ownerUnknown}
 				last.lock.Id = id
 				locks[id] = last
 			} else if len(values) != 3 {
-				return nil, nil, nil, "", "", fmt.Errorf("lock response: invalid response: %q", entry)
+				return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: invalid response: %q", entry))
 			} else if last == nil || last.lock.Id != values[1] {
-				return nil, nil, nil, "", "", fmt.Errorf("lock response: interspersed response: %q", entry)
+				return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: interspersed response: %q", entry))
 			} else {
 				switch cmd {
 				case "path":
@@ -116,13 +118,13 @@ func (c *sshLockClient) parseListLockResponse(status int, args []string, lines [
 				case "locked-at":
 					last.lock.LockedAt, err = time.Parse(time.RFC3339, values[2])
 					if err != nil {
-						return nil, nil, nil, "", "", fmt.Errorf("lock response: invalid locked-at: %s", entry)
+						return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: invalid locked-at: %s", entry))
 					}
 				}
 			}
 		}
 		if last != nil && c.lockDataIsIncomplete(last) {
-			return nil, nil, nil, "", "", fmt.Errorf("lock response: incomplete lock data")
+			return nil, nil, nil, "", "", errors.New(tr.Tr.Get("lock response: incomplete lock data"))
 		}
 		for _, lock := range locks {
 			all = append(all, lock.lock)
