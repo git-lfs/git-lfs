@@ -17,6 +17,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -79,7 +80,7 @@ func NewIn(workdir, gitdir string) *Configuration {
 		callback: func() Environment {
 			sources, err := gitConf.Sources(c.LocalWorkingDir(), ".lfsconfig")
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading git config: %s\n", err)
+				fmt.Fprintf(os.Stderr, tr.Tr.Get("Error reading git config: %s\n", err))
 			}
 			return c.readGitConfig(sources...)
 		},
