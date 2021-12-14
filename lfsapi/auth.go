@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -104,7 +105,7 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 	}
 
 	if redirectedReq == nil {
-		return res, errors.New("failed to redirect request")
+		return res, errors.New(tr.Tr.Get("failed to redirect request"))
 	}
 
 	return c.doWithAuth("", access, redirectedReq, via)
@@ -281,7 +282,7 @@ func setRequestAuthFromURL(req *http.Request, u *url.URL) bool {
 	}
 
 	if pass, ok := u.User.Password(); ok {
-		fmt.Fprintln(os.Stderr, "warning: current Git remote contains credentials")
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: current Git remote contains credentials"))
 		setRequestAuth(req, u.User.Username(), pass)
 		return true
 	}

@@ -1112,7 +1112,7 @@ begin_test "env with duplicate endpoints"
 EOF
 
   git lfs env 2>&1 | tee test.log
-  if grep 'WARNING.*same alias' test.log
+  if grep 'warning.*same alias' test.log
   then
     exit 1
   fi
@@ -1123,6 +1123,6 @@ EOF
 EOF
 
   git lfs env 2>&1 | tee test.log
-  grep 'WARNING.*same alias' test.log
+  grep 'warning.*same alias' test.log
 )
 end_test

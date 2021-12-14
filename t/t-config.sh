@@ -195,7 +195,7 @@ begin_test "ambiguous url alias"
   git config -l | grep url
 
   git lfs env 2>&1 | tee env2.log
-  grep "WARNING: Multiple 'url.*.insteadof'" env2.log
+  grep "warning: Multiple 'url.*.insteadof'" env2.log
 )
 end_test
 

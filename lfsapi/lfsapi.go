@@ -1,12 +1,11 @@
 package lfsapi
 
 import (
-	"fmt"
-
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -30,7 +29,7 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 
 	httpClient, err := lfshttp.NewClient(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("error creating http client"))
+		return nil, errors.Wrap(err, tr.Tr.Get("error creating http client"))
 	}
 
 	c := &Client{
