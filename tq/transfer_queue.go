@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -626,7 +627,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// Transfer object, then we give up on the
 			// transfer by telling the progress meter to
 			// skip the number of bytes in "o".
-			q.errorc <- errors.Errorf("[%v] The server returned an unknown OID.", o.Oid)
+			q.errorc <- errors.Errorf(tr.Tr.Get("[%v] The server returned an unknown OID.", o.Oid))
 
 			q.Skip(o.Size)
 			q.wait.Done()
@@ -722,7 +723,7 @@ func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Tr
 		var err error
 
 		if t.Size < 0 {
-			err = errors.Errorf("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size)
+			err = errors.Errorf(tr.Tr.Get("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size))
 		} else {
 			fd, serr := os.Stat(t.Path)
 			if serr != nil {
@@ -921,17 +922,6 @@ func (q *TransferQueue) toAdapterCfg(e lfshttp.Endpoint) AdapterConfig {
 	}
 }
 
-var (
-	// contentTypeWarning is the message printed when a server returns an
-	// HTTP 422 at the end of a push.
-	contentTypeWarning = []string{
-		"Uploading failed due to unsupported Content-Type header(s).",
-		"Consider disabling Content-Type detection with:",
-		"",
-		"  $ git config lfs.contenttype false",
-	}
-)
-
 // Wait waits for the queue to finish processing all transfers. Once Wait is
 // called, Add will no longer add transfers to the queue. Any failed
 // transfers will be automatically retried once.
@@ -956,9 +946,10 @@ func (q *TransferQueue) Wait() {
 	}
 
 	if q.unsupportedContentType {
-		for _, line := range contentTypeWarning {
-			fmt.Fprintf(os.Stderr, "info: %s\n", line)
-		}
+		fmt.Fprintf(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
+info: Consider disabling Content-Type detection with:
+info:
+info:   $ git config lfs.contenttype false`))
 	}
 }
 

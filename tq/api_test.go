@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
@@ -167,7 +168,7 @@ func getSchema(wd, relpath string) *sourcedSchema {
 	abspath := filepath.ToSlash(filepath.Join(wd, relpath))
 	s, err := gojsonschema.NewSchema(gojsonschema.NewReferenceLoader(fmt.Sprintf("file:///%s", abspath)))
 	if err != nil {
-		fmt.Printf("schema load error for %q: %+v\n", relpath, err)
+		tr.Tr.Get("schema load error for %q: %+v\n", relpath, err)
 	}
 	return &sourcedSchema{Source: relpath, Schema: s}
 }
@@ -184,6 +185,6 @@ func assertSchema(t *testing.T, schema *sourcedSchema, dataLoader gojsonschema.J
 		for _, resErr := range resErrors {
 			valErrors = append(valErrors, resErr.String())
 		}
-		t.Errorf("Schema: %s\n%s", schema.Source, strings.Join(valErrors, "\n"))
+		t.Errorf(tr.Tr.Get("Schema: %s\n%s", schema.Source, strings.Join(valErrors, "\n")))
 	}
 }

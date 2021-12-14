@@ -1,7 +1,6 @@
 package tq
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 const (
@@ -35,7 +35,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf("No upload action for object: %s", t.Oid)
+		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs
@@ -59,11 +59,11 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	//    Response will contain Upload-Offset if supported
 	offHdr := res.Header.Get("Upload-Offset")
 	if len(offHdr) == 0 {
-		return fmt.Errorf("missing Upload-Offset header from tus.io HEAD response at %q, contact server admin", rel.Href)
+		return errors.New(tr.Tr.Get("missing Upload-Offset header from tus.io HEAD response at %q, contact server admin", rel.Href))
 	}
 	offset, err := strconv.ParseInt(offHdr, 10, 64)
 	if err != nil || offset < 0 {
-		return fmt.Errorf("invalid Upload-Offset value %q in response from tus.io HEAD at %q, contact server admin", offHdr, rel.Href)
+		return errors.New(tr.Tr.Get("invalid Upload-Offset value %q in response from tus.io HEAD at %q, contact server admin", offHdr, rel.Href))
 	}
 	// Upload-Offset=size means already completed (skip)
 	// Batch API will probably already detect this, but handle just in case
@@ -138,16 +138,16 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
-		err = errors.New("http: received status 403")
+		err = errors.New(tr.Tr.Get("http: received status 403"))
 		return errors.NewRetriableError(err)
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+		return errors.Wrapf(nil, tr.Tr.Get("Invalid status for %s %s: %d",
 			req.Method,
 			strings.SplitN(req.URL.String(), "?", 2)[0],
 			res.StatusCode,
-		)
+		))
 	}
 
 	io.Copy(ioutil.Discard, res.Body)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -116,7 +117,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf("Object %s not found on the server.", t.Oid)
+		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
 	}
 
 	req, err := a.newHTTPRequest("GET", rel)
@@ -241,15 +242,15 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	}
 	written, err := tools.CopyWithCallback(dlFile, hasher, res.ContentLength, ccb)
 	if err != nil {
-		return errors.Wrapf(err, "cannot write data to tempfile %q", dlfilename)
+		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {
-		return fmt.Errorf("expected OID %s, got %s after %d bytes written", t.Oid, actual, written)
+		return errors.New(tr.Tr.Get("expected OID %s, got %s after %d bytes written", t.Oid, actual, written))
 	}
 
 	if err := dlFile.Close(); err != nil {
-		return fmt.Errorf("can't close tempfile %q: %v", dlfilename, err)
+		return errors.New(tr.Tr.Get("can't close temporary file %q: %v", dlfilename, err))
 	}
 
 	err = tools.RenameFileCopyPermissions(dlfilename, t.Path)

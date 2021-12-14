@@ -7,8 +7,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -208,7 +210,7 @@ func (a *adapterBase) newHTTPRequest(method string, rel *Action) (*http.Request,
 
 	if !httpRE.MatchString(href) {
 		urlfragment := strings.SplitN(href, "?", 2)[0]
-		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
+		return nil, errors.New(tr.Tr.Get("missing protocol: %q", urlfragment))
 	}
 
 	req, err := http.NewRequest(method, href, nil)
