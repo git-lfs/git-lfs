@@ -2,12 +2,12 @@ package lfs
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -68,7 +68,7 @@ func (s *GitScanner) RemoteForPush(r string) error {
 	defer s.mu.Unlock()
 
 	if len(s.remote) > 0 && s.remote != r {
-		return fmt.Errorf("trying to set remote to %q, already set to %q", r, s.remote)
+		return errors.New(tr.Tr.Get("trying to set remote to %q, already set to %q", r, s.remote))
 	}
 
 	s.remote = r
@@ -88,7 +88,7 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("unable to scan starting at %q: no remote set", left)
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
 	}
 	s.mu.Unlock()
 
@@ -107,7 +107,7 @@ func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb Git
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("unable to scan starting at %q: no remote set", left)
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
 	}
 	s.mu.Unlock()
 

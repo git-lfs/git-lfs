@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Status represents the status of a file that appears in the output of `git
@@ -69,7 +70,7 @@ func (s DiffIndexStatus) Format(state fmt.State, c rune) {
 			state.Write([]byte{byte(rune(s))})
 		}
 	default:
-		panic(fmt.Sprintf("cannot format %v for DiffIndexStatus", c))
+		panic(fmt.Sprintf(tr.Tr.Get("cannot format %v for DiffIndexStatus", c)))
 	}
 }
 
@@ -180,12 +181,12 @@ func (s *DiffIndexScanner) scan(line string) (*DiffIndexEntry, error) {
 
 	parts := strings.Split(line, "\t")
 	if len(parts) < 2 {
-		return nil, errors.Errorf("invalid line: %s", line)
+		return nil, errors.Errorf(tr.Tr.Get("invalid line: %s", line))
 	}
 
 	desc := strings.Fields(parts[0])
 	if len(desc) < 5 {
-		return nil, errors.Errorf("invalid description: %s", parts[0])
+		return nil, errors.Errorf(tr.Tr.Get("invalid description: %s", parts[0]))
 	}
 
 	entry := &DiffIndexEntry{

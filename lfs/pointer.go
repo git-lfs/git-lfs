@@ -13,6 +13,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
 
@@ -103,7 +104,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() >= blobSizeCutoff {
-		return nil, errors.NewNotAPointerError(errors.New("file size exceeds lfs pointer size cutoff"))
+		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("file size exceeds lfs pointer size cutoff")))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
@@ -150,7 +151,7 @@ func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
 
 func verifyVersion(version string) error {
 	if len(version) == 0 {
-		return errors.NewNotAPointerError(errors.New("Missing version"))
+		return errors.NewNotAPointerError(errors.New(tr.Tr.Get("Missing version")))
 	}
 
 	for _, v := range v1Aliases {
@@ -159,7 +160,7 @@ func verifyVersion(version string) error {
 		}
 	}
 
-	return errors.New("Invalid version: " + version)
+	return errors.New(tr.Tr.Get("Invalid version: %s", version))
 }
 
 func decodeKV(data []byte) (*Pointer, error) {
@@ -177,7 +178,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 
 	value, ok := kvps["oid"]
 	if !ok {
-		return nil, errors.New("Invalid Oid")
+		return nil, errors.New(tr.Tr.Get("Invalid OID"))
 	}
 
 	oid, err := parseOid(value)
@@ -188,7 +189,7 @@ func decodeKV(data []byte) (*Pointer, error) {
 	value, ok = kvps["size"]
 	size, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || size < 0 {
-		return nil, fmt.Errorf("invalid size: %q", value)
+		return nil, errors.New(tr.Tr.Get("invalid size: %q", value))
 	}
 
 	var extensions []*PointerExtension
@@ -212,14 +213,14 @@ func decodeKV(data []byte) (*Pointer, error) {
 func parseOid(value string) (string, error) {
 	parts := strings.SplitN(value, ":", 2)
 	if len(parts) != 2 {
-		return "", errors.New("Invalid Oid value: " + value)
+		return "", errors.New(tr.Tr.Get("Invalid OID value: %s", value))
 	}
 	if parts[0] != oidType {
-		return "", errors.New("Invalid Oid type: " + parts[0])
+		return "", errors.New(tr.Tr.Get("Invalid OID type: %s", parts[0]))
 	}
 	oid := parts[1]
 	if !oidRE.Match([]byte(oid)) {
-		return "", errors.New("Invalid Oid: " + oid)
+		return "", errors.New(tr.Tr.Get("Invalid OID: %s", oid))
 	}
 	return oid, nil
 }
@@ -227,12 +228,12 @@ func parseOid(value string) (string, error) {
 func parsePointerExtension(key string, value string) (*PointerExtension, error) {
 	keyParts := strings.SplitN(key, "-", 3)
 	if len(keyParts) != 3 || keyParts[0] != "ext" {
-		return nil, errors.New("Invalid extension value: " + value)
+		return nil, errors.New(tr.Tr.Get("Invalid extension value: %s", value))
 	}
 
 	p, err := strconv.Atoi(keyParts[1])
 	if err != nil || p < 0 {
-		return nil, errors.New("Invalid priority: " + keyParts[1])
+		return nil, errors.New(tr.Tr.Get("Invalid priority: %s", keyParts[1]))
 	}
 
 	name := keyParts[2]
@@ -249,7 +250,7 @@ func validatePointerExtensions(exts []*PointerExtension) error {
 	m := make(map[int]struct{})
 	for _, ext := range exts {
 		if _, exist := m[ext.Priority]; exist {
-			return fmt.Errorf("duplicate priority found: %d", ext.Priority)
+			return errors.New(tr.Tr.Get("duplicate priority found: %d", ext.Priority))
 		}
 		m[ext.Priority] = struct{}{}
 	}
@@ -260,7 +261,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = errors.NewNotAPointerError(errors.New("invalid header"))
+		err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("invalid header")))
 		return
 	}
 
@@ -275,7 +276,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) < 2 {
-			err = errors.NewNotAPointerError(fmt.Errorf("error reading line %d: %s", line, text))
+			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
 			return
 		}
 
@@ -283,7 +284,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		value := parts[1]
 
 		if numKeys <= line {
-			err = errors.NewNotAPointerError(fmt.Errorf("extra line: %s", text))
+			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("extra line: %s", text)))
 			return
 		}
 

@@ -2,12 +2,13 @@ package lfs
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"strconv"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // runCatFileBatchCheck uses 'git cat-file --batch-check' to get the type and
@@ -49,7 +50,7 @@ func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockab
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errCh <- fmt.Errorf("error in git cat-file --batch-check: %v %v", err, string(stderr))
+			errCh <- errors.New(tr.Tr.Get("error in git cat-file --batch-check: %v %v", err, string(stderr)))
 		}
 		close(smallRevCh)
 		close(errCh)

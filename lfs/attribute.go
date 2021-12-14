@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Attribute wraps the structure and some operations of Git's conception of an
@@ -158,7 +159,7 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		}
 		return err
 	} else if currentValue != value {
-		return fmt.Errorf("the %q attribute should be %q but is %q",
+		return fmt.Errorf(fmt.Sprintf(tr.Tr.Get("the %%q attribute should be %%q but is %%q")),
 			key, value, currentValue)
 	}
 

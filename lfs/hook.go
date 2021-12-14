@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -157,5 +159,5 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		}
 	}
 
-	return false, fmt.Errorf("Hook already exists: %s\n\n%s\n", string(h.Type), tools.Indent(contents))
+	return false, errors.New(tr.Tr.Get("Hook already exists: %s\n\n%s\n", string(h.Type), tools.Indent(contents)))
 }

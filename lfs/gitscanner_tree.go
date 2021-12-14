@@ -1,7 +1,6 @@
 package lfs
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
@@ -116,7 +116,7 @@ func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChann
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- fmt.Errorf("error in git ls-tree: %v %v", err, string(stderr))
+			errchan <- errors.New(tr.Tr.Get("error in git ls-tree: %v %v", err, string(stderr)))
 		}
 		close(blobs)
 		close(errchan)
