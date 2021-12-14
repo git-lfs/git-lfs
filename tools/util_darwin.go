@@ -4,7 +4,6 @@
 package tools
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"golang.org/x/sys/unix"
 )
 
@@ -55,7 +55,7 @@ func checkCloneFileSupported() bool {
 // If check failed (e.g. directory is read-only), returns err.
 func CheckCloneFileSupported(dir string) (supported bool, err error) {
 	if !cloneFileSupported {
-		return false, errors.New("unsupported OS version. >= 10.12.x Sierra required")
+		return false, errors.New(tr.Tr.Get("unsupported OS version. >= 10.12.x Sierra required"))
 	}
 
 	src, err := ioutil.TempFile(dir, "src")
@@ -88,7 +88,7 @@ func CloneFile(_ io.Writer, _ io.Reader) (bool, error) {
 
 func CloneFileByPath(dst, src string) (bool, error) {
 	if !cloneFileSupported {
-		return false, &CloneFileError{Unsupported: true, errorString: "clonefile is not supported"}
+		return false, &CloneFileError{Unsupported: true, errorString: tr.Tr.Get("clonefile is not supported")}
 	}
 
 	if FileExists(dst) {
@@ -109,7 +109,7 @@ func cloneFileSyscall(dst, src string) *CloneFileError {
 	if err != nil {
 		return &CloneFileError{
 			Unsupported: err == unix.ENOTSUP,
-			errorString: fmt.Sprintf("%s. from %v to %v", err, src, dst),
+			errorString: tr.Tr.Get("error cloning from %v to %v: %s", src, dst, err),
 		}
 	}
 

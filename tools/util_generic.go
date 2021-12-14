@@ -7,10 +7,11 @@ import (
 	"io"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 func CheckCloneFileSupported(dir string) (supported bool, err error) {
-	return false, errors.New("unsupported platform")
+	return false, errors.New(tr.Tr.Get("unsupported platform"))
 }
 
 func CloneFile(writer io.Writer, reader io.Reader) (bool, error) {
