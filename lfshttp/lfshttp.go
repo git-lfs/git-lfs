@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 var (
@@ -71,7 +72,7 @@ type decodeTypeError struct {
 func (e *decodeTypeError) TypeError() {}
 
 func (e *decodeTypeError) Error() string {
-	return fmt.Sprintf("Expected json type, got: %q", e.Type)
+	return fmt.Sprintf(tr.Tr.Get("Expected json type, got: %q", e.Type))
 }
 
 func DecodeJSON(res *http.Response, obj interface{}) error {
@@ -84,7 +85,7 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return errors.Wrapf(err, "Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL)
+		return errors.Wrapf(err, tr.Tr.Get("Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL))
 	}
 
 	return nil
