@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/pkg/errors"
 )
 
@@ -219,7 +220,7 @@ type wrappedError struct {
 // newWrappedError creates a wrappedError.
 func newWrappedError(err error, message string) *wrappedError {
 	if err == nil {
-		err = errors.New("Error")
+		err = errors.New(tr.Tr.Get("Error"))
 	}
 
 	var errWithCause errorWithCause
@@ -269,7 +270,7 @@ func (e fatalError) Fatal() bool {
 }
 
 func NewFatalError(err error) error {
-	return fatalError{newWrappedError(err, "Fatal error")}
+	return fatalError{newWrappedError(err, tr.Tr.Get("Fatal error"))}
 }
 
 // Definitions for IsNotImplementedError()
@@ -283,7 +284,7 @@ func (e notImplementedError) NotImplemented() bool {
 }
 
 func NewNotImplementedError(err error) error {
-	return notImplementedError{newWrappedError(err, "Not implemented")}
+	return notImplementedError{newWrappedError(err, tr.Tr.Get("Not implemented"))}
 }
 
 // Definitions for IsAuthError()
@@ -297,7 +298,7 @@ func (e authError) AuthError() bool {
 }
 
 func NewAuthError(err error) error {
-	return authError{newWrappedError(err, "Authentication required")}
+	return authError{newWrappedError(err, tr.Tr.Get("Authentication required"))}
 }
 
 // Definitions for IsSmudgeError()
@@ -311,7 +312,7 @@ func (e smudgeError) SmudgeError() bool {
 }
 
 func NewSmudgeError(err error, oid, filename string) error {
-	e := smudgeError{newWrappedError(err, "Smudge error")}
+	e := smudgeError{newWrappedError(err, tr.Tr.Get("Smudge error"))}
 	SetContext(e, "OID", oid)
 	SetContext(e, "FileName", filename)
 	return e
@@ -328,7 +329,7 @@ func (e cleanPointerError) CleanPointerError() bool {
 }
 
 func NewCleanPointerError(pointer interface{}, bytes []byte) error {
-	err := New("pointer error")
+	err := New(tr.Tr.Get("pointer error"))
 	e := cleanPointerError{newWrappedError(err, "clean")}
 	SetContext(e, "pointer", pointer)
 	SetContext(e, "bytes", bytes)
@@ -346,7 +347,7 @@ func (e notAPointerError) NotAPointerError() bool {
 }
 
 func NewNotAPointerError(err error) error {
-	return notAPointerError{newWrappedError(err, "Pointer file error")}
+	return notAPointerError{newWrappedError(err, tr.Tr.Get("Pointer file error"))}
 }
 
 // Definitions for IsPointerScanError()
@@ -370,7 +371,7 @@ func (e PointerScanError) Path() string {
 }
 
 func NewPointerScanError(err error, treeishOid, path string) error {
-	return PointerScanError{treeishOid, path, newWrappedError(err, "Pointer error")}
+	return PointerScanError{treeishOid, path, newWrappedError(err, tr.Tr.Get("Pointer error"))}
 }
 
 type badPointerKeyError struct {
@@ -385,8 +386,8 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 }
 
 func NewBadPointerKeyError(expected, actual string) error {
-	err := Errorf("Expected key %s, got %s", expected, actual)
-	return badPointerKeyError{expected, actual, newWrappedError(err, "pointer parsing")}
+	err := Errorf(tr.Tr.Get("Expected key %s, got %s", expected, actual))
+	return badPointerKeyError{expected, actual, newWrappedError(err, tr.Tr.Get("pointer parsing"))}
 }
 
 // Definitions for IsDownloadDeclinedError()
