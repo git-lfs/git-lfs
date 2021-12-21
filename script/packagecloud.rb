@@ -45,9 +45,8 @@ $distro_name_map = {
   ],
   "centos/8" => [
     "el/8",
-    "fedora/32",
-    "fedora/33",
     "fedora/34",
+    "fedora/35",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -65,13 +64,15 @@ $distro_name_map = {
     "debian/buster",
     "linuxmint/ulyana", # EOL April 2025
     "linuxmint/ulyssa", # EOL April 2025
+    "linuxmint/uma",    # EOL April 2025
     "ubuntu/focal",     # EOL April 2025
-    "ubuntu/groovy",    # EOL July 2021
     "ubuntu/hirsute",   # EOL January 2022
   ],
   "debian/11" => [
     "debian/bullseye",  # Current stable
-    "debian/bookworm", # Current testing
+    "debian/bookworm",  # Current testing
+    "ubuntu/impish",    # EOL July 2022
+    "ubuntu/jammy",     # EOL April 2027
   ]
 }
 
