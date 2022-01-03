@@ -10,7 +10,9 @@ jobs:
         go: ['1.17.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - uses: actions/setup-go@v2
       with:
@@ -37,7 +39,9 @@ jobs:
         go: ['1.13.x', '1.14.x']
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
@@ -46,7 +50,9 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - uses: actions/setup-go@v2
       with:
@@ -96,7 +102,9 @@ jobs:
         os: [ubuntu-20.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: GIT_DEFAULT_HASH=sha256 script/cibuild
@@ -107,7 +115,9 @@ jobs:
         os: [ubuntu-20.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
@@ -115,7 +125,9 @@ jobs:
     name: Build Linux packages
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
@@ -128,7 +140,9 @@ jobs:
         arch: [arm64]
         container: [debian_11]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - run: |
         echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json

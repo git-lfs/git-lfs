@@ -11,7 +11,9 @@ jobs:
       matrix:
         go: ['1.17.x']
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - uses: actions/setup-go@v2
       with:
@@ -56,7 +58,9 @@ jobs:
       matrix:
         go: ['1.17.x']
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - uses: actions/setup-go@v2
       with:
@@ -90,7 +94,9 @@ jobs:
       matrix:
         go: ['1.17.x']
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - uses: actions/setup-go@v2
       with:
@@ -116,7 +122,9 @@ jobs:
     name: Build Linux Packages
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
@@ -133,7 +141,9 @@ jobs:
       matrix:
         arch: [arm64]
         container: [debian_11]
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - uses: actions/setup-ruby@v1
     - run: |
         echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
