@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type verifyState byte
@@ -63,12 +64,12 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 		} else if lv.verifyState == verifyStateUnknown || lv.verifyState == verifyStateEnabled {
 			if errors.IsAuthError(err) {
 				if lv.verifyState == verifyStateUnknown {
-					Error("WARNING: Authentication error: %s", err)
+					Error(tr.Tr.Get("warning: Authentication error: %s", err))
 				} else if lv.verifyState == verifyStateEnabled {
-					Exit("ERROR: Authentication error: %s", err)
+					Exit(tr.Tr.Get("error: Authentication error: %s", err))
 				}
 			} else {
-				Print("Remote %q does not support the LFS locking API. Consider disabling it with:", cfg.PushRemote())
+				Print(tr.Tr.Get("Remote %q does not support the LFS locking API. Consider disabling it with:", cfg.PushRemote()))
 				Print("  $ git config lfs.%s.locksverify false", lv.endpoint.Url)
 				if lv.verifyState == verifyStateEnabled {
 					ExitWithError(err)
@@ -76,8 +77,8 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 			}
 		}
 	} else if lv.verifyState == verifyStateUnknown {
-		Print("Locking support detected on remote %q. Consider enabling it with:", cfg.PushRemote())
-		Print("  $ git config lfs.%s.locksverify true", lv.endpoint.Url)
+		Print(tr.Tr.Get("Locking support detected on remote %q. Consider enabling it with:", cfg.PushRemote()))
+		Print("$ git config lfs.%s.locksverify true", lv.endpoint.Url)
 	}
 
 	lv.addLocks(ref, ours, lv.ourLocks)
@@ -89,7 +90,7 @@ func (lv *lockVerifier) addLocks(ref *git.Ref, locks []locking.Lock, set map[str
 	for _, l := range locks {
 		if rl, ok := set[l.Path]; ok {
 			if err := rl.Add(ref, l); err != nil {
-				Error("WARNING: error adding %q lock for ref %q: %+v", l.Path, ref, err)
+				Error(tr.Tr.Get("warning: error adding %q lock for ref %q: %+v", l.Path, ref, err))
 			}
 		} else {
 			set[l.Path] = lv.newRefLocks(ref, l)
