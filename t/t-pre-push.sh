@@ -750,7 +750,7 @@ begin_test "pre-push with their lock on lfs file"
     grep "Unable to push locked files" push.log
     grep "* locked_theirs.dat - Git LFS Tests" push.log
 
-    grep "ERROR: Cannot update locked files." push.log
+    grep "Cannot update locked files." push.log
     refute_server_object "$reponame" "$(calc_oid_file locked_theirs.dat)"
   popd >/dev/null
 )
@@ -806,7 +806,7 @@ begin_test "pre-push with their lock on non-lfs lockable file"
     grep "Unable to push locked files" push.log
     grep "* large_locked_theirs.dat - Git LFS Tests" push.log
     grep "* tiny_locked_theirs.dat - Git LFS Tests" push.log
-    grep "ERROR: Cannot update locked files." push.log
+    grep "Cannot update locked files." push.log
 
     refute_server_object "$reponame" "$(calc_oid_file large_locked_theirs.dat)"
     refute_server_object "$reponame" "$(calc_oid_file tiny_locked_theirs.dat)"
