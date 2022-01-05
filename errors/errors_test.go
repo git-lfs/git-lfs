@@ -30,7 +30,7 @@ func TestBehaviorWraps(t *testing.T) {
 	ni := NewNotImplementedError(fatal)
 
 	if !IsNotImplementedError(ni) {
-		t.Error("expected erro to be not implemeted")
+		t.Error("expected error to be not implemented")
 	}
 
 	if !IsFatalError(ni) {

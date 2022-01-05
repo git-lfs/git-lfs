@@ -1,7 +1,7 @@
 Name:           git-lfs-repo-release
 Version:        1
 Release:        1%{?dist}
-Summary:        Packges for git-lfs for Enterprise Linux repository configuration
+Summary:        Packages for git-lfs for Enterprise Linux repository configuration
 
 Group:          System Environment/Base
 License:        MIT

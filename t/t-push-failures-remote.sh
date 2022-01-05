@@ -2,7 +2,7 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-# push_fail_test preforms a test expecting a `git lfs push` to fail given the
+# push_fail_test performs a test expecting a `git lfs push` to fail given the
 # contents of a particular file contained within that push. The Git server used
 # during tests has certain special cases that are triggered by finding specific
 # keywords within a file (as given by the first argument).

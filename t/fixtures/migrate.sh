@@ -682,7 +682,7 @@ setup_local_branch_with_dirty_copy() {
 #    \
 #     refs/heads/main
 #
-# - Commit 'A' has the contents "a.txt" in a.txt, and anoter identical file
+# - Commit 'A' has the contents "a.txt" in a.txt, and another identical file
 # (same name and content) in another directory.
 setup_local_branch_with_copied_file() {
   set -e

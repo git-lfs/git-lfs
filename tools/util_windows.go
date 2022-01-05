@@ -89,7 +89,7 @@ func CloneFile(writer io.Writer, reader io.Reader) (success bool, err error) {
 
 	fileSize := srcStat.Size()
 
-	err = dst.Truncate(fileSize) // set file size. Thre is a requirements "The destination region must not extend past the end of file."
+	err = dst.Truncate(fileSize) // set file size. There is a requirement "The destination region must not extend past the end of file."
 	if err != nil {
 		return
 	}

@@ -13,7 +13,7 @@ var (
 
 // QuotedFields is an alternative to strings.Fields (see:
 // https://golang.org/pkg/strings#Fields) that respects spaces between matching
-// pairs of quotation delimeters.
+// pairs of quotation delimiters.
 //
 // For instance, the quoted fields of the string "foo bar 'baz etc'" would be:
 //   []string{"foo", "bar", "baz etc"}

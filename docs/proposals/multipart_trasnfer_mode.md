@@ -4,7 +4,7 @@ This is a proposal for a new transfer mode, designed to support multi-part HTTP 
 Git LFS, defining a new transfer mode to be implemented by Git LFS clients and servers in addition to the current `basic`
 transfer mode.
 
-This proposal is based on the experimental `multipart-basic` transfor mode originally
+This proposal is based on the experimental `multipart-basic` transfer mode originally
 [implemented by datopian/giftless](https://giftless.datopian.com/en/latest/multipart-spec.html).
 
 ## Reasoning
@@ -40,7 +40,7 @@ the Storage Backend be a cloud storage service such as *Amazon S3* or *Google Cl
 ## High Level Protocol Specs
 * The name of the transfer is `multipart`
 * Batch requests are the same as `basic` requests except that `{"transfers": ["multipart", "basic"]}` is the
-  expected transfers value. Clients MUST retain `basic` as the fallback transfer mode to ensure compatiblity with
+  expected transfers value. Clients MUST retain `basic` as the fallback transfer mode to ensure compatibility with
   servers not implementing this extension.
 * `{"operation": "download"}` replies work exactly like `basic` download request with no change
 * `{"operation": "upload"}` replies will break the upload into several `actions`:
@@ -330,7 +330,7 @@ May be responded with:
   ]
 }
 ```
-Even if the server does support `multipart`, as `basic` can be preferrable in this case.
+Even if the server does support `multipart`, as `basic` can be preferable in this case.
 
 ## Implementation Notes
 
@@ -363,5 +363,5 @@ As `abort` requests do not have a body, any parameters required by the LFS serve
 be passed as part of the URL in the `href` parameter.
 
 It should be noted that clients will not always be able to `abort` partial uploads cleanly. Implementors are expected to
-ensure proper cleanup of partially uploaded files via other means, such as a periodcal cron job that locates uncommitted
+ensure proper cleanup of partially uploaded files via other means, such as a periodical cron job that locates uncommitted
 uploaded parts and deletes them.

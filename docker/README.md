@@ -68,7 +68,7 @@ you are executing has to be in the docker image.
 There are currently three type of docker images:
 
 1. Building images: `{OS NAME}_{OS VERSION}` - These build
-git-lfs and save the package/repository in the `/repo` direrctory. This image
+git-lfs and save the package/repository in the `/repo` directory. This image
 also signs all rpms/debs if gpg signing is setup
 2. Environment building images: `{OS_NAME}_{OS_VERSION}_env` -
 These build or install the environment (dependencies) for building git-lfs. These
@@ -263,7 +263,7 @@ CentOS will **not** work with subkeys[3]. CentOS 6 and 7 will work with 4096 bit
 RSA signing keys
 
 You can make a 4096 RSA key for Debian and CentOS 6/7 (4 for step 1 above, and
-4096 for step 2). And only have two keys... Or optionally a 4096 RSA subkey for Debain
+4096 for step 2). And only have two keys... Or optionally a 4096 RSA subkey for Debian
 [1]. Or a key for each distro. Dealers choice.
 
 [1] https://www.digitalocean.com/community/tutorials/how-to-use-reprepro-for-a-secure-package-repository-on-ubuntu-14-04

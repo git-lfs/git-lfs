@@ -53,7 +53,7 @@ func (e *delayedEnvironment) All() map[string][]string {
 // also sets values on the configuration instance `g.config`.
 //
 // If Load has already been called, this method will bail out early,
-// and return false. Otherwise it will preform the entire parse and return true.
+// and return false. Otherwise it will perform the entire parse and return true.
 //
 // Load is safe to call across multiple goroutines.
 func (e *delayedEnvironment) Load() {

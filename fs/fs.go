@@ -105,7 +105,7 @@ func (f *Filesystem) RepositoryPermissions(executable bool) os.FileMode {
 }
 
 /**
- * Revert non ascii chracters escaped by git or windows (as octal sequences \000) back to bytes.
+ * Revert non ascii characters escaped by git or windows (as octal sequences \000) back to bytes.
  */
 func DecodePathBytes(path []byte) []byte {
 	var expression = regexp.MustCompile(`\\[0-9]{3}`)

@@ -354,11 +354,11 @@ begin_test "unlocking a lock while uncommitted"
 )
 end_test
 
-begin_test "unlocking a lock with ambiguious arguments"
+begin_test "unlocking a lock with ambiguous arguments"
 (
   set -e
 
-  reponame="unlock_ambiguious_args"
+  reponame="unlock_ambiguous_args"
   setup_repo "$reponame" "a.dat"
 
   git lfs lock --json "a.dat" | tee lock.log

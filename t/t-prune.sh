@@ -244,7 +244,7 @@ begin_test "prune keep recent"
   oid_prunecommithead=$(calc_oid "$content_prunecommithead")
 
 
-  # use a single file so each commit supercedes the last, if different files
+  # use a single file so each commit supersedes the last, if different files
   # then history becomes harder to track
   # Also note that when considering 'recent' when editing a single file, it means
   # that the snapshot state overlapped; so the latest commit *before* the day
