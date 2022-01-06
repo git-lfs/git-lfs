@@ -77,7 +77,7 @@ type RewriteOptions struct {
 	TreeCallbackFn TreeCallbackFn
 }
 
-// blobFn returns a useable BlobRewriteFn, either the one that was given in the
+// blobFn returns a usable BlobRewriteFn, either the one that was given in the
 // *RewriteOptions, or a noopBlobFn.
 func (r *RewriteOptions) blobFn() BlobRewriteFn {
 	if r.BlobFn == nil {
@@ -86,7 +86,7 @@ func (r *RewriteOptions) blobFn() BlobRewriteFn {
 	return r.BlobFn
 }
 
-// treePreFn returns a useable TreePreCallbackFn, either the one that was given
+// treePreFn returns a usable TreePreCallbackFn, either the one that was given
 // in the *RewriteOptions, or a noopTreePreFn.
 func (r *RewriteOptions) treePreFn() TreePreCallbackFn {
 	if r.TreePreCallbackFn == nil {
@@ -95,7 +95,7 @@ func (r *RewriteOptions) treePreFn() TreePreCallbackFn {
 	return r.TreePreCallbackFn
 }
 
-// treeFn returns a useable TreeRewriteFn, either the one that was given in the
+// treeFn returns a usable TreeRewriteFn, either the one that was given in the
 // *RewriteOptions, or a noopTreeFn.
 func (r *RewriteOptions) treeFn() TreeCallbackFn {
 	if r.TreeCallbackFn == nil {

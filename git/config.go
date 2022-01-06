@@ -39,7 +39,7 @@ func NewConfig(workdir, gitdir string) *Configuration {
 	return &Configuration{WorkDir: workdir, GitDir: gitdir}
 }
 
-// NewReadOnlyConfig creates a new confguration that returns an error if an
+// NewReadOnlyConfig creates a new configuration that returns an error if an
 // attempt to write to the configuration is made.
 func NewReadOnlyConfig(workdir, gitdir string) *Configuration {
 	cfg := NewConfig(workdir, gitdir)

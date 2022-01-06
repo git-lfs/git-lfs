@@ -68,7 +68,7 @@ we don't have to implement everything, or bloat the git-lfs binary with every
 custom system possible.
 
 Because Go is statically linked it's not possible to extend client functionality
-at runtime through loading libaries, so instead I propose allowing an external
+at runtime through loading libraries, so instead I propose allowing an external
 process to be invoked, and communicated with via a defined stream protocol. This
 protocol will be logically identical to the internal adapters; the core passing
 oids and receiving back progress and completion notifications; just that the

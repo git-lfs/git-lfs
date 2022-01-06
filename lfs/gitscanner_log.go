@@ -195,7 +195,7 @@ func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
 // logScanner parses log output formatted as per logLfsSearchArgs & returns
 // pointers.
 type logScanner struct {
-	// Filter will ensure file paths matching the include patterns, or not matchin
+	// Filter will ensure file paths matching the include patterns, or not matching
 	// the exclude patterns are skipped.
 	Filter *filepathfilter.Filter
 

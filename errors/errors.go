@@ -10,7 +10,7 @@ package errors
 // always be `error`. The wrappedError details are not exported. If an error is
 // the kind of error a caller should need to investigate, an IsXError()
 // function is provided that tells the caller if the error is of that type.
-// There should only be a handfull of cases where a simple `error` is
+// There should only be a handful of cases where a simple `error` is
 // insufficient.
 //
 // The error behaviors can be nested when created. For example, the not

@@ -95,7 +95,7 @@ type batch []*objectTuple
 // receiver and "other" has cardinality less than "size", "right" will be
 // returned as nil. Any object tuple that is not currently able to be retried
 // (ie Retry-After response), will also go into the right batch. Also, when object(s)
-// are returend that are rate-limited, return the minimum duration required to wait until
+// are returned that are rate-limited, return the minimum duration required to wait until
 // a object is ready.
 func (b batch) Concat(other batch, size int) (left, right batch, minWait time.Duration) {
 	u := batch(append(b, other...))
@@ -475,7 +475,7 @@ func (q *TransferQueue) collectBatches() {
 		var minWaitTime time.Duration
 		next, pending, minWaitTime = retries.Concat(append(pending, collected...), q.batchSize)
 		if len(next) == 0 && len(pending) != 0 {
-			// There are some pending that cound not be queued.
+			// There are some pending that could not be queued.
 			// Wait the requested time before resuming loop.
 			time.Sleep(minWaitTime)
 		} else if len(next) == 0 && len(pending) == 0 && closing {
@@ -509,7 +509,7 @@ func (q *TransferQueue) collectPendingUntil(done <-chan struct{}) (pending batch
 
 // enqueueAndCollectRetriesFor makes a Batch API call and returns a "next" batch
 // containing all of the objects that failed from the previous batch and had
-// retries availale to them.
+// retries available to them.
 //
 // If an error was encountered while making the API request, _all_ of the items
 // from the previous batch (that have retries available to them) will be

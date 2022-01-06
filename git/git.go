@@ -846,7 +846,7 @@ func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
 
 	// This has only established the separate worktrees, not the original checkout
 	// If the storageDir contains a HEAD file then there is a main checkout
-	// as well; this mus tbe resolveable whether you're in the main checkout or
+	// as well; this must be resolveable whether you're in the main checkout or
 	// a worktree
 	headfile := filepath.Join(storageDir, "HEAD")
 	ref, err := parseRefFile(headfile)

@@ -3,7 +3,7 @@
 . "$(dirname "$0")/testlib.sh"
 
 # sets up the repos for the first few push tests. The passed argument is the
-# name of the repo to setup. The resuling repo will have a local file tracked
+# name of the repo to setup. The resulting repo will have a local file tracked
 # with LFS and committed, but not yet pushed to the remote
 push_repo_setup() {
   reponame="$1"

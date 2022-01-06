@@ -164,7 +164,7 @@ ArgsLoop:
 
 		// Also, for any new patterns we've added, make sure any existing git
 		// tracked files have their timestamp updated so they will now show as
-		// modifed note this is relative to current dir which is how we write
+		// modified note this is relative to current dir which is how we write
 		// .gitattributes deliberately not done in parallel as a chan because
 		// we'll be marking modified
 		//

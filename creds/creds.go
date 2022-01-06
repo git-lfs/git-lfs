@@ -485,7 +485,7 @@ func (s *CredentialHelpers) Reject(what Creds) error {
 }
 
 // Approve implements CredentialHelper.Approve and approves the given Creds
-// "what" with the first successful CredentialHelper. If an error occurrs,
+// "what" with the first successful CredentialHelper. If an error occurs,
 // it calls Reject() with the same Creds and returns the error immediately. This
 // ensures a caching credential helper removes the cache, since the Erroring
 // CredentialHelper never successfully saved it.

@@ -114,7 +114,7 @@ func AssertCommitParent(t *testing.T, db *gitobj.ObjectDatabase, sha, parent str
 		"gitobj: expected parents of commit: %s to contain: %s", sha, parent)
 }
 
-// AssertCommitTree asserts that the given commit has a tree equivelant to the
+// AssertCommitTree asserts that the given commit has a tree equivalent to the
 // one provided.
 func AssertCommitTree(t *testing.T, db *gitobj.ObjectDatabase, sha, tree string) {
 	commit, err := db.Commit(HexDecode(t, sha))
@@ -155,7 +155,7 @@ func HexDecode(t *testing.T, sha string) []byte {
 	return b
 }
 
-// copyToTmp copies the given fixutre to a folder in /tmp.
+// copyToTmp copies the given fixture to a folder in /tmp.
 func copyToTmp(fixture string) (string, error) {
 	p, err := ioutil.TempDir("", fmt.Sprintf("git-lfs-fixture-%s", filepath.Dir(fixture)))
 	if err != nil {

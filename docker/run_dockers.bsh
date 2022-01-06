@@ -65,7 +65,7 @@ if [[ ${#IMAGES[@]} == 0 ]]; then
 fi
 
 mkdir -p "${PACKAGE_DIR}"
-#Run docker to build pacakges
+#Run docker to build packages
 for IMAGE_NAME in "${IMAGES[@]}"; do
   split_image_name "${IMAGE_NAME}" #set IMAGE_NAME and IMAGE_INFO
 

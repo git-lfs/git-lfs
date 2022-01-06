@@ -440,7 +440,7 @@ begin_test "fetch-all"
   git clone --bare "$GITSERVER/$reponame" "$reponame-bare"
   cd "$reponame-bare"
 
-  # Preform the same assertion as above, on the same data
+  # Perform the same assertion as above, on the same data
   git lfs fetch --all origin
   for ((a=0; a < NUMFILES ; a++))
   do

@@ -296,8 +296,8 @@ func checkoutNonBare(l *tasklog.Logger) error {
 }
 
 // trackedFromFilter returns an ordered set of strings where each entry is a
-// line in the .gitattributes file. It adds/removes the fiter/diff/merge=lfs
-// attributes based on patterns included/excldued in the given filter.
+// line in the .gitattributes file. It adds/removes the filter/diff/merge=lfs
+// attributes based on patterns included/excluded in the given filter.
 func trackedFromFilter(filter *filepathfilter.Filter) *tools.OrderedSet {
 	tracked := tools.NewOrderedSet()
 

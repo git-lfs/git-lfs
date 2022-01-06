@@ -100,7 +100,7 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 }
 
 // Spool spools the contents from 'from' to 'to' by buffering the entire
-// contents of 'from' into a temprorary file created in the directory "dir".
+// contents of 'from' into a temporary file created in the directory "dir".
 // That buffer is held in memory until the file grows to larger than
 // 'memoryBufferLimit`, then the remaining contents are spooled to disk.
 //
