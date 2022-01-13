@@ -39,9 +39,21 @@ func TestAuthenticateHeaderAccess(t *testing.T) {
 			res := &http.Response{Header: make(http.Header)}
 			res.Header.Set(key, value)
 			t.Logf("%s: %s", key, value)
-			assert.Equal(t, expected, getAuthAccess(res))
+			result, _ := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
+			assert.Equal(t, expected, result)
 		}
 	}
+}
+
+func TestDualAccessModes(t *testing.T) {
+	res := &http.Response{Header: make(http.Header)}
+	res.Header["Www-Authenticate"] = []string{"Negotiate 123", "Basic 456"}
+	access, next := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
+	assert.Equal(t, creds.NegotiateAccess, access)
+	access, next = getAuthAccess(res, access, next)
+	assert.Equal(t, creds.BasicAccess, access)
+	access, _ = getAuthAccess(res, access, next)
+	assert.Equal(t, creds.BasicAccess, access)
 }
 
 func TestDoWithAuthApprove(t *testing.T) {
