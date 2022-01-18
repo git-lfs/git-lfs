@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -36,7 +37,7 @@ type CredentialHelper interface {
 func (credWrapper *CredentialHelperWrapper) FillCreds() error {
 	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
 	if creds == nil || len(creds) < 1 {
-		errmsg := fmt.Sprintf("Git credentials for %s not found", credWrapper.Url)
+		errmsg := fmt.Sprintf(tr.Tr.Get("Git credentials for %s not found", credWrapper.Url))
 		if err != nil {
 			errmsg = fmt.Sprintf("%s:\n%s", errmsg, err.Error())
 		} else {
@@ -210,7 +211,7 @@ func (a *AskPassCredentialHelper) getValue(what Creds, valueType credValueType, 
 	case credValueTypePassword:
 		valueString = "password"
 	default:
-		return "", errors.Errorf("Invalid Credential type queried from AskPass")
+		return "", errors.Errorf(tr.Tr.Get("Invalid Credential type queried from AskPass"))
 	}
 
 	// Return the existing credential if it was already provided, otherwise
@@ -235,7 +236,7 @@ func (a *AskPassCredentialHelper) getFromProgram(valueType credValueType, u *url
 	case credValueTypePassword:
 		valueString = "Password"
 	default:
-		return "", errors.Errorf("Invalid Credential type queried from AskPass")
+		return "", errors.Errorf(tr.Tr.Get("Invalid Credential type queried from AskPass"))
 	}
 
 	// 'cmd' will run the GIT_ASKPASS (or core.askpass) command prompting
@@ -322,8 +323,8 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 
 	if _, ok := err.(*exec.ExitError); ok {
 		if h.SkipPrompt {
-			return nil, fmt.Errorf("change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s",
-				input["protocol"], input["host"])
+			return nil, errors.New(tr.Tr.Get("change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s",
+				input["protocol"], input["host"]))
 		}
 
 		// 'git credential' exits with 128 if the helper doesn't fill the username
@@ -462,7 +463,7 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 	}
 
 	if len(errs) > 0 {
-		return nil, errors.New("credential fill errors:\n" + strings.Join(errs, "\n"))
+		return nil, errors.New(tr.Tr.Get("credential fill errors:\n%s", strings.Join(errs, "\n")))
 	}
 
 	return nil, nil
@@ -481,7 +482,7 @@ func (s *CredentialHelpers) Reject(what Creds) error {
 		}
 	}
 
-	return errors.New("no valid credential helpers to reject")
+	return errors.New(tr.Tr.Get("no valid credential helpers to reject"))
 }
 
 // Approve implements CredentialHelper.Approve and approves the given Creds
@@ -509,7 +510,7 @@ func (s *CredentialHelpers) Approve(what Creds) error {
 		}
 	}
 
-	return errors.New("no valid credential helpers to approve")
+	return errors.New(tr.Tr.Get("no valid credential helpers to approve"))
 }
 
 func (s *CredentialHelpers) skip(i int) {

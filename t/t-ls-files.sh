@@ -240,7 +240,7 @@ begin_test "ls-files: before first commit"
   cd "$reponame"
 
   if [ 0 -ne $(git lfs ls-files | wc -l) ]; then
-    echo >&2 "fatal: expected \`git lfs ls-files\` to produce no output"
+    echo >&2 "Expected \`git lfs ls-files\` to produce no output"
     exit 1
   fi
 )
@@ -334,7 +334,7 @@ begin_test "ls-files: --all with argument(s)"
     exit 1
   fi
 
-  [ "fatal: cannot use --all with explicit reference" = "$(cat ls-files.log)" ]
+  [ "Cannot use --all with explicit reference" = "$(cat ls-files.log)" ]
 )
 end_test
 
@@ -379,10 +379,10 @@ begin_test "ls-files: invalid --all ordering"
 
   git lfs ls-files -- --all 2>&1 | tee ls-files.out
   if [ ${PIPESTATUS[0]} = "0" ]; then
-    echo >&2 "fatal: expected \`git lfs ls-files -- --all\' to fail"
+    echo >&2 "Expected \`git lfs ls-files -- --all\' to fail"
     exit 1
   fi
-  grep "fatal: did you mean \"git lfs ls-files --all --\" ?" ls-files.out
+  grep "Did you mean \"git lfs ls-files --all --\" ?" ls-files.out
 )
 end_test
 

@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -41,20 +42,20 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		// Remote is first arg
 		if err := cfg.SetValidRemote(args[0]); err != nil {
-			Exit("Invalid remote name %q: %s", args[0], err)
+			Exit(tr.Tr.Get("Invalid remote name %q: %s", args[0], err))
 		}
 	}
 
 	if len(args) > 1 {
 		resolvedrefs, err := git.ResolveRefs(args[1:])
 		if err != nil {
-			Panic(err, "Invalid ref argument: %v", args[1:])
+			Panic(err, tr.Tr.Get("Invalid ref argument: %v", args[1:]))
 		}
 		refs = resolvedrefs
 	} else if !fetchAllArg {
 		ref, err := git.CurrentRef()
 		if err != nil {
-			Panic(err, "Could not fetch")
+			Panic(err, tr.Tr.Get("Could not fetch"))
 		}
 		refs = []*git.Ref{ref}
 	}
@@ -68,13 +69,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if fetchAllArg {
 		if fetchRecentArg {
-			Exit("Cannot combine --all with --recent")
+			Exit(tr.Tr.Get("Cannot combine --all with --recent"))
 		}
 		if include != nil || exclude != nil {
-			Exit("Cannot combine --all with --include or --exclude")
+			Exit(tr.Tr.Get("Cannot combine --all with --include or --exclude"))
 		}
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
-			Print("Ignoring global include / exclude paths to fulfil --all")
+			Print(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
 		}
 
 		if len(args) > 1 {
@@ -92,7 +93,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("fetch: Fetching reference %s", ref.Refspec())
+			Print(tr.Tr.Get("fetch: Fetching reference %s", ref.Refspec()))
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
@@ -112,7 +113,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	if !success {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", cfg.Remote())
-		Exit("error: failed to fetch some objects from '%s'", e.Url)
+		Exit(tr.Tr.Get("error: failed to fetch some objects from '%s'", e.Url))
 	}
 }
 
@@ -146,7 +147,7 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 	pointers, err := pointersToFetchForRef(ref, filter)
 	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
 	return fetchAndReportToChan(pointers, filter, nil)
 }
@@ -176,7 +177,7 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 		}
 
 		numObjs++
-		task.Logf("fetch: %d object(s) found", numObjs)
+		task.Logf(tr.Tr.GetN("fetch: %d object found", "fetch: %d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 
@@ -191,7 +192,7 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 func fetchRefs(refs []string) bool {
 	pointers, err := pointersToFetchForRefs(refs)
 	if err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
 	return fetchAndReportToChan(pointers, nil, nil)
 }
@@ -203,7 +204,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			Panic(err, "Could not scan for Git LFS previous versions")
+			Panic(err, tr.Tr.Get("Could not scan for Git LFS previous versions"))
 			return
 		}
 
@@ -234,11 +235,16 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print("fetch: Fetching recent branches within %v days", fetchconf.FetchRecentRefsDays)
+		Print(tr.Tr.GetN(
+			"fetch: Fetching recent branches within %v day",
+			"fetch: Fetching recent branches within %v days",
+			fetchconf.FetchRecentRefsDays,
+			fetchconf.FetchRecentRefsDays,
+		))
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
 		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
 		if err != nil {
-			Panic(err, "Could not scan for recent refs")
+			Panic(err, tr.Tr.Get("Could not scan for recent refs"))
 		}
 		for _, ref := range refs {
 			// Don't fetch for the same SHA twice
@@ -248,7 +254,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("fetch: Fetching reference %s", ref.Name)
+				Print(tr.Tr.Get("fetch: Fetching reference %s", ref.Name))
 				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
@@ -260,10 +266,16 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 			// We measure from the last commit at the ref
 			summ, err := git.GetCommitSummary(commit)
 			if err != nil {
-				Error("Couldn't scan commits at %v: %v", refName, err)
+				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue
 			}
-			Print("fetch: Fetching changes within %v days of %v", fetchconf.FetchRecentCommitsDays, refName)
+			Print(tr.Tr.GetN(
+				"fetch: Fetching changes within %v day of %v",
+				"fetch: Fetching changes within %v days of %v",
+				fetchconf.FetchRecentCommitsDays,
+				fetchconf.FetchRecentCommitsDays,
+				refName,
+			))
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
 			k := fetchPreviousVersions(commit, commitsSince, filter)
 			ok = ok && k
@@ -275,7 +287,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 
 func fetchAll() bool {
 	pointers := scanAll()
-	Print("fetch: Fetching all references...")
+	Print(tr.Tr.Get("fetch: Fetching all references..."))
 	return fetchAndReportToChan(pointers, nil, nil)
 }
 
@@ -304,18 +316,18 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		task.Logf("fetch: %d object(s) found", numObjs)
+		task.Logf(tr.Tr.GetN("fetch: %d object found", "fetch: %d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 
 	if err := tempgitscanner.ScanAll(nil); err != nil {
-		Panic(err, "Could not scan for Git LFS files")
+		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
 
 	tempgitscanner.Close()
 
 	if multiErr != nil {
-		Panic(multiErr, "Could not scan for Git LFS files")
+		Panic(multiErr, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
 
 	return pointers

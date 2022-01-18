@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -62,26 +63,26 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 	}
 
 	if err != nil {
-		ExitWithError(errors.Wrap(err, "Error cleaning LFS object"))
+		ExitWithError(errors.Wrap(err, tr.Tr.Get("Error cleaning LFS object")))
 	}
 
 	tmpfile := cleaned.Filename
 	mediafile, err := gf.ObjectPath(cleaned.Oid)
 	if err != nil {
-		Panic(err, "Unable to get local media path.")
+		Panic(err, tr.Tr.Get("Unable to get local media path."))
 	}
 
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
-			Exit("Files don't match:\n%s\n%s", mediafile, tmpfile)
+			Exit(tr.Tr.Get("Files don't match:\n%s\n%s", mediafile, tmpfile))
 		}
 		Debug("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
-			Panic(err, "Unable to move %s to %s\n", tmpfile, mediafile)
+			Panic(err, tr.Tr.Get("Unable to move %s to %s\n", tmpfile, mediafile))
 		}
 
-		Debug("Writing %s", mediafile)
+		Debug(tr.Tr.Get("Writing %s", mediafile))
 	}
 
 	_, err = lfs.EncodePointer(to, cleaned.Pointer)
@@ -89,7 +90,7 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 }
 
 func cleanCommand(cmd *cobra.Command, args []string) {
-	requireStdin("This command should be run by the Git 'clean' filter")
+	requireStdin(tr.Tr.Get("This command should be run by the Git 'clean' filter"))
 	setupRepository()
 	installHooks(false)
 
@@ -105,7 +106,7 @@ func cleanCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if ptr != nil && possiblyMalformedObjectSize(ptr.Size) {
-		Error("Possibly malformed conversion on Windows, see `git lfs help smudge` for more details.")
+		Error(tr.Tr.Get("Possibly malformed conversion on Windows, see `git lfs help smudge` for more details."))
 	}
 }
 

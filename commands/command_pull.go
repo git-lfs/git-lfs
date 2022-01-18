@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +23,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		// Remote is first arg
 		if err := cfg.SetValidRemote(args[0]); err != nil {
-			Exit("Invalid remote name %q: %s", args[0], err)
+			Exit(tr.Tr.Get("Invalid remote name %q: %s", args[0], err))
 		}
 	}
 
@@ -34,7 +35,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 func pull(filter *filepathfilter.Filter) {
 	ref, err := git.CurrentRef()
 	if err != nil {
-		Panic(err, "Could not pull")
+		Panic(err, tr.Tr.Get("Could not pull"))
 	}
 
 	pointers := newPointerMap()
@@ -49,7 +50,7 @@ func pull(filter *filepathfilter.Filter) {
 	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			LoggedError(err, "Scanner error: %s", err)
+			LoggedError(err, tr.Tr.Get("Scanner error: %s", err))
 			return
 		}
 
@@ -108,11 +109,11 @@ func pull(filter *filepathfilter.Filter) {
 	if !success {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", remote)
-		Exit("error: failed to fetch some objects from '%s'", e.Url)
+		Exit(tr.Tr.Get("Failed to fetch some objects from '%s'", e.Url))
 	}
 
 	if singleCheckout.Skip() {
-		fmt.Println("Skipping object checkout, Git LFS is not installed.")
+		fmt.Println(tr.Tr.Get("Skipping object checkout, Git LFS is not installed."))
 	}
 }
 

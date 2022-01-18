@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +60,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	wd = tools.ResolveSymlinks(wd)
 	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
 	if err != nil {
-		Exit("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir())
+		Exit(tr.Tr.Get("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir()))
 	}
 
 	changedAttribLines := make(map[string]string)
@@ -84,7 +85,7 @@ ArgsLoop:
 					((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 						(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 						(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases
-					Print("%q already supported", pattern)
+					Print(tr.Tr.Get("%q already supported", pattern))
 					continue ArgsLoop
 				}
 			}
@@ -103,7 +104,7 @@ ArgsLoop:
 			writeablePatterns = append(writeablePatterns, pattern)
 		}
 
-		Print("Tracking %q", unescapeAttrPattern(encodedArg))
+		Print(tr.Tr.Get("Tracking %q", unescapeAttrPattern(encodedArg)))
 	}
 
 	// Now read the whole local attributes file and iterate over the contents,
@@ -173,22 +174,22 @@ ArgsLoop:
 		// the repository, the leading slash is simply removed for its
 		// implicit counterpart.
 		if trackVerboseLoggingFlag {
-			Print("Searching for files matching pattern: %s", pattern)
+			Print(tr.Tr.Get("Searching for files matching pattern: %s", pattern))
 		}
 
 		gittracked, err := git.GetTrackedFiles(pattern)
 		if err != nil {
-			Exit("Error getting tracked files for %q: %s", pattern, err)
+			Exit(tr.Tr.Get("Error getting tracked files for %q: %s", pattern, err))
 		}
 
 		if trackVerboseLoggingFlag {
-			Print("Found %d files previously added to Git matching pattern: %s", len(gittracked), pattern)
+			Print(tr.Tr.Get("Found %d files previously added to Git matching pattern: %s", len(gittracked), pattern))
 		}
 
 		var matchedBlocklist bool
 		for _, f := range gittracked {
 			if forbidden := blocklistItem(f); forbidden != "" {
-				Print("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f)
+				Print(tr.Tr.Get("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f))
 				matchedBlocklist = true
 			}
 		}
@@ -198,14 +199,14 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print("Git LFS: touching %q", f)
+				Print(tr.Tr.Get("Git LFS: touching %q", f))
 			}
 
 			if !trackDryRunFlag {
 				now := time.Now()
 				err := os.Chtimes(f, now, now)
 				if err != nil {
-					LoggedError(err, "Error marking %q modified: %s", f, err)
+					LoggedError(err, tr.Tr.Get("Error marking %q modified: %s", f, err))
 					continue
 				}
 			}
@@ -216,7 +217,7 @@ ArgsLoop:
 	lockClient := newLockClient()
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
-		LoggedError(err, "Error changing lockable file permissions: %s", err)
+		LoggedError(err, tr.Tr.Get("Error changing lockable file permissions: %s", err))
 	}
 }
 
@@ -226,10 +227,11 @@ func listPatterns() {
 		return
 	}
 
-	Print("Listing tracked patterns")
+	Print(tr.Tr.Get("Listing tracked patterns"))
 	for _, t := range knownPatterns {
 		if t.Lockable {
-			Print("    %s [lockable] (%s)", t.Path, t.Source)
+			// TRANSLATORS: Leading spaces here should be preserved.
+			Print(tr.Tr.Get("    %s [lockable] (%s)", t.Path, t.Source))
 		} else if t.Tracked {
 			Print("    %s (%s)", t.Path, t.Source)
 		}
@@ -239,7 +241,7 @@ func listPatterns() {
 		return
 	}
 
-	Print("Listing excluded patterns")
+	Print(tr.Tr.Get("Listing excluded patterns"))
 	for _, t := range knownPatterns {
 		if !t.Tracked && !t.Lockable {
 			Print("    %s (%s)", t.Path, t.Source)

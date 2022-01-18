@@ -78,7 +78,7 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 				cmd, _, e = c.Root().Find([]string{"help"})
 			}
 			if cmd == nil || e != nil {
-				c.Printf("Unknown help topic %#q\n", args)
+				c.Print(tr.Tr.Get("Unknown help topic %#q\n", args))
 				c.Root().Usage()
 			} else {
 				c.HelpFunc()(cmd, args)
@@ -140,7 +140,7 @@ func printHelp(commandName string) {
 	if txt, ok := ManPages[commandName]; ok {
 		fmt.Fprintf(os.Stdout, "%s\n", strings.TrimSpace(txt))
 	} else {
-		fmt.Fprintf(os.Stdout, "Sorry, no usage text found for %q\n", commandName)
+		fmt.Fprint(os.Stdout, tr.Tr.Get("Sorry, no usage text found for %q\n", commandName))
 	}
 }
 
@@ -151,14 +151,14 @@ func setupHTTPLogger(cmd *cobra.Command, args []string) {
 
 	logBase := filepath.Join(cfg.LocalLogDir(), "http")
 	if err := tools.MkdirAll(logBase, cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging http stats: %s\n", err))
 		return
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
 	file, err := os.Create(filepath.Join(logBase, logFile))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error logging http stats: %s\n", err)
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging http stats: %s\n", err))
 	} else {
 		getAPIClient().LogHTTPStats(file)
 	}

@@ -44,43 +44,43 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 	if migrateNoRewrite {
 		if migrateFixup {
-			ExitWithError(errors.Errorf("fatal: --no-rewrite and --fixup cannot be combined"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("--no-rewrite and --fixup cannot be combined")))
 		}
 
 		if len(args) == 0 {
-			ExitWithError(errors.Errorf("fatal: expected one or more files with --no-rewrite"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Expected one or more files with --no-rewrite")))
 		}
 
 		ref, err := git.CurrentRef()
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: unable to find current reference"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to find current reference")))
 		}
 
 		sha, _ := hex.DecodeString(ref.Sha)
 		commit, err := db.Commit(sha)
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: unable to load commit"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to load commit")))
 		}
 
 		root := commit.TreeID
 
 		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 		if len(filter.Include()) == 0 {
-			ExitWithError(errors.Errorf("fatal: no Git LFS filters found in .gitattributes"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("No Git LFS filters found in .gitattributes")))
 		}
 
 		gf := lfs.NewGitFilter(cfg)
 
 		for _, file := range args {
 			if !filter.Allows(file) {
-				ExitWithError(errors.Errorf("fatal: file %s did not match any Git LFS filters in .gitattributes", file))
+				ExitWithError(errors.Errorf(tr.Tr.Get("File %s did not match any Git LFS filters in .gitattributes", file)))
 			}
 		}
 
 		for _, file := range args {
 			root, err = rewriteTree(gf, db, root, file)
 			if err != nil {
-				ExitWithError(errors.Wrapf(err, "fatal: could not rewrite %q", file))
+				ExitWithError(errors.Wrapf(err, tr.Tr.Get("Could not rewrite %q", file)))
 			}
 		}
 
@@ -107,15 +107,15 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		})
 
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: unable to write commit"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to write commit")))
 		}
 
 		if err := git.UpdateRef(ref, oid, "git lfs migrate import --no-rewrite"); err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: unable to update ref"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to update ref")))
 		}
 
 		if err := checkoutNonBare(l); err != nil {
-			ExitWithError(errors.Wrap(err, "fatal: could not checkout"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Could not checkout")))
 		}
 
 		return
@@ -124,7 +124,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	if migrateFixup {
 		include, exclude := getIncludeExcludeArgs(cmd)
 		if include != nil || exclude != nil {
-			ExitWithError(errors.Errorf("fatal: cannot use --fixup with --include, --exclude"))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --fixup with --include, --exclude")))
 		}
 	}
 
@@ -137,12 +137,12 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	var fixups *gitattr.Tree
 	above, err := humanize.ParseBytes(migrateImportAboveFmt)
 	if err != nil {
-		ExitWithError(errors.Wrap(err, "fatal: cannot parse --above=<n>"))
+		ExitWithError(errors.Wrap(err, tr.Tr.Get("Cannot parse --above=<n>")))
 	}
 	if above > 0 {
 		include, exclude := getIncludeExcludeArgs(cmd)
 		if include != nil || exclude != nil || migrateFixup {
-			ExitWithError(errors.Errorf(tr.Tr.Get("fatal: cannot use --above with --include, --exclude, --fixup")))
+			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --above with --include, --exclude, --fixup")))
 		}
 	}
 
@@ -261,7 +261,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	})
 
 	if err := checkoutNonBare(l); err != nil {
-		ExitWithError(errors.Wrap(err, "fatal: could not checkout"))
+		ExitWithError(errors.Wrap(err, tr.Tr.Get("Could not checkout")))
 	}
 }
 
@@ -271,7 +271,7 @@ func generateMigrateCommitMessage(cmd *cobra.Command, patterns string) string {
 	if cmd.Flag("message").Changed {
 		return migrateCommitMessage
 	}
-	return fmt.Sprintf("%s: convert to Git LFS", patterns)
+	return fmt.Sprintf(tr.Tr.Get("%s: convert to Git LFS", patterns))
 }
 
 // checkoutNonBare forces a checkout of the current reference, so long as the
@@ -283,7 +283,7 @@ func checkoutNonBare(l *tasklog.Logger) error {
 		return nil
 	}
 
-	t := l.Waiter("migrate: checkout")
+	t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
 	defer t.Complete()
 
 	return git.Checkout("", nil, true)
@@ -392,7 +392,7 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 		// Try to replace this blob with a Git LFS pointer.
 		index := findEntry(tree, splits[0])
 		if index < 0 {
-			return nil, errors.Errorf("unable to find entry %s in tree", splits[0])
+			return nil, errors.Errorf(tr.Tr.Get("unable to find entry %s in tree", splits[0]))
 		}
 
 		blobEntry := tree.Entries[index]
@@ -430,12 +430,12 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 
 		index := findEntry(tree, head)
 		if index < 0 {
-			return nil, errors.Errorf("unable to find entry %s in tree", head)
+			return nil, errors.Errorf(tr.Tr.Get("unable to find entry %s in tree", head))
 		}
 
 		subtreeEntry := tree.Entries[index]
 		if subtreeEntry.Type() != gitobj.TreeObjectType {
-			return nil, errors.Errorf("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type())
+			return nil, errors.Errorf(tr.Tr.Get("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type()))
 		}
 
 		rewrittenSubtree, err := rewriteTree(gf, db, subtreeEntry.Oid, tail)
@@ -452,7 +452,7 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 		return db.WriteTree(tree)
 
 	default:
-		return nil, errors.Errorf("error parsing path %s", path)
+		return nil, errors.Errorf(tr.Tr.Get("error parsing path %s", path))
 	}
 }
 

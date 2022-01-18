@@ -9,6 +9,8 @@ import (
 	"net/http/httputil"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -23,7 +25,7 @@ func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
-		return nil, fmt.Errorf("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body)
+		return nil, errors.New(tr.Tr.Get("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body))
 	}
 
 	if body != nil && ok {

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type GitFetcher struct {
@@ -39,7 +40,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 
 			if origKey, ok := uniqKeys[key]; ok {
 				if ShowConfigWarnings && len(vals[key]) > 0 && vals[key][len(vals[key])-1] != val && strings.HasPrefix(key, gitConfigWarningPrefix) {
-					fmt.Fprintf(os.Stderr, "WARNING: These git config values clash:\n")
+					fmt.Fprint(os.Stderr, tr.Tr.Get("warning: These git config values clash:\n"))
 					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, vals[key])
 					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], val)
 				}
@@ -101,7 +102,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 	}
 
 	if len(ignored) > 0 {
-		fmt.Fprintf(os.Stderr, "WARNING: These unsafe lfsconfig keys were ignored:\n\n")
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("warning: These unsafe lfsconfig keys were ignored:\n\n"))
 		for _, key := range ignored {
 			fmt.Fprintf(os.Stderr, "  %s\n", key)
 		}

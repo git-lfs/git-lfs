@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 const (
@@ -46,7 +47,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf("No upload action for object: %s", t.Oid)
+		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	req, err := a.newHTTPRequest("PUT", rel)
@@ -136,16 +137,16 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
-		err = errors.New("http: received status 403")
+		err = errors.New(tr.Tr.Get("http: received status 403"))
 		return errors.NewRetriableError(err)
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, "Invalid status for %s %s: %d",
+		return errors.Wrapf(nil, tr.Tr.Get("Invalid status for %s %s: %d",
 			req.Method,
 			strings.SplitN(req.URL.String(), "?", 2)[0],
 			res.StatusCode,
-		)
+		))
 	}
 
 	io.Copy(ioutil.Discard, res.Body)
@@ -167,12 +168,12 @@ func (a *adapterBase) setContentTypeFor(req *http.Request, r io.ReadSeeker) erro
 		buffer := make([]byte, 512)
 		n, err := r.Read(buffer)
 		if err != nil && err != io.EOF {
-			return errors.Wrap(err, "content type detect")
+			return errors.Wrap(err, tr.Tr.Get("content type detection error"))
 		}
 
 		contentType = http.DetectContentType(buffer[:n])
 		if _, err := r.Seek(0, io.SeekStart); err != nil {
-			return errors.Wrap(err, "content type rewind")
+			return errors.Wrap(err, tr.Tr.Get("content type rewind failure"))
 		}
 	}
 

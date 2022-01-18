@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	wd = tools.ResolveSymlinks(wd)
 
-	Print("\nObjects to be committed:\n")
+	Print(tr.Tr.Get("\nObjects to be committed:\n"))
 	for _, entry := range staged {
 		// Find a path from the current working directory to the
 		// absolute path of each side of the entry.
@@ -71,7 +72,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	Print("\nObjects not staged for commit:\n")
+	Print(tr.Tr.Get("\nObjects not staged for commit:\n"))
 	for _, entry := range unstaged {
 		src := relativize(wd, filepath.Join(repo, entry.SrcName))
 
@@ -128,7 +129,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
 			if git.IsMissingObject(err) {
-				return "<missing>", "?", nil
+				return tr.Tr.Get("<missing>"), "?", nil
 			}
 			return "", "", err
 		}
@@ -145,7 +146,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 
 	f, err := os.Open(filepath.Join(cfg.LocalWorkingDir(), name))
 	if os.IsNotExist(err) {
-		return "deleted", "File", nil
+		return tr.Tr.Get("deleted"), tr.Tr.Get("File"), nil
 	}
 	if err != nil {
 		return "", "", err
@@ -154,7 +155,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 
 	// We've replaced a file with a directory.
 	if fi, err := f.Stat(); err == nil && fi.Mode().IsDir() {
-		return "deleted", "File", nil
+		return tr.Tr.Get("deleted"), tr.Tr.Get("File"), nil
 	}
 
 	shasum := sha256.New()
@@ -162,7 +163,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		return "", "", err
 	}
 
-	return fmt.Sprintf("%x", shasum.Sum(nil))[:7], "File", nil
+	return fmt.Sprintf("%x", shasum.Sum(nil))[:7], tr.Tr.Get("File"), nil
 }
 
 func scanIndex(ref string) (staged, unstaged []*lfs.DiffIndexEntry, err error) {
@@ -225,7 +226,7 @@ func statusScanRefRange(ref *git.Ref) {
 		return
 	}
 
-	Print("On branch %s", ref.Name)
+	Print(tr.Tr.Get("On branch %s", ref.Name))
 
 	remoteRef, err := cfg.GitConfig().CurrentRemoteRef()
 	if err != nil {
@@ -234,7 +235,7 @@ func statusScanRefRange(ref *git.Ref) {
 
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			Panic(err, "Could not scan for Git LFS objects")
+			Panic(err, tr.Tr.Get("Could not scan for Git LFS objects"))
 			return
 		}
 
@@ -242,9 +243,9 @@ func statusScanRefRange(ref *git.Ref) {
 	})
 	defer gitscanner.Close()
 
-	Print("Objects to be pushed to %s:\n", remoteRef.Name)
+	Print(tr.Tr.Get("Objects to be pushed to %s:\n", remoteRef.Name))
 	if err := gitscanner.ScanRefRange(ref.Sha, remoteRef.Sha, nil); err != nil {
-		Panic(err, "Could not scan for Git LFS objects")
+		Panic(err, tr.Tr.Get("Could not scan for Git LFS objects"))
 	}
 
 }

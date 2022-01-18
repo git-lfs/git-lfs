@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +45,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 
 		if n != 0 {
 			return 0, false, nil, errors.NewNotAPointerError(errors.Errorf(
-				"Unable to parse pointer at: %q", filename,
+				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))
 		}
 		return 0, false, nil, nil
@@ -107,7 +108,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 
 		if n != 0 {
 			return 0, errors.NewNotAPointerError(errors.Errorf(
-				"Unable to parse pointer at: %q", filename,
+				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))
 		}
 		return 0, nil
@@ -138,7 +139,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 				oid = oid[:7]
 			}
 
-			LoggedError(err, "Error downloading object: %s (%s): %s", filename, oid, err)
+			LoggedError(err, tr.Tr.Get("Error downloading object: %s (%s): %s", filename, oid, err))
 			if !cfg.SkipDownloadErrors() {
 				os.Exit(2)
 			}
@@ -149,7 +150,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 }
 
 func smudgeCommand(cmd *cobra.Command, args []string) {
-	requireStdin("This command should be run by the Git 'smudge' filter")
+	requireStdin(tr.Tr.Get("This command should be run by the Git 'smudge' filter"))
 	setupRepository()
 	installHooks(false)
 
@@ -166,7 +167,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 			Error(err.Error())
 		}
 	} else if possiblyMalformedObjectSize(n) {
-		fmt.Fprintln(os.Stderr, "Possibly malformed smudge on Windows: see `git lfs help smudge` for more info.")
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("Possibly malformed smudge on Windows: see `git lfs help smudge` for more info."))
 	}
 }
 
@@ -174,7 +175,7 @@ func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-	return "<unknown file>"
+	return tr.Tr.Get("<unknown file>")
 }
 
 func possiblyMalformedObjectSize(n int64) bool {

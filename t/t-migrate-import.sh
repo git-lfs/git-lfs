@@ -705,7 +705,7 @@ begin_test "migrate import (--everything with args)"
   setup_multiple_local_branches
 
   [ "$(git lfs migrate import --everything main 2>&1)" = \
-    "fatal: cannot use --everything with explicit reference arguments" ]
+    "Cannot use --everything with explicit reference arguments" ]
 )
 end_test
 
@@ -716,7 +716,7 @@ begin_test "migrate import (--everything with --include-ref)"
   setup_multiple_local_branches
 
   [ "$(git lfs migrate import --everything --include-ref=refs/heads/main 2>&1)" = \
-    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+    "Cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
 
@@ -727,7 +727,7 @@ begin_test "migrate import (--everything with --exclude-ref)"
   setup_multiple_local_branches
 
   [ "$(git lfs migrate import --everything --exclude-ref=refs/heads/main 2>&1)" = \
-    "fatal: cannot use --everything with --include-ref or --exclude-ref" ]
+    "Cannot use --everything with --include-ref or --exclude-ref" ]
 )
 end_test
 

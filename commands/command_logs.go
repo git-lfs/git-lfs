@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +19,7 @@ func logsCommand(cmd *cobra.Command, args []string) {
 func logsLastCommand(cmd *cobra.Command, args []string) {
 	logs := sortedLogs()
 	if len(logs) < 1 {
-		Print("No logs to show")
+		Print(tr.Tr.Get("No logs to show"))
 		return
 	}
 
@@ -27,34 +28,33 @@ func logsLastCommand(cmd *cobra.Command, args []string) {
 
 func logsShowCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print("Supply a log name.")
+		Print(tr.Tr.Get("Supply a log name."))
 		return
 	}
 
 	name := args[0]
 	by, err := ioutil.ReadFile(filepath.Join(cfg.LocalLogDir(), name))
 	if err != nil {
-		Exit("Error reading log: %s", name)
+		Exit(tr.Tr.Get("Error reading log: %s", name))
 	}
 
-	Debug("Reading log: %s", name)
+	Debug(tr.Tr.Get("Reading log: %s", name))
 	os.Stdout.Write(by)
 }
 
 func logsClearCommand(cmd *cobra.Command, args []string) {
 	err := os.RemoveAll(cfg.LocalLogDir())
 	if err != nil {
-		Panic(err, "Error clearing %s", cfg.LocalLogDir())
+		Panic(err, tr.Tr.Get("Error clearing %s", cfg.LocalLogDir()))
 	}
 
-	Print("Cleared %s", cfg.LocalLogDir())
+	Print(tr.Tr.Get("Cleared %s", cfg.LocalLogDir()))
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
-	Debug("Debug message")
-	err := errors.Wrapf(errors.New("Inner error message!"), "Error")
-	Panic(err, "Welcome to Boomtown")
-	Debug("Never seen")
+	Debug(tr.Tr.Get("Sample debug message"))
+	err := errors.Wrapf(errors.New(tr.Tr.Get("Sample wrapped error message")), tr.Tr.Get("Sample error message"))
+	Panic(err, tr.Tr.Get("Sample panic message"))
 }
 
 func sortedLogs() []string {

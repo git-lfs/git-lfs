@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -35,16 +36,16 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		var err error
 
 		if pointerStrict && pointerNoStrict {
-			ExitWithError(fmt.Errorf("fatal: cannot combine --strict with --no-strict"))
+			ExitWithError(errors.New(tr.Tr.Get("Cannot combine --strict with --no-strict")))
 		}
 
 		if len(pointerCompare) > 0 {
-			ExitWithError(fmt.Errorf("fatal: cannot combine --check with --compare"))
+			ExitWithError(errors.New(tr.Tr.Get("Cannot combine --check with --compare")))
 		}
 
 		if len(pointerFile) > 0 {
 			if pointerStdin {
-				ExitWithError(fmt.Errorf("fatal: with --check, --file cannot be combined with --stdin"))
+				ExitWithError(errors.New(tr.Tr.Get("With --check, --file cannot be combined with --stdin")))
 			}
 			r, err = os.Open(pointerFile)
 			if err != nil {
@@ -53,7 +54,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		} else if pointerStdin {
 			r = ioutil.NopCloser(os.Stdin)
 		} else {
-			ExitWithError(fmt.Errorf("fatal: must specify either --file or --stdin with --compare"))
+			ExitWithError(errors.New(tr.Tr.Get("Must specify either --file or --stdin with --compare")))
 		}
 
 		p, err := lfs.DecodePointer(r)
@@ -89,7 +90,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		}
 
 		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
-		fmt.Fprintf(os.Stderr, "Git LFS pointer for %s\n\n", pointerFile)
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("Git LFS pointer for %s\n\n", pointerFile))
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
@@ -99,7 +100,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 				Error(err.Error())
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n\n", buildOid)
+			fmt.Fprintf(os.Stderr, tr.Tr.Get("\nGit blob OID: %s\n\n", buildOid))
 		}
 	} else {
 		comparing = false
@@ -122,7 +123,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		if !pointerStdin {
 			pointerName = pointerCompare
 		}
-		fmt.Fprintf(os.Stderr, "Pointer from %s\n\n", pointerName)
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("Pointer from %s\n\n", pointerName))
 
 		if err != nil {
 			Error(err.Error())
@@ -136,17 +137,17 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 				Error(err.Error())
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, "\nGit blob OID: %s\n", compareOid)
+			fmt.Fprintf(os.Stderr, tr.Tr.Get("\nGit blob OID: %s\n", compareOid))
 		}
 	}
 
 	if comparing && buildOid != compareOid {
-		fmt.Fprintf(os.Stderr, "\nPointers do not match\n")
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("\nPointers do not match\n"))
 		os.Exit(1)
 	}
 
 	if !something {
-		Error("Nothing to do!")
+		Error(tr.Tr.Get("Nothing to do!"))
 		os.Exit(1)
 	}
 }
@@ -154,13 +155,13 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 func pointerReader() (io.ReadCloser, error) {
 	if len(pointerCompare) > 0 {
 		if pointerStdin {
-			return nil, errors.New("cannot read from STDIN and --pointer")
+			return nil, errors.New(tr.Tr.Get("cannot read from STDIN and --pointer"))
 		}
 
 		return os.Open(pointerCompare)
 	}
 
-	requireStdin("The --stdin flag expects a pointer file from STDIN.")
+	requireStdin(tr.Tr.Get("The --stdin flag expects a pointer file from STDIN."))
 
 	return os.Stdin, nil
 }

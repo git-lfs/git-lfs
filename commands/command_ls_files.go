@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	var scanRange = false
 	if len(args) > 0 {
 		if lsFilesScanAll {
-			Exit("fatal: cannot use --all with explicit reference")
+			Exit(tr.Tr.Get("Cannot use --all with explicit reference"))
 		} else if args[0] == "--all" {
 			// Since --all is a valid argument to "git rev-parse",
 			// if we try to give it to git.ResolveRef below, we'll
@@ -35,13 +36,13 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			//
 			// So, let's check early that the caller invoked the
 			// command correctly.
-			Exit("fatal: did you mean \"git lfs ls-files --all --\" ?")
+			Exit(tr.Tr.Get("Did you mean \"git lfs ls-files --all --\" ?"))
 		}
 
 		ref = args[0]
 		if len(args) > 1 {
 			if lsFilesScanDeleted {
-				Exit("fatal: cannot use --deleted with reference range")
+				Exit(tr.Tr.Get("Cannot use --deleted with reference range"))
 			}
 			otherRef = args[1]
 			scanRange = true
@@ -64,7 +65,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			Exit("Could not scan for Git LFS tree: %s", err)
+			Exit(tr.Tr.Get("Could not scan for Git LFS tree: %s", err))
 			return
 		}
 
@@ -79,20 +80,17 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if debug {
+			// TRANSLATORS: these strings should have the colons
+			// aligned in a column.
 			Print(
-				"filepath: %s\n"+
-					"    size: %d\n"+
-					"checkout: %v\n"+
-					"download: %v\n"+
-					"     oid: %s %s\n"+
-					" version: %s\n",
-				p.Name,
-				p.Size,
-				fileExistsOfSize(p),
-				cfg.LFSObjectExists(p.Oid, p.Size),
-				p.OidType,
-				p.Oid,
-				p.Version)
+				tr.Tr.Get("filepath: %s\n    size: %d\ncheckout: %v\ndownload: %v\n     oid: %s %s\n version: %s\n",
+					p.Name,
+					p.Size,
+					fileExistsOfSize(p),
+					cfg.LFSObjectExists(p.Oid, p.Size),
+					p.OidType,
+					p.Oid,
+					p.Version))
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
 			if lsFilesShowNameOnly {
@@ -120,12 +118,12 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		// Do so to avoid showing "mixed" results, e.g., ls-files output
 		// from a specific historical revision, and the index.
 		if err := gitscanner.ScanIndex(ref, nil); err != nil {
-			Exit("Could not scan for Git LFS index: %s", err)
+			Exit(tr.Tr.Get("Could not scan for Git LFS index: %s", err))
 		}
 	}
 	if lsFilesScanAll {
 		if err := gitscanner.ScanAll(nil); err != nil {
-			Exit("Could not scan for Git LFS history: %s", err)
+			Exit(tr.Tr.Get("Could not scan for Git LFS history: %s", err))
 		}
 	} else {
 		var err error
@@ -138,7 +136,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if err != nil {
-			Exit("Could not scan for Git LFS tree: %s", err)
+			Exit(tr.Tr.Get("Could not scan for Git LFS tree: %s", err))
 		}
 	}
 }

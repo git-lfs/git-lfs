@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +21,7 @@ var (
 func locksCommand(cmd *cobra.Command, args []string) {
 	filters, err := locksCmdFlags.Filters()
 	if err != nil {
-		Exit("Error building filters: %v", err)
+		Exit(tr.Tr.Get("Error building filters: %v", err))
 	}
 
 	if len(lockRemote) > 0 {
@@ -34,22 +35,22 @@ func locksCommand(cmd *cobra.Command, args []string) {
 
 	if locksCmdFlags.Cached {
 		if locksCmdFlags.Limit > 0 {
-			Exit("--cached option can't be combined with --limit")
+			Exit(tr.Tr.Get("--cached option can't be combined with --limit"))
 		}
 		if len(filters) > 0 {
-			Exit("--cached option can't be combined with filters")
+			Exit(tr.Tr.Get("--cached option can't be combined with filters"))
 		}
 		if locksCmdFlags.Local {
-			Exit("--cached option can't be combined with --local")
+			Exit(tr.Tr.Get("--cached option can't be combined with --local"))
 		}
 	}
 
 	if locksCmdFlags.Verify {
 		if len(filters) > 0 {
-			Exit("--verify option can't be combined with filters")
+			Exit(tr.Tr.Get("--verify option can't be combined with filters"))
 		}
 		if locksCmdFlags.Local {
-			Exit("--verify option can't be combined with --local")
+			Exit(tr.Tr.Get("--verify option can't be combined with --local"))
 		}
 	}
 
@@ -123,7 +124,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if err != nil {
-		Exit("Error while retrieving locks: %v", errors.Cause(err))
+		Exit(tr.Tr.Get("Error while retrieving locks: %v", errors.Cause(err)))
 	}
 }
 
@@ -173,7 +174,7 @@ func (l *locksFlags) Filters() (map[string]string, error) {
 
 func init() {
 	RegisterCommand("locks", locksCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", "specify which remote to use when interacting with locks")
 		cmd.Flags().StringVarP(&locksCmdFlags.Path, "path", "p", "", "filter locks results matching a particular path")
 		cmd.Flags().StringVarP(&locksCmdFlags.Id, "id", "i", "", "filter locks results matching a particular ID")
 		cmd.Flags().IntVarP(&locksCmdFlags.Limit, "limit", "l", 0, "optional limit for number of results to return")

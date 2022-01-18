@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -30,12 +31,12 @@ func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int,
 	defer conn.Unlock()
 	err := conn.SendMessageWithLines("batch", args, batchLines)
 	if err != nil {
-		return 0, nil, nil, errors.Wrap(err, "batch request")
+		return 0, nil, nil, errors.Wrap(err, tr.Tr.Get("batch request"))
 	}
 
 	status, args, lines, err := conn.ReadStatusWithLines()
 	if err != nil {
-		return status, nil, nil, errors.Wrap(err, "batch response")
+		return status, nil, nil, errors.Wrap(err, tr.Tr.Get("batch response"))
 	}
 	return status, args, lines, err
 }
@@ -66,11 +67,11 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 	}
 
 	if status != 200 {
-		msg := "no message provided"
+		msg := tr.Tr.Get("no message provided")
 		if len(lines) > 0 {
 			msg = lines[0]
 		}
-		return nil, fmt.Errorf("batch response: status %d from server (%s)", status, msg)
+		return nil, errors.New(tr.Tr.Get("batch response: status %d from server (%s)", status, msg))
 	}
 
 	for _, arg := range args {
@@ -81,7 +82,7 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 		if entries[0] == "hash-algo" {
 			bRes.HashAlgorithm = entries[1]
 			if bRes.HashAlgorithm != "sha256" {
-				return nil, fmt.Errorf("batch response: unsupported hash algorithm: %q", entries[1])
+				return nil, errors.New(tr.Tr.Get("batch response: unsupported hash algorithm: %q", entries[1]))
 			}
 		}
 	}
@@ -90,7 +91,7 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 	for _, line := range lines {
 		entries := strings.Split(line, " ")
 		if len(entries) < 3 {
-			return nil, fmt.Errorf("batch response: malformed response: %q", line)
+			return nil, errors.New(tr.Tr.Get("batch response: malformed response: %q", line))
 		}
 		length := len(bRes.Objects)
 		if length == 0 || bRes.Objects[length-1].Oid != entries[0] {
@@ -100,7 +101,7 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 		transfer.Oid = entries[0]
 		transfer.Size, err = strconv.ParseInt(entries[1], 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("batch response: invalid size: %s", entries[1])
+			return nil, errors.New(tr.Tr.Get("batch response: invalid size: %s", entries[1]))
 		}
 		if entries[2] == "noop" {
 			continue
@@ -115,12 +116,12 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 				} else if strings.HasPrefix(entry, "expires-in=") {
 					transfer.Actions[entries[2]].ExpiresIn, err = strconv.Atoi(entry[11:])
 					if err != nil {
-						return nil, fmt.Errorf("batch response: invalid expires-in: %s", entry)
+						return nil, errors.New(tr.Tr.Get("batch response: invalid expires-in: %s", entry))
 					}
 				} else if strings.HasPrefix(entry, "expires-at=") {
 					transfer.Actions[entries[2]].ExpiresAt, err = time.Parse(time.RFC3339, entry[11:])
 					if err != nil {
-						return nil, fmt.Errorf("batch response: invalid expires-at: %s", entry)
+						return nil, errors.New(tr.Tr.Get("batch response: invalid expires-at: %s", entry))
 					}
 				}
 			}
@@ -191,7 +192,7 @@ func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb Progr
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf("No download action for object: %s", t.Oid)
+		return errors.Errorf(tr.Tr.Get("No download action for object: %s", t.Oid))
 	}
 	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	f, err := tools.TempFile(a.tempDir(), t.Oid, a.fs)
@@ -228,7 +229,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 			io.CopyN(buffer, data, 1024)
 			io.Copy(ioutil.Discard, data)
 		}
-		return errors.NewRetriableError(fmt.Errorf("got status %d when fetching OID %s: %s", status, t.Oid, buffer.String()))
+		return errors.NewRetriableError(errors.New(tr.Tr.Get("got status %d when fetching OID %s: %s", status, t.Oid, buffer.String())))
 	}
 
 	var actualSize int64
@@ -236,11 +237,11 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "size=") {
 			if seenSize {
-				return errors.NewProtocolError("unexpected size argument", nil)
+				return errors.NewProtocolError(tr.Tr.Get("unexpected size argument"), nil)
 			}
 			actualSize, err = strconv.ParseInt(arg[5:], 10, 64)
 			if err != nil || actualSize < 0 {
-				return errors.NewProtocolError(fmt.Sprintf("expected valid size, got %q", arg[5:]), err)
+				return errors.NewProtocolError(tr.Tr.Get("expected valid size, got %q", arg[5:]), err)
 			}
 			seenSize = true
 		}
@@ -260,15 +261,15 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 	hasher := tools.NewHashingReader(data)
 	written, err := tools.CopyWithCallback(f, hasher, t.Size, ccb)
 	if err != nil {
-		return errors.Wrapf(err, "cannot write data to tempfile %q", dlfilename)
+		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {
-		return fmt.Errorf("expected OID %s, got %s after %d bytes written", t.Oid, actual, written)
+		return errors.New(tr.Tr.Get("expected OID %s, got %s after %d bytes written", t.Oid, actual, written))
 	}
 
 	if err := f.Close(); err != nil {
-		return fmt.Errorf("can't close tempfile %q: %v", dlfilename, err)
+		return errors.New(tr.Tr.Get("can't close temporary file %q: %v", dlfilename, err))
 	}
 
 	err = tools.RenameFileCopyPermissions(dlfilename, t.Path)
@@ -293,9 +294,9 @@ func (a *SSHAdapter) verifyUpload(t *Transfer, conn *ssh.PktlineConnection) erro
 	}
 	if status < 200 || status > 299 {
 		if len(lines) > 0 {
-			return fmt.Errorf("got status %d when verifying upload OID %s: %s", status, t.Oid, lines[0])
+			return errors.New(tr.Tr.Get("got status %d when verifying upload OID %s: %s", status, t.Oid, lines[0]))
 		}
-		return fmt.Errorf("got status %d when verifying upload OID %s", status, t.Oid)
+		return errors.New(tr.Tr.Get("got status %d when verifying upload OID %s", status, t.Oid))
 	}
 	return nil
 }
@@ -331,12 +332,12 @@ func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb Progres
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf("No upload action for object: %s", t.Oid)
+		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Wrap(err, "SSH upload")
+		return errors.Wrap(err, tr.Tr.Get("SSH upload"))
 	}
 	defer f.Close()
 
@@ -348,18 +349,18 @@ func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb Progres
 		// A status code of 403 likely means that an authentication token for the
 		// upload has expired. This can be safely retried.
 		if status == 403 {
-			err = errors.New("http: received status 403")
+			err = errors.New(tr.Tr.Get("http: received status 403"))
 			return errors.NewRetriableError(err)
 		}
 
 		if status == 429 {
-			return errors.NewRetriableError(fmt.Errorf("got status %d when uploading OID %s", status, t.Oid))
+			return errors.NewRetriableError(errors.New(tr.Tr.Get("got status %d when uploading OID %s", status, t.Oid)))
 		}
 
 		if len(lines) > 0 {
-			return fmt.Errorf("got status %d when uploading OID %s: %s", status, t.Oid, lines[0])
+			return errors.New(tr.Tr.Get("got status %d when uploading OID %s: %s", status, t.Oid, lines[0]))
 		}
-		return fmt.Errorf("got status %d when uploading OID %s", status, t.Oid)
+		return errors.New(tr.Tr.Get("got status %d when uploading OID %s", status, t.Oid))
 
 	}
 

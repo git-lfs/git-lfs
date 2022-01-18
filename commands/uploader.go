@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -244,7 +245,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 				continue
 			}
 
-			Print("push %s => %s", p.Oid, p.Name)
+			Print(tr.Tr.Get("push %s => %s", p.Oid, p.Name))
 			c.SetUploaded(p.Oid)
 		}
 
@@ -289,23 +290,25 @@ func (c *uploadContext) ReportErrors() {
 	if len(c.missing) > 0 || len(c.corrupt) > 0 {
 		var action string
 		if c.allowMissing {
-			action = "missing objects"
+			action = tr.Tr.Get("missing objects")
 		} else {
-			action = "failed"
+			action = tr.Tr.Get("failed")
 		}
 
-		Print("LFS upload %s:", action)
+		Print(tr.Tr.Get("LFS upload %s:", action))
 		for name, oid := range c.missing {
-			Print("  (missing) %s (%s)", name, oid)
+			// TRANSLATORS: Leading spaces should be preserved.
+			Print(tr.Tr.Get("  (missing) %s (%s)", name, oid))
 		}
 		for name, oid := range c.corrupt {
-			Print("  (corrupt) %s (%s)", name, oid)
+			// TRANSLATORS: Leading spaces should be preserved.
+			Print(tr.Tr.Get("  (corrupt) %s (%s)", name, oid))
 		}
 
 		if !c.allowMissing {
 			pushMissingHint := []string{
-				"hint: Your push was rejected due to missing or corrupt local objects.",
-				"hint: You can disable this check with: 'git config lfs.allowincompletepush true'",
+				tr.Tr.Get("hint: Your push was rejected due to missing or corrupt local objects."),
+				tr.Tr.Get("hint: You can disable this check with: 'git config lfs.allowincompletepush true'"),
 			}
 			Print(strings.Join(pushMissingHint, "\n"))
 			os.Exit(2)
@@ -317,18 +320,18 @@ func (c *uploadContext) ReportErrors() {
 	}
 
 	if c.lockVerifier.HasUnownedLocks() {
-		Print("Unable to push locked files:")
+		Print(tr.Tr.Get("Unable to push locked files:"))
 		for _, unowned := range c.lockVerifier.UnownedLocks() {
 			Print("* %s - %s", unowned.Path(), unowned.Owners())
 		}
 
 		if c.lockVerifier.Enabled() {
-			Exit("ERROR: Cannot update locked files.")
+			Exit(tr.Tr.Get("Cannot update locked files."))
 		} else {
-			Error("WARNING: The above files would have halted this push.")
+			Error(tr.Tr.Get("warning: The above files would have halted this push."))
 		}
 	} else if c.lockVerifier.HasOwnedLocks() {
-		Print("Consider unlocking your own locked files: (`git lfs unlock <path>`)")
+		Print(tr.Tr.Get("Consider unlocking your own locked files: (`git lfs unlock <path>`)"))
 		for _, owned := range c.lockVerifier.OwnedLocks() {
 			Print("* %s", owned.Path())
 		}
@@ -357,7 +360,7 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 
 	localMediaPath, err := c.gitfilter.ObjectPath(oid)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error uploading file %s (%s)", filename, oid)
+		return nil, errors.Wrap(err, tr.Tr.Get("Error uploading file %s (%s)", filename, oid))
 	}
 
 	if len(filename) > 0 {

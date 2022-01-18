@@ -195,7 +195,7 @@ begin_test "ambiguous url alias"
   git config -l | grep url
 
   git lfs env 2>&1 | tee env2.log
-  grep "WARNING: Multiple 'url.*.insteadof'" env2.log
+  grep "warning: Multiple 'url.*.insteadof'" env2.log
 )
 end_test
 
@@ -252,7 +252,7 @@ begin_test "config: ignoring unsafe lfsconfig keys"
 
   git lfs env 2>&1 | tee status.log
 
-  grep "WARNING: These unsafe lfsconfig keys were ignored:" status.log
+  grep "warning: These unsafe lfsconfig keys were ignored:" status.log
   grep "  core.askpass" status.log
 )
 end_test

@@ -2,13 +2,14 @@ package commands
 
 import (
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
 // uninstallCmd removes any configuration and hooks set by Git LFS.
 func uninstallCommand(cmd *cobra.Command, args []string) {
 	if err := cmdInstallOptions().Uninstall(); err != nil {
-		Print("WARNING: %s", err.Error())
+		Print(tr.Tr.Get("warning: %s", err.Error()))
 	}
 
 	if !skipRepoInstall && (localInstall || worktreeInstall || cfg.InRepo()) {
@@ -16,9 +17,9 @@ func uninstallCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if systemInstall {
-		Print("System Git LFS configuration has been removed.")
+		Print(tr.Tr.Get("System Git LFS configuration has been removed."))
 	} else if !(localInstall || worktreeInstall) {
-		Print("Global Git LFS configuration has been removed.")
+		Print(tr.Tr.Get("Global Git LFS configuration has been removed."))
 	}
 }
 
@@ -28,7 +29,7 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 		Error(err.Error())
 	}
 
-	Print("Hooks for this repository have been removed.")
+	Print(tr.Tr.Get("Hooks for this repository have been removed."))
 }
 
 func init() {

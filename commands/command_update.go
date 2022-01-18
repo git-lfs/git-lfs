@@ -3,6 +3,7 @@ package commands
 import (
 	"regexp"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -30,10 +31,10 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		case "basic":
 		case "private":
 			cfg.SetGitLocalKey(key, "basic")
-			Print("Updated %s access from %s to %s.", matches[1], value, "basic")
+			Print(tr.Tr.Get("Updated %s access from %s to %s.", matches[1], value, "basic"))
 		default:
 			cfg.UnsetGitLocalKey(key)
-			Print("Removed invalid %s access of %s.", matches[1], value)
+			Print(tr.Tr.Get("Removed invalid %s access of %s.", matches[1], value))
 		}
 	}
 
@@ -46,9 +47,9 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	} else {
 		if err := installHooks(updateForce); err != nil {
 			Error(err.Error())
-			Exit("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook.")
+			Exit(tr.Tr.Get("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook."))
 		} else {
-			Print("Updated git hooks.")
+			Print(tr.Tr.Get("Updated git hooks."))
 		}
 	}
 

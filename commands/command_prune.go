@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -17,6 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
@@ -34,7 +36,7 @@ var (
 func pruneCommand(cmd *cobra.Command, args []string) {
 	// Guts of this must be re-usable from fetch --prune so just parse & dispatch
 	if pruneVerifyArg && pruneDoNotVerifyArg {
-		Exit("Cannot specify both --verify-remote and --no-verify-remote")
+		Exit(tr.Tr.Get("Cannot specify both --verify-remote and --no-verify-remote"))
 	}
 
 	fetchPruneConfig := lfs.NewFetchPruneConfig(cfg.Git)
@@ -198,7 +200,12 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	info := tasklog.NewSimpleTask()
 	logger.Enqueue(info)
 	if dryRun {
-		info.Logf("prune: %d file(s) would be pruned (%s)", len(prunableObjects), humanize.FormatBytes(uint64(totalSize)))
+		info.Logf("prune: %s", tr.Tr.GetN(
+			"%d file would be pruned (%s)",
+			"%d files would be pruned (%s)",
+			len(prunableObjects),
+			len(prunableObjects),
+			humanize.FormatBytes(uint64(totalSize))))
 		for _, item := range verboseOutput {
 			info.Logf("\n * %s", item)
 		}
@@ -232,16 +239,16 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 	// deleted but that's incorrect; bad state has occurred somehow, might need
 	// push --all to resolve
 	if problems.Len() > 0 {
-		Exit("Abort: these objects to be pruned are missing on remote:\n%v", problems.String())
+		Exit(tr.Tr.Get("These objects to be pruned are missing on remote:\n%v", problems.String()))
 	}
 }
 
 func pruneCheckErrors(taskErrors []error) {
 	if len(taskErrors) > 0 {
 		for _, err := range taskErrors {
-			LoggedError(err, "Prune error: %v", err)
+			LoggedError(err, tr.Tr.Get("Prune error: %v", err))
 		}
-		Exit("Prune sub-tasks failed, cannot continue")
+		Exit(tr.Tr.Get("Prune sub-tasks failed, cannot continue"))
 	}
 }
 
@@ -266,9 +273,11 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 		case PruneProgressTypeVerify:
 			verifyCount++
 		}
-		msg = fmt.Sprintf("prune: %d local object(s), %d retained", localCount, retainCount)
+		msg = fmt.Sprintf("prune: %s, %s",
+			tr.Tr.GetN("%d local object", "%d local objects", localCount, localCount),
+			tr.Tr.GetN("%d retained", "%d retained", retainCount, retainCount))
 		if verifyCount > 0 {
-			msg += fmt.Sprintf(", %d verified with remote", verifyCount)
+			msg += tr.Tr.GetN(", %d verified with remote", ", %d verified with remote", verifyCount, verifyCount)
 		}
 		task.Log(msg)
 	}
@@ -296,7 +305,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 }
 
 func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
-	task := logger.Percentage("prune: Deleting objects", uint64(len(prunableObjects)))
+	task := logger.Percentage(fmt.Sprintf("prune: %s", tr.Tr.Get("Deleting objects")), uint64(len(prunableObjects)))
 
 	var problems bytes.Buffer
 	// In case we fail to delete some
@@ -304,7 +313,7 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 	for _, oid := range prunableObjects {
 		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
-			problems.WriteString(fmt.Sprintf("Unable to find media path for %v: %v\n", oid, err))
+			problems.WriteString(tr.Tr.Get("Unable to find media path for %v: %v\n", oid, err))
 			continue
 		}
 		if mediaFile == os.DevNull {
@@ -312,15 +321,15 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 		}
 		err = os.Remove(mediaFile)
 		if err != nil {
-			problems.WriteString(fmt.Sprintf("Failed to remove file %v: %v\n", mediaFile, err))
+			problems.WriteString(tr.Tr.Get("Failed to remove file %v: %v\n", mediaFile, err))
 			continue
 		}
 		deletedFiles++
 		task.Count(1)
 	}
 	if problems.Len() > 0 {
-		LoggedError(fmt.Errorf("failed to delete some files"), problems.String())
-		Exit("Prune failed, see errors above")
+		LoggedError(errors.New(tr.Tr.Get("failed to delete some files")), problems.String())
+		Exit(tr.Tr.Get("Prune failed, see errors above"))
 	}
 }
 
@@ -407,7 +416,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 		// Keep all recent refs including any recent remote branches
 		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
 		if err != nil {
-			Panic(err, "Could not scan for recent refs")
+			Panic(err, tr.Tr.Get("Could not scan for recent refs"))
 		}
 		for _, ref := range refs {
 			if commits.Add(ref.Sha) {
@@ -426,7 +435,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 			// We measure from the last commit at the ref
 			summ, err := git.GetCommitSummary(commit)
 			if err != nil {
-				errorChan <- fmt.Errorf("couldn't scan commits at %v: %v", commit, err)
+				errorChan <- errors.New(tr.Tr.Get("couldn't scan commits at %v: %v", commit, err))
 				continue
 			}
 			commitsSince := summ.CommitDate.AddDate(0, 0, -pruneCommitDays)

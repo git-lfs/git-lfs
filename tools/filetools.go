@@ -18,6 +18,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // FileOrDirExists determines if a file/dir exists, returns IsDir() results too.
@@ -76,12 +77,12 @@ func RenameFileCopyPermissions(srcfile, destfile string) error {
 		return err
 	} else {
 		if err := os.Chmod(srcfile, info.Mode()); err != nil {
-			return fmt.Errorf("can't set filemode on file %q: %v", srcfile, err)
+			return errors.New(tr.Tr.Get("can't set filemode on file %q: %v", srcfile, err))
 		}
 	}
 
 	if err := RobustRename(srcfile, destfile); err != nil {
-		return fmt.Errorf("cannot replace %q with %q: %v", destfile, srcfile, err)
+		return errors.New(tr.Tr.Get("cannot replace %q with %q: %v", destfile, srcfile, err))
 	}
 	return nil
 }
@@ -184,14 +185,14 @@ func ExpandPath(path string, expand bool) (string, error) {
 	}
 
 	if err != nil {
-		return "", errors.Wrapf(err, "could not find user %s", username)
+		return "", errors.Wrapf(err, tr.Tr.Get("could not find user %s", username))
 	}
 
 	homedir := who.HomeDir
 	if expand {
 		homedir, err = filepath.EvalSymlinks(homedir)
 		if err != nil {
-			return "", errors.Wrapf(err, "cannot eval symlinks for %s", homedir)
+			return "", errors.Wrapf(err, tr.Tr.Get("cannot eval symlinks for %s", homedir))
 		}
 	}
 	return filepath.Join(homedir, path[len(username)+1:]), nil
@@ -230,7 +231,7 @@ func VerifyFileHash(oid, path string) error {
 
 	calcOid := hex.EncodeToString(h.Sum(nil))
 	if calcOid != oid {
-		return fmt.Errorf("file %q has an invalid hash %s, expected %s", path, calcOid, oid)
+		return errors.New(tr.Tr.Get("file %q has an invalid hash %s, expected %s", path, calcOid, oid))
 	}
 
 	return nil

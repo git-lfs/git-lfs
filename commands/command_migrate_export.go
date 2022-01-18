@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	filter := rewriter.Filter()
 	if len(filter.Include()) <= 0 {
-		ExitWithError(errors.Errorf("fatal: one or more files must be specified with --include"))
+		ExitWithError(errors.Errorf(tr.Tr.Get("One or more files must be specified with --include")))
 	}
 
 	tracked := trackedFromExportFilter(filter)
@@ -115,7 +116,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	}
 	remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", remote).Url
 	if remoteURL == "" && cmd.Flag("remote").Changed {
-		ExitWithError(errors.Errorf("fatal: invalid remote %s provided", remote))
+		ExitWithError(errors.Errorf(tr.Tr.Get("Invalid remote %s provided", remote)))
 	}
 
 	// If we have a valid remote, pre-download all objects using the Transfer Queue
@@ -157,7 +158,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
 	if bare, _ := git.IsBare(); !bare {
-		t := l.Waiter("migrate: checkout")
+		t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
 		err := git.Checkout("", nil, true)
 		t.Complete()
 

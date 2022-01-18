@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+if ARGV.length < 2
+  $stderr.puts "Usage: gen-i-reverse INPUT-FILE OUTPUT-FILE"
+  exit 1
+end
+
+input = File.open(ARGV[0])
+output = File.open(ARGV[1], "w")
+
+$state = :idle
+$singular = nil
+$plural = nil
+
+def reset_state
+  $state = :idle
+  $singular = nil
+  $plural = nil
+end
+
+def translate(s)
+  items = s.split(/ /)
+  items = items.map do |chunk|
+    case chunk
+    when /^%/
+      chunk
+    else
+      chunk.split(/(\\n|\W+)/).map do |c|
+        c =~ /^\w/ ? c.reverse : c
+      end.join
+    end
+  end
+  items.join(" ").gsub("\n", "\\n")
+end
+
+while line = input.gets
+  line.chomp!
+  case $state
+  when :idle
+    case line
+    when /^msgid ""$/
+      $state = :copy
+      output.puts line
+    when /^msgid "(.*)"$/
+      $state = :msgid
+      $singular = $1
+      output.puts line
+    when /^msgid `(.*)$/
+      $state = :msgid_multi
+      $singular = $1.gsub('"', "\\\"") + "\n"
+    end
+  when :copy
+    if line == ""
+      reset_state
+    end
+    output.puts line
+  when :msgid_multi
+    case line
+    # Note that PO files are not supposed to contain backtick-delimited strings,
+    # but xgotext emits them anyway, so we fix them up until it gets fixed.
+    when /^(.*)`$/
+      $state = :msgid
+      $singular += $1.gsub('"', "\\\"")
+      output.puts "msgid \"#{$singular.gsub("\n", "\\n")}\""
+    else
+      $singular += line.gsub('"', "\\\"") + "\n"
+    end
+  when :msgid_plural_multi
+    case line
+    when /^(.*)`$/
+      $state = :msgid
+      $plural += $1.gsub('"', "\\\"")
+      output.puts "msgid_plural \"#{$plural.gsub("\n", "\\n")}\""
+    else
+      $plural += line.gsub('"', "\\\"") + "\n"
+    end
+  when :msgid
+    case line
+    when /^msgid_plural ""$/
+      output.puts line
+    when /^msgid_plural "(.*)"$/
+      $plural = $1
+      output.puts line
+    when /^msgid_plural `(.*)$/
+      $state = :msgid_plural_multi
+      $plural = $1.gsub('"', "\\\"") + "\n"
+      output.puts line
+    when /^msgstr(\[0\])? ""$/
+      output.puts "msgstr#{$1} \"#{translate($singular)}\""
+    when /^msgstr\[1\] ""$/
+      output.puts "msgstr[1] \"#{translate($plural)}\""
+    when ""
+      reset_state
+      output.puts line
+    end
+  end
+end

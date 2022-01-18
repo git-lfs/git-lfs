@@ -5,6 +5,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,7 @@ import (
 // optimising that as best it can based on the available information.
 func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	if len(args) != 3 {
-		Print("This should be run through Git's post-checkout hook.  Run `git lfs update` to install it.")
+		Print(tr.Tr.Get("This should be run through Git's post-checkout hook.  Run `git lfs update` to install it."))
 		os.Exit(1)
 	}
 
@@ -54,13 +55,13 @@ func postCheckoutRevChange(client *locking.Client, pre, post string) {
 	files, err := git.GetFilesChanged(pre, post)
 
 	if err != nil {
-		LoggedError(err, "Warning: post-checkout rev diff %v:%v failed: %v\nFalling back on full scan.", pre, post, err)
+		LoggedError(err, tr.Tr.Get("Warning: post-checkout rev diff %v:%v failed: %v\nFalling back on full scan.", pre, post, err))
 		postCheckoutFileChange(client)
 	}
 	tracerx.Printf("post-checkout: checking write flags on %v", files)
 	err = client.FixLockableFileWriteFlags(files)
 	if err != nil {
-		LoggedError(err, "Warning: post-checkout locked file check failed: %v", err)
+		LoggedError(err, tr.Tr.Get("Warning: post-checkout locked file check failed: %v", err))
 	}
 
 }
@@ -71,7 +72,7 @@ func postCheckoutFileChange(client *locking.Client) {
 	// so we have to check the entire repo
 	err := client.FixAllLockableFileWriteFlags()
 	if err != nil {
-		LoggedError(err, "Warning: post-checkout locked file check failed: %v", err)
+		LoggedError(err, tr.Tr.Get("Warning: post-checkout locked file check failed: %v", err))
 	}
 }
 

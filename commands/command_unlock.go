@@ -2,12 +2,12 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -24,8 +24,6 @@ type unlockFlags struct {
 	// individual's lock(s).
 	Force bool
 }
-
-var unlockUsage = "Usage: git lfs unlock (--id my-lock-id | <path>)"
 
 type unlockResponse struct {
 	Id       string `json:"id,omitempty"`
@@ -53,7 +51,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	if hasPath == hasId {
 		// If there is both an `--id` AND a `<path>`, or there is
 		// neither, print the usage and quit.
-		Exit(unlockUsage)
+		Exit(tr.Tr.Get("Exactly one of --id or a set of paths must be provided"))
 	}
 
 	if len(lockRemote) > 0 {
@@ -72,7 +70,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			path, err := lockPath(pathspec)
 			if err != nil {
 				if !unlockCmdFlags.Force {
-					locks = handleUnlockError(locks, "", path, fmt.Errorf("Unable to determine path: %v", err.Error()))
+					locks = handleUnlockError(locks, "", path, errors.New(tr.Tr.Get("Unable to determine path: %v", err.Error())))
 					success = false
 					continue
 				}
@@ -107,13 +105,13 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 		err := lockClient.UnlockFileById(unlockCmdFlags.Id, unlockCmdFlags.Force)
 		if err != nil {
-			locks = handleUnlockError(locks, unlockCmdFlags.Id, "", fmt.Errorf("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err)))
+			locks = handleUnlockError(locks, unlockCmdFlags.Id, "", errors.New(tr.Tr.Get("Unable to unlock %v: %v", unlockCmdFlags.Id, errors.Cause(err))))
 			success = false
 		} else if !locksCmdFlags.JSON {
-			Print("Unlocked Lock %s", unlockCmdFlags.Id)
+			Print(tr.Tr.Get("Unlocked Lock %s", unlockCmdFlags.Id))
 		}
 	} else {
-		Error(unlockUsage)
+		Exit(tr.Tr.Get("Exactly one of --id or a set of paths must be provided"))
 	}
 
 	if locksCmdFlags.JSON {
@@ -145,9 +143,9 @@ func unlockAbortIfFileModified(path string) error {
 	if modified {
 		if unlockCmdFlags.Force {
 			// Only a warning
-			Error("Warning: unlocking with uncommitted changes because --force")
+			Error(tr.Tr.Get("warning: unlocking with uncommitted changes because --force"))
 		} else {
-			return fmt.Errorf("Cannot unlock file with uncommitted changes")
+			return errors.New(tr.Tr.Get("Cannot unlock file with uncommitted changes"))
 		}
 
 	}
@@ -174,7 +172,7 @@ func unlockAbortIfFileModifiedById(id string, lockClient *locking.Client) error 
 
 func init() {
 	RegisterCommand("unlock", unlockCommand, func(cmd *cobra.Command) {
-		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", lockRemoteHelp)
+		cmd.Flags().StringVarP(&lockRemote, "remote", "r", "", "specify which remote to use when interacting with locks")
 		cmd.Flags().StringVarP(&unlockCmdFlags.Id, "id", "i", "", "unlock a lock by its ID")
 		cmd.Flags().BoolVarP(&unlockCmdFlags.Force, "force", "f", false, "forcibly break another user's lock(s)")
 		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")

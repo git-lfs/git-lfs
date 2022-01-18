@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type pipeRequest struct {
@@ -142,7 +144,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 		if err = ec.cmd.Wait(); err != nil {
 			if ec.err != nil {
 				errStr := ec.err.String()
-				err = fmt.Errorf("extension '%s' failed with: %s", ec.result.name, errStr)
+				err = errors.New(tr.Tr.Get("extension '%s' failed with: %s", ec.result.name, errStr))
 			}
 			return
 		}

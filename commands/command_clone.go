@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -24,27 +25,26 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	if git.IsGitVersionAtLeast("2.15.0") {
-		msg := []string{
-			"WARNING: 'git lfs clone' is deprecated and will not be updated",
-			"          with new flags from 'git clone'",
-			"",
-			"'git clone' has been updated in upstream Git to have comparable",
-			"speeds to 'git lfs clone'.",
-		}
+		msg := tr.Tr.Get(`WARNING: 'git lfs clone' is deprecated and will not be updated
+          with new flags from 'git clone'
 
-		fmt.Fprintln(os.Stderr, strings.Join(msg, "\n"))
+'git clone' has been updated in upstream Git to have comparable
+speeds to 'git lfs clone'.
+`)
+
+		fmt.Fprintln(os.Stderr, msg)
 	}
 
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
 	if err != nil {
-		Exit("Error(s) during clone:\n%v", err)
+		Exit(tr.Tr.Get("Error(s) during clone:\n%v", err))
 	}
 
 	// now execute pull (need to be inside dir)
 	cwd, err := tools.Getwd()
 	if err != nil {
-		Exit("Unable to derive current working dir: %v", err)
+		Exit(tr.Tr.Get("Unable to derive current working dir: %v", err))
 	}
 
 	// Either the last argument was a relative or local dir, or we have to
@@ -58,13 +58,13 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		}
 		clonedir, _ = filepath.Abs(base)
 		if !tools.DirExists(clonedir) {
-			Exit("Unable to find clone dir at %q", clonedir)
+			Exit(tr.Tr.Get("Unable to find clone dir at %q", clonedir))
 		}
 	}
 
 	err = os.Chdir(clonedir)
 	if err != nil {
-		Exit("Unable to change directory to clone dir %q: %v", clonedir, err)
+		Exit(tr.Tr.Get("Unable to change directory to clone dir %q: %v", clonedir, err))
 	}
 
 	// Make sure we pop back to dir we started in at the end
@@ -87,7 +87,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 			pull(filter)
 			err := postCloneSubmodules(args)
 			if err != nil {
-				Exit("Error performing 'git lfs pull' for submodules: %v", err)
+				Exit(tr.Tr.Get("Error performing 'git lfs pull' for submodules: %v", err))
 			}
 		}
 	}

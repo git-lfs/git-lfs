@@ -1,8 +1,10 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"sort"
+
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // An Extension describes how to manipulate files during smudge and clean.
@@ -21,7 +23,7 @@ func SortExtensions(m map[string]Extension) ([]Extension, error) {
 	for n, ext := range m {
 		p := ext.Priority
 		if _, exist := pMap[p]; exist {
-			err := fmt.Errorf("duplicate priority %d on %s", p, n)
+			err := errors.New(tr.Tr.Get("duplicate priority %d on %s", p, n))
 			return nil, err
 		}
 		pMap[p] = ext

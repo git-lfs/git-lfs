@@ -5,6 +5,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,7 @@ var (
 
 func installCommand(cmd *cobra.Command, args []string) {
 	if err := cmdInstallOptions().Install(); err != nil {
-		Print("WARNING: %s", err.Error())
-		Print("Run `git lfs install --force` to reset git config.")
+		Print(tr.Tr.Get("warning: %s\nRun `git lfs install --force` to reset git config.", err.Error()))
 		os.Exit(2)
 	}
 
@@ -29,7 +29,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 		installHooksCommand(cmd, args)
 	}
 
-	Print("Git LFS initialized.")
+	Print(tr.Tr.Get("Git LFS initialized."))
 }
 
 func cmdInstallOptions() *lfs.FilterOptions {
@@ -41,18 +41,18 @@ func cmdInstallOptions() *lfs.FilterOptions {
 
 	switch {
 	case localInstall && worktreeInstall:
-		Exit("Only one of --local and --worktree options can be specified.")
+		Exit(tr.Tr.Get("Only one of --local and --worktree options can be specified."))
 	case localInstall && systemInstall:
-		Exit("Only one of --local and --system options can be specified.")
+		Exit(tr.Tr.Get("Only one of --local and --system options can be specified."))
 	case worktreeInstall && systemInstall:
-		Exit("Only one of --worktree and --system options can be specified.")
+		Exit(tr.Tr.Get("Only one of --worktree and --system options can be specified."))
 	}
 
 	// This call will return -1 on Windows; don't warn about this there,
 	// since we can't detect it correctly.
 	uid := os.Geteuid()
 	if systemInstall && uid != 0 && uid != -1 {
-		Print("WARNING: current user is not root/admin, system install is likely to fail.")
+		Print("warning: current user is not root/admin, system install is likely to fail.")
 	}
 
 	return &lfs.FilterOptions{

@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type Platform int
@@ -209,7 +211,7 @@ func (p *currentToRepoPatternConverter) Convert(filename string) string {
 func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) {
 	currDir, err := os.Getwd()
 	if err != nil {
-		return "", "", false, fmt.Errorf("unable to get working dir: %v", err)
+		return "", "", false, errors.New(tr.Tr.Get("unable to get working dir: %v", err))
 	}
 	currDir = tools.ResolveSymlinks(currDir)
 	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil

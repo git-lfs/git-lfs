@@ -1,6 +1,6 @@
 package tq
 
-import "fmt"
+import "github.com/git-lfs/git-lfs/v3/tr"
 
 type MalformedObjectError struct {
 	Name string
@@ -23,7 +23,7 @@ func (e MalformedObjectError) Corrupt() bool { return !e.Missing() }
 
 func (e MalformedObjectError) Error() string {
 	if e.Corrupt() {
-		return fmt.Sprintf("corrupt object: %s (%s)", e.Name, e.Oid)
+		return tr.Tr.Get("corrupt object: %s (%s)", e.Name, e.Oid)
 	}
-	return fmt.Sprintf("missing object: %s (%s)", e.Name, e.Oid)
+	return tr.Tr.Get("missing object: %s (%s)", e.Name, e.Oid)
 }

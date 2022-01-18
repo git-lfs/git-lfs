@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type Direction int
@@ -19,15 +20,15 @@ const (
 	Checkout = Direction(iota)
 )
 
-// Verb returns a string containing the verb form of the receiving action.
-func (d Direction) Verb() string {
+// Progress returns a string containing the operation in progress.
+func (d Direction) Progress() string {
 	switch d {
 	case Checkout:
-		return "Checking out"
+		return tr.Tr.Get("Checking out LFS objects")
 	case Download:
-		return "Downloading"
+		return tr.Tr.Get("Downloading LFS objects")
 	case Upload:
-		return "Uploading"
+		return tr.Tr.Get("Uploading LFS objects")
 	default:
 		return "<unknown>"
 	}

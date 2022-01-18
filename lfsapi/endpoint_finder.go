@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -337,7 +338,7 @@ func storeAlias(aliases map[string]string, key string, values []string, suffix s
 	for _, value := range values {
 		url := key[len(aliasPrefix) : len(key)-len(suffix)]
 		if v, ok := aliases[value]; ok && v != url {
-			fmt.Fprintf(os.Stderr, "WARNING: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value)
+			fmt.Fprintf(os.Stderr, tr.Tr.Get("warning: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value))
 		}
 		aliases[value] = url
 	}

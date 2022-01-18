@@ -1,7 +1,6 @@
 package ssh
 
 import (
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type PktlineConnection struct {
@@ -46,7 +46,7 @@ func (conn *PktlineConnection) End() error {
 func (conn *PktlineConnection) negotiateVersion() error {
 	pkts, err := conn.pl.ReadPacketList()
 	if err != nil {
-		return errors.NewProtocolError("Unable to negotiate version with remote side (unable to read capabilities)", err)
+		return errors.NewProtocolError(tr.Tr.Get("Unable to negotiate version with remote side (unable to read capabilities)"), err)
 	}
 	ok := false
 	for _, line := range pkts {
@@ -55,22 +55,22 @@ func (conn *PktlineConnection) negotiateVersion() error {
 		}
 	}
 	if !ok {
-		return errors.NewProtocolError("Unable to negotiate version with remote side (missing version=1)", nil)
+		return errors.NewProtocolError(tr.Tr.Get("Unable to negotiate version with remote side (missing version=1)"), nil)
 	}
 	err = conn.SendMessage("version 1", nil)
 	if err != nil {
-		return errors.NewProtocolError("Unable to negotiate version with remote side (unable to send version)", err)
+		return errors.NewProtocolError(tr.Tr.Get("Unable to negotiate version with remote side (unable to send version)"), err)
 	}
 	status, args, _, err := conn.ReadStatusWithLines()
 	if err != nil {
-		return errors.NewProtocolError("Unable to negotiate version with remote side (unable to read status)", err)
+		return errors.NewProtocolError(tr.Tr.Get("Unable to negotiate version with remote side (unable to read status)"), err)
 	}
 	if status != 200 {
-		text := "no error provided"
+		text := tr.Tr.Get("no error provided")
 		if len(args) > 0 {
-			text = fmt.Sprintf("server said: %q", args[0])
+			text = tr.Tr.Get("server said: %q", args[0])
 		}
-		return errors.NewProtocolError(fmt.Sprintf("Unable to negotiate version with remote side (unexpected status %d; %s)", status, text), nil)
+		return errors.NewProtocolError(tr.Tr.Get("Unable to negotiate version with remote side (unexpected status %d; %s)", status, text), nil)
 	}
 	return nil
 }
@@ -150,12 +150,12 @@ func (conn *PktlineConnection) ReadStatus() (int, error) {
 	for {
 		s, pktLen, err := conn.pl.ReadPacketTextWithLength()
 		if err != nil {
-			return 0, errors.NewProtocolError("error reading packet", err)
+			return 0, errors.NewProtocolError(tr.Tr.Get("error reading packet"), err)
 		}
 		switch {
 		case pktLen == 0:
 			if !seenStatus {
-				return 0, errors.NewProtocolError("no status seen", nil)
+				return 0, errors.NewProtocolError(tr.Tr.Get("no status seen"), nil)
 			}
 			return status, nil
 		case !seenStatus:
@@ -165,11 +165,11 @@ func (conn *PktlineConnection) ReadStatus() (int, error) {
 				ok = err == nil
 			}
 			if !ok {
-				return 0, errors.NewProtocolError(fmt.Sprintf("expected status line, got %q", s), err)
+				return 0, errors.NewProtocolError(tr.Tr.Get("expected status line, got %q", s), err)
 			}
 			seenStatus = true
 		default:
-			return 0, errors.NewProtocolError(fmt.Sprintf("unexpected data, got %q", s), err)
+			return 0, errors.NewProtocolError(tr.Tr.Get("unexpected data, got %q", s), err)
 		}
 	}
 }
@@ -183,13 +183,13 @@ func (conn *PktlineConnection) ReadStatusWithData() (int, []string, io.Reader, e
 	for {
 		s, pktLen, err := conn.pl.ReadPacketTextWithLength()
 		if err != nil {
-			return 0, nil, nil, errors.NewProtocolError("error reading packet", err)
+			return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("error reading packet"), err)
 		}
 		if pktLen == 0 {
 			if !seenStatus {
-				return 0, nil, nil, errors.NewProtocolError("no status seen", nil)
+				return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("no status seen"), nil)
 			}
-			return 0, nil, nil, errors.NewProtocolError("unexpected flush packet", nil)
+			return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("unexpected flush packet"), nil)
 		} else if !seenStatus {
 			ok := false
 			if strings.HasPrefix(s, "status ") {
@@ -197,7 +197,7 @@ func (conn *PktlineConnection) ReadStatusWithData() (int, []string, io.Reader, e
 				ok = err == nil
 			}
 			if !ok {
-				return 0, nil, nil, errors.NewProtocolError(fmt.Sprintf("expected status line, got %q", s), err)
+				return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("expected status line, got %q", s), err)
 			}
 			seenStatus = true
 		} else if pktLen == 1 {
@@ -220,12 +220,12 @@ func (conn *PktlineConnection) ReadStatusWithLines() (int, []string, []string, e
 	for {
 		s, pktLen, err := conn.pl.ReadPacketTextWithLength()
 		if err != nil {
-			return 0, nil, nil, errors.NewProtocolError("error reading packet", err)
+			return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("error reading packet"), err)
 		}
 		switch {
 		case pktLen == 0:
 			if !seenStatus {
-				return 0, nil, nil, errors.NewProtocolError("no status seen", nil)
+				return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("no status seen"), nil)
 			}
 			return status, args, lines, nil
 		case seenDelim:
@@ -237,12 +237,12 @@ func (conn *PktlineConnection) ReadStatusWithLines() (int, []string, []string, e
 				ok = err == nil
 			}
 			if !ok {
-				return 0, nil, nil, errors.NewProtocolError(fmt.Sprintf("expected status line, got %q", s), err)
+				return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("expected status line, got %q", s), err)
 			}
 			seenStatus = true
 		case pktLen == 1:
 			if seenDelim {
-				return 0, nil, nil, errors.NewProtocolError("unexpected delimiter packet", nil)
+				return 0, nil, nil, errors.NewProtocolError(tr.Tr.Get("unexpected delimiter packet"), nil)
 			}
 			seenDelim = true
 		default:

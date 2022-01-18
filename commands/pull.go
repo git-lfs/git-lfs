@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Handles the process of checking out a single file, and updating the git
@@ -29,7 +29,7 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 	// Since writing data & calling git update-index must be relative to cwd
 	pathConverter, err := lfs.NewRepoToCurrentPathConverter(cfg)
 	if err != nil {
-		Panic(err, "Could not convert file paths")
+		Panic(err, tr.Tr.Get("Could not convert file paths"))
 	}
 
 	return &singleCheckout{
@@ -72,7 +72,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 			return
 		}
 
-		LoggedError(err, "Checkout error: %s", err)
+		LoggedError(err, tr.Tr.Get("Checkout error: %s", err))
 		return
 	}
 
@@ -85,16 +85,16 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 	if err := c.RunToPath(p, cwdfilepath); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)
-			Error("Skipped checkout for %q, content not local. Use fetch to download.", p.Name)
+			Error(tr.Tr.Get("Skipped checkout for %q, content not local. Use fetch to download.", p.Name))
 		} else {
-			FullError(fmt.Errorf("could not check out %q", p.Name))
+			FullError(errors.New(tr.Tr.Get("could not check out %q", p.Name)))
 		}
 		return
 	}
 
 	// errors are only returned when the gitIndexer is starting a new cmd
 	if err := c.gitIndexer.Add(cwdfilepath); err != nil {
-		Panic(err, "Could not update the index")
+		Panic(err, tr.Tr.Get("Could not update the index"))
 	}
 }
 
@@ -107,7 +107,7 @@ func (c *singleCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
 
 func (c *singleCheckout) Close() {
 	if err := c.gitIndexer.Close(); err != nil {
-		LoggedError(err, "Error updating the git index:\n%s", c.gitIndexer.Output())
+		LoggedError(err, tr.Tr.Get("Error updating the git index:\n%s", c.gitIndexer.Output()))
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Meter provides a progress bar type output for the TransferQueue. It
@@ -54,11 +55,11 @@ func (m *Meter) LoggerFromEnv(os env) *tools.SyncWriter {
 
 func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 	printErr := func(err string) {
-		fmt.Fprintf(os.Stderr, "Error creating progress logger: %s\n", err)
+		fmt.Fprintf(os.Stderr, tr.Tr.Get("Error creating progress logger: %s\n", err))
 	}
 
 	if !filepath.IsAbs(name) {
-		printErr("GIT_LFS_PROGRESS must be an absolute path")
+		printErr(tr.Tr.Get("GIT_LFS_PROGRESS must be an absolute path"))
 		return nil
 	}
 
@@ -235,8 +236,8 @@ func (m *Meter) str() string {
 	// (Uploading|Downloading) LFS objects: 100% (10/10) 100 MiB | 10 MiB/s
 	percentage := 100 * float64(m.finishedFiles) / float64(m.estimatedFiles)
 
-	return fmt.Sprintf("%s LFS objects: %3.f%% (%d/%d), %s | %s",
-		m.Direction.Verb(),
+	return fmt.Sprintf("%s: %3.f%% (%d/%d), %s | %s",
+		m.Direction.Progress(),
 		percentage,
 		m.finishedFiles, m.estimatedFiles,
 		humanize.FormatBytes(clamp(m.currentBytes)),

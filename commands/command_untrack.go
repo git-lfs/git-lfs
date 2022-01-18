@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 	installHooks(false)
 
 	if len(args) < 1 {
-		Print("git lfs untrack <path> [path]*")
+		Print(tr.Tr.Get("git lfs untrack <path> [path]*"))
 		return
 	}
 
@@ -30,7 +31,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 	attributesFile, err := os.Create(".gitattributes")
 	if err != nil {
-		Print("Error opening .gitattributes for writing")
+		Print(tr.Tr.Get("Error opening .gitattributes for writing"))
 		return
 	}
 	defer attributesFile.Close()
@@ -48,7 +49,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 		path := strings.Fields(line)[0]
 		if removePath(path, args) {
-			Print("Untracking %q", unescapeAttrPattern(path))
+			Print(tr.Tr.Get("Untracking %q", unescapeAttrPattern(path)))
 		} else {
 			attributesFile.WriteString(line + "\n")
 		}

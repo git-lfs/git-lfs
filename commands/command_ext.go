@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -36,10 +37,10 @@ func printAllExts() {
 }
 
 func printExt(ext config.Extension) {
-	Print("Extension: %s", ext.Name)
-	Print("    clean = %s", ext.Clean)
-	Print("    smudge = %s", ext.Smudge)
-	Print("    priority = %d", ext.Priority)
+	Print(tr.Tr.Get(`Extension: %s
+    clean = %s
+    smudge = %s
+    priority = %d`, ext.Name, ext.Clean, ext.Smudge, ext.Priority))
 }
 
 func init() {

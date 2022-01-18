@@ -1,13 +1,13 @@
 package tq
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -83,7 +83,7 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 
 	req, err := c.NewRequest("POST", bRes.endpoint, "objects/batch", bReq)
 	if err != nil {
-		return nil, errors.Wrap(err, "batch request")
+		return nil, errors.Wrap(err, tr.Tr.Get("batch request"))
 	}
 
 	tracerx.Printf("api: batch %d files", len(bReq.Objects))
@@ -92,15 +92,15 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	res, err := c.DoAPIRequestWithAuth(remote, lfshttp.WithRetries(req, c.MaxRetries()))
 	if err != nil {
 		tracerx.Printf("api error: %s", err)
-		return nil, errors.Wrap(err, "batch response")
+		return nil, errors.Wrap(err, tr.Tr.Get("batch response"))
 	}
 
 	if err := lfshttp.DecodeJSON(res, bRes); err != nil {
-		return bRes, errors.Wrap(err, "batch response")
+		return bRes, errors.Wrap(err, tr.Tr.Get("batch response"))
 	}
 
 	if bRes.HashAlgorithm != "" && bRes.HashAlgorithm != "sha256" {
-		return bRes, errors.Wrap(fmt.Errorf("unsupported hash algorithm"), "batch response")
+		return bRes, errors.Wrap(errors.New(tr.Tr.Get("unsupported hash algorithm")), tr.Tr.Get("batch response"))
 	}
 
 	if res.StatusCode != 200 {

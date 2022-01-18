@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 const (
@@ -123,16 +124,16 @@ func Spool(to io.Writer, from io.Reader, dir string) (n int64, err error) {
 		// file, and spool the remaining contents there.
 		tmp, err := ioutil.TempFile(dir, "")
 		if err != nil {
-			return 0, errors.Wrap(err, "spool tmp")
+			return 0, errors.Wrap(err, tr.Tr.Get("Unable to create temporary file for spooling"))
 		}
 		defer os.Remove(tmp.Name())
 
 		if n, err = io.Copy(tmp, from); err != nil {
-			return n, errors.Wrap(err, "unable to spool")
+			return n, errors.Wrap(err, tr.Tr.Get("unable to spool"))
 		}
 
 		if _, err = tmp.Seek(0, io.SeekStart); err != nil {
-			return 0, errors.Wrap(err, "unable to seek")
+			return 0, errors.Wrap(err, tr.Tr.Get("unable to seek"))
 		}
 
 		// The spooled contents will now be the concatenation of the

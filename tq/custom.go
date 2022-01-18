@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/rubyist/tracerx"
@@ -127,11 +128,11 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	cmd := subprocess.ExecCommand(cmdName, cmdArgs...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stdout for custom transfer command %q remote: %v", a.path, err)
+		return nil, errors.New(tr.Tr.Get("failed to get stdout for custom transfer command %q remote: %v", a.path, err))
 	}
 	inp, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stdin for custom transfer command %q remote: %v", a.path, err)
+		return nil, errors.New(tr.Tr.Get("failed to get stdin for custom transfer command %q remote: %v", a.path, err))
 	}
 	// Capture stderr to trace
 	tracer := &traceWriter{}
@@ -139,7 +140,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	cmd.Stderr = tracer
 	err = cmd.Start()
 	if err != nil {
-		return nil, fmt.Errorf("failed to start custom transfer command %q remote: %v", a.path, err)
+		return nil, errors.New(tr.Tr.Get("failed to start custom transfer command %q remote: %v", a.path, err))
 	}
 	// Set up buffered reader/writer since we operate on lines
 	ctx := &customAdapterWorkerContext{workerNum, cmd, outp, bufio.NewReader(outp), inp, tracer}
@@ -155,7 +156,7 @@ func (a *customAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	}
 	if resp.Error != nil {
 		a.abortWorkerProcess(ctx)
-		return nil, fmt.Errorf("error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error)
+		return nil, errors.New(tr.Tr.Get("error initializing custom adapter %q worker %d: %v", a.name, workerNum, resp.Error))
 	}
 
 	a.Trace("xfer: started custom adapter process %q for worker %d OK", a.path, workerNum)
@@ -227,7 +228,7 @@ func (a *customAdapter) shutdownWorkerProcess(ctx *customAdapterWorkerContext) e
 	case err := <-finishChan:
 		return err
 	case <-time.After(30 * time.Second):
-		return fmt.Errorf("timeout while shutting down worker process %d", ctx.workerNum)
+		return errors.New(tr.Tr.Get("timeout while shutting down worker process %d", ctx.workerNum))
 	}
 }
 
@@ -254,12 +255,12 @@ func (a *customAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 
 func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
 	if ctx == nil {
-		return fmt.Errorf("custom transfer %q was not properly initialized, see previous errors", a.name)
+		return errors.New(tr.Tr.Get("custom transfer %q was not properly initialized, see previous errors", a.name))
 	}
 
 	customCtx, ok := ctx.(*customAdapterWorkerContext)
 	if !ok {
-		return fmt.Errorf("context object for custom transfer %q was of the wrong type", a.name)
+		return errors.New(tr.Tr.Get("context object for custom transfer %q was of the wrong type", a.name))
 	}
 	var authCalled bool
 
@@ -268,7 +269,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		return err
 	}
 	if rel == nil && !a.standalone {
-		return errors.Errorf("Object %s not found on the server.", t.Oid)
+		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {
@@ -292,7 +293,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		case "progress":
 			// Progress
 			if resp.Oid != t.Oid {
-				return fmt.Errorf("unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
+				return errors.New(tr.Tr.Get("unexpected OID %q in response, expecting %q", resp.Oid, t.Oid))
 			}
 			if cb != nil {
 				cb(t.Name, t.Size, resp.BytesSoFar, resp.BytesSinceLast)
@@ -301,19 +302,19 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		case "complete":
 			// Download/Upload complete
 			if resp.Oid != t.Oid {
-				return fmt.Errorf("unexpected oid %q in response, expecting %q", resp.Oid, t.Oid)
+				return errors.New(tr.Tr.Get("unexpected OID %q in response, expecting %q", resp.Oid, t.Oid))
 			}
 			if resp.Error != nil {
-				return fmt.Errorf("error transferring %q: %v", t.Oid, resp.Error)
+				return errors.New(tr.Tr.Get("error transferring %q: %v", t.Oid, resp.Error))
 			}
 			if a.direction == Download {
 				// So we don't have to blindly trust external providers, check SHA
 				if err = tools.VerifyFileHash(t.Oid, resp.Path); err != nil {
-					return fmt.Errorf("downloaded file failed checks: %v", err)
+					return errors.New(tr.Tr.Get("downloaded file failed checks: %v", err))
 				}
 				// Move file to final location
 				if err = tools.RenameFileCopyPermissions(resp.Path, t.Path); err != nil {
-					return fmt.Errorf("failed to copy downloaded file: %v", err)
+					return errors.New(tr.Tr.Get("failed to copy downloaded file: %v", err))
 				}
 			} else if a.direction == Upload {
 				if err = verifyUpload(a.apiClient, a.remote, t); err != nil {
@@ -323,7 +324,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 			wasAuthOk = true
 			complete = true
 		default:
-			return fmt.Errorf("invalid message %q from custom adapter %q", resp.Event, a.name)
+			return errors.New(tr.Tr.Get("invalid message %q from custom adapter %q", resp.Event, a.name))
 		}
 		// Fall through from both progress and completion messages
 		// Call auth on first progress or success to free up other workers

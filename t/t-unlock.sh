@@ -137,7 +137,7 @@ begin_test "unlock multiple files"
   git lfs lock a.dat
   git lfs lock b.dat
   git lfs unlock *.dat >log 2>&1
-  grep "Usage:" log && exit 1
+  grep "Exactly one of --id or a set of paths must be provided" log && exit 1
   true
 )
 end_test
@@ -321,7 +321,7 @@ begin_test "unlocking a lock without sufficient info"
   assert_server_lock "$reponame" "$id"
 
   git lfs unlock 2>&1 | tee unlock.log
-  grep "Usage: git lfs unlock" unlock.log
+  grep "Exactly one of --id or a set of paths must be provided" unlock.log
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -372,7 +372,7 @@ begin_test "unlocking a lock with ambiguous arguments"
     exit 1
   fi
 
-  grep "Usage:" unlock.log
+  grep "Exactly one of --id or a set of paths must be provided" unlock.log
   assert_server_lock "$reponame" "$id"
 )
 end_test
@@ -393,7 +393,7 @@ begin_test "unlocking a lock while uncommitted with --force"
 
   # should allow with --force
   git lfs unlock --force "modforce.dat" 2>&1 | tee unlock.log
-  grep "Warning: unlocking with uncommitted changes" unlock.log
+  grep "warning: unlocking with uncommitted changes" unlock.log
   refute_server_lock "$reponame" "$id"
 )
 end_test

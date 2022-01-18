@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -20,7 +21,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 	if stat, _ := os.Stat(filename); stat != nil && stat.Mode()&0200 == 0 {
 		if err := os.Chmod(filename, stat.Mode()|0200); err != nil {
 			return errors.Wrap(err,
-				"Could not restore write permission")
+				tr.Tr.Get("Could not restore write permission"))
 		}
 
 		// When we're done, return the file back to its normal
@@ -30,12 +31,12 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 
 	abs, err := filepath.Abs(filename)
 	if err != nil {
-		return fmt.Errorf("could not produce absolute path for %q", filename)
+		return errors.New(tr.Tr.Get("could not produce absolute path for %q", filename))
 	}
 
 	file, err := os.Create(abs)
 	if err != nil {
-		return fmt.Errorf("could not create working directory file: %v", err)
+		return errors.New(tr.Tr.Get("could not create working directory file: %v", err))
 	}
 	defer file.Close()
 	if _, err := f.Smudge(file, ptr, filename, download, manifest, cb); err != nil {
@@ -45,7 +46,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 			ptr.Encode(file)
 			return err
 		} else {
-			return fmt.Errorf("could not write working directory file: %v", err)
+			return errors.New(tr.Tr.Get("could not write working directory file: %v", err))
 		}
 	}
 	return nil
@@ -91,7 +92,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 }
 
 func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
-	fmt.Fprintf(os.Stderr, "Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size)))
+	fmt.Fprintf(os.Stderr, tr.Tr.Get("Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size))))
 
 	// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
 	// to the logpath specified by GIT_LFS_PROGRESS.
@@ -116,7 +117,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 			}
 		}
 
-		return 0, errors.Wrapf(multiErr, "Error downloading %s (%s)", workingfile, ptr.Oid)
+		return 0, errors.Wrapf(multiErr, tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 	}
 
 	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
@@ -125,7 +126,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
 	reader, err := tools.RobustOpen(mediafile)
 	if err != nil {
-		return 0, errors.Wrapf(err, "error opening media file")
+		return 0, errors.Wrapf(err, tr.Tr.Get("error opening media file"))
 	}
 	defer reader.Close()
 
@@ -141,7 +142,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		for _, ptrExt := range ptr.Extensions {
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
-				err := fmt.Errorf("extension '%s' is not configured", ptrExt.Name)
+				err := errors.New(tr.Tr.Get("extension '%s' is not configured", ptrExt.Name))
 				return 0, errors.Wrap(err, "smudge")
 			}
 			ext.Priority = ptrExt.Priority
@@ -174,18 +175,18 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// verify name, order, and oids
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
-			err = fmt.Errorf("actual oid %s during smudge does not match expected %s", oid, ptr.Oid)
+			err = errors.New(tr.Tr.Get("actual oid %s during smudge does not match expected %s", oid, ptr.Oid))
 			return 0, errors.Wrap(err, "smudge")
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
-				err = fmt.Errorf("actual extension name '%s' does not match expected '%s'", actual.name, expected.Name)
+				err = errors.New(tr.Tr.Get("actual extension name '%s' does not match expected '%s'", actual.name, expected.Name))
 				return 0, errors.Wrap(err, "smudge")
 			}
 			if actual.oidOut != expected.Oid {
-				err = fmt.Errorf("actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid)
+				err = errors.New(tr.Tr.Get("actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid))
 				return 0, errors.Wrap(err, "smudge")
 			}
 		}
@@ -193,14 +194,14 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return 0, errors.Wrapf(err, "Error opening smudged file: %s", err)
+			return 0, errors.Wrapf(err, tr.Tr.Get("Error opening smudged file: %s", err))
 		}
 		defer reader.Close()
 	}
 
 	n, err := tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return n, errors.Wrapf(err, "Error reading from media file: %s", err)
+		return n, errors.Wrapf(err, tr.Tr.Get("Error reading from media file: %s", err))
 	}
 
 	return n, nil

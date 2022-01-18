@@ -21,6 +21,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"golang.org/x/net/http2"
 )
@@ -31,12 +32,6 @@ var (
 	UserAgent = "git-lfs"
 	httpRE    = regexp.MustCompile(`\Ahttps?://`)
 )
-
-var hintFileUrl = strings.TrimSpace(`
-hint: The remote resolves to a file:// URL, which can only work with a
-hint: standalone transfer agent.  See section "Using a Custom Transfer Type
-hint: without the API server" in custom-transfers.md for details.
-`)
 
 type hostData struct {
 	host string
@@ -118,7 +113,9 @@ func (c *Client) URLConfig() *config.URLConfig {
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	if strings.HasPrefix(e.Url, "file://") {
 		// Initial `\n` to avoid overprinting `Downloading LFS...`.
-		fmt.Fprintf(os.Stderr, "\n%s\n", hintFileUrl)
+		fmt.Fprintf(os.Stderr, "\n%s\n", tr.Tr.Get(`hint: The remote resolves to a file:// URL, which can only work with a
+hint: standalone transfer agent.  See section "Using a Custom Transfer Type
+hint: without the API server" in custom-transfers.md for details.`))
 	}
 
 	sshRes, err := c.sshResolveWithRetries(e, method)
@@ -133,7 +130,7 @@ func (c *Client) NewRequest(method string, e Endpoint, suffix string, body inter
 
 	if !httpRE.MatchString(prefix) {
 		urlfragment := strings.SplitN(prefix, "?", 2)[0]
-		return nil, fmt.Errorf("missing protocol: %q", urlfragment)
+		return nil, errors.New(tr.Tr.Get("missing protocol: %q", urlfragment))
 	}
 
 	req, err := http.NewRequest(method, joinURL(prefix, suffix), nil)
@@ -339,7 +336,7 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 
 	via = append(via, req)
 	if len(via) >= 3 {
-		return nil, res, errors.New("too many redirects")
+		return nil, res, errors.New(tr.Tr.Get("too many redirects"))
 	}
 
 	redirectedReq, err := newRequestForRetry(req, redirectTo)
@@ -359,28 +356,28 @@ func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, remote str
 	}
 
 	if redirectedReq == nil {
-		return nil, errors.New("failed to redirect request")
+		return nil, errors.New(tr.Tr.Get("failed to redirect request"))
 	}
 
 	return c.doWithRedirects(cli, redirectedReq, remote, via)
 }
 
-func (c *Client) configureProtocols(u *url.URL, tr *http.Transport) error {
+func (c *Client) configureProtocols(u *url.URL, transport *http.Transport) error {
 	version, _ := c.uc.Get("http", u.String(), "version")
 	switch version {
 	case "HTTP/1.1":
 		// This disables HTTP/2, according to the documentation.
-		tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+		transport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 	case "HTTP/2":
 		if u.Scheme != "https" {
-			return fmt.Errorf("HTTP/2 cannot be used except with TLS")
+			return errors.New(tr.Tr.Get("HTTP/2 cannot be used except with TLS"))
 		}
-		http2.ConfigureTransport(tr)
-		delete(tr.TLSNextProto, "http/1.1")
+		http2.ConfigureTransport(transport)
+		delete(transport.TLSNextProto, "http/1.1")
 	case "":
-		http2.ConfigureTransport(tr)
+		http2.ConfigureTransport(transport)
 	default:
-		return fmt.Errorf("Unknown HTTP version %q", version)
+		return errors.New(tr.Tr.Get("Unknown HTTP version %q", version))
 	}
 	return nil
 }
@@ -542,7 +539,7 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	}
 
 	if req.URL.Scheme == "https" && newReq.URL.Scheme == "http" {
-		return nil, errors.New("lfsapi/client: refusing insecure redirect, https->http")
+		return nil, errors.New(tr.Tr.Get("lfsapi/client: refusing insecure redirect, https->http"))
 	}
 
 	sameHost := req.URL.Host == newReq.URL.Host

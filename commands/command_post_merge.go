@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +14,7 @@ import (
 // optimising that as best it can based on the available information.
 func postMergeCommand(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
-		Print("This should be run through Git's post-merge hook.  Run `git lfs update` to install it.")
+		Print(tr.Tr.Get("This should be run through Git's post-merge hook.  Run `git lfs update` to install it."))
 		os.Exit(1)
 	}
 
@@ -41,7 +42,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 	// so we have to check the entire repo
 	err := lockClient.FixAllLockableFileWriteFlags()
 	if err != nil {
-		LoggedError(err, "Warning: post-merge locked file check failed: %v", err)
+		LoggedError(err, tr.Tr.Get("Warning: post-merge locked file check failed: %v", err))
 	}
 }
 

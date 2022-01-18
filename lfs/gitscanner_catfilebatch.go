@@ -7,7 +7,9 @@ import (
 	"io"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // runCatFileBatch uses 'git cat-file --batch' to get the object contents of a
@@ -144,7 +146,7 @@ func (s *PointerScanner) next(blob string) (string, string, *WrappedPointer, err
 	}
 
 	if int64(size) != read {
-		return blobSha, "", nil, fmt.Errorf("expected %d bytes, read %d bytes", size, read)
+		return blobSha, "", nil, errors.New(tr.Tr.Get("expected %d bytes, read %d bytes", size, read))
 	}
 
 	var pointer *WrappedPointer

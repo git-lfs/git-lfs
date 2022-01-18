@@ -7,6 +7,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ var (
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print("Specify a remote and a remote branch name (`git lfs push origin main`)")
+		Print(tr.Tr.Get("Specify a remote and a remote branch name (`git lfs push origin main`)"))
 		os.Exit(1)
 	}
 
@@ -39,23 +40,18 @@ func pushCommand(cmd *cobra.Command, args []string) {
 
 	// Remote is first arg
 	if err := cfg.SetValidPushRemote(args[0]); err != nil {
-		Exit("Invalid remote name %q: %s", args[0], err)
+		Exit(tr.Tr.Get("Invalid remote name %q: %s", args[0], err))
 	}
 
 	ctx := newUploadContext(pushDryRun)
 	if pushObjectIDs {
 		if len(args) < 2 {
-			Print("Usage: git lfs push --object-id <remote> <lfs-object-id> [lfs-object-id] ...")
+			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
 			return
 		}
 
 		uploadsWithObjectIDs(ctx, args[1:])
 	} else {
-		if len(args) < 1 {
-			Print("Usage: git lfs push --dry-run <remote> [ref]")
-			return
-		}
-
 		uploadsBetweenRefAndRemote(ctx, args[1:])
 	}
 }
@@ -66,7 +62,7 @@ func uploadsBetweenRefAndRemote(ctx *uploadContext, refnames []string) {
 	updates, err := lfsPushRefs(refnames, pushAll)
 	if err != nil {
 		Error(err.Error())
-		Exit("Error getting local refs.")
+		Exit(tr.Tr.Get("Error getting local refs."))
 	}
 
 	if err := uploadForRefUpdates(ctx, updates, pushAll); err != nil {
@@ -79,12 +75,12 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 	for i, oid := range oids {
 		mp, err := ctx.gitfilter.ObjectPath(oid)
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "Unable to find local media path:"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to find local media path:")))
 		}
 
 		stat, err := os.Stat(mp)
 		if err != nil {
-			ExitWithError(errors.Wrap(err, "Unable to stat local media path"))
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to stat local media path")))
 		}
 
 		pointers[i] = &lfs.WrappedPointer{

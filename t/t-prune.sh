@@ -71,8 +71,8 @@ begin_test "prune unreferenced and old"
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
-  grep "prune: 5 local object(s), 3 retained" prune.log
-  grep "prune: 2 file(s) would be pruned" prune.log
+  grep "prune: 5 local objects, 3 retained" prune.log
+  grep "prune: 2 files would be pruned" prune.log
   grep "$oid_oldandpushed" prune.log
   grep "$oid_unreferenced" prune.log
 
@@ -88,7 +88,7 @@ begin_test "prune unreferenced and old"
   git config lfs.fetchrecentcommitsdays 0
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 3 local object(s), 2 retained" prune.log
+  grep "prune: 3 local objects, 2 retained" prune.log
   grep "prune: Deleting objects: 100% (1/1), done." prune.log
   grep "$oid_retain1" prune.log
   refute_local_object "$oid_retain1"
@@ -176,7 +176,7 @@ begin_test "prune keep unpushed"
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 6 local object(s), 4 retained" prune.log
+  grep "prune: 6 local objects, 4 retained" prune.log
   grep "prune: Deleting objects: 100% (2/2), done." prune.log
   grep "$oid_keepunpushedhead1" prune.log
   grep "$oid_keepunpushedhead2" prune.log
@@ -192,7 +192,7 @@ begin_test "prune keep unpushed"
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained" prune.log
+  grep "prune: 4 local objects, 1 retained" prune.log
   grep "prune: Deleting objects: 100% (3/3), done." prune.log
   grep "$oid_keepunpushedbranch1" prune.log
   grep "$oid_keepunpushedbranch2" prune.log
@@ -327,7 +327,7 @@ begin_test "prune keep recent"
 
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 11 local object(s), 6 retained, done." prune.log
+  grep "prune: 11 local objects, 6 retained, done." prune.log
   grep "prune: Deleting objects: 100% (5/5), done." prune.log
   grep "$oid_prunecommitoldbranch" prune.log
   grep "$oid_prunecommitoldbranch2" prune.log
@@ -351,7 +351,7 @@ begin_test "prune keep recent"
   # still retain tips of branches
   git config lfs.fetchrecentcommitsdays 0
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 6 local object(s), 3 retained, done." prune.log
+  grep "prune: 6 local objects, 3 retained, done." prune.log
   grep "prune: Deleting objects: 100% (3/3), done." prune.log
   assert_local_object "$oid_keephead" "${#content_keephead}"
   assert_local_object "$oid_keeprecentbranch1tip" "${#content_keeprecentbranch1tip}"
@@ -363,7 +363,7 @@ begin_test "prune keep recent"
   # now don't include any recent refs at all, only keep HEAD
   git config lfs.fetchrecentrefsdays 0
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 3 local object(s), 1 retained, done." prune.log
+  grep "prune: 3 local objects, 1 retained, done." prune.log
   grep "prune: Deleting objects: 100% (2/2), done." prune.log
   assert_local_object "$oid_keephead" "${#content_keephead}"
   refute_local_object "$oid_keeprecentbranch1tip"
@@ -414,7 +414,7 @@ begin_test "prune remote tests"
 
   # can never prune with no remote
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 4 retained, done." prune.log
+  grep "prune: 4 local objects, 4 retained, done." prune.log
 
 
   # also make sure nothing is pruned when remote is not origin
@@ -426,15 +426,15 @@ begin_test "prune remote tests"
   git push not_origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 4 retained, done." prune.log
+  grep "prune: 4 local objects, 4 retained, done." prune.log
 
   # now set the prune remote to be not_origin, should now prune
   # do a dry run so we can also verify
   git config lfs.pruneremotetocheck not_origin
 
   git lfs prune --verbose --dry-run 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained, done." prune.log
-  grep "prune: 3 file(s) would be pruned" prune.log
+  grep "prune: 4 local objects, 1 retained, done." prune.log
+  grep "prune: 3 files would be pruned" prune.log
 
 
 
@@ -496,8 +496,8 @@ begin_test "prune verify"
 
   # confirm that it would prune with verify when no issues
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained, 3 verified with remote, done." prune.log
-  grep "prune: 3 file(s) would be pruned" prune.log
+  grep "prune: 4 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "prune: 3 files would be pruned" prune.log
   grep "$oid_commit3" prune.log
   grep "$oid_commit2_failverify" prune.log
   grep "$oid_commit1" prune.log
@@ -506,7 +506,7 @@ begin_test "prune verify"
   delete_server_object "remote_$reponame" "$oid_commit2_failverify"
   # this should now fail
   git lfs prune --verify-remote 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained, 2 verified with remote, done." prune.log
+  grep "prune: 4 local objects, 1 retained, 2 verified with remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
@@ -518,7 +518,7 @@ begin_test "prune verify"
   git config lfs.pruneverifyremotealways true
   # no verify arg but should be pulled from global
   git lfs prune 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained, 2 verified with remote, done." prune.log
+  grep "prune: 4 local objects, 1 retained, 2 verified with remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
@@ -528,7 +528,7 @@ begin_test "prune verify"
 
   # now try overriding the global option
   git lfs prune --no-verify-remote 2>&1 | tee prune.log
-  grep "prune: 4 local object(s), 1 retained, done." prune.log
+  grep "prune: 4 local objects, 1 retained, done." prune.log
   grep "prune: Deleting objects: 100% (3/3), done." prune.log
   # should now have been deleted
   refute_local_object "$oid_commit1"

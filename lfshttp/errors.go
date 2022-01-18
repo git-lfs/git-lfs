@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type httpError interface {
@@ -99,31 +100,28 @@ func (e *statusCodeError) HTTPResponse() *http.Response {
 	return e.response
 }
 
-var (
-	defaultErrors = map[int]string{
-		400: "Client error: %s",
-		401: "Authorization error: %s\nCheck that you have proper access to the repository",
-		403: "Authorization error: %s\nCheck that you have proper access to the repository",
-		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
-		422: "Unprocessable entity: %s",
-		429: "Rate limit exceeded: %s",
-		500: "Server error: %s",
-		501: "Not Implemented: %s",
-		507: "Insufficient server storage: %s",
-		509: "Bandwidth limit exceeded: %s",
-	}
-)
-
 func defaultError(res *http.Response) error {
 	var msgFmt string
 
+	defaultErrors := map[int]string{
+		400: tr.Tr.Get("Client error: %%s"),
+		401: tr.Tr.Get("Authorization error: %%s\nCheck that you have proper access to the repository"),
+		403: tr.Tr.Get("Authorization error: %%s\nCheck that you have proper access to the repository"),
+		404: tr.Tr.Get("Repository or object not found: %%s\nCheck that it exists and that you have proper access to it"),
+		422: tr.Tr.Get("Unprocessable entity: %%s"),
+		429: tr.Tr.Get("Rate limit exceeded: %%s"),
+		500: tr.Tr.Get("Server error: %%s"),
+		501: tr.Tr.Get("Not Implemented: %%s"),
+		507: tr.Tr.Get("Insufficient server storage: %%s"),
+		509: tr.Tr.Get("Bandwidth limit exceeded: %%s"),
+	}
 	if f, ok := defaultErrors[res.StatusCode]; ok {
 		msgFmt = f
 	} else if res.StatusCode < 500 {
-		msgFmt = defaultErrors[400] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
+		msgFmt = fmt.Sprintf("Client error %%s from HTTP %d", res.StatusCode)
 	} else {
-		msgFmt = defaultErrors[500] + fmt.Sprintf(" from HTTP %d", res.StatusCode)
+		msgFmt = fmt.Sprintf("Server error %%s from HTTP %d", res.StatusCode)
 	}
 
-	return errors.Errorf(msgFmt, res.Request.URL)
+	return errors.Errorf(fmt.Sprintf(msgFmt), res.Request.URL)
 }

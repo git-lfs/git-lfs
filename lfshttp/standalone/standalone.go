@@ -18,6 +18,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -122,17 +123,17 @@ func gitDirAtPath(path string) (string, error) {
 	cmd.Cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to call git rev-parse --git-dir")
+		return "", errors.Wrap(err, tr.Tr.Get("failed to call git rev-parse --git-dir"))
 	}
 
 	gitdir, err := tools.TranslateCygwinPath(strings.TrimRight(string(out), "\n"))
 	if err != nil {
-		return "", errors.Wrap(err, "unable to translate path")
+		return "", errors.Wrap(err, tr.Tr.Get("unable to translate path"))
 	}
 
 	gitdir, err = filepath.Abs(gitdir)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to canonicalize path")
+		return "", errors.Wrap(err, tr.Tr.Get("unable to canonicalize path"))
 	}
 
 	err = os.Chdir(curdir)
@@ -165,7 +166,7 @@ func newHandler(cfg *config.Configuration, output *os.File, msg *inputMessage) (
 		return nil, err
 	}
 	if url == nil {
-		return nil, errors.New("no valid file:// URLs found")
+		return nil, errors.New(tr.Tr.Get("no valid file:// URLs found"))
 	}
 
 	path, err := tools.TranslateCygwinPath(fixUrlPath(url.Path))
@@ -206,7 +207,7 @@ func (h *fileHandler) dispatch(msg *inputMessage) bool {
 	case "terminate":
 		return false
 	default:
-		standaloneFailure(fmt.Sprintf("unknown event %q", msg.Event), nil)
+		standaloneFailure(tr.Tr.Get("unknown event %q", msg.Event), nil)
 	}
 	return true
 }
@@ -244,7 +245,7 @@ func (h *fileHandler) upload(oid string, size int64, path string) (string, strin
 func (h *fileHandler) download(oid string, size int64) (string, string, error) {
 	if !h.remoteConfig.LFSObjectExists(oid, size) {
 		tracerx.Printf("missing object in %q (%s)", h.remotePath, oid)
-		return oid, "", errors.Errorf("remote missing object %s", oid)
+		return oid, "", errors.Errorf(tr.Tr.Get("remote missing object %s", oid))
 	}
 
 	src, err := h.remoteConfig.Filesystem().ObjectPath(oid)
@@ -278,13 +279,13 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 	for scanner.Scan() {
 		var msg inputMessage
 		if err := json.NewDecoder(strings.NewReader(scanner.Text())).Decode(&msg); err != nil {
-			return errors.Wrapf(err, "error decoding json")
+			return errors.Wrapf(err, tr.Tr.Get("error decoding JSON"))
 		}
 		if handler == nil {
 			var err error
 			handler, err = newHandler(cfg, output, &msg)
 			if err != nil {
-				return errors.Wrapf(err, "error creating handler")
+				return errors.Wrapf(err, tr.Tr.Get("error creating handler"))
 			}
 		}
 		if !handler.dispatch(&msg) {
@@ -295,7 +296,7 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 		os.RemoveAll(handler.tempdir)
 	}
 	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, "error reading input")
+		return errors.Wrapf(err, tr.Tr.Get("error reading input"))
 	}
 	return nil
 }

@@ -330,7 +330,7 @@ func setupRepository() {
 	bare, err := git.IsBare()
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "fatal: could not determine bareness"))
+			err, "Could not determine bareness"))
 	}
 	verifyRepositoryVersion()
 
@@ -362,12 +362,12 @@ func changeToWorkingCopy() {
 	cwd, err := tools.Getwd()
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "fatal: could not determine current working directory"))
+			err, "Could not determine current working directory"))
 	}
 	cwd, err = tools.CanonicalizeSystemPath(cwd)
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "fatal: could not canonicalize current working directory"))
+			err, "Could not canonicalize current working directory"))
 	}
 
 	// If the current working directory is not within the repository's
