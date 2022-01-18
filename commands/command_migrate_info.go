@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -115,10 +114,8 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 	pointersInfoEntry := &MigrateInfoEntry{Qualifier: "LFS Objects", Separate: true}
 	var fixups *gitattr.Tree
 
-	blobSeenSet := make(map[string]struct{})
-
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
-		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			var entry *MigrateInfoEntry
 			var size int64
 			var p *lfs.Pointer
@@ -141,31 +138,25 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 				}
 			}
 
-			_, seen := blobSeenSet[hex.EncodeToString(origOid)]
-			if !seen {
-				blobSeenSet[hex.EncodeToString(origOid)] = struct{}{}
-
-				if migrateInfoPointersMode != migrateInfoPointersNoFollow {
-					p, err = lfs.DecodePointerFromBlob(b)
+			if migrateInfoPointersMode != migrateInfoPointersNoFollow {
+				p, err = lfs.DecodePointerFromBlob(b)
+			}
+			if p != nil && err == nil {
+				if migrateInfoPointersMode == migrateInfoPointersIgnore {
+					return b, nil
 				}
-				if p != nil && err == nil {
-					if migrateInfoPointersMode == migrateInfoPointersIgnore {
-						return b, nil
-					}
-					entry = pointersInfoEntry
-					size = p.Size
-				} else {
-					entry = findEntryByExtension(exts, path)
-					size = b.Size
-				}
+				entry = pointersInfoEntry
+				size = p.Size
+			} else {
+				entry = findEntryByExtension(exts, path)
+				size = b.Size
+			}
 
-				entry.Total++
+			entry.Total++
 
-				if size > int64(migrateInfoAbove) {
-					entry.TotalAbove++
-					entry.BytesAbove += size
-				}
-
+			if size > int64(migrateInfoAbove) {
+				entry.TotalAbove++
+				entry.BytesAbove += size
 			}
 
 			return b, nil

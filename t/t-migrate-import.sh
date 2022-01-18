@@ -1053,6 +1053,25 @@ begin_test "migrate import (copied file)"
 )
 end_test
 
+begin_test "migrate import (copied file with only a single path)"
+(
+  set -e
+
+  setup_local_branch_with_copied_file
+
+  oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+
+  # Prevent MSYS from rewriting /a.txt into a Windows path.
+  MSYS_NO_PATHCONV=1 git lfs migrate import --include="/a.txt" --everything
+
+  # Expect attribute for only "/a.txt".
+  if grep -q "^/dir/a.txt" ./.gitattributes || ! grep -q "^/a.txt" ./.gitattributes; then
+    exit 1
+  fi
+  refute_pointer "refs/heads/main" "dir/a.txt" "$oid" 5
+)
+end_test
+
 begin_test "migrate import (filename special characters)"
 (
   set -e

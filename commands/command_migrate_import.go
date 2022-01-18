@@ -146,12 +146,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	blobCache := make(map[string]bytes.Buffer)
-
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
-		BlobFn: func(path string, origOid []byte, b *gitobj.Blob) (*gitobj.Blob, error) {
+		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil
 			}
@@ -175,12 +173,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			buf, cached := blobCache[hex.EncodeToString(origOid)]
-			if !cached {
-				if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
-					return nil, err
-				}
-				blobCache[hex.EncodeToString(origOid)] = buf
+			if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
+				return nil, err
 			}
 
 			if ext := filepath.Ext(path); len(ext) > 0 && above == 0 {
