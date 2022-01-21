@@ -17,6 +17,7 @@ type Client struct {
 
 	client  *lfshttp.Client
 	context lfshttp.Context
+	access  []creds.AccessMode
 }
 
 func NewClient(ctx lfshttp.Context) (*Client, error) {
@@ -37,6 +38,7 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 		client:      httpClient,
 		context:     ctx,
 		credContext: creds.NewCredentialHelperContext(gitEnv, osEnv),
+		access:      creds.AllAccessModes(),
 	}
 
 	return c, nil

@@ -3,6 +3,7 @@ package lfshttp
 import (
 	"context"
 	"crypto/tls"
+	goerrors "errors"
 	"fmt"
 	"io"
 	"net"
@@ -301,6 +302,11 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 
 	if err != nil {
 		c.traceResponse(req, tracedReq, nil)
+		// SPNEGO (Negotiate) errors are authentication errors.
+		var spnegoErr *spnego.Error
+		if goerrors.As(err, &spnegoErr) {
+			return nil, nil, errors.NewAuthError(err)
+		}
 		return nil, nil, err
 	}
 

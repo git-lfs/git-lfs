@@ -31,3 +31,12 @@ func (a *Access) Mode() AccessMode {
 func (a *Access) URL() string {
 	return a.url
 }
+
+// AllAccessModes returns all access modes in the order they should be tried.
+func AllAccessModes() []AccessMode {
+	return []AccessMode{
+		NoneAccess,
+		NegotiateAccess,
+		BasicAccess,
+	}
+}
