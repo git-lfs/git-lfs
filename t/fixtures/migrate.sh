@@ -28,7 +28,7 @@ assert_ref_unmoved() {
 setup_local_branch_with_gitattrs() {
   set -e
 
-  reponame="migrate-single-remote-branch-with-attrs"
+  reponame="migrate-single-local-branch-with-attrs"
 
   remove_and_create_local_repo "$reponame"
 
@@ -56,7 +56,7 @@ setup_local_branch_with_gitattrs() {
 setup_local_branch_with_nested_gitattrs() {
   set -e
 
-  reponame="nested-attrs"
+  reponame="migrate-single-local-branch-nested-attrs"
 
   remove_and_create_local_repo "$reponame"
 
@@ -97,7 +97,7 @@ setup_single_local_branch_untracked() {
 
   local name="${1:-a.md}"
 
-  reponame="single-local-branch-untracked"
+  reponame="migrate-single-local-branch-untracked"
 
   remove_and_create_local_repo "$reponame"
 
@@ -121,7 +121,7 @@ setup_single_local_branch_untracked() {
 setup_single_local_branch_tracked() {
   set -e
 
-  reponame="migrate-single-remote-branch-with-attrs"
+  reponame="migrate-single-local-branch-tracked"
 
   remove_and_create_local_repo "$reponame"
 
