@@ -502,7 +502,6 @@ begin_test "migrate import (above with include or exclude)"
 )
 end_test
 
-
 begin_test "migrate import (existing .gitattributes)"
 (
   set -e
@@ -580,12 +579,12 @@ begin_test "migrate import (identical contents, different permissions)"
   git commit -m "make file executable"
 
   # Verify we have executable permissions.
-  ls -la foo.dat | grep 'rwx'
+  [ -x foo.dat ]
 
   git lfs migrate import --everything --include="*.dat"
 
   # Verify we have executable permissions.
-  ls -la foo.dat | grep 'rwx'
+  [ -x foo.dat ]
 )
 end_test
 
