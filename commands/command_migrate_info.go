@@ -164,15 +164,24 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		},
 
 		TreePreCallbackFn: func(path string, t *gitobj.Tree) error {
-			if migrateFixup && path == "/" {
-				var err error
+			if migrateFixup {
+				if path == "/" {
+					var err error
 
-				fixups, err = gitattr.New(db, t)
-				if err != nil {
-					return err
+					fixups, err = gitattr.New(db, t)
+					if err != nil {
+						return err
+					}
 				}
 				return nil
 			}
+
+			for _, e := range t.Entries {
+				if e.Name == ".gitattributes" && e.IsLink() {
+					return errors.Errorf("migrate: %s", tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+				}
+			}
+
 			return nil
 		},
 	})
