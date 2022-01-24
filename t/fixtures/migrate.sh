@@ -25,6 +25,9 @@ assert_ref_unmoved() {
 #         refs/heads/main
 #
 # - Commit 'A' has 120, in a.txt, and a corresponding entry in .gitattributes.
+#
+#   If "0755" is passed as an argument, the .gitattributes file is created
+#   with that permissions mode.
 setup_local_branch_with_gitattrs() {
   set -e
 
@@ -39,6 +42,10 @@ setup_local_branch_with_gitattrs() {
 
   git lfs track "*.txt"
   git lfs track "*.other"
+
+  if [[ $1 == "0755" ]]; then
+    chmod +x .gitattributes
+  fi
 
   git add .gitattributes
   git commit -m "add .gitattributes"
@@ -118,6 +125,9 @@ setup_single_local_branch_untracked() {
 #
 # - Commit 'A' has 120, in a.txt and 140 in a.md, with both files tracked as
 #   pointers in Git LFS
+#
+#   If "0755" is passed as an argument, the .gitattributes file is created
+#   with that permissions mode.
 setup_single_local_branch_tracked() {
   set -e
 
@@ -127,6 +137,10 @@ setup_single_local_branch_tracked() {
 
   echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
   echo "*.md filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+
+  if [[ $1 == "0755" ]]; then
+    chmod +x .gitattributes
+  fi
 
   git add .gitattributes
   git commit -m "initial commit"
