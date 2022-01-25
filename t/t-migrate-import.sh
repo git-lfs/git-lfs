@@ -502,7 +502,6 @@ begin_test "migrate import (above with include or exclude)"
 )
 end_test
 
-
 begin_test "migrate import (existing .gitattributes)"
 (
   set -e
@@ -561,6 +560,52 @@ EOF)
 )
 end_test
 
+begin_test "migrate import (existing .gitattributes with different permissions)"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  setup_local_branch_with_gitattrs 0755
+
+  main="$(git rev-parse refs/heads/main)"
+
+  txt_main_oid="$(calc_oid "$(git cat-file -p "$main:a.txt")")"
+
+  [ -x .gitattributes ]
+
+  git lfs migrate import --yes --include-ref=refs/heads/main --include="*.txt"
+
+  [ ! -x .gitattributes ]
+
+  assert_local_object "$txt_main_oid" "120"
+
+  main="$(git rev-parse refs/heads/main)"
+  prev="$(git rev-parse refs/heads/main^1)"
+
+  diff -u <(git cat-file -p $main:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.other filter=lfs diff=lfs merge=lfs -text
+EOF
+  )
+
+  diff -u <(git cat-file -p $prev:.gitattributes) <(cat <<-EOF
+*.txt filter=lfs diff=lfs merge=lfs -text
+EOF
+  )
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+  txt_main_sha="$(git show $main:a.txt | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main) <(cat <<-EOF
+100644 blob $attrs_main_sha	.gitattributes
+100644 blob $txt_main_sha	a.txt
+EOF
+  )
+)
+end_test
+
 begin_test "migrate import (identical contents, different permissions)"
 (
   set -e
@@ -580,12 +625,12 @@ begin_test "migrate import (identical contents, different permissions)"
   git commit -m "make file executable"
 
   # Verify we have executable permissions.
-  ls -la foo.dat | grep 'rwx'
+  [ -x foo.dat ]
 
   git lfs migrate import --everything --include="*.dat"
 
   # Verify we have executable permissions.
-  ls -la foo.dat | grep 'rwx'
+  [ -x foo.dat ]
 )
 end_test
 

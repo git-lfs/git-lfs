@@ -367,6 +367,52 @@ begin_test "migrate export (include/exclude ref)"
 )
 end_test
 
+begin_test "migrate export (.gitattributes with different permissions)"
+(
+  set -e
+
+  # Windows lacks POSIX permissions.
+  [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+  setup_single_local_branch_tracked 0755
+
+  md_oid="$(calc_oid "$(cat a.md)")"
+  txt_oid="$(calc_oid "$(cat a.txt)")"
+
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+
+  [ -x .gitattributes ]
+
+  git lfs migrate export --include="*.txt"
+
+  [ ! -x .gitattributes ]
+
+  refute_pointer "refs/heads/main" "a.txt"
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+
+  refute_local_object "$txt_oid" "120"
+  assert_local_object "$md_oid" "140"
+
+  main="$(git rev-parse refs/heads/main)"
+
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+
+  echo "$main_attrs" | grep -q "*.txt !text !filter !merge !diff"
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+  md_main_sha="$(git show $main:a.md | git hash-object --stdin)"
+  txt_main_sha="$(git show $main:a.txt | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main) <(cat <<-EOF
+100644 blob $attrs_main_sha	.gitattributes
+100644 blob $md_main_sha	a.md
+100644 blob $txt_main_sha	a.txt
+EOF
+  )
+)
+end_test
+
 begin_test "migrate export (--object-map)"
 (
   set -e
