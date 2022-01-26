@@ -23,10 +23,10 @@ import (
 var (
 	// ErrNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
-	ErrNoMatchingLocks = errors.New("lfs: no matching locks found")
+	ErrNoMatchingLocks = errors.New("no matching locks found")
 	// ErrLockAmbiguous is an error returned when multiple matching locks
 	// were found
-	ErrLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
+	ErrLockAmbiguous = errors.New("multiple locks found; ambiguous")
 )
 
 type LockCacher interface {
