@@ -93,7 +93,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print(tr.Tr.Get("fetch: Fetching reference %s", ref.Refspec()))
+			Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
@@ -177,7 +177,7 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 		}
 
 		numObjs++
-		task.Logf(tr.Tr.GetN("fetch: %d object found", "fetch: %d objects found", int(numObjs), numObjs))
+		task.Logf("fetch: %s", tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 
@@ -235,9 +235,9 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print(tr.Tr.GetN(
-			"fetch: Fetching recent branches within %v day",
-			"fetch: Fetching recent branches within %v days",
+		Print("fetch: %s", tr.Tr.GetN(
+			"Fetching recent branches within %v day",
+			"Fetching recent branches within %v days",
 			fetchconf.FetchRecentRefsDays,
 			fetchconf.FetchRecentRefsDays,
 		))
@@ -254,7 +254,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print(tr.Tr.Get("fetch: Fetching reference %s", ref.Name))
+				Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
 				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
@@ -269,9 +269,9 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue
 			}
-			Print(tr.Tr.GetN(
-				"fetch: Fetching changes within %v day of %v",
-				"fetch: Fetching changes within %v days of %v",
+			Print("fetch: %s", tr.Tr.GetN(
+				"Fetching changes within %v day of %v",
+				"Fetching changes within %v days of %v",
 				fetchconf.FetchRecentCommitsDays,
 				fetchconf.FetchRecentCommitsDays,
 				refName,
@@ -287,7 +287,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 
 func fetchAll() bool {
 	pointers := scanAll()
-	Print(tr.Tr.Get("fetch: Fetching all references..."))
+	Print("fetch: %s", tr.Tr.Get("Fetching all references..."))
 	return fetchAndReportToChan(pointers, nil, nil)
 }
 
@@ -316,7 +316,7 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		task.Logf(tr.Tr.GetN("fetch: %d object found", "fetch: %d objects found", int(numObjs), numObjs))
+		task.Logf("fetch: %s", tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 
