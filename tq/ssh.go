@@ -349,7 +349,7 @@ func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb Progres
 		// A status code of 403 likely means that an authentication token for the
 		// upload has expired. This can be safely retried.
 		if status == 403 {
-			err = errors.New(tr.Tr.Get("http: received status 403"))
+			err = errors.New(tr.Tr.Get("Received status %d", status))
 			return errors.NewRetriableError(err)
 		}
 
