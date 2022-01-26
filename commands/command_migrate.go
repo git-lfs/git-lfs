@@ -361,9 +361,9 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	}
 
 	if proceed {
-		fmt.Fprintf(out, "migrate: %s", tr.Tr.Get("changes in your working copy will be overridden ...\n"))
+		fmt.Fprintf(out, "migrate: %s\n", tr.Tr.Get("changes in your working copy will be overridden ..."))
 	} else {
-		Exit(tr.Tr.Get("migrate: working copy must not be dirty"))
+		Exit("migrate: %s", tr.Tr.Get("working copy must not be dirty"))
 	}
 }
 

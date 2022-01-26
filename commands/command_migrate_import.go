@@ -435,7 +435,7 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 
 		subtreeEntry := tree.Entries[index]
 		if subtreeEntry.Type() != gitobj.TreeObjectType {
-			return nil, errors.Errorf(tr.Tr.Get("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type()))
+			return nil, errors.Errorf("migrate: %s", tr.Tr.Get("expected %s to be a tree, got %s", head, subtreeEntry.Type()))
 		}
 
 		rewrittenSubtree, err := rewriteTree(gf, db, subtreeEntry.Oid, tail)
