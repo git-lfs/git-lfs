@@ -31,7 +31,7 @@ func dedupTestCommand(*cobra.Command, []string) {
 		if err == nil {
 			err = errors.New("Unknown reason")
 		}
-		Exit(tr.Tr.Get("This system does not support deduplication: %s", err))
+		Exit(tr.Tr.Get("This system does not support de-duplication: %s", err))
 	}
 
 	if len(cfg.Extensions()) > 0 {
@@ -51,7 +51,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 	if gitDir, err := git.GitDir(); err != nil {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {
-		Exit(tr.Tr.Get("This system does not support deduplication."))
+		Exit(tr.Tr.Get("This system does not support de-duplication."))
 	}
 
 	if len(cfg.Extensions()) > 0 {
@@ -101,7 +101,7 @@ func dedup(p *lfs.WrappedPointer) (success bool, err error) {
 	// PRECONDITION, check ofs object exists or skip this file.
 	if !cfg.LFSObjectExists(p.Oid, p.Size) { // Not exists,
 		// Basically, this is not happens because executing 'git status' in `git.IsWorkingCopyDirty()` recover it.
-		return false, errors.New("mediafile is not exist")
+		return false, errors.New("Git LFS object file does not exist")
 	}
 
 	// DO de-dup
