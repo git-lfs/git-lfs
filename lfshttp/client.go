@@ -114,9 +114,9 @@ func (c *Client) URLConfig() *config.URLConfig {
 func (c *Client) NewRequest(method string, e Endpoint, suffix string, body interface{}) (*http.Request, error) {
 	if strings.HasPrefix(e.Url, "file://") {
 		// Initial `\n` to avoid overprinting `Downloading LFS...`.
-		fmt.Fprintf(os.Stderr, "\n%s\n", tr.Tr.Get(`hint: The remote resolves to a file:// URL, which can only work with a
+		fmt.Fprint(os.Stderr, "\n", tr.Tr.Get(`hint: The remote resolves to a file:// URL, which can only work with a
 hint: standalone transfer agent.  See section "Using a Custom Transfer Type
-hint: without the API server" in custom-transfers.md for details.`))
+hint: without the API server" in custom-transfers.md for details.`), "\n")
 	}
 
 	sshRes, err := c.sshResolveWithRetries(e, method)

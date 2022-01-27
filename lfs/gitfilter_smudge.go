@@ -92,7 +92,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 }
 
 func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
-	fmt.Fprintf(os.Stderr, tr.Tr.Get("Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size))))
+	fmt.Fprintln(os.Stderr, tr.Tr.Get("Downloading %s (%s)", workingfile, humanize.FormatBytes(uint64(ptr.Size))))
 
 	// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
 	// to the logpath specified by GIT_LFS_PROGRESS.

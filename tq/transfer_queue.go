@@ -946,7 +946,7 @@ func (q *TransferQueue) Wait() {
 	}
 
 	if q.unsupportedContentType {
-		fmt.Fprintf(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
+		fmt.Fprintln(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
 info: Consider disabling Content-Type detection with:
 info:
 info:   $ git config lfs.contenttype false`))

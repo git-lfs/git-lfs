@@ -37,7 +37,7 @@ type CredentialHelper interface {
 func (credWrapper *CredentialHelperWrapper) FillCreds() error {
 	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
 	if creds == nil || len(creds) < 1 {
-		errmsg := fmt.Sprintf(tr.Tr.Get("Git credentials for %s not found", credWrapper.Url))
+		errmsg := tr.Tr.Get("Git credentials for %s not found", credWrapper.Url)
 		if err != nil {
 			errmsg = fmt.Sprintf("%s:\n%s", errmsg, err.Error())
 		} else {

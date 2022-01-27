@@ -90,7 +90,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		}
 
 		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
-		fmt.Fprintf(os.Stderr, tr.Tr.Get("Git LFS pointer for %s\n\n", pointerFile))
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Git LFS pointer for %s", pointerFile), "\n\n")
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
@@ -100,7 +100,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 				Error(err.Error())
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, tr.Tr.Get("\nGit blob OID: %s\n\n", buildOid))
+			fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Git blob OID: %s", buildOid), "\n\n")
 		}
 	} else {
 		comparing = false
@@ -123,7 +123,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		if !pointerStdin {
 			pointerName = pointerCompare
 		}
-		fmt.Fprintf(os.Stderr, tr.Tr.Get("Pointer from %s\n\n", pointerName))
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Pointer from %s", pointerName), "\n\n")
 
 		if err != nil {
 			Error(err.Error())
@@ -137,12 +137,12 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 				Error(err.Error())
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, tr.Tr.Get("\nGit blob OID: %s\n", compareOid))
+			fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Git blob OID: %s", compareOid), "\n")
 		}
 	}
 
 	if comparing && buildOid != compareOid {
-		fmt.Fprintf(os.Stderr, tr.Tr.Get("\nPointers do not match\n"))
+		fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Pointers do not match"), "\n")
 		os.Exit(1)
 	}
 

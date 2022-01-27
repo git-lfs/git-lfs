@@ -68,7 +68,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 		case "smudge":
 			pieces = strings.Split(e.Smudge, " ")
 		default:
-			err = fmt.Errorf("Invalid action: " + request.action)
+			err = fmt.Errorf("Invalid action: %s", request.action)
 			return
 		}
 		name := strings.Trim(pieces[0], " ")

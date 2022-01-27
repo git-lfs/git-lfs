@@ -70,7 +70,7 @@ func (s DiffIndexStatus) Format(state fmt.State, c rune) {
 			state.Write([]byte{byte(rune(s))})
 		}
 	default:
-		panic(fmt.Sprintf(tr.Tr.Get("cannot format %v for DiffIndexStatus", c)))
+		panic(tr.Tr.Get("cannot format %v for DiffIndexStatus", c))
 	}
 }
 

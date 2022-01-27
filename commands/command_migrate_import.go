@@ -271,7 +271,7 @@ func generateMigrateCommitMessage(cmd *cobra.Command, patterns string) string {
 	if cmd.Flag("message").Changed {
 		return migrateCommitMessage
 	}
-	return fmt.Sprintf(tr.Tr.Get("%s: convert to Git LFS", patterns))
+	return tr.Tr.Get("%s: convert to Git LFS", patterns)
 }
 
 // checkoutNonBare forces a checkout of the current reference, so long as the

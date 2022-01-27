@@ -206,9 +206,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformed) > 0 {
-		fmt.Fprintf(os.Stderr, tr.Tr.GetN(
-			"Encountered %d file that should have been pointers, but wasn't:\n",
-			"Encountered %d files that should have been pointers, but weren't:\n",
+		fmt.Fprintln(os.Stderr, tr.Tr.GetN(
+			"Encountered %d file that should have been pointers, but wasn't:",
+			"Encountered %d files that should have been pointers, but weren't:",
 			len(malformed),
 			len(malformed),
 		))
@@ -218,9 +218,9 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", !git.IsGitVersionAtLeast("2.34.0")) {
-		fmt.Fprintf(os.Stderr, tr.Tr.GetN(
-			"Encountered %d file that may not have been copied correctly on Windows:\n",
-			"Encountered %d files that may not have been copied correctly on Windows:\n",
+		fmt.Fprintln(os.Stderr, tr.Tr.GetN(
+			"Encountered %d file that may not have been copied correctly on Windows:",
+			"Encountered %d files that may not have been copied correctly on Windows:",
 			len(malformedOnWindows),
 			len(malformedOnWindows),
 		))
@@ -229,7 +229,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stderr, "\t%s\n", m)
 		}
 
-		fmt.Fprintf(os.Stderr, tr.Tr.Get("\nSee: `git lfs help smudge` for more details.\n"))
+		fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("See: `git lfs help smudge` for more details."), "\n")
 	}
 
 	if err := s.Err(); err != nil && err != io.EOF {
