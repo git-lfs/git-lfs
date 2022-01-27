@@ -30,7 +30,7 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 
 	httpClient, err := lfshttp.NewClient(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, tr.Tr.Get("error creating http client"))
+		return nil, errors.Wrap(err, tr.Tr.Get("error creating HTTP client"))
 	}
 
 	c := &Client{

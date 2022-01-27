@@ -545,7 +545,7 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	}
 
 	if req.URL.Scheme == "https" && newReq.URL.Scheme == "http" {
-		return nil, errors.New(tr.Tr.Get("lfsapi/client: refusing insecure redirect, https->http"))
+		return nil, errors.New(tr.Tr.Get("refusing insecure redirect: HTTPS to HTTP"))
 	}
 
 	sameHost := req.URL.Host == newReq.URL.Host

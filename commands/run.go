@@ -151,14 +151,14 @@ func setupHTTPLogger(cmd *cobra.Command, args []string) {
 
 	logBase := filepath.Join(cfg.LocalLogDir(), "http")
 	if err := tools.MkdirAll(logBase, cfg); err != nil {
-		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging http stats: %s\n", err))
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging HTTP stats: %s\n", err))
 		return
 	}
 
 	logFile := fmt.Sprintf("http-%d.log", time.Now().Unix())
 	file, err := os.Create(filepath.Join(logBase, logFile))
 	if err != nil {
-		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging http stats: %s\n", err))
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Error logging HTTP stats: %s\n", err))
 	} else {
 		getAPIClient().LogHTTPStats(file)
 	}

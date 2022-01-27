@@ -173,7 +173,7 @@ func TestClientRedirect(t *testing.T) {
 	require.Nil(t, MarshalToRequest(req, &redirectTest{Test: "https->http"}))
 
 	_, err = c.Do(req)
-	assert.EqualError(t, err, "lfsapi/client: refusing insecure redirect, https->http")
+	assert.EqualError(t, err, "refusing insecure redirect: HTTPS to HTTP")
 }
 
 func TestNewClient(t *testing.T) {
