@@ -72,6 +72,9 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if success, err := dedup(p); err != nil {
+			// TRANSLATORS: Leading spaces should be included on
+			// the second line so the format specifier aligns with
+			// with the first format specifier on the first line.
 			Error(tr.Tr.Get("Skipped: %s (Size: %d)\n          %s", p.Name, p.Size, err))
 		} else if !success {
 			Error(tr.Tr.Get("Skipped: %s (Size: %d)", p.Name, p.Size))

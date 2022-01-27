@@ -338,7 +338,7 @@ func storeAlias(aliases map[string]string, key string, values []string, suffix s
 	for _, value := range values {
 		url := key[len(aliasPrefix) : len(key)-len(suffix)]
 		if v, ok := aliases[value]; ok && v != url {
-			fmt.Fprintf(os.Stderr, tr.Tr.Get("warning: Multiple 'url.*.%s' keys with the same alias: %q\n", suffix, value))
+			fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: Multiple 'url.*.%s' keys with the same alias: %q", suffix, value))
 		}
 		aliases[value] = url
 	}

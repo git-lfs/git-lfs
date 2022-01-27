@@ -55,7 +55,7 @@ func postCheckoutRevChange(client *locking.Client, pre, post string) {
 	files, err := git.GetFilesChanged(pre, post)
 
 	if err != nil {
-		LoggedError(err, tr.Tr.Get("Warning: post-checkout rev diff %v:%v failed: %v\nFalling back on full scan.", pre, post, err))
+		LoggedError(err, "%s\n%s", tr.Tr.Get("Warning: post-checkout rev diff %v:%v failed: %v", pre, post, err), tr.Tr.Get("Falling back on full scan."))
 		postCheckoutFileChange(client)
 	}
 	tracerx.Printf("post-checkout: checking write flags on %v", files)

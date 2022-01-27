@@ -159,5 +159,5 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		}
 	}
 
-	return false, errors.New(tr.Tr.Get("Hook already exists: %s\n\n%s\n", string(h.Type), tools.Indent(contents)))
+	return false, errors.New(fmt.Sprintf("%s\n\n%s\n", tr.Tr.Get("Hook already exists: %s", string(h.Type)), tools.Indent(contents)))
 }

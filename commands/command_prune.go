@@ -239,7 +239,7 @@ func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObje
 	// deleted but that's incorrect; bad state has occurred somehow, might need
 	// push --all to resolve
 	if problems.Len() > 0 {
-		Exit(tr.Tr.Get("These objects to be pruned are missing on remote:\n%v", problems.String()))
+		Exit("%s\n%v", tr.Tr.Get("These objects to be pruned are missing on remote:"), problems.String())
 	}
 }
 
@@ -313,7 +313,8 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 	for _, oid := range prunableObjects {
 		mediaFile, err := cfg.Filesystem().ObjectPath(oid)
 		if err != nil {
-			problems.WriteString(tr.Tr.Get("Unable to find media path for %v: %v\n", oid, err))
+			problems.WriteString(tr.Tr.Get("Unable to find media path for %v: %v", oid, err))
+			problems.WriteRune('\n')
 			continue
 		}
 		if mediaFile == os.DevNull {
@@ -321,7 +322,8 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 		}
 		err = os.Remove(mediaFile)
 		if err != nil {
-			problems.WriteString(tr.Tr.Get("Failed to remove file %v: %v\n", mediaFile, err))
+			problems.WriteString(tr.Tr.Get("Failed to remove file %v: %v", mediaFile, err))
+			problems.WriteRune('\n')
 			continue
 		}
 		deletedFiles++

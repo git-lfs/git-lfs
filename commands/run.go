@@ -78,7 +78,7 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 				cmd, _, e = c.Root().Find([]string{"help"})
 			}
 			if cmd == nil || e != nil {
-				c.Print(tr.Tr.Get("Unknown help topic %#q\n", args))
+				c.Println(tr.Tr.Get("Unknown help topic %#q", args))
 				c.Root().Usage()
 			} else {
 				c.HelpFunc()(cmd, args)

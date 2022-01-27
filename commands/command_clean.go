@@ -74,12 +74,12 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 
 	if stat, _ := os.Stat(mediafile); stat != nil {
 		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
-			Exit(tr.Tr.Get("Files don't match:\n%s\n%s", mediafile, tmpfile))
+			Exit("%s\n%s\n%s", tr.Tr.Get("Files don't match:"), mediafile, tmpfile)
 		}
 		Debug("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
-			Panic(err, tr.Tr.Get("Unable to move %s to %s\n", tmpfile, mediafile))
+			Panic(err, tr.Tr.Get("Unable to move %s to %s", tmpfile, mediafile))
 		}
 
 		Debug(tr.Tr.Get("Writing %s", mediafile))

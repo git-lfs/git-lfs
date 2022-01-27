@@ -57,7 +57,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 
 	wd = tools.ResolveSymlinks(wd)
 
-	Print(tr.Tr.Get("\nObjects to be committed:\n"))
+	Print("\n%s\n", tr.Tr.Get("Objects to be committed:"))
 	for _, entry := range staged {
 		// Find a path from the current working directory to the
 		// absolute path of each side of the entry.
@@ -72,7 +72,7 @@ func statusCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	Print(tr.Tr.Get("\nObjects not staged for commit:\n"))
+	Print("\n%s\n", tr.Tr.Get("Objects not staged for commit:"))
 	for _, entry := range unstaged {
 		src := relativize(wd, filepath.Join(repo, entry.SrcName))
 
@@ -243,7 +243,7 @@ func statusScanRefRange(ref *git.Ref) {
 	})
 	defer gitscanner.Close()
 
-	Print(tr.Tr.Get("Objects to be pushed to %s:\n", remoteRef.Name))
+	Print("%s\n", tr.Tr.Get("Objects to be pushed to %s:", remoteRef.Name))
 	if err := gitscanner.ScanRefRange(ref.Sha, remoteRef.Sha, nil); err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS objects"))
 	}

@@ -38,7 +38,7 @@ speeds to 'git lfs clone'.
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
 	if err != nil {
-		Exit(tr.Tr.Get("Error(s) during clone:\n%v", err))
+		Exit("%s\n%v", tr.Tr.Get("Error(s) during clone:"), err)
 	}
 
 	// now execute pull (need to be inside dir)
