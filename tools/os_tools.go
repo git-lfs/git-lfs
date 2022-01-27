@@ -20,7 +20,7 @@ func Getwd() (dir string, err error) {
 	if isCygwin() {
 		dir, err = translateCygwinPath(dir)
 		if err != nil {
-			return "", errors.Wrap(err, tr.Tr.Get("error converting working directory to cygwin"))
+			return "", errors.Wrap(err, tr.Tr.Get("error converting working directory to Cygwin"))
 		}
 	}
 
@@ -48,7 +48,7 @@ func translateCygwinPath(path string) (string, error) {
 		if _, ok := err.(*exec.Error); ok {
 			return path, nil
 		}
-		return path, errors.New(tr.Tr.Get("failed to translate path from cygwin to windows: %s", buf.String()))
+		return path, errors.New(tr.Tr.Get("failed to translate path from Cygwin to Windows: %s", buf.String()))
 	}
 	return output, nil
 }
