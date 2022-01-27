@@ -295,7 +295,7 @@ func (c *uploadContext) ReportErrors() {
 			action = tr.Tr.Get("failed")
 		}
 
-		Print(tr.Tr.Get("LFS upload %s:", action))
+		Print(tr.Tr.Get("Git LFS upload %s:", action))
 		for name, oid := range c.missing {
 			// TRANSLATORS: Leading spaces should be preserved.
 			Print(tr.Tr.Get("  (missing) %s (%s)", name, oid))

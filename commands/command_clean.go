@@ -63,7 +63,7 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 	}
 
 	if err != nil {
-		ExitWithError(errors.Wrap(err, tr.Tr.Get("Error cleaning LFS object")))
+		ExitWithError(errors.Wrap(err, tr.Tr.Get("Error cleaning Git LFS object")))
 	}
 
 	tmpfile := cleaned.Filename

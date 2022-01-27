@@ -69,7 +69,7 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 					Exit(tr.Tr.Get("error: Authentication error: %s", err))
 				}
 			} else {
-				Print(tr.Tr.Get("Remote %q does not support the LFS locking API. Consider disabling it with:", cfg.PushRemote()))
+				Print(tr.Tr.Get("Remote %q does not support the Git LFS locking API. Consider disabling it with:", cfg.PushRemote()))
 				Print("  $ git config lfs.%s.locksverify false", lv.endpoint.Url)
 				if lv.verifyState == verifyStateEnabled {
 					ExitWithError(err)
