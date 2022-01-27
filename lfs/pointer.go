@@ -92,7 +92,7 @@ func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 func DecodePointerFromBlob(b *gitobj.Blob) (*Pointer, error) {
 	// Check size before reading
 	if b.Size >= blobSizeCutoff {
-		return nil, errors.NewNotAPointerError(errors.New("blob size exceeds lfs pointer size cutoff"))
+		return nil, errors.NewNotAPointerError(errors.New("blob size exceeds Git LFS pointer size cutoff"))
 	}
 	return DecodePointer(b.Contents)
 }
@@ -104,7 +104,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 		return nil, err
 	}
 	if stat.Size() >= blobSizeCutoff {
-		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("file size exceeds lfs pointer size cutoff")))
+		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("file size exceeds Git LFS pointer size cutoff")))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
 	if err != nil {
