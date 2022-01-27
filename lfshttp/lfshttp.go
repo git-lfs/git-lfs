@@ -72,7 +72,7 @@ type decodeTypeError struct {
 func (e *decodeTypeError) TypeError() {}
 
 func (e *decodeTypeError) Error() string {
-	return fmt.Sprintf(tr.Tr.Get("Expected json type, got: %q", e.Type))
+	return fmt.Sprintf(tr.Tr.Get("Expected JSON type, got: %q", e.Type))
 }
 
 func DecodeJSON(res *http.Response, obj interface{}) error {
