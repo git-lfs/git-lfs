@@ -91,7 +91,7 @@ begin_test "track --verbose"
   git add foo.dat
 
   git lfs track --verbose "foo.dat" 2>&1 > track.log
-  grep "touching \"foo.dat\"" track.log
+  grep "Touching \"foo.dat\"" track.log
 )
 end_test
 
@@ -109,7 +109,7 @@ begin_test "track --dry-run"
 
   git lfs track --dry-run "foo.dat" 2>&1 > track.log
   grep "Tracking \"foo.dat\"" track.log
-  grep "Git LFS: touching \"foo.dat\"" track.log
+  grep "Touching \"foo.dat\"" track.log
 
   git status --porcelain 2>&1 > status.log
   grep "A  foo.dat" status.log

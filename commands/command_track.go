@@ -199,7 +199,7 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print(tr.Tr.Get("Git LFS: touching %q", f))
+				Print(tr.Tr.Get("Touching %q", f))
 			}
 
 			if !trackDryRunFlag {
