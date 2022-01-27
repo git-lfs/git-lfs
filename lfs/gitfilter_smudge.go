@@ -175,7 +175,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// verify name, order, and oids
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
-			err = errors.New(tr.Tr.Get("actual oid %s during smudge does not match expected %s", oid, ptr.Oid))
+			err = errors.New(tr.Tr.Get("actual OID %s during smudge does not match expected %s", oid, ptr.Oid))
 			return 0, errors.Wrap(err, "smudge filter")
 		}
 
@@ -186,7 +186,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 				return 0, errors.Wrap(err, "smudge filter")
 			}
 			if actual.oidOut != expected.Oid {
-				err = errors.New(tr.Tr.Get("actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid))
+				err = errors.New(tr.Tr.Get("actual OID %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid))
 				return 0, errors.Wrap(err, "smudge filter")
 			}
 		}

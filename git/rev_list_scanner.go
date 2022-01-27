@@ -349,7 +349,7 @@ func (s *RevListScanner) scan() ([]byte, string, error) {
 
 	oidhex := startsWithObjectID.FindString(line)
 	if len(oidhex) == 0 {
-		return nil, "", fmt.Errorf("missing object id in line (got %q)", line)
+		return nil, "", fmt.Errorf("missing OID in line (got %q)", line)
 	}
 	oid, err := hex.DecodeString(oidhex)
 	if err != nil {
