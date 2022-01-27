@@ -84,7 +84,7 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 	// Check the output of the subprocess, output stderr if the command failed.
 	msg := <-errorMessages
 	if err := cmd.Wait(); err != nil {
-		return nil, errors.Errorf("Error in git %s: %v %s",
+		return nil, errors.Errorf("Error in `git %s`: %v %s",
 			strings.Join(args, " "), err, msg)
 	}
 

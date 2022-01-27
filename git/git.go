@@ -230,7 +230,7 @@ func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
 	if refresh {
 		_, err := gitSimple("update-index", "-q", "--refresh")
 		if err != nil {
-			return nil, lfserrors.Wrap(err, "Failed to run git update-index")
+			return nil, lfserrors.Wrap(err, "Failed to run `git update-index`")
 		}
 	}
 
@@ -384,7 +384,7 @@ func RemoteList() ([]string, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git remote: %v", err)
+		return nil, fmt.Errorf("failed to call `git remote`: %v", err)
 	}
 	cmd.Start()
 	defer cmd.Wait()
@@ -404,7 +404,7 @@ func RemoteURLs(push bool) (map[string][]string, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git remote -v: %v", err)
+		return nil, fmt.Errorf("failed to call `git remote -v`: %v", err)
 	}
 	cmd.Start()
 	defer cmd.Wait()
@@ -454,7 +454,7 @@ func LocalRefs() ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git show-ref: %v", err)
+		return nil, fmt.Errorf("failed to call `git show-ref`: %v", err)
 	}
 
 	var refs []*Ref
@@ -468,7 +468,7 @@ func LocalRefs() ([]*Ref, error) {
 		line := strings.TrimSpace(scanner.Text())
 		parts := strings.SplitN(line, " ", 2)
 		if len(parts) != 2 || !HasValidObjectIDLength(parts[0]) || len(parts[1]) < 1 {
-			tracerx.Printf("Invalid line from git show-ref: %q", line)
+			tracerx.Printf("Invalid line from `git show-ref`: %q", line)
 			continue
 		}
 
@@ -593,7 +593,7 @@ func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote stri
 		"refs")
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git for-each-ref: %v", err)
+		return nil, fmt.Errorf("failed to call `git for-each-ref`: %v", err)
 	}
 	cmd.Start()
 	defer cmd.Wait()
@@ -691,7 +691,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git show: %v %v", err, string(out))
+		return nil, fmt.Errorf("failed to call `git show`: %v %v", err, string(out))
 	}
 
 	// At most 10 substrings so subject line is not split on anything
@@ -715,7 +715,7 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 		}
 		return ret, nil
 	} else {
-		msg := fmt.Sprintf("Unexpected output from git show: %v", string(out))
+		msg := fmt.Sprintf("Unexpected output from `git show`: %v", string(out))
 		return nil, errors.New(msg)
 	}
 }
@@ -735,14 +735,14 @@ func GitAndRootDirs() (string, string, error) {
 			absGitDir, err := GitDir()
 			return absGitDir, "", err
 		}
-		return "", "", fmt.Errorf("failed to call git rev-parse --git-dir --show-toplevel: %q", buf.String())
+		return "", "", fmt.Errorf("failed to call `git rev-parse --git-dir --show-toplevel`: %q", buf.String())
 	}
 
 	paths := strings.Split(output, "\n")
 	pathLen := len(paths)
 
 	if pathLen == 0 {
-		return "", "", fmt.Errorf("bad git rev-parse output: %q", output)
+		return "", "", fmt.Errorf("bad `git rev-parse` output: %q", output)
 	}
 
 	absGitDir, err := tools.CanonicalizePath(paths[0], false)
@@ -762,7 +762,7 @@ func RootDir() (string, error) {
 	cmd := gitNoLFS("rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --show-toplevel: %v %v", err, string(out))
+		return "", fmt.Errorf("failed to call `git rev-parse --show-toplevel`: %v %v", err, string(out))
 	}
 
 	path := strings.TrimSpace(string(out))
@@ -780,7 +780,7 @@ func GitDir() (string, error) {
 	out, err := cmd.Output()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-dir: %w %v: %v", err, string(out), buf.String())
+		return "", fmt.Errorf("failed to call `git rev-parse --git-dir`: %w %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	return tools.CanonicalizePath(path, false)
@@ -799,7 +799,7 @@ func GitCommonDir() (string, error) {
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 	if err != nil {
-		return "", fmt.Errorf("failed to call git rev-parse --git-common-dir: %v %v: %v", err, string(out), buf.String())
+		return "", fmt.Errorf("failed to call `git rev-parse --git-common-dir`: %v %v: %v", err, string(out), buf.String())
 	}
 	path := strings.TrimSpace(string(out))
 	path, err = tools.TranslateCygwinPath(path)
@@ -1061,12 +1061,12 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
 	err := cmd.Start()
 	if err != nil {
-		return fmt.Errorf("failed to start git clone: %v", err)
+		return fmt.Errorf("failed to start `git clone`: %v", err)
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		return fmt.Errorf("git clone failed: %v", err)
+		return fmt.Errorf("`git clone` failed: %v", err)
 	}
 
 	return nil
@@ -1103,7 +1103,7 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git show-ref: %v", err)
+		return nil, fmt.Errorf("failed to call `git show-ref`: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1158,7 +1158,7 @@ func RemoteRefs(remoteName string) ([]*Ref, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git ls-remote: %v", err)
+		return nil, fmt.Errorf("failed to call `git ls-remote`: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1230,7 +1230,7 @@ func AllRefsIn(wd string) ([]*Ref, error) {
 		parts := strings.SplitN(scanner.Text(), "\x00", 2)
 		if len(parts) != 2 {
 			return nil, lfserrors.Errorf(
-				"invalid git for-each-ref line: %q", scanner.Text())
+				"invalid `git for-each-ref` line: %q", scanner.Text())
 		}
 
 		sha := parts[0]
@@ -1268,7 +1268,7 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git ls-files: %v", err)
+		return nil, fmt.Errorf("failed to call `git ls-files`: %v", err)
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
@@ -1321,17 +1321,17 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	cmd := gitNoLFS(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to call git diff: %v", err)
+		return nil, fmt.Errorf("failed to call `git diff`: %v", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start git diff: %v", err)
+		return nil, fmt.Errorf("failed to start `git diff`: %v", err)
 	}
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		files = append(files, strings.TrimSpace(scanner.Text()))
 	}
 	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("git diff failed: %v", err)
+		return nil, fmt.Errorf("`git diff` failed: %v", err)
 	}
 
 	return files, err
@@ -1352,10 +1352,10 @@ func IsFileModified(filepath string) (bool, error) {
 	cmd := git(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return false, lfserrors.Wrap(err, "Failed to call git status")
+		return false, lfserrors.Wrap(err, "Failed to call `git status`")
 	}
 	if err := cmd.Start(); err != nil {
-		return false, lfserrors.Wrap(err, "Failed to start git status")
+		return false, lfserrors.Wrap(err, "Failed to start `git status`")
 	}
 	matched := false
 	for scanner := bufio.NewScanner(outp); scanner.Scan(); {
@@ -1372,7 +1372,7 @@ func IsFileModified(filepath string) (bool, error) {
 		}
 	}
 	if err := cmd.Wait(); err != nil {
-		return false, lfserrors.Wrap(err, "git status failed")
+		return false, lfserrors.Wrap(err, "`git status` failed")
 	}
 
 	return matched, nil

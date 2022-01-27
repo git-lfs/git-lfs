@@ -308,7 +308,7 @@ func (c *uploadContext) ReportErrors() {
 		if !c.allowMissing {
 			pushMissingHint := []string{
 				tr.Tr.Get("hint: Your push was rejected due to missing or corrupt local objects."),
-				tr.Tr.Get("hint: You can disable this check with: 'git config lfs.allowincompletepush true'"),
+				tr.Tr.Get("hint: You can disable this check with: `git config lfs.allowincompletepush true`"),
 			}
 			Print(strings.Join(pushMissingHint, "\n"))
 			os.Exit(2)

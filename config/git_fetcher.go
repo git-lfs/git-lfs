@@ -40,7 +40,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 
 			if origKey, ok := uniqKeys[key]; ok {
 				if ShowConfigWarnings && len(vals[key]) > 0 && vals[key][len(vals[key])-1] != val && strings.HasPrefix(key, gitConfigWarningPrefix) {
-					fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: These git config values clash:"))
+					fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: These `git config` values clash:"))
 					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, vals[key])
 					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], val)
 				}

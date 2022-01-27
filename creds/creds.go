@@ -335,7 +335,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("'git credential %s' error: %s\n", subcommand, err.Error())
+		return nil, fmt.Errorf("`git credential %s` error: %s\n", subcommand, err.Error())
 	}
 
 	creds := make(Creds)

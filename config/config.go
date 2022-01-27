@@ -80,7 +80,7 @@ func NewIn(workdir, gitdir string) *Configuration {
 		callback: func() Environment {
 			sources, err := gitConf.Sources(c.LocalWorkingDir(), ".lfsconfig")
 			if err != nil {
-				fmt.Fprintln(os.Stderr, tr.Tr.Get("Error reading git config: %s", err))
+				fmt.Fprintln(os.Stderr, tr.Tr.Get("Error reading `git config`: %s", err))
 			}
 			return c.readGitConfig(sources...)
 		},

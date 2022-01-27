@@ -196,7 +196,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 			// First check if there was a non-zero exit code given
 			// when Wait()-ing on the command execution.
 			if err := cmd.Wait(); err != nil {
-				return errors.Errorf("Error in git %s: %v %s",
+				return errors.Errorf("Error in `git %s`: %v %s",
 					strings.Join(args, " "), err, msg)
 			}
 
