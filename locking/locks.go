@@ -156,7 +156,7 @@ func getAbsolutePath(p string) (string, error) {
 func (c *Client) UnlockFile(path string, force bool) error {
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
-		return errors.New(tr.Tr.Get("unable to get lock id: %v", err))
+		return errors.New(tr.Tr.Get("unable to get lock ID: %v", err))
 	}
 
 	return c.UnlockFileById(id, force)
