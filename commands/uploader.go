@@ -245,7 +245,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 				continue
 			}
 
-			Print(tr.Tr.Get("push %s => %s", p.Oid, p.Name))
+			Print("%s %s => %s", tr.Tr.Get("push"), p.Oid, p.Name)
 			c.SetUploaded(p.Oid)
 		}
 
