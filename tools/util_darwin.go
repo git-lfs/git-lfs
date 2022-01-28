@@ -55,7 +55,7 @@ func checkCloneFileSupported() bool {
 // If check failed (e.g. directory is read-only), returns err.
 func CheckCloneFileSupported(dir string) (supported bool, err error) {
 	if !cloneFileSupported {
-		return false, errors.New(tr.Tr.Get("unsupported OS version. >= 10.12.x Sierra required"))
+		return false, errors.New(tr.Tr.Get("Unsupported OS version. 10.12.x Sierra or higher required."))
 	}
 
 	src, err := ioutil.TempFile(dir, "src")

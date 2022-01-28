@@ -122,7 +122,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 
 	abs, err := getAbsolutePath(path)
 	if err != nil {
-		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 	}
 
 	// If the file exists, ensure that it's writeable on return
@@ -184,7 +184,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 	if unlockRes.Lock != nil {
 		abs, err := getAbsolutePath(unlockRes.Lock.Path)
 		if err != nil {
-			return errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
+			return errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 		}
 
 		// Make non-writeable if required

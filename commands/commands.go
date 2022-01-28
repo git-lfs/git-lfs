@@ -263,7 +263,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 	file := handlePanic(err)
 
 	if len(file) > 0 {
-		fmt.Fprintf(os.Stderr, "\nErrors logged to %s\nUse `git lfs logs last` to view the log.\n", file)
+		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git lfs logs last` to view the log.\n", file)
 	}
 }
 
@@ -276,7 +276,7 @@ func Panic(err error, format string, args ...interface{}) {
 
 func Cleanup() {
 	if err := cfg.Cleanup(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Error clearing old temporary files: %s\n", err)
 	}
 }
 
@@ -297,9 +297,9 @@ func requireStdin(msg string) {
 
 	stat, err := os.Stdin.Stat()
 	if err != nil {
-		out = fmt.Sprintf("Cannot read from STDIN. %s (%s)", msg, err)
+		out = fmt.Sprintf("Cannot read from STDIN: %s (%s)", msg, err)
 	} else if (stat.Mode() & os.ModeCharDevice) != 0 {
-		out = fmt.Sprintf("Cannot read from STDIN. %s", msg)
+		out = fmt.Sprintf("Cannot read from STDIN: %s", msg)
 	}
 
 	if len(out) > 0 {
@@ -506,7 +506,7 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	fmt.Fprint(w, le+"Current time in UTC: "+le)
 	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05")+le)
 
-	fmt.Fprint(w, le+"ENV:"+le)
+	fmt.Fprint(w, le+"Environment:"+le)
 
 	// log the environment
 	for _, env := range lfs.Environ(cfg, getTransferManifest(), oldEnv) {
@@ -558,6 +558,6 @@ func requireGitVersion() {
 		if err != nil {
 			Exit("Error getting git version: %s", err)
 		}
-		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
+		Exit("git version %s or higher is required for Git LFS; your version: %s", minimumGit, gitver)
 	}
 }

@@ -29,9 +29,9 @@ func dedupTestCommand(*cobra.Command, []string) {
 
 	if supported, err := tools.CheckCloneFileSupported(cfg.TempDir()); err != nil || !supported {
 		if err == nil {
-			err = errors.New("Unknown reason.")
+			err = errors.New("Unknown reason")
 		}
-		Exit(tr.Tr.Get("This system does not support deduplication. %s", err))
+		Exit(tr.Tr.Get("This system does not support deduplication: %s", err))
 	}
 
 	if len(cfg.Extensions()) > 0 {
@@ -88,7 +88,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	Print("\n\nSuccessfully finished.\n"+
+	Print("\n\nFinished successfully.\n"+
 		"  De-duplicated  size: %d bytes\n"+
 		"                count: %d",
 		dedupStats.totalProcessedSize,

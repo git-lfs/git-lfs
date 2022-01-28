@@ -87,7 +87,7 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 			}
 			pattern, err = strconv.Unquote(text[:last+1])
 			if err != nil {
-				return nil, "", errors.Wrapf(err, "git/gitattr")
+				return nil, "", errors.Wrapf(err, "unable to unquote: %s", text[:last+1])
 			}
 			applied = strings.TrimSpace(text[last+1:])
 		default:
