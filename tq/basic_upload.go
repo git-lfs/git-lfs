@@ -218,7 +218,7 @@ func configureBasicUploadAdapter(m *Manifest) {
 			bu.transferImpl = bu
 			return bu
 		case Download:
-			panic("Should never ask this func for basic download")
+			panic("Should never ask this function to download")
 		}
 		return nil
 	})

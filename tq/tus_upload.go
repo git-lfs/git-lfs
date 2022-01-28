@@ -165,7 +165,7 @@ func configureTusAdapter(m *Manifest) {
 			bu.transferImpl = bu
 			return bu
 		case Download:
-			panic("Should never ask tus.io to download")
+			panic("Should never ask this function to download")
 		}
 		return nil
 	})
