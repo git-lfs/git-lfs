@@ -31,7 +31,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 	attributesFile, err := os.Create(".gitattributes")
 	if err != nil {
-		Print(tr.Tr.Get("Error opening .gitattributes for writing"))
+		Print(tr.Tr.Get("Error opening '.gitattributes' for writing"))
 		return
 	}
 	defer attributesFile.Close()

@@ -371,7 +371,7 @@ begin_test "track blocklisted files by name"
   git add .gitattributes
 
   git lfs track .gitattributes 2>&1 > track.log
-  grep "Pattern .gitattributes matches forbidden file .gitattributes" track.log
+  grep "Pattern '.gitattributes' matches forbidden file '.gitattributes'" track.log
 )
 end_test
 
@@ -388,7 +388,7 @@ begin_test "track blocklisted files with glob"
   git add .gitattributes
 
   git lfs track ".git*" 2>&1 > track.log
-  grep "Pattern .git\* matches forbidden file" track.log
+  grep "Pattern '.git\*' matches forbidden file" track.log
 )
 end_test
 

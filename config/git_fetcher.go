@@ -102,7 +102,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 	}
 
 	if len(ignored) > 0 {
-		fmt.Fprint(os.Stderr, tr.Tr.Get("warning: These unsafe lfsconfig keys were ignored:"), "\n\n")
+		fmt.Fprint(os.Stderr, tr.Tr.Get("warning: These unsafe '.lfsconfig' keys were ignored:"), "\n\n")
 		for _, key := range ignored {
 			fmt.Fprintf(os.Stderr, "  %s\n", key)
 		}

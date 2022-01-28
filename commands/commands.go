@@ -152,7 +152,7 @@ func getHookInstallSteps() string {
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
 		steps = append(steps, fmt.Sprintf(
-			"Add the following to .git/hooks/%s:\n\n%s",
+			"Add the following to '.git/hooks/%s':\n\n%s",
 			h.Type, tools.Indent(h.Contents)))
 	}
 
@@ -263,7 +263,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 	file := handlePanic(err)
 
 	if len(file) > 0 {
-		fmt.Fprintf(os.Stderr, "\nErrors logged to %s.\nUse `git lfs logs last` to view the log.\n", file)
+		fmt.Fprintf(os.Stderr, "\nErrors logged to '%s'.\nUse `git lfs logs last` to view the log.\n", file)
 	}
 }
 
@@ -416,12 +416,12 @@ func logPanic(loggedError error) string {
 
 	if err := tools.MkdirAll(cfg.LocalLogDir(), cfg); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
+		fmt.Fprintf(fmtWriter, "Unable to log panic to '%s': %s\n\n", cfg.LocalLogDir(), err.Error())
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
 		defer func() {
-			fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
+			fmt.Fprintf(fmtWriter, "Unable to log panic to '%s'\n\n", filename)
 			logPanicToWriter(fmtWriter, err, lineEnding)
 		}()
 	} else {

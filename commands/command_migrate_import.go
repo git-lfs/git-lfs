@@ -66,14 +66,14 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 		if len(filter.Include()) == 0 {
-			ExitWithError(errors.Errorf(tr.Tr.Get("No Git LFS filters found in .gitattributes")))
+			ExitWithError(errors.Errorf(tr.Tr.Get("No Git LFS filters found in '.gitattributes'")))
 		}
 
 		gf := lfs.NewGitFilter(cfg)
 
 		for _, file := range args {
 			if !filter.Allows(file) {
-				ExitWithError(errors.Errorf(tr.Tr.Get("File %s did not match any Git LFS filters in .gitattributes", file)))
+				ExitWithError(errors.Errorf(tr.Tr.Get("File %s did not match any Git LFS filters in '.gitattributes'", file)))
 			}
 		}
 

@@ -120,7 +120,7 @@ begin_test "migrate import --no-rewrite (no .gitattributes)"
     exit 1
   fi
 
-  grep "No Git LFS filters found in .gitattributes" migrate.log
+  grep "No Git LFS filters found in '.gitattributes'" migrate.log
 )
 end_test
 
@@ -161,7 +161,7 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
     exit 1
   fi
 
-  grep "a.md did not match any Git LFS filters in .gitattributes" migrate.log
+  grep "a.md did not match any Git LFS filters in '.gitattributes'" migrate.log
 )
 end_test
 
