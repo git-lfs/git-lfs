@@ -129,7 +129,7 @@ func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, er
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
 			if git.IsMissingObject(err) {
-				return tr.Tr.Get("<missing>"), "?", nil
+				return fmt.Sprintf("<%s>", tr.Tr.Get("missing")), "?", nil
 			}
 			return "", "", err
 		}
