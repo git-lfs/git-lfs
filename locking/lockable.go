@@ -1,7 +1,6 @@
 package locking
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // GetLockablePatterns returns a list of patterns in .gitattributes which are
@@ -94,7 +94,7 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 		return err
 	}
 	if !stat.IsDir() {
-		return fmt.Errorf("%q is not a valid directory", dir)
+		return errors.New(tr.Tr.Get("%q is not a valid directory", dir))
 	}
 
 	var lockableFilter *filepathfilter.Filter

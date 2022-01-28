@@ -53,7 +53,7 @@ func cmdInstallOptions() *lfs.FilterOptions {
 	// since we can't detect it correctly.
 	uid := os.Geteuid()
 	if systemInstall && uid != 0 && uid != -1 {
-		Print("warning: current user is not root/admin, system install is likely to fail.")
+		Print(tr.Tr.Get("warning: current user is not root/admin, system install is likely to fail."))
 	}
 
 	return &lfs.FilterOptions{

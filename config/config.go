@@ -165,7 +165,7 @@ func NewFrom(v Values) *Configuration {
 				// This branch should only ever trigger in
 				// tests, and only if they'd be broken.
 				if !isCaseSensitive && hasUpper {
-					panic(fmt.Sprintf("key %q has uppercase, shouldn't", key))
+					panic(tr.Tr.Get("key %q has uppercase, shouldn't", key))
 				}
 				for _, value := range values {
 					fmt.Printf("Config: %s=%s\n", key, value)
@@ -378,7 +378,7 @@ func (c *Configuration) loadGitDirs() {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
 		if errors.ExitStatus(err) != 128 {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
+			fmt.Fprintln(os.Stderr, tr.Tr.Get("Error: %s", errMsg))
 		}
 		c.gitDir = &gitdir
 	}

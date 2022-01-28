@@ -600,7 +600,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// missing in that case, since we don't need to upload
 			// it.
 			if o.Missing && len(o.Actions) != 0 {
-				return nil, errors.Errorf("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid)
+				return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
 			}
 		}
 	}

@@ -39,7 +39,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if updateForce && updateManual {
-		Exit("You cannot use --force and --manual options together")
+		Exit(tr.Tr.Get("You cannot use --force and --manual options together"))
 	}
 
 	if updateManual {

@@ -5,6 +5,8 @@ import (
 	"math"
 	"sync/atomic"
 	"time"
+
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // PercentageTask is a task that is performed against a known number of
@@ -44,7 +46,7 @@ func NewPercentageTask(msg string, total uint64) *PercentageTask {
 // been completed.
 func (c *PercentageTask) Count(n uint64) (new uint64) {
 	if new = atomic.AddUint64(&c.n, n); new > c.total {
-		panic("tasklog: counted too many items")
+		panic(fmt.Sprintf("tasklog: %s", tr.Tr.Get("counted too many items")))
 	}
 
 	var percentage float64

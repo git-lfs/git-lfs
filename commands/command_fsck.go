@@ -192,7 +192,7 @@ func doFsckPointers(start, end string) []corruptPointer {
 				corruptPointers = append(corruptPointers, cp)
 			}
 		} else {
-			Panic(err, "Error checking Git LFS files")
+			Panic(err, tr.Tr.Get("Error checking Git LFS files"))
 		}
 	})
 

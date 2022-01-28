@@ -2,9 +2,9 @@ package git
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/git-lfs/gitobj/v2/errors"
 )
@@ -145,7 +145,7 @@ type missingErr struct {
 }
 
 func (m *missingErr) Error() string {
-	return fmt.Sprintf("missing object: %s", m.oid)
+	return tr.Tr.Get("missing object: %s", m.oid)
 }
 
 func IsMissingObject(err error) bool {

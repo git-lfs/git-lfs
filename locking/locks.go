@@ -23,10 +23,10 @@ import (
 var (
 	// ErrNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
-	ErrNoMatchingLocks = errors.New("no matching locks found")
+	ErrNoMatchingLocks = errors.New(tr.Tr.Get("no matching locks found"))
 	// ErrLockAmbiguous is an error returned when multiple matching locks
 	// were found
-	ErrLockAmbiguous = errors.New("multiple locks found; ambiguous")
+	ErrLockAmbiguous = errors.New(tr.Tr.Get("multiple locks found; ambiguous"))
 )
 
 type LockCacher interface {
@@ -73,7 +73,7 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 func (c *Client) SetupFileCache(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
-		return errors.Wrap(err, "lock cache initialization")
+		return errors.Wrap(err, tr.Tr.Get("lock cache initialization"))
 	}
 
 	lockFile := path
@@ -83,7 +83,7 @@ func (c *Client) SetupFileCache(path string) error {
 
 	cache, err := NewLockCache(lockFile)
 	if err != nil {
-		return errors.Wrap(err, "lock cache initialization")
+		return errors.Wrap(err, tr.Tr.Get("lock cache initialization"))
 	}
 
 	c.cache = cache
@@ -105,7 +105,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
 	})
 	if err != nil {
-		return Lock{}, errors.Wrap(err, "locking API")
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("locking API"))
 	}
 
 	if len(lockRes.Message) > 0 {
@@ -167,7 +167,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 func (c *Client) UnlockFileById(id string, force bool) error {
 	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
-		return errors.Wrap(err, "locking API")
+		return errors.Wrap(err, tr.Tr.Get("locking API"))
 	}
 
 	if len(unlockRes.Message) > 0 {
@@ -360,7 +360,7 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {
-			return locks, errors.Wrap(err, "locking")
+			return locks, errors.Wrap(err, tr.Tr.Get("locking"))
 		}
 
 		if list.Message != "" {

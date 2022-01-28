@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/wildmatch/v2"
 )
 
@@ -83,11 +84,11 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 			var err error
 			last := strings.LastIndex(text, "\"")
 			if last == 0 {
-				return nil, "", errors.Errorf("unbalanced quote: %s", text)
+				return nil, "", errors.New(tr.Tr.Get("unbalanced quote: %s", text))
 			}
 			pattern, err = strconv.Unquote(text[:last+1])
 			if err != nil {
-				return nil, "", errors.Wrapf(err, "unable to unquote: %s", text[:last+1])
+				return nil, "", errors.Wrap(err, tr.Tr.Get("unable to unquote: %s", text[:last+1]))
 			}
 			applied = strings.TrimSpace(text[last+1:])
 		default:

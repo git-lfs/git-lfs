@@ -91,7 +91,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			}
 
 			if !locksCmdFlags.JSON {
-				Print("Unlocked %s", path)
+				Print(tr.Tr.Get("Unlocked %s", path))
 				continue
 			}
 			locks = append(locks, unlockResponse{

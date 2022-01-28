@@ -119,13 +119,13 @@ ArgsLoop:
 		attribContents, err = ioutil.ReadFile(".gitattributes")
 		// it's fine for file to not exist
 		if err != nil && !os.IsNotExist(err) {
-			Print("Error reading '.gitattributes' file")
+			Print(tr.Tr.Get("Error reading '.gitattributes' file"))
 			return
 		}
 		// Re-generate the file with merge of old contents and new (to deal with changes)
 		attributesFile, err = os.OpenFile(".gitattributes", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0660)
 		if err != nil {
-			Print("Error opening '.gitattributes' file")
+			Print(tr.Tr.Get("Error opening '.gitattributes' file"))
 			return
 		}
 		defer attributesFile.Close()

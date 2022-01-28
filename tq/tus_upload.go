@@ -76,7 +76,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// Open file for uploading
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Wrap(err, "tus.io upload")
+		return errors.Wrap(err, tr.Tr.Get("tus.io upload"))
 	}
 	defer f.Close()
 
@@ -165,7 +165,7 @@ func configureTusAdapter(m *Manifest) {
 			bu.transferImpl = bu
 			return bu
 		case Download:
-			panic("Should never ask this function to download")
+			panic(tr.Tr.Get("Should never ask this function to download"))
 		}
 		return nil
 	})

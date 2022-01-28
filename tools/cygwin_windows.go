@@ -5,9 +5,9 @@ package tools
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type cygwinSupport byte
@@ -25,7 +25,7 @@ func (c cygwinSupport) Enabled() bool {
 	case cygwinStateDisabled:
 		return false
 	default:
-		panic(fmt.Sprintf("unknown enabled state for %v", c))
+		panic(tr.Tr.Get("unknown enabled state for %v", c))
 	}
 }
 

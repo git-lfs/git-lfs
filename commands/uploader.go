@@ -48,7 +48,7 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 		ctx.CollectErrors(q)
 
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("ref %q:", update.Left().Name))
+			return errors.Wrap(err, tr.Tr.Get("ref %q:", update.Left().Name))
 		}
 	}
 

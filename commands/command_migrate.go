@@ -86,7 +86,7 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	dir, err := git.GitCommonDir()
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open root")
+		return nil, errors.Wrap(err, tr.Tr.Get("cannot open root"))
 	}
 
 	return git.ObjectDatabase(cfg.OSEnv(), cfg.GitEnv(), dir, cfg.TempDir())

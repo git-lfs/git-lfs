@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"hash"
 	"io"
 	"os"
@@ -68,7 +67,7 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 		case "smudge":
 			pieces = strings.Split(e.Smudge, " ")
 		default:
-			err = fmt.Errorf("Invalid action: %s", request.action)
+			err = errors.New(tr.Tr.Get("Invalid action: %s", request.action))
 			return
 		}
 		name := strings.Trim(pieces[0], " ")

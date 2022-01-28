@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -65,7 +66,7 @@ func (o RevListOrder) Flag() (string, bool) {
 	case TopoRevListOrder:
 		return "--topo-order", true
 	default:
-		panic(fmt.Sprintf("git/rev_list_scanner: unknown RevListOrder %d", o))
+		panic(fmt.Sprintf("git/rev_list_scanner: %s", tr.Tr.Get("unknown RevListOrder %d", o)))
 	}
 }
 
@@ -196,8 +197,8 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 			// First check if there was a non-zero exit code given
 			// when Wait()-ing on the command execution.
 			if err := cmd.Wait(); err != nil {
-				return errors.Errorf("Error in `git %s`: %v %s",
-					strings.Join(args, " "), err, msg)
+				return errors.New(tr.Tr.Get("Error in `git %s`: %v %s",
+					strings.Join(args, " "), err, msg))
 			}
 
 			// If the command exited cleanly, but found an ambiguous
@@ -206,7 +207,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 			// `git-rev-list(1)` does not treat ambiguous refnames
 			// as fatal (non-zero exit status), but we do.
 			if am := ambiguousRegex.FindSubmatch(msg); len(am) > 1 {
-				return errors.Errorf("ref %q is ambiguous", am[1])
+				return errors.New(tr.Tr.Get("ref %q is ambiguous", am[1]))
 			}
 			return nil
 		},
@@ -258,7 +259,7 @@ func revListArgs(include, exclude []string, opt *ScanRefsOptions) (io.Reader, []
 			)
 		}
 	default:
-		return nil, nil, errors.Errorf("unknown scan type: %d", opt.Mode)
+		return nil, nil, errors.New(tr.Tr.Get("unknown scan type: %d", opt.Mode))
 	}
 	return stdin, append(args, "--stdin", "--"), nil
 }
@@ -349,7 +350,7 @@ func (s *RevListScanner) scan() ([]byte, string, error) {
 
 	oidhex := startsWithObjectID.FindString(line)
 	if len(oidhex) == 0 {
-		return nil, "", fmt.Errorf("missing OID in line (got %q)", line)
+		return nil, "", errors.New(tr.Tr.Get("missing OID in line (got %q)", line))
 	}
 	oid, err := hex.DecodeString(oidhex)
 	if err != nil {

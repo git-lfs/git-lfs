@@ -247,7 +247,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 		}
 	}
 	if !seenSize {
-		return errors.NewProtocolError("no size argument seen", nil)
+		return errors.NewProtocolError(tr.Tr.Get("no size argument seen"), nil)
 	}
 
 	dlfilename := f.Name()

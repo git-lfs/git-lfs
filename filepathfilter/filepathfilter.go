@@ -3,6 +3,7 @@ package filepathfilter
 import (
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/wildmatch/v2"
 	"github.com/rubyist/tracerx"
 )
@@ -160,7 +161,7 @@ func NewPattern(p string, ptype PatternType) Pattern {
 			),
 		}
 	default:
-		panic("unreachable")
+		panic(tr.Tr.Get("unreachable"))
 	}
 }
 

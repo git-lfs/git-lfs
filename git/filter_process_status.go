@@ -1,6 +1,6 @@
 package git
 
-import "fmt"
+import "github.com/git-lfs/git-lfs/v3/tr"
 
 // FilterProcessStatus is a constant type representing the various valid
 // responses for `status=` in the Git filtering process protocol.
@@ -29,5 +29,5 @@ func (s FilterProcessStatus) String() string {
 		return "error"
 	}
 
-	panic(fmt.Sprintf("unknown FilterProcessStatus '%d'", s))
+	panic(tr.Tr.Get("unknown FilterProcessStatus '%d'", s))
 }
