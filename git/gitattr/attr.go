@@ -83,7 +83,7 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 			var err error
 			last := strings.LastIndex(text, "\"")
 			if last == 0 {
-				return nil, "", errors.Errorf("git/gitattr: unbalanced quote: %s", text)
+				return nil, "", errors.Errorf("unbalanced quote: %s", text)
 			}
 			pattern, err = strconv.Unquote(text[:last+1])
 			if err != nil {

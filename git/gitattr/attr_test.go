@@ -126,7 +126,7 @@ func TestParseLinesUnbalancedQuotes(t *testing.T) {
 
 	assert.Empty(t, lines)
 	assert.EqualError(t, err, fmt.Sprintf(
-		"git/gitattr: unbalanced quote: %s", text))
+		"unbalanced quote: %s", text))
 }
 
 func TestParseLinesWithNoAttributes(t *testing.T) {
