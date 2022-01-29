@@ -49,7 +49,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 			Error(err.Error())
 			Exit(tr.Tr.Get("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook."))
 		} else {
-			Print(tr.Tr.Get("Updated git hooks."))
+			Print(tr.Tr.Get("Updated Git hooks."))
 		}
 	}
 

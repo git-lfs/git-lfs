@@ -487,7 +487,7 @@ begin_test "fetch: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" fetch.log
+  grep "Not in a Git repository" fetch.log
 )
 end_test
 

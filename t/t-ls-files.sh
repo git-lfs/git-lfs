@@ -181,7 +181,7 @@ begin_test "ls-files: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" ls-files.log
+  grep "Not in a Git repository" ls-files.log
 )
 end_test
 

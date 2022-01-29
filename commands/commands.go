@@ -177,7 +177,7 @@ func installHooks(force bool) error {
 // uninstallHooks removes all hooks in range of the `hooks` var.
 func uninstallHooks() error {
 	if !cfg.InRepo() {
-		return errors.New("Not in a git repository")
+		return errors.New("Not in a Git repository")
 	}
 
 	hookDir, err := cfg.HookDir()
@@ -310,7 +310,7 @@ func requireStdin(msg string) {
 
 func requireInRepo() {
 	if !cfg.InRepo() {
-		Print("Not in a git repository.")
+		Print("Not in a Git repository.")
 		os.Exit(128)
 	}
 }
@@ -479,7 +479,7 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
 	gitV, err := git.Version()
 	if err != nil {
-		gitV = "Error getting git version: " + err.Error()
+		gitV = "Error getting Git version: " + err.Error()
 	}
 
 	fmt.Fprint(w, config.VersionDesc+le)
@@ -556,8 +556,8 @@ func requireGitVersion() {
 	if !git.IsGitVersionAtLeast(minimumGit) {
 		gitver, err := git.Version()
 		if err != nil {
-			Exit("Error getting git version: %s", err)
+			Exit("Error getting Git version: %s", err)
 		}
-		Exit("git version %s or higher is required for Git LFS; your version: %s", minimumGit, gitver)
+		Exit("Git version %s or higher is required for Git LFS; your version: %s", minimumGit, gitver)
 	}
 }

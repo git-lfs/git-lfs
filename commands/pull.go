@@ -107,7 +107,7 @@ func (c *singleCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
 
 func (c *singleCheckout) Close() {
 	if err := c.gitIndexer.Close(); err != nil {
-		LoggedError(err, tr.Tr.Get("Error updating the git index:\n%s", c.gitIndexer.Output()))
+		LoggedError(err, tr.Tr.Get("Error updating the Git index:\n%s", c.gitIndexer.Output()))
 	}
 }
 

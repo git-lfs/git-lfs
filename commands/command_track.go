@@ -60,7 +60,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	wd = tools.ResolveSymlinks(wd)
 	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
 	if err != nil {
-		Exit(tr.Tr.Get("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir()))
+		Exit(tr.Tr.Get("Current directory %q outside of Git working directory %q.", wd, cfg.LocalWorkingDir()))
 	}
 
 	changedAttribLines := make(map[string]string)

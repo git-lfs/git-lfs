@@ -12,7 +12,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 
 	gitV, err := git.Version()
 	if err != nil {
-		gitV = "Error getting git version: " + err.Error()
+		gitV = "Error getting Git version: " + err.Error()
 	}
 
 	Print(config.VersionDesc)

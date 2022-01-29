@@ -41,7 +41,7 @@ begin_test "install with supported core.hooksPath"
   git config --local core.hooksPath "$hooks_dir"
 
   git lfs install 2>&1 | tee install.log
-  grep "Updated git hooks" install.log
+  grep "Updated Git hooks" install.log
 
   assert_hooks "$hooks_dir"
 )
@@ -62,7 +62,7 @@ begin_test "install with supported core.hooksPath in subdirectory"
   git config --local core.hooksPath "$hooks_dir"
 
   (cd subdir && git lfs install 2>&1 | tee install.log)
-  grep "Updated git hooks" subdir/install.log
+  grep "Updated Git hooks" subdir/install.log
 
   assert_hooks "$hooks_dir"
   refute_hooks "subdir/$hooks_dir"
@@ -83,7 +83,7 @@ begin_test "install with supported expandable core.hooksPath"
   git config --local core.hooksPath "$hooks_dir"
 
   git lfs install 2>&1 | tee install.log
-  grep "Updated git hooks" install.log
+  grep "Updated Git hooks" install.log
 
   assert_hooks "$HOME/custom_hooks_dir"
 )

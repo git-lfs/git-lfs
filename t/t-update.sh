@@ -26,14 +26,14 @@ git lfs post-merge \"\$@\""
   cd without-pre-push
   git init
 
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
   [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
 
   # run it again
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
@@ -42,19 +42,19 @@ git lfs post-merge \"\$@\""
   # replace old hook 1
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 2
   echo "#!/bin/sh
 git lfs push --stdin \"\$@\"" > .git/hooks/pre-push
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 3
   echo "#!/bin/sh
 git lfs pre-push \"\$@\"" > .git/hooks/pre-push
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace blank hook
@@ -62,7 +62,7 @@ git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   touch .git/hooks/pre-push
   touch .git/hooks/post-checkout
   touch .git/hooks/post-merge
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
@@ -72,14 +72,14 @@ git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }
 git lfs pre-push \"$@\""
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 5
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }
 git lfs pre-push \"$@\""
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # don't replace unexpected hook
@@ -142,7 +142,7 @@ Add the following to .git/hooks/post-merge:
   [ "test" = "$(cat .git/hooks/post-merge)" ]
 
   # force replace unexpected hook
-  [ "Updated git hooks." = "$(git lfs update --force)" ]
+  [ "Updated Git hooks." = "$(git lfs update --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
@@ -169,7 +169,7 @@ begin_test "update with leading spaces"
   git init "$reponame"
   cd "$reponame"
 
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
 
   # $pre_push_hook contains leading TAB '\t' characters
   pre_push_hook="#!/bin/sh
@@ -178,7 +178,7 @@ begin_test "update with leading spaces"
 
   echo -n "$pre_push_hook" > .git/hooks/pre-push
 
-  [ "Updated git hooks." = "$(git lfs update)" ]
+  [ "Updated Git hooks." = "$(git lfs update)" ]
 )
 end_test
 
@@ -199,7 +199,7 @@ begin_test "update lfs.{url}.access"
   [ "basic" = "$(git config lfs.https://example2.com.access)" ]
   [ "other" = "$(git config lfs.https://example3.com.access)" ]
 
-  expected="Updated git hooks.
+  expected="Updated Git hooks.
 Updated http://example.com access from private to basic.
 Updated https://example.com access from private to basic.
 Removed invalid https://example3.com access of other."
@@ -235,6 +235,6 @@ begin_test "update: outside git repository"
   fi
 
   cat check.log
-  grep "Not in a git repository" check.log
+  grep "Not in a Git repository" check.log
 )
 end_test

@@ -24,7 +24,7 @@ begin_test "install --worktree outside repository"
   res=$?
   set -e
 
-  [ "Not in a git repository." = "$(cat out.log)" ]
+  [ "Not in a Git repository." = "$(cat out.log)" ]
   [ "0" != "$res" ]
 )
 end_test

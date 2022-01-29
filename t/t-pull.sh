@@ -362,6 +362,6 @@ begin_test "pull: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" pull.log
+  grep "Not in a Git repository" pull.log
 )
 end_test

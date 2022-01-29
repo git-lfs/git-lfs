@@ -89,7 +89,7 @@ git lfs post-commit \"\$@\""
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/post-merge.\\n\"; exit 2; }
 git lfs post-merge \"\$@\""
 
-  [ "Updated git hooks.
+  [ "Updated Git hooks.
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
@@ -100,7 +100,7 @@ Git LFS initialized." = "$(git lfs install)" ]
   # more-comprehensive hook update tests are in test-update.sh
   echo "#!/bin/sh
 git lfs push --stdin \$*" > .git/hooks/pre-push
-  [ "Updated git hooks.
+  [ "Updated Git hooks.
 Git LFS initialized." = "$(git lfs install)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
@@ -134,7 +134,7 @@ To resolve this, either:
   set -e
 
   # force replace unexpected hook
-  [ "Updated git hooks.
+  [ "Updated Git hooks.
 Git LFS initialized." = "$(git lfs install --force)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
@@ -174,7 +174,7 @@ begin_test "install outside repository directory"
   cat check.log
 
   # doesn't print this because being in a git repo is not necessary for install
-  [ "$(grep -c "Not in a git repository" check.log)" = "0" ]
+  [ "$(grep -c "Not in a Git repository" check.log)" = "0" ]
   [ "$(grep -c "Error" check.log)" = "0" ]
 )
 end_test
@@ -281,7 +281,7 @@ begin_test "install --local outside repository"
   res=$?
   set -e
 
-  [ "Not in a git repository." = "$(cat out.log)" ]
+  [ "Not in a Git repository." = "$(cat out.log)" ]
   [ "0" != "$res" ]
 )
 end_test
