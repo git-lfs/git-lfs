@@ -1230,7 +1230,7 @@ func AllRefsIn(wd string) ([]*Ref, error) {
 		parts := strings.SplitN(scanner.Text(), "\x00", 2)
 		if len(parts) != 2 {
 			return nil, lfserrors.Errorf(
-				"git: invalid for-each-ref line: %q", scanner.Text())
+				"invalid git for-each-ref line: %q", scanner.Text())
 		}
 
 		sha := parts[0]

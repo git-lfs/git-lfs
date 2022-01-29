@@ -29,5 +29,5 @@ func (s FilterProcessStatus) String() string {
 		return "error"
 	}
 
-	panic(fmt.Sprintf("git: unknown FilterProcessStatus '%d'", s))
+	panic(fmt.Sprintf("unknown FilterProcessStatus '%d'", s))
 }
