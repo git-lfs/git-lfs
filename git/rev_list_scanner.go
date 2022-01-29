@@ -206,7 +206,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 			// `git-rev-list(1)` does not treat ambiguous refnames
 			// as fatal (non-zero exit status), but we do.
 			if am := ambiguousRegex.FindSubmatch(msg); len(am) > 1 {
-				return errors.Errorf("ref %s is ambiguous", am[1])
+				return errors.Errorf("ref %q is ambiguous", am[1])
 			}
 			return nil
 		},
