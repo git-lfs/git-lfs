@@ -482,8 +482,8 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 		gitV = "Error getting Git version: " + err.Error()
 	}
 
-	fmt.Fprint(w, config.VersionDesc+le)
-	fmt.Fprint(w, gitV+le)
+	fmt.Fprint(w, config.VersionDesc, le)
+	fmt.Fprint(w, gitV, le)
 
 	// log the command that was run
 	fmt.Fprint(w, le)
@@ -497,26 +497,26 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprint(w, le)
 
-	fmt.Fprintf(w, "%+v"+le, loggedError)
+	fmt.Fprintf(w, "%+v%s", loggedError, le)
 
 	for key, val := range errors.Context(err) {
-		fmt.Fprintf(w, "%s=%v"+le, key, val)
+		fmt.Fprintf(w, "%s=%v%s", key, val, le)
 	}
 
-	fmt.Fprint(w, le+"Current time in UTC: "+le)
-	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05")+le)
+	fmt.Fprint(w, le, "Current time in UTC:", le)
+	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05"), le)
 
-	fmt.Fprint(w, le+"Environment:"+le)
+	fmt.Fprint(w, le, "Environment:", le)
 
 	// log the environment
 	for _, env := range lfs.Environ(cfg, getTransferManifest(), oldEnv) {
-		fmt.Fprint(w, env+le)
+		fmt.Fprint(w, env, le)
 	}
 
-	fmt.Fprint(w, le+"Client IP addresses:"+le)
+	fmt.Fprint(w, le, "Client IP addresses:", le)
 
 	for _, ip := range ipAddresses() {
-		fmt.Fprint(w, ip+le)
+		fmt.Fprint(w, ip, le)
 	}
 }
 
