@@ -545,7 +545,7 @@ func ValidateRemoteURL(remote string) error {
 	case "ssh", "http", "https", "git", "file":
 		return nil
 	default:
-		return fmt.Errorf("invalid remote url protocol %q in %q", u.Scheme, remote)
+		return fmt.Errorf("invalid remote URL protocol %q in %q", u.Scheme, remote)
 	}
 }
 
