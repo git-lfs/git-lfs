@@ -1372,7 +1372,7 @@ func IsFileModified(filepath string) (bool, error) {
 		}
 	}
 	if err := cmd.Wait(); err != nil {
-		return false, lfserrors.Wrap(err, "Git status failed")
+		return false, lfserrors.Wrap(err, "git status failed")
 	}
 
 	return matched, nil
