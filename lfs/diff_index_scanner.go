@@ -148,7 +148,7 @@ func (s *DiffIndexScanner) Scan() bool {
 
 	s.next, s.err = s.scan(s.from.Text())
 	if s.err != nil {
-		s.err = errors.Wrap(s.err, "scan")
+		s.err = errors.Wrap(s.err, "`git diff-index` scan")
 	}
 
 	return s.err == nil

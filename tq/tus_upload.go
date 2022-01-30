@@ -76,7 +76,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// Open file for uploading
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Wrap(err, "tus upload")
+		return errors.Wrap(err, "tus.io upload")
 	}
 	defer f.Close()
 

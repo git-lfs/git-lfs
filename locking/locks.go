@@ -73,7 +73,7 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 func (c *Client) SetupFileCache(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
-		return errors.Wrap(err, "init lock cache")
+		return errors.Wrap(err, "lock cache initialization")
 	}
 
 	lockFile := path
@@ -83,7 +83,7 @@ func (c *Client) SetupFileCache(path string) error {
 
 	cache, err := NewLockCache(lockFile)
 	if err != nil {
-		return errors.Wrap(err, "init lock cache")
+		return errors.Wrap(err, "lock cache initialization")
 	}
 
 	c.cache = cache
@@ -105,7 +105,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
 	})
 	if err != nil {
-		return Lock{}, errors.Wrap(err, "api")
+		return Lock{}, errors.Wrap(err, "locking API")
 	}
 
 	if len(lockRes.Message) > 0 {
@@ -167,7 +167,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 func (c *Client) UnlockFileById(id string, force bool) error {
 	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
-		return errors.Wrap(err, "api")
+		return errors.Wrap(err, "locking API")
 	}
 
 	if len(unlockRes.Message) > 0 {
