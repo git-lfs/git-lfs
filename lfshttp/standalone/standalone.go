@@ -123,7 +123,7 @@ func gitDirAtPath(path string) (string, error) {
 	cmd.Cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
-		return "", errors.Wrap(err, tr.Tr.Get("failed to call git rev-parse --git-dir"))
+		return "", errors.Wrap(err, tr.Tr.Get("failed to call `git rev-parse --git-dir`"))
 	}
 
 	gitdir, err := tools.TranslateCygwinPath(strings.TrimRight(string(out), "\n"))

@@ -2,10 +2,12 @@ package kv
 
 import (
 	"encoding/gob"
-	"fmt"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Store provides an in-memory key/value store which is persisted to
@@ -144,10 +146,10 @@ func (k *Store) Save() error {
 
 	enc := gob.NewEncoder(f)
 	if err := enc.Encode(k.version); err != nil {
-		return fmt.Errorf("error while writing version data to %v: %v", k.filename, err)
+		return errors.New(tr.Tr.Get("error while writing version data to %v: %v", k.filename, err))
 	}
 	if err := enc.Encode(k.db); err != nil {
-		return fmt.Errorf("error while writing new key/value data to %v: %v", k.filename, err)
+		return errors.New(tr.Tr.Get("error while writing new key/value data to %v: %v", k.filename, err))
 	}
 	// Clear log now that it's saved
 	k.log = nil
@@ -189,7 +191,7 @@ func (k *Store) loadAndMergeReaderIfNeeded(f io.Reader) error {
 	dec := gob.NewDecoder(f)
 	err := dec.Decode(&versionOnDisk)
 	if err != nil {
-		return fmt.Errorf("problem checking version of key/value data from %v: %v", k.filename, err)
+		return errors.New(tr.Tr.Get("problem checking version of key/value data from %v: %v", k.filename, err))
 	}
 	// Totally uninitialised Version == 0, saved versions are always >=1
 	if versionOnDisk != k.version {
@@ -197,7 +199,7 @@ func (k *Store) loadAndMergeReaderIfNeeded(f io.Reader) error {
 		var dbOnDisk map[string]interface{}
 		err = dec.Decode(&dbOnDisk)
 		if err != nil {
-			return fmt.Errorf("problem reading updated key/value data from %v: %v", k.filename, err)
+			return errors.New(tr.Tr.Get("problem reading updated key/value data from %v: %v", k.filename, err))
 		}
 		k.reapplyChanges(dbOnDisk)
 		k.version = versionOnDisk

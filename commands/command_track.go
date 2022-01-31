@@ -60,7 +60,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	wd = tools.ResolveSymlinks(wd)
 	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
 	if err != nil {
-		Exit(tr.Tr.Get("Current directory %q outside of git working directory %q.", wd, cfg.LocalWorkingDir()))
+		Exit(tr.Tr.Get("Current directory %q outside of Git working directory %q.", wd, cfg.LocalWorkingDir()))
 	}
 
 	changedAttribLines := make(map[string]string)
@@ -119,13 +119,13 @@ ArgsLoop:
 		attribContents, err = ioutil.ReadFile(".gitattributes")
 		// it's fine for file to not exist
 		if err != nil && !os.IsNotExist(err) {
-			Print("Error reading .gitattributes file")
+			Print(tr.Tr.Get("Error reading '.gitattributes' file"))
 			return
 		}
 		// Re-generate the file with merge of old contents and new (to deal with changes)
 		attributesFile, err = os.OpenFile(".gitattributes", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0660)
 		if err != nil {
-			Print("Error opening .gitattributes file")
+			Print(tr.Tr.Get("Error opening '.gitattributes' file"))
 			return
 		}
 		defer attributesFile.Close()
@@ -189,7 +189,7 @@ ArgsLoop:
 		var matchedBlocklist bool
 		for _, f := range gittracked {
 			if forbidden := blocklistItem(f); forbidden != "" {
-				Print(tr.Tr.Get("Pattern %s matches forbidden file %s. If you would like to track %s, modify .gitattributes manually.", pattern, f, f))
+				Print(tr.Tr.Get("Pattern '%s' matches forbidden file '%s'. If you would like to track %s, modify '.gitattributes' manually.", pattern, f, f))
 				matchedBlocklist = true
 			}
 		}
@@ -199,7 +199,7 @@ ArgsLoop:
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
-				Print(tr.Tr.Get("Git LFS: touching %q", f))
+				Print(tr.Tr.Get("Touching %q", f))
 			}
 
 			if !trackDryRunFlag {

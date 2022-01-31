@@ -9,10 +9,11 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 var (
-	ErrReadOnly = errors.New("configuration is read-only")
+	ErrReadOnly = errors.New(tr.Tr.Get("configuration is read-only"))
 )
 
 // Environment is a restricted version of config.Environment that only provides

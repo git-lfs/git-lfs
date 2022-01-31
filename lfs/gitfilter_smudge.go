@@ -78,7 +78,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 		if download {
 			n, err = f.downloadFile(writer, ptr, workingfile, mediafile, manifest, cb)
 		} else {
-			return 0, errors.NewDownloadDeclinedError(statErr, "smudge")
+			return 0, errors.NewDownloadDeclinedError(statErr, tr.Tr.Get("smudge filter"))
 		}
 	} else {
 		n, err = f.readLocalFile(writer, ptr, mediafile, workingfile, cb)
@@ -92,7 +92,7 @@ func (f *GitFilter) Smudge(writer io.Writer, ptr *Pointer, workingfile string, d
 }
 
 func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, mediafile string, manifest *tq.Manifest, cb tools.CopyCallback) (int64, error) {
-	fmt.Fprintf(os.Stderr, tr.Tr.Get("Downloading %s (%s)\n", workingfile, humanize.FormatBytes(uint64(ptr.Size))))
+	fmt.Fprintln(os.Stderr, tr.Tr.Get("Downloading %s (%s)", workingfile, humanize.FormatBytes(uint64(ptr.Size))))
 
 	// NOTE: if given, "cb" is a tools.CopyCallback which writes updates
 	// to the logpath specified by GIT_LFS_PROGRESS.
@@ -143,14 +143,14 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 			ext, ok := registeredExts[ptrExt.Name]
 			if !ok {
 				err := errors.New(tr.Tr.Get("extension '%s' is not configured", ptrExt.Name))
-				return 0, errors.Wrap(err, "smudge")
+				return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 			}
 			ext.Priority = ptrExt.Priority
 			extensions[ext.Name] = ext
 		}
 		exts, err := config.SortExtensions(extensions)
 		if err != nil {
-			return 0, errors.Wrap(err, "smudge")
+			return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 		}
 
 		// pipe extensions in reverse order
@@ -164,7 +164,7 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 
 		response, err := pipeExtensions(f.cfg, request)
 		if err != nil {
-			return 0, errors.Wrap(err, "smudge")
+			return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 		}
 
 		actualExts := make(map[string]*pipeExtResult)
@@ -175,19 +175,19 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// verify name, order, and oids
 		oid := response.results[0].oidIn
 		if ptr.Oid != oid {
-			err = errors.New(tr.Tr.Get("actual oid %s during smudge does not match expected %s", oid, ptr.Oid))
-			return 0, errors.Wrap(err, "smudge")
+			err = errors.New(tr.Tr.Get("actual OID %s during smudge does not match expected %s", oid, ptr.Oid))
+			return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 		}
 
 		for _, expected := range ptr.Extensions {
 			actual := actualExts[expected.Name]
 			if actual.name != expected.Name {
 				err = errors.New(tr.Tr.Get("actual extension name '%s' does not match expected '%s'", actual.name, expected.Name))
-				return 0, errors.Wrap(err, "smudge")
+				return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 			}
 			if actual.oidOut != expected.Oid {
-				err = errors.New(tr.Tr.Get("actual oid %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid))
-				return 0, errors.Wrap(err, "smudge")
+				err = errors.New(tr.Tr.Get("actual OID %s for extension '%s' does not match expected %s", actual.oidOut, expected.Name, expected.Oid))
+				return 0, errors.Wrap(err, tr.Tr.Get("smudge filter"))
 			}
 		}
 

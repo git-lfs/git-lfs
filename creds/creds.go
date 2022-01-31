@@ -37,7 +37,7 @@ type CredentialHelper interface {
 func (credWrapper *CredentialHelperWrapper) FillCreds() error {
 	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
 	if creds == nil || len(creds) < 1 {
-		errmsg := fmt.Sprintf(tr.Tr.Get("Git credentials for %s not found", credWrapper.Url))
+		errmsg := tr.Tr.Get("Git credentials for %s not found", credWrapper.Url)
 		if err != nil {
 			errmsg = fmt.Sprintf("%s:\n%s", errmsg, err.Error())
 		} else {
@@ -335,7 +335,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("'git credential %s' error: %s\n", subcommand, err.Error())
+		return nil, errors.New(tr.Tr.Get("`git credential %s` error: %s", subcommand, err.Error()))
 	}
 
 	creds := make(Creds)
@@ -529,7 +529,7 @@ func (s *CredentialHelpers) skipped(i int) bool {
 type nullCredentialHelper struct{}
 
 var (
-	nullCredError = errors.New("No credential helper configured")
+	nullCredError = errors.New(tr.Tr.Get("No credential helper configured"))
 	NullCreds     = &nullCredentialHelper{}
 )
 

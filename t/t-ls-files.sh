@@ -181,7 +181,7 @@ begin_test "ls-files: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" ls-files.log
+  grep "Not in a Git repository" ls-files.log
 )
 end_test
 
@@ -382,7 +382,7 @@ begin_test "ls-files: invalid --all ordering"
     echo >&2 "Expected \`git lfs ls-files -- --all\' to fail"
     exit 1
   fi
-  grep "Did you mean \"git lfs ls-files --all --\" ?" ls-files.out
+  grep "Did you mean \`git lfs ls-files --all --\` ?" ls-files.out
 )
 end_test
 

@@ -600,7 +600,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// missing in that case, since we don't need to upload
 			// it.
 			if o.Missing && len(o.Actions) != 0 {
-				return nil, errors.Errorf("Unable to find source for object %v (try running git lfs fetch --all)", o.Oid)
+				return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
 			}
 		}
 	}
@@ -723,7 +723,7 @@ func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Tr
 		var err error
 
 		if t.Size < 0 {
-			err = errors.Errorf(tr.Tr.Get("Git LFS: object %q has invalid size (got: %d)", t.Oid, t.Size))
+			err = errors.Errorf(tr.Tr.Get("object %q has invalid size (got: %d)", t.Oid, t.Size))
 		} else {
 			fd, serr := os.Stat(t.Path)
 			if serr != nil {
@@ -946,7 +946,7 @@ func (q *TransferQueue) Wait() {
 	}
 
 	if q.unsupportedContentType {
-		fmt.Fprintf(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
+		fmt.Fprintln(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
 info: Consider disabling Content-Type detection with:
 info:
 info:   $ git config lfs.contenttype false`))

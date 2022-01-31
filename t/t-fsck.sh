@@ -134,7 +134,7 @@ begin_test "fsck: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" fsck.log
+  grep "Not in a Git repository" fsck.log
 )
 end_test
 

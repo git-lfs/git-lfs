@@ -319,13 +319,13 @@ func (e EntriesBySize) Print(to io.Writer) (int, error) {
 		// TRANSLATORS: The strings here are intended to have the same
 		// display width including spaces, so please insert trailing
 		// spaces as necessary for your language.
-		stat := fmt.Sprintf(tr.Tr.GetN(
+		stat := tr.Tr.GetN(
 			"%d/%d file ",
 			"%d/%d files",
 			int(total),
 			above,
 			total,
-		))
+		)
 
 		percentage := fmt.Sprintf("%.0f%%", percentAbove)
 

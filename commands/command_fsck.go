@@ -173,7 +173,7 @@ func doFsckPointers(start, end string) []corruptPointer {
 				cp := corruptPointer{
 					blobOid: p.Sha1,
 					lfsOid:  p.Oid,
-					message: fmt.Sprintf(tr.Tr.Get("Pointer for %s (blob %s) was not canonical", p.Oid, p.Sha1)),
+					message: tr.Tr.Get("Pointer for %s (blob %s) was not canonical", p.Oid, p.Sha1),
 					kind:    "nonCanonicalPointer",
 				}
 				Print("pointer: %s", cp.String())
@@ -185,14 +185,14 @@ func doFsckPointers(start, end string) []corruptPointer {
 				cp := corruptPointer{
 					treeOid: psErr.OID(),
 					path:    psErr.Path(),
-					message: fmt.Sprintf(tr.Tr.Get("%q (treeish %s) should have been a pointer but was not", psErr.Path(), psErr.OID())),
+					message: tr.Tr.Get("%q (treeish %s) should have been a pointer but was not", psErr.Path(), psErr.OID()),
 					kind:    "unexpectedGitObject",
 				}
 				Print("pointer: %s", cp.String())
 				corruptPointers = append(corruptPointers, cp)
 			}
 		} else {
-			Panic(err, "Error checking Git LFS files")
+			Panic(err, tr.Tr.Get("Error checking Git LFS files"))
 		}
 	})
 

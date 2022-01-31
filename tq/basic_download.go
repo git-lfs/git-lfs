@@ -270,7 +270,7 @@ func configureBasicDownloadAdapter(m *Manifest) {
 			bd.transferImpl = bd
 			return bd
 		case Upload:
-			panic("Should never ask this func to upload")
+			panic(tr.Tr.Get("Should never ask this function to upload"))
 		}
 		return nil
 	})

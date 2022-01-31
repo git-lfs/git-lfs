@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 const (
@@ -77,7 +78,7 @@ func ParseBytes(str string) (uint64, error) {
 
 	f = f * float64(m)
 	if f >= math.MaxUint64 {
-		return 0, errors.New("number of bytes too large")
+		return 0, errors.New(tr.Tr.Get("number of bytes too large"))
 	}
 	return uint64(f), nil
 }
@@ -91,7 +92,7 @@ func ParseByteUnit(str string) (uint64, error) {
 	if u, ok := bytesTable[str]; ok {
 		return u, nil
 	}
-	return 0, errors.Errorf("unknown unit: %q", str)
+	return 0, errors.New(tr.Tr.Get("unknown unit: %q", str))
 }
 
 var sizes = []string{"B", "KB", "MB", "GB", "TB", "PB"}

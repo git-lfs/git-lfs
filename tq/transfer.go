@@ -173,7 +173,7 @@ type ActionExpiredErr struct {
 }
 
 func (e ActionExpiredErr) Error() string {
-	return fmt.Sprintf("tq: action %q expires at %s",
+	return tr.Tr.Get("action %q expires at %s",
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 

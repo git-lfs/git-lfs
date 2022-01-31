@@ -89,7 +89,7 @@ func NewStatusCodeError(res *http.Response) error {
 
 func (e *statusCodeError) Error() string {
 	req := e.response.Request
-	return fmt.Sprintf("Invalid HTTP status for %s %s: %d",
+	return tr.Tr.Get("Invalid HTTP status for %s %s: %d",
 		req.Method,
 		strings.SplitN(req.URL.String(), "?", 2)[0],
 		e.response.StatusCode,
@@ -118,9 +118,9 @@ func defaultError(res *http.Response) error {
 	if f, ok := defaultErrors[res.StatusCode]; ok {
 		msgFmt = f
 	} else if res.StatusCode < 500 {
-		msgFmt = fmt.Sprintf("Client error %%s from HTTP %d", res.StatusCode)
+		msgFmt = tr.Tr.Get("Client error %%s from HTTP %d", res.StatusCode)
 	} else {
-		msgFmt = fmt.Sprintf("Server error %%s from HTTP %d", res.StatusCode)
+		msgFmt = tr.Tr.Get("Server error %%s from HTTP %d", res.StatusCode)
 	}
 
 	return errors.Errorf(fmt.Sprintf(msgFmt), res.Request.URL)

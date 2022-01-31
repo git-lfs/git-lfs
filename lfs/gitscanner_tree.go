@@ -116,7 +116,7 @@ func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChann
 		stderr, _ := ioutil.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
-			errchan <- errors.New(tr.Tr.Get("error in git ls-tree: %v %v", err, string(stderr)))
+			errchan <- errors.New(tr.Tr.Get("error in `git ls-tree`: %v %v", err, string(stderr)))
 		}
 		close(blobs)
 		close(errchan)

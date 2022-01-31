@@ -37,7 +37,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 	}
 
 	if !filepath.IsAbs(logPath) {
-		return nil, nil, fmt.Errorf("GIT_LFS_PROGRESS must be an absolute path")
+		return nil, nil, errors.New(tr.Tr.Get("GIT_LFS_PROGRESS must be an absolute path"))
 	}
 
 	cbDir := filepath.Dir(logPath)
@@ -68,7 +68,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 
 func wrapProgressError(err error, event, filename string) error {
 	if err != nil {
-		return fmt.Errorf("error writing Git LFS %s progress to %s: %s", event, filename, err.Error())
+		return errors.New(tr.Tr.Get("error writing Git LFS %s progress to %s: %s", event, filename, err.Error()))
 	}
 
 	return nil

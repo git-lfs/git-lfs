@@ -252,7 +252,7 @@ begin_test "config: ignoring unsafe lfsconfig keys"
 
   git lfs env 2>&1 | tee status.log
 
-  grep "warning: These unsafe lfsconfig keys were ignored:" status.log
+  grep "warning: These unsafe '.lfsconfig' keys were ignored:" status.log
   grep "  core.askpass" status.log
 )
 end_test

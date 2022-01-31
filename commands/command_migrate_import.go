@@ -66,14 +66,14 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 		if len(filter.Include()) == 0 {
-			ExitWithError(errors.Errorf(tr.Tr.Get("No Git LFS filters found in .gitattributes")))
+			ExitWithError(errors.Errorf(tr.Tr.Get("No Git LFS filters found in '.gitattributes'")))
 		}
 
 		gf := lfs.NewGitFilter(cfg)
 
 		for _, file := range args {
 			if !filter.Allows(file) {
-				ExitWithError(errors.Errorf(tr.Tr.Get("File %s did not match any Git LFS filters in .gitattributes", file)))
+				ExitWithError(errors.Errorf(tr.Tr.Get("File %s did not match any Git LFS filters in '.gitattributes'", file)))
 			}
 		}
 
@@ -270,7 +270,7 @@ func generateMigrateCommitMessage(cmd *cobra.Command, patterns string) string {
 	if cmd.Flag("message").Changed {
 		return migrateCommitMessage
 	}
-	return fmt.Sprintf(tr.Tr.Get("%s: convert to Git LFS", patterns))
+	return tr.Tr.Get("%s: convert to Git LFS", patterns)
 }
 
 // checkoutNonBare forces a checkout of the current reference, so long as the
@@ -438,7 +438,7 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 
 		subtreeEntry := tree.Entries[index]
 		if subtreeEntry.Type() != gitobj.TreeObjectType {
-			return nil, errors.Errorf(tr.Tr.Get("migrate: expected %s to be a tree, got %s", head, subtreeEntry.Type()))
+			return nil, errors.Errorf("migrate: %s", tr.Tr.Get("expected %s to be a tree, got %s", head, subtreeEntry.Type()))
 		}
 
 		rewrittenSubtree, err := rewriteTree(gf, db, subtreeEntry.Oid, tail)

@@ -48,7 +48,7 @@ type lockVerifier struct {
 
 func (lv *lockVerifier) Verify(ref *git.Ref) {
 	if ref == nil {
-		panic("no ref specified for verification")
+		panic(tr.Tr.Get("no ref specified for verification"))
 	}
 
 	if lv.verifyState == verifyStateDisabled || lv.verifiedRefs[ref.Refspec()] {
@@ -69,7 +69,7 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 					Exit(tr.Tr.Get("error: Authentication error: %s", err))
 				}
 			} else {
-				Print(tr.Tr.Get("Remote %q does not support the LFS locking API. Consider disabling it with:", cfg.PushRemote()))
+				Print(tr.Tr.Get("Remote %q does not support the Git LFS locking API. Consider disabling it with:", cfg.PushRemote()))
 				Print("  $ git config lfs.%s.locksverify false", lv.endpoint.Url)
 				if lv.verifyState == verifyStateEnabled {
 					ExitWithError(err)
@@ -78,7 +78,7 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 		}
 	} else if lv.verifyState == verifyStateUnknown {
 		Print(tr.Tr.Get("Locking support detected on remote %q. Consider enabling it with:", cfg.PushRemote()))
-		Print("$ git config lfs.%s.locksverify true", lv.endpoint.Url)
+		Print("  $ git config lfs.%s.locksverify true", lv.endpoint.Url)
 	}
 
 	lv.addLocks(ref, ours, lv.ourLocks)

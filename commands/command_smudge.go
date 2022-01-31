@@ -175,7 +175,7 @@ func smudgeFilename(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-	return tr.Tr.Get("<unknown file>")
+	return fmt.Sprintf("<%s>", tr.Tr.Get("unknown file"))
 }
 
 func possiblyMalformedObjectSize(n int64) bool {

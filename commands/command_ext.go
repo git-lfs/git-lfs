@@ -37,10 +37,10 @@ func printAllExts() {
 }
 
 func printExt(ext config.Extension) {
-	Print(tr.Tr.Get(`Extension: %s
-    clean = %s
+	Print(tr.Tr.Get("Extension: %s", ext.Name))
+	Print(`    clean = %s
     smudge = %s
-    priority = %d`, ext.Name, ext.Clean, ext.Smudge, ext.Priority))
+    priority = %d`, ext.Clean, ext.Smudge, ext.Priority)
 }
 
 func init() {

@@ -39,7 +39,7 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if updateForce && updateManual {
-		Exit("You cannot use --force and --manual options together")
+		Exit(tr.Tr.Get("You cannot use --force and --manual options together"))
 	}
 
 	if updateManual {
@@ -47,9 +47,12 @@ func updateCommand(cmd *cobra.Command, args []string) {
 	} else {
 		if err := installHooks(updateForce); err != nil {
 			Error(err.Error())
-			Exit(tr.Tr.Get("To resolve this, either:\n  1: run `git lfs update --manual` for instructions on how to merge hooks.\n  2: run `git lfs update --force` to overwrite your hook."))
+			Exit("%s\n  1: %s\n  2: %s",
+				tr.Tr.Get("To resolve this, either:"),
+				tr.Tr.Get("run `git lfs update --manual` for instructions on how to merge hooks."),
+				tr.Tr.Get("run `git lfs update --force` to overwrite your hook."))
 		} else {
-			Print(tr.Tr.Get("Updated git hooks."))
+			Print(tr.Tr.Get("Updated Git hooks."))
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
 
@@ -212,9 +213,9 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 	var perc *tasklog.PercentageTask
 	if opt.UpdateRefs {
-		perc = r.l.Percentage("migrate: Rewriting commits", uint64(len(commits)))
+		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Rewriting commits")), uint64(len(commits)))
 	} else {
-		perc = r.l.Percentage("migrate: Examining commits", uint64(len(commits)))
+		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Examining commits")), uint64(len(commits)))
 	}
 
 	var vPerc *tasklog.PercentageTask
@@ -226,7 +227,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	if len(opt.ObjectMapFilePath) > 0 {
 		objectMapFile, err = os.OpenFile(opt.ObjectMapFilePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 		if err != nil {
-			return nil, fmt.Errorf("could not create object map file: %v", err)
+			return nil, errors.New(tr.Tr.Get("could not create object map file: %v", err))
 		}
 		defer objectMapFile.Close()
 	}
@@ -317,7 +318,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	if opt.UpdateRefs {
 		refs, err := r.refsToMigrate()
 		if err != nil {
-			return nil, errors.Wrap(err, "could not find refs to update")
+			return nil, errors.Wrap(err, tr.Tr.Get("could not find refs to update"))
 		}
 
 		root, _ := r.db.Root()
@@ -332,7 +333,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		}
 
 		if err := updater.UpdateRefs(); err != nil {
-			return nil, errors.Wrap(err, "could not update refs")
+			return nil, errors.Wrap(err, tr.Tr.Get("could not update refs"))
 		}
 	}
 
@@ -451,7 +452,7 @@ func (r *Rewriter) allows(typ gitobj.ObjectType, abs string) bool {
 	case gitobj.CommitObjectType, gitobj.TreeObjectType:
 		return true
 	default:
-		panic(fmt.Sprintf("git/githistory: unknown entry type: %s", typ))
+		panic(fmt.Sprintf("git/githistory: %s", tr.Tr.Get("unknown entry type: %s", typ)))
 	}
 }
 
@@ -488,7 +489,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 		}
 
 		if perc != nil {
-			perc.Entry(fmt.Sprintf("migrate: commit %s: %s", hex.EncodeToString(commitOID), path))
+			perc.Entry(fmt.Sprintf("migrate: %s", tr.Tr.Get("commit %s: %s", hex.EncodeToString(commitOID), path)))
 		}
 
 		return sha, nil
@@ -508,7 +509,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 //
 // If any error was encountered, it will be returned.
 func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
-	waiter := r.l.Waiter("migrate: Sorting commits")
+	waiter := r.l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Sorting commits")))
 	defer waiter.Complete()
 
 	scanner, err := git.NewRevListScanner(

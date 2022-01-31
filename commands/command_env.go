@@ -4,6 +4,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 
 	gitV, err := git.Version()
 	if err != nil {
-		gitV = "Error getting git version: " + err.Error()
+		gitV = tr.Tr.Get("Error getting Git version: %s", err.Error())
 	}
 
 	Print(config.VersionDesc)

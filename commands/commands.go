@@ -22,6 +22,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 // Populate man pages
@@ -99,7 +100,7 @@ func newLockClient() *locking.Client {
 	}
 
 	if err != nil {
-		Exit("Unable to create lock system: %v", err.Error())
+		Exit(tr.Tr.Get("Unable to create lock system: %v", err.Error()))
 	}
 
 	// Configure dirs
@@ -151,9 +152,9 @@ func getHookInstallSteps() string {
 	hooks := lfs.LoadHooks(hookDir, cfg)
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
-		steps = append(steps, fmt.Sprintf(
-			"Add the following to .git/hooks/%s:\n\n%s",
-			h.Type, tools.Indent(h.Contents)))
+		steps = append(steps, fmt.Sprintf("%s\n\n%s",
+			tr.Tr.Get("Add the following to '.git/hooks/%s':", h.Type),
+			tools.Indent(h.Contents)))
 	}
 
 	return strings.Join(steps, "\n\n")
@@ -177,7 +178,7 @@ func installHooks(force bool) error {
 // uninstallHooks removes all hooks in range of the `hooks` var.
 func uninstallHooks() error {
 	if !cfg.InRepo() {
-		return errors.New("Not in a git repository")
+		return errors.New(tr.Tr.Get("Not in a git repository"))
 	}
 
 	hookDir, err := cfg.HookDir()
@@ -263,7 +264,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 	file := handlePanic(err)
 
 	if len(file) > 0 {
-		fmt.Fprintf(os.Stderr, "\nErrors logged to %s\nUse `git lfs logs last` to view the log.\n", file)
+		fmt.Fprintf(os.Stderr, "\n%s\n", tr.Tr.Get("Errors logged to '%s'.\nUse `git lfs logs last` to view the log.", file))
 	}
 }
 
@@ -276,7 +277,7 @@ func Panic(err error, format string, args ...interface{}) {
 
 func Cleanup() {
 	if err := cfg.Cleanup(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error clearing old temp files: %s\n", err)
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error clearing old temporary files: %s", err))
 	}
 }
 
@@ -297,9 +298,9 @@ func requireStdin(msg string) {
 
 	stat, err := os.Stdin.Stat()
 	if err != nil {
-		out = fmt.Sprintf("Cannot read from STDIN. %s (%s)", msg, err)
+		out = tr.Tr.Get("Cannot read from STDIN: %s (%s)", msg, err)
 	} else if (stat.Mode() & os.ModeCharDevice) != 0 {
-		out = fmt.Sprintf("Cannot read from STDIN. %s", msg)
+		out = tr.Tr.Get("Cannot read from STDIN: %s", msg)
 	}
 
 	if len(out) > 0 {
@@ -310,7 +311,7 @@ func requireStdin(msg string) {
 
 func requireInRepo() {
 	if !cfg.InRepo() {
-		Print("Not in a git repository.")
+		Print(tr.Tr.Get("Not in a Git repository."))
 		os.Exit(128)
 	}
 }
@@ -320,7 +321,7 @@ func requireInRepo() {
 // be determined), this function will terminate the program.
 func requireWorkingCopy() {
 	if cfg.LocalWorkingDir() == "" {
-		Print("This operation must be run in a work tree.")
+		Print(tr.Tr.Get("This operation must be run in a work tree."))
 		os.Exit(128)
 	}
 }
@@ -330,7 +331,7 @@ func setupRepository() {
 	bare, err := git.IsBare()
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "Could not determine bareness"))
+			err, tr.Tr.Get("Could not determine bareness")))
 	}
 	verifyRepositoryVersion()
 
@@ -345,7 +346,7 @@ func verifyRepositoryVersion() {
 	if val == "" {
 		cfg.SetGitLocalKey(key, "0")
 	} else if val != "0" {
-		Print("Unknown repository format version: %s", val)
+		Print(tr.Tr.Get("Unknown repository format version: %s", val))
 		os.Exit(128)
 	}
 }
@@ -362,12 +363,12 @@ func changeToWorkingCopy() {
 	cwd, err := tools.Getwd()
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "Could not determine current working directory"))
+			err, tr.Tr.Get("Could not determine current working directory")))
 	}
 	cwd, err = tools.CanonicalizeSystemPath(cwd)
 	if err != nil {
 		ExitWithError(errors.Wrap(
-			err, "Could not canonicalize current working directory"))
+			err, tr.Tr.Get("Could not canonicalize current working directory")))
 	}
 
 	// If the current working directory is not within the repository's
@@ -416,12 +417,12 @@ func logPanic(loggedError error) string {
 
 	if err := tools.MkdirAll(cfg.LocalLogDir(), cfg); err != nil {
 		full = ""
-		fmt.Fprintf(fmtWriter, "Unable to log panic to %s: %s\n\n", cfg.LocalLogDir(), err.Error())
+		fmt.Fprintf(fmtWriter, "%s\n\n", tr.Tr.Get("Unable to log panic to '%s': %s", cfg.LocalLogDir(), err.Error()))
 	} else if file, err := os.Create(full); err != nil {
 		filename := full
 		full = ""
 		defer func() {
-			fmt.Fprintf(fmtWriter, "Unable to log panic to %s\n\n", filename)
+			fmt.Fprintf(fmtWriter, "%s\n\n", tr.Tr.Get("Unable to log panic to '%s'", filename))
 			logPanicToWriter(fmtWriter, err, lineEnding)
 		}()
 	} else {
@@ -439,7 +440,7 @@ func ipAddresses() []string {
 	ips := make([]string, 0, 1)
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		ips = append(ips, "Error getting network interface: "+err.Error())
+		ips = append(ips, tr.Tr.Get("Error getting network interface: %s", err.Error()))
 		return ips
 	}
 	for _, i := range ifaces {
@@ -452,7 +453,7 @@ func ipAddresses() []string {
 		addrs, _ := i.Addrs()
 		l := make([]string, 0, 1)
 		if err != nil {
-			ips = append(ips, "Error getting IP address: "+err.Error())
+			ips = append(ips, tr.Tr.Get("Error getting IP address: %s", err.Error()))
 			continue
 		}
 		for _, addr := range addrs {
@@ -479,11 +480,11 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
 	gitV, err := git.Version()
 	if err != nil {
-		gitV = "Error getting git version: " + err.Error()
+		gitV = tr.Tr.Get("Error getting Git version: %s", err.Error())
 	}
 
-	fmt.Fprint(w, config.VersionDesc+le)
-	fmt.Fprint(w, gitV+le)
+	fmt.Fprint(w, config.VersionDesc, le)
+	fmt.Fprint(w, gitV, le)
 
 	// log the command that was run
 	fmt.Fprint(w, le)
@@ -497,26 +498,26 @@ func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	w.Write(ErrorBuffer.Bytes())
 	fmt.Fprint(w, le)
 
-	fmt.Fprintf(w, "%+v"+le, loggedError)
+	fmt.Fprintf(w, "%+v%s", loggedError, le)
 
 	for key, val := range errors.Context(err) {
-		fmt.Fprintf(w, "%s=%v"+le, key, val)
+		fmt.Fprintf(w, "%s=%v%s", key, val, le)
 	}
 
-	fmt.Fprint(w, le+"Current time in UTC: "+le)
-	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05")+le)
+	fmt.Fprint(w, le, tr.Tr.Get("Current time in UTC:"), le)
+	fmt.Fprint(w, time.Now().UTC().Format("2006-01-02 15:04:05"), le)
 
-	fmt.Fprint(w, le+"ENV:"+le)
+	fmt.Fprint(w, le, tr.Tr.Get("Environment:"), le)
 
 	// log the environment
 	for _, env := range lfs.Environ(cfg, getTransferManifest(), oldEnv) {
-		fmt.Fprint(w, env+le)
+		fmt.Fprint(w, env, le)
 	}
 
-	fmt.Fprint(w, le+"Client IP addresses:"+le)
+	fmt.Fprint(w, le, tr.Tr.Get("Client IP addresses:"), le)
 
 	for _, ip := range ipAddresses() {
-		fmt.Fprint(w, ip+le)
+		fmt.Fprint(w, ip, le)
 	}
 }
 
@@ -556,8 +557,8 @@ func requireGitVersion() {
 	if !git.IsGitVersionAtLeast(minimumGit) {
 		gitver, err := git.Version()
 		if err != nil {
-			Exit("Error getting git version: %s", err)
+			Exit(tr.Tr.Get("Error getting Git version: %s", err))
 		}
-		Exit("git version >= %s is required for Git LFS, your version: %s", minimumGit, gitver)
+		Exit(tr.Tr.Get("Git version %s or higher is required for Git LFS; your version: %s", minimumGit, gitver))
 	}
 }

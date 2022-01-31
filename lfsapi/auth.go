@@ -150,7 +150,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 
 		credsURL, err := getCredURLForAPI(ef, operation, remote, apiEndpoint, req)
 		if err != nil {
-			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
+			return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, tr.Tr.Get("credentials"))
 		}
 
 		if credsURL == nil {
@@ -170,7 +170,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 
 	credsURL, err := url.Parse(apiEndpoint.Url)
 	if err != nil {
-		return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, "creds")
+		return creds.CredentialHelperWrapper{CredentialHelper: creds.NullCreds, Input: nil, Url: nil, Creds: nil}, errors.Wrap(err, tr.Tr.Get("credentials"))
 	}
 
 	// NTLM uses creds to create the session

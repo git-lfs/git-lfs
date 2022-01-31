@@ -25,7 +25,7 @@ func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 
 	body, ok := req.Body.(ReadSeekCloser)
 	if body != nil && !ok {
-		return nil, errors.New(tr.Tr.Get("Request body must implement io.ReadCloser and io.Seeker. Got: %T", body))
+		return nil, errors.New(tr.Tr.Get("Request body must implement io.ReadCloser and io.Seeker: %T", body))
 	}
 
 	if body != nil && ok {

@@ -25,12 +25,13 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	if git.IsGitVersionAtLeast("2.15.0") {
-		msg := tr.Tr.Get(`WARNING: 'git lfs clone' is deprecated and will not be updated
-          with new flags from 'git clone'
-
-'git clone' has been updated in upstream Git to have comparable
-speeds to 'git lfs clone'.
-`)
+		// TRANSLATORS: Individual lines should not exceed 80
+		// characters, and any additional lines in the first message
+		// should be indented to align with the first line's text
+		// following the warning prefix and punctuation.
+		msg := fmt.Sprintf("%s\n\n%s",
+			tr.Tr.Get("WARNING: `git lfs clone` is deprecated and will not be updated\n          with new flags from `git clone`"),
+			tr.Tr.Get("`git clone` has been updated in upstream Git to have comparable\nspeeds to `git lfs clone`."))
 
 		fmt.Fprintln(os.Stderr, msg)
 	}
@@ -38,7 +39,7 @@ speeds to 'git lfs clone'.
 	// We pass all args to git clone
 	err := git.CloneWithoutFilters(cloneFlags, args)
 	if err != nil {
-		Exit(tr.Tr.Get("Error(s) during clone:\n%v", err))
+		Exit("%s\n%v", tr.Tr.Get("Error(s) during clone:"), err)
 	}
 
 	// now execute pull (need to be inside dir)
@@ -87,7 +88,7 @@ speeds to 'git lfs clone'.
 			pull(filter)
 			err := postCloneSubmodules(args)
 			if err != nil {
-				Exit(tr.Tr.Get("Error performing 'git lfs pull' for submodules: %v", err))
+				Exit(tr.Tr.Get("Error performing `git lfs pull` for submodules: %v", err))
 			}
 		}
 	}

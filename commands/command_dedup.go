@@ -29,16 +29,16 @@ func dedupTestCommand(*cobra.Command, []string) {
 
 	if supported, err := tools.CheckCloneFileSupported(cfg.TempDir()); err != nil || !supported {
 		if err == nil {
-			err = errors.New("Unknown reason.")
+			err = errors.New(tr.Tr.Get("Unknown reason"))
 		}
-		Exit(tr.Tr.Get("This system does not support deduplication. %s", err))
+		Exit(tr.Tr.Get("This system does not support de-duplication: %s", err))
 	}
 
 	if len(cfg.Extensions()) > 0 {
 		Exit(tr.Tr.Get("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used."))
 	}
 
-	Print("OK: This platform and repository support file de-duplication.")
+	Print(tr.Tr.Get("OK: This platform and repository support file de-duplication."))
 }
 
 func dedupCommand(cmd *cobra.Command, args []string) {
@@ -51,7 +51,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 	if gitDir, err := git.GitDir(); err != nil {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {
-		Exit(tr.Tr.Get("This system does not support deduplication."))
+		Exit(tr.Tr.Get("This system does not support de-duplication."))
 	}
 
 	if len(cfg.Extensions()) > 0 {
@@ -72,11 +72,14 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if success, err := dedup(p); err != nil {
+			// TRANSLATORS: Leading spaces should be included on
+			// the second line so the format specifier aligns with
+			// with the first format specifier on the first line.
 			Error(tr.Tr.Get("Skipped: %s (Size: %d)\n          %s", p.Name, p.Size, err))
 		} else if !success {
 			Error(tr.Tr.Get("Skipped: %s (Size: %d)", p.Name, p.Size))
 		} else if success {
-			Print("Success: %s (Size: %d)", p.Name, p.Size)
+			Print(tr.Tr.Get("Success: %s (Size: %d)", p.Name, p.Size))
 
 			atomic.AddInt64(&dedupStats.totalProcessedCount, 1)
 			atomic.AddInt64(&dedupStats.totalProcessedSize, p.Size)
@@ -88,11 +91,15 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
-	Print("\n\nSuccessfully finished.\n"+
-		"  De-duplicated  size: %d bytes\n"+
-		"                count: %d",
-		dedupStats.totalProcessedSize,
-		dedupStats.totalProcessedCount)
+	// TRANSLATORS: The second and third strings should have the colons
+	// aligned in a column.
+	Print("\n\n%s\n  %s\n  %s", tr.Tr.Get("Finished successfully."),
+		tr.Tr.GetN(
+			"De-duplicated  size: %d byte",
+			"De-duplicated  size: %d bytes",
+			int(dedupStats.totalProcessedSize),
+			dedupStats.totalProcessedSize),
+		tr.Tr.Get("              count: %d", dedupStats.totalProcessedCount))
 }
 
 // dedup executes
@@ -101,7 +108,7 @@ func dedup(p *lfs.WrappedPointer) (success bool, err error) {
 	// PRECONDITION, check ofs object exists or skip this file.
 	if !cfg.LFSObjectExists(p.Oid, p.Size) { // Not exists,
 		// Basically, this is not happens because executing 'git status' in `git.IsWorkingCopyDirty()` recover it.
-		return false, errors.New("mediafile is not exist")
+		return false, errors.New(tr.Tr.Get("Git LFS object file does not exist"))
 	}
 
 	// DO de-dup
@@ -123,7 +130,7 @@ func dedup(p *lfs.WrappedPointer) (success bool, err error) {
 	if ok, err := tools.CloneFileByPath(dstFile, srcFile); err != nil {
 		return false, err
 	} else if !ok {
-		return false, errors.Errorf("unknown clone file error")
+		return false, errors.Errorf(tr.Tr.Get("unknown clone file error"))
 	}
 
 	// Recover original state

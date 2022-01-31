@@ -23,10 +23,10 @@ import (
 var (
 	// ErrNoMatchingLocks is an error returned when no matching locks were
 	// able to be resolved
-	ErrNoMatchingLocks = errors.New("lfs: no matching locks found")
+	ErrNoMatchingLocks = errors.New(tr.Tr.Get("no matching locks found"))
 	// ErrLockAmbiguous is an error returned when multiple matching locks
 	// were found
-	ErrLockAmbiguous = errors.New("lfs: multiple locks found; ambiguous")
+	ErrLockAmbiguous = errors.New(tr.Tr.Get("multiple locks found; ambiguous"))
 )
 
 type LockCacher interface {
@@ -73,7 +73,7 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 func (c *Client) SetupFileCache(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
-		return errors.Wrap(err, "init lock cache")
+		return errors.Wrap(err, tr.Tr.Get("lock cache initialization"))
 	}
 
 	lockFile := path
@@ -83,7 +83,7 @@ func (c *Client) SetupFileCache(path string) error {
 
 	cache, err := NewLockCache(lockFile)
 	if err != nil {
-		return errors.Wrap(err, "init lock cache")
+		return errors.Wrap(err, tr.Tr.Get("lock cache initialization"))
 	}
 
 	c.cache = cache
@@ -105,7 +105,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		Ref:  &lockRef{Name: c.RemoteRef.Refspec()},
 	})
 	if err != nil {
-		return Lock{}, errors.Wrap(err, "api")
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("locking API"))
 	}
 
 	if len(lockRes.Message) > 0 {
@@ -122,7 +122,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 
 	abs, err := getAbsolutePath(path)
 	if err != nil {
-		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
+		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 	}
 
 	// If the file exists, ensure that it's writeable on return
@@ -156,7 +156,7 @@ func getAbsolutePath(p string) (string, error) {
 func (c *Client) UnlockFile(path string, force bool) error {
 	id, err := c.lockIdFromPath(path)
 	if err != nil {
-		return errors.New(tr.Tr.Get("unable to get lock id: %v", err))
+		return errors.New(tr.Tr.Get("unable to get lock ID: %v", err))
 	}
 
 	return c.UnlockFileById(id, force)
@@ -167,7 +167,7 @@ func (c *Client) UnlockFile(path string, force bool) error {
 func (c *Client) UnlockFileById(id string, force bool) error {
 	unlockRes, _, err := c.client.Unlock(c.RemoteRef, c.Remote, id, force)
 	if err != nil {
-		return errors.Wrap(err, "api")
+		return errors.Wrap(err, tr.Tr.Get("locking API"))
 	}
 
 	if len(unlockRes.Message) > 0 {
@@ -184,7 +184,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 	if unlockRes.Lock != nil {
 		abs, err := getAbsolutePath(unlockRes.Lock.Path)
 		if err != nil {
-			return errors.Wrap(err, tr.Tr.Get("make lockpath absolute"))
+			return errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 		}
 
 		// Make non-writeable if required
@@ -360,7 +360,7 @@ func (c *Client) searchRemoteLocks(filter map[string]string, limit int) ([]Lock,
 	for {
 		list, _, err := c.client.Search(c.Remote, query)
 		if err != nil {
-			return locks, errors.Wrap(err, "locking")
+			return locks, errors.Wrap(err, tr.Tr.Get("locking"))
 		}
 
 		if list.Message != "" {

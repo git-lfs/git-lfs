@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/git-lfs/git-lfs/v3/commands"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 		for {
 			sig := <-c
 			once.Do(commands.Cleanup)
-			fmt.Fprintf(os.Stderr, "\nExiting because of %q signal.\n", sig)
+			fmt.Fprintf(os.Stderr, "\n%s\n", tr.Tr.Get("Exiting because of %q signal.", sig))
 
 			exitCode := 1
 			if sysSig, ok := sig.(syscall.Signal); ok {

@@ -11,7 +11,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-var missingCallbackErr = errors.New("no callback given")
+var missingCallbackErr = errors.New(tr.Tr.Get("no callback given"))
 
 // IsCallbackMissing returns a boolean indicating whether the error is reporting
 // that a GitScanner is missing a required GitScannerCallback.

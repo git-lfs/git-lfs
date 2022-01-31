@@ -86,7 +86,7 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
 	dir, err := git.GitCommonDir()
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open root")
+		return nil, errors.Wrap(err, tr.Tr.Get("cannot open root"))
 	}
 
 	return git.ObjectDatabase(cfg.OSEnv(), cfg.GitEnv(), dir, cfg.TempDir())
@@ -361,9 +361,9 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	}
 
 	if proceed {
-		fmt.Fprintf(out, "migrate: %s", tr.Tr.Get("changes in your working copy will be overridden ...\n"))
+		fmt.Fprintf(out, "migrate: %s\n", tr.Tr.Get("changes in your working copy will be overridden ..."))
 	} else {
-		Exit(tr.Tr.Get("migrate: working copy must not be dirty"))
+		Exit("migrate: %s", tr.Tr.Get("working copy must not be dirty"))
 	}
 }
 

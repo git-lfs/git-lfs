@@ -16,7 +16,7 @@ begin_test "dedup"
   git config lfs.extension.foo.priority 0
 
   result=$(git lfs dedup 2>&1) && true
-  if ( echo $result | grep "This system does not support deduplication." ); then
+  if ( echo $result | grep "This system does not support de-duplication." ); then
     exit
   fi
   echo "$result" | grep 'This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.'
@@ -64,7 +64,7 @@ begin_test "dedup test"
   git config lfs.extension.foo.priority 0
 
   result=$(git lfs dedup --test 2>&1) && true
-  if ( echo $result | grep "This system does not support deduplication." ); then
+  if ( echo $result | grep "This system does not support de-duplication." ); then
     exit
   fi
   echo "$result" | grep 'This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used.'
@@ -97,7 +97,7 @@ begin_test "dedup dirty workdir"
 
   # DO
   result=$(git lfs dedup 2>&1) && true
-  if ( echo $result | grep "This system does not support deduplication." ); then
+  if ( echo $result | grep "This system does not support de-duplication." ); then
     exit
   fi
 

@@ -160,7 +160,7 @@ begin_test "status: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" status.log
+  grep "Not in a Git repository" status.log
 )
 end_test
 

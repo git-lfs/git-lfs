@@ -76,7 +76,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// Open file for uploading
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
-		return errors.Wrap(err, "tus upload")
+		return errors.Wrap(err, tr.Tr.Get("tus.io upload"))
 	}
 	defer f.Close()
 
@@ -138,7 +138,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	// A status code of 403 likely means that an authentication token for the
 	// upload has expired. This can be safely retried.
 	if res.StatusCode == 403 {
-		err = errors.New(tr.Tr.Get("http: received status 403"))
+		err = errors.New(tr.Tr.Get("Received status %d", res.StatusCode))
 		return errors.NewRetriableError(err)
 	}
 
@@ -165,7 +165,7 @@ func configureTusAdapter(m *Manifest) {
 			bu.transferImpl = bu
 			return bu
 		case Download:
-			panic("Should never ask tus.io to download")
+			panic(tr.Tr.Get("Should never ask this function to download"))
 		}
 		return nil
 	})

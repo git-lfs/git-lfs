@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
 
@@ -39,7 +40,7 @@ type refUpdater struct {
 // It returns any error encountered, or nil if the reference update(s) was/were
 // successful.
 func (r *refUpdater) UpdateRefs() error {
-	list := r.Logger.List("migrate: Updating refs")
+	list := r.Logger.List(fmt.Sprintf("migrate: %s", tr.Tr.Get("Updating refs")))
 	defer list.Complete()
 
 	var maxNameLen int
@@ -68,7 +69,7 @@ func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error)
 	})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not rewrite tag: %s", tag.Name)
+		return nil, errors.Wrap(err, tr.Tr.Get("could not rewrite tag: %s", tag.Name))
 	}
 	return newTag, nil
 }
@@ -76,7 +77,7 @@ func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error)
 func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string]struct{}, ref *git.Ref) error {
 	sha1, err := hex.DecodeString(ref.Sha)
 	if err != nil {
-		return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+		return errors.Wrap(err, tr.Tr.Get("could not decode: %q", ref.Sha))
 	}
 
 	refspec := ref.Refspec()
@@ -110,7 +111,7 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 			}
 			updatedSha, err := hex.DecodeString(updated.Sha)
 			if err != nil {
-				return errors.Wrapf(err, "could not decode: %q", ref.Sha)
+				return errors.Wrap(err, tr.Tr.Get("could not decode: %q", ref.Sha))
 			}
 
 			newTag, err := r.updateOneTag(tag, updatedSha)

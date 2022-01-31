@@ -18,7 +18,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 	installHooks(false)
 
 	if len(args) < 1 {
-		Print(tr.Tr.Get("git lfs untrack <path> [path]*"))
+		Print("git lfs untrack <path> [path]*")
 		return
 	}
 
@@ -31,7 +31,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 
 	attributesFile, err := os.Create(".gitattributes")
 	if err != nil {
-		Print(tr.Tr.Get("Error opening .gitattributes for writing"))
+		Print(tr.Tr.Get("Error opening '.gitattributes' for writing"))
 		return
 	}
 	defer attributesFile.Close()

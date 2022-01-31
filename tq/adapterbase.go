@@ -1,7 +1,6 @@
 package tq
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -179,7 +178,7 @@ func (a *adapterBase) worker(workerNum int, ctx interface{}) {
 		// Actual transfer happens here
 		var err error
 		if t.Size < 0 {
-			err = fmt.Errorf("object %q has invalid size (got: %d)", t.Oid, t.Size)
+			err = errors.New(tr.Tr.Get("object %q has invalid size (got: %d)", t.Oid, t.Size))
 		} else {
 			err = a.transferImpl.DoTransfer(ctx, t, a.cb, authCallback)
 		}

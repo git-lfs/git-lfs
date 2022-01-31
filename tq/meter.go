@@ -55,7 +55,7 @@ func (m *Meter) LoggerFromEnv(os env) *tools.SyncWriter {
 
 func (m *Meter) LoggerToFile(name string) *tools.SyncWriter {
 	printErr := func(err string) {
-		fmt.Fprintf(os.Stderr, tr.Tr.Get("Error creating progress logger: %s\n", err))
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error creating progress logger: %s", err))
 	}
 
 	if !filepath.IsAbs(name) {

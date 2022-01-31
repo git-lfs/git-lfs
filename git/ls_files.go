@@ -8,6 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -84,8 +85,8 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 	// Check the output of the subprocess, output stderr if the command failed.
 	msg := <-errorMessages
 	if err := cmd.Wait(); err != nil {
-		return nil, errors.Errorf("Error in git %s: %v %s",
-			strings.Join(args, " "), err, msg)
+		return nil, errors.New(tr.Tr.Get("Error in `git %s`: %v %s",
+			strings.Join(args, " "), err, msg))
 	}
 
 	return rv, nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
 type lockableNameSet struct {
@@ -38,7 +39,7 @@ func noopFoundLockable(name string) {}
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {
-		panic("no scan ref options")
+		panic(tr.Tr.Get("no scan ref options"))
 	}
 
 	revs, err := revListShas(include, exclude, opt)
@@ -112,7 +113,7 @@ func scanMultiLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPoin
 // Reports unique oids once only, not multiple times if >1 file uses the same content
 func scanRefsByTree(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {
-		panic("no scan ref options")
+		panic(tr.Tr.Get("no scan ref options"))
 	}
 
 	revs, err := revListShas(include, exclude, opt)

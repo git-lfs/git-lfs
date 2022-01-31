@@ -36,7 +36,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			//
 			// So, let's check early that the caller invoked the
 			// command correctly.
-			Exit(tr.Tr.Get("Did you mean \"git lfs ls-files --all --\" ?"))
+			Exit(tr.Tr.Get("Did you mean `git lfs ls-files --all --` ?"))
 		}
 
 		ref = args[0]

@@ -155,7 +155,7 @@ begin_test "checkout: outside git repository"
     exit 0
   fi
   [ "$res" = "128" ]
-  grep "Not in a git repository" checkout.log
+  grep "Not in a Git repository" checkout.log
 )
 end_test
 

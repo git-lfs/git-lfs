@@ -31,7 +31,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	if checkoutTo != "" && stage != git.IndexStageDefault {
 		if len(args) != 1 {
-			Exit("--to requires exactly one Git LFS object file path")
+			Exit(tr.Tr.Get("--to requires exactly one Git LFS object file path"))
 		}
 		checkoutConflict(rootedPaths(args)[0], stage)
 		return
@@ -155,7 +155,7 @@ func whichCheckout() (stage git.IndexStage, err error) {
 func rootedPaths(args []string) []string {
 	pathConverter, err := lfs.NewCurrentToRepoPatternConverter(cfg)
 	if err != nil {
-		Panic(err, "Could not checkout")
+		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
 
 	rootedpaths := make([]string, 0, len(args))

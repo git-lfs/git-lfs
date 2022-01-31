@@ -48,7 +48,7 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 		ctx.CollectErrors(q)
 
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("ref %s:", update.Left().Name))
+			return errors.Wrap(err, tr.Tr.Get("ref %q:", update.Left().Name))
 		}
 	}
 
@@ -245,7 +245,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 				continue
 			}
 
-			Print(tr.Tr.Get("push %s => %s", p.Oid, p.Name))
+			Print("%s %s => %s", tr.Tr.Get("push"), p.Oid, p.Name)
 			c.SetUploaded(p.Oid)
 		}
 
@@ -295,7 +295,7 @@ func (c *uploadContext) ReportErrors() {
 			action = tr.Tr.Get("failed")
 		}
 
-		Print(tr.Tr.Get("LFS upload %s:", action))
+		Print(tr.Tr.Get("Git LFS upload %s:", action))
 		for name, oid := range c.missing {
 			// TRANSLATORS: Leading spaces should be preserved.
 			Print(tr.Tr.Get("  (missing) %s (%s)", name, oid))
@@ -308,7 +308,7 @@ func (c *uploadContext) ReportErrors() {
 		if !c.allowMissing {
 			pushMissingHint := []string{
 				tr.Tr.Get("hint: Your push was rejected due to missing or corrupt local objects."),
-				tr.Tr.Get("hint: You can disable this check with: 'git config lfs.allowincompletepush true'"),
+				tr.Tr.Get("hint: You can disable this check with: `git config lfs.allowincompletepush true`"),
 			}
 			Print(strings.Join(pushMissingHint, "\n"))
 			os.Exit(2)

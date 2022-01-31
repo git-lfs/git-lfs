@@ -1,7 +1,7 @@
 package lfs
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -159,8 +159,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		}
 		return err
 	} else if currentValue != value {
-		return fmt.Errorf(fmt.Sprintf(tr.Tr.Get("the %%q attribute should be %%q but is %%q")),
-			key, value, currentValue)
+		return errors.New(tr.Tr.Get("the %q attribute should be %q but is %q",
+			key, value, currentValue))
 	}
 
 	return nil

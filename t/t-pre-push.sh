@@ -834,7 +834,7 @@ begin_test "pre-push locks verify 5xx with verification enabled"
   git config "lfs.$endpoint.locksverify" true
 
   git push origin main 2>&1 | tee push.log
-  grep "\"origin\" does not support the LFS locking API" push.log
+  grep "\"origin\" does not support the Git LFS locking API" push.log
   grep "git config lfs.$endpoint.locksverify false" push.log
 
   refute_server_object "$reponame" "$contents_oid"
@@ -861,7 +861,7 @@ begin_test "pre-push disable locks verify on exact url"
   git config "lfs.$endpoint.locksverify" false
 
   git push origin main 2>&1 | tee push.log
-  [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+  [ "0" -eq "$(grep -c "\"origin\" does not support the Git LFS locking API" push.log)" ]
 
   assert_server_object "$reponame" "$contents_oid"
 )
@@ -887,7 +887,7 @@ begin_test "pre-push disable locks verify on partial url"
   git config "lfs.$endpoint.locksverify" false
 
   git push origin main 2>&1 | tee push.log
-  [ "0" -eq "$(grep -c "\"origin\" does not support the LFS locking API" push.log)" ]
+  [ "0" -eq "$(grep -c "\"origin\" does not support the Git LFS locking API" push.log)" ]
 
   assert_server_object "$reponame" "$contents_oid"
 )
@@ -1004,7 +1004,7 @@ begin_test "pre-push locks verify 5xx with verification unset"
   [ -z "$(git config "lfs.$endpoint.locksverify")" ]
 
   git push origin main 2>&1 | tee push.log
-  grep "\"origin\" does not support the LFS locking API" push.log
+  grep "\"origin\" does not support the Git LFS locking API" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 )

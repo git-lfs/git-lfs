@@ -3,11 +3,11 @@
 package git
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/pktline"
 	"github.com/rubyist/tracerx"
 )
@@ -73,23 +73,23 @@ func (o *FilterProcessScanner) Init() error {
 
 	initMsg, err := o.pl.ReadPacketText()
 	if err != nil {
-		return errors.Wrap(err, "reading filter-process initialization")
+		return errors.Wrap(err, tr.Tr.Get("reading filter-process initialization"))
 	}
 	if initMsg != "git-filter-client" {
-		return fmt.Errorf("invalid filter-process pkt-line welcome message: %s", initMsg)
+		return errors.New(tr.Tr.Get("invalid filter-process pkt-line welcome message: %s", initMsg))
 	}
 
 	supVers, err := o.pl.ReadPacketList()
 	if err != nil {
-		return errors.Wrap(err, "reading filter-process versions")
+		return errors.Wrap(err, tr.Tr.Get("reading filter-process versions"))
 	}
 	if !isStringInSlice(supVers, reqVer) {
-		return fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqVer, supVers)
+		return errors.New(tr.Tr.Get("filter '%s' not supported (your Git supports: %s)", reqVer, supVers))
 	}
 
 	err = o.pl.WritePacketList([]string{"git-filter-server", reqVer})
 	if err != nil {
-		return errors.Wrap(err, "writing filter-process initialization failed")
+		return errors.Wrap(err, tr.Tr.Get("writing filter-process initialization failed"))
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 
 	supCaps, err := o.pl.ReadPacketList()
 	if err != nil {
-		return nil, fmt.Errorf("reading filter-process capabilities failed with %s", err)
+		return nil, errors.New(tr.Tr.Get("reading filter-process capabilities failed with %s", err))
 	}
 
 	for _, sup := range supCaps {
@@ -116,13 +116,13 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 
 	for _, reqCap := range reqCaps {
 		if !isStringInSlice(supCaps, reqCap) {
-			return nil, fmt.Errorf("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps)
+			return nil, errors.New(tr.Tr.Get("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps))
 		}
 	}
 
 	err = o.pl.WritePacketList(reqCaps)
 	if err != nil {
-		return nil, fmt.Errorf("writing filter-process capabilities failed with %s", err)
+		return nil, errors.New(tr.Tr.Get("writing filter-process capabilities failed with %s", err))
 	}
 
 	return supCaps, nil
