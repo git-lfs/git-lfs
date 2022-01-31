@@ -432,6 +432,56 @@ begin_test "migrate info (--everything)"
 )
 end_test
 
+begin_test "migrate info (existing .gitattributes symlink)"
+(
+  set -e
+
+  setup_local_branch_with_gitattrs link
+
+  git lfs migrate info --everything 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate info to fail, didn't"
+    exit 1
+  fi
+
+  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+
+  main="$(git rev-parse refs/heads/main)"
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main -- .gitattributes) <(cat <<-EOF
+120000 blob $attrs_main_sha	.gitattributes
+EOF
+  )
+)
+end_test
+
+begin_test "migrate info (potential fixup, --fixup, .gitattributes symlink)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt link
+
+  git lfs migrate info 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate info to fail, didn't"
+    exit 1
+  fi
+
+  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+
+  main="$(git rev-parse refs/heads/main)"
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main -- .gitattributes) <(cat <<-EOF
+120000 blob $attrs_main_sha	.gitattributes
+EOF
+  )
+)
+end_test
+
 begin_test "migrate info (--fixup, no .gitattributes)"
 (
   set -e

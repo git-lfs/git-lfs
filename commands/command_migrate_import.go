@@ -196,7 +196,6 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				if err != nil {
 					return err
 				}
-				return nil
 			}
 			return nil
 		},
@@ -322,8 +321,12 @@ func trackedFromAttrs(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*tools.Ordered
 
 	for _, e := range t.Entries {
 		if strings.ToLower(e.Name) == ".gitattributes" && e.Type() == gitobj.BlobObjectType {
-			oid = e.Oid
-			break
+			if e.IsLink() {
+				return nil, errors.Errorf("migrate: %s", tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+			} else {
+				oid = e.Oid
+				break
+			}
 		}
 	}
 

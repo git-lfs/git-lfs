@@ -129,3 +129,28 @@ begin_test "migrate import (--fixup with remote tags)"
   git lfs migrate import --fixup --yes main
 )
 end_test
+
+begin_test "migrate import (--fixup, .gitattributes symlink)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt link
+
+  git lfs migrate import --everything --fixup --yes 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate import to fail, didn't"
+    exit 1
+  fi
+
+  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+
+  main="$(git rev-parse refs/heads/main)"
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main -- .gitattributes) <(cat <<-EOF
+120000 blob $attrs_main_sha	.gitattributes
+EOF
+  )
+)
+end_test

@@ -53,7 +53,9 @@ in [INCLUDE AND EXCLUDE].
 As typical Git LFS usage depends on tracking specific file types using
 filename patterns defined in `.gitattributes` files, the `git lfs migrate`
 command will examine, create, and modify `.gitattributes` files as
-necessary.
+necessary.  The `.gitattributes` files will always be assigned the default
+read/write permissions mode (i.e., without execute permissions).  Any
+symbolic links with that name will cause the migration to halt prematurely.
 
 The `import` mode (see [IMPORT]) will convert Git objects of the file types
 specified (e.g., with `--include`) to Git LFS pointers, and will add entries

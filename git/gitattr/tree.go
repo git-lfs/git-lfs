@@ -3,6 +3,8 @@ package gitattr
 import (
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
 
@@ -63,6 +65,9 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, string, er
 	var at int = -1
 	for i, e := range t.Entries {
 		if e.Name == ".gitattributes" {
+			if e.IsLink() {
+				return nil, "", errors.Errorf("migrate: %s", tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+			}
 			at = i
 			break
 		}
