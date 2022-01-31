@@ -207,7 +207,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 
 	if len(malformed) > 0 {
 		fmt.Fprintln(os.Stderr, tr.Tr.GetN(
-			"Encountered %d file that should have been pointers, but wasn't:",
+			"Encountered %d file that should have been a pointer, but wasn't:",
 			"Encountered %d files that should have been pointers, but weren't:",
 			len(malformed),
 			len(malformed),
