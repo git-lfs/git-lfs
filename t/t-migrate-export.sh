@@ -413,6 +413,31 @@ EOF
 )
 end_test
 
+begin_test "migrate export (.gitattributes symlink)"
+(
+  set -e
+
+  setup_single_local_branch_tracked link
+
+  git lfs migrate export --yes --include="*.txt" 2>&1 | tee migrate.log
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo >&2 "fatal: expected git lfs migrate export to fail, didn't"
+    exit 1
+  fi
+
+  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+
+  main="$(git rev-parse refs/heads/main)"
+
+  attrs_main_sha="$(git show $main:.gitattributes | git hash-object --stdin)"
+
+  diff -u <(git ls-tree $main -- .gitattributes) <(cat <<-EOF
+120000 blob $attrs_main_sha	.gitattributes
+EOF
+  )
+)
+end_test
+
 begin_test "migrate export (--object-map)"
 (
   set -e

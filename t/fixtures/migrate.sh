@@ -28,6 +28,8 @@ assert_ref_unmoved() {
 #
 #   If "0755" is passed as an argument, the .gitattributes file is created
 #   with that permissions mode.
+#   If "link" is passed as an argument, the .gitattributes file is created
+#   as a symlink to a gitattrs file.
 setup_local_branch_with_gitattrs() {
   set -e
 
@@ -45,6 +47,12 @@ setup_local_branch_with_gitattrs() {
 
   if [[ $1 == "0755" ]]; then
     chmod +x .gitattributes
+  elif [[ $1 == "link" ]]; then
+    mv .gitattributes gitattrs
+
+    add_symlink gitattrs .gitattributes
+
+    git add gitattrs
   fi
 
   git add .gitattributes
@@ -128,6 +136,8 @@ setup_single_local_branch_untracked() {
 #
 #   If "0755" is passed as an argument, the .gitattributes file is created
 #   with that permissions mode.
+#   If "link" is passed as an argument, the .gitattributes file is created
+#   as a symlink to a gitattrs file.
 setup_single_local_branch_tracked() {
   set -e
 
@@ -150,6 +160,14 @@ setup_single_local_branch_tracked() {
 
   git add a.txt a.md
   git commit -m "add a.{txt,md}"
+
+  if [[ $1 == "link" ]]; then
+    git mv .gitattributes gitattrs
+
+    add_symlink gitattrs .gitattributes
+
+    git commit -m "link .gitattributes"
+  fi
 }
 
 # setup_single_local_branch_complex_tracked creates a repository as follows:
@@ -191,6 +209,9 @@ setup_single_local_branch_complex_tracked() {
 #
 # - Commit 'A' has 120 bytes of random data in a.txt, and tracks *.txt under Git
 #   LFS, but a.txt is not stored as an LFS object.
+#
+#   If "link" is passed as an argument, the .gitattributes file is created
+#   as a symlink to a gitattrs file.
 setup_single_local_branch_tracked_corrupt() {
   set -e
 
@@ -202,6 +223,14 @@ setup_single_local_branch_tracked_corrupt() {
   git lfs uninstall
 
   base64 < /dev/urandom | head -c 120 > a.txt
+
+ if [[ $1 == "link" ]]; then
+    mv .gitattributes gitattrs
+
+    add_symlink gitattrs .gitattributes
+
+    git add .gitattributes
+  fi
 
   git add .gitattributes a.txt
   git commit -m "initial commit"
