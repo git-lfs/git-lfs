@@ -587,6 +587,7 @@ MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
   man/git-lfs-clean.1 \
   man/git-lfs-clone.1 \
   man/git-lfs-config.5 \
+  man/git-lfs-dedup.1 \
   man/git-lfs-env.1 \
   man/git-lfs-ext.1 \
   man/git-lfs-fetch.1 \
@@ -607,6 +608,7 @@ MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
   man/git-lfs-pull.1 \
   man/git-lfs-push.1 \
   man/git-lfs-smudge.1 \
+  man/git-lfs-standalone-file.1 \
   man/git-lfs-status.1 \
   man/git-lfs-track.1 \
   man/git-lfs-uninstall.1 \
@@ -620,6 +622,7 @@ MAN_HTML_TARGETS = man/git-lfs-checkout.1.html \
   man/git-lfs-clean.1.html \
   man/git-lfs-clone.1.html \
   man/git-lfs-config.5.html \
+  man/git-lfs-dedup.1.html \
   man/git-lfs-env.1.html \
   man/git-lfs-ext.1.html \
   man/git-lfs-fetch.1.html \
@@ -640,6 +643,7 @@ MAN_HTML_TARGETS = man/git-lfs-checkout.1.html \
   man/git-lfs-pull.1.html \
   man/git-lfs-push.1.html \
   man/git-lfs-smudge.1.html \
+  man/git-lfs-standalone-file.1.html \
   man/git-lfs-status.1.html \
   man/git-lfs-track.1.html \
   man/git-lfs-uninstall.1.html \
