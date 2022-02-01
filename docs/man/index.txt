@@ -1,3 +1,0 @@
-# external
-gitattributes(5) http://man.cx/gitattributes(5)
-

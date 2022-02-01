@@ -582,6 +582,36 @@ lint : $(SOURCES)
 	| $(GREP) -v "github.com/git-lfs/git-lfs" \
 	| $(GREP) "."
 
+# generate index.txt for ronn HTML man page link generation
+.PHONY : index.txt
+index.txt :
+	@echo "Generating index.txt for ronn"
+	@( \
+		printf "# internal\n" >index.txt; \
+		for f in $$(cd docs/man && ls git-lfs*.ronn); do \
+			l=$$(printf "$$f" | sed -E 's/\.([1-9])\.ronn$$/(\1)/'); \
+			printf "%s %s\n" "$$l $$f"; \
+		done >>index.txt; \
+		printf "\n# external\n" >>index.txt; \
+		for l in $$(awk 'p && FNR==1 {p=0}; \
+		                 p && /^#/ {p=0}; \
+		                 p && length; \
+		                 /^## SEE ALSO/ {p=1};' \
+				docs/man/git-lfs*.ronn | \
+				sed 's/[^-a-z0-9()]/ /g' | tr -s ' ' '\n' | \
+				sort -u | grep '([1-9])' | grep -v ^git-lfs); do \
+			p=$$(printf "$$l" | head -c 3); \
+			if [ "$$p" = "git" ]; then \
+				f="git-scm.com/docs/%s"; \
+				u=$$(printf "$$l" | sed -E 's/^(.*)\([1-9]\)$$/\1/'); \
+			else \
+				f="man7.org/linux/man-pages/man%s.html"; \
+				u=$$(printf "$$l" | sed -E 's/^(.*)\(([1-9])\)$$/\2\/\1.\2/'); \
+			fi; \
+			printf "%s https://$$f\n" "$$l" "$$u"; \
+		done >>index.txt; \
+	)
+
 # MAN_ROFF_TARGETS is a list of all ROFF-style targets in the man pages.
 MAN_ROFF_TARGETS = man/git-lfs-checkout.1 \
   man/git-lfs-clean.1 \
@@ -654,7 +684,7 @@ MAN_HTML_TARGETS = man/git-lfs-checkout.1.html \
 
 # man generates all ROFF- and HTML-style manpage targets.
 .PHONY : man
-man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
+man : index.txt $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 
 # man/% generates ROFF-style man pages from the corresponding .ronn file.
 man/% : docs/man/%.ronn
