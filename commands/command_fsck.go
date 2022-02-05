@@ -48,8 +48,8 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 
 	useIndex := false
-	start := ""
-	end := "HEAD"
+	exclude := ""
+	include := "HEAD"
 
 	switch len(args) {
 	case 0:
@@ -58,7 +58,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 		if err != nil {
 			ExitWithError(err)
 		}
-		end = ref.Sha
+		include = ref.Sha
 	case 1:
 		pieces := strings.SplitN(args[0], "..", 2)
 		refs, err := git.ResolveRefs(pieces)
@@ -66,10 +66,10 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(err)
 		}
 		if len(refs) == 2 {
-			start = refs[0].Sha
-			end = refs[1].Sha
+			exclude = refs[0].Sha
+			include = refs[1].Sha
 		} else {
-			end = refs[0].Sha
+			include = refs[0].Sha
 		}
 	}
 
@@ -82,11 +82,11 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	var corruptOids []string
 	var corruptPointers []corruptPointer
 	if fsckObjects {
-		corruptOids = doFsckObjects(start, end, useIndex)
+		corruptOids = doFsckObjects(exclude, include, useIndex)
 		ok = ok && len(corruptOids) == 0
 	}
 	if fsckPointers {
-		corruptPointers = doFsckPointers(start, end)
+		corruptPointers = doFsckPointers(exclude, include)
 		ok = ok && len(corruptPointers) == 0
 	}
 
@@ -123,7 +123,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
-func doFsckObjects(start, end string, useIndex bool) []string {
+func doFsckObjects(exclude, include string, useIndex bool) []string {
 	var corruptOids []string
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
@@ -146,12 +146,12 @@ func doFsckObjects(start, end string, useIndex bool) []string {
 	// Attach a filepathfilter to avoid _only_ the excluded paths.
 	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitAttributes)
 
-	if start == "" {
-		if err := gitscanner.ScanRef(end, nil); err != nil {
+	if exclude == "" {
+		if err := gitscanner.ScanRef(include, nil); err != nil {
 			ExitWithError(err)
 		}
 	} else {
-		if err := gitscanner.ScanRefRange(start, end, nil); err != nil {
+		if err := gitscanner.ScanRefRange(exclude, include, nil); err != nil {
 			ExitWithError(err)
 		}
 	}
@@ -167,7 +167,7 @@ func doFsckObjects(start, end string, useIndex bool) []string {
 }
 
 // doFsckPointers checks that the pointers in the given ref are correct and canonical.
-func doFsckPointers(start, end string) []corruptPointer {
+func doFsckPointers(exclude, include string) []corruptPointer {
 	var corruptPointers []corruptPointer
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if p != nil {
@@ -199,12 +199,12 @@ func doFsckPointers(start, end string) []corruptPointer {
 		}
 	})
 
-	if start == "" {
-		if err := gitscanner.ScanRefByTree(end, nil); err != nil {
+	if exclude == "" {
+		if err := gitscanner.ScanRefByTree(include, nil); err != nil {
 			ExitWithError(err)
 		}
 	} else {
-		if err := gitscanner.ScanRefRangeByTree(start, end, nil); err != nil {
+		if err := gitscanner.ScanRefRangeByTree(exclude, include, nil); err != nil {
 			ExitWithError(err)
 		}
 	}
