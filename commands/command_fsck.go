@@ -113,6 +113,9 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 			continue
 		}
 		if err := os.Rename(srcFile, badFile); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
 			ExitWithError(err)
 		}
 	}

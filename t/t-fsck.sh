@@ -292,7 +292,7 @@ begin_test "fsck detects invalid objects"
   RET=$?
   set -e
 
-  [ "$RET" -eq 2 ]
+  [ "$RET" -eq 1 ]
   [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
   [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
   [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
@@ -306,7 +306,7 @@ begin_test "fsck detects invalid objects"
   RET=$?
   set -e
 
-  [ "$RET" -eq 2 ]
+  [ "$RET" -eq 1 ]
   [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
   [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
   [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
