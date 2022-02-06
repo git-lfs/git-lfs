@@ -204,7 +204,7 @@ func doFsckPointers(include, exclude string) []corruptPointer {
 			ExitWithError(err)
 		}
 	} else {
-		if err := gitscanner.ScanRefRangeByTree(exclude, include, nil); err != nil {
+		if err := gitscanner.ScanRefRangeByTree(include, exclude, nil); err != nil {
 			ExitWithError(err)
 		}
 	}

@@ -151,7 +151,7 @@ func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPo
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
 	opts.CommitsOnly = true
-	return scanRefsByTree(s, callback, []string{right}, []string{left}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsByTree(s, callback, []string{left}, []string{right}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
