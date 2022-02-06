@@ -264,6 +264,72 @@ EOF
 )
 end_test
 
+setup_invalid_objects () {
+  git init $reponame
+  cd $reponame
+
+  # Create a commit with some files tracked by git-lfs
+  git lfs track *.dat
+  echo "test data" > a.dat
+  echo "test data 2" > b.dat
+  git add .gitattributes *.dat
+  git commit -m "first commit"
+
+  oid1=$(calc_oid_file a.dat)
+  oid2=$(calc_oid_file b.dat)
+  echo "CORRUPTION" >>".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+}
+begin_test "fsck detects invalid objects"
+(
+  set -e
+
+  reponame="fsck-objects"
+  setup_invalid_objects
+
+  set +e
+  git lfs fsck >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 2 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+
+  cd ..
+  rm -rf $reponame
+  setup_invalid_objects
+
+  set +e
+  git lfs fsck --objects >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 2 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+)
+end_test
+
+begin_test "fsck does not detect invalid objects with no LFS objects"
+(
+  set -e
+
+  reponame="fsck-objects-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "# README" > README.md
+  git add README.md
+  git commit -m "Add README"
+
+  git lfs fsck
+  git lfs fsck --objects
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e
