@@ -82,11 +82,11 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	var corruptOids []string
 	var corruptPointers []corruptPointer
 	if fsckObjects {
-		corruptOids = doFsckObjects(exclude, include, useIndex)
+		corruptOids = doFsckObjects(include, exclude, useIndex)
 		ok = ok && len(corruptOids) == 0
 	}
 	if fsckPointers {
-		corruptPointers = doFsckPointers(exclude, include)
+		corruptPointers = doFsckPointers(include, exclude)
 		ok = ok && len(corruptPointers) == 0
 	}
 
@@ -123,7 +123,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
-func doFsckObjects(exclude, include string, useIndex bool) []string {
+func doFsckObjects(include, exclude string, useIndex bool) []string {
 	var corruptOids []string
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err == nil {
@@ -167,7 +167,7 @@ func doFsckObjects(exclude, include string, useIndex bool) []string {
 }
 
 // doFsckPointers checks that the pointers in the given ref are correct and canonical.
-func doFsckPointers(exclude, include string) []corruptPointer {
+func doFsckPointers(include, exclude string) []corruptPointer {
 	var corruptPointers []corruptPointer
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if p != nil {
