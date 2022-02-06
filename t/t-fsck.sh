@@ -338,11 +338,14 @@ begin_test "fsck operates on specified refs"
   setup_invalid_pointers
 
   git rm -f crlf.dat large.dat
+  echo "# Test" > new.dat
+  git add new.dat
   git commit -m 'third commit'
 
   git commit --allow-empty -m 'fourth commit'
 
   # Should succeed.  (HEAD and index).
+
   git lfs fsck
   git lfs fsck HEAD
   git lfs fsck HEAD^^ && exit 1
@@ -350,6 +353,20 @@ begin_test "fsck operates on specified refs"
   git lfs fsck HEAD^..HEAD
   git lfs fsck HEAD^^^..HEAD && exit 1
   git lfs fsck HEAD^^^..HEAD^ && exit 1
+
+  git lfs fsck --pointers HEAD^^^..HEAD^^ >test.log 2>&1 && exit 1
+
+  grep 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log
+  grep 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log
+
+  oid=$(calc_oid_file new.dat)
+  echo "CORRUPTION" >>".git/lfs/objects/${oid:0:2}/${oid:2:2}/$oid"
+
+  git lfs fsck --objects HEAD^^..HEAD^ >test.log 2>&1 && exit 1
+
+  grep 'objects: corruptObject: new.dat (.*) is corrupt' test.log
+  grep 'objects: repair: moving corrupt objects to .*' test.log
+
   # Make the result of the subshell a success.
   true
 )
