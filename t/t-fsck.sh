@@ -127,8 +127,8 @@ begin_test "fsck: outside git repository"
   set +e
   git lfs fsck 2>&1 > fsck.log
   res=$?
-
   set -e
+
   if [ "$res" = "0" ]; then
     echo "Passes because $GIT_LFS_TEST_DIR is unset."
     exit 0
@@ -193,6 +193,7 @@ begin_test "fsck detects invalid pointers with GIT_OBJECT_DIRECTORY"
   git init "$reponame-2"
   gitdir="$(lfstest-realpath "$reponame-2/.git")"
   GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git update-ref refs/heads/main "$head"
+
   set +e
   GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git lfs fsck --pointers >test.log 2>&1
   RET=$?
@@ -280,6 +281,7 @@ setup_invalid_objects () {
   echo "CORRUPTION" >>".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
   rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
 }
+
 begin_test "fsck detects invalid objects"
 (
   set -e
