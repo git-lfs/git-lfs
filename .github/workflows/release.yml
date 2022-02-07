@@ -37,14 +37,21 @@ jobs:
         CERT_CONTENTS: ${{secrets.WINDOWS_CERT_BASE64}}
     - run: PATH="$HOME/go/bin:$PATH" GOARCH=amd64 go generate && make bin/releases/git-lfs-windows-amd64-$(git describe).zip
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: PATH="$HOME/go/bin:$PATH" GOARCH=386 go generate && make bin/releases/git-lfs-windows-386-$(git describe).zip
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: PATH="$HOME/go/bin:$PATH" GOARCH=arm64 go generate && make bin/releases/git-lfs-windows-arm64-$(git describe).zip
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
       env:
         CERT_PASS: ${{secrets.WINDOWS_CERT_PASS}}
+        FORCE_LOCALIZE: true
     - run: make release-windows-rebuild
       shell: bash
     - uses: actions/upload-artifact@v1
@@ -69,6 +76,8 @@ jobs:
     - run: brew install mitchellh/gon/gon
     - run: gem install ronn
     - run: make release
+      env:
+          FORCE_LOCALIZE: true
     - run: CERT_FILE="$HOME/cert.p12" make release-write-certificate
       env:
         CERT_CONTENTS: ${{secrets.MACOS_CERT_BASE64}}
@@ -129,7 +138,7 @@ jobs:
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune
+    - run: ./docker/run_dockers.bsh --prune
     # If this is a pre-release tag, don't upload anything to packagecloud.
     - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
       env:
@@ -155,7 +164,7 @@ jobs:
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
+    - run: ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}

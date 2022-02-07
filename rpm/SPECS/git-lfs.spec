@@ -9,7 +9,7 @@ URL:            https://git-lfs.github.com/
 Source0:        https://github.com/git-lfs/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  perl-Digest-SHA
-BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2
+BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2, gettext-devel
 
 Requires: git >= 1.8.2
 
@@ -34,9 +34,9 @@ ln -s $(pwd) src/github.com/git-lfs/%{name}
 
 pushd src/github.com/git-lfs/%{name}
   %if %{_arch} == i386
-    GOARCH=386 make
+    GOARCH=386 FORCE_LOCALIZE=true make
   %else
-    GOARCH=amd64 make
+    GOARCH=amd64 FORCE_LOCALIZE=true make
   %endif
 popd
 make man
