@@ -25,7 +25,11 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
     - run: gem install ronn
     - run: script/cibuild
+      env:
+          FORCE_LOCALIZE: true
     - run: CGO_ENABLED=0 make release
+      env:
+          FORCE_LOCALIZE: true
     - run: mkdir -p bin/assets
     - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
     - uses: actions/upload-artifact@v1
@@ -75,16 +79,22 @@ jobs:
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: mv bin\git-lfs.exe git-lfs-x86.exe
     - run: rm -f commands/mancontent_gen.go
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=amd64 -B
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: mv bin\git-lfs.exe git-lfs-x64.exe
     - run: rm -f commands/mancontent_gen.go
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=arm64 -B
       shell: bash
+      env:
+        FORCE_LOCALIZE: true
     - run: mv bin\git-lfs.exe git-lfs-arm64.exe
     - run: iscc script\windows-installer\inno-setup-git-lfs-installer.iss
     - run: mkdir -p bin/assets
@@ -131,7 +141,7 @@ jobs:
     - uses: actions/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune
+    - run: ./docker/run_dockers.bsh --prune
   build-docker-cross:
     name: Build Cross Linux packages
     runs-on: ubuntu-20.04
@@ -154,7 +164,7 @@ jobs:
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}
-    - run: DOCKER_AUTOPULL=0 ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
+    - run: ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}

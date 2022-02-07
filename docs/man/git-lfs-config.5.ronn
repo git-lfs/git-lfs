@@ -115,7 +115,7 @@ be scoped inside the configuration for a remote.
   2.34.0 due to a limitation in Git.  Default: true if the version is less than
   2.34.0, false otherwise.
 
-### Transfer (upload / download) settings
+### Upload and download transfer settings
 
   These settings control how the upload and download of LFS content occurs.
 

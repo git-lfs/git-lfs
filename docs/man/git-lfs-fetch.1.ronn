@@ -50,7 +50,7 @@ Note that using the command-line options `-I` and `-X` override the respective
 configuration settings.  Setting either option to an empty string clears the
 value.
 
-### Examples:
+### Examples
 
 * `git config lfs.fetchinclude "textures,images/foo*"`
 

@@ -7,8 +7,6 @@
 #
 # Special Environments Variables
 #  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
-#  DOCKER_AUTOPULL - Default 1. If set to 0, it will not build docker images
-#                before running
 #  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
 #                docker instance when done. This can be useful for a post mortem
 #                analysis. Just make sure you clean up the docker instances
@@ -68,11 +66,6 @@ mkdir -p "${PACKAGE_DIR}"
 #Run docker to build packages
 for IMAGE_NAME in "${IMAGES[@]}"; do
   split_image_name "${IMAGE_NAME}" #set IMAGE_NAME and IMAGE_INFO
-
-  #Auto pull docker unless DOCKER_AUTOPULL=0
-  if [[ ${DOCKER_AUTOPULL-1} != 0 ]]; then
-    $SUDO docker pull gitlfs/build-dockers:${IMAGE_NAME}
-  fi
 
   #It CAN'T be empty () with set -u... So I put some defaults in here
   OTHER_OPTIONS=("-t")
