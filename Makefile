@@ -113,6 +113,9 @@ MO = $(patsubst po/%.po,po/build/%.mo,$(PO))
 # XGOTEXT is the string extractor for gotext.
 XGOTEXT ?= xgotext
 
+# FORCE_LOCALIZE forces localization to be run if set to non-empty.
+FORCE_LOCALIZE ?=
+
 # PKGS is a listing of packages that are considered to be a part of Git LFS, and
 # are used in package-specific commands, such as the 'make test' targets. For
 # example:
@@ -230,10 +233,14 @@ po/build:
 
 # These targets build the MO files.
 po/build/%.mo: po/%.po po/build
+ifeq ($(FORCE_LOCALIZE),)
 	if command -v $(MSGFMT) >/dev/null 2>&1; \
 	then \
 		$(MSGFMT) -o $@ $<; \
 	fi
+else
+	$(MSGFMT) -o $@ $<
+endif
 
 po/i-reverse.po: po/default.pot
 	script/gen-i-reverse $< $@
