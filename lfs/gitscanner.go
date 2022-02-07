@@ -92,7 +92,7 @@ func (s *GitScanner) ScanRangeToRemote(include, exclude string, cb GitScannerFou
 	}
 	s.mu.Unlock()
 
-	return scanLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanMultiRangeToRemote scans through all commits starting at the left ref but
@@ -111,7 +111,7 @@ func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb
 	}
 	s.mu.Unlock()
 
-	return scanMultiLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanRefsToChanSingleIncludeMultiExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanRefs through all commits reachable by refs contained in "include" and
@@ -137,7 +137,7 @@ func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPoi
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanRefRangeByTree scans through all trees from the given left and right
@@ -170,7 +170,7 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanLeftRightToChan(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanRefByTree scans through all trees in the current ref.
@@ -195,7 +195,7 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanLeftRightToChan(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that

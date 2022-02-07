@@ -95,7 +95,7 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 // scanLeftRightToChan takes a ref and returns a channel of WrappedPointer objects
 // for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
+func scanRefsToChanSingleIncludeExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	return scanRefsToChan(scanner, pointerCb, []string{include}, []string{exclude}, gitEnv, osEnv, opt)
 }
 
@@ -103,7 +103,7 @@ func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, 
 // of WrappedPointer objects for all Git LFS pointers it finds for that ref.
 // Reports unique oids once only, not multiple times if >1 file uses the same
 // content
-func scanMultiLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include string, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
+func scanRefsToChanSingleIncludeMultiExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include string, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	return scanRefsToChan(scanner, pointerCb, []string{include}, exclude, gitEnv, osEnv, opt)
 }
 
