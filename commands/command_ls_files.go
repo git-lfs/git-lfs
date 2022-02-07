@@ -24,7 +24,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 
 	var ref string
-	var otherRef string
+	var includeRef string
 	var scanRange = false
 	if len(args) > 0 {
 		if lsFilesScanAll {
@@ -44,7 +44,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			if lsFilesScanDeleted {
 				Exit(tr.Tr.Get("Cannot use --deleted with reference range"))
 			}
-			otherRef = args[1]
+			includeRef = args[1]
 			scanRange = true
 		}
 	} else {
@@ -130,7 +130,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		if lsFilesScanDeleted {
 			err = gitscanner.ScanRefWithDeleted(ref, nil)
 		} else if scanRange {
-			err = gitscanner.ScanRefRange(otherRef, ref, nil)
+			err = gitscanner.ScanRefRange(includeRef, ref, nil)
 		} else {
 			err = gitscanner.ScanTree(ref)
 		}

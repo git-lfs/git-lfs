@@ -32,11 +32,11 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 	}()
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
-	rightSides := make([]string, 0, len(updates))
+	exclude := make([]string, 0, len(updates))
 	for _, update := range updates {
 		right := update.Right().Sha
 		if update.LeftCommitish() != right {
-			rightSides = append(rightSides, right)
+			exclude = append(exclude, right)
 		}
 	}
 	for _, update := range updates {
@@ -44,7 +44,7 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 		q := ctx.NewQueue(
 			tq.RemoteRef(update.Right()),
 		)
-		err := uploadLeftOrAll(gitscanner, ctx, q, rightSides, update, pushAll)
+		err := uploadRangeOrAll(gitscanner, ctx, q, exclude, update, pushAll)
 		ctx.CollectErrors(q)
 
 		if err != nil {
@@ -55,14 +55,14 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 	return nil
 }
 
-func uploadLeftOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, bases []string, update *git.RefUpdate, pushAll bool) error {
+func uploadRangeOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, exclude []string, update *git.RefUpdate, pushAll bool) error {
 	cb := ctx.gitScannerCallback(q)
 	if pushAll {
 		if err := g.ScanRefWithDeleted(update.LeftCommitish(), cb); err != nil {
 			return err
 		}
 	} else {
-		if err := g.ScanMultiRangeToRemote(update.LeftCommitish(), bases, cb); err != nil {
+		if err := g.ScanMultiRangeToRemote(update.LeftCommitish(), exclude, cb); err != nil {
 			return err
 		}
 	}
