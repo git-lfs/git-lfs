@@ -34,9 +34,9 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	exclude := make([]string, 0, len(updates))
 	for _, update := range updates {
-		right := update.RemoteRef().Sha
-		if update.LocalRefCommitish() != right {
-			exclude = append(exclude, right)
+		remoteRefSha := update.RemoteRef().Sha
+		if update.LocalRefCommitish() != remoteRefSha {
+			exclude = append(exclude, remoteRefSha)
 		}
 	}
 	for _, update := range updates {
