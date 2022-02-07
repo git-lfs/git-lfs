@@ -60,7 +60,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 
 	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
-	lockClient.RemoteRef = refUpdate.Right()
+	lockClient.RemoteRef = refUpdate.RemoteRef()
 	defer lockClient.Close()
 
 	locks := make([]unlockResponse, 0, len(args))

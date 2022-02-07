@@ -25,7 +25,7 @@ const (
 
 func verifyLocksForUpdates(lv *lockVerifier, updates []*git.RefUpdate) {
 	for _, update := range updates {
-		lv.Verify(update.Right())
+		lv.Verify(update.RemoteRef())
 	}
 }
 

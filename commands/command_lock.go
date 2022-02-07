@@ -25,7 +25,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 
 	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
-	lockClient.RemoteRef = refUpdate.Right()
+	lockClient.RemoteRef = refUpdate.RemoteRef()
 	defer lockClient.Close()
 
 	success := true
