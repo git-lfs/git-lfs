@@ -122,11 +122,11 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 
 	refs := make([]*git.RefUpdate, len(refnames))
 	for i, name := range refnames {
-		if left, ok := reflookup[name]; ok {
-			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+		if ref, ok := reflookup[name]; ok {
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		} else {
-			left := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, nil)
+			ref := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		}
 	}
 

@@ -126,7 +126,7 @@ func newDownloadQueue(manifest *tq.Manifest, remote string, options ...tq.Option
 }
 
 func currentRemoteRef() *git.Ref {
-	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).Right()
+	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).RemoteRef()
 }
 
 func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool) *filepathfilter.Filter {

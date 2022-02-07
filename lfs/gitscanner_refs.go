@@ -33,10 +33,11 @@ func (s *lockableNameSet) Check(blobSha string) (string, bool) {
 
 func noopFoundLockable(name string) {}
 
-// scanRefsToChan scans through all commits reachable by refs contained in
-// "include" and not reachable by any refs included in "exclude" and invokes
-// the provided callback for each pointer file, valid or invalid, that it finds.
-// Reports unique oids once only, not multiple times if >1 file uses the same content
+// scanRefsToChan scans through all unique objects reachable from the
+// "include" refs and not reachable from any "exclude" refs and invokes the
+// provided callback for each pointer file, valid or invalid, that it finds.
+// Reports unique OIDs once only, not multiple times if more than one file
+// has the same content.
 func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic(tr.Tr.Get("no scan ref options"))
@@ -92,25 +93,30 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 	return nil
 }
 
-// scanLeftRightToChan takes a ref and returns a channel of WrappedPointer objects
-// for all Git LFS pointers it finds for that ref.
-// Reports unique oids once only, not multiple times if >1 file uses the same content
-func scanLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft, refRight string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
-	return scanRefsToChan(scanner, pointerCb, []string{refLeft}, []string{refRight}, gitEnv, osEnv, opt)
+// scanRefsToChanSingleIncludeExclude scans through all unique objects
+// reachable from the "include" ref and not reachable from the "exclude" ref
+// and invokes the provided callback for each pointer file, valid or invalid,
+// that it finds.
+// Reports unique OIDs once only, not multiple times if more than one file
+// has the same content.
+func scanRefsToChanSingleIncludeExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
+	return scanRefsToChan(scanner, pointerCb, []string{include}, []string{exclude}, gitEnv, osEnv, opt)
 }
 
-// scanMultiLeftRightToChan takes a ref and a set of bases and returns a channel
-// of WrappedPointer objects for all Git LFS pointers it finds for that ref.
-// Reports unique oids once only, not multiple times if >1 file uses the same
-// content
-func scanMultiLeftRightToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, refLeft string, bases []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
-	return scanRefsToChan(scanner, pointerCb, []string{refLeft}, bases, gitEnv, osEnv, opt)
+// scanRefsToChanSingleIncludeMultiExclude scans through all unique objects
+// reachable from the "include" ref and not reachable from any "exclude" refs
+// and invokes the provided callback for each pointer file, valid or invalid,
+// that it finds.
+// Reports unique OIDs once only, not multiple times if more than one file
+// has the same content.
+func scanRefsToChanSingleIncludeMultiExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include string, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
+	return scanRefsToChan(scanner, pointerCb, []string{include}, exclude, gitEnv, osEnv, opt)
 }
 
-// scanRefsByTree scans through all commits reachable by refs contained in
-// "include" and not reachable by any refs included in "exclude" and invokes
-// the provided callback for each pointer file, valid or invalid, that it finds.
-// Reports unique oids once only, not multiple times if >1 file uses the same content
+// scanRefsByTree scans through all objects reachable from the "include" refs
+// and not reachable from any "exclude" refs and invokes the provided callback
+// for each pointer file, valid or invalid, that it finds.
+// Objects which appear in multiple trees will be visited once per tree.
 func scanRefsByTree(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment, opt *ScanRefsOptions) error {
 	if opt == nil {
 		panic(tr.Tr.Get("no scan ref options"))

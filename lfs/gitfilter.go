@@ -22,5 +22,5 @@ func (f *GitFilter) ObjectPath(oid string) (string, error) {
 }
 
 func (f *GitFilter) RemoteRef() *git.Ref {
-	return git.NewRefUpdate(f.cfg.Git, f.cfg.PushRemote(), f.cfg.CurrentRef(), nil).Right()
+	return git.NewRefUpdate(f.cfg.Git, f.cfg.PushRemote(), f.cfg.CurrentRef(), nil).RemoteRef()
 }

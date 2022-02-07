@@ -127,8 +127,8 @@ begin_test "fsck: outside git repository"
   set +e
   git lfs fsck 2>&1 > fsck.log
   res=$?
-
   set -e
+
   if [ "$res" = "0" ]; then
     echo "Passes because $GIT_LFS_TEST_DIR is unset."
     exit 0
@@ -193,6 +193,7 @@ begin_test "fsck detects invalid pointers with GIT_OBJECT_DIRECTORY"
   git init "$reponame-2"
   gitdir="$(lfstest-realpath "$reponame-2/.git")"
   GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git update-ref refs/heads/main "$head"
+
   set +e
   GIT_WORK_TREE="$reponame-2" GIT_DIR="$gitdir" GIT_OBJECT_DIRECTORY="$objdir" git lfs fsck --pointers >test.log 2>&1
   RET=$?
@@ -264,6 +265,73 @@ EOF
 )
 end_test
 
+setup_invalid_objects () {
+  git init $reponame
+  cd $reponame
+
+  # Create a commit with some files tracked by git-lfs
+  git lfs track *.dat
+  echo "test data" > a.dat
+  echo "test data 2" > b.dat
+  git add .gitattributes *.dat
+  git commit -m "first commit"
+
+  oid1=$(calc_oid_file a.dat)
+  oid2=$(calc_oid_file b.dat)
+  echo "CORRUPTION" >>".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+}
+
+begin_test "fsck detects invalid objects"
+(
+  set -e
+
+  reponame="fsck-objects"
+  setup_invalid_objects
+
+  set +e
+  git lfs fsck >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+
+  cd ..
+  rm -rf $reponame
+  setup_invalid_objects
+
+  set +e
+  git lfs fsck --objects >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+)
+end_test
+
+begin_test "fsck does not detect invalid objects with no LFS objects"
+(
+  set -e
+
+  reponame="fsck-objects-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  echo "# README" > README.md
+  git add README.md
+  git commit -m "Add README"
+
+  git lfs fsck
+  git lfs fsck --objects
+)
+end_test
+
 begin_test "fsck operates on specified refs"
 (
   set -e
@@ -272,11 +340,14 @@ begin_test "fsck operates on specified refs"
   setup_invalid_pointers
 
   git rm -f crlf.dat large.dat
+  echo "# Test" > new.dat
+  git add new.dat
   git commit -m 'third commit'
 
   git commit --allow-empty -m 'fourth commit'
 
   # Should succeed.  (HEAD and index).
+
   git lfs fsck
   git lfs fsck HEAD
   git lfs fsck HEAD^^ && exit 1
@@ -284,6 +355,20 @@ begin_test "fsck operates on specified refs"
   git lfs fsck HEAD^..HEAD
   git lfs fsck HEAD^^^..HEAD && exit 1
   git lfs fsck HEAD^^^..HEAD^ && exit 1
+
+  git lfs fsck --pointers HEAD^^^..HEAD^^ >test.log 2>&1 && exit 1
+
+  grep 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log
+  grep 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log
+
+  oid=$(calc_oid_file new.dat)
+  echo "CORRUPTION" >>".git/lfs/objects/${oid:0:2}/${oid:2:2}/$oid"
+
+  git lfs fsck --objects HEAD^^..HEAD^ >test.log 2>&1 && exit 1
+
+  grep 'objects: corruptObject: new.dat (.*) is corrupt' test.log
+  grep 'objects: repair: moving corrupt objects to .*' test.log
+
   # Make the result of the subshell a success.
   true
 )

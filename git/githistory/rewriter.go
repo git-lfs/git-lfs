@@ -202,8 +202,9 @@ func NewRewriter(db *gitobj.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 	return rewriter
 }
 
-// Rewrite rewrites the range of commits given by *RewriteOptions.{Left,Right}
-// using the BlobRewriteFn to rewrite the individual blobs.
+// Rewrite rewrites the range of commits given by
+// *RewriteOptions.{Include,Exclude} using the BlobRewriteFn to rewrite
+// the individual blobs.
 func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// First, obtain a list of commits to rewrite.
 	commits, err := r.commitsToMigrate(opt)

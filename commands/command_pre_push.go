@@ -83,12 +83,12 @@ func prePushRefs(r io.Reader) []*git.RefUpdate {
 
 		tracerx.Printf("pre-push: %s", line)
 
-		left, right := decodeRefs(line)
-		if git.IsZeroObjectID(left.Sha) {
+		localRef, remoteRef := decodeRefs(line)
+		if git.IsZeroObjectID(localRef.Sha) {
 			continue
 		}
 
-		refs = append(refs, git.NewRefUpdate(cfg.Git, cfg.PushRemote(), left, right))
+		refs = append(refs, git.NewRefUpdate(cfg.Git, cfg.PushRemote(), localRef, remoteRef))
 	}
 
 	return refs
@@ -102,9 +102,9 @@ func decodeRefs(input string) (*git.Ref, *git.Ref) {
 		refs = append(refs, "")
 	}
 
-	leftRef := git.ParseRef(refs[0], refs[1])
-	rightRef := git.ParseRef(refs[2], refs[3])
-	return leftRef, rightRef
+	localRef := git.ParseRef(refs[0], refs[1])
+	remoteRef := git.ParseRef(refs[2], refs[3])
+	return localRef, remoteRef
 }
 
 func init() {

@@ -77,7 +77,7 @@ type ScanRefsOptions struct {
 	// Mode is the scan mode to apply, see above.
 	Mode ScanningMode
 	// Remote is the current remote to scan against, if using
-	// ScanLeftToRemoveMode.
+	// ScanRangeToRemoteMode.
 	Remote string
 	// SkipDeletedBlobs specifies whether or not to traverse into commit
 	// ancestry (revealing potentially deleted (unreferenced) blobs, trees,

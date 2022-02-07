@@ -62,7 +62,7 @@ func (s *GitScanner) Close() {
 }
 
 // RemoteForPush sets up this *GitScanner to scan for objects to push to the
-// given remote. Needed for ScanLeftToRemote().
+// given remote. Needed for ScanRangeToRemote().
 func (s *GitScanner) RemoteForPush(r string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -76,10 +76,10 @@ func (s *GitScanner) RemoteForPush(r string) error {
 	return nil
 }
 
-// ScanRangeToRemote scans through all commits starting at the left ref but not
-// including the right ref (if given)that the given remote does not have. See
-// RemoteForPush().
-func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPointer) error {
+// ScanRangeToRemote scans through all unique objects reachable from the
+// "include" ref but not reachable from the "exclude" ref and which the
+// given remote does not have. See RemoteForPush().
+func (s *GitScanner) ScanRangeToRemote(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -88,17 +88,17 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
 	s.mu.Unlock()
 
-	return scanLeftRightToChan(s, callback, left, right, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
-// ScanMultiRangeToRemote scans through all commits starting at the left ref but
-// not including the right ref (if given) that the given remote does not have.
-// See RemoteForPush().
-func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb GitScannerFoundPointer) error {
+// ScanMultiRangeToRemote scans through all unique objects reachable from the
+// "include" ref but not reachable from any "exclude" refs and which the
+// given remote does not have. See RemoteForPush().
+func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -107,15 +107,16 @@ func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb Git
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
 	s.mu.Unlock()
 
-	return scanMultiLeftRightToChan(s, callback, left, rights, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanRefsToChanSingleIncludeMultiExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
-// ScanRefs through all commits reachable by refs contained in "include" and
-// not reachable by any refs included in "excluded"
+// ScanRefs scans through all unique objects reachable from the "include" refs
+// but not reachable from any "exclude" refs, including objects that have
+// been modified or deleted.
 func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
@@ -127,9 +128,10 @@ func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPoint
 	return scanRefsToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
-// ScanRefRange scans through all commits from the given left and right refs,
-// including git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer) error {
+// ScanRefRange scans through all unique objects reachable from the "include"
+// ref but not reachable from the "exclude" ref, including objects that have
+// been modified or deleted.
+func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -137,12 +139,14 @@ func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer)
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanLeftRightToChan(s, callback, left, right, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
-// ScanRefRangeByTree scans through all trees from the given left and right
-// refs.
-func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPointer) error {
+// ScanRefRangeByTree scans through all objects reachable from the "include"
+// ref but not reachable from the "exclude" ref, including objects that have
+// been modified or deleted.  Objects which appear in multiple trees will
+// be visited once per tree.
+func (s *GitScanner) ScanRefRangeByTree(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -151,17 +155,17 @@ func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPo
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
 	opts.CommitsOnly = true
-	return scanRefsByTree(s, callback, []string{right}, []string{left}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsByTree(s, callback, []string{include}, []string{exclude}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
-// ScanRefWithDeleted scans through all objects in the given ref, including
-// git objects that have been modified or deleted.
+// ScanRefWithDeleted scans through all unique objects in the given ref,
+// including objects that have been modified or deleted.
 func (s *GitScanner) ScanRefWithDeleted(ref string, cb GitScannerFoundPointer) error {
 	return s.ScanRefRange(ref, "", cb)
 }
 
-// ScanRef scans through all objects in the current ref, excluding git objects
-// that have been modified or deleted before the ref.
+// ScanRef scans through all unique objects in the current ref, excluding
+// objects that have been modified or deleted before the ref.
 func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
@@ -170,10 +174,12 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = true
-	return scanLeftRightToChan(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
-// ScanRefByTree scans through all trees in the current ref.
+// ScanRefByTree scans through all objects in the current ref, excluding
+// objects that have been modified or deleted before the ref.  Objects which
+// appear in multiple trees will be visited once per tree.
 func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
@@ -186,7 +192,8 @@ func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error 
 	return scanRefsByTree(s, callback, []string{ref}, []string{}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
-// ScanAll scans through all objects in the git repository.
+// ScanAll scans through all unique objects in the repository, including
+// objects that have been modified or deleted.
 func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
@@ -195,7 +202,7 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 
 	opts := s.opts(ScanAllMode)
 	opts.SkipDeletedBlobs = false
-	return scanLeftRightToChan(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsToChanSingleIncludeExclude(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanTree takes a ref and returns WrappedPointer objects in the tree at that
