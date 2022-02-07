@@ -120,29 +120,26 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 		return 0, err
 	}
 
-	download := !skip
-	if download {
-		download = filter.Allows(filename)
+	if skip || !filter.Allows(filename) {
+		n, err := ptr.Encode(to)
+		return int64(n), err
 	}
 
-	n, err := gf.Smudge(to, ptr, filename, download, getTransferManifestOperationRemote("download", cfg.Remote()), cb)
+	n, err := gf.Smudge(to, ptr, filename, true, getTransferManifestOperationRemote("download", cfg.Remote()), cb)
 	if file != nil {
 		file.Close()
 	}
 
 	if err != nil {
 		ptr.Encode(to)
-		// Download declined error is ok to skip if we weren't requesting download
-		if !(errors.IsDownloadDeclinedError(err) && !download) {
-			var oid string = ptr.Oid
-			if len(oid) >= 7 {
-				oid = oid[:7]
-			}
+		var oid string = ptr.Oid
+		if len(oid) >= 7 {
+			oid = oid[:7]
+		}
 
-			LoggedError(err, tr.Tr.Get("Error downloading object: %s (%s): %s", filename, oid, err))
-			if !cfg.SkipDownloadErrors() {
-				os.Exit(2)
-			}
+		LoggedError(err, tr.Tr.Get("Error downloading object: %s (%s): %s", filename, oid, err))
+		if !cfg.SkipDownloadErrors() {
+			os.Exit(2)
 		}
 	}
 
