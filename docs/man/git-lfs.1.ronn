@@ -27,14 +27,14 @@ version is about to be pushed to the corresponding Git server.
 Like Git, Git LFS commands are separated into high level ("porcelain")
 commands and low level ("plumbing") commands.
 
-### High level commands (porcelain)
+### High level porcelain commands
 
-* git-lfs-env(1):
-    Display the Git LFS environment.
 * git-lfs-checkout(1):
     Populate working copy with real content from Git LFS files.
 * git-lfs-dedup(1):
     De-duplicate Git LFS files.
+* git-lfs-env(1):
+    Display the Git LFS environment.
 * git-lfs-ext(1):
     Display Git LFS extension details.
 * git-lfs-fetch(1):
@@ -75,7 +75,7 @@ commands and low level ("plumbing") commands.
 * git-lfs-version(1):
     Report the version number.
 
-### Low level commands (plumbing)
+### Low level plumbing commands
 
 * git-lfs-clean(1):
     Git clean filter that converts large files to pointers.

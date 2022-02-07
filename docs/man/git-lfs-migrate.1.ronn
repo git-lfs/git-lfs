@@ -23,7 +23,8 @@ only make changes to your local repository and working copy, never any
 remotes.  This is intentional as the `import` and `export` modes are
 generally "destructive" in the sense that they rewrite your Git history,
 changing commits and generating new commit SHAs.  (The exception is the
-"no-rewrite" `import` sub-mode; see [IMPORT (NO REWRITE)] for details.)
+"no-rewrite" `import` sub-mode; see [IMPORT WITHOUT REWRITING HISTORY]
+for details.)
 
 You should therefore always first commit or stash any uncommitted work
 before using the `import` or `export` modes, and then validate the result of
@@ -40,7 +41,7 @@ one, branch refs may be specified directly, or provided in one or more
 `--include-ref` options.  They may also be excluded by prefixing them
 with `^` or providing them in `--exclude-ref` options.  Use the `--everything`
 option to specify that all refs should be examined, including all remote refs.
-See [INCLUDE AND EXCLUDE (REFS)] for details.
+See [INCLUDE AND EXCLUDE REFERENCES] for details.
 
 For the `info` and `import` modes, all file types are considered by default;
 while useful in the `info` mode, this is often not desirable when importing,
@@ -110,7 +111,8 @@ remotes.
     Show information about repository size.  See [INFO].
 
 * `import`
-    Convert Git objects to Git LFS pointers.  See [IMPORT] and [IMPORT (NO REWRITE)].
+    Convert Git objects to Git LFS pointers.  See [IMPORT] and
+    [IMPORT WITHOUT REWRITING HISTORY].
 
 * `export`
     Convert Git LFS pointers to Git objects.  See [EXPORT].
@@ -124,10 +126,10 @@ remotes.
     See [INCLUDE AND EXCLUDE].
 
 * `--include-ref`=<refname>:
-    See [INCLUDE AND EXCLUDE (REFS)].
+    See [INCLUDE AND EXCLUDE REFERENCES].
 
 * `--exclude-ref`=<refname>:
-    See [INCLUDE AND EXCLUDE (REFS)].
+    See [INCLUDE AND EXCLUDE REFERENCES].
 
 * `--skip-fetch`:
     Assumes that the known set of remote references is complete, and should not
@@ -135,7 +137,7 @@ remotes.
     no effect when combined with `--include-ref` or `--exclude-ref`.
 
 * `--everything`:
-    See [INCLUDE AND EXCLUDE (REFS)].
+    See [INCLUDE AND EXCLUDE REFERENCES].
 
     Note: Git refs are "case-sensitive" on all platforms in "packed from" (see
     `git-pack-refs(1)`). On "case-insensitive" file systems, e.g. NTFS on Windows
@@ -246,7 +248,7 @@ options and these additional ones:
     history. Please note that when this option is used, the `migrate import`
     command will expect a different argument list, specialized options will
     become available, and the core `migrate` options will be ignored. See
-    [IMPORT (NO REWRITE)].
+    [IMPORT WITHOUT REWRITING HISTORY].
 
 * `--fixup`
     Infer `--include` and `--exclude` filters on a per-commit basis based on the
@@ -263,7 +265,7 @@ If `--no-rewrite` is not provided and neither of those flags are given, the
 gitattributes will be incrementally modified to include new filepath extensions
 as they are rewritten in history.
 
-### IMPORT (NO REWRITE)
+### IMPORT WITHOUT REWRITING HISTORY
 
 The `import` mode has a special sub-mode enabled by the `--no-rewrite` flag.
 This sub-mode will migrate objects to pointers as in the base `import`
@@ -328,7 +330,7 @@ options used by the `git lfs migrate` command is unique among the suite of
 `git lfs` commands.  Other commands which also take these options, such as
 `git lfs ls-files`, use the gitignore(5) form of pattern matching instead.
 
-## INCLUDE AND EXCLUDE (REFS)
+## INCLUDE AND EXCLUDE REFERENCES
 
 You can specify that `git lfs migrate` should only convert files added
 in commits reachable from certain references, namely those defined using one
