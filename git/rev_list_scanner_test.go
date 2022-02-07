@@ -51,7 +51,7 @@ var (
 
 func TestRevListArgs(t *testing.T) {
 	for desc, c := range map[string]*ArgsTestCase{
-		"scan refs deleted, left and right": {
+		"scan refs deleted, include and exclude": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
 				Mode:             ScanRefsMode,
 				SkipDeletedBlobs: false,
@@ -59,7 +59,7 @@ func TestRevListArgs(t *testing.T) {
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
 			ExpectedArgs:  []string{"rev-list", "--objects", "--do-walk", "--stdin", "--"},
 		},
-		"scan refs not deleted, left and right": {
+		"scan refs not deleted, include and exclude": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
 				Mode:             ScanRefsMode,
 				SkipDeletedBlobs: true,
@@ -67,7 +67,7 @@ func TestRevListArgs(t *testing.T) {
 			ExpectedStdin: fmt.Sprintf("%s\n^%s", s1, s2),
 			ExpectedArgs:  []string{"rev-list", "--objects", "--no-walk", "--stdin", "--"},
 		},
-		"scan refs deleted, left only": {
+		"scan refs deleted, include only": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
 				Mode:             ScanRefsMode,
 				SkipDeletedBlobs: false,
@@ -75,7 +75,7 @@ func TestRevListArgs(t *testing.T) {
 			ExpectedStdin: s1,
 			ExpectedArgs:  []string{"rev-list", "--objects", "--do-walk", "--stdin", "--"},
 		},
-		"scan refs not deleted, left only": {
+		"scan refs not deleted, include only": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
 				Mode:             ScanRefsMode,
 				SkipDeletedBlobs: true,
@@ -89,7 +89,7 @@ func TestRevListArgs(t *testing.T) {
 			},
 			ExpectedArgs: []string{"rev-list", "--objects", "--all", "--stdin", "--"},
 		},
-		"scan left to remote, no skipped refs": {
+		"scan include to remote, no skipped refs": {
 			Include: []string{s1}, Opt: &ScanRefsOptions{
 				Mode:        ScanRangeToRemoteMode,
 				Remote:      "origin",
@@ -98,7 +98,7 @@ func TestRevListArgs(t *testing.T) {
 			ExpectedStdin: s1,
 			ExpectedArgs:  []string{"rev-list", "--objects", "--ignore-missing", "--not", "--remotes=origin", "--stdin", "--"},
 		},
-		"scan left to remote, skipped refs": {
+		"scan include to remote, skipped refs": {
 			Include: []string{s1}, Exclude: []string{s2}, Opt: &ScanRefsOptions{
 				Mode:        ScanRangeToRemoteMode,
 				Remote:      "origin",
