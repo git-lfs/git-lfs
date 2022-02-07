@@ -79,7 +79,7 @@ func (s *GitScanner) RemoteForPush(r string) error {
 // ScanRangeToRemote scans through all commits starting at the left ref but not
 // including the right ref (if given)that the given remote does not have. See
 // RemoteForPush().
-func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPointer) error {
+func (s *GitScanner) ScanRangeToRemote(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -88,17 +88,17 @@ func (s *GitScanner) ScanRangeToRemote(left, right string, cb GitScannerFoundPoi
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
 	s.mu.Unlock()
 
-	return scanLeftRightToChan(s, callback, left, right, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanMultiRangeToRemote scans through all commits starting at the left ref but
 // not including the right ref (if given) that the given remote does not have.
 // See RemoteForPush().
-func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb GitScannerFoundPointer) error {
+func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -107,11 +107,11 @@ func (s *GitScanner) ScanMultiRangeToRemote(left string, rights []string, cb Git
 	s.mu.Lock()
 	if len(s.remote) == 0 {
 		s.mu.Unlock()
-		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", left))
+		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
 	s.mu.Unlock()
 
-	return scanMultiLeftRightToChan(s, callback, left, rights, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	return scanMultiLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanRefs through all commits reachable by refs contained in "include" and
@@ -129,7 +129,7 @@ func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPoint
 
 // ScanRefRange scans through all commits from the given left and right refs,
 // including git objects that have been modified or deleted.
-func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer) error {
+func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -137,12 +137,12 @@ func (s *GitScanner) ScanRefRange(left, right string, cb GitScannerFoundPointer)
 
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
-	return scanLeftRightToChan(s, callback, left, right, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanLeftRightToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanRefRangeByTree scans through all trees from the given left and right
 // refs.
-func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPointer) error {
+func (s *GitScanner) ScanRefRangeByTree(include, exclude string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (s *GitScanner) ScanRefRangeByTree(left, right string, cb GitScannerFoundPo
 	opts := s.opts(ScanRefsMode)
 	opts.SkipDeletedBlobs = false
 	opts.CommitsOnly = true
-	return scanRefsByTree(s, callback, []string{left}, []string{right}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	return scanRefsByTree(s, callback, []string{include}, []string{exclude}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
 }
 
 // ScanRefWithDeleted scans through all objects in the given ref, including
