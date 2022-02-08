@@ -1,5 +1,106 @@
 # Git LFS Changelog
 
+## 3.1.0 (14 Feb 2022)
+
+This release is a feature release which includes support for fallback from
+Negotiate to Basic authentication, new ARM64 packages for Debian 11, a new
+localization infrastructure, and improved netrc support, in addition to various
+bug fixes.  In addition, we've addressed a performance regression for `git lfs
+migrate import` that was introduced in v3.0.2.
+
+At the moment, there are no translations available, but if you are interested in
+contributing to one, please reach out in an issue.  For compatibility with
+Windows and to retain the ability to have a single relocatable binary, the
+translations are included in the binary at build time.
+
+We would like to extend a special thanks to the following open source
+contributors:
+
+* @donno2048 for improving our error checking
+* @howardlyliao for improved netrc support
+* @HermannDppes for improving our large file warning on Windows
+* @rex4539 for fixing various typos throughout our codebase
+
+### Features
+
+* Fall back from Negotiate to Basic #4815 (@bk2204)
+* Add basic support for localization #4729 (@bk2204)
+* Add support for ARM64 Debian packages #4728 (@bk2204)
+* netrc: consider same machine may have different login names #4726 (@howardlyliao)
+
+### Bugs
+
+* smudge: honor GIT_LFS_SKIP_SMUDGE with checkout-index #4860 (@bk2204)
+* fix `git lfs fsck --objects A..B` handling and drop all left/right ref terminology #4859 (@chrisd8088)
+* halt migration when `.gitattributes` symbolic link encountered #4849 (@chrisd8088)
+* fix merging of `.gitattributes` with execute file mode during migration #4835 (@chrisd8088)
+* Fix migrate import speed regression #4813 (@bk2204)
+* Fix typos #4806 (@rex4539)
+* Move `err` checking to before the value was used #4776 (@donno2048)
+* migrate import: don't allow path filters with --above #4771 (@bk2204)
+* avoid panic on checkout with `--to` but no path, and update checkout manual #4766 (@chrisd8088)
+* creds: gracefully handle lack of askpass helper #4759 (@bk2204)
+* post-checkout: don't modify permissions of untracked files #4760 (@bk2204)
+* use gitattributes filepath matching for migrate filter options #4758 (@chrisd8088)
+* Avoid errors in git lfs env #4713 (@bk2204)
+* fs: specify a file as existing if it's empty #4654 (@bk2204)
+* Fix bound for largefilewarning #4633 (@HermannDppes)
+
+### Misc
+
+* build missing man pages and correct HTML renderings #4851 (@chrisd8088)
+* Update and mark message strings for translation #4846 (@chrisd8088)
+* Mark almost all strings for translation #4781 (@bk2204)
+* .github/workflows: switch to actions/checkout@v2 #4795 (@bk2204)
+* script/packagecloud: update for latest distros #4794 (@bk2204)
+* filter-process: don't print large file warning on fixed versions #4768 (@bk2204)
+* ssh: avoid using -- where possible #4741 (@bk2204)
+* vendor,go.*: update x/crypto and dependencies #4738 (@chrisd8088)
+* Stop supporting Go older than 1.13 #4641 (@bk2204)
+
+## 3.0.2 (28 Oct 2021)
+
+This release is a bugfix release which fixes a variety of problems seen since
+3.0.0, including problems with empty files, `git lfs fsck --pointers`, and
+the testsuite.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @fh1ch for patches to make things work better on Alpine Linux
+* @pyckle for fixing our handling of filenames in `git lfs migrate import`
+* @ycongal-smile for fixing `git lfs migrate import` with similarly named files
+
+### Bugs
+
+* Fix two types of misdetection in git lfs fsck #4697 (@bk2204)
+* lfs: don't flag non-LFS files as invalid pointers #4691 (@bk2204)
+* git: honor GIT_OBJECT_DIRECTORY #4686 (@bk2204)
+* migrate: properly escape blob filenames #4683 (@pyckle)
+* ls-files: don't process empty files as pointers #4681 (@bk2204)
+* Call migrate() BlobFn on every blob #4671 (@ycongal-smile)
+* Correct t-lock regular expression to be musl compatible #4673 (@fh1ch)
+
+### Misc
+
+* Allow git-lfs-transfer integration tests to be skipped #4677 (@fh1ch)
+* Make CI environment GIT prefix grep more specific #4678 (@fh1ch)
+
+## 3.0.1 (28 Sep 2021)
+
+This release is a bugfix release which fixes the Windows ARM64 build process and
+addresses a regression in support for empty files in pull and fetch.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dennisameling for fixing support for Windows on ARM64
+
+### Bugs
+
+* Fix Windows arm64 release #4647 (@dennisameling)
+* fs: specify a file as existing if it's empty #4654 (@bk2204)
+
 ## 3.0.0 (24 Sep 2021)
 
 This release is a major new release and introduces several new features, such as
