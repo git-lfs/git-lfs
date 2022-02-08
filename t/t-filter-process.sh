@@ -137,3 +137,53 @@ begin_test "filter process: hash-object --stdin --path does not hang"
   git add .
 )
 end_test
+
+begin_test "filter process: checking out a branch with --skip-smudge and checkout-index"
+(
+  set -e
+
+  reponame="filter-process-skip-smudge-checkout-index"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents_a="contents_a"
+  contents_a_oid="$(calc_oid $contents_a)"
+  printf "%s" "$contents_a" > a.dat
+
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git checkout -b b
+
+  contents_b="contents_b"
+  contents_b_oid="$(calc_oid $contents_b)"
+  printf "%s" "$contents_b" > b.dat
+
+  git add b.dat
+  git commit -m "add b.dat"
+
+  git lfs install --local --skip-smudge
+
+  git checkout main
+
+  rm a.dat
+  git checkout-index -af
+  git lfs pointer --check --file a.dat
+
+  assert_pointer "main" "a.dat" "$contents_a_oid" 10
+
+  git checkout b
+
+  rm *.dat
+  git checkout-index -af
+  git lfs pointer --check --file a.dat
+  git lfs pointer --check --file b.dat
+
+  # Assert that we are on the "b" branch, and have b.dat
+  assert_pointer "b" "b.dat" "$contents_b_oid" 10
+)
+end_test
