@@ -203,9 +203,9 @@ It supports all the core `migrate` options and these additional ones:
 
 * `--fixup`
     Infer `--include` and `--exclude` filters on a per-commit basis based on the
-    .gitattributes files in a repository. In practice, this option counts any
+    `.gitattributes` files in a repository. In practice, this option counts any
     filepaths which should be tracked by Git LFS according to the repository's
-    .gitattributes file(s), but aren't already pointers. The .gitattributes
+    `.gitattributes` file(s), but aren't already pointers. The `.gitattributes`
     files are not reported, in contrast to the normal output of the `info` mode.
     This option is incompatible with explicitly given `--include`, `--exclude`
     filters and with any `--pointers` setting other than `ignore`, hence
