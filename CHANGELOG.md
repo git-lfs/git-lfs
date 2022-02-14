@@ -1,5 +1,13 @@
 # Git LFS Changelog
 
+## 3.1.1 (14 Feb 2022)
+
+This is a bugfix release which fixes a syntax error in the release workflow.
+
+### Misc
+
+* .github: fix syntax error in release workflow #4866 (@bk2204)
+
 ## 3.1.0 (14 Feb 2022)
 
 This release is a feature release which includes support for fallback from

@@ -150,6 +150,7 @@ jobs:
       matrix:
         arch: [arm64]
         container: [debian_11]
+    steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
