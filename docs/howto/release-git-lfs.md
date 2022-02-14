@@ -96,6 +96,9 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      Notify the `@git-lfs/release` team, a collection of humans who are
      interested in Git LFS releases.
 
+     Verify that the Actions tab contains no indications of errors for the
+     workflows, especially the release workflow.
+
   3. Once approved and verified, merge the pull request you created in the
      previous step. Locally, create a GPG-signed tag on the merge commit called
      `v2.n.m`:
