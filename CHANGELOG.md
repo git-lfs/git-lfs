@@ -1,5 +1,20 @@
 # Git LFS Changelog
 
+## 3.1.2 (16 Feb 2022)
+
+This is a bugfix release which fixes a bug in `git lfs install` and some issues
+in our CI release processes, including one that prevented arm64 packages for
+Debian 11 from being uploaded.
+
+### Bugs
+
+* lfs: add old hook content to the list of old hooks #4878 (@bk2204)
+
+### Misc
+
+* Revert "Merge pull request #4795 from bk2204/actions-checkout-v2" #4877 (@bk2204)
+* .github/workflows: install packagecloud gem #4873 (@bk2204)
+
 ## 3.1.1 (14 Feb 2022)
 
 This is a bugfix release which fixes a syntax error in the release workflow.
