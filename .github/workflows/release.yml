@@ -160,6 +160,7 @@ jobs:
         sudo systemctl restart docker.service
         docker version -f '{{.Server.Experimental}}'
     - uses: docker/setup-qemu-action@v1
+    - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=$ARCH $CONTAINER)
       env:
