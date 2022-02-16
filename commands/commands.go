@@ -178,7 +178,7 @@ func installHooks(force bool) error {
 // uninstallHooks removes all hooks in range of the `hooks` var.
 func uninstallHooks() error {
 	if !cfg.InRepo() {
-		return errors.New(tr.Tr.Get("Not in a git repository"))
+		return errors.New(tr.Tr.Get("Not in a Git repository"))
 	}
 
 	hookDir, err := cfg.HookDir()
