@@ -122,6 +122,9 @@ $ git commit -m "add psd"
 > $ git lfs migrate import --include="*.psd" --everything
 > ```
 >
+> **Note that this will rewrite history and change all of the Git object IDs in your
+> repository, just like the export version of this command.**
+>
 > For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.1.ronn).
 
 You can confirm that Git LFS is managing your PSD file:
@@ -153,8 +156,8 @@ example:
 $ git lfs migrate export --include="*.psd" --everything
 ```
 
-Note that this will rewrite history and change all of the Git object IDs in your
-repository, just like the import version of this command.
+**Note that this will rewrite history and change all of the Git object IDs in your
+repository, just like the import version of this command.**
 
 If there's some reason that things aren't working out for you, please let us
 know in an issue, and we'll definitely try to help or get it fixed.
