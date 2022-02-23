@@ -48,7 +48,7 @@ jobs:
     - run: script/cibuild
   build-windows:
     name: Build on Windows
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1

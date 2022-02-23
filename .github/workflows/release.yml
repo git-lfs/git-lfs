@@ -6,7 +6,7 @@ on:
 jobs:
   build-windows:
     name: Build Windows Assets
-    runs-on: windows-latest
+    runs-on: windows-2019
     strategy:
       matrix:
         go: ['1.17.x']
