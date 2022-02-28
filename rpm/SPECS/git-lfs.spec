@@ -46,8 +46,8 @@ make man
 install -D bin/git-lfs ${RPM_BUILD_ROOT}/usr/bin/git-lfs
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
-install -D man/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
-install -D man/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
+install -D man/man1/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
+install -D man/man5/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
 
 %post
 # The --skip-repo option prevents failure if / is a Git repository with existing
