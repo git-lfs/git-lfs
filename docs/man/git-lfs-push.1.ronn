@@ -21,7 +21,12 @@ of the remote.
 * `--all`:
     This pushes all objects to the remote that are referenced by any commit
     reachable from the refs provided as arguments. If no refs are provided, then
-    all refs are pushed.
+    all local refs are pushed.  Note that this behavior differs from that of
+    git-lfs-fetch(1) when its `--all` option is used; in that case, all refs
+    are fetched, including refs other than those under `refs/heads` and
+    `refs/tags`.  If you are migrating a repository with these commands, make
+    sure to run `git lfs push` for any additional remote refs that contain
+    Git LFS objects not reachable from your local refs.
 
 * `--object-id`:
     This pushes only the object OIDs listed at the end of the command, separated
@@ -29,6 +34,6 @@ of the remote.
 
 ## SEE ALSO
 
-git-lfs-pre-push(1).
+git-lfs-fetch(1), git-lfs-pre-push(1).
 
 Part of the git-lfs(1) suite.
