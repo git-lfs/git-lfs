@@ -58,11 +58,6 @@ WizardSmallImageFile=git-lfs-logo.bmp
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Run]
-; Uninstalls the old Git LFS version that used a different installer in a different location:
-;  If we don't do this, Git will prefer the old version as it is in the same directory as it.
-Filename: "{code:GetExistingGitInstallation}\git-lfs-uninstaller.exe"; Parameters: "/S"; Flags: skipifdoesntexist
-
 [Files]
 Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86
 Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64
@@ -81,41 +76,6 @@ begin
     Result:=ExpandConstant('{pf}\{#MyAppName}');
   end else begin
     Result:=ExpandConstant('{userpf}\{#MyAppName}');
-  end;
-end;
-
-// Uses cmd to parse and find the location of Git through the env vars.
-// Currently only used to support running the uninstaller for the old Git LFS version.
-function GetExistingGitInstallation(Value: string): string;
-var
-  TmpFileName: String;
-  ExecStdOut: AnsiString;
-  ResultCode: integer;
-
-begin
-  TmpFileName := ExpandConstant('{tmp}') + '\git_location.txt';
-
-  Exec(
-    ExpandConstant('{cmd}'),
-    '/C "for %i in (git.exe) do @echo. %~$PATH:i > "' + TmpFileName + '"',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode
-  );
-
-  if LoadStringFromFile(TmpFileName, ExecStdOut) then begin
-      if not (Pos('Git\cmd', ExtractFilePath(ExecStdOut)) = 0) then begin
-        // Proxy Git path detected
-        Result := ExpandConstant('{pf}');
-      if IsX64 then
-        Result := Result + '\Git\mingw64\bin'
-      else if IsARM64 then
-        Result := Result + '\Git\arm64\bin'
-      else
-        Result := Result + '\Git\mingw32\bin';
-      end else begin
-        Result := ExtractFilePath(ExecStdOut);
-      end;
-
-      DeleteFile(TmpFileName);
   end;
 end;
 
