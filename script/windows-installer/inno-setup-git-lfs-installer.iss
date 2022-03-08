@@ -59,9 +59,9 @@ WizardSmallImageFile=git-lfs-logo.bmp
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86
-Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64
-Source: {#PathToARM64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsARM64
+Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86 and GitFoundInPath
+Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64 and GitFoundInPath
+Source: {#PathToARM64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsARM64 and GitFoundInPath
 
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: IsAdminLoggedOn and NeedsAddPath('{app}')
@@ -101,6 +101,56 @@ begin
     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
+// Verify that a Git executable is found in the PATH, and if it does not
+// reside in either 'C:\Program Files' or 'C:\Program Files (x86)', warn
+// the user in case it is not the Git installation they expected.
+function GitFoundInPath(): boolean;
+var
+  PFiles32,PFiles64: string;
+  PathEnv,Path: string;
+  PathExt,Ext: string;
+  i,j: integer;
+begin
+  Result := False;
+  PFiles32 := ExpandConstant('{commonpf32}\')
+  PFiles64 := ExpandConstant('{commonpf64}\')
+
+  PathEnv := GetEnv('PATH') + ';';
+  repeat
+    i := Pos(';', PathEnv);
+    Path := Copy(PathEnv, 1, i-1) + '\git';
+    PathEnv := Copy(PathEnv, i+1, Length(PathEnv)-i);
+
+    PathExt := GetEnv('PATHEXT') + ';';
+    repeat
+      j := Pos(';', PathExt);
+      Ext := Copy(PathExt, 1, j-1);
+      PathExt := Copy(PathExt, j+1, Length(PathExt)-j);
+
+      if FileExists(Path + Ext) then begin
+        if (Pos(PFiles32, Path) = 1) or (Pos(PFiles64, Path) = 1) then begin
+          Result := True;
+          Exit;
+        end;
+        Log('Warning: Found Git in unexpected location: "' + Path + Ext + '"');
+        Result := (SuppressibleMsgBox(
+          'An executable Git program was found in an unexpected location outside of Program Files:' + #13+#10 +
+          '  "' + Path + Ext + '"' + #13+#10 +
+          'If this looks dubious, Git LFS should not be registered using it.' + #13+#10 + #13+#10 +
+          'Do you want to register Git LFS using this Git program?',
+          mbConfirmation, MB_YESNO, IDNO) = IDYES);
+        if Result then
+          Log('Using Git found at: "' + Path + Ext + '"')
+        else
+          Log('Refusing to use Git found at: "' + Path + Ext + '"');
+        Exit;
+      end;
+    until Result or (PathExt = '');
+  until Result or (PathEnv = '');
+  SuppressibleMsgBox(
+    'Could not find Git; can not proceed.', mbError, MB_OK, IDOK);
+end;
+
 // Runs the lfs initialization.
 procedure InstallGitLFS();
 var
@@ -122,10 +172,14 @@ function InitializeUninstall(): Boolean;
 var
   ResultCode: integer;
 begin
-  Exec(
-    ExpandConstant('{cmd}'),
-    ExpandConstant('/C ""{app}\git-lfs.exe" uninstall"'),
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode
-  );
-  Result := True;
+  Result := False;
+
+  if GitFoundInPath() then begin
+    Exec(
+      ExpandConstant('{cmd}'),
+      ExpandConstant('/C ""{app}\git-lfs.exe" uninstall"'),
+      '', SW_HIDE, ewWaitUntilTerminated, ResultCode
+    );
+    Result := True;
+  end;
 end;
