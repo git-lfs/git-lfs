@@ -154,7 +154,7 @@ begin
         Result := (SuppressibleMsgBox(
           'An executable Git program was found in an unexpected location outside of Program Files:' + #13+#10 +
           '  "' + Path + Ext + '"' + #13+#10 +
-          'If this looks dubious, Git LFS should not be registered using it.' + #13+#10 + #13+#10 +
+          'If this looks dubious, Git LFS should not be ' + RegisterOrDeregister + 'ed using it.' + #13+#10 + #13+#10 +
           'Do you want to ' + RegisterOrDeregister + ' Git LFS using this Git program?',
           mbConfirmation, MB_YESNO, IDNO) = IDYES);
         CachedGitFoundInPath := Result;
