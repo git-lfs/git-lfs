@@ -155,7 +155,7 @@ begin
     until Result or (PathExt = '');
   until Result or (PathEnv = '');
   SuppressibleMsgBox(
-    'Could not find Git; can not proceed.', mbError, MB_OK, IDOK);
+    'Could not find Git; can not ' + RegisterOrDeregister + ' Git LFS.', mbError, MB_OK, IDOK);
 end;
 
 // Runs the lfs initialization.
