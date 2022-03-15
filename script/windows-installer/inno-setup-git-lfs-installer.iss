@@ -110,8 +110,15 @@ var
   PathEnv,Path: string;
   PathExt,Ext: string;
   i,j: integer;
+  RegisterOrDeregister: string;
 begin
   Result := False;
+
+  if IsUninstaller then
+    RegisterOrDeregister := 'deregister'
+  else
+    RegisterOrDeregister := 'register';
+
   PFiles32 := ExpandConstant('{commonpf32}\')
   PFiles64 := ExpandConstant('{commonpf64}\')
 
@@ -137,7 +144,7 @@ begin
           'An executable Git program was found in an unexpected location outside of Program Files:' + #13+#10 +
           '  "' + Path + Ext + '"' + #13+#10 +
           'If this looks dubious, Git LFS should not be registered using it.' + #13+#10 + #13+#10 +
-          'Do you want to register Git LFS using this Git program?',
+          'Do you want to ' + RegisterOrDeregister + ' Git LFS using this Git program?',
           mbConfirmation, MB_YESNO, IDNO) = IDYES);
         if Result then
           Log('Using Git found at: "' + Path + Ext + '"')
