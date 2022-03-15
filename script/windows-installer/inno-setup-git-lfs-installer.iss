@@ -59,9 +59,9 @@ WizardSmallImageFile=git-lfs-logo.bmp
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86 and GitFoundInPath
-Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64 and GitFoundInPath
-Source: {#PathToARM64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsARM64 and GitFoundInPath
+Source: {#PathToX86Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX86
+Source: {#PathToX64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsX64
+Source: {#PathToARM64Binary}; DestDir: "{app}"; Flags: ignoreversion; DestName: "git-lfs.exe"; AfterInstall: InstallGitLFS; Check: IsARM64
 
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: IsAdminLoggedOn and NeedsAddPath('{app}')
@@ -101,10 +101,6 @@ begin
     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
-var
-  CachedGitFoundInPath: boolean;
-  CachedGitFoundInPathInitialized: boolean;
-
 // Verify that a Git executable is found in the PATH, and if it does not
 // reside in either 'C:\Program Files' or 'C:\Program Files (x86)', warn
 // the user in case it is not the Git installation they expected.
@@ -116,14 +112,6 @@ var
   i,j: integer;
   RegisterOrDeregister: string;
 begin
-  if CachedGitFoundInPathInitialized then begin
-    Result := CachedGitFoundInPath;
-    Exit;
-  end;
-  Result := False;
-  CachedGitFoundInPath := False;
-  CachedGitFoundInPathInitialized := True;
-
   if IsUninstaller then
     RegisterOrDeregister := 'deregister'
   else
@@ -147,7 +135,6 @@ begin
       if FileExists(Path + Ext) then begin
         if (Pos(PFiles32, Path) = 1) or (Pos(PFiles64, Path) = 1) then begin
           Result := True;
-          CachedGitFoundInPath := True;
           Exit;
         end;
         Log('Warning: Found Git in unexpected location: "' + Path + Ext + '"');
@@ -157,7 +144,6 @@ begin
           'If this looks dubious, Git LFS should not be ' + RegisterOrDeregister + 'ed using it.' + #13+#10 + #13+#10 +
           'Do you want to ' + RegisterOrDeregister + ' Git LFS using this Git program?',
           mbConfirmation, MB_YESNO, IDNO) = IDYES);
-        CachedGitFoundInPath := Result;
         if Result then
           Log('Using Git found at: "' + Path + Ext + '"')
         else
@@ -184,6 +170,12 @@ begin
     MsgBox(
     'Git LFS was not able to automatically initialize itself. ' +
     'Please run "git lfs install" from the commandline.', mbInformation, MB_OK);
+end;
+
+// Event function automatically called when installing:
+function InitializeSetup(): Boolean;
+begin
+  Result := GitFoundInPath();
 end;
 
 // Event function automatically called when uninstalling:
