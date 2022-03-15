@@ -101,6 +101,10 @@ begin
     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
+var
+  CachedGitFoundInPath: boolean;
+  CachedGitFoundInPathInitialized: boolean;
+
 // Verify that a Git executable is found in the PATH, and if it does not
 // reside in either 'C:\Program Files' or 'C:\Program Files (x86)', warn
 // the user in case it is not the Git installation they expected.
@@ -112,7 +116,13 @@ var
   i,j: integer;
   RegisterOrDeregister: string;
 begin
+  if CachedGitFoundInPathInitialized then begin
+    Result := CachedGitFoundInPath;
+    Exit;
+  end;
   Result := False;
+  CachedGitFoundInPath := False;
+  CachedGitFoundInPathInitialized := True;
 
   if IsUninstaller then
     RegisterOrDeregister := 'deregister'
@@ -137,6 +147,7 @@ begin
       if FileExists(Path + Ext) then begin
         if (Pos(PFiles32, Path) = 1) or (Pos(PFiles64, Path) = 1) then begin
           Result := True;
+          CachedGitFoundInPath := True;
           Exit;
         end;
         Log('Warning: Found Git in unexpected location: "' + Path + Ext + '"');
@@ -146,6 +157,7 @@ begin
           'If this looks dubious, Git LFS should not be registered using it.' + #13+#10 + #13+#10 +
           'Do you want to ' + RegisterOrDeregister + ' Git LFS using this Git program?',
           mbConfirmation, MB_YESNO, IDNO) = IDYES);
+        CachedGitFoundInPath := Result;
         if Result then
           Log('Using Git found at: "' + Path + Ext + '"')
         else
