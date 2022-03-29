@@ -45,8 +45,7 @@ begin_test "askpass: push with bad askpass"
 
   git config "credential.helper" ""
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="lfs-askpass-2" SSH_ASKPASS="dont-call-me" GIT_TRACE=1 git push origin main 2>&1 | tee push.log
-  grep "filling with GIT_ASKPASS" push.log                     # attempt askpass
-  grep 'credential fill error: exec: "lfs-askpass-2"' push.log # askpass fails
+  grep "failed to find GIT_ASKPASS command" push.log           # attempt askpass
   grep "creds: git credential fill" push.log                   # attempt git credential
 )
 end_test

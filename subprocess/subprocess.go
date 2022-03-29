@@ -20,7 +20,10 @@ import (
 // stdout & stderr pipes, wrapped in a BufferedCmd. The stdout buffer will be
 // of stdoutBufSize bytes.
 func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
-	cmd := ExecCommand(name, args...)
+	cmd, err := ExecCommand(name, args...)
+	if err != nil {
+		return nil, err
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -49,7 +52,11 @@ func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
 
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
-	return Output(ExecCommand(name, args...))
+	cmd, err := ExecCommand(name, args...)
+	if err != nil {
+		return "", err
+	}
+	return Output(cmd)
 }
 
 func Output(cmd *Cmd) (string, error) {

@@ -76,7 +76,11 @@ func pipeExtensions(cfg *config.Configuration, request *pipeRequest) (response p
 			arg := strings.Replace(value, "%f", request.fileName, -1)
 			args = append(args, arg)
 		}
-		cmd := subprocess.ExecCommand(name, args...)
+		var cmd *subprocess.Cmd
+		cmd, err = subprocess.ExecCommand(name, args...)
+		if err != nil {
+			return
+		}
 		ec := &extCommand{cmd: cmd, result: &pipeExtResult{name: e.Name}}
 		extcmds = append(extcmds, ec)
 	}

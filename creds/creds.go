@@ -241,7 +241,11 @@ func (a *AskPassCredentialHelper) getFromProgram(valueType credValueType, u *url
 
 	// 'cmd' will run the GIT_ASKPASS (or core.askpass) command prompting
 	// for the desired valueType (`Username` or `Password`)
-	cmd := subprocess.ExecCommand(a.Program, a.args(fmt.Sprintf("%s for %q", valueString, u))...)
+	cmd, errVal := subprocess.ExecCommand(a.Program, a.args(fmt.Sprintf("%s for %q", valueString, u))...)
+	if errVal != nil {
+		tracerx.Printf("creds: failed to find GIT_ASKPASS command: %s", a.Program)
+		return "", errVal
+	}
 	cmd.Stderr = &err
 	cmd.Stdout = &value
 
@@ -301,7 +305,10 @@ func (h *commandCredentialHelper) Approve(creds Creds) error {
 
 func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, error) {
 	output := new(bytes.Buffer)
-	cmd := subprocess.ExecCommand("git", "credential", subcommand)
+	cmd, err := subprocess.ExecCommand("git", "credential", subcommand)
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git credential %s`: %v", subcommand, err))
+	}
 	cmd.Stdin = bufferCreds(input)
 	cmd.Stdout = output
 	/*
@@ -316,7 +323,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	*/
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Start()
+	err = cmd.Start()
 	if err == nil {
 		err = cmd.Wait()
 	}

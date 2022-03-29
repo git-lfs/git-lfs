@@ -80,7 +80,10 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	}
 
 	exe, args := ssh.GetLFSExeAndArgs(c.os, c.git, &e.SSHMetadata, "git-lfs-authenticate", endpointOperation(e, method), false)
-	cmd := subprocess.ExecCommand(exe, args...)
+	cmd, err := subprocess.ExecCommand(exe, args...)
+	if err != nil {
+		return res, err
+	}
 
 	// Save stdout and stderr in separate buffers
 	var outbuf, errbuf bytes.Buffer
@@ -90,7 +93,7 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	now := time.Now()
 
 	// Execute command
-	err := cmd.Start()
+	err = cmd.Start()
 	if err == nil {
 		err = cmd.Wait()
 	}
