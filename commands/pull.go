@@ -147,7 +147,10 @@ func (i *gitIndexer) Add(path string) error {
 
 	if i.cmd == nil {
 		// Fire up the update-index command
-		cmd := git.UpdateIndexFromStdin()
+		cmd, err := git.UpdateIndexFromStdin()
+		if err != nil {
+			return err
+		}
 		cmd.Stdout = &i.output
 		cmd.Stderr = &i.output
 		stdin, err := cmd.StdinPipe()

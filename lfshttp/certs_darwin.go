@@ -19,7 +19,11 @@ func appendRootCAsForHostFromPlatform(pool *x509.CertPool, host string) *x509.Ce
 	// either, for consistency.
 
 	// find system.keychain for user-added certs (don't assume location)
-	cmd := subprocess.ExecCommand("/usr/bin/security", "list-keychains")
+	cmd, err := subprocess.ExecCommand("/usr/bin/security", "list-keychains")
+	if err != nil {
+		tracerx.Printf("Error getting command to list keychains: %v", err)
+		return nil
+	}
 	kcout, err := cmd.Output()
 	if err != nil {
 		tracerx.Printf("Error listing keychains: %v", err)
@@ -54,7 +58,11 @@ func appendRootCAsForHostFromPlatform(pool *x509.CertPool, host string) *x509.Ce
 }
 
 func appendRootCAsFromKeychain(pool *x509.CertPool, name, keychain string) *x509.CertPool {
-	cmd := subprocess.ExecCommand("/usr/bin/security", "find-certificate", "-a", "-p", "-c", name, keychain)
+	cmd, err := subprocess.ExecCommand("/usr/bin/security", "find-certificate", "-a", "-p", "-c", name, keychain)
+	if err != nil {
+		tracerx.Printf("Error getting command to read keychain %q: %v", keychain, err)
+		return pool
+	}
 	data, err := cmd.Output()
 	if err != nil {
 		tracerx.Printf("Error reading keychain %q: %v", keychain, err)

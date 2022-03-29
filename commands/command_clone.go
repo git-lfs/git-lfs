@@ -118,8 +118,11 @@ func postCloneSubmodules(args []string) error {
 	// Use `git submodule foreach --recursive` to cascade into nested submodules
 	// Also good to call a new instance of git-lfs rather than do things
 	// inside this instance, since that way we get a clean env in that subrepo
-	cmd := subprocess.ExecCommand("git", "submodule", "foreach", "--recursive",
+	cmd, err := subprocess.ExecCommand("git", "submodule", "foreach", "--recursive",
 		"git lfs pull")
+	if err != nil {
+		return err
+	}
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

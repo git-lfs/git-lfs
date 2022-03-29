@@ -35,7 +35,10 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 	if untracked {
 		args = append(args, "--others")
 	}
-	cmd := gitNoLFS(args...)
+	cmd, err := gitNoLFS(args...)
+	if err != nil {
+		return nil, err
+	}
 	cmd.Dir = workingDir
 
 	tracerx.Printf("NewLsFiles: running in %s git %s",

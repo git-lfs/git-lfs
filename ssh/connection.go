@@ -34,7 +34,10 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, error) {
 	exe, args := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true)
-	cmd := subprocess.ExecCommand(exe, args...)
+	cmd, err := subprocess.ExecCommand(exe, args...)
+	if err != nil {
+		return nil, err
+	}
 	r, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err

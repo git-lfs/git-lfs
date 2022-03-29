@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
@@ -50,7 +51,11 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	} else {
 		fullref, err := git.CurrentRef()
 		if err != nil {
-			ref = git.EmptyTree()
+			ref, err = git.EmptyTree()
+			if err != nil {
+				ExitWithError(errors.Wrap(
+					err, tr.Tr.Get("Could not read empty Git tree object")))
+			}
 		} else {
 			ref = fullref.Sha
 		}
