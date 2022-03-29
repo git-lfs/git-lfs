@@ -135,17 +135,6 @@ func IsProtocolError(err error) bool {
 	return false
 }
 
-// If an error is abad pointer error of any type, returns NotAPointerError
-func StandardizeBadPointerError(err error) error {
-	if IsBadPointerKeyError(err) {
-		badErr := err.(badPointerKeyError)
-		if badErr.Expected == "version" {
-			return NewNotAPointerError(err)
-		}
-	}
-	return err
-}
-
 // IsDownloadDeclinedError indicates that the smudge operation should not download.
 // TODO: I don't really like using errors to control that flow, it should be refactored.
 func IsDownloadDeclinedError(err error) bool {
@@ -375,9 +364,6 @@ func NewPointerScanError(err error, treeishOid, path string) error {
 }
 
 type badPointerKeyError struct {
-	Expected string
-	Actual   string
-
 	*wrappedError
 }
 
@@ -385,9 +371,8 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 	return true
 }
 
-func NewBadPointerKeyError(expected, actual string) error {
-	err := Errorf(tr.Tr.Get("Expected key %s, got %s", expected, actual))
-	return badPointerKeyError{expected, actual, newWrappedError(err, tr.Tr.Get("pointer parsing"))}
+func NewBadPointerKeyError(err error) error {
+	return badPointerKeyError{newWrappedError(err, tr.Tr.Get("Pointer parsing error"))}
 }
 
 // Definitions for IsDownloadDeclinedError()

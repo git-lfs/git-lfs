@@ -127,34 +127,6 @@ size 12345`
 	assertEqualWithExample(t, ex, "sha256", p.Extensions[2].OidType)
 }
 
-func TestDecodeExtensionsSort(t *testing.T) {
-	ex := `version https://git-lfs.github.com/spec/v1
-ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ext-1-bar sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size 12345`
-
-	p, err := DecodePointer(bytes.NewBufferString(ex))
-	assertEqualWithExample(t, ex, nil, err)
-	assertEqualWithExample(t, ex, latest, p.Version)
-	assertEqualWithExample(t, ex, "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393", p.Oid)
-	assertEqualWithExample(t, ex, int64(12345), p.Size)
-	assertEqualWithExample(t, ex, "sha256", p.OidType)
-	assertEqualWithExample(t, ex, "foo", p.Extensions[0].Name)
-	assertEqualWithExample(t, ex, 0, p.Extensions[0].Priority)
-	assertEqualWithExample(t, ex, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", p.Extensions[0].Oid)
-	assertEqualWithExample(t, ex, "sha256", p.Extensions[0].OidType)
-	assertEqualWithExample(t, ex, "bar", p.Extensions[1].Name)
-	assertEqualWithExample(t, ex, 1, p.Extensions[1].Priority)
-	assertEqualWithExample(t, ex, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", p.Extensions[1].Oid)
-	assertEqualWithExample(t, ex, "sha256", p.Extensions[1].OidType)
-	assertEqualWithExample(t, ex, "baz", p.Extensions[2].Name)
-	assertEqualWithExample(t, ex, 2, p.Extensions[2].Priority)
-	assertEqualWithExample(t, ex, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", p.Extensions[2].Oid)
-	assertEqualWithExample(t, ex, "sha256", p.Extensions[2].OidType)
-}
-
 func TestDecodePreRelease(t *testing.T) {
 	ex := `version https://hawser.github.com/spec/v1
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
@@ -206,14 +178,12 @@ size 12345`,
 		"version https://git-lfs.github.com/spec/v1\r\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\r\nsize 12345\r\n",
 		// trailing whitespace
 		"version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 12345   \n",
-		// unsorted extensions
+		// extra keys
 		`version https://git-lfs.github.com/spec/v1
-ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ext-1-bar sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+foo foo
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345
-`,
+wat wat`,
 	}
 
 	for _, ex := range canonicalExamples {
@@ -282,16 +252,16 @@ size=fif`,
 oid=sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size=fif`,
 
-		// extra key
-		`version https://git-lfs.github.com/spec/v1
-oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
-size 12345
-wat wat`,
-
 		// keys out of order
 		`version https://git-lfs.github.com/spec/v1
 size 12345
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393`,
+
+		// extra keys out of order
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+wat wat
+size 12345`,
 
 		// bad ext name
 		`version https://git-lfs.github.com/spec/v1
@@ -330,8 +300,22 @@ ext-0-foo boom:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`,
 
+		// extensions out of order
+		`version https://git-lfs.github.com/spec/v1
+ext-2-baz sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ext-1-bar sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
+
 		// bad OID
 		`version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393&
+size 177735`,
+
+		// bad key
+		`version https://git-lfs.github.com/spec/v1
+!@# wat
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393&
 size 177735`,
 	}

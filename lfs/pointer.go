@@ -25,10 +25,11 @@ var (
 	}
 	latest      = "https://git-lfs.github.com/spec/v1"
 	oidType     = "sha256"
+	keyRE       = regexp.MustCompile(`\A[0-9a-z.-]+`)
 	oidRE       = regexp.MustCompile(`\A[0-9a-f]{64}\z`)
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
 	extRE       = regexp.MustCompile(`\Aext-\d{1}-\w+`)
-	pointerKeys = []string{"version", "oid", "size"}
+	extLikeRE   = regexp.MustCompile(`\Aext-`)
 )
 
 type Pointer struct {
@@ -164,11 +165,8 @@ func verifyVersion(version string) error {
 }
 
 func decodeKV(data []byte) (*Pointer, error) {
-	kvps, exts, err := decodeKVData(data)
+	kvps, err := decodeKVData(data)
 	if err != nil {
-		if errors.IsBadPointerKeyError(err) {
-			return nil, errors.StandardizeBadPointerError(err)
-		}
 		return nil, err
 	}
 
@@ -190,6 +188,18 @@ func decodeKV(data []byte) (*Pointer, error) {
 	size, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || size < 0 {
 		return nil, errors.New(tr.Tr.Get("invalid size: %q", value))
+	}
+
+	var exts map[string]string = nil
+	for key, value := range kvps {
+		if extRE.Match([]byte(key)) {
+			if exts == nil {
+				exts = make(map[string]string)
+			}
+			exts[key] = value
+		} else if extLikeRE.Match([]byte(key)) {
+			return nil, errors.New(tr.Tr.Get("invalid extension: %s", key))
+		}
 	}
 
 	var extensions []*PointerExtension
@@ -257,53 +267,67 @@ func validatePointerExtensions(exts []*PointerExtension) error {
 	return nil
 }
 
-func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, err error) {
+func decodeKVData(data []byte) (kvps map[string]string, err error) {
 	kvps = make(map[string]string)
 
 	if !matcherRE.Match(data) {
-		err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("invalid header")))
+		err = kvDataError(tr.Tr.Get("invalid header"), kvps)
 		return
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))
 	line := 0
-	numKeys := len(pointerKeys)
+	prev_key := ""
 	for scanner.Scan() {
 		text := scanner.Text()
+		line += 1
 		if len(text) == 0 {
 			continue
 		}
 
 		parts := strings.SplitN(text, " ", 2)
+
 		if len(parts) < 2 {
-			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
+			err = kvDataError(tr.Tr.Get("error parsing line %d: %s", line, text), kvps)
+			return
+		} else if !keyRE.Match([]byte(parts[0])) {
+			err = kvDataError(tr.Tr.Get("invalid key on line %d: %s", line, parts[0]), kvps)
 			return
 		}
 
 		key := parts[0]
 		value := parts[1]
 
-		if numKeys <= line {
-			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("extra line: %s", text)))
-			return
-		}
-
-		if expected := pointerKeys[line]; key != expected {
-			if !extRE.Match([]byte(key)) {
-				err = errors.NewBadPointerKeyError(expected, key)
+		if len(kvps) == 0 {
+			if key != "version" {
+				err = kvDataError(tr.Tr.Get("first line should be version: %s", text), kvps)
 				return
 			}
-			if exts == nil {
-				exts = make(map[string]string)
+		} else {
+			_, seen_key := kvps[key]
+			if seen_key {
+				err = kvDataError(tr.Tr.Get("key at line %d is a duplicate: %s", line, key), kvps)
+				return
+			} else if key < prev_key {
+				err = kvDataError(tr.Tr.Get("key at line %d is not in alphabetic order: %s", line, key), kvps)
+				return
 			}
-			exts[key] = value
-			continue
+			prev_key = key
 		}
 
-		line += 1
 		kvps[key] = value
 	}
 
 	err = scanner.Err()
 	return
+}
+
+func kvDataError(message string, kvps map[string]string) error {
+	if len(kvps) == 0 {
+		// If we haven't even parsed the version yet, use NewNotAPointerError
+		return errors.NewNotAPointerError(errors.New(message))
+	} else {
+		// Otherwise, use NewBadPointerKeyError.
+		return errors.NewBadPointerKeyError(errors.New(message))
+	}
 }
