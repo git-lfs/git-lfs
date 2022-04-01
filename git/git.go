@@ -1324,17 +1324,17 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	cmd := gitNoLFS(args...)
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, errors.New(tr.Tr.Get("failed to call `git diff`: %v", err))
+		return nil, errors.New(tr.Tr.Get("failed to call `git diff-tree`: %v", err))
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, errors.New(tr.Tr.Get("failed to start `git diff`: %v", err))
+		return nil, errors.New(tr.Tr.Get("failed to start `git diff-tree`: %v", err))
 	}
 	scanner := bufio.NewScanner(outp)
 	for scanner.Scan() {
 		files = append(files, strings.TrimSpace(scanner.Text()))
 	}
 	if err := cmd.Wait(); err != nil {
-		return nil, errors.New(tr.Tr.Get("`git diff` failed: %v", err))
+		return nil, errors.New(tr.Tr.Get("`git diff-tree` failed: %v", err))
 	}
 
 	return files, err
