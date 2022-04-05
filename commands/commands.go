@@ -160,14 +160,14 @@ func getHookInstallSteps() string {
 	return strings.Join(steps, "\n\n")
 }
 
-func installHooks(force bool) error {
+func installHooks(force bool, append bool) error {
 	hookDir, err := cfg.HookDir()
 	if err != nil {
 		return err
 	}
 	hooks := lfs.LoadHooks(hookDir, cfg)
 	for _, h := range hooks {
-		if err := h.Install(force); err != nil {
+		if err := h.Install(force, append); err != nil {
 			return err
 		}
 	}

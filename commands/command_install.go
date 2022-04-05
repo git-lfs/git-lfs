@@ -17,6 +17,7 @@ var (
 	systemInstall     = false
 	skipSmudgeInstall = false
 	skipRepoInstall   = false
+	appendInstall     = false
 )
 
 func installCommand(cmd *cobra.Command, args []string) {
@@ -92,6 +93,7 @@ func init() {
 		cmd.Flags().BoolVarP(&skipSmudgeInstall, "skip-smudge", "s", false, "Skip automatic downloading of objects on clone or pull.")
 		cmd.Flags().BoolVarP(&skipRepoInstall, "skip-repo", "", false, "Skip repo setup, just install global filters.")
 		cmd.Flags().BoolVarP(&manualInstall, "manual", "m", false, "Print instructions for manual install.")
+		cmd.Flags().BoolVarP(&appendInstall, "append", "a", false, "Append to existing hooks.")
 		cmd.AddCommand(NewCommand("hooks", installHooksCommand))
 	})
 }

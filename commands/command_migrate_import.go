@@ -40,7 +40,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	// To avoid confusion later, let's make sure that we've installed the
 	// necessary hooks so that a newly migrated repository is `git
 	// push`-able immediately following a `git lfs migrate import`.
-	installHooks(false)
+	installHooks(false, false)
 
 	if migrateNoRewrite {
 		if migrateFixup {

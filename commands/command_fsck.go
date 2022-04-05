@@ -44,7 +44,7 @@ func (p corruptPointer) String() string {
 // NOTE(zeroshirts): Ideally git would have hooks for fsck such that we could
 // chain a lfs-fsck, but I don't think it does.
 func fsckCommand(cmd *cobra.Command, args []string) {
-	installHooks(false)
+	installHooks(false, false)
 	setupRepository()
 
 	useIndex := false

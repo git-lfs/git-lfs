@@ -354,3 +354,42 @@ begin_test "can install when multiple global values registered"
   git lfs install --force
 )
 end_test
+
+begin_test "install with --append"
+(
+  set -e
+  git init install-append-repo
+  cd install-append-repo
+
+  pre_push_hook="
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/pre-push'.\\n\"; exit 2; }
+git lfs pre-push \"\$@\""
+
+  post_checkout_hook="
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-checkout'.\\n\"; exit 2; }
+git lfs post-checkout \"\$@\""
+
+  post_commit_hook="
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-commit'.\\n\"; exit 2; }
+git lfs post-commit \"\$@\""
+
+  post_merge_hook="
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-merge'.\\n\"; exit 2; }
+git lfs post-merge \"\$@\""
+
+  echo "test" > .git/hooks/pre-push
+  echo "test" > .git/hooks/post-checkout
+  echo "test" > .git/hooks/post-commit
+  echo "test" > .git/hooks/post-merge
+  [ "Updated Git hooks.
+Git LFS initialized." = "$(git lfs install --append)" ]
+  [ "test
+$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
+  [ "test
+$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
+  [ "test
+$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
+  [ "test
+$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
+)
+end_test

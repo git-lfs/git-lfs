@@ -36,7 +36,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	setupWorkingCopy()
 
 	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
-		installHooks(false)
+		installHooks(false, false)
 	}
 
 	if len(args) == 0 {

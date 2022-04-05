@@ -97,7 +97,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		// If --skip-repo wasn't given, install repo-level hooks while
 		// we're still in the checkout directory.
 
-		if err := installHooks(false); err != nil {
+		if err := installHooks(false, false); err != nil {
 			ExitWithError(err)
 		}
 	}

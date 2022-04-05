@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
-	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -31,6 +30,12 @@ type Hook struct {
 	upgradeables []string
 	cfg          *config.Configuration
 }
+
+type mismatchError struct {
+	msg string
+}
+
+func (e *mismatchError) Error() string { return e.msg }
 
 func LoadHooks(hookDir string, cfg *config.Configuration) []*Hook {
 	return []*Hook{
@@ -79,7 +84,7 @@ func (h *Hook) Path() string {
 // is upgradeable. It will create a hooks directory relative to the local Git
 // directory. It returns and halts at any errors, and returns nil if the
 // operation was a success.
-func (h *Hook) Install(force bool) error {
+func (h *Hook) Install(force bool, append bool) error {
 	msg := fmt.Sprintf("Install hook: %s, force=%t, path=%s", h.Type, force, h.Path())
 
 	if err := tools.MkdirAll(h.Dir, h.cfg); err != nil {
@@ -88,27 +93,41 @@ func (h *Hook) Install(force bool) error {
 
 	if h.Exists() && !force {
 		tracerx.Printf(msg + ", upgrading...")
-		return h.Upgrade()
+		return h.Upgrade(append)
 	}
 
 	tracerx.Printf(msg)
-	return h.write()
+	return h.write(false)
 }
 
 // write writes the contents of this Hook to disk, appending a newline at the
 // end, and sets the mode to octal 0755. It writes to disk unconditionally, and
 // returns at any error.
-func (h *Hook) write() error {
-	return ioutil.WriteFile(h.Path(), []byte(h.Contents+"\n"), 0755)
+func (h *Hook) write(append_ bool) error {
+	contents := h.Contents + "\n"
+	if append_ {
+		s, err := ioutil.ReadFile(h.Path())
+		if err != nil {
+			return err
+		}
+
+		contents = string(s) + strings.TrimPrefix(contents, "#!/bin/sh")
+	}
+
+	return ioutil.WriteFile(h.Path(), []byte(contents), 0755)
 }
 
 // Upgrade upgrades the (assumed to be) existing git hook to the current
 // contents. A hook is considered "upgrade-able" if its contents are matched in
 // the member variable `Upgradeables`. It halts and returns any errors as they
 // arise.
-func (h *Hook) Upgrade() error {
+func (h *Hook) Upgrade(append bool) error {
 	match, err := h.matchesCurrent()
 	if err != nil {
+		if _, ok := err.(*mismatchError); ok && append {
+			return h.write(true)
+		}
+
 		return err
 	}
 
@@ -116,7 +135,7 @@ func (h *Hook) Upgrade() error {
 		return nil
 	}
 
-	return h.write()
+	return h.write(false)
 }
 
 // Uninstall removes the hook on disk so long as it matches the current version,
@@ -165,5 +184,5 @@ func (h *Hook) matchesCurrent() (bool, error) {
 		}
 	}
 
-	return false, errors.New(fmt.Sprintf("%s\n\n%s\n", tr.Tr.Get("Hook already exists: %s", string(h.Type)), tools.Indent(contents)))
+	return false, &mismatchError{fmt.Sprintf("%s\n\n%s\n", tr.Tr.Get("Hook already exists: %s", string(h.Type)), tools.Indent(contents))}
 }

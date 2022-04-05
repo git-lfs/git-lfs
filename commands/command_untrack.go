@@ -15,7 +15,7 @@ import (
 func untrackCommand(cmd *cobra.Command, args []string) {
 	setupWorkingCopy()
 
-	installHooks(false)
+	installHooks(false, false)
 
 	if len(args) < 1 {
 		Print("git lfs untrack <path> [path]*")

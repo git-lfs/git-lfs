@@ -101,6 +101,17 @@ To resolve this, either:
   [ "test" = "$(cat .git/hooks/post-commit)" ]
   [ "test" = "$(cat .git/hooks/post-merge)" ]
 
+  # append to existing hooks
+  [ "Updated Git hooks." = "$(git lfs update --append)" ]
+  [ "test
+${pre_push_hook/#*\n/}" = "$(cat .git/hooks/pre-push)" ]
+  [ "test
+${post_checkout_hook/#*\n/}" = "$(cat .git/hooks/post-checkout)" ]
+  [ "test
+${post_commit_hook/#*\n/}" = "$(cat .git/hooks/post-commit)" ]
+  [ "test
+${post_merge_hook/#*\n/}" = "$(cat .git/hooks/post-merge)" ]
+
   # Make sure returns non-zero
   set +e
   git lfs update

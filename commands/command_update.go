@@ -10,6 +10,7 @@ import (
 var (
 	updateForce  = false
 	updateManual = false
+	updateAppend = false
 )
 
 // updateCommand is used for updating parts of Git LFS that reside under
@@ -38,18 +39,19 @@ func updateCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if updateForce && updateManual {
-		Exit(tr.Tr.Get("You cannot use --force and --manual options together"))
+	if (updateForce && updateAppend) || (updateForce && updateManual) || (updateAppend && updateManual) {
+		Exit(tr.Tr.Get("Options --force, --manual, and --append are mutually exclusive."))
 	}
 
 	if updateManual {
 		Print(getHookInstallSteps())
 	} else {
-		if err := installHooks(updateForce); err != nil {
+		if err := installHooks(updateForce, updateAppend); err != nil {
 			Error(err.Error())
-			Exit("%s\n  1: %s\n  2: %s",
+			Exit("%s\n  1: %s\n  2: %s\n  3: %s",
 				tr.Tr.Get("To resolve this, either:"),
 				tr.Tr.Get("run `git lfs update --manual` for instructions on how to merge hooks."),
+				tr.Tr.Get("run `git lfs update --append` to append to your existing hook."),
 				tr.Tr.Get("run `git lfs update --force` to overwrite your hook."))
 		} else {
 			Print(tr.Tr.Get("Updated Git hooks."))
@@ -62,5 +64,6 @@ func init() {
 	RegisterCommand("update", updateCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&updateForce, "force", "f", false, "Overwrite existing hooks.")
 		cmd.Flags().BoolVarP(&updateManual, "manual", "m", false, "Print instructions for manual install.")
+		cmd.Flags().BoolVarP(&updateAppend, "append", "a", false, "Append to existing hooks.")
 	})
 }

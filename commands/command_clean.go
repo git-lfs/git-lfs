@@ -92,7 +92,7 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 func cleanCommand(cmd *cobra.Command, args []string) {
 	requireStdin(tr.Tr.Get("This command should be run by the Git 'clean' filter"))
 	setupRepository()
-	installHooks(false)
+	installHooks(false, false)
 
 	var fileName string
 	if len(args) > 0 {
