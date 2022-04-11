@@ -107,12 +107,12 @@ func (h *Hook) write() error {
 // the member variable `Upgradeables`. It halts and returns any errors as they
 // arise.
 func (h *Hook) Upgrade() error {
-	match, err := h.matchesCurrent()
+	upgradable, match, err := h.matchesCurrent()
 	if err != nil {
 		return err
 	}
 
-	if !match {
+	if !upgradable || match {
 		return nil
 	}
 
@@ -124,12 +124,12 @@ func (h *Hook) Upgrade() error {
 func (h *Hook) Uninstall() error {
 	msg := fmt.Sprintf("Uninstall hook: %s, path=%s", h.Type, h.Path())
 
-	match, err := h.matchesCurrent()
+	upgradable, _, err := h.matchesCurrent()
 	if err != nil {
 		return err
 	}
 
-	if !match {
+	if !upgradable {
 		tracerx.Printf(msg + ", doesn't match...")
 		return nil
 	}
@@ -139,31 +139,33 @@ func (h *Hook) Uninstall() error {
 }
 
 // matchesCurrent returns whether or not an existing git hook is able to be
-// written to or upgraded. A git hook matches those conditions if and only if
-// its contents match the current contents, or any past "upgrade-able" contents
-// of this hook.
-func (h *Hook) matchesCurrent() (bool, error) {
+// written to or upgraded and additionally whether it is identical to the
+// current hook. A git hook matches those conditions if and only if its contents
+// match the current contents, or any past "upgrade-able" contents of this hook.
+func (h *Hook) matchesCurrent() (bool, bool, error) {
 	file, err := os.Open(h.Path())
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
 	file.Close()
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	contents := strings.TrimSpace(tools.Undent(string(by)))
-	if contents == h.Contents || len(contents) == 0 {
-		return true, nil
+	if contents == h.Contents {
+		return true, true, nil
+	} else if len(contents) == 0 {
+		return true, false, nil
 	}
 
 	for _, u := range h.upgradeables {
 		if u == contents {
-			return true, nil
+			return true, false, nil
 		}
 	}
 
-	return false, errors.New(fmt.Sprintf("%s\n\n%s\n", tr.Tr.Get("Hook already exists: %s", string(h.Type)), tools.Indent(contents)))
+	return false, false, errors.New(fmt.Sprintf("%s\n\n%s\n", tr.Tr.Get("Hook already exists: %s", string(h.Type)), tools.Indent(contents)))
 }
