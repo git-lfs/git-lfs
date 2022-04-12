@@ -39,17 +39,11 @@ endif
 LD_FLAGS = $(BUILTIN_LD_FLAGS) $(EXTRA_LD_FLAGS)
 
 # BUILTIN_GC_FLAGS are the internal flags used to pass compiler.
-BUILTIN_GC_FLAGS ?= all=-trimpath="$$HOME"
+BUILTIN_GC_FLAGS =
 # EXTRA_GC_FLAGS are the caller-provided flags to pass to the compiler.
 EXTRA_GC_FLAGS =
 # GC_FLAGS are the union of the above two BUILTIN_GC_FLAGS and EXTRA_GC_FLAGS.
 GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
-
-ASM_FLAGS ?= all=-trimpath="$$HOME"
-
-# TRIMPATH contains arguments to be passed to go to strip paths on Go 1.13 and
-# newer.
-TRIMPATH ?= $(shell [ "$$($(GO) version | awk '{print $$3}' | sed -e 's/^[^.]*\.//;s/\..*$$//;')" -ge 13 ] && echo -trimpath)
 
 # RONN is the name of the 'ronn' program used to generate man pages.
 RONN ?= ronn
@@ -185,8 +179,7 @@ BUILD = GOOS=$(1) GOARCH=$(2) \
 	$(GO) build \
 	-ldflags="$(LD_FLAGS)" \
 	-gcflags="$(GC_FLAGS)" \
-	-asmflags="$(ASM_FLAGS)" \
-	$(TRIMPATH) \
+	-trimpath \
 	-o ./bin/git-lfs$(3) $(BUILD_MAIN)
 
 # BUILD_TARGETS is the set of all platforms and architectures that Git LFS is
