@@ -417,12 +417,16 @@ clone_repo() {
   local reponame="$1"
   local dir="$2"
   echo "clone local git repository $reponame to $dir"
-  out=$(git clone "$GITSERVER/$reponame" "$dir" 2>&1)
+  git clone "$GITSERVER/$reponame" "$dir" 2>&1 | tee clone.log
+
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    return 1
+  fi
+
   cd "$dir"
+  mv ../clone.log .
 
   git config credential.helper lfstest
-  echo "$out" > clone.log
-  echo "$out"
 }
 
 # clone_repo_url clones a Git repository to the subdirectory $dir under $TRASHDIR.
@@ -433,12 +437,16 @@ clone_repo_url() {
   local repo="$1"
   local dir="$2"
   echo "clone git repository $repo to $dir"
-  out=$(git clone "$repo" "$dir" 2>&1)
+  git clone "$repo" "$dir" 2>&1 | tee clone.log
+
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    return 1
+  fi
+
   cd "$dir"
+  mv ../clone.log .
 
   git config credential.helper lfstest
-  echo "$out" > clone.log
-  echo "$out"
 }
 
 # clone_repo_ssl clones a repository from the test Git server to the subdirectory
@@ -450,13 +458,16 @@ clone_repo_ssl() {
   local reponame="$1"
   local dir="$2"
   echo "clone local git repository $reponame to $dir"
-  out=$(git clone "$SSLGITSERVER/$reponame" "$dir" 2>&1)
+  git clone "$SSLGITSERVER/$reponame" "$dir" 2>&1 | tee clone_ssl.log
+
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    return 1
+  fi
+
   cd "$dir"
+  mv ../clone_ssl.log .
 
   git config credential.helper lfstest
-
-  echo "$out" > clone_ssl.log
-  echo "$out"
 }
 
 # clone_repo_clientcert clones a repository from the test Git server to the subdirectory
@@ -468,21 +479,16 @@ clone_repo_clientcert() {
   local reponame="$1"
   local dir="$2"
   echo "clone $CLIENTCERTGITSERVER/$reponame to $dir"
-  set +e
-  out=$(git clone "$CLIENTCERTGITSERVER/$reponame" "$dir" 2>&1)
-  res="${PIPESTATUS[0]}"
-  set -e
+  git clone "$CLIENTCERTGITSERVER/$reponame" "$dir" 2>&1 | tee clone_client_cert.log
 
-  if [ "0" -eq "$res" ]; then
-    cd "$dir"
-    echo "$out" > clone_client_cert.log
-
-    git config credential.helper lfstest
-    return 0
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    return 1
   fi
 
-  echo "$out" > clone_client_cert.log
-  return 1
+  cd "$dir"
+  mv ../clone_client_cert.log .
+
+  git config credential.helper lfstest
 }
 
 # setup_remote_repo_with_file creates a remote repo, clones it locally, commits
