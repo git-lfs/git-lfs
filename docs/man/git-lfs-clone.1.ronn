@@ -39,16 +39,19 @@ You can configure Git LFS to only fetch objects to satisfy references in certain
 paths of the repo, and/or to exclude certain paths of the repo, to reduce the
 time you spend downloading things you do not use.
 
-In lfsconfig, set lfs.fetchinclude and lfs.fetchexclude to comma-separated lists
-of paths to include/exclude in the fetch (wildcard matching as per gitignore).
-Only paths which are matched by fetchinclude and not matched by fetchexclude
-will have objects fetched for them.
+In your Git configuration or in a `.lfsconfig` file, you may set either or
+both of `lfs.fetchinclude` and `lfs.fetchexclude` to comma-separated lists of
+paths.  If `lfs.fetchinclude` is defined, Git LFS objects will only be fetched
+if their path matches one in that list, and if `lfs.fetchexclude` is defined,
+Git LFS objects will only be fetched if their path does not match one
+in that list.  Paths are matched using wildcard matching as per gitignore(5).
 
 Note that using the command-line options `-I` and `-X` override the respective
-configuration settings.
+configuration settings.  Setting either option to an empty string clears the
+value.
 
 ## SEE ALSO
 
-git-clone(1), git-lfs-pull(1).
+git-clone(1), git-lfs-pull(1), gitignore(5).
 
 Part of the git-lfs(1) suite.
