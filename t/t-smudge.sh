@@ -82,6 +82,25 @@ begin_test "smudge include/exclude"
   git config "lfs.fetchexclude" "a*"
 
   [ "$pointer" = "$(echo "$pointer" | git lfs smudge a.dat)" ]
+
+  mkdir -p foo/bar
+  echo "smudge a" > foo/a.dat
+  echo "smudge a" > foo/bar/a.dat
+  git add foo
+  git commit -m 'add foo'
+
+  git push origin main
+
+  # The Git LFS objects for a.dat and foo/bar/a.dat would both download except
+  # we're going to prevent them from doing so with include/exclude.
+  rm -rf .git/lfs/objects
+  # We also need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchinclude" "/foo"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/bar"
+
+  [ "$pointer" = "$(echo "$pointer" | git lfs smudge a.dat)" ]
+  [ "smudge a" = "$(echo "$pointer" | git lfs smudge foo/a.dat)" ]
+  [ "$pointer" = "$(echo "$pointer" | git lfs smudge foo/bar/a.dat)" ]
 )
 end_test
 
@@ -169,11 +188,42 @@ begin_test "smudge clone with include/exclude"
 
   clone="$TRASHDIR/clone_$reponame"
   git -c lfs.fetchexclude="a*" clone "$GITSERVER/$reponame" "$clone"
-  cd "$clone"
+  pushd "$clone"
+    # Should have succeeded but not downloaded
+    refute_local_object "$contents_oid"
+  popd
+  rm -rf "$clone"
 
-  # Should have succeeded but not downloaded
-  refute_local_object "$contents_oid"
+  contents2="b"
+  contents2_oid=$(calc_oid "$contents2")
+  contents3="c"
+  contents3_oid=$(calc_oid "$contents3")
 
+  mkdir -p foo/bar
+  printf "%s" "$contents2" > foo/b.dat
+  printf "%s" "$contents3" > foo/bar/c.dat
+  git add foo
+  git commit -m 'add foo'
+
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 1
+
+  git push origin main
+
+  assert_server_object "$reponame" "$contents2_oid"
+  assert_server_object "$reponame" "$contents3_oid"
+
+  # The Git LFS objects for a.dat and foo/bar/a.dat would both download except
+  # we're going to prevent them from doing so with include/exclude.
+  # We also need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config --global "lfs.fetchinclude" "/foo"
+  MSYS_NO_PATHCONV=1 git config --global "lfs.fetchexclude" "/foo/bar"
+  git clone "$GITSERVER/$reponame" "$clone"
+  pushd "$clone"
+    refute_local_object "$contents_oid"
+    assert_local_object "$contents2_oid" 1
+    refute_local_object "$contents3_oid"
+  popd
 )
 end_test
 

@@ -326,6 +326,49 @@ begin_test "fsck detects invalid objects"
 )
 end_test
 
+begin_test "fsck detects invalid objects except in excluded paths"
+(
+  set -e
+
+  reponame="fsck-objects-exclude"
+  setup_invalid_objects
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
+
+  set +e
+  git lfs fsck >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: foo/a.dat (.*) is corrupt' test.log) -eq 0 ]
+  [ $(grep -c 'objects: openError: foo/b.dat (.*) could not be checked: .*' test.log) -eq 0 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+
+  cd ..
+  rm -rf $reponame
+  setup_invalid_objects
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
+
+  set +e
+  git lfs fsck --objects >test.log 2>&1
+  RET=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: foo/a.dat (.*) is corrupt' test.log) -eq 0 ]
+  [ $(grep -c 'objects: openError: foo/b.dat (.*) could not be checked: .*' test.log) -eq 0 ]
+  [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
+)
+end_test
+
 begin_test "fsck does not detect invalid objects with no LFS objects"
 (
   set -e

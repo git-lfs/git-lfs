@@ -144,7 +144,7 @@ begin_test "prune all excluded paths"
   git config lfs.pruneoffsetdays 2
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
@@ -264,7 +264,7 @@ begin_test "prune keep unpushed"
   git config lfs.pruneoffsetdays 2
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -800,7 +800,7 @@ begin_test "prune keep stashed changes"
   assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -924,7 +924,7 @@ begin_test "prune keep stashed changes in index"
   assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -1077,7 +1077,7 @@ begin_test "prune keep stashed untracked files"
   assert_local_object "$oid_untrackedstashedandexcludedbranch" "${#content_untrackedstashedandexcludedbranch}"
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   # force color codes in git diff meta-information
   git config color.diff always
