@@ -4,7 +4,12 @@ PROVE_EXTRA_ARGS =
 DEFAULT_TEST_TARGET ?= test
 
 GO ?= go
-X =
+
+ifeq ($(OS),Windows_NT)
+X ?= .exe
+else
+X ?=
+endif
 
 TEST_CMDS =
 
@@ -30,7 +35,9 @@ TEST_API_SRCS = $(wildcard git-lfs-test-server-api/*.go)
 
 all : $(DEFAULT_TEST_TARGET)
 
-test : $(TEST_CMDS)
+test-commands : $(TEST_CMDS)
+
+test : test-commands
 	$(RM) -r remote test_count{,.lock}
 	@GIT_LFS_NO_TEST_COUNT= bash -c '. ./testenv.sh && setup'
 	$(PROVE) $(PROVE_EXTRA_ARGS) ./t-*.sh
