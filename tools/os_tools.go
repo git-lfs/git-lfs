@@ -28,7 +28,12 @@ func Getwd() (dir string, err error) {
 }
 
 func translateCygwinPath(path string) (string, error) {
-	cmd := subprocess.ExecCommand("cygpath", "-w", path)
+	cmd, err := subprocess.ExecCommand("cygpath", "-w", path)
+	if err != nil {
+		// If cygpath doesn't exist, that's okay: just return the paths
+		// as we got it.
+		return path, nil
+	}
 	// cygpath uses ISO-8850-1 as the default encoding if the locale is not
 	// set, resulting in breakage, since we want a UTF-8 path.
 	env := make([]string, 0, len(cmd.Env)+1)

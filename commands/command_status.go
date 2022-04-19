@@ -28,8 +28,12 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	ref, _ := git.CurrentRef()
 
 	scanIndexAt := "HEAD"
+	var err error
 	if ref == nil {
-		scanIndexAt = git.EmptyTree()
+		scanIndexAt, err = git.EmptyTree()
+		if err != nil {
+			ExitWithError(err)
+		}
 	}
 
 	scanner, err := lfs.NewPointerScanner(cfg.GitEnv(), cfg.OSEnv())

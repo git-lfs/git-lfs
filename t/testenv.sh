@@ -6,12 +6,14 @@ set -e
 UNAME=$(uname -s)
 IS_WINDOWS=0
 IS_MAC=0
+X=""
 SHASUM="shasum -a 256"
 PATH_SEPARATOR="/"
 
 if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]
 then
   IS_WINDOWS=1
+  X=".exe"
 
   # Windows might be MSYS2 which does not have the shasum Perl wrapper
   # script by default, so use sha256sum directly. MacOS on the other hand
