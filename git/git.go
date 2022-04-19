@@ -148,17 +148,20 @@ func IsZeroObjectID(s string) bool {
 	return false
 }
 
-func EmptyTree() string {
+func EmptyTree() (string, error) {
 	emptyTreeMutex.Lock()
 	defer emptyTreeMutex.Unlock()
 
 	if len(emptyTree) == 0 {
-		cmd := gitNoLFS("hash-object", "-t", "tree", "/dev/null")
+		cmd, err := gitNoLFS("hash-object", "-t", "tree", "/dev/null")
+		if err != nil {
+			return "", errors.New(tr.Tr.Get("failed to find `git hash-object`: %v", err))
+		}
 		cmd.Stdin = nil
 		out, _ := cmd.Output()
 		emptyTree = strings.TrimSpace(string(out))
 	}
-	return emptyTree
+	return emptyTree, nil
 }
 
 // Some top level information about a commit (only first line of message)
@@ -198,7 +201,7 @@ func gitConfigNoLFS(args ...string) []string {
 }
 
 // Invoke Git with disabled LFS filters
-func gitNoLFS(args ...string) *subprocess.Cmd {
+func gitNoLFS(args ...string) (*subprocess.Cmd, error) {
 	return subprocess.ExecCommand("git", gitConfigNoLFS(args...)...)
 }
 
@@ -211,7 +214,7 @@ func gitNoLFSBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 }
 
 // Invoke Git with enabled LFS filters
-func git(args ...string) *subprocess.Cmd {
+func git(args ...string) (*subprocess.Cmd, error) {
 	return subprocess.ExecCommand("git", args...)
 }
 
@@ -253,7 +256,10 @@ func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
 }
 
 func HashObject(r io.Reader) (string, error) {
-	cmd := gitNoLFS("hash-object", "--stdin")
+	cmd, err := gitNoLFS("hash-object", "--stdin")
+	if err != nil {
+		return "", errors.New(tr.Tr.Get("failed to find `git hash-object`: %v", err))
+	}
 	cmd.Stdin = r
 	out, err := cmd.Output()
 	if err != nil {
@@ -381,7 +387,10 @@ func (c *Configuration) RemoteBranchForLocalBranch(localBranch string) string {
 }
 
 func RemoteList() ([]string, error) {
-	cmd := gitNoLFS("remote")
+	cmd, err := gitNoLFS("remote")
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git remote`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -401,7 +410,10 @@ func RemoteList() ([]string, error) {
 }
 
 func RemoteURLs(push bool) (map[string][]string, error) {
-	cmd := gitNoLFS("remote", "-v")
+	cmd, err := gitNoLFS("remote", "-v")
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git remote -v`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -451,7 +463,10 @@ func MapRemoteURL(url string, push bool) (string, bool) {
 // Refs returns all of the local and remote branches and tags for the current
 // repository. Other refs (HEAD, refs/stash, git notes) are ignored.
 func LocalRefs() ([]*Ref, error) {
-	cmd := gitNoLFS("show-ref")
+	cmd, err := gitNoLFS("show-ref")
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git show-ref`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -500,7 +515,10 @@ func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 		args = append(args, "-m", reason)
 	}
 
-	cmd := gitNoLFS(args...)
+	cmd, err := gitNoLFS(args...)
+	if err != nil {
+		return errors.New(tr.Tr.Get("failed to find `git update-ref`: %v", err))
+	}
 	cmd.Dir = wd
 
 	return cmd.Run()
@@ -578,7 +596,7 @@ func RewriteLocalPathAsURL(path string) string {
 	return fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))
 }
 
-func UpdateIndexFromStdin() *subprocess.Cmd {
+func UpdateIndexFromStdin() (*subprocess.Cmd, error) {
 	return git("update-index", "-q", "--refresh", "--stdin")
 }
 
@@ -588,10 +606,13 @@ func UpdateIndexFromStdin() *subprocess.Cmd {
 // includeRemoteBranches: true to include refs on remote branches
 // onlyRemote: set to non-blank to only include remote branches on a single remote
 func RecentBranches(since time.Time, includeRemoteBranches bool, onlyRemote string) ([]*Ref, error) {
-	cmd := gitNoLFS("for-each-ref",
+	cmd, err := gitNoLFS("for-each-ref",
 		`--sort=-committerdate`,
 		`--format=%(refname) %(objectname) %(committerdate:iso)`,
 		"refs")
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git for-each-ref`: %v", err))
+	}
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to call `git for-each-ref`: %v", err))
@@ -687,8 +708,11 @@ func FormatGitDate(tm time.Time) string {
 
 // Get summary information about a commit
 func GetCommitSummary(commit string) (*CommitSummary, error) {
-	cmd := gitNoLFS("show", "-s",
+	cmd, err := gitNoLFS("show", "-s",
 		`--format=%H|%h|%P|%ai|%ci|%ae|%an|%ce|%cn|%s`, commit)
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git show`: %v", err))
+	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -722,7 +746,10 @@ func GetCommitSummary(commit string) (*CommitSummary, error) {
 }
 
 func GitAndRootDirs() (string, string, error) {
-	cmd := gitNoLFS("rev-parse", "--git-dir", "--show-toplevel")
+	cmd, err := gitNoLFS("rev-parse", "--git-dir", "--show-toplevel")
+	if err != nil {
+		return "", "", errors.New(tr.Tr.Get("failed to find `git rev-parse --git-dir --show-toplevel`: %v", err))
+	}
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 
@@ -760,7 +787,10 @@ func GitAndRootDirs() (string, string, error) {
 }
 
 func RootDir() (string, error) {
-	cmd := gitNoLFS("rev-parse", "--show-toplevel")
+	cmd, err := gitNoLFS("rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", errors.New(tr.Tr.Get("failed to find `git rev-parse --show-toplevel`: %v", err))
+	}
 	out, err := cmd.Output()
 	if err != nil {
 		return "", errors.New(tr.Tr.Get("failed to call `git rev-parse --show-toplevel`: %v %v", err, string(out)))
@@ -775,7 +805,12 @@ func RootDir() (string, error) {
 }
 
 func GitDir() (string, error) {
-	cmd := gitNoLFS("rev-parse", "--git-dir")
+	cmd, err := gitNoLFS("rev-parse", "--git-dir")
+	if err != nil {
+		// The %w format specifier is unique to fmt.Errorf(), so we
+		// do not pass it to tr.Tr.Get().
+		return "", fmt.Errorf("%s: %w", tr.Tr.Get("failed to find `git rev-parse --git-dir`"), err)
+	}
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
 	out, err := cmd.Output()
@@ -797,7 +832,10 @@ func GitCommonDir() (string, error) {
 		return GitDir()
 	}
 
-	cmd := gitNoLFS("rev-parse", "--git-common-dir")
+	cmd, err := gitNoLFS("rev-parse", "--git-common-dir")
+	if err != nil {
+		return "", errors.New(tr.Tr.Get("failed to find `git rev-parse --git-common-dir`: %v", err))
+	}
 	out, err := cmd.Output()
 	buf := &bytes.Buffer{}
 	cmd.Stderr = buf
@@ -1055,14 +1093,17 @@ func CloneWithoutFilters(flags CloneFlags, args []string) error {
 
 	// Now args
 	cmdargs = append(cmdargs, args...)
-	cmd := gitNoLFS(cmdargs...)
+	cmd, err := gitNoLFS(cmdargs...)
+	if err != nil {
+		return errors.New(tr.Tr.Get("failed to find `git clone`: %v", err))
+	}
 
 	// Assign all streams direct
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		return errors.New(tr.Tr.Get("failed to start `git clone`: %v", err))
 	}
@@ -1102,7 +1143,10 @@ func Checkout(treeish string, paths []string, force bool) error {
 // currently cached locally. No remote request is made to verify them.
 func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
-	cmd := gitNoLFS("show-ref")
+	cmd, err := gitNoLFS("show-ref")
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git show-ref`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1157,7 +1201,10 @@ func Fetch(remotes ...string) error {
 // accessing the remote via git ls-remote.
 func RemoteRefs(remoteName string) ([]*Ref, error) {
 	var ret []*Ref
-	cmd := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
+	cmd, err := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git ls-remote`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1216,8 +1263,11 @@ func AllRefs() ([]*Ref, error) {
 // the given working directory "wd", or an error if those references could not
 // be loaded.
 func AllRefsIn(wd string) ([]*Ref, error) {
-	cmd := gitNoLFS(
+	cmd, err := gitNoLFS(
 		"for-each-ref", "--format=%(objectname)%00%(refname)")
+	if err != nil {
+		return nil, lfserrors.Wrap(err, tr.Tr.Get("failed to find `git for-each-ref`: %v", err))
+	}
 	cmd.Dir = wd
 
 	outp, err := cmd.StdoutPipe()
@@ -1262,12 +1312,15 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	rootWildcard := len(safePattern) < len(pattern) && strings.ContainsRune(safePattern, '*')
 
 	var ret []string
-	cmd := gitNoLFS(
+	cmd, err := gitNoLFS(
 		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
 		"--cached", // include things which are staged but not committed right now
 		"--",       // no ambiguous patterns
 		safePattern)
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git ls-files`: %v", err))
+	}
 
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1321,7 +1374,10 @@ func GetFilesChanged(from, to string) ([]string, error) {
 	}
 	args = append(args, "--") // no ambiguous patterns
 
-	cmd := gitNoLFS(args...)
+	cmd, err := gitNoLFS(args...)
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("failed to find `git diff-tree`: %v", err))
+	}
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to call `git diff`: %v", err))
@@ -1352,7 +1408,10 @@ func IsFileModified(filepath string) (bool, error) {
 		"--", // separator in case filename ambiguous
 		filepath,
 	}
-	cmd := git(args...)
+	cmd, err := git(args...)
+	if err != nil {
+		return false, lfserrors.Wrap(err, tr.Tr.Get("failed to find `git status`"))
+	}
 	outp, err := cmd.StdoutPipe()
 	if err != nil {
 		return false, lfserrors.Wrap(err, tr.Tr.Get("Failed to call `git status`"))

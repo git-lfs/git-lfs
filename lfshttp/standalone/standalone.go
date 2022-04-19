@@ -119,7 +119,10 @@ func gitDirAtPath(path string) (string, error) {
 		return "", err
 	}
 
-	cmd := subprocess.ExecCommand("git", "rev-parse", "--git-dir")
+	cmd, err := subprocess.ExecCommand("git", "rev-parse", "--git-dir")
+	if err != nil {
+		return "", errors.Wrap(err, tr.Tr.Get("failed to find `git rev-parse --git-dir`"))
+	}
 	cmd.Cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {

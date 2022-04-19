@@ -169,7 +169,10 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 		return nil, err
 	}
 
-	cmd := gitNoLFS(args...).Cmd
+	cmd, err := gitNoLFS(args...)
+	if err != nil {
+		return nil, err
+	}
 	if len(opt.WorkingDir) > 0 {
 		cmd.Dir = opt.WorkingDir
 	}

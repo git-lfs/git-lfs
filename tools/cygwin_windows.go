@@ -38,7 +38,10 @@ func isCygwin() bool {
 		return cygwinState.Enabled()
 	}
 
-	cmd := subprocess.ExecCommand("uname")
+	cmd, err := subprocess.ExecCommand("uname")
+	if err != nil {
+		return false
+	}
 	out, err := cmd.Output()
 	if err != nil {
 		return false

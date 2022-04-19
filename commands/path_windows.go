@@ -48,7 +48,10 @@ func cleanRootPath(pattern string) string {
 
 	if len(winBashPrefix) < 1 {
 		// cmd.Path is something like C:\Program Files\Git\usr\bin\pwd.exe
-		cmd := subprocess.ExecCommand("pwd")
+		cmd, err := subprocess.ExecCommand("pwd")
+		if err != nil {
+			return pattern
+		}
 		winBashPrefix = strings.Replace(filepath.Dir(filepath.Dir(filepath.Dir(cmd.Path))), `\`, "/", -1) + "/"
 	}
 
