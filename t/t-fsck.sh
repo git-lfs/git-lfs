@@ -273,13 +273,20 @@ setup_invalid_objects () {
   git lfs track *.dat
   echo "test data" > a.dat
   echo "test data 2" > b.dat
-  git add .gitattributes *.dat
+  mkdir foo
+  echo "test test 3" > foo/a.dat
+  echo "test data 4" > foo/b.dat
+  git add .gitattributes *.dat foo
   git commit -m "first commit"
 
   oid1=$(calc_oid_file a.dat)
   oid2=$(calc_oid_file b.dat)
+  oid3=$(calc_oid_file foo/a.dat)
+  oid4=$(calc_oid_file foo/b.dat)
   echo "CORRUPTION" >>".git/lfs/objects/${oid1:0:2}/${oid1:2:2}/$oid1"
   rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+  echo "CORRUPTION" >>".git/lfs/objects/${oid3:0:2}/${oid3:2:2}/$oid3"
+  rm ".git/lfs/objects/${oid4:0:2}/${oid4:2:2}/$oid4"
 }
 
 begin_test "fsck detects invalid objects"
@@ -297,6 +304,8 @@ begin_test "fsck detects invalid objects"
   [ "$RET" -eq 1 ]
   [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
   [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: foo/a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: foo/b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
   [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
 
   cd ..
@@ -311,6 +320,8 @@ begin_test "fsck detects invalid objects"
   [ "$RET" -eq 1 ]
   [ $(grep -c 'objects: corruptObject: a.dat (.*) is corrupt' test.log) -eq 1 ]
   [ $(grep -c 'objects: openError: b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
+  [ $(grep -c 'objects: corruptObject: foo/a.dat (.*) is corrupt' test.log) -eq 1 ]
+  [ $(grep -c 'objects: openError: foo/b.dat (.*) could not be checked: .*' test.log) -eq 1 ]
   [ $(grep -c 'objects: repair: moving corrupt objects to .*' test.log) -eq 1 ]
 )
 end_test
