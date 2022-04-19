@@ -1,5 +1,15 @@
 # Git LFS Changelog
 
+## 3.1.4 (19 Apr 2022)
+
+This release is a bugfix release to fix some problems during the build of
+v3.1.3.  There are otherwise no substantial changes from v3.1.3.
+
+### Misc
+
+* Use only Windows Server 2019 runners for CI in GitHub Actions #4883 (@chrisd8088)
+* remove unused `Pipe[Media]Command()` functions #4942 (@chrisd8088)
+
 ## 3.1.3 (19 Apr 2022)
 
 This release introduces a security fix for Windows systems, which has been

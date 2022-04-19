@@ -281,18 +281,6 @@ func Cleanup() {
 	}
 }
 
-func PipeMediaCommand(name string, args ...string) error {
-	return PipeCommand("bin/"+name, args...)
-}
-
-func PipeCommand(name string, args ...string) error {
-	cmd := subprocess.ExecCommand(name, args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	return cmd.Run()
-}
-
 func requireStdin(msg string) {
 	var out string
 
