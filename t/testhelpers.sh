@@ -2,6 +2,9 @@
 
 # assert_pointer confirms that the pointer in the repository for $path in the
 # given $ref matches the given $oid and $size.
+# Note that $path is prepended with a space to match the against the start
+# of path field in the ls-tree output, so be careful if your test involves
+# files with spaces in their paths.
 #
 #   $ assert_pointer "main" "path/to/file" "some-oid" 123
 assert_pointer() {
@@ -14,7 +17,7 @@ assert_pointer() {
     while read -r -d $'\0' x; do
       echo $x
     done |
-    grep -F "$path" | cut -f 3 -d " ")
+    grep -F " $path" | cut -f 3 -d " ")
 
   actual=$(git cat-file -p $gitblob)
   expected=$(pointer $oid $size)
@@ -26,6 +29,9 @@ assert_pointer() {
 
 # refute_pointer confirms that the file in the repository for $path in the
 # given $ref is _not_ a pointer.
+# Note that $path is prepended with a space to match the against the start
+# of path field in the ls-tree output, so be careful if your test involves
+# files with spaces in their paths.
 #
 #   $ refute_pointer "main" "path/to/file"
 refute_pointer() {
@@ -36,7 +42,7 @@ refute_pointer() {
     while read -r -d $'\0' x; do
       echo $x
     done |
-    grep "$path" | cut -f 3 -d " ")
+    grep -F " $path" | cut -f 3 -d " ")
 
   file=$(git cat-file -p $gitblob)
   version="version https://git-lfs.github.com/spec/v[0-9]"
