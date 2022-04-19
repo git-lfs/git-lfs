@@ -1,5 +1,39 @@
 # Git LFS Changelog
 
+## 3.1.3 (19 Apr 2022)
+
+This release introduces a security fix for Windows systems, which has been
+assigned CVE-2022-24826.
+
+On Windows, if Git LFS operates on a malicious repository with a `..exe` file as
+well as a file named `git.exe`, and `git.exe` is not found in PATH, the `..exe`
+program will be executed, permitting the attacker to execute arbitrary code.
+Similarly, if the malicious repository contains files named `..exe` and
+`cygpath.exe`, and `cygpath.exe` is not found in PATH, the `..exe` program will
+be executed when certain Git LFS commands are run.
+
+This security problem does not affect Unix systems.  This is the same issue as
+CVE-2020-27955 and CVE-2021-21237, but the fix for those issue was incomplete
+and certain options can still cause the problem to occur.
+
+This occurs because on Windows, Go includes (and prefers) the current directory
+when the name of a command run does not contain a directory separator, and it
+continues to search for programs even when the specified program name is empty.
+This has been solved by failing if the path is empty or not found.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @yuske for reporting this to us responsibly
+
+### Bugs
+
+* Report errors when finding executables and revise PATH search tests (@chrisd8088)
+
+### Misc
+
+* Update Windows signing certificate SHA hash in Makefile (@chrisd8088)
+
 ## 3.1.2 (16 Feb 2022)
 
 This is a bugfix release which fixes a bug in `git lfs install` and some issues
