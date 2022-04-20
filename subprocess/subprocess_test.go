@@ -89,3 +89,36 @@ func TestFormatForShell(t *testing.T) {
 		t.Run(desc, c.Assert)
 	}
 }
+
+type FormatPercentSequencesTestCase struct {
+	GivenPattern      string
+	GivenReplacements map[string]string
+	ExpectedString    string
+}
+
+func (c *FormatPercentSequencesTestCase) Assert(t *testing.T) {
+	actualString := FormatPercentSequences(c.GivenPattern, c.GivenReplacements)
+
+	assert.Equal(t, c.ExpectedString, actualString,
+		"subprocess: expected FormatForShell(%q, %v) to equal %q (was %q)",
+		c.GivenPattern, c.GivenReplacements, c.ExpectedString, actualString,
+	)
+}
+
+func TestFormatPercentSequences(t *testing.T) {
+	replacements := map[string]string{
+		"A": "current",
+		"B": "other file",
+		"P": "some ' output \" file",
+	}
+	for desc, c := range map[string]FormatPercentSequencesTestCase{
+		"simple":                        {"merge-foo %A", replacements, "merge-foo current"},
+		"double-percent":                {"merge-foo %A %%A", replacements, "merge-foo current %A"},
+		"spaces":                        {"merge-foo %B", replacements, "merge-foo 'other file'"},
+		"weird filename":                {"merge-foo %P", replacements, "merge-foo 'some '\\'' output \" file'"},
+		"no patterns":                   {"merge-foo /dev/null", replacements, "merge-foo /dev/null"},
+		"pattern adjacent to non-space": {"merge-foo >%B", replacements, "merge-foo >'other file'"},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
