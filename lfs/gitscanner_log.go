@@ -18,8 +18,9 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-// When scanning diffs e.g. parseLogOutputToPointers, which direction of diff to include
-// data from, i.e. '+' or '-'. Depending on what you're scanning for either might be useful
+// When scanning diffs with parseScannerLogOutput(), the direction of diff
+// to include data from, i.e., '+' or '-'.  Depending on what you're scanning
+// for either might be useful.
 type LogDiffDirection byte
 
 const (
@@ -179,19 +180,6 @@ func logPreviousSHAs(cb GitScannerFoundPointer, ref string, since time.Time) err
 
 	parseScannerLogOutput(cb, LogDiffDeletions, cmd)
 	return nil
-}
-
-func parseLogOutputToPointers(log io.Reader, dir LogDiffDirection,
-	includePaths, excludePaths []string, results chan *WrappedPointer) {
-	scanner := newLogScanner(dir, log)
-	if len(includePaths)+len(excludePaths) > 0 {
-		scanner.Filter = filepathfilter.New(includePaths, excludePaths, filepathfilter.GitAttributes)
-	}
-	for scanner.Scan() {
-		if p := scanner.Pointer(); p != nil {
-			results <- p
-		}
-	}
 }
 
 // logScanner parses log output formatted as per logLfsSearchArgs & returns
