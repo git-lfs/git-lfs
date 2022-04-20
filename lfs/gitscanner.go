@@ -245,7 +245,7 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitSca
 	if err != nil {
 		return err
 	}
-	return logPreviousSHAs(callback, ref, since)
+	return logPreviousSHAs(callback, ref, s.Filter, since)
 }
 
 // ScanIndex scans the git index for modified LFS objects.
