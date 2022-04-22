@@ -26,7 +26,6 @@ begin_test "prune unreferenced and old"
   oid_retain1=$(calc_oid "$content_retain1")
   oid_retain2=$(calc_oid "$content_retain2")
 
-
   # Remember for something to be 'too old' it has to appear on the MINUS side
   # of the diff outside the prune window, i.e. it's not when it was introduced
   # but when it disappeared from relevance. That's why changes to file1.dat on main
@@ -109,7 +108,6 @@ begin_test "prune keep unpushed"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
-
 
   content_keepunpushedhead1="Keep: unpushed HEAD 1"
   content_keepunpushedhead2="Keep: unpushed HEAD 2"
@@ -204,7 +202,6 @@ begin_test "prune keep unpushed"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch2"
   assert_server_object "remote_$reponame" "$oid_keepunpushedhead3"
-
 )
 end_test
 
@@ -242,7 +239,6 @@ begin_test "prune keep recent"
   oid_prunecommitbranch1=$(calc_oid "$content_prunecommitbranch1")
   oid_prunecommitbranch2=$(calc_oid "$content_prunecommitbranch2")
   oid_prunecommithead=$(calc_oid "$content_prunecommithead")
-
 
   # use a single file so each commit supersedes the last, if different files
   # then history becomes harder to track
@@ -325,7 +321,6 @@ begin_test "prune keep recent"
   # push everything so that's not a reason to retain
   git push origin main:main branch_old:branch_old branch1:branch1 branch2:branch2
 
-
   git lfs prune --verbose 2>&1 | tee prune.log
   grep "prune: 11 local objects, 6 retained, done." prune.log
   grep "prune: Deleting objects: 100% (5/5), done." prune.log
@@ -368,7 +363,6 @@ begin_test "prune keep recent"
   assert_local_object "$oid_keephead" "${#content_keephead}"
   refute_local_object "$oid_keeprecentbranch1tip"
   refute_local_object "$oid_keeprecentbranch2tip"
-
 )
 end_test
 
@@ -435,9 +429,6 @@ begin_test "prune remote tests"
   git lfs prune --verbose --dry-run 2>&1 | tee prune.log
   grep "prune: 4 local objects, 1 retained, done." prune.log
   grep "prune: 3 files would be pruned" prune.log
-
-
-
 )
 end_test
 
@@ -534,7 +525,6 @@ begin_test "prune verify"
   refute_local_object "$oid_commit1"
   refute_local_object "$oid_commit2_failverify"
   refute_local_object "$oid_commit3"
-
 )
 end_test
 
