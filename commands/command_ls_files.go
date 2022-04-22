@@ -137,7 +137,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		} else if scanRange {
 			err = gitscanner.ScanRefRange(includeRef, ref, nil)
 		} else {
-			err = gitscanner.ScanTree(ref)
+			err = gitscanner.ScanTree(ref, nil)
 		}
 
 		if err != nil {

@@ -352,7 +352,7 @@ func pruneTaskGetRetainedAtRef(gitscanner *lfs.GitScanner, ref string, retainCha
 	defer sem.Release(1)
 	defer waitg.Done()
 
-	err := gitscanner.ScanRef(ref, func(p *lfs.WrappedPointer, err error) {
+	err := gitscanner.ScanTree(ref, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			errorChan <- err
 			return
