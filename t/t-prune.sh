@@ -170,7 +170,7 @@ begin_test "prune keep unpushed"
 
   git lfs prune
 
-  # Now push main and show that older versions on main will be removed
+  # Now push main and show that only older versions on main will be removed.
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
@@ -181,14 +181,14 @@ begin_test "prune keep unpushed"
   refute_local_object "$oid_keepunpushedhead1"
   refute_local_object "$oid_keepunpushedhead2"
 
-  # MERGE the secondary branch, delete the branch then push main, then make sure
-  # we delete the intermediate commits but also make sure they're on server
-  # resolve conflicts by taking other branch
+  # Merge the unpushed branch, delete it, and then push main.
+  # Resolve conflicts by taking other branch.
   git merge -Xtheirs branch_unpushed
   git branch -D branch_unpushed
-  git lfs prune --dry-run
   git push origin main
 
+  # Now make sure we purged all the intermediate commits but also make sure
+  # they are on the remote.
   git lfs prune --verbose 2>&1 | tee prune.log
   grep "prune: 4 local objects, 1 retained" prune.log
   grep "prune: Deleting objects: 100% (3/3), done." prune.log
@@ -197,7 +197,7 @@ begin_test "prune keep unpushed"
   grep "$oid_keepunpushedhead3" prune.log
   refute_local_object "$oid_keepunpushedbranch1"
   refute_local_object "$oid_keepunpushedbranch2"
-  # we used -Xtheirs so old head state is now obsolete, is the last state on branch
+  # We used -Xtheirs when merging the branch so the old HEAD is now obsolete.
   refute_local_object "$oid_keepunpushedhead3"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch2"
