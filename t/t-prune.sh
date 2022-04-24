@@ -28,9 +28,9 @@ begin_test "prune unreferenced and old"
 
   # Remember for something to be 'too old' it has to appear on the MINUS side
   # of the diff outside the prune window, i.e. it's not when it was introduced
-  # but when it disappeared from relevance. That's why changes to file1.dat on main
+  # but when it disappeared from relevance. That's why changes to old.dat on main
   # from 7d ago are included even though the commit itself is outside of the window,
-  # that content of file1.dat was relevant until it was removed with a commit, inside the window
+  # that content of old.dat was relevant until it was removed with a commit, inside the window
   # think of it as windows of relevance that overlap until the content is replaced
 
   # we also make sure we commit today on main so that the recent commits measured
@@ -115,14 +115,18 @@ begin_test "prune keep unpushed"
   content_keepunpushedbranch1="Keep: unpushed second branch 1"
   content_keepunpushedbranch2="Keep: unpushed second branch 2"
   content_keepunpushedbranch3="Keep: unpushed second branch 3"
+  content_keepunpushedtag1="Keep: unpushed tag only 1"
+  content_keepunpushedtag2="Keep: unpushed tag only 2"
+  content_keepunpushedtag3="Keep: unpushed tag only 3"
   oid_keepunpushedhead1=$(calc_oid "$content_keepunpushedhead1")
   oid_keepunpushedhead2=$(calc_oid "$content_keepunpushedhead2")
   oid_keepunpushedhead3=$(calc_oid "$content_keepunpushedhead3")
   oid_keepunpushedbranch1=$(calc_oid "$content_keepunpushedbranch1")
   oid_keepunpushedbranch2=$(calc_oid "$content_keepunpushedbranch2")
   oid_keepunpushedbranch3=$(calc_oid "$content_keepunpushedbranch3")
-  oid_keepunpushedtagged1=$(calc_oid "$content_keepunpushedtagged1")
-  oid_keepunpushedtagged2=$(calc_oid "$content_keepunpushedtagged1")
+  oid_keepunpushedtag1=$(calc_oid "$content_keepunpushedtag1")
+  oid_keepunpushedtag2=$(calc_oid "$content_keepunpushedtag2")
+  oid_keepunpushedtag3=$(calc_oid "$content_keepunpushedtag3")
 
   echo "[
   {
@@ -148,6 +152,24 @@ begin_test "prune keep unpushed"
       {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch3}, \"Data\":\"$content_keepunpushedbranch3\"}]
   },
   {
+    \"CommitDate\":\"$(get_date -31d)\",
+    \"ParentBranches\":[\"main\"],
+    \"NewBranch\":\"branch_unpushed_tagged_only\",
+    \"Files\":[
+      {\"Filename\":\"file2.dat\",\"Size\":${#content_keepunpushedtag1}, \"Data\":\"$content_keepunpushedtag1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -16d)\",
+    \"Files\":[
+      {\"Filename\":\"file2.dat\",\"Size\":${#content_keepunpushedtag2}, \"Data\":\"$content_keepunpushedtag2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Tags\":[\"tag_unpushed\"],
+    \"Files\":[
+      {\"Filename\":\"file2.dat\",\"Size\":${#content_keepunpushedtag3}, \"Data\":\"$content_keepunpushedtag3\"}]
+  },
+  {
     \"CommitDate\":\"$(get_date -21d)\",
     \"ParentBranches\":[\"main\"],
     \"Files\":[
@@ -168,39 +190,49 @@ begin_test "prune keep unpushed"
   # force color codes in git diff meta-information
   git config color.diff always
 
+  git branch -D branch_unpushed_tagged_only
+
   git lfs prune
 
   # Now push main and show that only older versions on main will be removed.
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 6 local objects, 4 retained" prune.log
+  grep "prune: 9 local objects, 7 retained" prune.log
   grep "prune: Deleting objects: 100% (2/2), done." prune.log
   grep "$oid_keepunpushedhead1" prune.log
   grep "$oid_keepunpushedhead2" prune.log
   refute_local_object "$oid_keepunpushedhead1"
   refute_local_object "$oid_keepunpushedhead2"
 
-  # Merge the unpushed branch, delete it, and then push main.
+  # Merge the unpushed branch and tag, delete them, and then push main.
   # Resolve conflicts by taking other branch.
   git merge -Xtheirs branch_unpushed
+  git merge tag_unpushed
   git branch -D branch_unpushed
+  git tag -d tag_unpushed
   git push origin main
 
   # Now make sure we purged all the intermediate commits but also make sure
   # they are on the remote.
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained" prune.log
-  grep "prune: Deleting objects: 100% (3/3), done." prune.log
+  grep "prune: 7 local objects, 2 retained" prune.log
+  grep "prune: Deleting objects: 100% (5/5), done." prune.log
   grep "$oid_keepunpushedbranch1" prune.log
   grep "$oid_keepunpushedbranch2" prune.log
+  grep "$oid_keepunpushedtag1" prune.log
+  grep "$oid_keepunpushedtag2" prune.log
   grep "$oid_keepunpushedhead3" prune.log
   refute_local_object "$oid_keepunpushedbranch1"
   refute_local_object "$oid_keepunpushedbranch2"
+  refute_local_object "$oid_keepunpushedtag1"
+  refute_local_object "$oid_keepunpushedtag2"
   # We used -Xtheirs when merging the branch so the old HEAD is now obsolete.
   refute_local_object "$oid_keepunpushedhead3"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch2"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedtag1"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedtag2"
   assert_server_object "remote_$reponame" "$oid_keepunpushedhead3"
 )
 end_test
