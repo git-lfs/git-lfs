@@ -353,7 +353,6 @@ func pruneTaskGetRetainedAtRef(gitscanner *lfs.GitScanner, ref string, retainCha
 	defer waitg.Done()
 
 	err := gitscanner.ScanRef(ref, func(p *lfs.WrappedPointer, err error) {
-
 		if err != nil {
 			errorChan <- err
 			return
@@ -375,7 +374,6 @@ func pruneTaskGetPreviousVersionsOfRef(gitscanner *lfs.GitScanner, ref string, s
 	defer waitg.Done()
 
 	err := gitscanner.ScanPreviousVersions(ref, since, func(p *lfs.WrappedPointer, err error) {
-
 		if err != nil {
 			errorChan <- err
 			return
