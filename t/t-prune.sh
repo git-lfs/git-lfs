@@ -115,6 +115,9 @@ begin_test "prune keep unpushed"
   content_keepunpushedbranch1="Keep: unpushed second branch 1"
   content_keepunpushedbranch2="Keep: unpushed second branch 2"
   content_keepunpushedbranch3="Keep: unpushed second branch 3"
+  content_keepunpushedandexcludedbranch1="Keep: unpushed second branch 1 excluded by filter"
+  content_keepunpushedandexcludedbranch2="Keep: unpushed second branch 2 excluded by filter"
+  content_keepunpushedandexcludedbranch3="Keep: unpushed second branch 3 excluded by filter"
   content_keepunpushedtag1="Keep: unpushed tag only 1"
   content_keepunpushedtag2="Keep: unpushed tag only 2"
   content_keepunpushedtag3="Keep: unpushed tag only 3"
@@ -124,6 +127,9 @@ begin_test "prune keep unpushed"
   oid_keepunpushedbranch1=$(calc_oid "$content_keepunpushedbranch1")
   oid_keepunpushedbranch2=$(calc_oid "$content_keepunpushedbranch2")
   oid_keepunpushedbranch3=$(calc_oid "$content_keepunpushedbranch3")
+  oid_keepunpushedandexcludedbranch1=$(calc_oid "$content_keepunpushedandexcludedbranch1")
+  oid_keepunpushedandexcludedbranch2=$(calc_oid "$content_keepunpushedandexcludedbranch2")
+  oid_keepunpushedandexcludedbranch3=$(calc_oid "$content_keepunpushedandexcludedbranch3")
   oid_keepunpushedtag1=$(calc_oid "$content_keepunpushedtag1")
   oid_keepunpushedtag2=$(calc_oid "$content_keepunpushedtag2")
   oid_keepunpushedtag3=$(calc_oid "$content_keepunpushedtag3")
@@ -139,17 +145,20 @@ begin_test "prune keep unpushed"
     \"ParentBranches\":[\"main\"],
     \"NewBranch\":\"branch_unpushed\",
     \"Files\":[
-      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch1}, \"Data\":\"$content_keepunpushedbranch1\"}]
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch1}, \"Data\":\"$content_keepunpushedbranch1\"},
+      {\"Filename\":\"foo/file.dat\",\"Size\":${#content_keepunpushedandexcludedbranch1}, \"Data\":\"$content_keepunpushedandexcludedbranch1\"}]
   },
   {
     \"CommitDate\":\"$(get_date -16d)\",
     \"Files\":[
-      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch2}, \"Data\":\"$content_keepunpushedbranch2\"}]
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch2}, \"Data\":\"$content_keepunpushedbranch2\"},
+      {\"Filename\":\"foo/file.dat\",\"Size\":${#content_keepunpushedandexcludedbranch2}, \"Data\":\"$content_keepunpushedandexcludedbranch2\"}]
   },
   {
     \"CommitDate\":\"$(get_date -2d)\",
     \"Files\":[
-      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch3}, \"Data\":\"$content_keepunpushedbranch3\"}]
+      {\"Filename\":\"file.dat\",\"Size\":${#content_keepunpushedbranch3}, \"Data\":\"$content_keepunpushedbranch3\"},
+      {\"Filename\":\"foo/file.dat\",\"Size\":${#content_keepunpushedandexcludedbranch3}, \"Data\":\"$content_keepunpushedandexcludedbranch3\"}]
   },
   {
     \"CommitDate\":\"$(get_date -31d)\",
@@ -187,6 +196,9 @@ begin_test "prune keep unpushed"
   git config lfs.fetchrecentcommitsdays 0 # only keep AT refs, no recents
   git config lfs.pruneoffsetdays 2
 
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+
   # force color codes in git diff meta-information
   git config color.diff always
 
@@ -198,7 +210,7 @@ begin_test "prune keep unpushed"
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 9 local objects, 7 retained" prune.log
+  grep "prune: 12 local objects, 10 retained" prune.log
   grep "prune: Deleting objects: 100% (2/2), done." prune.log
   grep "$oid_keepunpushedhead1" prune.log
   grep "$oid_keepunpushedhead2" prune.log
@@ -216,21 +228,34 @@ begin_test "prune keep unpushed"
   # Now make sure we purged all the intermediate commits but also make sure
   # they are on the remote.
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 7 local objects, 2 retained" prune.log
-  grep "prune: Deleting objects: 100% (5/5), done." prune.log
+  grep "prune: 10 local objects, 2 retained" prune.log
+  grep "prune: Deleting objects: 100% (8/8), done." prune.log
   grep "$oid_keepunpushedbranch1" prune.log
   grep "$oid_keepunpushedbranch2" prune.log
+  grep "$oid_keepunpushedandexcludedbranch1" prune.log
+  grep "$oid_keepunpushedandexcludedbranch2" prune.log
+  # This is in the new HEAD and would be retained except that it is also
+  # excluded by the filter and has been pushed, so it should have been purged.
+  grep "$oid_keepunpushedandexcludedbranch3" prune.log
   grep "$oid_keepunpushedtag1" prune.log
   grep "$oid_keepunpushedtag2" prune.log
   grep "$oid_keepunpushedhead3" prune.log
   refute_local_object "$oid_keepunpushedbranch1"
   refute_local_object "$oid_keepunpushedbranch2"
+  refute_local_object "$oid_keepunpushedandexcludedbranch1"
+  refute_local_object "$oid_keepunpushedandexcludedbranch2"
+  # This is in the new HEAD and would be retained except that it is also
+  # excluded by the filter and has been pushed, so it should have been purged.
+  refute_local_object "$oid_keepunpushedandexcludedbranch3"
   refute_local_object "$oid_keepunpushedtag1"
   refute_local_object "$oid_keepunpushedtag2"
   # We used -Xtheirs when merging the branch so the old HEAD is now obsolete.
   refute_local_object "$oid_keepunpushedhead3"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedbranch2"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedandexcludedbranch1"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedandexcludedbranch2"
+  assert_server_object "remote_$reponame" "$oid_keepunpushedandexcludedbranch3"
   assert_server_object "remote_$reponame" "$oid_keepunpushedtag1"
   assert_server_object "remote_$reponame" "$oid_keepunpushedtag2"
   assert_server_object "remote_$reponame" "$oid_keepunpushedhead3"
