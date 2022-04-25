@@ -672,8 +672,12 @@ begin_test "prune keep stashed changes"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_stashed="This data will be stashed and should not be deleted"
   oid_stashed=$(calc_oid "$content_stashed")
+  content_stashedandexcluded="This data will be stashed and should not be deleted despite being excluded"
+  oid_stashedandexcluded=$(calc_oid "$content_stashedandexcluded")
   content_stashedbranch="This data will be stashed on a branch and should not be deleted"
   oid_stashedbranch=$(calc_oid "$content_stashedbranch")
+  content_stashedandexcludedbranch="This data will be stashed on a branch and should not be deleted despite being excluded"
+  oid_stashedandexcludedbranch=$(calc_oid "$content_stashedandexcludedbranch")
 
   # We need to test with older commits to ensure they get pruned as expected
   echo "[
@@ -691,13 +695,15 @@ begin_test "prune keep stashed changes"
     \"CommitDate\":\"$(get_date -4d)\",
     \"NewBranch\":\"branch_to_delete\",
     \"Files\":[
-      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"},
+      {\"Filename\":\"foo/unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"ParentBranches\":[\"main\"],
     \"Files\":[
-      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"},
+      {\"Filename\":\"foo/stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
 
@@ -707,20 +713,27 @@ begin_test "prune keep stashed changes"
   assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
-  # now modify the file, and stash it
+  # now modify the files, and stash them
   printf '%s' "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashedandexcluded" > foo/stashedfile.dat
   git stash
 
-  # Switch to a branch, modify a file, stash it, and delete the branch
+  # Switch to a branch, modify files, stash them, and delete the branch.
   git checkout branch_to_delete
   printf '%s' "$content_stashedbranch" > unreferenced.dat
+  printf '%s' "$content_stashedandexcludedbranch" > foo/unreferenced.dat
   git stash
   git checkout main
   git branch -D branch_to_delete
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -732,7 +745,9 @@ begin_test "prune keep stashed changes"
   refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
 )
 end_test
 
@@ -760,12 +775,20 @@ begin_test "prune keep stashed changes in index"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_indexstashed="This data will be stashed from the index and should not be deleted"
   oid_indexstashed=$(calc_oid "$content_indexstashed")
+  content_indexstashedandexcluded="This data will be stashed from the index and should not be deleted despite being excluded"
+  oid_indexstashedandexcluded=$(calc_oid "$content_indexstashedandexcluded")
   content_stashed="This data will be stashed and should not be deleted"
   oid_stashed=$(calc_oid "$content_stashed")
+  content_stashedandexcluded="This data will be stashed and should not be deleted despite being excluded"
+  oid_stashedandexcluded=$(calc_oid "$content_stashedandexcluded")
   content_indexstashedbranch="This data will be stashed on a branch from the index and should not be deleted"
   oid_indexstashedbranch=$(calc_oid "$content_indexstashedbranch")
+  content_indexstashedandexcludedbranch="This data will be stashed on a branch from the index and should not be deleted despite being excluded"
+  oid_indexstashedandexcludedbranch=$(calc_oid "$content_indexstashedandexcludedbranch")
   content_stashedbranch="This data will be stashed on a branch and should not be deleted"
   oid_stashedbranch=$(calc_oid "$content_stashedbranch")
+  content_stashedandexcludedbranch="This data will be stashed on a branch and should not be deleted despite being excluded"
+  oid_stashedandexcludedbranch=$(calc_oid "$content_stashedandexcludedbranch")
 
   # We need to test with older commits to ensure they get pruned as expected
   echo "[
@@ -783,13 +806,15 @@ begin_test "prune keep stashed changes in index"
     \"CommitDate\":\"$(get_date -4d)\",
     \"NewBranch\":\"branch_to_delete\",
     \"Files\":[
-      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"},
+      {\"Filename\":\"foo/unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"ParentBranches\":[\"main\"],
     \"Files\":[
-      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"},
+      {\"Filename\":\"foo/stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
 
@@ -799,29 +824,40 @@ begin_test "prune keep stashed changes in index"
   assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
-  # now modify the file, and add it to the index
+  # now modify the files, and add them to the index
   printf '%s' "$content_indexstashed" > stashedfile.dat
-  git add stashedfile.dat
+  printf '%s' "$content_indexstashedandexcluded" > foo/stashedfile.dat
+  git add stashedfile.dat foo/stashedfile.dat
 
-  # now modify the file again, and stash it
+  # now modify the files again, and stash them
   printf '%s' "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashedandexcluded" > foo/stashedfile.dat
   git stash
 
-  # Switch to a branch, modify a file in the index and working tree, stash it,
-  # and delete the branch
+  # Switch to a branch, modify files in the index and working tree, stash them,
+  # and delete the branch.
   git checkout branch_to_delete
   printf '%s' "$content_indexstashedbranch" > unreferenced.dat
-  git add unreferenced.dat
+  printf '%s' "$content_indexstashedandexcludedbranch" > foo/unreferenced.dat
+  git add unreferenced.dat foo/unreferenced.dat
   printf '%s' "$content_stashedbranch" > unreferenced.dat
+  printf '%s' "$content_stashedandexcludedbranch" > foo/unreferenced.dat
   git stash
   git checkout main
   git branch -D branch_to_delete
 
   # Prove that the stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_indexstashedandexcluded" "${#content_indexstashedandexcluded}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
+  assert_local_object "$oid_indexstashedandexcludedbranch" "${#content_indexstashedandexcludedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -833,9 +869,13 @@ begin_test "prune keep stashed changes in index"
   refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_indexstashedandexcluded" "${#content_indexstashedandexcluded}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
+  assert_local_object "$oid_indexstashedandexcludedbranch" "${#content_indexstashedandexcludedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
 )
 end_test
 
@@ -868,16 +908,28 @@ begin_test "prune keep stashed untracked files"
   oid_inrepo=$(calc_oid "$content_inrepo")
   content_indexstashed="This data will be stashed from the index and should not be deleted"
   oid_indexstashed=$(calc_oid "$content_indexstashed")
+  content_indexstashedandexcluded="This data will be stashed from the index and should not be deleted despite being excluded"
+  oid_indexstashedandexcluded=$(calc_oid "$content_indexstashedandexcluded")
   content_stashed="This data will be stashed and should not be deleted"
   oid_stashed=$(calc_oid "$content_stashed")
+  content_stashedandexcluded="This data will be stashed and should not be deleted despite being excluded"
+  oid_stashedandexcluded=$(calc_oid "$content_stashedandexcluded")
   content_untrackedstashed="This UNTRACKED FILE data will be stashed and should not be deleted"
   oid_untrackedstashed=$(calc_oid "$content_untrackedstashed")
+  content_untrackedstashedandexcluded="This UNTRACKED FILE data will be stashed and should not be deleted despite being excluded"
+  oid_untrackedstashedandexcluded=$(calc_oid "$content_untrackedstashedandexcluded")
   content_indexstashedbranch="This data will be stashed on a branch from the index and should not be deleted"
   oid_indexstashedbranch=$(calc_oid "$content_indexstashedbranch")
+  content_indexstashedandexcludedbranch="This data will be stashed on a branch from the index and should not be deleted despite being excluded"
+  oid_indexstashedandexcludedbranch=$(calc_oid "$content_indexstashedandexcludedbranch")
   content_stashedbranch="This data will be stashed on a branch and should not be deleted"
   oid_stashedbranch=$(calc_oid "$content_stashedbranch")
+  content_stashedandexcludedbranch="This data will be stashed on a branch and should not be deleted despite being excluded"
+  oid_stashedandexcludedbranch=$(calc_oid "$content_stashedandexcludedbranch")
   content_untrackedstashedbranch="This UNTRACKED FILE data will be stashed on a branch and should not be deleted"
   oid_untrackedstashedbranch=$(calc_oid "$content_untrackedstashedbranch")
+  content_untrackedstashedandexcludedbranch="This UNTRACKED FILE data will be stashed on a branch and should not be deleted despite being excluded"
+  oid_untrackedstashedandexcludedbranch=$(calc_oid "$content_untrackedstashedandexcludedbranch")
 
   # We need to test with older commits to ensure they get pruned as expected
   echo "[
@@ -895,13 +947,15 @@ begin_test "prune keep stashed untracked files"
     \"CommitDate\":\"$(get_date -4d)\",
     \"NewBranch\":\"branch_to_delete\",
     \"Files\":[
-      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"},
+      {\"Filename\":\"foo/unreferenced.dat\",\"Size\":${#content_unreferenced}, \"Data\":\"$content_unreferenced\"}]
   },
   {
     \"CommitDate\":\"$(get_date -1d)\",
     \"ParentBranches\":[\"main\"],
     \"Files\":[
-      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+      {\"Filename\":\"stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"},
+      {\"Filename\":\"foo/stashedfile.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
   }
   ]" | lfstest-testutils addcommits
 
@@ -911,37 +965,52 @@ begin_test "prune keep stashed untracked files"
   assert_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
 
-  # now modify the file, and add it to the index
+  # now modify the files, and add them to the index
   printf '%s' "$content_indexstashed" > stashedfile.dat
-  git add stashedfile.dat
+  printf '%s' "$content_indexstashedandexcluded" > foo/stashedfile.dat
+  git add stashedfile.dat foo/stashedfile.dat
 
-  # now modify the file again, and stash it
+  # now modify the files again, and stash them
   printf '%s' "$content_stashed" > stashedfile.dat
+  printf '%s' "$content_stashedandexcluded" > foo/stashedfile.dat
 
-  # Also create an untracked file
+  # Also create untracked files
   printf '%s' "$content_untrackedstashed" > untrackedfile.dat
+  printf '%s' "$content_untrackedstashedandexcluded" > foo/untrackedfile.dat
 
   # stash, including untracked
   git stash -u
 
-  # Switch to a branch, modify a file in the index and working tree,
-  # create an untracked file, stash them, and delete the branch
+  # Switch to a branch, modify files in the index and working tree and create
+  # untracked files, stash them, and delete the branch.
   git checkout branch_to_delete
   printf '%s' "$content_indexstashedbranch" > unreferenced.dat
-  git add unreferenced.dat
+  printf '%s' "$content_indexstashedandexcludedbranch" > foo/unreferenced.dat
+  git add unreferenced.dat foo/unreferenced.dat
   printf '%s' "$content_stashedbranch" > unreferenced.dat
+  printf '%s' "$content_stashedandexcludedbranch" > foo/unreferenced.dat
   printf '%s' "$content_untrackedstashedbranch" > untrackedfile.dat
+  printf '%s' "$content_untrackedstashedandexcludedbranch" > foo/untrackedfile.dat
   git stash -u
   git checkout main
   git branch -D branch_to_delete
 
   # Prove that ALL stashed data was stored in LFS (should call clean filter)
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_indexstashedandexcluded" "${#content_indexstashedandexcluded}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
+  assert_local_object "$oid_untrackedstashedandexcluded" "${#content_untrackedstashedandexcluded}"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
+  assert_local_object "$oid_indexstashedandexcludedbranch" "${#content_indexstashedandexcludedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
   assert_local_object "$oid_untrackedstashedbranch" "${#content_untrackedstashedbranch}"
+  assert_local_object "$oid_untrackedstashedandexcludedbranch" "${#content_untrackedstashedandexcludedbranch}"
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
 
   # force color codes in git diff meta-information
   git config color.diff always
@@ -953,11 +1022,17 @@ begin_test "prune keep stashed untracked files"
   refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_indexstashed" "${#content_indexstashed}"
+  assert_local_object "$oid_indexstashedandexcluded" "${#content_indexstashedandexcluded}"
   assert_local_object "$oid_stashed" "${#content_stashed}"
+  assert_local_object "$oid_stashedandexcluded" "${#content_stashedandexcluded}"
   assert_local_object "$oid_untrackedstashed" "${#content_untrackedstashed}"
+  assert_local_object "$oid_untrackedstashedandexcluded" "${#content_untrackedstashedandexcluded}"
   assert_local_object "$oid_indexstashedbranch" "${#content_indexstashedbranch}"
+  assert_local_object "$oid_indexstashedandexcludedbranch" "${#content_indexstashedandexcludedbranch}"
   assert_local_object "$oid_stashedbranch" "${#content_stashedbranch}"
+  assert_local_object "$oid_stashedandexcludedbranch" "${#content_stashedandexcludedbranch}"
   assert_local_object "$oid_untrackedstashedbranch" "${#content_untrackedstashedbranch}"
+  assert_local_object "$oid_untrackedstashedandexcludedbranch" "${#content_untrackedstashedandexcludedbranch}"
 )
 end_test
 
