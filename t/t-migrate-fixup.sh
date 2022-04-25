@@ -34,7 +34,7 @@ begin_test "migrate import (--fixup, complex nested)"
   git lfs migrate import --everything --fixup --yes
 
   assert_pointer "refs/heads/main" "a.txt" "$a_oid" "1"
-  refute_pointer "refs/heads/main" "b.txt"
+  refute_pointer "refs/heads/main" "dir/b.txt"
 
   assert_local_object "$a_oid" "1"
   refute_local_object "$b_oid" "1"

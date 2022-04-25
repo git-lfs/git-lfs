@@ -6,7 +6,6 @@ ensure_git_version_isnt $VERSION_LOWER "2.5.0"
 
 begin_test "prune worktree"
 (
-
   set -e
 
   reponame="prune_worktree"
@@ -102,8 +101,5 @@ begin_test "prune worktree"
   git lfs prune --dry-run 2>&1 | tee prune.log
   grep "prune: 6 local objects, 2 retained, done." prune.log
   grep "prune: 4 files would be pruned" prune.log
-
-
 )
 end_test
-
