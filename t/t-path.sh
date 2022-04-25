@@ -39,6 +39,7 @@ begin_test "does not look in current directory for git with credential helper"
   git add .gitattributes
 
   GITPATH="$(dirname "$(command -v git)")"
+  SHELLPATH="$(dirname "$(command -v sh)")"
 
   # We add our malicious Git to the index and then remove it from the
   # work tree so it is not found early, before we perform our key test.
@@ -52,7 +53,7 @@ begin_test "does not look in current directory for git with credential helper"
   # (which contains the malicious Git), so for now we remove the malicious
   # Git as soon as possible.
   cp "$BINPATH/lfstest-badpathcheck$X" "git$X"
-  PATH="$BINPATH:$GITPATH" "$GITPATH/git$X" add "git$X"
+  PATH="$BINPATH:$GITPATH:$SHELLPATH" "$GITPATH/git$X" add "git$X"
   rm "git$X"
 
   git commit -m "Add files"
