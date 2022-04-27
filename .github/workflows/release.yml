@@ -25,7 +25,7 @@ jobs:
     - run: cinst jq -y
     - run: gem install ronn
     - run: refreshenv
-    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
     - run: mkdir -p bin/releases
       shell: bash
