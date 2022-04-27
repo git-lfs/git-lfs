@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        go: ['1.17.x']
+        go: ['1.18.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -25,7 +25,7 @@ jobs:
     - run: cinst jq -y
     - run: gem install ronn
     - run: refreshenv
-    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go get github.com/josephspurrier/goversioninfo/cmd/goversioninfo
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
     - run: mkdir -p bin/releases
       shell: bash
@@ -61,7 +61,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.17.x']
+        go: ['1.18.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        go: ['1.17.x']
+        go: ['1.18.x']
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
