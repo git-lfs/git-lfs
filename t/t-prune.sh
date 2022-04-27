@@ -80,6 +80,7 @@ begin_test "prune unreferenced and old"
   git lfs prune
   refute_local_object "$oid_oldandpushed" "${#content_oldandpushed}"
   refute_local_object "$oid_unreferenced" "${#content_unreferenced}"
+  assert_local_object "$oid_oldandunchanged" "${#content_oldandunchanged}"
   assert_local_object "$oid_retain1" "${#content_retain1}"
   assert_local_object "$oid_retain2" "${#content_retain2}"
 
@@ -92,6 +93,72 @@ begin_test "prune unreferenced and old"
   grep "$oid_retain1" prune.log
   refute_local_object "$oid_retain1"
   assert_local_object "$oid_retain2" "${#content_retain2}"
+)
+end_test
+
+begin_test "prune all excluded paths"
+(
+  set -e
+
+  reponame="prune_unref_old_exclude"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate content we'll use
+  content_oldandexcluded="To delete: pushed and too old and excluded by filter"
+  content_oldandunchanged="Keep: pushed and created a while ago, but still current"
+  content_prevandexcluded="To delete: pushed and in previous commit to HEAD but excluded by filter"
+  content_excluded="To delete: pushed and in HEAD but excluded by filter"
+  oid_oldandexcluded=$(calc_oid "$content_oldandexcluded")
+  oid_oldandunchanged=$(calc_oid "$content_oldandunchanged")
+  oid_prevandexcluded=$(calc_oid "$content_prevandexcluded")
+  oid_excluded=$(calc_oid "$content_excluded")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -20d)\",
+    \"Files\":[
+      {\"Filename\":\"foo/oldandexcluded.dat\",\"Size\":${#content_oldandexcluded}, \"Data\":\"$content_oldandexcluded\"},
+      {\"Filename\":\"stillcurrent.dat\",\"Size\":${#content_oldandunchanged}, \"Data\":\"$content_oldandunchanged\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"foo/oldandexcluded.dat\",\"Size\":${#content_prevandexcluded}, \"Data\":\"$content_prevandexcluded\"}]
+  },
+  {
+    \"Files\":[
+      {\"Filename\":\"foo/oldandexcluded.dat\",\"Size\":${#content_excluded}, \"Data\":\"$content_excluded\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin main
+
+  git config lfs.fetchrecentrefsdays 5
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 3
+  git config lfs.pruneoffsetdays 2
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+
+  git lfs prune --dry-run --verbose 2>&1 | tee prune.log
+
+  grep "prune: 4 local objects, 1 retained" prune.log
+  grep "prune: 3 files would be pruned" prune.log
+  grep "$oid_oldandexcluded" prune.log
+  grep "$oid_prevandexcluded" prune.log
+  grep "$oid_excluded" prune.log
+
+  git lfs prune
+  refute_local_object "$oid_oldandexcluded" "${#content_oldandexcluded}"
+  assert_local_object "$oid_oldandunchanged" "${#content_oldandunchanged}"
+  refute_local_object "$oid_prevandexcluded" "${#content_prevandexcluded}"
+  refute_local_object "$oid_excluded" "${#content_excluded}"
 )
 end_test
 

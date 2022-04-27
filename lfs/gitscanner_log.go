@@ -66,7 +66,7 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 		return err
 	}
 
-	parseScannerLogOutput(cb, LogDiffAdditions, cmd)
+	parseScannerLogOutput(cb, LogDiffAdditions, cmd, nil)
 	return nil
 }
 
@@ -128,17 +128,18 @@ func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
 			return err
 		}
 
-		parseScannerLogOutput(cb, LogDiffAdditions, cmd)
+		parseScannerLogOutput(cb, LogDiffAdditions, cmd, nil)
 	}
 
 	return nil
 }
 
-func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd) {
+func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd, filter *filepathfilter.Filter) {
 	ch := make(chan gitscannerResult, chanBufSize)
 
 	go func() {
 		scanner := newLogScanner(direction, cmd.Stdout)
+		scanner.Filter = filter
 		for scanner.Scan() {
 			if p := scanner.Pointer(); p != nil {
 				ch <- gitscannerResult{Pointer: p}
@@ -164,7 +165,7 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 
 // logPreviousVersions scans history for all previous versions of LFS pointers
 // from 'since' up to (but not including) the final state at ref
-func logPreviousSHAs(cb GitScannerFoundPointer, ref string, since time.Time) error {
+func logPreviousSHAs(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, since time.Time) error {
 	logArgs := []string{
 		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
 	}
@@ -178,7 +179,7 @@ func logPreviousSHAs(cb GitScannerFoundPointer, ref string, since time.Time) err
 		return err
 	}
 
-	parseScannerLogOutput(cb, LogDiffDeletions, cmd)
+	parseScannerLogOutput(cb, LogDiffDeletions, cmd, filter)
 	return nil
 }
 
