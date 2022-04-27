@@ -80,6 +80,11 @@ the file you want like so:
 $ gpg -d sha256sums.asc | grep git-lfs-linux-amd64-v2.10.0.tar.gz | shasum -a 256 -c
 ```
 
+For the convenience of distributors, we also provide a wider variety of signed
+hashes in the `hashes.asc` file.  Those hashes are in the tagged BSD format, but
+can be verified with Perl's `shasum` or the GNU hash utilities, just like the
+ones in `sha256sums.asc`.
+
 ## Example Usage
 
 To begin using Git LFS within a Git repository that is not already configured
