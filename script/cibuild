@@ -18,7 +18,7 @@ cargo install --root t/scutiger scutiger-lfs
 
 # Set GOPATH if it isn't already set.
 eval "$(go env | grep GOPATH)"
-go get golang.org/x/tools/cmd/goimports
+go install golang.org/x/tools/cmd/goimports@latest
 
 GOIMPORTS="$GOPATH/bin/goimports"
 
@@ -48,9 +48,6 @@ then
 fi
 
 echo "Formatting files..."
-# Building and installing goimports and goversioninfo will have modified go.mod
-# and go.sum, so reset the branch before formatting.
-git reset --hard
 make GOIMPORTS="$GOIMPORTS" fmt
 
 echo "Looking for files that are not formatted correctly..."
