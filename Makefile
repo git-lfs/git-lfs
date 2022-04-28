@@ -63,8 +63,11 @@ GOIMPORTS ?= goimports
 # program.
 GOIMPORTS_EXTRA_OPTS ?= -w -l
 
-TAR_XFORM_ARG ?= $(shell tar --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
-TAR_XFORM_CMD ?= $(shell tar --version | grep -q 'GNU tar' && echo 's')
+# TAR is the tar command, either GNU or BSD (libarchive) tar.
+TAR ?= tar
+
+TAR_XFORM_ARG ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
+TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 
 # CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
 # actual signature is made with SHA-256.
@@ -371,7 +374,7 @@ release : $(RELEASE_TARGETS)
 bin/releases/git-lfs-%-$(VERSION).tar.gz : \
 $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 	@mkdir -p bin/releases
-	tar $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
+	$(TAR) $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
 
 # bin/releases/git-lfs-darwin-$(VERSION).zip generates a ZIP compression of all
 # of the macOS release artifacts.
