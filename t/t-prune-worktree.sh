@@ -82,7 +82,7 @@ begin_test "prune worktree"
   git config lfs.fetchrecentcommitsdays 0
 
   # We need to prevent MSYS from rewriting /foo into a Windows path.
-  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo/**"
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
 
   # before worktree, everything except current checkout would be pruned
   git lfs prune --dry-run 2>&1 | tee prune.log

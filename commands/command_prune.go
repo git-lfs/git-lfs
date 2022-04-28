@@ -98,7 +98,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	retainChan := make(chan string, 100)
 
 	gitscanner := lfs.NewGitScanner(cfg, nil)
-	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitAttributes)
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
 
 	sem := semaphore.NewWeighted(int64(runtime.NumCPU() * 2))
 

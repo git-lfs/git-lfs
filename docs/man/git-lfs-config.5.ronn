@@ -226,13 +226,13 @@ be scoped inside the configuration for a remote.
 
   When fetching, only download objects which match any entry on this
   comma-separated list of paths/filenames. Wildcard matching is as per
-  git-ignore(1). See git-lfs-fetch(1) for examples.
+  gitignore(5). See git-lfs-fetch(1) for examples.
 
 * `lfs.fetchexclude`
 
   When fetching, do not download objects which match any item on this
   comma-separated list of paths/filenames. Wildcard matching is as per
-  git-ignore(1). See git-lfs-fetch(1) for examples.
+  gitignore(5). See git-lfs-fetch(1) for examples.
 
 * `lfs.fetchrecentrefsdays`
 
@@ -438,6 +438,6 @@ The set of keys allowed in this file is restricted for security reasons.
 
 ## SEE ALSO
 
-git-config(1), git-lfs-install(1), gitattributes(5)
+git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.

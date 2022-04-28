@@ -65,6 +65,60 @@ begin_test "filter process: checking out a branch"
 )
 end_test
 
+begin_test "filter process: include/exclude"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")-includeexclude"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  mkdir -p foo/bar
+
+  contents_a="contents_a"
+  contents_a_oid="$(calc_oid $contents_a)"
+  printf "%s" "$contents_a" > a.dat
+  cp a.dat foo
+  cp a.dat foo/bar
+
+  git add .gitattributes a.dat foo
+  git commit -m "initial commit"
+
+  git push origin main
+
+  # The Git LFS objects for a.dat and foo/bar/a.dat would both download except
+  # we're going to prevent them from doing so with include/exclude.
+  # We also need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config --global "lfs.fetchinclude" "/foo"
+  MSYS_NO_PATHCONV=1 git config --global "lfs.fetchexclude" "/foo/bar"
+
+  pushd ..
+    # Git will choose filter.lfs.process over `filter.lfs.clean` and
+    # `filter.lfs.smudge`
+    GIT_TRACE_PACKET=1 git \
+      -c "filter.lfs.process=git-lfs filter-process" \
+      -c "filter.lfs.clean=false"\
+      -c "filter.lfs.smudge=false" \
+      -c "filter.lfs.required=true" \
+      clone "$GITSERVER/$reponame" "$reponame-assert"
+
+    cd "$reponame-assert"
+
+    pointer="$(pointer "$contents_a_oid" 10)"
+
+    [ "$pointer" = "$(cat a.dat)" ]
+    assert_pointer "main" "a.dat" "$contents_a_oid" 10
+
+    [ "$contents_a" = "$(cat foo/a.dat)" ]
+    assert_pointer "main" "foo/a.dat" "$contents_a_oid" 10
+
+    [ "$pointer" = "$(cat foo/bar/a.dat)" ]
+    assert_pointer "main" "foo/bar/a.dat" "$contents_a_oid" 10
+  popd
+)
+end_test
+
 begin_test "filter process: adding a file"
 (
   set -e

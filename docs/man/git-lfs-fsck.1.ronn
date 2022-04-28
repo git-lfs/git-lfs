@@ -7,7 +7,7 @@ git-lfs-fsck(1) -- Check GIT LFS files for consistency
 
 ## DESCRIPTION
 
-Checks all GIT LFS files in the current HEAD for consistency.
+Checks all Git LFS files in the current HEAD for consistency.
 
 Corrupted files are moved to ".git/lfs/bad".
 
@@ -17,6 +17,12 @@ form), in which case that range is inspected; or omitted entirely, in which case
 HEAD (and, for --objects, the index) is examined.
 
 The default is to perform all checks.
+
+In your Git configuration or in a `.lfsconfig` file, you may set
+`lfs.fetchexclude` to a comma-separated list of paths.  If `lfs.fetchexclude`
+is defined, then any Git LFS files whose paths match one in that list will
+not be checked for consistency.  Paths are matched using wildcard matching as
+per gitignore(5).
 
 ## OPTIONS
 
@@ -29,6 +35,6 @@ The default is to perform all checks.
 
 ## SEE ALSO
 
-git-lfs-ls-files(1), git-lfs-status(1).
+git-lfs-ls-files(1), git-lfs-status(1), gitignore(5).
 
 Part of the git-lfs(1) suite.

@@ -26,8 +26,14 @@ The reflog is not considered, only commits. Therefore LFS objects that are
 only referenced by orphaned commits are always deleted.
 
 Note: you should not run `git lfs prune` if you have different repositories
-sharing the same custom storage directory; see git-lfs-config(1) for more
+sharing the same custom storage directory; see git-lfs-config(5) for more
 details about `lfs.storage` option.
+
+In your Git configuration or in a `.lfsconfig` file, you may set
+`lfs.fetchexclude` to a comma-separated list of paths.  If `lfs.fetchexclude`
+is defined, then any Git LFS files whose paths match one in that list will
+be pruned unless they are referenced by a stash or an unpushed commit.
+Paths are matched using wildcard matching as per gitignore(5).
 
 ## OPTIONS
 
@@ -129,6 +135,6 @@ to a different remote name to check that one instead of 'origin'.
 
 ## SEE ALSO
 
-git-lfs-fetch(1)
+git-lfs-fetch(1), gitignore(5).
 
 Part of the git-lfs(1) suite.

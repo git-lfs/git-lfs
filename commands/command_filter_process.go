@@ -61,7 +61,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
-	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitAttributes)
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
 
 	ptrs := make(map[string]*lfs.Pointer)
 
