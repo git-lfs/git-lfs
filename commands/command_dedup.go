@@ -87,7 +87,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 	})
 	defer gitScanner.Close()
 
-	if err := gitScanner.ScanTree("HEAD"); err != nil {
+	if err := gitScanner.ScanTree("HEAD", nil); err != nil {
 		ExitWithError(err)
 	}
 

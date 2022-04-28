@@ -112,10 +112,14 @@ begin_test "prune all excluded paths"
   content_oldandexcluded="To delete: pushed and too old and excluded by filter"
   content_oldandunchanged="Keep: pushed and created a while ago, but still current"
   content_prevandexcluded="To delete: pushed and in previous commit to HEAD but excluded by filter"
+  content_unreferencedandexcluded="To delete: unreferenced in deleted branch and pushed and excluded by filter"
+  content_includedandexcluded="Keep: pushed and both excluded by filter and included by another path"
   content_excluded="To delete: pushed and in HEAD but excluded by filter"
   oid_oldandexcluded=$(calc_oid "$content_oldandexcluded")
   oid_oldandunchanged=$(calc_oid "$content_oldandunchanged")
   oid_prevandexcluded=$(calc_oid "$content_prevandexcluded")
+  oid_unreferencedandexcluded=$(calc_oid "$content_unreferencedandexcluded")
+  oid_includedandexcluded=$(calc_oid "$content_includedandexcluded")
   oid_excluded=$(calc_oid "$content_excluded")
 
   echo "[
@@ -131,12 +135,23 @@ begin_test "prune all excluded paths"
       {\"Filename\":\"foo/oldandexcluded.dat\",\"Size\":${#content_prevandexcluded}, \"Data\":\"$content_prevandexcluded\"}]
   },
   {
+    \"CommitDate\":\"$(get_date -4d)\",
+    \"NewBranch\":\"branch_to_delete\",
     \"Files\":[
+      {\"Filename\":\"unreferenced.dat\",\"Size\":${#content_unreferencedandexcluded}, \"Data\":\"$content_unreferencedandexcluded\"}]
+  },
+  {
+    \"ParentBranches\":[\"main\"],
+    \"Files\":[
+      {\"Filename\":\"foo/unreferencedandexcluded.dat\",\"Size\":${#content_unreferencedandexcluded}, \"Data\":\"$content_unreferencedandexcluded\"},
+      {\"Filename\":\"foo/includedandexcluded.dat\",\"Size\":${#content_includedandexcluded}, \"Data\":\"$content_includedandexcluded\"},
+      {\"Filename\":\"included.dat\",\"Size\":${#content_includedandexcluded}, \"Data\":\"$content_includedandexcluded\"},
       {\"Filename\":\"foo/oldandexcluded.dat\",\"Size\":${#content_excluded}, \"Data\":\"$content_excluded\"}]
   }
   ]" | lfstest-testutils addcommits
 
   git push origin main
+  git branch -D branch_to_delete
 
   git config lfs.fetchrecentrefsdays 5
   git config lfs.fetchrecentremoterefs true
@@ -148,16 +163,23 @@ begin_test "prune all excluded paths"
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
-  grep "prune: 4 local objects, 1 retained" prune.log
-  grep "prune: 3 files would be pruned" prune.log
+  grep "prune: 6 local objects, 2 retained" prune.log
+  grep "prune: 4 files would be pruned" prune.log
   grep "$oid_oldandexcluded" prune.log
   grep "$oid_prevandexcluded" prune.log
+  grep "$oid_unreferencedandexcluded" prune.log
   grep "$oid_excluded" prune.log
 
+  assert_local_object "$oid_oldandexcluded" "${#content_oldandexcluded}"
+  assert_local_object "$oid_prevandexcluded" "${#content_prevandexcluded}"
+  assert_local_object "$oid_unreferencedandexcluded" "${#content_unreferencedandexcluded}"
+  assert_local_object "$oid_excluded" "${#content_excluded}"
   git lfs prune
   refute_local_object "$oid_oldandexcluded" "${#content_oldandexcluded}"
   assert_local_object "$oid_oldandunchanged" "${#content_oldandunchanged}"
   refute_local_object "$oid_prevandexcluded" "${#content_prevandexcluded}"
+  refute_local_object "$oid_unreferencedandexcluded" "${#content_unreferencedandexcluded}"
+  assert_local_object "$oid_includedandexcluded" "${#content_includedandexcluded}"
   refute_local_object "$oid_excluded" "${#content_excluded}"
 )
 end_test

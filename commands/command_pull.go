@@ -87,7 +87,7 @@ func pull(filter *filepathfilter.Filter) {
 	}()
 
 	processQueue := time.Now()
-	if err := gitscanner.ScanTree(ref.Sha); err != nil {
+	if err := gitscanner.ScanTree(ref.Sha, nil); err != nil {
 		singleCheckout.Close()
 		ExitWithError(err)
 	}

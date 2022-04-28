@@ -135,7 +135,7 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 
 	tempgitscanner.Filter = filter
 
-	if err := tempgitscanner.ScanTree(ref); err != nil {
+	if err := tempgitscanner.ScanTree(ref, nil); err != nil {
 		return nil, err
 	}
 
