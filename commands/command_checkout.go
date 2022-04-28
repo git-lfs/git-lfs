@@ -73,7 +73,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 
 	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil, filepathfilter.GitIgnore)
 
-	if err := chgitscanner.ScanTree(ref.Sha); err != nil {
+	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
 	chgitscanner.Close()
