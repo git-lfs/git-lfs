@@ -55,6 +55,7 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 	}
 
 	endpoint.SSHMetadata.Path = u.Path
+	endpoint.SSHMetadata.URIFormat = true
 
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
@@ -69,32 +70,42 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 //   [user@host.com:port]:path/to/repo.git
 //
 func EndpointFromBareSshUrl(rawurl string) Endpoint {
-	parts := strings.Split(rawurl, ":")
+	parts := strings.SplitN(rawurl, ":", 3)
 	partsLen := len(parts)
 	if partsLen < 2 {
 		return Endpoint{Url: rawurl}
 	}
 
 	// Treat presence of ':' as a bare URL
-	var newPath string
+	var userHostAndPort string
+	var path string
 	if len(parts) > 2 { // port included; really should only ever be 3 parts
 		// Correctly handle [host:port]:path URLs
 		parts[0] = strings.TrimPrefix(parts[0], "[")
 		parts[1] = strings.TrimSuffix(parts[1], "]")
-		newPath = fmt.Sprintf("%v:%v", parts[0], strings.Join(parts[1:], "/"))
+		userHostAndPort = fmt.Sprintf("%v:%v", parts[0], parts[1])
+		path = parts[2]
 	} else {
-		newPath = strings.Join(parts, "/")
+		userHostAndPort = parts[0]
+		path = parts[1]
 	}
-	newrawurl := fmt.Sprintf("ssh://%v", newPath)
+
+	var absPath bool
+	if absPath = strings.HasPrefix(path, "/"); absPath {
+		path = strings.TrimLeft(path, "/")
+	}
+
+	newrawurl := fmt.Sprintf("ssh://%v/%v", userHostAndPort, path)
 	newu, err := url.Parse(newrawurl)
 	if err != nil {
 		return Endpoint{Url: UrlUnknown}
 	}
 
 	endpoint := EndpointFromSshUrl(newu)
-	if strings.HasPrefix(endpoint.SSHMetadata.Path, "/") {
-		endpoint.SSHMetadata.Path = endpoint.SSHMetadata.Path[1:]
+	if !absPath {
+		endpoint.SSHMetadata.Path = strings.TrimLeft(endpoint.SSHMetadata.Path, "/")
 	}
+	endpoint.SSHMetadata.URIFormat = false
 	return endpoint
 }
 

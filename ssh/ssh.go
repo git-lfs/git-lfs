@@ -28,6 +28,27 @@ type SSHMetadata struct {
 	UserAndHost string
 	Port        string
 	Path        string
+	URIFormat   bool
+}
+
+// URLFromMetadata constructs a bare SSH URL or an SSH URI from metadata
+func URLFromMetadata(meta SSHMetadata) string {
+	userHostAndPort := meta.UserAndHost
+	port := meta.Port
+	if port != "" {
+		userHostAndPort = fmt.Sprintf("%s:%s", userHostAndPort, port)
+	}
+
+	var url string
+	if meta.URIFormat {
+		url = fmt.Sprintf("ssh://%s%s", userHostAndPort, meta.Path)
+	} else {
+		if port != "" {
+			userHostAndPort = fmt.Sprintf("[%s]", userHostAndPort)
+		}
+		url = fmt.Sprintf("%s:%s", userHostAndPort, meta.Path)
+	}
+	return url
 }
 
 func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
