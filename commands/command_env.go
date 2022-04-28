@@ -4,6 +4,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
+	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +29,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
 			Print("Endpoint=%s (auth=%s)", endpoint.Url, access.Mode())
 			if len(endpoint.SSHMetadata.UserAndHost) > 0 {
-				Print("  SSH=%s:%s", endpoint.SSHMetadata.UserAndHost, endpoint.SSHMetadata.Path)
+				Print("  SSH=%s", ssh.URLFromMetadata(endpoint.SSHMetadata))
 			}
 		}
 	}
@@ -41,7 +42,8 @@ func envCommand(cmd *cobra.Command, args []string) {
 		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess.Mode())
 		if len(remoteEndpoint.SSHMetadata.UserAndHost) > 0 {
-			Print("  SSH=%s:%s", remoteEndpoint.SSHMetadata.UserAndHost, remoteEndpoint.SSHMetadata.Path)
+
+			Print("  SSH=%s", ssh.URLFromMetadata(remoteEndpoint.SSHMetadata))
 		}
 	}
 
