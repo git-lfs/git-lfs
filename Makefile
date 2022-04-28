@@ -107,6 +107,15 @@ MO = $(patsubst po/%.po,po/build/%.mo,$(PO))
 # XGOTEXT is the string extractor for gotext.
 XGOTEXT ?= xgotext
 
+# CODESIGN is the macOS signing tool.
+CODESIGN ?= codesign
+
+# GON is the macOS notarizing tool.
+GON ?= gon
+
+# SIGNTOOL is the Windows signing tool.
+SIGNTOOL ?= signtool.exe
+
 # FORCE_LOCALIZE forces localization to be run if set to non-empty.
 FORCE_LOCALIZE ?=
 
@@ -417,17 +426,17 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
 	$(MAKE) -B GOARCH=arm64 && cp ./bin/git-lfs.exe ./git-lfs-arm64.exe
 	@echo Signing git-lfs-x64.exe
-	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
+	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
 	@echo Signing git-lfs-x86.exe
-	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
+	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
 	@echo Signing git-lfs-arm64.exe
-	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-arm64.exe
+	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-arm64.exe
 	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
 	@# This file will be named according to the version number in the
 	@# versioninfo.json, not according to $(VERSION).
 	mv git-lfs-windows-*.exe git-lfs-windows.exe
 	@echo Signing git-lfs-windows.exe
-	@signtool.exe sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
+	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
 	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
 	mv git-lfs-arm64.exe git-lfs-windows-arm64.exe
@@ -462,15 +471,15 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 		temp=$$(mktemp -d) && \
 		( \
 			unzip -d "$$temp" "$$i" && \
-			codesign --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/git-lfs" && \
-			codesign -dvvv "$$temp/git-lfs" && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/git-lfs" && \
+			$(CODESIGN) -dvvv "$$temp/git-lfs" && \
 			zip -j $$i "$$temp/git-lfs" && \
-			codesign --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
-			codesign -dvvv "$$i" && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
+			$(CODESIGN) -dvvv "$$i" && \
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
 			do \
-				gon "$$temp/manifest.json" && break; \
+				$(GON) "$$temp/manifest.json" && break; \
 			done; \
 		); \
 		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; [ "$$status" -eq 0 ] || exit "$$status"; \
