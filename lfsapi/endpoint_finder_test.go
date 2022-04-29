@@ -21,6 +21,7 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointOverridesOrigin(t *testing.T) {
@@ -33,6 +34,7 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
@@ -45,6 +47,7 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 	assert.Equal(t, "abc", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointUseAlternateRemote(t *testing.T) {
@@ -57,6 +60,7 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 	assert.Equal(t, "def", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointAddsLfsSuffix(t *testing.T) {
@@ -68,6 +72,7 @@ func TestEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestBareEndpointAddsLfsSuffix(t *testing.T) {
@@ -79,6 +84,7 @@ func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointSeparateClonePushUrl(t *testing.T) {
@@ -91,11 +97,13 @@ func TestEndpointSeparateClonePushUrl(t *testing.T) {
 	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwrite.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
@@ -110,11 +118,13 @@ func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
 	assert.Equal(t, "https://examplelfs.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwritelfs.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
@@ -127,11 +137,13 @@ func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
 	assert.Equal(t, "https://readonly.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://write.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
 }
 
 func TestSSHEndpointOverridden(t *testing.T) {
