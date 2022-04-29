@@ -384,7 +384,7 @@ $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!$(PREFIX)/!' \
 		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!\(.*\)\.md!$(PREFIX)/\1.md!' \
 		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!man!$(PREFIX)/man!' \
-		-czf $@ $^
+		--posix -czf $@ $^
 
 # bin/releases/git-lfs-darwin-$(VERSION).zip generates a ZIP compression of all
 # of the macOS release artifacts.
