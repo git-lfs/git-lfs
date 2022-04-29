@@ -111,7 +111,7 @@ To get started with Git LFS, the following commands can be used.
         git lfs track "*.iso"
 
  3. The above stores this information in gitattributes(5) files, so
-    that file need to be added to the repository:
+    that file needs to be added to the repository:
 
         git add .gitattributes
 
