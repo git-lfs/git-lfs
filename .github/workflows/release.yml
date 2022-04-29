@@ -104,7 +104,7 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
-    - run: sudo apt-get update && sudo apt-get -y install gettext
+    - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
       env:
           DEBIAN_FRONTEND: noninteractive
     - uses: actions/download-artifact@v1
