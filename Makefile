@@ -7,6 +7,9 @@ GIT_LFS_SHA ?= $(shell git rev-parse --short HEAD)
 # should be identical.
 VERSION ?= $(shell git describe HEAD)
 
+# PREFIX is VERSION without the leading v, for use in archive prefixes.
+PREFIX ?= $(patsubst v%,git-lfs-%,$(VERSION))
+
 # GO is the name of the 'go' binary used to compile Git LFS.
 GO ?= go
 
@@ -65,6 +68,9 @@ GOIMPORTS_EXTRA_OPTS ?= -w -l
 
 # TAR is the tar command, either GNU or BSD (libarchive) tar.
 TAR ?= tar
+
+# BSDTAR is BSD (libarchive) tar.
+BSDTAR ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo bsdtar || echo $(TAR))
 
 TAR_XFORM_ARG ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
 TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
@@ -374,7 +380,11 @@ release : $(RELEASE_TARGETS)
 bin/releases/git-lfs-%-$(VERSION).tar.gz : \
 $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 	@mkdir -p bin/releases
-	$(TAR) $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!git-lfs!' $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!!' -czf $@ $^
+	$(TAR) $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!bin/git-lfs-.*!$(PREFIX)/git-lfs!' \
+		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!script/!$(PREFIX)/!' \
+		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!\(.*\)\.md!$(PREFIX)/\1.md!' \
+		$(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!man!$(PREFIX)/man!' \
+		-czf $@ $^
 
 # bin/releases/git-lfs-darwin-$(VERSION).zip generates a ZIP compression of all
 # of the macOS release artifacts.
@@ -382,13 +392,13 @@ $(RELEASE_INCLUDES) bin/git-lfs-% script/install.sh
 # It includes all of the RELEASE_INCLUDES, as well as script/install.sh.
 bin/releases/git-lfs-darwin-%-$(VERSION).zip : \
 $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
-	dir=bin/releases/darwin-$* && \
-	rm -f $@ && \
-	mkdir -p $$dir && \
-	cp -R $^ $$dir && mv $$dir/git-lfs-darwin-$* $$dir/git-lfs && \
-	zip -j $@ $$dir/* && \
-	zip -ur $@ man && \
-	$(RM) -r $$dir
+	@mkdir -p bin/releases
+	$(BSDTAR) --format zip \
+		-s '!bin/git-lfs-.*!$(PREFIX)/git-lfs!' \
+		-s '!script/!$(PREFIX)/!' \
+		-s '!\(.*\)\.md!$(PREFIX)/\1.md!' \
+		-s '!man!$(PREFIX)/man!' \
+		-cf $@ $^
 
 # bin/releases/git-lfs-windows-$(VERSION).zip generates a ZIP compression of all
 # of the Windows release artifacts.
@@ -397,16 +407,19 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 # CRLF in the non-binary components of the artifact.
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
-	rm -f $@
-	zip -j -l $@ $^
-	zip -ur $@ man
+	$(BSDTAR) --format zip \
+		-s '!bin/!$(PREFIX)/!' \
+		-s '!script/!$(PREFIX)/!' \
+		-s '!\(.*\)\.md!$(PREFIX)/\1.md!' \
+		-s '!man!$(PREFIX)/man!' \
+		-cf $@ $^
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
 # This is useful for third parties who wish to have a bit-for-bit identical
 # source archive to download and verify cryptographically.
 bin/releases/git-lfs-$(VERSION).tar.gz :
-	git archive -o $@ --prefix=git-lfs-$(patsubst v%,%,$(VERSION))/ --format tar.gz $(VERSION)
+	git archive -o $@ --prefix=$(PREFIX)/ --format tar.gz $(VERSION)
 
 # release-linux is a target that builds Linux packages. It must be run on a
 # system with Docker that can run Linux containers.
@@ -425,9 +438,9 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	$(RM) git-lfs-windows-*.exe
 	@# Using these particular filenames is required for the Inno Setup script to
 	@# work properly.
-	$(MAKE) -B GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
-	$(MAKE) -B GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
-	$(MAKE) -B GOARCH=arm64 && cp ./bin/git-lfs.exe ./git-lfs-arm64.exe
+	$(MAKE) -B GOOS=windows X=.exe GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
+	$(MAKE) -B GOOS=windows X=.exe GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
+	$(MAKE) -B GOOS=windows X=.exe GOARCH=arm64 && cp ./bin/git-lfs.exe ./git-lfs-arm64.exe
 	@echo Signing git-lfs-x64.exe
 	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
 	@echo Signing git-lfs-x86.exe
@@ -444,7 +457,7 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 	mv git-lfs-x86.exe git-lfs-windows-386.exe
 	mv git-lfs-arm64.exe git-lfs-windows-arm64.exe
 	@# We use tar because Git Bash doesn't include zip.
-	tar -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
+	$(TAR) -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
 	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
 
 # release-windows-rebuild takes the archive produced by release-windows and
@@ -453,12 +466,16 @@ bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
 release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 	temp=$$(mktemp -d); \
 	file="$$PWD/$^"; \
+	root="$$PWD" && \
 		( \
 			tar -C "$$temp" -xzf "$$file" && \
 			for i in 386 amd64 arm64; do \
-				cp "$$temp/git-lfs-windows-$$i.exe" "$$temp/git-lfs.exe" && \
-				zip -d bin/releases/git-lfs-windows-$$i-$(VERSION).zip "git-lfs-windows-$$i.exe" && \
-				zip -j -l bin/releases/git-lfs-windows-$$i-$(VERSION).zip  "$$temp/git-lfs.exe";  \
+				temp2="$$(mktemp -d)" && \
+				$(BSDTAR) -C "$$temp2" -xf "$$root/bin/releases/git-lfs-windows-$$i-$(VERSION).zip" && \
+				rm -f "$$temp2/$(PREFIX)/"git-lfs*.exe && \
+				cp "$$temp/git-lfs-windows-$$i.exe" "$$temp2/$(PREFIX)/git-lfs.exe" && \
+				(cd "$$temp2" && $(BSDTAR) --format=zip -cf "$$root/bin/releases/git-lfs-windows-$$i-$(VERSION).zip" $(PREFIX)) && \
+				rm -fr "$$temp2"; \
 			done && \
 			cp "$$temp/git-lfs-windows.exe" bin/releases/git-lfs-windows-$(VERSION).exe \
 		); \
@@ -472,11 +489,12 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/git-lfs-darwin-arm64-$(VERSION).zip
 	for i in $^; do \
 		temp=$$(mktemp -d) && \
+		root=$$(pwd -P) && \
 		( \
-			unzip -d "$$temp" "$$i" && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/git-lfs" && \
-			$(CODESIGN) -dvvv "$$temp/git-lfs" && \
-			zip -j $$i "$$temp/git-lfs" && \
+			$(BSDTAR) -C "$$temp" -xf "$$i" && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/$(PREFIX)/git-lfs" && \
+			$(CODESIGN) -dvvv "$$temp/$(PREFIX)/git-lfs" && \
+			(cd "$$temp" && $(BSDTAR) --format zip -cf "$$root/$$i" "$(PREFIX)") && \
 			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
 			$(CODESIGN) -dvvv "$$i" && \
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
