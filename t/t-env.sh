@@ -721,6 +721,7 @@ begin_test "env with multiple ssh remotes"
   git remote add port [git@git-server.com:1337]:user/repo.git
   git remote add port-anon [git-server.com:1337]:user/repo.git
   git remote add port-abspath [git@git-server.com:1337]:/user/repo.git
+  git remote add port-relpath git@[git-server.com:1337]:user/repo.git
   git remote add anon-abspath git-server.com:/user/repo.git
 
   expected='Endpoint=https://git-server.com/user/repo.git/info/lfs (auth=none)
@@ -733,6 +734,8 @@ Endpoint (port-anon)=https://git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=[git-server.com:1337]:user/repo.git
 Endpoint (port-abspath)=https://git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=[git@git-server.com:1337]:/user/repo.git
+Endpoint (port-relpath)=https://git-server.com/user/repo.git/info/lfs (auth=none)
+  SSH=[git@git-server.com:1337]:user/repo.git
 Endpoint (anon-abspath)=https://git-server.com/user/repo.git/info/lfs (auth=none)
   SSH=git-server.com:/user/repo.git
 GIT_SSH=lfs-ssh-echo'

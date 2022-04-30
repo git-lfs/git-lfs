@@ -22,6 +22,7 @@ func TestEndpointDefaultsToOrigin(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointOverridesOrigin(t *testing.T) {
@@ -35,6 +36,7 @@ func TestEndpointOverridesOrigin(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
@@ -48,6 +50,7 @@ func TestEndpointNoOverrideDefaultRemote(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointUseAlternateRemote(t *testing.T) {
@@ -61,6 +64,7 @@ func TestEndpointUseAlternateRemote(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointAddsLfsSuffix(t *testing.T) {
@@ -73,6 +77,7 @@ func TestEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestBareEndpointAddsLfsSuffix(t *testing.T) {
@@ -85,6 +90,7 @@ func TestBareEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointSeparateClonePushUrl(t *testing.T) {
@@ -98,12 +104,14 @@ func TestEndpointSeparateClonePushUrl(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwrite.com/foo/bar.git/info/lfs", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
@@ -119,12 +127,14 @@ func TestEndpointOverriddenSeparateClonePushLfsUrl(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://readwritelfs.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
@@ -138,12 +148,14 @@ func TestEndpointGlobalSeparateLfsPush(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 
 	e = finder.Endpoint("upload", "")
 	assert.Equal(t, "https://write.com/foo/bar", e.Url)
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestSSHEndpointOverridden(t *testing.T) {
@@ -157,6 +169,7 @@ func TestSSHEndpointOverridden(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -169,6 +182,7 @@ func TestSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
@@ -181,6 +195,7 @@ func TestSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestGitSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -193,6 +208,7 @@ func TestGitSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "git+ssh", e.SSHMetadata.Scheme)
 }
 
 func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
@@ -205,6 +221,7 @@ func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
+	assert.Equal(t, "git+ssh", e.SSHMetadata.Scheme)
 }
 
 func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
@@ -217,6 +234,7 @@ func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "ssh+git", e.SSHMetadata.Scheme)
 }
 
 func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
@@ -229,6 +247,7 @@ func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
+	assert.Equal(t, "ssh+git", e.SSHMetadata.Scheme)
 }
 
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -241,6 +260,7 @@ func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestBareSSSHEndpointWithCustomPortInBrackets(t *testing.T) {
@@ -253,7 +273,23 @@ func TestBareSSSHEndpointWithCustomPortInBrackets(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
 	assert.Equal(t, "2222", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
+
+/**** DEBUG chrisd -
+func TestBareSSSHEndpointWithCustomPortInBracketsAfterUser(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git@[example.com:2222]:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "2222", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
+*/
 
 func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
@@ -265,6 +301,7 @@ func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
@@ -277,6 +314,7 @@ func TestHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
@@ -289,6 +327,7 @@ func TestBareHTTPEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestGitEndpointAddsLfsSuffix(t *testing.T) {
@@ -301,6 +340,7 @@ func TestGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
@@ -314,6 +354,7 @@ func TestGitEndpointAddsLfsSuffixWithCustomProtocol(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
@@ -326,6 +367,7 @@ func TestBareGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
 func TestLocalPathEndpointAddsDotGitForWorkingRepo(t *testing.T) {
@@ -574,6 +616,7 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "git@github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
@@ -586,10 +629,12 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "git@lfshttp.github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "443",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
 		},
+//// DEBUG chrisd - add git@[ test
 		"no user bare ssh": {
 			"github.com:git-lfs/git-lfs.git",
 			lfshttp.Endpoint{
@@ -598,6 +643,7 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "github.com",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
@@ -610,6 +656,7 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "github",
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
@@ -622,6 +669,7 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
@@ -634,6 +682,7 @@ func TestEndpointParsing(t *testing.T) {
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "",
 			},
@@ -673,6 +722,7 @@ func TestInsteadOf(t *testing.T) {
 					UserAndHost: "",
 					Path:        "",
 					Port:        "",
+					Scheme:      "",
 				},
 				Operation: "download",
 			},
@@ -686,6 +736,7 @@ func TestInsteadOf(t *testing.T) {
 					UserAndHost: "example.com",
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "ssh",
 				},
 				Operation: "upload",
 			},
@@ -699,6 +750,7 @@ func TestInsteadOf(t *testing.T) {
 					UserAndHost: "example.com",
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "ssh",
 				},
 				Operation: "download",
 			},
@@ -712,6 +764,7 @@ func TestInsteadOf(t *testing.T) {
 					UserAndHost: "example.com",
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
+					Scheme:      "ssh",
 				},
 				Operation: "upload",
 			},

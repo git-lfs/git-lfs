@@ -55,7 +55,7 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 	}
 
 	endpoint.SSHMetadata.Path = u.Path
-	endpoint.SSHMetadata.URIFormat = true
+	endpoint.SSHMetadata.Scheme = u.Scheme
 
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
@@ -81,6 +81,9 @@ func EndpointFromBareSshUrl(rawurl string) Endpoint {
 	var path string
 	if len(parts) > 2 { // port included; really should only ever be 3 parts
 		// Correctly handle [host:port]:path URLs
+//// DEBUG: user@[host:port]:... also OK
+//// if [ found ] must be found too (and last!)
+//// DEBUG: need tests for these
 		parts[0] = strings.TrimPrefix(parts[0], "[")
 		parts[1] = strings.TrimSuffix(parts[1], "]")
 		userHostAndPort = fmt.Sprintf("%v:%v", parts[0], parts[1])
@@ -105,7 +108,8 @@ func EndpointFromBareSshUrl(rawurl string) Endpoint {
 	if !absPath {
 		endpoint.SSHMetadata.Path = strings.TrimLeft(endpoint.SSHMetadata.Path, "/")
 	}
-	endpoint.SSHMetadata.URIFormat = false
+//// DEBUG: skip Scheme and just canonicalize as bare SSH in env
+	endpoint.SSHMetadata.Scheme = ""
 	return endpoint
 }
 
