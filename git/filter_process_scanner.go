@@ -185,7 +185,9 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 
 	for _, pair := range requestList {
 		v := strings.SplitN(pair, "=", 2)
-		req.Header[v[0]] = v[1]
+		if len(v) > 1 {
+			req.Header[v[0]] = v[1]
+		}
 	}
 
 	return req, nil
