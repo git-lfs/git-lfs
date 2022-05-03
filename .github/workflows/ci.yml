@@ -17,7 +17,7 @@ jobs:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
       if: ${{ startsWith(matrix.os, 'macos-') }}
-    - run: sudo apt-get update && sudo apt-get -y install gettext
+    - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
       if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       env:
           DEBIAN_FRONTEND: noninteractive
