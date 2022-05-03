@@ -32,12 +32,13 @@ func endpointOperation(e Endpoint, method string) string {
 	}
 }
 
+var sshURIHostPortRE = regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
+
 // EndpointFromSshUrl constructs a new endpoint from an ssh:// URL
 func EndpointFromSshUrl(u *url.URL) Endpoint {
 	var endpoint Endpoint
 	// Pull out port now, we need it separately for SSH
-	regex := regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
-	match := regex.FindStringSubmatch(u.Host)
+	match := sshURIHostPortRE.FindStringSubmatch(u.Host)
 	if match == nil || len(match) < 2 {
 		endpoint.Url = UrlUnknown
 		return endpoint
