@@ -45,8 +45,12 @@ so you don't have to enter your password frequently. However, you are encouraged
 to setup a [custom git credential cacher](https://help.github.com/articles/caching-your-github-password-in-git/),
 if a better one exists for your platform.
 
-If your Git LFS server authenticates with NTLM then you must provide your credentials to `git-credential`
-in the form `username:DOMAIN\user password:password`.
+As of version 3.0, Git LFS no longer supports NTLM. Users are encouraged to set up
+Kerberos; for example, Azure DevOps Server recommends Kerberos over NTLM in
+[this blog post](https://devblogs.microsoft.com/devops/reconfigure-azure-devops-server-to-use-kerberos-instead-of-ntlm/).
+For pre-3.0 LFS versions, if your Git LFS server authenticates with NTLM then you
+must provide your credentials to `git-credential` in the form
+`username:DOMAIN\user password:password`.
 
 ## Specified in URL
 
