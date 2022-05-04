@@ -15,7 +15,7 @@ func (c *ShellQuoteTestCase) Assert(t *testing.T) {
 	actual := ShellQuote(c.Given)
 
 	assert.Equal(t, c.Expected, actual,
-		"tools: expected ShellQuote(%q) to equal %#v (was %#v)",
+		"subprocess: expected ShellQuote(%q) to equal %#v (was %#v)",
 		c.Given, c.Expected, actual,
 	)
 }
@@ -44,10 +44,10 @@ func (c *FormatForShellQuotedArgsTestCase) Assert(t *testing.T) {
 	actualCmd, actualArgs := FormatForShellQuotedArgs(c.GivenCmd, c.GivenArgs)
 
 	assert.Equal(t, "sh", actualCmd,
-		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		"subprocess: expected FormatForShell command to equal 'sh' (was #%v)",
 		actualCmd)
 	assert.Equal(t, c.ExpectedArgs, actualArgs,
-		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		"subprocess: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
 		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
 	)
 }
@@ -72,10 +72,10 @@ func (c *FormatForShellTestCase) Assert(t *testing.T) {
 	actualCmd, actualArgs := FormatForShell(c.GivenCmd, c.GivenArgs)
 
 	assert.Equal(t, "sh", actualCmd,
-		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		"subprocess: expected FormatForShell command to equal 'sh' (was #%v)",
 		actualCmd)
 	assert.Equal(t, c.ExpectedArgs, actualArgs,
-		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		"subprocess: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
 		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
 	)
 }
