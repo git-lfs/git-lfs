@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+
+require "openssl"
+
+# This maps the OpenSSL name to the name used in the output file.
+# The order used is the order they should appear in the output file.
+DIGESTS = {
+  'BLAKE2b512' => 'BLAKE2b',
+  'BLAKE2s256' => 'BLAKE2s',
+  'SHA256' => 'SHA256',
+  'SHA384' => 'SHA384',
+  'SHA512' => 'SHA512',
+  'SHA512-256' => 'SHA512/256',
+  'SHA3-256' => 'SHA3-256',
+  'SHA3-384' => 'SHA3-384',
+  'SHA3-512' => 'SHA3-512',
+}
+
+class Hasher
+  def initialize(file)
+    @file = file
+    @hashers = DIGESTS.map do |openssl, output|
+      [output, OpenSSL::Digest.new(openssl)]
+    end.to_h
+  end
+
+  def update(s)
+    @hashers.values.each { |h| h.update(s) }
+  end
+
+  def to_a
+    @hashers.map do |name, ctx|
+      "#{name} (#{@file}) = #{ctx.digest.unpack("H*")[0]}\n"
+    end.to_a
+  end
+end
+
+results = []
+ARGV.each do |file|
+  f = File.open(file)
+  h = Hasher.new(file)
+  while chunk = f.read(65536) do
+    h.update(chunk)
+  end
+  results += h.to_a
+end
+
+# Sort entries first by order of algorithm name in DIGESTS, then by filename,
+# then print them.
+
+# Create a mapping of output name digest to order in the hash.
+names = DIGESTS.values.each_with_index.to_a.to_h
+results.sort_by do |s|
+  # Split into digest name and remainder.  The remainder starts with the
+  # filename.
+  pair = s.split(' ', 2).to_a
+  # Order by the index of the digest and then the filename.
+  [names[pair[0]], pair[1]]
+end.each { |l| puts l }

@@ -72,6 +72,10 @@ categorize_asset () {
       echo "Unsigned SHA-256 Hashes";;
     sha256sums.asc)
       echo "Signed SHA-256 Hashes";;
+    hashes)
+      echo "Unsigned Hashes";;
+    hashes.asc)
+      echo "Signed Hashes";;
     *)
       printf "%s %s\n" "$(categorize_os "$os")" "$(categorize_arch "$arch")";;
   esac
@@ -88,7 +92,7 @@ content_type () {
       echo "application/gzip";;
     *.exe)
       echo "application/octet-stream";;
-    *.asc|sha256sums*)
+    *.asc|sha256sums*|hashes*)
       echo "text/plain";;
   esac
 }
@@ -166,8 +170,9 @@ release_files () {
       -name '*amd64*.zip' -o \
       -name '*arm64*.zip' -o \
       -name '*.exe' -o \
-      -name 'sha256sums.asc' | \
-    grep -E "$version|sha256sums.asc" | \
+      -name 'sha256sums.asc' -o \
+      -name 'hashes.asc' | \
+    grep -E "$version|sha256sums.asc|hashes.asc" | \
     grep -v "assets" | \
     LC_ALL=C sort
 }
@@ -284,6 +289,16 @@ verify_assets () {
   # shasum will then fail.
   say "Checking assets for integrity..."
   (cd "$dir" && gpg -d sha256sums.asc | shasum -a 256 -c)
+  (cd "$dir" && gpg -d hashes.asc | grep 'SHA[0-9][^-]' | shasum -c)
+  if command -v sha3sum >/dev/null 2>&1
+  then
+    (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-' | sha3sum -c)
+  fi
+  if command -v b2sum >/dev/null 2>&1
+  then
+    # b2sum on Linux does not handle BLAKE2s, only BLAKE2b.
+    (cd "$dir" && gpg -d hashes.asc | grep 'BLAKE2b' | b2sum -c)
+  fi
 
   say "\nAssets look good!"
 }
@@ -326,9 +341,12 @@ finalize () {
 
   say "Signing asset manifest..."
   (
+    root="$(git rev-parse --show-toplevel)" &&
     cd "$downloads" && \
-    shasum -a256 -b * | grep -vE '(assets|sha256sums)' | \
-        gpg --digest-algo SHA256 --clearsign >sha256sums.asc
+    shasum -a256 -b * | grep -vE '(assets|sha256sums|hashes)' | \
+        gpg --digest-algo SHA256 --clearsign >sha256sums.asc &&
+    "$root/script/hash-files" * | grep -vE '(assets|sha256sums|hashes)' | \
+        gpg --digest-algo SHA512 --clearsign >hashes.asc
   )
 
   say "Formatting the final body of the GitHub release now..."
@@ -341,7 +359,7 @@ finalize () {
   local upload_url=$(patch_release "$version" "$bodyfile")
 
   say "Uploading final versions of assets..."
-  cp "$downloads/sha256sums.asc" "$uploads"
+  cp "$downloads/sha256sums.asc" "$downloads/hashes.asc" "$uploads"
   upload_assets "$version" "$upload_url" "$uploads"
 
   # Verification occurs in caller below.
@@ -356,9 +374,12 @@ Usage: $0 VERSION
 Create a draft GitHub release for Git LFS using the tag specified by VERSION and
 the changelog specified in the file CHANGELOG. Before running this script, the
 release assets should be built and ready for upload, including the signed
-sha256sums.asc file.
+sha256sums.asc and hashes.asc files.
 
-This script requires ruby, gpg, curl, shasum, and jq.
+This script requires ruby, gpg, curl, shasum, and jq.  sha3sum and b2sum will be
+used if available, but are optional.
+
+This command must be run from within the repository.
 EOM
   exit $status
 }
