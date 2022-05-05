@@ -53,11 +53,16 @@ func checkSufficientArgs(offset int) {
 
 func main() {
 	// expect args:
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-authenticate REPO OPERATION"
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
+	//   lfs-ssh-echo [-o OPT] [-p PORT [--]] git@127.0.0.1 "git-lfs-authenticate REPO OPERATION"
+	//   lfs-ssh-echo [-o OPT] [-p PORT [--]] git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
 	//   lfs-ssh-echo git@127.0.0.1 "git-upload-pack REPO"
 	//   lfs-ssh-echo git@127.0.0.1 "git-receive-pack REPO"
 	offset := 1
+
+	checkSufficientArgs(offset)
+	if os.Args[offset] == "-o" {
+		offset += 2
+	}
 
 	checkSufficientArgs(offset)
 	if os.Args[offset] == "-p" {

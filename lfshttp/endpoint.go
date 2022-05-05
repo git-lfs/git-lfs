@@ -32,13 +32,13 @@ func endpointOperation(e Endpoint, method string) string {
 	}
 }
 
-var sshURIHostPortRE = regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
+var sshHostPortRE = regexp.MustCompile(`^([^\:]+)(?:\:(\d+))?$`)
 
 // EndpointFromSshUrl constructs a new endpoint from an ssh:// URL
 func EndpointFromSshUrl(u *url.URL) Endpoint {
 	var endpoint Endpoint
 	// Pull out port now, we need it separately for SSH
-	match := sshURIHostPortRE.FindStringSubmatch(u.Host)
+	match := sshHostPortRE.FindStringSubmatch(u.Host)
 	if match == nil || len(match) < 2 {
 		endpoint.Url = UrlUnknown
 		return endpoint
@@ -56,7 +56,9 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 	}
 
 	endpoint.SSHMetadata.Path = u.Path
-	endpoint.SSHMetadata.Scheme = u.Scheme
+
+	// Always use ssh scheme instead of deprecated git+ssh or ssh+git.
+	endpoint.SSHMetadata.Scheme = "ssh"
 
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
@@ -70,47 +72,65 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 //   user@host.com:path/to/repo.git or
 //   [user@host.com:port]:path/to/repo.git
 //
+// We emulate the relevant logic from Git's parse_connect_url() and
+// host_end() functions in connect.c:
+//   https://github.com/git/git/blob/0f828332d5ac36fc63b7d8202652efa152809856/connect.c#L673-L695
+//   https://github.com/git/git/blob/0f828332d5ac36fc63b7d8202652efa152809856/connect.c#L1051 
 func EndpointFromBareSshUrl(rawurl string) Endpoint {
-	parts := strings.SplitN(rawurl, ":", 3)
-	partsLen := len(parts)
-	if partsLen < 2 {
+	var userHostAndPort string
+	toParse := rawurl
+	if i := strings.Index(rawurl, "@["); i >= 0 {
+		userHostAndPort = rawurl[0:i + 1]
+		toParse = rawurl[i + 1:]
+	}
+
+	var bracketed bool
+	if toParse[0] == '[' {
+		if i := strings.Index(toParse, "]"); i >= 0 {
+			userHostAndPort += toParse[1:i]
+			toParse = toParse[i + 1:]
+			bracketed = true
+		}
+	}
+
+	i := strings.Index(toParse, ":")
+	if i < 0 {
 		return Endpoint{Url: rawurl}
 	}
-
-	// Treat presence of ':' as a bare URL
-	var userHostAndPort string
-	var path string
-	if len(parts) > 2 { // port included; really should only ever be 3 parts
-		// Correctly handle [host:port]:path URLs
-//// DEBUG: user@[host:port]:... also OK
-//// if [ found ] must be found too (and last!)
-//// DEBUG: need tests for these
-		parts[0] = strings.TrimPrefix(parts[0], "[")
-		parts[1] = strings.TrimSuffix(parts[1], "]")
-		userHostAndPort = fmt.Sprintf("%v:%v", parts[0], parts[1])
-		path = parts[2]
-	} else {
-		userHostAndPort = parts[0]
-		path = parts[1]
+	path := toParse[i + 1:]
+	if !bracketed {
+		userHostAndPort += toParse[0:i]
 	}
 
-	var absPath bool
-	if absPath = strings.HasPrefix(path, "/"); absPath {
-		path = strings.TrimLeft(path, "/")
-	}
+//// DEBUG: rename functions to use SSH, GitSyntax, etc.
+//// DEBUG: rename rawurl
+// https://github.com/golang/go/wiki/CodeReviewComments#initialisms
 
-	newrawurl := fmt.Sprintf("ssh://%v/%v", userHostAndPort, path)
-	newu, err := url.Parse(newrawurl)
-	if err != nil {
+//// DEBUG: endpoint_finder_test.go -- add tests
+//// DEBUG: t-env.sh - split into multiple tests to avoid false success
+////                 - also test ssh:// and git+ssh://, etc.
+
+//// note that IPv6 should be done via ssh:// only
+
+	match := sshHostPortRE.FindStringSubmatch(userHostAndPort)
+	if match == nil || len(match) < 2 {
 		return Endpoint{Url: UrlUnknown}
 	}
 
-	endpoint := EndpointFromSshUrl(newu)
-	if !absPath {
-		endpoint.SSHMetadata.Path = strings.TrimLeft(endpoint.SSHMetadata.Path, "/")
+	var endpoint Endpoint
+	endpoint.SSHMetadata.UserAndHost = match[1]
+	if len(match) > 2 {
+		endpoint.SSHMetadata.Port = match[2]
 	}
-//// DEBUG: skip Scheme and just canonicalize as bare SSH in env
-	endpoint.SSHMetadata.Scheme = ""
+	endpoint.SSHMetadata.Path = path
+
+	// Fallback URL for using HTTPS while still using SSH for git
+	host := endpoint.SSHMetadata.UserAndHost
+	if i = strings.Index(host, "@"); i >= 0 {
+		host = host[i + 1:]
+	}
+	endpoint.Url = fmt.Sprintf("https://%s/%s", host, strings.TrimLeft(path, "/"))
+
 	return endpoint
 }
 

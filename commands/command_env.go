@@ -29,7 +29,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
 			Print("Endpoint=%s (auth=%s)", endpoint.Url, access.Mode())
 			if len(endpoint.SSHMetadata.UserAndHost) > 0 {
-				Print("  SSH=%s", ssh.URLFromMetadata(endpoint.SSHMetadata))
+				Print("  SSH=%s", ssh.GetURIOrGitSyntax(endpoint.SSHMetadata))
 			}
 		}
 	}
@@ -43,7 +43,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess.Mode())
 		if len(remoteEndpoint.SSHMetadata.UserAndHost) > 0 {
 
-			Print("  SSH=%s", ssh.URLFromMetadata(remoteEndpoint.SSHMetadata))
+			Print("  SSH=%s", ssh.GetURIOrGitSyntax(remoteEndpoint.SSHMetadata))
 		}
 	}
 

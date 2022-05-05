@@ -208,7 +208,7 @@ func TestGitSSHEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
-	assert.Equal(t, "git+ssh", e.SSHMetadata.Scheme)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
@@ -221,7 +221,7 @@ func TestGitSSHCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
-	assert.Equal(t, "git+ssh", e.SSHMetadata.Scheme)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
@@ -234,7 +234,7 @@ func TestSSHGitEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "", e.SSHMetadata.Port)
-	assert.Equal(t, "ssh+git", e.SSHMetadata.Scheme)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
@@ -247,7 +247,7 @@ func TestSSHGitCustomPortEndpointAddsLfsSuffix(t *testing.T) {
 	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
 	assert.Equal(t, "/foo/bar", e.SSHMetadata.Path)
 	assert.Equal(t, "9000", e.SSHMetadata.Port)
-	assert.Equal(t, "ssh+git", e.SSHMetadata.Scheme)
+	assert.Equal(t, "ssh", e.SSHMetadata.Scheme)
 }
 
 func TestBareSSHEndpointAddsLfsSuffix(t *testing.T) {
@@ -276,7 +276,6 @@ func TestBareSSSHEndpointWithCustomPortInBrackets(t *testing.T) {
 	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
 
-/**** DEBUG chrisd -
 func TestBareSSSHEndpointWithCustomPortInBracketsAfterUser(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
 		"remote.origin.url": "git@[example.com:2222]:foo/bar.git",
@@ -289,7 +288,71 @@ func TestBareSSSHEndpointWithCustomPortInBracketsAfterUser(t *testing.T) {
 	assert.Equal(t, "2222", e.SSHMetadata.Port)
 	assert.Equal(t, "", e.SSHMetadata.Scheme)
 }
-*/
+
+func TestBareSSSHEndpointWithCustomPortInBracketsAfterUserWithIgnoredCharsAfterBrackets(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git@[example.com:2222]]xx:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "2222", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
+
+func TestBareSSSHEndpointInBracketsAfterUser(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git@[example.com]:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
+
+func TestBareSSSHEndpointInBrackets(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "[git@example.com]:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@example.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
+
+func TestBareSSSHEndpointIncompleteBracketsAfterUser(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "git@[example.com:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://[example.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "git@[example.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
+
+func TestBareSSSHEndpointIncompleteBrackets(t *testing.T) {
+	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
+		"remote.origin.url": "exam[ple.com:foo/bar.git",
+	}))
+
+	e := finder.Endpoint("download", "")
+	assert.Equal(t, "https://exam[ple.com/foo/bar.git/info/lfs", e.Url)
+	assert.Equal(t, "exam[ple.com", e.SSHMetadata.UserAndHost)
+	assert.Equal(t, "foo/bar.git", e.SSHMetadata.Path)
+	assert.Equal(t, "", e.SSHMetadata.Port)
+	assert.Equal(t, "", e.SSHMetadata.Scheme)
+}
 
 func TestSSHEndpointFromGlobalLfsUrl(t *testing.T) {
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{

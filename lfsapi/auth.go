@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/creds"
@@ -284,7 +283,6 @@ func setRequestAuthFromURL(req *http.Request, u *url.URL) bool {
 	}
 
 	if pass, ok := u.User.Password(); ok {
-		fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: current Git remote contains credentials"))
 		setRequestAuth(req, u.User.Username(), pass)
 		return true
 	}

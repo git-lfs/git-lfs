@@ -31,25 +31,19 @@ type SSHMetadata struct {
 	Scheme      string
 }
 
-//// DEBUG chrisd - use different name if canonicalizing as bare always
-// URLFromMetadata constructs a bare SSH URL or an SSH URI from metadata
-func URLFromMetadata(meta SSHMetadata) string {
+func GetURIOrGitSyntax(meta SSHMetadata) string {
 	userHostAndPort := meta.UserAndHost
-	port := meta.Port
-	if port != "" {
-		userHostAndPort = fmt.Sprintf("%s:%s", userHostAndPort, port)
+	if meta.Port != "" {
+		userHostAndPort = fmt.Sprintf("%s:%s", userHostAndPort, meta.Port)
 	}
-
-	var url string
 	if meta.Scheme == "" {
-		if port != "" {
+		if meta.Port != "" {
 			userHostAndPort = fmt.Sprintf("[%s]", userHostAndPort)
 		}
-		url = fmt.Sprintf("%s:%s", userHostAndPort, meta.Path)
+		return fmt.Sprintf("%s:%s", userHostAndPort, meta.Path)
 	} else {
-		url = fmt.Sprintf("%s://%s%s", meta.Scheme, userHostAndPort, meta.Path)
+		return fmt.Sprintf("%s://%s%s", meta.Scheme, userHostAndPort, meta.Path)
 	}
-	return url
 }
 
 func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
