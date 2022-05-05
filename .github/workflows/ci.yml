@@ -21,7 +21,7 @@ jobs:
       if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       env:
           DEBIAN_FRONTEND: noninteractive
-    - run: gem install ronn
+    - run: gem install ronn-ng
     - run: script/cibuild
       env:
           FORCE_LOCALIZE: true
@@ -61,7 +61,7 @@ jobs:
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
     - run: refreshenv
-    - run: gem install ronn
+    - run: gem install ronn-ng
       shell: bash
     - run: make man
       shell: bash
