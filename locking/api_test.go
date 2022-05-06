@@ -30,7 +30,7 @@ func TestAPILock(t *testing.T) {
 
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.RequestContentType, r.Header.Get("Content-Type"))
 		assert.Equal(t, "53", r.Header.Get("Content-Length"))
 
 		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
@@ -80,7 +80,7 @@ func TestAPIUnlock(t *testing.T) {
 
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.RequestContentType, r.Header.Get("Content-Type"))
 
 		reqLoader, body := gojsonschema.NewReaderLoader(r.Body)
 		unlockReq := &unlockRequest{}
@@ -182,7 +182,7 @@ func TestAPISearchVerifiable(t *testing.T) {
 
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Accept"))
-		assert.Equal(t, lfshttp.MediaType, r.Header.Get("Content-Type"))
+		assert.Equal(t, lfshttp.RequestContentType, r.Header.Get("Content-Type"))
 
 		body := lockVerifiableRequest{}
 		if assert.Nil(t, json.NewDecoder(r.Body).Decode(&body)) {

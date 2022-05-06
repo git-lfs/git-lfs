@@ -27,7 +27,8 @@ import (
 	"golang.org/x/net/http2"
 )
 
-const MediaType = "application/vnd.git-lfs+json; charset=utf-8"
+const MediaType = "application/vnd.git-lfs+json"
+const RequestContentType = MediaType + "; charset=utf-8"
 
 var (
 	UserAgent = "git-lfs"
@@ -148,7 +149,7 @@ hint: without the API server" in custom-transfers.md for details.`), "\n")
 		if merr := MarshalToRequest(req, body); merr != nil {
 			return req, merr
 		}
-		req.Header.Set("Content-Type", MediaType)
+		req.Header.Set("Content-Type", RequestContentType)
 	}
 
 	return req, err
