@@ -658,6 +658,7 @@ MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-locks.1 \
   man/man1/git-lfs-logs.1 \
   man/man1/git-lfs-ls-files.1 \
+  man/man1/git-lfs-merge-driver.1 \
   man/man1/git-lfs-migrate.1 \
   man/man1/git-lfs-pointer.1 \
   man/man1/git-lfs-post-checkout.1 \
@@ -693,6 +694,7 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-locks.1.html \
   man/html/git-lfs-logs.1.html \
   man/html/git-lfs-ls-files.1.html \
+  man/html/git-lfs-merge-driver.1.html \
   man/html/git-lfs-migrate.1.html \
   man/html/git-lfs-pointer.1.html \
   man/html/git-lfs-post-checkout.1.html \

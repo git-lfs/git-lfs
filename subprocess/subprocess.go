@@ -120,6 +120,27 @@ func FormatForShellQuotedArgs(name string, args []string) (string, []string) {
 	return FormatForShell(name, strings.Join(ShellQuote(args), " "))
 }
 
+func FormatPercentSequences(pattern string, replacements map[string]string) string {
+	s := new(strings.Builder)
+	state := 0
+	for _, r := range pattern {
+		if state == 0 && r == '%' {
+			state = 1
+			continue
+		} else if state == 1 {
+			state = 0
+			if r == '%' {
+				s.WriteRune('%')
+			} else if val, ok := replacements[string([]rune{r})]; ok {
+				s.WriteString(ShellQuoteSingle(val))
+			}
+		} else {
+			s.WriteRune(r)
+		}
+	}
+	return s.String()
+}
+
 func Trace(name string, args ...string) {
 	tracerx.Printf("exec: %s %s", name, quotedArgs(args))
 }

@@ -81,6 +81,8 @@ commands and low level ("plumbing") commands.
     Git clean filter that converts large files to pointers.
 * git-lfs-filter-process(1):
     Git process filter that converts between large files and pointers.
+* git-lfs-merge-driver(1):
+    Merge text-based LFS files
 * git-lfs-pointer(1):
     Build and compare pointers.
 * git-lfs-post-checkout(1):

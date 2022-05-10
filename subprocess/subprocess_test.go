@@ -15,7 +15,7 @@ func (c *ShellQuoteTestCase) Assert(t *testing.T) {
 	actual := ShellQuote(c.Given)
 
 	assert.Equal(t, c.Expected, actual,
-		"tools: expected ShellQuote(%q) to equal %#v (was %#v)",
+		"subprocess: expected ShellQuote(%q) to equal %#v (was %#v)",
 		c.Given, c.Expected, actual,
 	)
 }
@@ -44,10 +44,10 @@ func (c *FormatForShellQuotedArgsTestCase) Assert(t *testing.T) {
 	actualCmd, actualArgs := FormatForShellQuotedArgs(c.GivenCmd, c.GivenArgs)
 
 	assert.Equal(t, "sh", actualCmd,
-		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		"subprocess: expected FormatForShell command to equal 'sh' (was #%v)",
 		actualCmd)
 	assert.Equal(t, c.ExpectedArgs, actualArgs,
-		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		"subprocess: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
 		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
 	)
 }
@@ -72,10 +72,10 @@ func (c *FormatForShellTestCase) Assert(t *testing.T) {
 	actualCmd, actualArgs := FormatForShell(c.GivenCmd, c.GivenArgs)
 
 	assert.Equal(t, "sh", actualCmd,
-		"tools: expected FormatForShell command to equal 'sh' (was #%v)",
+		"subprocess: expected FormatForShell command to equal 'sh' (was #%v)",
 		actualCmd)
 	assert.Equal(t, c.ExpectedArgs, actualArgs,
-		"tools: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
+		"subprocess: expected FormatForShell(%q, %v) to equal %#v (was %#v)",
 		c.GivenCmd, c.GivenArgs, c.ExpectedArgs, actualArgs,
 	)
 }
@@ -85,6 +85,39 @@ func TestFormatForShell(t *testing.T) {
 		"simple": {"foo", "bar", []string{"-c", "foo bar"}},
 		"spaces": {"foo quux", "bar baz", []string{"-c", "foo quux bar baz"}},
 		"quotes": {"bin/foo", "bar \"baz quux\" 'fred wilma'", []string{"-c", "bin/foo bar \"baz quux\" 'fred wilma'"}},
+	} {
+		t.Run(desc, c.Assert)
+	}
+}
+
+type FormatPercentSequencesTestCase struct {
+	GivenPattern      string
+	GivenReplacements map[string]string
+	ExpectedString    string
+}
+
+func (c *FormatPercentSequencesTestCase) Assert(t *testing.T) {
+	actualString := FormatPercentSequences(c.GivenPattern, c.GivenReplacements)
+
+	assert.Equal(t, c.ExpectedString, actualString,
+		"subprocess: expected FormatForShell(%q, %v) to equal %q (was %q)",
+		c.GivenPattern, c.GivenReplacements, c.ExpectedString, actualString,
+	)
+}
+
+func TestFormatPercentSequences(t *testing.T) {
+	replacements := map[string]string{
+		"A": "current",
+		"B": "other file",
+		"P": "some ' output \" file",
+	}
+	for desc, c := range map[string]FormatPercentSequencesTestCase{
+		"simple":                        {"merge-foo %A", replacements, "merge-foo current"},
+		"double-percent":                {"merge-foo %A %%A", replacements, "merge-foo current %A"},
+		"spaces":                        {"merge-foo %B", replacements, "merge-foo 'other file'"},
+		"weird filename":                {"merge-foo %P", replacements, "merge-foo 'some '\\'' output \" file'"},
+		"no patterns":                   {"merge-foo /dev/null", replacements, "merge-foo /dev/null"},
+		"pattern adjacent to non-space": {"merge-foo >%B", replacements, "merge-foo >'other file'"},
 	} {
 		t.Run(desc, c.Assert)
 	}
