@@ -516,3 +516,60 @@ begin_test "ls-files: not affected by lfs.fetchexclude"
   [ "6bbd052ab0 * missing.dat" = "$(git lfs ls-files)" ]
 )
 end_test
+
+begin_test "ls-files --json"
+(
+  set -e
+
+  reponame="ls-files-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat" | grep "Tracking \"\*.dat\""
+  echo "some data" > some.dat
+  echo "some text" > some.txt
+  echo "missing" > missing.dat
+  git add missing.dat
+  git commit -m "add missing file"
+
+  git lfs ls-files --json > actual
+  cat > expected <<-EOF
+{
+ "files": [
+  {
+   "name": "missing.dat",
+   "size": 8,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "6bbd052ab054ef222c1c87be60cd191addedd24cc882d1f5f7f7be61dc61bb3a",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF
+  diff -u actual expected
+
+  git rm missing.dat
+  git add some.dat some.txt
+  git commit -m "added some files, removed missing one"
+
+  git lfs ls-files --json > actual
+  cat > expected <<-EOF
+{
+ "files": [
+  {
+   "name": "some.dat",
+   "size": 10,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "5aa03f96c77536579166fba147929626cc3a97960e994057a9d80271a736d10f",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF
+  diff -u actual expected
+)
+end_test
