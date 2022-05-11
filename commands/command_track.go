@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -29,6 +30,7 @@ var (
 	trackNoModifyAttrsFlag  bool
 	trackNoExcludedFlag     bool
 	trackFilenameFlag       bool
+	trackJSONFlag           bool
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -42,6 +44,10 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		listPatterns()
 		return
+	}
+
+	if trackJSONFlag {
+		Exit(tr.Tr.Get("--json option can't be combined with arguments"))
 	}
 
 	mp := gitattr.NewMacroProcessor()
@@ -221,8 +227,36 @@ ArgsLoop:
 	}
 }
 
+type PatternData struct {
+	Pattern  string `json:"pattern"`
+	Source   string `json:"source"`
+	Lockable bool   `json:"lockable"`
+	Tracked  bool   `json:"tracked"`
+}
+
 func listPatterns() {
 	knownPatterns := getAllKnownPatterns()
+	if trackJSONFlag {
+		patterns := struct {
+			Patterns []PatternData `json:"patterns"`
+		}{Patterns: make([]PatternData, 0, len(knownPatterns))}
+		for _, p := range knownPatterns {
+			patterns.Patterns = append(patterns.Patterns, PatternData{
+				Pattern:  p.Path,
+				Source:   p.Source.String(),
+				Tracked:  p.Tracked,
+				Lockable: p.Lockable,
+			})
+		}
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", " ")
+		err := encoder.Encode(patterns)
+		if err != nil {
+			ExitWithError(err)
+		}
+		return
+	}
+
 	if len(knownPatterns) < 1 {
 		return
 	}
@@ -337,5 +371,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackNoModifyAttrsFlag, "no-modify-attrs", "", false, "skip modifying .gitattributes file")
 		cmd.Flags().BoolVarP(&trackNoExcludedFlag, "no-excluded", "", false, "skip listing excluded paths")
 		cmd.Flags().BoolVarP(&trackFilenameFlag, "filename", "", false, "treat this pattern as a literal filename")
+		cmd.Flags().BoolVarP(&trackJSONFlag, "json", "", false, "print output in JSON")
 	})
 }
