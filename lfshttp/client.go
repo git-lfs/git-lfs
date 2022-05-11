@@ -306,6 +306,7 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 		// SPNEGO (Negotiate) errors are authentication errors.
 		var spnegoErr *spnego.Error
 		if goerrors.As(err, &spnegoErr) {
+			tracerx.Printf("http: got Negotiate error: %s", spnegoErr.Error())
 			return nil, nil, errors.NewAuthError(err)
 		}
 		return nil, nil, err
