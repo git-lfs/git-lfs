@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 
@@ -18,8 +19,19 @@ var (
 	lsFilesScanDeleted  = false
 	lsFilesShowSize     = false
 	lsFilesShowNameOnly = false
+	lsFilesJSON         = false
 	debug               = false
 )
+
+type lsFilesObject struct {
+	Name       string `json:"name"`
+	Size       int64  `json:"size"`
+	Checkout   bool   `json:"checkout"`
+	Downloaded bool   `json:"downloaded"`
+	OidType    string `json:"oid_type"`
+	Oid        string `json:"oid"`
+	Version    string `json:"version"`
+}
 
 func lsFilesCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
@@ -67,6 +79,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 	}
 
 	seen := make(map[string]struct{})
+	var items []lsFilesObject
 
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
@@ -96,6 +109,16 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 					p.OidType,
 					p.Oid,
 					p.Version))
+		} else if lsFilesJSON {
+			items = append(items, lsFilesObject{
+				Name:       p.Name,
+				Size:       p.Size,
+				Checkout:   fileExistsOfSize(p),
+				Downloaded: cfg.LFSObjectExists(p.Oid, p.Size),
+				OidType:    p.OidType,
+				Oid:        p.Oid,
+				Version:    p.Version,
+			})
 		} else {
 			msg := []string{p.Oid[:showOidLen], lsFilesMarker(p), p.Name}
 			if lsFilesShowNameOnly {
@@ -144,6 +167,16 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 			Exit(tr.Tr.Get("Could not scan for Git LFS tree: %s", err))
 		}
 	}
+	if lsFilesJSON {
+		data := struct {
+			Files []lsFilesObject `json:"files"`
+		}{Files: items}
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", " ")
+		if err := encoder.Encode(data); err != nil {
+			ExitWithError(err)
+		}
+	}
 }
 
 // Returns true if a pointer appears to be properly smudge on checkout
@@ -170,5 +203,6 @@ func init() {
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
+		cmd.Flags().BoolVarP(&lsFilesJSON, "json", "", false, "print output in JSON")
 	})
 }
