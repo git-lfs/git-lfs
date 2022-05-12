@@ -32,15 +32,11 @@ $distro_name_map = {
     "scientific/7",
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-    "opensuse/15.1", # EOL 2020-11
+    "opensuse/15.3", # EOL 2022-12
     # SLES EOL https://www.suse.com/lifecycle/
-    "sles/11.4", # LTSS ends 31 Mar 2022
     "sles/12.3", # LTSS ends 30 Jun 2022
     "sles/12.4",
     "sles/12.5",
-    "sles/15.0",
-    "sles/15.1",
-    "sles/15.2",
     "sles/15.3",  # Current
   ],
   "centos/8" => [
@@ -61,12 +57,12 @@ $distro_name_map = {
     "ubuntu/bionic",    # ESM April 2028
   ],
   "debian/10" => [
-    "debian/buster",
+    "debian/buster",    # EOL June 2024
     "linuxmint/ulyana", # EOL April 2025
     "linuxmint/ulyssa", # EOL April 2025
     "linuxmint/uma",    # EOL April 2025
+    "linuxmint/una",    # EOL April 2025
     "ubuntu/focal",     # EOL April 2025
-    "ubuntu/hirsute",   # EOL January 2022
   ],
   "debian/11" => [
     "debian/bullseye",  # Current stable
