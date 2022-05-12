@@ -711,3 +711,44 @@ begin_test "track: escaped glob pattern with spaces in .gitattributes"
   assert_pointer "main" "$filename" "$contents_oid" 15
 )
 end_test
+
+begin_test "--json output"
+(
+  set -e
+
+  reponame="track-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track '*.dat'
+  git lfs track --lockable '*.bin'
+  echo 'a.dat !filter' >>.gitattributes
+
+  git lfs track --json > actual
+  cat >expected <<-EOF
+{
+ "patterns": [
+  {
+   "pattern": "*.dat",
+   "source": ".gitattributes",
+   "lockable": false,
+   "tracked": true
+  },
+  {
+   "pattern": "*.bin",
+   "source": ".gitattributes",
+   "lockable": true,
+   "tracked": true
+  },
+  {
+   "pattern": "a.dat",
+   "source": ".gitattributes",
+   "lockable": false,
+   "tracked": false
+  }
+ ]
+}
+EOF
+  diff -u actual expected
+)
+end_test
