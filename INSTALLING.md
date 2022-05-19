@@ -24,9 +24,15 @@ If you are running a distribution which does not match exactly a repository uplo
 
 If you are running LinuxMint 17.1 Rebecca, which is downstream of Ubuntu Trusty and Debian Jessie, you can run:
 
-`curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | os=debian dist=jessie sudo -E sudo bash`
+`curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | os=debian dist=jessie sudo -E bash`
 
 The `os` and `dist` variables passed-in will override what would be detected for your system and force the selection of the upstream distribution's repository.
+
+You may also be able to run the following to automatically detect the dist for Ubuntu based distributions such as Pop OS:
+```
+. /etc/lsb-release
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | os=ubuntu dist="${DISTRIB_CODENAME}" sudo -E bash
+```
 
 ## Installing packages
 
