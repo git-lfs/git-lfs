@@ -408,12 +408,14 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 # CRLF in the non-binary components of the artifact.
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
-	$(BSDTAR) --format zip \
-		-s '!bin/!$(PREFIX)/!' \
-		-s '!script/!$(PREFIX)/!' \
-		-s '!\(.*\)\.md!$(PREFIX)/\1.md!' \
-		-s '!man!$(PREFIX)/man!' \
-		-cf $@ $^
+	# Windows's bsdtar doesn't support -s, so do the same thing as for Darwin, but
+	# by hand.
+	temp=$$(mktemp -d); \
+	file="$$PWD/$@" && \
+	mkdir -p "$$temp/$(PREFIX)/man" && \
+	cp -r $^ "$$temp/$(PREFIX)" && \
+	(cd "$$temp" && $(BSDTAR) --format zip -cf "$$file" $(PREFIX)) && \
+	$(RM) -r "$$temp"
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
