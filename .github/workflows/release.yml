@@ -45,7 +45,7 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
+    - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86:$PATH" CERT_FILE="$HOME/cert.pfx" make release-windows
       shell: bash
       env:
         CERT_PASS: ${{secrets.WINDOWS_CERT_PASS}}

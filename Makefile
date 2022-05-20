@@ -69,9 +69,6 @@ GOIMPORTS_EXTRA_OPTS ?= -w -l
 # TAR is the tar command, either GNU or BSD (libarchive) tar.
 TAR ?= tar
 
-# BSDTAR is BSD (libarchive) tar.
-BSDTAR ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo bsdtar || echo $(TAR))
-
 TAR_XFORM_ARG ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
 TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 
@@ -173,12 +170,16 @@ endif
 # entrypoint be given, hence the below conditional. On Windows, it is required
 # that an entrypoint not be given so that goversioninfo can successfully embed
 # the resource.syso file (for more, see below).
+#
+# BSDTAR is BSD (libarchive) tar.
 ifeq ($(OS),Windows_NT)
 X ?= .exe
 BUILD_MAIN ?=
+BSDTAR ?= C:/Windows/system32/tar.exe
 else
 X ?=
 BUILD_MAIN ?= ./git-lfs.go
+BSDTAR ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo bsdtar || echo $(TAR))
 endif
 
 # BUILD is a macro used to build a single binary of Git LFS using the above
@@ -407,12 +408,14 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 # CRLF in the non-binary components of the artifact.
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
-	$(BSDTAR) --format zip \
-		-s '!bin/!$(PREFIX)/!' \
-		-s '!script/!$(PREFIX)/!' \
-		-s '!\(.*\)\.md!$(PREFIX)/\1.md!' \
-		-s '!man!$(PREFIX)/man!' \
-		-cf $@ $^
+	# Windows's bsdtar doesn't support -s, so do the same thing as for Darwin, but
+	# by hand.
+	temp=$$(mktemp -d); \
+	file="$$PWD/$@" && \
+	mkdir -p "$$temp/$(PREFIX)/man" && \
+	cp -r $^ "$$temp/$(PREFIX)" && \
+	(cd "$$temp" && $(BSDTAR) --format zip -cf "$$file" $(PREFIX)) && \
+	$(RM) -r "$$temp"
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
