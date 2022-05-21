@@ -311,6 +311,9 @@ argument to specify which files to export. Files matching the `--include`
 patterns will be removed from Git LFS, while files matching the `--exclude`
 patterns will retain their Git LFS status. The export command will modify the
 `.gitattributes` to set/unset any filepath patterns as given by those flags.
+The `export` mode also requires at least one or more references (specified by
+``--include-ref` or `--everything`) to be given. Otherwise, the export won't do
+anything. The given references will be rewritten during the export.
 
 ## INCLUDE AND EXCLUDE
 
