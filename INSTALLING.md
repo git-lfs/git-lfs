@@ -31,7 +31,7 @@ The `os` and `dist` variables passed-in will override what would be detected for
 You may also be able to run the following to automatically detect the dist for Ubuntu based distributions such as Pop OS:
 ```
 (. /etc/lsb-release &&
-curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | 
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh |
 sudo env os=ubuntu dist="${DISTRIB_CODENAME}" bash)
 ```
 
