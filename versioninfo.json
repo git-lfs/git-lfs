@@ -3,7 +3,7 @@
 	{
 		"FileVersion": {
 			"Major": 3,
-			"Minor": 1,
+			"Minor": 2,
 			"Patch": 0,
 			"Build": 0
 		}
@@ -13,7 +13,7 @@
 		"FileDescription": "Git LFS",
 		"LegalCopyright": "GitHub, Inc. and Git LFS contributors",
 		"ProductName": "Git Large File Storage (LFS)",
-		"ProductVersion": "3.1.0"
+		"ProductVersion": "3.2.0"
 	},
 	"IconPath": "script/windows-installer/git-lfs-logo.ico"
 }
