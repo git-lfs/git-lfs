@@ -287,15 +287,18 @@ verify_assets () {
 
   # If the OpenPGP data is not valid, gpg -d will output nothing to stdout, and
   # shasum will then fail.
-  say "Checking assets for integrity..."
+  say "Checking assets for integrity with SHA-256..."
   (cd "$dir" && gpg -d sha256sums.asc | shasum -a 256 -c)
+  say "Checking assets for integrity with SHA-2..."
   (cd "$dir" && gpg -d hashes.asc | grep 'SHA[0-9][^-]' | shasum -c)
   if command -v sha3sum >/dev/null 2>&1
   then
+    say "Checking assets for integrity with SHA-3..."
     (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-' | sha3sum -c)
   fi
   if command -v b2sum >/dev/null 2>&1
   then
+    say "Checking assets for integrity with BLAKE2b..."
     # b2sum on Linux does not handle BLAKE2s, only BLAKE2b.
     (cd "$dir" && gpg -d hashes.asc | grep 'BLAKE2b' | b2sum -c)
   fi
