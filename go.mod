@@ -27,6 +27,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 go 1.11
