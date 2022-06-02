@@ -2,8 +2,9 @@
 
 === SYNOPSIS
 
-`git lfs push` [options] [...] `git lfs push` [...] `git lfs push`
---object-id [...]
+`git lfs push` [options] <remote> [<ref>...] +
+`git lfs push` <remote> [<ref>...] +
+`git lfs push` --object-id <remote> [<oid>...]
 
 === DESCRIPTION
 

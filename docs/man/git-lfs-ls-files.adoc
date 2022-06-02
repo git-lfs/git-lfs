@@ -2,7 +2,8 @@
 
 === SYNOPSIS
 
-`git lfs ls-files` [] `git lfs ls-files`
+`git lfs ls-files` [<ref>] +
+`git lfs ls-files` <ref> <ref>
 
 === DESCRIPTION
 

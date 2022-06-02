@@ -2,8 +2,8 @@
 
 === SYNOPSIS
 
-`git lfs checkout` [...] `git lfs checkout` --to
-\{--base|--ours|--theirs}
+`git lfs checkout` [<glob-pattern>...] +
+`git lfs checkout` --to <file> {--base|--ours|--theirs} <conflict-obj-path>
 
 === DESCRIPTION
 

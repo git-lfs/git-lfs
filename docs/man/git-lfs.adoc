@@ -2,7 +2,7 @@
 
 === SYNOPSIS
 
-`git lfs` []
+`git lfs` <command> [<args>]
 
 === DESCRIPTION
 

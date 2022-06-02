@@ -2,7 +2,7 @@
 
 === SYNOPSIS
 
-`git lfs migrate` [options] [--] [branch ...]
+`git lfs migrate` <mode> [options] [--] [branch ...]
 
 === DESCRIPTION
 

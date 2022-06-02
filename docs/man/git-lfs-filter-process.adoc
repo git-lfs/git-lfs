@@ -2,7 +2,8 @@
 
 === SYNOPSIS
 
-`git lfs filter-process` `git lfs filter-process --skip`
+`git lfs filter-process` +
+`git lfs filter-process --skip`
 
 === DESCRIPTION
 

@@ -2,7 +2,8 @@
 
 === SYNOPSIS
 
-`git lfs smudge` [] `git lfs smudge` --skip []
+`git lfs smudge` [<path>] +
+`git lfs smudge` --skip [<path>]
 
 === DESCRIPTION
 

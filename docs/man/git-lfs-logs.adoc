@@ -2,7 +2,9 @@
 
 === SYNOPSIS
 
-`git lfs logs` `git lfs logs` `git lfs logs clear`
+`git lfs logs` +
+`git lfs logs` <file> +
+`git lfs logs clear` +
 `git lfs logs boomtown`
 
 === DESCRIPTION
