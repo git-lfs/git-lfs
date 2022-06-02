@@ -1,10 +1,14 @@
-== git-lfs-track(1) - View or add Git LFS paths to Git attributes
+= git-lfs-track(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-track - View or add Git LFS paths to Git attributes
+
+== SYNOPSIS
 
 `git lfs track` [options] [<pattern>...]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Start tracking the given patterns(s) through Git LFS. The argument is
 written to .gitattributes. If no paths are provided, simply list the
@@ -18,7 +22,7 @@ mark (`?`), and the bracket characters (`[` and `]`) are treated
 specially; to disable this behavior and treat them literally instead,
 use `--filename` or escape the character with a backslash.
 
-=== OPTIONS
+== OPTIONS
 
 * `--verbose` `-v`: If enabled, have `git lfs track` log files which it
 will touch. Disabled by default.
@@ -45,7 +49,7 @@ only list patterns that are tracked.
 re-index files you wish to convert to LFS. Does not modify any
 `.gitattributes` file(s).
 
-=== EXAMPLES
+== EXAMPLES
 
 * List the patterns that Git LFS is currently tracking:
 +
@@ -61,7 +65,7 @@ locked:
 +
 `git lfs track --filename "project [1].psd"`
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-untrack(1), git-lfs-install(1), gitattributes(5), gitignore(5).
 

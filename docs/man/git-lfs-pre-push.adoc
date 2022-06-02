@@ -1,10 +1,14 @@
-== git-lfs-pre-push(1) -- Git pre-push hook implementation
+= git-lfs-pre-push(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-pre-push - Git pre-push hook implementation
+
+== SYNOPSIS
 
 `git lfs pre-push` <remote> [remoteurl]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Responds to Git pre-hook events. It reads the range of commits from
 STDIN, in the following format:
@@ -24,12 +28,12 @@ of the Git objects in this branch.
 In the case of deleting a branch, no attempts to push Git LFS objects
 will be made.
 
-=== OPTIONS
+== OPTIONS
 
 * `GIT_LFS_SKIP_PUSH`: Do nothing on pre-push. For more, see:
 git-lfs-config(5).
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-clean(1), git-lfs-push(1).
 

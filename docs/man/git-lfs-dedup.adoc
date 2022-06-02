@@ -1,10 +1,14 @@
-== git-lfs-dedup(1) - Deduplicate Git LFS files
+= git-lfs-dedup(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-dedup - Deduplicate Git LFS files
+
+== SYNOPSIS
 
 `git lfs dedup`
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Deduplicates storage by re-creating working tree files as clones of the
 files in the Git LFS storage directory using the operating system's
@@ -19,6 +23,6 @@ contents before they are written to the Git LFS storage directory, and
 therefore the working tree files should not be copy-on-write clones of
 the LFS object files.
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.

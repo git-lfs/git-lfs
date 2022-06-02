@@ -1,6 +1,10 @@
-== git-lfs-config(5) -- Configuration options for git-lfs
+= git-lfs-config(5)
 
-=== CONFIGURATION FILES
+== NAME
+
+git-lfs-config - Configuration options for git-lfs
+
+== CONFIGURATION FILES
 
 git-lfs reads its configuration from any file supported by
 `git config -l`, including all per-repository, per-user, and per-system
@@ -27,9 +31,9 @@ Most options regarding git-lfs are contained in the `[lfs]` section,
 meaning they are all named `lfs.foo` or similar, although occasionally
 an lfs option can be scoped inside the configuration for a remote.
 
-=== LIST OF OPTIONS
+== LIST OF OPTIONS
 
-==== General settings
+=== General settings
 
 * `lfs.url` / `remote.<remote>.lfsurl`
 +
@@ -104,7 +108,7 @@ using Windows (unless smudging is disabled) with a Git for Windows
 version less than 2.34.0 due to a limitation in Git. Default: true if
 the version is less than 2.34.0, false otherwise.
 
-==== Upload and download transfer settings
+=== Upload and download transfer settings
 
 These settings control how the upload and download of LFS content
 occurs.
@@ -195,14 +199,14 @@ If set to true, this enables rewriting href of LFS objects using
 uploading, and `insteadof` is used for downloading and for uploading
 when `pushinsteadof` is not set.
 
-==== Push settings
+=== Push settings
 
 * `lfs.allowincompletepush`
 +
 When pushing, allow objects to be missing from the local cache without
 halting a Git push. Default: false.
 
-==== Fetch settings
+=== Fetch settings
 
 * `lfs.fetchinclude`
 +
@@ -239,7 +243,7 @@ files. The default is 0 (no previous changes).
 Always operate as if --recent was included in a `git lfs fetch` call.
 Default false.
 
-==== Prune settings
+=== Prune settings
 
 * `lfs.pruneoffsetdays`
 +
@@ -256,7 +260,7 @@ called if --verify-remote is enabled.
 +
 Always run `git lfs prune` as if `--verify-remote` was provided.
 
-==== Extensions
+=== Extensions
 
 * `lfs.extension.<name>.<setting>`
 +
@@ -268,7 +272,7 @@ the settings are:
 copy
 ** `priority` The order of this extension compared to others
 
-==== Other settings
+=== Other settings
 
 * `lfs.<url>.access`
 +
@@ -384,7 +388,7 @@ include the TTL in the JSON response but still enforces it.
 Note that this is only necessary for larger repositories hosted on LFS
 servers that don't include the TTL.
 
-=== LFSCONFIG
+== LFSCONFIG
 
 The .lfsconfig file in a repository is read and interpreted in the same
 format as the file stored in .git/config. It allows a subset of keys to
@@ -403,13 +407,13 @@ be used, including and limited to:
 
 The set of keys allowed in this file is restricted for security reasons.
 
-=== EXAMPLES
+== EXAMPLES
 
 * Configure a custom LFS endpoint for your repository:
 
 `git config -f .lfsconfig lfs.url https://lfs.example.com/foo/bar/info/lfs`
 
-=== SEE ALSO
+== SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
 

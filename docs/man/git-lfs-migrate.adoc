@@ -1,10 +1,14 @@
-== git-lfs-migrate(1) - Migrate history to or from Git LFS
+= git-lfs-migrate(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-migrate - Migrate history to or from Git LFS
+
+== SYNOPSIS
 
 `git lfs migrate` <mode> [options] [--] [branch ...]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Convert files in a Git repository to or from Git LFS pointers, or
 summarize Git file sizes by file type. The `import` mode converts Git
@@ -109,14 +113,14 @@ by `git remote`, but as noted above, after making changes to your local
 Git history while converting objects, it will never automatically push
 those changes to your remotes.
 
-=== MODES
+== MODES
 
 * `info` Show information about repository size. See [INFO].
 * `import` Convert Git objects to Git LFS pointers. See [IMPORT] and
 [IMPORT WITHOUT REWRITING HISTORY].
 * `export` Convert Git LFS pointers to Git objects. See [EXPORT].
 
-=== OPTIONS
+== OPTIONS
 
 * `-I` `--include=`: See [INCLUDE AND EXCLUDE].
 * `-X` `--exclude=`: See [INCLUDE AND EXCLUDE].
@@ -147,7 +151,7 @@ If any of `--include-ref` or `--exclude-ref` are given, the checked out
 branch will not be appended, but branches given explicitly will be
 appended.
 
-==== INFO
+=== INFO
 
 The `info` mode summarizes the sizes of file objects present in the Git
 history. It supports all the core `migrate` options and these additional
@@ -206,7 +210,7 @@ For example:
 By default only the top five entries are shown, but `--top` allows for
 more or fewer to be output as desired.
 
-==== IMPORT
+=== IMPORT
 
 The `import` mode migrates objects present in the Git history to pointer
 files tracked and stored with Git LFS. It supports all the core
@@ -242,7 +246,7 @@ If `--no-rewrite` is not provided and neither of those flags are given,
 the gitattributes will be incrementally modified to include new filepath
 extensions as they are rewritten in history.
 
-==== IMPORT WITHOUT REWRITING HISTORY
+=== IMPORT WITHOUT REWRITING HISTORY
 
 The `import` mode has a special sub-mode enabled by the `--no-rewrite`
 flag. This sub-mode will migrate objects to pointers as in the base
@@ -266,7 +270,7 @@ If `--message` is given, the new commit will be created with the
 provided message. If no message is given, a commit message will be
 generated based on the file arguments.
 
-==== EXPORT
+=== EXPORT
 
 The `export` mode migrates Git LFS pointer files present in the Git
 history out of Git LFS, converting them into their corresponding object
@@ -288,7 +292,7 @@ matching the `--exclude` patterns will retain their Git LFS status. The
 export command will modify the `.gitattributes` to set/unset any
 filepath patterns as given by those flags.
 
-=== INCLUDE AND EXCLUDE
+== INCLUDE AND EXCLUDE
 
 You can specify that `git lfs migrate` should only convert files whose
 pathspec matches the `--include` glob patterns and does not match the
@@ -308,7 +312,7 @@ among the suite of `git lfs` commands. Other commands which also take
 these options, such as `git lfs ls-files`, use the gitignore(5) form of
 pattern matching instead.
 
-=== INCLUDE AND EXCLUDE REFERENCES
+== INCLUDE AND EXCLUDE REFERENCES
 
 You can specify that `git lfs migrate` should only convert files added
 in commits reachable from certain references, namely those defined using
@@ -346,9 +350,9 @@ commits F, E, D, C, and B, but exclude commit A:
 The presence of flag `--everything` indicates that all local and remote
 references should be migrated.
 
-=== EXAMPLES
+== EXAMPLES
 
-==== Migrate unpushed commits
+=== Migrate unpushed commits
 
 A common use case for the migrate command is to convert large Git
 objects to LFS before pushing your commits. By default, it only scans
@@ -387,7 +391,7 @@ have been replaced with Git LFS pointers, this is normal, and the
 working copies of these files can be repopulated with their full
 expected contents by using `git lfs checkout`.
 
-==== Migrate local history
+=== Migrate local history
 
 You can also migrate the entire history of your repository:
 
@@ -421,7 +425,7 @@ the `--all` option when force-pushing may be convenient if many refs
 were updated, e.g., after importing to Git LFS with the `--everything`
 option.
 
-==== Migrate without rewriting local history
+=== Migrate without rewriting local history
 
 You can also migrate files without modifying the existing history of
 your repository. Note that in the examples below, files in
@@ -442,7 +446,7 @@ $ git lfs migrate import --no-rewrite \
   test.zip *.mp3 *.psd
 ....
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-checkout(1), git-lfs-ls-files(1), git-lfs-track(1),
 git-lfs-untrack(1), gitattributes(5), gitignore(5).

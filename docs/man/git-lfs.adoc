@@ -1,10 +1,14 @@
-== git-lfs(1) -- Work with large files in Git repositories
+= git-lfs(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs - Work with large files in Git repositories
+
+== SYNOPSIS
 
 `git lfs` <command> [<args>]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Git LFS is a system for managing and versioning large files in
 association with a Git repository. Instead of storing the large files
@@ -21,12 +25,12 @@ also uses a `pre-push` hook to upload the large file contents to the Git
 LFS server whenever a commit containing a new large file version is
 about to be pushed to the corresponding Git server.
 
-=== COMMANDS
+== COMMANDS
 
 Like Git, Git LFS commands are separated into high level ("porcelain")
 commands and low level ("plumbing") commands.
 
-==== High level porcelain commands
+=== High level porcelain commands
 
 * git-lfs-checkout(1): Populate working copy with real content from Git
 LFS files.
@@ -58,7 +62,7 @@ server.
 * git-lfs-update(1): Update Git hooks for the current Git repository.
 * git-lfs-version(1): Report the version number.
 
-==== Low level plumbing commands
+=== Low level plumbing commands
 
 * git-lfs-clean(1): Git clean filter that converts large files to
 pointers.
@@ -75,7 +79,7 @@ the actual content.
 * git-lfs-standalone-file(1): Git LFS standalone transfer adapter for
 file URLs (local paths).
 
-=== EXAMPLES
+== EXAMPLES
 
 To get started with Git LFS, the following commands can be used.
 

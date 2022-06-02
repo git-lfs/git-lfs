@@ -1,10 +1,14 @@
-== git-lfs-clone(1) -- Efficiently clone a LFS-enabled repository
+= git-lfs-clone(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-clone - Efficiently clone a LFS-enabled repository
+
+== SYNOPSIS
 
 `git lfs clone` [git clone options] <repository> [<directory>]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Clone an LFS enabled Git repository more efficiently by disabling LFS
 during the git clone, then performing a 'git lfs pull' directly
@@ -19,7 +23,7 @@ content using the smudge filter, which is executed individually per file
 in the working copy. This is relatively inefficient compared to the
 batch mode and parallel downloads performed by 'git lfs pull'.
 
-=== OPTIONS
+== OPTIONS
 
 All options supported by 'git clone'
 
@@ -28,7 +32,7 @@ All options supported by 'git clone'
 * `--skip-repo`: Skip installing repo-level hooks (.git/hooks) that LFS
 requires. Disabled by default.
 
-=== INCLUDE AND EXCLUDE
+== INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in
 certain paths of the repo, and/or to exclude certain paths of the repo,
@@ -46,7 +50,7 @@ Note that using the command-line options `-I` and `-X` override the
 respective configuration settings. Setting either option to an empty
 string clears the value.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-clone(1), git-lfs-pull(1), gitignore(5).
 

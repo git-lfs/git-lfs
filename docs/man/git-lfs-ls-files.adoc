@@ -1,11 +1,15 @@
-== git-lfs-ls-files(1) -- Show information about Git LFS files in the index and working tree
+= git-lfs-ls-files(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-ls-files - Show information about Git LFS files in the index and working tree
+
+== SYNOPSIS
 
 `git lfs ls-files` [<ref>] +
 `git lfs ls-files` <ref> <ref>
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Display paths of Git LFS files that are found in the tree at the given
 reference. If no reference is given, scan the currently checked-out
@@ -15,7 +19,7 @@ between the two references are shown; deletions are not listed.
 An asterisk (*) after the OID indicates a full object, a minus (-)
 indicates an LFS pointer.
 
-=== OPTIONS
+== OPTIONS
 
 * `-l` `--long`: Show the entire 64 character OID, instead of just first
 10.
@@ -35,7 +39,7 @@ objects that have been deleted.
 [FETCH SETTINGS].
 * `-n` `--name-only`: Show only the lfs tracked file names.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-status(1), git-lfs-config(5).
 

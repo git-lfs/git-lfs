@@ -1,10 +1,14 @@
-== git-lfs-status(1) -- Show the status of Git LFS files in the working tree
+= git-lfs-status(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-status - Show the status of Git LFS files in the working tree
+
+== SYNOPSIS
 
 `git lfs status` [<options>]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Display paths of Git LFS objects that
 
@@ -17,12 +21,12 @@ are files that could be staged using `git add`.
 
 This command must be run in a non-bare repository.
 
-=== OPTIONS
+== OPTIONS
 
 * `--porcelain`: Give the output in an easy-to-parse format for scripts.
 * `--json`: Give the output in a stable json format for scripts.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-ls-files(1).
 

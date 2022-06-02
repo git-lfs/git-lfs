@@ -1,10 +1,14 @@
-== git-lfs-fetch(1) -- Download all Git LFS files for a given ref
+= git-lfs-fetch(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-fetch - Download all Git LFS files for a given ref
+
+== SYNOPSIS
 
 `git lfs fetch` [options] [<remote> [<ref>...]]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Download Git LFS objects at the given refs from the specified remote.
 See [DEFAULT REMOTE] and [DEFAULT REFS] for what happens if you don't
@@ -12,7 +16,7 @@ specify.
 
 This does not update the working copy.
 
-=== OPTIONS
+== OPTIONS
 
 * `-I` `--include=`: Specify lfs.fetchinclude just for this invocation;
 see [INCLUDE AND EXCLUDE]
@@ -31,7 +35,7 @@ all objects are downloaded.
 equivalent to running `git lfs prune` afterwards. See git-lfs-prune(1)
 for more details.
 
-=== INCLUDE AND EXCLUDE
+== INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in
 certain paths of the repo, and/or to exclude certain paths of the repo,
@@ -49,7 +53,7 @@ Note that using the command-line options `-I` and `-X` override the
 respective configuration settings. Setting either option to an empty
 string clears the value.
 
-==== Examples
+=== Examples
 
 * `git config lfs.fetchinclude "textures,images/foo*"`
 +
@@ -68,19 +72,19 @@ media/reallybigfiles, but fetch everything else
 Only fetch LFS objects in the 'media' folder, but exclude those in one
 of its subfolders.
 
-=== DEFAULT REMOTE
+== DEFAULT REMOTE
 
 Without arguments, fetch downloads from the default remote. The default
 remote is the same as for `git fetch`, i.e. based on the remote branch
 you're tracking first, or origin otherwise.
 
-=== DEFAULT REFS
+== DEFAULT REFS
 
 If no refs are given as arguments, the currently checked out ref is
 used. In addition, if enabled, recently changed refs and commits are
 also included. See [RECENT CHANGES] for details.
 
-=== RECENT CHANGES
+== RECENT CHANGES
 
 If the `--recent` option is specified, or if the gitconfig option
 `lfs.fetchrecentalways` is true, then after the current ref (or those in
@@ -108,7 +112,7 @@ This is useful if you're often reviewing recent changes. The default is
 * `lfs.fetchrecentalways` Always operate as if --recent was provided on
 the command line.
 
-=== EXAMPLES
+== EXAMPLES
 
 * Fetch the LFS objects for the current ref from default remote
 +
@@ -132,7 +136,7 @@ by any commit in the `main` and `develop` branches
 +
 `git lfs fetch origin main mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-checkout(1), git-lfs-pull(1), git-lfs-prune(1), gitconfig(5).
 

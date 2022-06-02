@@ -1,11 +1,15 @@
-== git-lfs-filter-process(1) -- Git filter process that converts between pointer and actual content
+= git-lfs-filter-process(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-filter-process - Git filter process that converts between pointer and actual content
+
+== SYNOPSIS
 
 `git lfs filter-process` +
 `git lfs filter-process --skip`
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Implement the Git process filter API, exchanging handshake messages and
 then accepting and responding to requests to either clean or smudge a
@@ -29,7 +33,7 @@ simply copied to standard output without change.
 The filter process uses Git's pkt-line protocol to communicate, and is
 documented in detail in gitattributes(5).
 
-=== OPTIONS
+== OPTIONS
 
 Without any options, filter-process accepts and responds to requests
 normally.
@@ -38,7 +42,7 @@ normally.
 * `GIT_LFS_SKIP_SMUDGE`: Disables the smudging process. For more, see:
 git-lfs-config(5).
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-clean(1), git-lfs-install(1), git-lfs-smudge(1),
 gitattributes(5), gitignore(5).

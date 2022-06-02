@@ -1,14 +1,18 @@
-== git-lfs-locks(1) -- Lists currently locked files from the Git LFS server.
+= git-lfs-locks(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-locks - Lists currently locked files from the Git LFS server.
+
+== SYNOPSIS
 
 `git lfs locks` [options]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Lists current locks from the Git LFS server.
 
-=== OPTIONS
+== OPTIONS
 
 * `-r` `--remote=`: Specify the Git LFS server to use. Ignored if the
 `lfs.url` config key is set.
@@ -37,7 +41,7 @@ successfully. Intended for interoperation with external tools. If the
 command returns with a non-zero exit code, plain text messages will be
 sent to STDERR.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-lock(1), git-lfs-unlock(1).
 

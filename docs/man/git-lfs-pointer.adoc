@@ -1,18 +1,22 @@
-== git-lfs-pointer(1) -- Build, compare, and check pointers
+= git-lfs-pointer(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-pointer - Build, compare, and check pointers
+
+== SYNOPSIS
 
 `git lfs pointer --file=path/to/file` +
 `git lfs pointer --file=path/to/file --pointer=path/to/pointer` +
 `git lfs pointer --file=path/to/file --stdin` +
 `git lfs pointer --check --file=path/to/file`
 
-=== Description
+== Description
 
 Builds and optionally compares generated pointer files to ensure
 consistency between different Git LFS implementations.
 
-=== OPTIONS
+== OPTIONS
 
 * `--file`: A local file to build the pointer from.
 * `--pointer`: A local file including the contents of a pointer
@@ -30,6 +34,6 @@ the pointer is canonical; that is, it would be the one created by Git
 LFS. If it is not, exits 2. The default, for backwards compatibility, is
 `--no-strict`, but this may change in a future version.
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.

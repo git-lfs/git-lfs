@@ -1,10 +1,14 @@
-== git-lfs-fsck(1) -- Check GIT LFS files for consistency
+= git-lfs-fsck(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-fsck - Check GIT LFS files for consistency
+
+== SYNOPSIS
 
 `git lfs fsck` [options] [revisions]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Checks all Git LFS files in the current HEAD for consistency.
 
@@ -24,14 +28,14 @@ In your Git configuration or in a `.lfsconfig` file, you may set
 one in that list will not be checked for consistency. Paths are matched
 using wildcard matching as per gitignore(5).
 
-=== OPTIONS
+== OPTIONS
 
 * `--objects`: Check that each object in HEAD matches its expected hash
 and that each object exists on disk.
 * `--pointers`: Check that each pointer is canonical and that each file
 which should be stored as a Git LFS file is so stored.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-ls-files(1), git-lfs-status(1), gitignore(5).
 

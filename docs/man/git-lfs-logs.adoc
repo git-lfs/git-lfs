@@ -1,29 +1,33 @@
-== git-lfs-logs(1) - Show errors from the git-lfs command
+= git-lfs-logs(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-logs - Show errors from the git-lfs command
+
+== SYNOPSIS
 
 `git lfs logs` +
 `git lfs logs` <file> +
 `git lfs logs clear` +
 `git lfs logs boomtown`
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Display errors from the git-lfs command. Any time it crashes, the
 details are saved to ".git/lfs/logs".
 
-=== COMMANDS
+== COMMANDS
 
 * `clear`: Clears all of the existing logged errors.
 * `boomtown`: Triggers a dummy exception.
 
-=== OPTIONS
+== OPTIONS
 
 Without any options, `git lfs logs` simply shows the list of error logs.
 
 * : Shows the specified error log. Use "last" to show the most recent
 error.
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.

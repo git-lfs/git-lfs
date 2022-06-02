@@ -1,21 +1,25 @@
-== git-lfs-untrack(1) - Remove Git LFS paths from Git Attributes
+= git-lfs-untrack(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-untrack - Remove Git LFS paths from Git Attributes
+
+== SYNOPSIS
 
 `git lfs untrack` <path>...
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Stop tracking the given path(s) through Git LFS. The argument can be a
 glob pattern or a file path.
 
-=== EXAMPLES
+== EXAMPLES
 
 * Configure Git LFS to stop tracking GIF files:
 +
 `git lfs untrack "*.gif"`
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-track(1), git-lfs-install(1), gitattributes(5).
 

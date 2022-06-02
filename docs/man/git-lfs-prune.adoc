@@ -1,10 +1,14 @@
-== git-lfs-prune(1) -- Delete old LFS files from local storage
+= git-lfs-prune(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-prune - Delete old LFS files from local storage
+
+== SYNOPSIS
 
 `git lfs prune` [options]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Deletes local copies of LFS files which are old, thus freeing up disk
 space. Prune operates by enumerating all the locally stored objects, and
@@ -37,7 +41,7 @@ one in that list will be pruned unless they are referenced by a stash or
 an unpushed commit. Paths are matched using wildcard matching as per
 gitignore(5).
 
-=== OPTIONS
+== OPTIONS
 
 * `--dry-run` `-d` Don't actually delete anything, just report on what
 would have been done
@@ -53,7 +57,7 @@ lfs.pruneverifyremotealways was enabled in settings. See [VERIFY
 REMOTE].
 * `--verbose` `-v` Report the full detail of what is/would be deleted.
 
-=== RECENT FILES
+== RECENT FILES
 
 Prune won't delete LFS files referenced by 'recent' commits, in case you
 want to use them again without having to download. The definition of
@@ -77,7 +81,7 @@ the offset above. Anything which falls outside of this offsetted window
 is considered old enough to prune. If a day value is zero, that
 condition is not used at all to retain objects and they will be pruned.
 
-=== UNPUSHED LFS FILES
+== UNPUSHED LFS FILES
 
 When the only copy of an LFS file is local, and it is still reachable
 from any reference, that file can never be pruned, regardless of how old
@@ -92,7 +96,7 @@ that LFS files are pushed before the remote branch is updated.
 See [DEFAULT REMOTE], for which remote is considered 'pushed' for
 pruning purposes.
 
-=== VERIFY REMOTE
+== VERIFY REMOTE
 
 The `--verify-remote` option calls the remote to ensure that any LFS
 files to be deleted have copies on the remote before actually deleting
@@ -114,7 +118,7 @@ referenced only by orphaned commits), and files which are still
 referenced, but by commits which are prunable. This makes the prune
 process take longer.
 
-=== DEFAULT REMOTE
+== DEFAULT REMOTE
 
 When identifying [UNPUSHED LFS FILES] and performing [VERIFY REMOTE], a
 single remote, 'origin', is normally used as the reference. This one
@@ -128,7 +132,7 @@ will be pruned because everything is treated as 'unpushed'.
 You can alter the remote via git config: `lfs.pruneremotetocheck`. Set
 this to a different remote name to check that one instead of 'origin'.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-fetch(1), gitignore(5).
 

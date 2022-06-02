@@ -1,10 +1,14 @@
-== git-lfs-merge-driver(1) -- Merge text-based LFS files
+= git-lfs-merge-driver(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-merge-driver - Merge text-based LFS files
+
+== SYNOPSIS
 
 `git lfs merge-driver` [options]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Merge text files stored in Git LFS using the default Git merge
 machinery, or a custom merge driver if specified. Note that this, in
@@ -15,7 +19,7 @@ This program is intended to be invoked automatically by Git and not by
 users manually. See [CONFIGURATION] for details on the configuration
 required for that.
 
-=== OPTIONS
+== OPTIONS
 
 * `--ancestor` Specify the file containing the ancestor revision.
 * `--current` Specify the file containing the current revision.
@@ -28,7 +32,7 @@ merge of the file.
 +
 See [CONFIGURATION] for the sequences which are substituted here.
 
-=== CONFIGURATION
+== CONFIGURATION
 
 Git allows the use of a custom merge driver for files based on the
 `merge` attribute set in `.gitattributes`. By default, when using
@@ -80,7 +84,7 @@ attribute (as is the case by default with `merge=lfs`), then the default
 Git merge strategy is used. For LFS files, this means that Git will try
 to merge the pointer files, which usually is not useful.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-merge(1), git-merge-file(1), gitattributes(5)
 

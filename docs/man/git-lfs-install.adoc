@@ -1,10 +1,14 @@
-== git-lfs-install(1) -- Install Git LFS configuration.
+= git-lfs-install(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-install - Install Git LFS configuration.
+
+== SYNOPSIS
 
 `git lfs install` [options]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Perform the following actions to ensure that Git LFS is setup properly:
 
@@ -16,7 +20,7 @@ any Git configuration (and supported, i.e., the installed Git version is
 at least 2.9.0), then the pre-push hook will be installed to that
 directory instead.
 
-=== OPTIONS
+== OPTIONS
 
 Without any options, `git lfs install` will only setup the "lfs" smudge
 and clean filters if they are not already set.
@@ -47,7 +51,7 @@ checked out on your repository.
 * `--skip-repo`: Skips setup of the local repo; use if you want to
 install the global lfs filters but not make changes to the current repo.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-uninstall(1), git-worktree(1).
 

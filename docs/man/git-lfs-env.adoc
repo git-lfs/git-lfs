@@ -1,13 +1,17 @@
-== git-lfs-env(1) -- Display the Git LFS environment
+= git-lfs-env(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-env - Display the Git LFS environment
+
+== SYNOPSIS
 
 `git lfs env`
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Display the current Git LFS environment.
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.

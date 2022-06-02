@@ -1,10 +1,14 @@
-== git-lfs-clean(1) -- Git clean filter that converts large files to pointers
+= git-lfs-clean(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-clean - Git clean filter that converts large files to pointers
+
+== SYNOPSIS
 
 `git lfs clean` <path>
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Read the contents of a large file from standard input, and write a Git
 LFS pointer file for that file to standard output.
@@ -16,7 +20,7 @@ Clean is not part of the user-facing Git plumbing commands. To preview
 the pointer of a large file as it would be generated, see the
 git-lfs-pointer(1) command.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-install(1), git-lfs-push(1), git-lfs-pointer(1),
 gitattributes(5).

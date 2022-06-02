@@ -1,11 +1,15 @@
-== git-lfs-smudge(1) -- Git smudge filter that converts pointer in blobs to the actual content
+= git-lfs-smudge(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-smudge - Git smudge filter that converts pointer in blobs to the actual content
+
+== SYNOPSIS
 
 `git lfs smudge` [<path>] +
 `git lfs smudge` --skip [<path>]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Read a Git LFS pointer file from standard input and write the contents
 of the corresponding large file to standard output. If needed, download
@@ -27,7 +31,7 @@ wildcard matching as per gitignore(5). Git LFS pointer files that are
 not replaced with the contents of their corresponding object files are
 simply copied to standard output without change.
 
-=== OPTIONS
+== OPTIONS
 
 Without any options, `git lfs smudge` outputs the raw Git LFS content to
 standard output.
@@ -36,13 +40,13 @@ standard output.
 * `GIT_LFS_SKIP_SMUDGE`: Disables the smudging process. For more, see:
 git-lfs-config(5).
 
-=== KNOWN BUGS
+== KNOWN BUGS
 
 On Windows, Git before 2.34.0 does not handle files in the working tree
 larger than 4 gigabytes. Newer versions of Git, as well as Unix
 versions, are unaffected.
 
-=== SEE ALSO
+== SEE ALSO
 
 git-lfs-install(1), gitattributes(5), gitignore(5).
 

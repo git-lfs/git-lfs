@@ -1,15 +1,19 @@
-== git-lfs-ext(1) - View extension details
+= git-lfs-ext(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-ext - View extension details
+
+== SYNOPSIS
 
 `git lfs ext list` [<name>...]
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Git LFS extensions enable the manipulation of files streams during
 smudge and clean.
 
-=== EXAMPLES
+== EXAMPLES
 
 * List details for all extensions
 +
@@ -18,6 +22,6 @@ smudge and clean.
 +
 `git lfs ext list 'foo' 'bar'`
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.

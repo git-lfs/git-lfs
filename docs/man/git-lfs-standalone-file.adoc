@@ -1,10 +1,14 @@
-== git-lfs-standalone-file(1) -- Standalone transfer adapter for file URLs
+= git-lfs-standalone-file(1)
 
-=== SYNOPSIS
+== NAME
+
+git-lfs-standalone-file - Standalone transfer adapter for file URLs
+
+== SYNOPSIS
 
 `git lfs standalone-file`
 
-=== DESCRIPTION
+== DESCRIPTION
 
 Provides a standalone transfer adapter for file URLs (local paths).
 
@@ -16,6 +20,6 @@ Configuration is not necessary; Git LFS handles this internally.
 When invoked, this tool speaks JSON on input and output as a standalone
 transfer adapter. It is not intended for use by end users.
 
-=== SEE ALSO
+== SEE ALSO
 
 Part of the git-lfs(1) suite.
