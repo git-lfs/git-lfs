@@ -25,12 +25,15 @@ directory instead.
 Without any options, `git lfs install` will only setup the "lfs" smudge
 and clean filters if they are not already set.
 
-* `--force`: Sets the "lfs" smudge and clean filters, overwriting
+--force::
+  Sets the "lfs" smudge and clean filters, overwriting
 existing values.
-* `--local`: Sets the "lfs" smudge and clean filters in the local
+--local::
+  Sets the "lfs" smudge and clean filters in the local
 repository's git config, instead of the global git config
 (~/.gitconfig).
-* `--worktree`: Sets the "lfs" smudge and clean filters in the current
+--worktree::
+  Sets the "lfs" smudge and clean filters in the current
 working tree's git config, instead of the global git config
 (~/.gitconfig) or local repository's git config ($GIT_DIR/config). If
 multiple working trees are in use, the Git config extension
@@ -38,17 +41,21 @@ multiple working trees are in use, the Git config extension
 tree is in use, `--worktree` has the same effect as `--local`. This
 option is only available if the installed Git version is at least 2.20.0
 and therefore supports the "worktreeConfig" extension.
-* `--manual`: Print instructions for manually updating your hooks to
+--manual::
+  Print instructions for manually updating your hooks to
 include git-lfs functionality. Use this option if `git lfs install`
 fails because of existing hooks and you want to retain their
 functionality.
-* `--system`: Sets the "lfs" smudge and clean filters in the system git
+--system::
+  Sets the "lfs" smudge and clean filters in the system git
 config, e.g. /etc/gitconfig instead of the global git config
 (~/.gitconfig).
-* `--skip-smudge`: Skips automatic downloading of objects on clone or
+--skip-smudge::
+  Skips automatic downloading of objects on clone or
 pull. This requires a manual "git lfs pull" every time a new commit is
 checked out on your repository.
-* `--skip-repo`: Skips setup of the local repo; use if you want to
+--skip-repo::
+  Skips setup of the local repo; use if you want to
 install the global lfs filters but not make changes to the current repo.
 
 == SEE ALSO

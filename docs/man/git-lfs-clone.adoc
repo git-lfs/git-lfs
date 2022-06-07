@@ -27,9 +27,14 @@ batch mode and parallel downloads performed by 'git lfs pull'.
 
 All options supported by 'git clone'
 
-* `-I` `--include=`: See [INCLUDE AND EXCLUDE]
-* `-X` `--exclude=`: See [INCLUDE AND EXCLUDE]
-* `--skip-repo`: Skip installing repo-level hooks (.git/hooks) that LFS
+-I::
+--include=::
+   See [INCLUDE AND EXCLUDE]
+-X::
+--exclude=::
+   See [INCLUDE AND EXCLUDE]
+--skip-repo::
+  Skip installing repo-level hooks (.git/hooks) that LFS
 requires. Disabled by default.
 
 == INCLUDE AND EXCLUDE

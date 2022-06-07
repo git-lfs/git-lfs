@@ -122,22 +122,31 @@ those changes to your remotes.
 
 == OPTIONS
 
-* `-I` `--include=`: See [INCLUDE AND EXCLUDE].
-* `-X` `--exclude=`: See [INCLUDE AND EXCLUDE].
-* `--include-ref`=: See [INCLUDE AND EXCLUDE REFERENCES].
-* `--exclude-ref`=: See [INCLUDE AND EXCLUDE REFERENCES].
-* `--skip-fetch`: Assumes that the known set of remote references is
+-I::
+--include=::
+   See [INCLUDE AND EXCLUDE].
+-X::
+--exclude=::
+   See [INCLUDE AND EXCLUDE].
+--include-ref=::
+  See [INCLUDE AND EXCLUDE REFERENCES].
+--exclude-ref=::
+  See [INCLUDE AND EXCLUDE REFERENCES].
+--skip-fetch::
+  Assumes that the known set of remote references is
 complete, and should not be refreshed when determining the set of
 "un-pushed" commits to migrate. Has no effect when combined with
 `--include-ref` or `--exclude-ref`.
-* `--everything`: See [INCLUDE AND EXCLUDE REFERENCES].
+--everything::
+  See [INCLUDE AND EXCLUDE REFERENCES].
 +
 Note: Git refs are "case-sensitive" on all platforms in "packed from"
 (see `git-pack-refs(1)`). On "case-insensitive" file systems, e.g. NTFS
 on Windows or default APFS on macOS, `git-lfs-migrate(1)` would only
 migrate the first ref if two or more refs are equal except for
 upper/lower case letters.
-* `--yes`: Assume a yes answer to any prompts, permitting noninteractive
+--yes::
+  Assume a yes answer to any prompts, permitting noninteractive
 use. Currently, the only such prompt is the one asking whether to
 overwrite (destroy) any working copy changes. Thus, specifying this
 option may cause data loss if you are not careful.

@@ -24,9 +24,13 @@ use `--filename` or escape the character with a backslash.
 
 == OPTIONS
 
-* `--verbose` `-v`: If enabled, have `git lfs track` log files which it
+--verbose::
+-v::
+   If enabled, have `git lfs track` log files which it
 will touch. Disabled by default.
-* `--dry-run` `-d`: If enabled, have `git lfs track` log all actions it
+--dry-run::
+-d::
+   If enabled, have `git lfs track` log all actions it
 would normally take (adding entries to .gitattributes, touching files on
 disk, etc) without performing any mutative operations to the disk.
 +
