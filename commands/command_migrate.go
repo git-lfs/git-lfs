@@ -128,6 +128,13 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 // isSpecialGitRef checks if a ref spec is a special git ref to exclude from
 // --everything
 func isSpecialGitRef(refspec string) bool {
+	// Special refspecs.
+	switch refspec {
+	case "refs/stash":
+		return true
+	}
+
+	// Special refspecs from namespaces.
 	parts := strings.SplitN(refspec, "/", 3)
 	if len(parts) < 3 {
 		return false
