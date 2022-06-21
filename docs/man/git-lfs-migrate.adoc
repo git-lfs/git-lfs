@@ -115,10 +115,13 @@ those changes to your remotes.
 
 == MODES
 
-* `info` Show information about repository size. See [INFO].
-* `import` Convert Git objects to Git LFS pointers. See [IMPORT] and
-[IMPORT WITHOUT REWRITING HISTORY].
-* `export` Convert Git LFS pointers to Git objects. See [EXPORT].
+info::
+  Show information about repository size. See [INFO].
+import::
+  Convert Git objects to Git LFS pointers. See [IMPORT] and
+  [IMPORT WITHOUT REWRITING HISTORY].
+export::
+  Convert Git LFS pointers to Git objects. See [EXPORT].
 
 == OPTIONS
 
@@ -133,9 +136,9 @@ those changes to your remotes.
 --exclude-ref=<refname>::
   See [INCLUDE AND EXCLUDE REFERENCES].
 --skip-fetch::
-  Assumes that the known set of remote references is
-complete, and should not be refreshed when determining the set of
-"un-pushed" commits to migrate. Has no effect when combined with
+  Assumes that the known set of remote references is complete, and should not be
+  refreshed when determining the set of "un-pushed" commits to migrate. Has no
+  effect when combined with
 `--include-ref` or `--exclude-ref`.
 --everything::
   See [INCLUDE AND EXCLUDE REFERENCES].
@@ -146,12 +149,12 @@ on Windows or default APFS on macOS, `git-lfs-migrate(1)` would only
 migrate the first ref if two or more refs are equal except for
 upper/lower case letters.
 --yes::
-  Assume a yes answer to any prompts, permitting noninteractive
-use. Currently, the only such prompt is the one asking whether to
-overwrite (destroy) any working copy changes. Thus, specifying this
-option may cause data loss if you are not careful.
+  Assume a yes answer to any prompts, permitting noninteractive use. Currently,
+  the only such prompt is the one asking whether to overwrite (destroy) any
+  working copy changes. Thus, specifying this option may cause data loss if you
+  are not careful.
 * [branch ...]: Migrate only the set of branches listed. If not given,
-`git-lfs-migrate(1)` will migrate the currently checked out branch.
+  `git-lfs-migrate(1)` will migrate the currently checked out branch.
 +
 References beginning with `^` will be excluded, whereas branches that do
 not begin with `^` will be included.
@@ -166,44 +169,46 @@ The `info` mode summarizes the sizes of file objects present in the Git
 history. It supports all the core `migrate` options and these additional
 ones:
 
-* `--above=<size>` Only count files whose individual filesize is above
-the given size. `size` may be specified as a number of bytes, or a
-number followed by a storage unit, e.g., "1b", "20 MB", "3 TiB", etc.
+--above=<size>::
+  Only count files whose individual filesize is above the given size. `size` may
+  be specified as a number of bytes, or a number followed by a storage unit,
+  e.g., "1b", "20 MB", "3 TiB", etc.
 +
 If a set of files sharing a common extension has no files in that set
 whose individual size is above the given `--above` no files no entry for
 that set will be shown.
-* `--top=<n>` Only display the top `n` entries, ordered by how many
-total files match the given pathspec. The default is to show only the
-top 5 entries. When existing Git LFS objects are found, an extra,
-separate "LFS Objects" line is output in addition to the top `n`
-entries, unless the `--pointers` option is used to change this behavior.
-* `--unit=<unit>` Format the number of bytes in each entry as a quantity
-of the storage unit provided. Valid units include: * b, kib, mib, gib,
-tib, pib - for IEC storage units * b, kb, mb, gb, tb, pb - for SI
-storage units
+--top=<n>::
+  Only display the top `n` entries, ordered by how many total files match the
+  given pathspec. The default is to show only the top 5 entries. When existing
+  Git LFS objects are found, an extra, separate "LFS Objects" line is output in
+  addition to the top `n` entries, unless the `--pointers` option is used to
+  change this behavior.
+--unit=<unit>::
+  Format the number of bytes in each entry as a quantity of the storage unit
+  provided. Valid units include: * b, kib, mib, gib, tib, pib - for IEC storage
+  units * b, kb, mb, gb, tb, pb - for SI storage units
 +
 If a `--unit` is not specified, the largest unit that can fit the number
 of counted bytes as a whole number quantity is chosen.
-* `--pointers=[follow|no-follow|ignore]` Treat existing Git LFS pointers
-in the history according to one of three alternatives. In the default
-`follow` case, if any pointers are found, an additional separate "LFS
-Objects" line item is output which summarizes the total number and size
-of the Git LFS objects referenced by pointers. In the `ignore` case, any
-pointers are simply ignored, while the `no-follow` case replicates the
-behavior of the `info` mode in older Git LFS versions and treats any
-pointers it finds as if they were regular files, so the output totals
-only include the contents of the pointers, not the contents of the
-objects to which they refer.
-* `--fixup` Infer `--include` and `--exclude` filters on a per-commit
-basis based on the `.gitattributes` files in a repository. In practice,
-this option counts any filepaths which should be tracked by Git LFS
-according to the repository's `.gitattributes` file(s), but aren't
-already pointers. The `.gitattributes` files are not reported, in
-contrast to the normal output of the `info` mode. This option is
-incompatible with explicitly given `--include`, `--exclude` filters and
-with any `--pointers` setting other than `ignore`, hence `--fixup`
-implies `--pointers=ignore` if it is not explicitly set.
+--pointers=[follow|no-follow|ignore]::
+  Treat existing Git LFS pointers in the history according to one of three
+  alternatives. In the default `follow` case, if any pointers are found, an
+  additional separate "LFS Objects" line item is output which summarizes the
+  total number and size of the Git LFS objects referenced by pointers. In the
+  `ignore` case, any pointers are simply ignored, while the `no-follow` case
+  replicates the behavior of the `info` mode in older Git LFS versions and
+  treats any pointers it finds as if they were regular files, so the output
+  totals only include the contents of the pointers, not the contents of the
+  objects to which they refer.
+--fixup::
+  Infer `--include` and `--exclude` filters on a per-commit basis based on the
+  `.gitattributes` files in a repository. In practice, this option counts any
+  filepaths which should be tracked by Git LFS according to the repository's
+  `.gitattributes` file(s), but aren't already pointers. The `.gitattributes`
+  files are not reported, in contrast to the normal output of the `info` mode.
+  This option is incompatible with explicitly given `--include`, `--exclude`
+  filters and with any `--pointers` setting other than `ignore`, hence `--fixup`
+  implies `--pointers=ignore` if it is not explicitly set.
 
 The format of the output shows the filename pattern, the total size of
 the file objects (excluding those below the `--above` threshold, if one
@@ -225,27 +230,28 @@ The `import` mode migrates objects present in the Git history to pointer
 files tracked and stored with Git LFS. It supports all the core
 `migrate` options and these additional ones:
 
-* `--verbose` Print the commit oid and filename of migrated files to
-STDOUT.
-* `--above=<size>` Only migrate files whose individual filesize is above
-the given size. `size` may be specified as a number of bytes, or a
-number followed by a storage unit, e.g., "1b", "20 MB", "3 TiB", etc.
-This option cannot be used with the `--include`, `--exclude`, and
-`--fixup` options.
-* `--object-map=<path>` Write to `path` a file with the mapping of each
-rewritten commits. The file format is CSV with this pattern:
-`OLD-SHA`,`NEW-SHA`
-* `--no-rewrite` Migrate objects to Git LFS in a new commit without
-rewriting Git history. Please note that when this option is used, the
-`migrate import` command will expect a different argument list,
-specialized options will become available, and the core `migrate`
-options will be ignored. See [IMPORT WITHOUT REWRITING HISTORY].
-* `--fixup` Infer `--include` and `--exclude` filters on a per-commit
-basis based on the `.gitattributes` files in a repository. In practice,
-this option imports any filepaths which should be tracked by Git LFS
-according to the repository's `.gitattributes` file(s), but aren't
-already pointers. This option is incompatible with explicitly given
-`--include`, `--exclude` filters.
+--verbose::
+  Print the commit oid and filename of migrated files to STDOUT.
+--above=<size>::
+  Only migrate files whose individual filesize is above the given size. `size`
+  may be specified as a number of bytes, or a number followed by a storage unit,
+  e.g., "1b", "20 MB", "3 TiB", etc. This option cannot be used with the
+  `--include`, `--exclude`, and `--fixup` options.
+--object-map=<path>::
+  Write to `path` a file with the mapping of each rewritten commits. The file
+  format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
+--no-rewrite::
+  Migrate objects to Git LFS in a new commit without rewriting Git history.
+  Please note that when this option is used, the `migrate import` command will
+  expect a different argument list, specialized options will become available,
+  and the core `migrate` options will be ignored. See [IMPORT WITHOUT REWRITING
+  HISTORY].
+--fixup::
+  Infer `--include` and `--exclude` filters on a per-commit basis based on the
+  `.gitattributes` files in a repository. In practice, this option imports any
+  filepaths which should be tracked by Git LFS according to the repository's
+  `.gitattributes` file(s), but aren't already pointers. This option is
+  incompatible with explicitly given `--include`, `--exclude` filters.
 
 If `--no-rewrite` is not provided and `--include` or `--exclude` (`-I`,
 `-X`, respectively) are given, the `.gitattributes` will be modified to
@@ -270,10 +276,12 @@ commit merged in.
 The `--no-rewrite` sub-mode supports the following options and
 arguments:
 
-* `-m <message> --message=<message>` Specifies a commit message for the
-newly created commit.
-* [file ...] The list of files to import. These files must be tracked by
-patterns specified in the gitattributes.
+-m <message>::
+--message=<message>::
+  Specifies a commit message for the newly created commit.
+[file ...]::
+  The list of files to import. These files must be tracked by
+  patterns specified in the gitattributes.
 
 If `--message` is given, the new commit will be created with the
 provided message. If no message is given, a commit message will be
@@ -286,13 +294,15 @@ history out of Git LFS, converting them into their corresponding object
 files. It supports all the core `migrate` options and these additional
 ones:
 
-* `--verbose` Print the commit oid and filename of migrated files to
-STDOUT.
-* `--object-map=<path>` Write to `path` a file with the mapping of each
-rewritten commit. The file format is CSV with this pattern:
-`OLD-SHA`,`NEW-SHA`
-* `--remote=<git-remote>` Download LFS objects from the provided
-`git-remote` during the export. If not provided, defaults to `origin`.
+--verbose::
+  Print the commit oid and filename of migrated files to
+  STDOUT.
+--object-map=<path>::
+  Write to `path` a file with the mapping of each rewritten commit. The file
+  format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
+--remote=<git-remote>::
+  Download LFS objects from the provided `git-remote` during the export. If not
+  provided, defaults to `origin`.
 
 The `export` mode requires at minimum a pattern provided with the
 `--include` argument to specify which files to export. Files matching

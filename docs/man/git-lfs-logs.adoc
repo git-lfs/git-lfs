@@ -18,8 +18,10 @@ details are saved to ".git/lfs/logs".
 
 == COMMANDS
 
-* `clear`: Clears all of the existing logged errors.
-* `boomtown`: Triggers a dummy exception.
+`clear`::
+  Clears all of the existing logged errors.
+`boomtown`::
+  Triggers a dummy exception.
 
 == OPTIONS
 

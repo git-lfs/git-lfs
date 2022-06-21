@@ -40,8 +40,8 @@ normally.
 
 --skip::
   Skip automatic downloading of objects on clone or pull.
-* `GIT_LFS_SKIP_SMUDGE`: Disables the smudging process. For more, see:
-git-lfs-config(5).
+`GIT_LFS_SKIP_SMUDGE`::
+  Disables the smudging process. For more, see: git-lfs-config(5).
 
 == SEE ALSO
 

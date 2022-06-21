@@ -32,10 +32,10 @@ using wildcard matching as per gitignore(5).
 
 --objects::
   Check that each object in HEAD matches its expected hash
-and that each object exists on disk.
+  and that each object exists on disk.
 --pointers::
   Check that each pointer is canonical and that each file
-which should be stored as a Git LFS file is so stored.
+  which should be stored as a Git LFS file is so stored.
 
 == SEE ALSO
 

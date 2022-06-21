@@ -21,14 +21,18 @@ required for that.
 
 == OPTIONS
 
-* `--ancestor` Specify the file containing the ancestor revision.
-* `--current` Specify the file containing the current revision.
-* `--marker-size` Specify the conflict marker size as an integer.
-* `--other` Specify the file containing the other revision.
-* `--program` Specify a command, which is passed to the shell after
-substitution, that performs the actual merge. If this is not specified,
-`git merge-file` is invoked with appropriate arguments to perform the
-merge of the file.
+--ancestor <path>::
+  Specify the file containing the ancestor revision.
+--current <path>::
+  Specify the file containing the current revision.
+--marker-size <num>::
+  Specify the conflict marker size as an integer.
+--other <path>::
+  Specify the file containing the other revision.
+--program <program>::
+  Specify a command, which is passed to the shell after substitution, that
+  performs the actual merge. If this is not specified, `git merge-file` is
+  invoked with appropriate arguments to perform the merge of the file.
 +
 See [CONFIGURATION] for the sequences which are substituted here.
 

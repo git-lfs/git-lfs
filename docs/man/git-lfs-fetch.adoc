@@ -20,28 +20,23 @@ This does not update the working copy.
 
 -I <paths>::
 --include=<paths>::
-   Specify lfs.fetchinclude just for this invocation;
-see [INCLUDE AND EXCLUDE]
--X::
---exclude=::
-   Specify lfs.fetchexclude just for this invocation;
-see [INCLUDE AND EXCLUDE]
+  Specify lfs.fetchinclude just for this invocation; see [INCLUDE AND EXCLUDE]
+-X <paths>::
+--exclude=<paths>::
+  Specify lfs.fetchexclude just for this invocation; see [INCLUDE AND EXCLUDE]
 --recent::
-  Download objects referenced by recent branches & commits
-in addition to those that would otherwise be downloaded. See [RECENT
-CHANGES]
+  Download objects referenced by recent branches & commits in addition to those
+  that would otherwise be downloaded. See [RECENT CHANGES]
 --all::
-  Download all objects that are referenced by any commit
-reachable from the refs provided as arguments. If no refs are provided,
-then all refs are fetched. This is primarily for backup and migration
-purposes. Cannot be combined with --recent or --include/--exclude.
-Ignores any globally configured include and exclude paths to ensure that
-all objects are downloaded.
+  Download all objects that are referenced by any commit reachable from the refs
+  provided as arguments. If no refs are provided, then all refs are fetched.
+  This is primarily for backup and migration purposes. Cannot be combined with
+  --recent or --include/--exclude. Ignores any globally configured include and
+  exclude paths to ensure that all objects are downloaded.
 --prune::
 -p::
-   Prune old and unreferenced objects after fetching,
-equivalent to running `git lfs prune` afterwards. See git-lfs-prune(1)
-for more details.
+  Prune old and unreferenced objects after fetching, equivalent to running `git
+  lfs prune` afterwards. See git-lfs-prune(1) for more details.
 
 == INCLUDE AND EXCLUDE
 
@@ -103,22 +98,23 @@ commits without incurring further downloads.
 What changes are considered 'recent' is based on a number of gitconfig
 options:
 
-* `lfs.fetchrecentrefsdays` If non-zero, includes branches which have
-commits within N days of the current date. Only local refs are included
-unless lfs.fetchrecentremoterefs is true. The default is 7 days.
-* `lfs.fetchrecentremoterefs` If true, fetches remote refs (for the
-remote you're fetching) as well as local refs in the recent window. This
-is useful to fetch objects for remote branches you might want to check
-out later. The default is true; if you set this to false, fetching for
-those branches will only occur when you either check them out (losing
-the advantage of fetch --recent), or create a tracking local branch
-separately then fetch again.
-* `lfs.fetchrecentcommitsdays` In addition to fetching at branches, also
-fetches changes made within N days of the latest commit on the branch.
-This is useful if you're often reviewing recent changes. The default is
-0 (no previous changes).
-* `lfs.fetchrecentalways` Always operate as if --recent was provided on
-the command line.
+`lfs.fetchrecentrefsdays`::
+  If non-zero, includes branches which have
+  commits within N days of the current date. Only local refs are included
+  unless lfs.fetchrecentremoterefs is true. The default is 7 days.
+`lfs.fetchrecentremoterefs`::
+  If true, fetches remote refs (for the remote you're fetching) as well as local
+  refs in the recent window. This is useful to fetch objects for remote branches
+  you might want to check out later. The default is true; if you set this to
+  false, fetching for those branches will only occur when you either check them
+  out (losing the advantage of fetch --recent), or create a tracking local
+  branch separately then fetch again.
+`lfs.fetchrecentcommitsdays`::
+  In addition to fetching at branches, also fetches changes made within N days
+  of the latest commit on the branch. This is useful if you're often reviewing
+  recent changes. The default is 0 (no previous changes).
+`lfs.fetchrecentalways`::
+  Always operate as if --recent was provided on the command line.
 
 == EXAMPLES
 

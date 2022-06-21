@@ -35,7 +35,7 @@ All options supported by 'git clone'
    See [INCLUDE AND EXCLUDE]
 --skip-repo::
   Skip installing repo-level hooks (.git/hooks) that LFS
-requires. Disabled by default.
+  requires. Disabled by default.
 
 == INCLUDE AND EXCLUDE
 
