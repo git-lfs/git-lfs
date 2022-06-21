@@ -20,8 +20,8 @@ config key in git-lfs-config(5) for details.
 
 == OPTIONS
 
--r::
---remote=::
+-r <name>::
+--remote=<name>::
    Specify the Git LFS server to use. Ignored if the
 `lfs.url` config key is set.
 --json::

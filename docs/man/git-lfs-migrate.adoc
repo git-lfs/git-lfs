@@ -122,15 +122,15 @@ those changes to your remotes.
 
 == OPTIONS
 
--I::
---include=::
+-I <paths>::
+--include=<paths>::
    See [INCLUDE AND EXCLUDE].
--X::
---exclude=::
+-X <paths>::
+--exclude=<paths>::
    See [INCLUDE AND EXCLUDE].
---include-ref=::
+--include-ref=<refname>::
   See [INCLUDE AND EXCLUDE REFERENCES].
---exclude-ref=::
+--exclude-ref=<refname>::
   See [INCLUDE AND EXCLUDE REFERENCES].
 --skip-fetch::
   Assumes that the known set of remote references is

@@ -42,12 +42,12 @@ versions of LFS objects that are no longer found in the current tree.
 --deleted::
   Shows the full history of the given reference, including
 objects that have been deleted.
--I::
---include=::
+-I <paths>::
+--include=<paths>::
    Include paths matching only these patterns; see
 [FETCH SETTINGS].
--X::
---exclude=::
+-X <paths>::
+--exclude=<paths>::
    Exclude paths matching any of these patterns; see
 [FETCH SETTINGS].
 -n::

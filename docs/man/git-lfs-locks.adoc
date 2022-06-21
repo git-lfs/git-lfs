@@ -14,8 +14,8 @@ Lists current locks from the Git LFS server.
 
 == OPTIONS
 
--r::
---remote=::
+-r <name>::
+--remote=<name>::
    Specify the Git LFS server to use. Ignored if the
 `lfs.url` config key is set.
 -i <id>::

@@ -19,12 +19,12 @@ git lfs fetch [options] [] git lfs checkout
 
 == OPTIONS
 
--I::
---include=::
+-I <paths>::
+--include=<paths>::
    Specify lfs.fetchinclude just for this invocation;
 see [INCLUDE AND EXCLUDE]
--X::
---exclude=::
+-X <paths>::
+--exclude=<paths>::
    Specify lfs.fetchexclude just for this invocation;
 see [INCLUDE AND EXCLUDE]
 

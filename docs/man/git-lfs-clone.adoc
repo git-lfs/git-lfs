@@ -27,11 +27,11 @@ batch mode and parallel downloads performed by 'git lfs pull'.
 
 All options supported by 'git clone'
 
--I::
---include=::
+-I <paths>::
+--include=<paths>::
    See [INCLUDE AND EXCLUDE]
--X::
---exclude=::
+-X <paths>::
+--exclude=<paths>::
    See [INCLUDE AND EXCLUDE]
 --skip-repo::
   Skip installing repo-level hooks (.git/hooks) that LFS

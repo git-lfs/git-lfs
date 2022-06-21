@@ -41,7 +41,7 @@ conflict for the specified file.
 --theirs::
   Check out their side (that of the other branch) of the
 conflict for the specified file.
---to ::
+--to <path>::
   If the working tree is in a conflicted state, check out the
 portion of the conflict specified by `--base`, `--ours`, or `--theirs`
 to the given path.
