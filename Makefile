@@ -53,6 +53,11 @@ RONN ?= ronn
 # RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
 RONN_EXTRA_ARGS ?=
 
+# ASCIIDOCTOR is the name of the 'asciidoctor' program used to generate man pages.
+ASCIIDOCTOR ?= asciidoctor
+# ASCIIDOCTOR_EXTRA_ARGS are extra arguments given to the $(ASCIIDOCTOR) program when invoked.
+ASCIIDOCTOR_EXTRA_ARGS ?= -a reproducible
+
 # GREP is the name of the program used for regular expression matching, or
 # 'grep' if unset.
 GREP ?= grep
@@ -615,36 +620,6 @@ lint : $(SOURCES)
 	| $(GREP) -v "github.com/git-lfs/git-lfs" \
 	| $(GREP) "."
 
-# generate index.txt for ronn HTML man page link generation
-.PHONY : index.txt
-index.txt :
-	@echo "Generating index.txt for ronn"
-	@( \
-		printf "# internal\n" >index.txt; \
-		for f in $$(cd docs/man && ls git-lfs*.ronn); do \
-			l=$$(printf "$$f" | sed -E 's/\.([1-9])\.ronn$$/(\1)/'); \
-			printf "%s %s\n" "$$l $$f"; \
-		done >>index.txt; \
-		printf "\n# external\n" >>index.txt; \
-		for l in $$(awk 'p && FNR==1 {p=0}; \
-		                 p && /^#/ {p=0}; \
-		                 p && length; \
-		                 /^## SEE ALSO/ {p=1};' \
-				docs/man/git-lfs*.ronn | \
-				sed 's/[^-a-z0-9()]/ /g' | tr -s ' ' '\n' | \
-				sort -u | grep '([1-9])' | grep -v ^git-lfs); do \
-			p=$$(printf "$$l" | head -c 3); \
-			if [ "$$p" = "git" ]; then \
-				f="git-scm.com/docs/%s"; \
-				u=$$(printf "$$l" | sed -E 's/^(.*)\([1-9]\)$$/\1/'); \
-			else \
-				f="man7.org/linux/man-pages/man%s.html"; \
-				u=$$(printf "$$l" | sed -E 's/^(.*)\(([1-9])\)$$/\2\/\1.\2/'); \
-			fi; \
-			printf "%s https://$$f\n" "$$l" "$$u"; \
-		done >>index.txt; \
-	)
-
 # MAN_ROFF_TARGETS is a list of all ROFF-style targets in the man pages.
 MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-clean.1 \
@@ -719,14 +694,14 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
 
 # man generates all ROFF- and HTML-style manpage targets.
 .PHONY : man
-man : index.txt $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
+man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 
 # man/% generates ROFF-style man pages from the corresponding .ronn file.
-man/man1/% man/man5/% : docs/man/%.ronn
+man/man1/%.1 man/man5/%.5 : docs/man/%.adoc
 	@mkdir -p man/man1 man/man5
-	$(RONN) $(RONN_EXTRA_ARGS) -r --pipe < $^ > $@
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $^
 
 # man/%.html generates HTML-style man pages from the corresponding .ronn file.
-man/html/%.html : docs/man/%.ronn
+man/html/%.1.html man/html/%.5.html : docs/man/%.adoc
 	@mkdir -p man/html
-	$(RONN) $(RONN_EXTRA_ARGS) -5 --pipe < $^ > $@
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $^
