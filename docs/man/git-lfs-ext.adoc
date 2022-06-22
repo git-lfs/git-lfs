@@ -17,10 +17,15 @@ smudge and clean.
 
 * List details for all extensions
 +
-`git lfs ext` `git lfs ext list`
+....
+$ git lfs ext
+$ git lfs ext list
+....
 * List details for the specified extensions
 +
-`git lfs ext list 'foo' 'bar'`
+....
+$ git lfs ext list 'foo' 'bar'
+....
 
 == SEE ALSO
 
