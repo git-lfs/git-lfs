@@ -17,10 +17,10 @@ following:
 
 * the current checkout
 * all existing stashes
-* a 'recent branch'; see [RECENT FILES]
+* a 'recent branch'; see <<_recent_files>>
 * a 'recent commit' on the current branch or recent branches; see
-[RECENT FILES]
-* a commit which has not been pushed; see [UNPUSHED LFS FILES]
+<<_recent_files>>
+* a commit which has not been pushed; see <<_unpushed_lfs_files>>
 * any other worktree checkouts; see git-worktree(1)
 
 In general terms, prune will delete files you're not currently using and
@@ -52,14 +52,14 @@ gitignore(5).
   currently checked out refs. Implies `--recent`.
 --recent::
   Prune even objects that would normally be preserved by the
-  configuration options specified below in [RECENT FILES].
+  configuration options specified below in <<_recent_files>>.
 --verify-remote::
 -c::
   Contact the remote and check that copies of the files we would delete
-  definitely exist before deleting. See [VERIFY REMOTE].
+  definitely exist before deleting. See <<_verify_remote>>.
 --no-verify-remote::
   Disables remote verification if lfs.pruneverifyremotealways was enabled in
-  settings. See [VERIFY REMOTE].
+  settings. See <<_verify_remote>>.
 --verbose::
 -v::
   Report the full detail of what is/would be deleted.
@@ -100,7 +100,7 @@ ahead, any LFS files referenced in those commits is unpushed and will
 not be deleted. This works because the LFS pre-push hook always ensures
 that LFS files are pushed before the remote branch is updated.
 
-See [DEFAULT REMOTE], for which remote is considered 'pushed' for
+See <<_default_remote>>, for which remote is considered 'pushed' for
 pruning purposes.
 
 == VERIFY REMOTE
@@ -109,11 +109,11 @@ The `--verify-remote` option calls the remote to ensure that any LFS
 files to be deleted have copies on the remote before actually deleting
 them.
 
-Usually the check performed by [UNPUSHED LFS FILES] is enough to
+Usually the check performed by <<_unpushed_lfs_files>> is enough to
 determine that files have been pushed, but if you want to be extra sure
 at the expense of extra overhead you can make prune actually call the
 remote API and verify the presence of the files you're about to delete
-locally. See [DEFAULT REMOTE] for which remote is checked.
+locally. See <<_default_remote>> for which remote is checked.
 
 You can make this behaviour the default by setting
 `lfs.pruneverifyremotealways` to true.
@@ -127,7 +127,7 @@ process take longer.
 
 == DEFAULT REMOTE
 
-When identifying [UNPUSHED LFS FILES] and performing [VERIFY REMOTE], a
+When identifying <<_unpushed_lfs_files>> and performing <<_verify_remote>>, a
 single remote, 'origin', is normally used as the reference. This one
 remote is considered canonical; even if you use multiple remotes, you
 probably want to retain your local copies until they've made it to that

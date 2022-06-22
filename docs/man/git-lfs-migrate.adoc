@@ -26,7 +26,7 @@ will only make changes to your local repository and working copy, never
 any remotes. This is intentional as the `import` and `export` modes are
 generally "destructive" in the sense that they rewrite your Git history,
 changing commits and generating new commit SHAs. (The exception is the
-"no-rewrite" `import` sub-mode; see [IMPORT WITHOUT REWRITING HISTORY]
+"no-rewrite" `import` sub-mode; see <<_import_without_rewriting_history>>
 for details.)
 
 You should therefore always first commit or stash any uncommitted work
@@ -45,8 +45,8 @@ checked-out one, branch refs may be specified directly, or provided in
 one or more `--include-ref` options. They may also be excluded by
 prefixing them with `^` or providing them in `--exclude-ref` options.
 Use the `--everything` option to specify that all refs should be
-examined, including all remote refs. See [INCLUDE AND EXCLUDE
-REFERENCES] for details.
+examined, including all remote refs. See <<_include_and_exclude_references>>
+for details.
 
 For the `info` and `import` modes, all file types are considered by
 default; while useful in the `info` mode, this is often not desirable
@@ -54,7 +54,7 @@ when importing, so either filename patterns (pathspecs) or the `--fixup`
 option should normally be specified in that case. (At least one include
 pathspec is required for the `export` mode.) Pathspecs may be defined
 using the `--include` and `--exclude` options (`-I` and `-X` for short),
-as described in [INCLUDE AND EXCLUDE].
+as described in <<_include_and_exclude>>.
 
 As typical Git LFS usage depends on tracking specific file types using
 filename patterns defined in `.gitattributes` files, the
@@ -64,7 +64,7 @@ always be assigned the default read/write permissions mode (i.e.,
 without execute permissions). Any symbolic links with that name will
 cause the migration to halt prematurely.
 
-The `import` mode (see [IMPORT]) will convert Git objects of the file
+The `import` mode (see <<_import>>) will convert Git objects of the file
 types specified (e.g., with `--include`) to Git LFS pointers, and will
 add entries for those file types to `.gitattributes` files, creating
 those files if they do not exist. The result should be as if
@@ -75,7 +75,7 @@ exception is if the `--fixup` option is given, in which case the
 then convert Git objects which should be tracked by Git LFS but are not
 yet.
 
-The `export` mode (see [EXPORT]) works as the reverse operation to the
+The `export` mode (see <<_export>>) works as the reverse operation to the
 `import` mode, converting any Git LFS pointers that match the file types
 specified with `--include`, which must be given at least once. Note that
 `.gitattributes` entries will not be removed, nor will the files;
@@ -85,7 +85,7 @@ available in the `export` mode to specify the remote from which Git LFS
 objects should be fetched if they do not exist in the local Git LFS
 object cache; if not provided, `origin` is used by default.
 
-The `info` mode (see [INFO]) summarizes by file type (i.e., by filename
+The `info` mode (see <<_info>>) summarizes by file type (i.e., by filename
 extension) the total number and size of files in a repository. Note that
 like the other two modes, by default the `info` mode operates only on
 the currently checked-out branch and only on commits which do not exist
@@ -116,32 +116,34 @@ those changes to your remotes.
 == MODES
 
 info::
-  Show information about repository size. See [INFO].
+  Show information about repository size. See <<_info>>.
 import::
-  Convert Git objects to Git LFS pointers. See [IMPORT] and
-  [IMPORT WITHOUT REWRITING HISTORY].
+  Convert Git objects to Git LFS pointers. See <<_import>> and
+  <<_import_without_rewriting_history>>
 export::
-  Convert Git LFS pointers to Git objects. See [EXPORT].
+  Convert Git LFS pointers to Git objects. See <<_export>>.
 
 == OPTIONS
 
 -I <paths>::
 --include=<paths>::
-   See [INCLUDE AND EXCLUDE].
+  See <<_include_and_exclude>>.
 -X <paths>::
 --exclude=<paths>::
-   See [INCLUDE AND EXCLUDE].
+  See <<_include_and_exclude>>.
 --include-ref=<refname>::
-  See [INCLUDE AND EXCLUDE REFERENCES].
+  See <<_include_and_exclude_references>>.
+--include-ref=<refname>::
+  See <<_include_and_exclude_references>>.
 --exclude-ref=<refname>::
-  See [INCLUDE AND EXCLUDE REFERENCES].
+  See <<_include_and_exclude_references>>.
 --skip-fetch::
   Assumes that the known set of remote references is complete, and should not be
   refreshed when determining the set of "un-pushed" commits to migrate. Has no
   effect when combined with
 `--include-ref` or `--exclude-ref`.
 --everything::
-  See [INCLUDE AND EXCLUDE REFERENCES].
+  See <<_include_and_exclude_references>>.
 +
 Note: Git refs are "case-sensitive" on all platforms in "packed from"
 (see `git-pack-refs(1)`). On "case-insensitive" file systems, e.g. NTFS
@@ -153,8 +155,9 @@ upper/lower case letters.
   the only such prompt is the one asking whether to overwrite (destroy) any
   working copy changes. Thus, specifying this option may cause data loss if you
   are not careful.
-* [branch ...]: Migrate only the set of branches listed. If not given,
-  `git-lfs-migrate(1)` will migrate the currently checked out branch.
+`[branch ...]`::
+  Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
+  will migrate the currently checked out branch.
 +
 References beginning with `^` will be excluded, whereas branches that do
 not begin with `^` will be included.
@@ -244,8 +247,8 @@ files tracked and stored with Git LFS. It supports all the core
   Migrate objects to Git LFS in a new commit without rewriting Git history.
   Please note that when this option is used, the `migrate import` command will
   expect a different argument list, specialized options will become available,
-  and the core `migrate` options will be ignored. See [IMPORT WITHOUT REWRITING
-  HISTORY].
+  and the core `migrate` options will be ignored.
+  See <<_import_without_rewriting_history>>.
 --fixup::
   Infer `--include` and `--exclude` filters on a per-commit basis based on the
   `.gitattributes` files in a repository. In practice, this option imports any

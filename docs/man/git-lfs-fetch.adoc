@@ -11,7 +11,7 @@ git-lfs-fetch - Download all Git LFS files for a given ref
 == DESCRIPTION
 
 Download Git LFS objects at the given refs from the specified remote.
-See [DEFAULT REMOTE] and [DEFAULT REFS] for what happens if you don't
+See <<_default_remote>> and <<_default_refs>> for what happens if you don't
 specify.
 
 This does not update the working copy.
@@ -20,13 +20,15 @@ This does not update the working copy.
 
 -I <paths>::
 --include=<paths>::
-  Specify lfs.fetchinclude just for this invocation; see [INCLUDE AND EXCLUDE]
+  Specify lfs.fetchinclude just for this invocation; see
+  <<_include_and_exclude>>.
 -X <paths>::
 --exclude=<paths>::
-  Specify lfs.fetchexclude just for this invocation; see [INCLUDE AND EXCLUDE]
+  Specify lfs.fetchexclude just for this invocation; see
+  <<_include_and_exclude>>.
 --recent::
   Download objects referenced by recent branches & commits in addition to those
-  that would otherwise be downloaded. See [RECENT CHANGES]
+  that would otherwise be downloaded. See <<_recent_changes>>.
 --all::
   Download all objects that are referenced by any commit reachable from the refs
   provided as arguments. If no refs are provided, then all refs are fetched.
@@ -85,7 +87,7 @@ you're tracking first, or origin otherwise.
 
 If no refs are given as arguments, the currently checked out ref is
 used. In addition, if enabled, recently changed refs and commits are
-also included. See [RECENT CHANGES] for details.
+also included. See <<_recent_changes>> for details.
 
 == RECENT CHANGES
 

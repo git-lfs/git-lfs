@@ -29,10 +29,10 @@ All options supported by 'git clone'
 
 -I <paths>::
 --include=<paths>::
-   See [INCLUDE AND EXCLUDE]
+  See <<_include_and_exclude>>.
 -X <paths>::
 --exclude=<paths>::
-   See [INCLUDE AND EXCLUDE]
+  See <<_include_and_exclude>>.
 --skip-repo::
   Skip installing repo-level hooks (.git/hooks) that LFS
   requires. Disabled by default.

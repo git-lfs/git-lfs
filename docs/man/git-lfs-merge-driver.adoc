@@ -16,7 +16,7 @@ general, does not support partial renames or copies because Git does not
 support them in this case.
 
 This program is intended to be invoked automatically by Git and not by
-users manually. See [CONFIGURATION] for details on the configuration
+users manually. See <<_configuration>> for details on the configuration
 required for that.
 
 == OPTIONS
@@ -34,7 +34,7 @@ required for that.
   performs the actual merge. If this is not specified, `git merge-file` is
   invoked with appropriate arguments to perform the merge of the file.
 +
-See [CONFIGURATION] for the sequences which are substituted here.
+See <<_configuration>> for the sequences which are substituted here.
 
 == CONFIGURATION
 
