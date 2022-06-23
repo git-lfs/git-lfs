@@ -4,7 +4,7 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 if [ -e /etc/os-release ]; then
-  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID})
+  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
   OS_NAME=$(source /etc/os-release; echo ${NAME})
   OS_NAME=${OS_NAME,,}
 else #Basically Centos 5/6
