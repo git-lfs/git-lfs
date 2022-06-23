@@ -21,15 +21,15 @@ required for that.
 
 == OPTIONS
 
---ancestor <path>::
+`--ancestor <path>`::
   Specify the file containing the ancestor revision.
---current <path>::
+`--current <path>`::
   Specify the file containing the current revision.
---marker-size <num>::
+`--marker-size <num>`::
   Specify the conflict marker size as an integer.
---other <path>::
+`--other <path>`::
   Specify the file containing the other revision.
---program <program>::
+`--program <program>`::
   Specify a command, which is passed to the shell after substitution, that
   performs the actual merge. If this is not specified, `git merge-file` is
   invoked with appropriate arguments to perform the merge of the file.

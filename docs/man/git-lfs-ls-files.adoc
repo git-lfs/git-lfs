@@ -21,32 +21,32 @@ indicates an LFS pointer.
 
 == OPTIONS
 
--l::
---long::
+`-l`::
+`--long`::
    Show the entire 64 character OID, instead of just first 10.
--s::
---size::
+`-s`::
+`--size`::
    Show the size of the LFS object between parenthesis at the end of a line.
--d::
---debug::
+`-d`::
+`--debug`::
    Show as much information as possible about a LFS file. This is intended for
    manual inspection; the exact format may change at any time.
--a::
---all::
+`-a`::
+`--all`::
    Inspects the full history of the repository, not the current HEAD (or other
    provided reference). This will include previous versions of LFS objects that
    are no longer found in the current tree.
---deleted::
+`--deleted`::
   Shows the full history of the given reference, including objects that have
   been deleted.
--I <paths>::
---include=<paths>::
+`-I <paths>`::
+`--include=<paths>`::
    Include paths matching only these patterns; see <<_fetch_settings>>.
--X <paths>::
---exclude=<paths>::
+`-X <paths>`::
+`--exclude=<paths>`::
    Exclude paths matching any of these patterns; see <<_fetch_settings>>.
--n::
---name-only::
+`-n`::
+`--name-only`::
    Show only the lfs tracked file names.
 
 == SEE ALSO

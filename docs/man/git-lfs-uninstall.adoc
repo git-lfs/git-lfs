@@ -18,10 +18,10 @@ repository.
 
 == OPTIONS
 
---local::
+`--local`::
   Removes the "lfs" smudge and clean filters from the local repository's git
   config, instead of the global git config (~/.gitconfig).
---worktree::
+`--worktree`::
   Removes the "lfs" smudge and clean filters from the current working tree's git
   config, instead of the global git config (~/.gitconfig) or local repository's
   git config ($GIT_DIR/config). If multiple working trees are in use, the Git
@@ -29,10 +29,10 @@ repository.
   one working tree is in use, `--worktree` has the same effect as `--local`.
   This option is only available if the installed Git version is at least 2.20.0
   and therefore supports the "worktreeConfig" extension.
---system::
+`--system`::
   Removes the "lfs" smudge and clean filters from the system git config, instead
   of the global git config (~/.gitconfig).
---skip-repo::
+`--skip-repo`::
   Skips cleanup of the local repo; use if you want to uninstall the global lfs
   filters but not make changes to the current repo.
 

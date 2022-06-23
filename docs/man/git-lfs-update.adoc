@@ -16,13 +16,13 @@ the extended options below.
 
 == OPTIONS
 
---manual::
--m::
+`--manual`::
+`-m`::
   Print instructions for manually updating your hooks to include git-lfs
   functionality. Use this option if `git lfs update` fails because of existing
   hooks and you want to retain their functionality.
---force::
--f::
+`--force`::
+`-f`::
   Forcibly overwrite any existing hooks with git-lfs hooks. Use this option if
   `git lfs update` fails because of existing hooks but you don't care about
   their current contents.

@@ -20,11 +20,11 @@ config key in git-lfs-config(5) for details.
 
 == OPTIONS
 
--r <name>::
---remote=<name>::
+`-r <name>`::
+`--remote=<name>`::
    Specify the Git LFS server to use. Ignored if the `lfs.url` config key is
    set.
---json::
+`--json`::
   Writes lock info as JSON to STDOUT if the command exits successfully. Intended
   for interoperation with external tools. If the command returns with a non-zero
   exit code, plain text messages will be sent to STDERR.

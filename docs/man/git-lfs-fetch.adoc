@@ -18,25 +18,25 @@ This does not update the working copy.
 
 == OPTIONS
 
--I <paths>::
---include=<paths>::
+`-I <paths>`::
+`--include=<paths>`::
   Specify lfs.fetchinclude just for this invocation; see
   <<_include_and_exclude>>.
--X <paths>::
---exclude=<paths>::
+`-X <paths>`::
+`--exclude=<paths>`::
   Specify lfs.fetchexclude just for this invocation; see
   <<_include_and_exclude>>.
---recent::
+`--recent`::
   Download objects referenced by recent branches & commits in addition to those
   that would otherwise be downloaded. See <<_recent_changes>>.
---all::
+`--all`::
   Download all objects that are referenced by any commit reachable from the refs
   provided as arguments. If no refs are provided, then all refs are fetched.
   This is primarily for backup and migration purposes. Cannot be combined with
   --recent or --include/--exclude. Ignores any globally configured include and
   exclude paths to ensure that all objects are downloaded.
---prune::
--p::
+`--prune`::
+`-p`::
   Prune old and unreferenced objects after fetching, equivalent to running `git
   lfs prune` afterwards. See git-lfs-prune(1) for more details.
 

@@ -34,15 +34,15 @@ easier. A single Git LFS object's file path must be provided in
 
 == OPTIONS
 
---base::
+`--base`::
   Check out the merge base of the specified file.
---ours::
+`--ours`::
   Check out our side (that of the current branch) of the
   conflict for the specified file.
---theirs::
+`--theirs`::
   Check out their side (that of the other branch) of the
 conflict for the specified file.
---to <path>::
+`--to <path>`::
   If the working tree is in a conflicted state, check out the
   portion of the conflict specified by `--base`, `--ours`, or `--theirs`
   to the given path.

@@ -18,9 +18,9 @@ by the local clone of the remote.
 
 == OPTIONS
 
---dry-run::
+`--dry-run`::
   Print the files that would be pushed, without actually pushing them.
---all::
+`--all`::
   This pushes all objects to the remote that are referenced by any commit
   reachable from the refs provided as arguments. If no refs are provided, then
   all local refs are pushed. Note that this behavior differs from that of
@@ -29,7 +29,7 @@ by the local clone of the remote.
   If you are migrating a repository with these commands, make sure to run `git
   lfs push` for any additional remote refs that contain Git LFS objects not
   reachable from your local refs.
---object-id::
+`--object-id`::
   This pushes only the object OIDs listed at the end of the command, separated
   by spaces.
 
