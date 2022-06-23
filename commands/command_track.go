@@ -38,7 +38,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	setupWorkingCopy()
 
 	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
-		installHooks(false)
+		_ = installHooks(false)
 	}
 
 	if len(args) == 0 {
@@ -148,12 +148,12 @@ ArgsLoop:
 				pattern := unescapeAttrPattern(fields[0])
 				if newline, ok := changedAttribLines[pattern]; ok {
 					// Replace this line (newline already embedded)
-					attributesFile.WriteString(newline)
+					_, _ = attributesFile.WriteString(newline)
 					// Remove from map so we know we don't have to add it to the end
 					delete(changedAttribLines, pattern)
 				} else {
 					// Write line unchanged (replace newline)
-					attributesFile.WriteString(line + lineEnd)
+					_, _ = attributesFile.WriteString(line + lineEnd)
 				}
 			}
 
@@ -166,7 +166,7 @@ ArgsLoop:
 	for pattern, newline := range changedAttribLines {
 		if !trackNoModifyAttrsFlag {
 			// Newline already embedded
-			attributesFile.WriteString(newline)
+			_, _ = attributesFile.WriteString(newline)
 		}
 
 		// Also, for any new patterns we've added, make sure any existing git
