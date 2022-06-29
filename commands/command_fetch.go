@@ -1,8 +1,11 @@
 package commands
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
@@ -19,6 +22,8 @@ var (
 	fetchRecentArg bool
 	fetchAllArg    bool
 	fetchPruneArg  bool
+	fetchOidArg    bool
+	oidRE          = regexp.MustCompile(`\A[0-9a-f]{64}\z`)
 )
 
 func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
@@ -87,6 +92,34 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		} else {
 			success = fetchAll()
 		}
+
+	} else if fetchOidArg {
+		requireStdin("Specify OIDs via STDIN")
+
+		scanner := bufio.NewScanner(os.Stdin)
+		tObjects := []*tq.Transfer{}
+		for scanner.Scan() {
+			oid := scanner.Text()
+			if len(oid) == 0 {
+				continue
+			} else if !oidRE.MatchString(oid) {
+				Exit("Invalid OID: %s", oid)
+			}
+			tObjects = append(tObjects, &tq.Transfer{Oid: oid})
+		}
+
+		if len(tObjects) == 0 {
+			Exit("No OIDs")
+		}
+
+		m := getTransferManifestOperationRemote("download", cfg.Remote())
+		bRes, err := tq.Batch(m, tq.Download, cfg.Remote(), refs[0], tObjects)
+		if err != nil {
+			LoggedError(err, "%v", err)
+			os.Exit(1)
+		}
+
+		json.NewEncoder(os.Stdout).Encode(bRes)
 
 	} else { // !all
 		filter := buildFilepathFilter(cfg, include, exclude, true)
@@ -431,5 +464,6 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+		cmd.Flags().BoolVarP(&fetchOidArg, "batch-oids", "", false, "Perform a batch download request, reading OIDs from stdin")
 	})
 }
