@@ -1481,3 +1481,71 @@ func ObjectDatabase(osEnv, gitEnv Environment, gitdir, tempdir string) (*gitobj.
 	}
 	return odb, nil
 }
+
+func remotesForTreeish(treeish string) []string {
+	var outp string
+	var err error
+	if treeish == "" {
+		//Treeish is empty for sparse checkout
+		tracerx.Printf("git: treeish: not provided")
+		outp, err = gitNoLFSSimple("branch", "-r", "--contains", "HEAD")
+	} else {
+		tracerx.Printf("git: treeish: %q", treeish)
+		outp, err = gitNoLFSSimple("branch", "-r", "--contains", treeish)
+	}
+	if err != nil || outp == "" {
+		tracerx.Printf("git: symbolic name: can't resolve symbolic name for ref: %q", treeish)
+		return []string{}
+	}
+	return strings.Split(outp, "\n")
+}
+
+// remoteForRef will try to determine the remote from the ref name.
+// This will return an empty string if any of the remote names have a slash
+// because slashes introduce ambiguity. Consider two refs:
+//
+// 1. upstream/main
+// 2. upstream/test/main
+//
+// Is the remote "upstream" or "upstream/test"? It could be either, or both.
+// We could use git for-each-ref with %(upstream:remotename) if there were a tracking branch,
+// but this is not guaranteed to exist either.
+func remoteForRef(refname string) string {
+	tracerx.Printf("git: working ref: %s", refname)
+	remotes, err := RemoteList()
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(refname, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+	for _, name := range remotes {
+		if strings.Contains(name, "/") {
+			tracerx.Printf("git: ref remote: cannot determine remote for ref %s since remote %s contains a slash", refname, name)
+			return ""
+		}
+	}
+	remote := parts[0]
+	tracerx.Printf("git: working remote %s", remote)
+	return remote
+}
+
+func getValidRemote(refs []string) string {
+	for _, ref := range refs {
+		if ref != "" {
+			return ref
+		}
+	}
+	return ""
+}
+
+// FirstRemoteForTreeish returns the first remote found which contains the treeish.
+func FirstRemoteForTreeish(treeish string) string {
+	name := getValidRemote(remotesForTreeish(treeish))
+	if name == "" {
+		tracerx.Printf("git: remote treeish: no valid remote refs parsed for %q", treeish)
+		return ""
+	}
+	return remoteForRef(name)
+}
