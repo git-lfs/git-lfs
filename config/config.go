@@ -224,6 +224,10 @@ func (c *Configuration) AutoDetectRemoteEnabled() bool {
 	return c.Git.Bool("lfs.remote.autodetect", false)
 }
 
+func (c *Configuration) SearchAllRemotesEnabled() bool {
+	return c.Git.Bool("lfs.remote.searchall", false)
+}
+
 // Remote returns the default remote based on:
 // 1. The currently tracked remote branch, if present
 // 2. The value of remote.lfsdefault.
