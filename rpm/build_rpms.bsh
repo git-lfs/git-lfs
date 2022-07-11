@@ -4,7 +4,7 @@ set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
 if [ -e /etc/os-release ]; then
-  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID})
+  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
   OS_NAME=$(source /etc/os-release; echo ${NAME})
   OS_NAME=${OS_NAME,,}
 else #Basically Centos 5/6
@@ -124,20 +124,14 @@ if [[ ${VERSION_ID[0]} == 8 ]]; then
   $SUDO yum install -y rubygems-devel
 fi
 
-if ! command -v ronn; then
+if ! command -v asciidoctor; then
   echo "Downloading some ruby gems..."
   pushd ${CURDIR}/SOURCES
-    curl -L -O https://rubygems.org/downloads/rdiscount-2.1.8.gem
-    curl -L -O https://rubygems.org/downloads/hpricot-0.8.6.gem
-    curl -L -O https://rubygems.org/downloads/mustache-1.0.1.gem
-    curl -L -O https://rubygems.org/downloads/ronn-0.7.3.gem
+    curl -L -O https://rubygems.org/downloads/asciidoctor-2.0.17.gem
   popd
 
   echo "Building ruby gems..."
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-rdiscount.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-mustache.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-hpricot.spec
-  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-ronn.spec
+  "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-asciidoctor.spec
 
   echo "Installing ruby gems..."
   $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)

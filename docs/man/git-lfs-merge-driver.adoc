@@ -1,0 +1,95 @@
+= git-lfs-merge-driver(1)
+
+== NAME
+
+git-lfs-merge-driver - Merge text-based LFS files
+
+== SYNOPSIS
+
+`git lfs merge-driver` [options]
+
+== DESCRIPTION
+
+Merge text files stored in Git LFS using the default Git merge
+machinery, or a custom merge driver if specified. Note that this, in
+general, does not support partial renames or copies because Git does not
+support them in this case.
+
+This program is intended to be invoked automatically by Git and not by
+users manually. See <<_configuration>> for details on the configuration
+required for that.
+
+== OPTIONS
+
+`--ancestor <path>`::
+  Specify the file containing the ancestor revision.
+`--current <path>`::
+  Specify the file containing the current revision.
+`--marker-size <num>`::
+  Specify the conflict marker size as an integer.
+`--other <path>`::
+  Specify the file containing the other revision.
+`--program <program>`::
+  Specify a command, which is passed to the shell after substitution, that
+  performs the actual merge. If this is not specified, `git merge-file` is
+  invoked with appropriate arguments to perform the merge of the file.
++
+See <<_configuration>> for the sequences which are substituted here.
+
+== CONFIGURATION
+
+Git allows the use of a custom merge driver for files based on the
+`merge` attribute set in `.gitattributes`. By default, when using
+`git lfs track`, this value is set to `lfs`.
+
+Because Git LFS can be used to store both text and binary files and it
+isn't always clear which behavior should be used, Git LFS does not
+enable this merge driver by default. However, if you know that some or
+all of your files are text files, then you can set the `merge` attribute
+for those files to `lfs-text` and use `git config` to set the merge
+driver like so:
+
+[source,console]
+----
+$ git config merge.lfs-text.driver 'git lfs merge-driver --ancestor %O --current %A --other %B --marker-size %L --output %A'
+----
+
+This tells Git to invoke the custom Git LFS merge driver, which in turn
+uses Git's merge machinery, to merge files where the `merge` attribute
+is set to `lfs-text`. Note that `lfs-text` here is an example and any
+syntactically valid value can be used.
+
+If you are using a special type of file that needs rules different from
+Git's standard merge machinery, you can also specify the `--program`
+option, which is passed to `sh` after substituting its own
+percent-encoded escapes:
+
+* `%A`: the current version
+* `%B`: the other version
+* `%D`: the destination version
+* `%O`: the ancestor version
+* `%L`: the conflict marker size
+
+Note that the percent sign must typically be doubled to prevent Git from
+substituting its own values here. Therefore, specifying the default
+behavior explicitly looks like this:
+
+[source,console]
+----
+$ git config merge.lfs-text.driver \
+  'git lfs merge-driver --ancestor %O --current %A --other %B --marker-size %L --output %A --program '\''git merge-file --stdout --marker-size=%%L %%A %%O %%B >%%D'\'''
+----
+
+The exit status from the custom command should be zero on success or
+non-zero on conflicts or other failure.
+
+Note that if no merge driver is specified for the value of the `merge`
+attribute (as is the case by default with `merge=lfs`), then the default
+Git merge strategy is used. For LFS files, this means that Git will try
+to merge the pointer files, which usually is not useful.
+
+== SEE ALSO
+
+git-merge(1), git-merge-file(1), gitattributes(5)
+
+Part of the git-lfs(1) suite.

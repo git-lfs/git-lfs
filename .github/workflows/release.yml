@@ -23,7 +23,7 @@ jobs:
     - run: cinst strawberryperl -y
     - run: cinst zip -y
     - run: cinst jq -y
-    - run: gem install ronn-ng
+    - run: gem install asciidoctor
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
@@ -70,7 +70,7 @@ jobs:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
     - run: brew install mitchellh/gon/gon
-    - run: gem install ronn-ng
+    - run: gem install asciidoctor
     - run: make release
       env:
           FORCE_LOCALIZE: true
@@ -113,7 +113,7 @@ jobs:
     - uses: actions/download-artifact@v1
       with:
         name: macos-assets
-    - run: gem install ronn-ng
+    - run: gem install asciidoctor
     - run: CGO_ENABLED=0 make release
     - run: rm -f bin/releases/*windows* bin/releases/*darwin*
     - run: 'find windows-assets -name "*windows*" -type f | xargs -L1 -I{} mv {} bin/releases'

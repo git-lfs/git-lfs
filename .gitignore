@@ -3,9 +3,7 @@ benchmark/
 out/
 resource.syso
 
-# only allow man/*.\d.ronn files
 man/*
-index.txt
 
 *.test
 tmp

@@ -1,0 +1,43 @@
+= git-lfs-uninstall(1)
+
+== NAME
+
+git-lfs-uninstall - Remove Git LFS configuration
+
+== SYNOPSIS
+
+`git lfs uninstall`
+
+== DESCRIPTION
+
+Perform the following actions to remove the Git LFS configuration:
+
+* Remove the "lfs" clean and smudge filters from the global Git config.
+* Uninstall the Git LFS pre-push hook if run from inside a Git
+repository.
+
+== OPTIONS
+
+`--local`::
+  Removes the "lfs" smudge and clean filters from the local repository's git
+  config, instead of the global git config (~/.gitconfig).
+`--worktree`::
+  Removes the "lfs" smudge and clean filters from the current working tree's git
+  config, instead of the global git config (~/.gitconfig) or local repository's
+  git config ($GIT_DIR/config). If multiple working trees are in use, the Git
+  config extension `worktreeConfig` must be enabled to use this option. If only
+  one working tree is in use, `--worktree` has the same effect as `--local`.
+  This option is only available if the installed Git version is at least 2.20.0
+  and therefore supports the "worktreeConfig" extension.
+`--system`::
+  Removes the "lfs" smudge and clean filters from the system git config, instead
+  of the global git config (~/.gitconfig).
+`--skip-repo`::
+  Skips cleanup of the local repo; use if you want to uninstall the global lfs
+  filters but not make changes to the current repo.
+
+== SEE ALSO
+
+git-lfs-install(1), git-worktree(1).
+
+Part of the git-lfs(1) suite.
