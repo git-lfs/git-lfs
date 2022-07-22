@@ -56,6 +56,19 @@ and `branch.*.pushremote` for the current branch override this setting.
 If this setting is not set, `remote.pushdefault` is used, or if that is
 not set, the order of selection is used as specified in the
 `remote.lfsdefault` above.
+* `lfs.remote.autodetect`
++
+This boolean option enables the remote autodetect feaure within Git LFS.
+LFS tries to derive the corresponding remote from the commit information
+and, in case of success, ignores the settings defined by
+`remote.lfsdefault` and `remote.<remote>.lfsurl`.
+* `lfs.remote.searchall`
++
+This boolean option enables Git LFS to search all registered remotes to
+find LFS data. This is a fallback mechanism executed only if the LFS
+data could not be found via the ordinary heuristics as described in
+`remote.lfsdefault`, `remote.<remote>.lfsurl` and, if enabled,
+`lfs.remote.autodetect`.
 * `lfs.dialtimeout`
 +
 Sets the maximum time, in seconds, that the HTTP client will wait to
