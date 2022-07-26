@@ -607,6 +607,7 @@ setup() {
     git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
+    git config --global init.defaultBranch main
   fi | sed -e 's/^/# /g'
 
   # setup the git credential password storage
