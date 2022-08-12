@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -21,12 +22,15 @@ var (
 	// shares some global vars and functions with command_pre_push.go
 )
 
-// pushCommand pushes local objects to a Git LFS server.  It takes two
-// arguments:
+// pushCommand pushes local objects to a Git LFS server.  It has four forms:
 //
-//   `<remote> <remote ref>`
+//   `<remote> <ref>...`
+//   `<remote> --stdin`              (reads refs from stdin)
+//   `<remote> --object-id <oid>...`
+//   `<remote> --object-id --stdin`  (reads oids from stdin)
 //
-// Remote must be a remote name, not a URL
+// Remote must be a remote name, not a URL. With --stdin, values are newline
+// separated.
 //
 // pushCommand calculates the git objects to send by comparing the range
 // of commits between the local and remote git servers.
@@ -44,15 +48,36 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := newUploadContext(pushDryRun)
-	if pushObjectIDs {
-		if len(args) < 2 {
-			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
-			return
+
+	var argList []string
+	if useStdin {
+		if len(args) > 1 {
+			Print(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
+			os.Exit(1)
 		}
 
-		uploadsWithObjectIDs(ctx, args[1:])
+		scanner := bufio.NewScanner(os.Stdin) // line-delimited
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line != "" {
+				argList = append(argList, line)
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Error reading from stdin:")))
+		}
 	} else {
-		uploadsBetweenRefAndRemote(ctx, args[1:])
+		argList = args[1:]
+	}
+
+	if pushObjectIDs {
+		if len(argList) < 1 {
+			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
+			os.Exit(1)
+		}
+		uploadsWithObjectIDs(ctx, argList)
+	} else {
+		uploadsBetweenRefAndRemote(ctx, argList)
 	}
 }
 
@@ -137,6 +162,7 @@ func init() {
 	RegisterCommand("push", pushCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&pushDryRun, "dry-run", "d", false, "Do everything except actually send the updates")
 		cmd.Flags().BoolVarP(&pushObjectIDs, "object-id", "o", false, "Push LFS object ID(s)")
+		cmd.Flags().BoolVarP(&useStdin, "stdin", "", false, "Read object IDs or refs from stdin")
 		cmd.Flags().BoolVarP(&pushAll, "all", "a", false, "Push all objects for the current ref to the remote.")
 	})
 }
