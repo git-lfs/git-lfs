@@ -8,7 +8,9 @@ git-lfs-push - Push queued large files to the Git LFS endpoint
 
 `git lfs push` [options] <remote> [<ref>...] +
 `git lfs push` <remote> [<ref>...] +
+`git lfs push` [options] <remote> --stdin
 `git lfs push` --object-id <remote> [<oid>...]
+`git lfs push` --object-id <remote> --stdin
 
 == DESCRIPTION
 
@@ -32,6 +34,9 @@ by the local clone of the remote.
 `--object-id`::
   This pushes only the object OIDs listed at the end of the command, separated
   by spaces.
+`--stdin`::
+  Read a list of newline-delimited refs (or object IDs when using `--object-id`)
+  from standard input instead of the command line.
 
 == SEE ALSO
 
