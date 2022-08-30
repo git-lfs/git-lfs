@@ -84,14 +84,14 @@ func (f *Filesystem) ObjectPath(oid string) (string, error) {
 	if err := tools.MkdirAll(dir, f); err != nil {
 		return "", errors.New(tr.Tr.Get("error trying to create local storage directory in %q: %s", dir, err))
 	}
-	return filepath.Join(dir, oid), nil
+	return filepath.Join(dir, oid[4:]), nil
 }
 
 func (f *Filesystem) ObjectPathname(oid string) string {
 	if oid == EmptyObjectSHA256 {
 		return os.DevNull
 	}
-	return filepath.Join(f.localObjectDir(oid), oid)
+	return filepath.Join(f.localObjectDir(oid), oid[4:])
 }
 
 func (f *Filesystem) DecodePathname(path string) string {
@@ -158,7 +158,7 @@ func (f *Filesystem) LFSObjectDir() string {
 	defer f.mu.Unlock()
 
 	if len(f.lfsobjdir) == 0 {
-		f.lfsobjdir = filepath.Join(f.LFSStorageDir, "objects")
+		f.lfsobjdir = f.LFSStorageDir
 		tools.MkdirAll(f.lfsobjdir, f)
 	}
 
