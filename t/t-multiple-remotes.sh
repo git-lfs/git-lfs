@@ -15,8 +15,8 @@ prepare_consumer() {
   mkdir "$consumer"
   cd "$consumer"
   git init
-  git remote add mr file://"$REMOTEDIR"/"$smain".git
-  git remote add fr file://"$REMOTEDIR"/"$sfork".git
+  git remote add mr "file://$(urlify "$REMOTEDIR/$smain.git")"
+  git remote add fr "file://$(urlify "$REMOTEDIR/$sfork.git")"
   git fetch mr
   git fetch fr
 }
