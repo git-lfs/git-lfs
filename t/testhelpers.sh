@@ -843,7 +843,12 @@ add_symlink() {
 urlify() {
   if [ "$IS_WINDOWS" -eq 1 ]
   then
-    echo "$1" | sed -e 's,\\,/,g' -e 's,:,%3a,g' -e 's, ,%20,g'
+    local prefix="" path="$(canonical_path "$1")"
+    if echo "$path" | grep -qsv "^/"
+    then
+      prefix="/"
+    fi
+    echo "$prefix$path" | sed -e 's,\\,/,g' -e 's,:,%3a,g' -e 's, ,%20,g'
   else
     echo "$1"
   fi
