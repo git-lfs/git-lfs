@@ -40,3 +40,5 @@ tr/tr_gen.go
 
 lfstest-*
 !lfstest-*.go
+
+vendor/
