@@ -124,16 +124,16 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 //
 // There are three URLs in play, that make this a little confusing.
 //
-// 1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
-// 2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
-//    This URL used for the "lfs.URL.access" git config key, which determines
-//    what kind of auth the LFS server expects. Could be BasicAccess,
-//    NTLMAccess, NegotiateAccess, or NoneAccess, in which the Git Credential
-//    Helper step is skipped. We do not want to prompt the user for a password
-//    to fetch public repository data.
-// 3. The Git Remote URL, which should be something like "https://git.com/repo.git"
-//    This URL is used for the Git Credential Helper. This way existing https
-//    Git remote credentials can be re-used for LFS.
+//  1. The request URL, which should be something like "https://git.com/repo.git/info/lfs/objects/batch"
+//  2. The LFS API URL, which should be something like "https://git.com/repo.git/info/lfs"
+//     This URL used for the "lfs.URL.access" git config key, which determines
+//     what kind of auth the LFS server expects. Could be BasicAccess,
+//     NTLMAccess, NegotiateAccess, or NoneAccess, in which the Git Credential
+//     Helper step is skipped. We do not want to prompt the user for a password
+//     to fetch public repository data.
+//  3. The Git Remote URL, which should be something like "https://git.com/repo.git"
+//     This URL is used for the Git Credential Helper. This way existing https
+//     Git remote credentials can be re-used for LFS.
 func (c *Client) getCreds(remote string, access creds.Access, req *http.Request) (creds.CredentialHelperWrapper, error) {
 	ef := c.Endpoints
 	if ef == nil {

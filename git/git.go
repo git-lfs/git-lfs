@@ -112,7 +112,7 @@ type Ref struct {
 // for a remote branch called 'my-feature' on remote 'origin', this function
 // will return:
 //
-//   refs/remotes/origin/my-feature
+//	refs/remotes/origin/my-feature
 func (r *Ref) Refspec() string {
 	if r == nil {
 		return ""

@@ -24,10 +24,10 @@ var (
 
 // pushCommand pushes local objects to a Git LFS server.  It has four forms:
 //
-//   `<remote> <ref>...`
-//   `<remote> --stdin`              (reads refs from stdin)
-//   `<remote> --object-id <oid>...`
-//   `<remote> --object-id --stdin`  (reads oids from stdin)
+//	`<remote> <ref>...`
+//	`<remote> --stdin`              (reads refs from stdin)
+//	`<remote> --object-id <oid>...`
+//	`<remote> --object-id --stdin`  (reads oids from stdin)
 //
 // Remote must be a remote name, not a URL. With --stdin, values are newline
 // separated.

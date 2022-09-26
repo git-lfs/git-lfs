@@ -16,10 +16,12 @@ var (
 // pairs of quotation delimiters.
 //
 // For instance, the quoted fields of the string "foo bar 'baz etc'" would be:
-//   []string{"foo", "bar", "baz etc"}
+//
+//	[]string{"foo", "bar", "baz etc"}
 //
 // Whereas the same argument given to strings.Fields, would return:
-//   []string{"foo", "bar", "'baz", "etc'"}
+//
+//	[]string{"foo", "bar", "'baz", "etc'"}
 func QuotedFields(s string) []string {
 	submatches := quoteFieldRe.FindAllStringSubmatch(s, -1)
 	out := make([]string, 0, len(submatches))

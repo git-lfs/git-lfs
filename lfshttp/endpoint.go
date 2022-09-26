@@ -65,9 +65,8 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 
 // EndpointFromBareSshUrl constructs a new endpoint from a bare SSH URL:
 //
-//   user@host.com:path/to/repo.git or
-//   [user@host.com:port]:path/to/repo.git
-//
+//	user@host.com:path/to/repo.git or
+//	[user@host.com:port]:path/to/repo.git
 func EndpointFromBareSshUrl(rawurl string) Endpoint {
 	parts := strings.Split(rawurl, ":")
 	partsLen := len(parts)

@@ -9,9 +9,10 @@ import (
 // entry is line-delimited.
 //
 // For example:
-//   entry #1
-//   entry #2
-//   msg: ..., done.
+//
+//	entry #1
+//	entry #2
+//	msg: ..., done.
 type ListTask struct {
 	msg string
 	ch  chan *Update

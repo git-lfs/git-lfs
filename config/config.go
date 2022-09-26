@@ -522,9 +522,9 @@ func (c *Configuration) UnsetGitLocalKey(key string) (string, error) {
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
 // accessing properties set by ReadGitConfig, namely:
-//  - `c.extensions`
-//  - `c.uniqRemotes`
-//  - `c.gitConfig`
+//   - `c.extensions`
+//   - `c.uniqRemotes`
+//   - `c.gitConfig`
 //
 // Since the *gitEnvironment is responsible for setting these values on the
 // (*config.Configuration) instance, we must call that method, if it exists.

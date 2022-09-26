@@ -13,10 +13,10 @@ import (
 // postCheckoutCommand is run through Git's post-checkout hook. The hook passes
 // up to 3 arguments on the command line:
 //
-//   1. SHA of previous commit before the checkout
-//   2. SHA of commit just checked out
-//   3. Flag ("0" or "1") - 1 if a branch/tag/SHA was checked out, 0 if a file was
-//      In the case of a file being checked out, the pre/post SHA are the same
+//  1. SHA of previous commit before the checkout
+//  2. SHA of commit just checked out
+//  3. Flag ("0" or "1") - 1 if a branch/tag/SHA was checked out, 0 if a file was
+//     In the case of a file being checked out, the pre/post SHA are the same
 //
 // This hook checks that files which are lockable and not locked are made read-only,
 // optimising that as best it can based on the available information.
