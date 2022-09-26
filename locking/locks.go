@@ -140,7 +140,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 // For instance, given a repository in /usr/local/src/my-repo and a file called
 // dir/foo/bar.txt, getAbsolutePath will return:
 //
-//   /usr/local/src/my-repo/dir/foo/bar.txt
+//	/usr/local/src/my-repo/dir/foo/bar.txt
 func getAbsolutePath(p string) (string, error) {
 	root, err := git.RootDir()
 	if err != nil {

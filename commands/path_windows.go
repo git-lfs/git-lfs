@@ -27,16 +27,16 @@ func osLineEnding() string {
 // the actual Windows directory, but with forward slashes. You can see this
 // for yourself:
 //
-//   $ git /foo
-//   git: 'C:/Program Files/Git/foo' is not a git command. See 'git --help'.
+//	$ git /foo
+//	git: 'C:/Program Files/Git/foo' is not a git command. See 'git --help'.
 //
 // You can check the path with `pwd -W`:
 //
-//   $ cd /
-//   $ pwd
-//   /
-//   $ pwd -W
-//   c:/Program Files/Git
+//	$ cd /
+//	$ pwd
+//	/
+//	$ pwd -W
+//	c:/Program Files/Git
 func cleanRootPath(pattern string) string {
 	winBashMu.Lock()
 	defer winBashMu.Unlock()

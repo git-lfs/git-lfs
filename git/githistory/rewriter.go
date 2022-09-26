@@ -139,7 +139,6 @@ type TreePreCallbackFn func(path string, t *gitobj.Tree) error
 // written to the object database instead of one generated from calling BlobFn
 // on all of the tree entries.
 //
-//
 // TreeCallbackFn can be nil, and will therefore exhibit behavior equivalent to
 // only calling the BlobFn on existing tree entries.
 //

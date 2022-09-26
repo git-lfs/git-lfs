@@ -19,16 +19,17 @@ var (
 // prePushCommand is run through Git's pre-push hook. The pre-push hook passes
 // two arguments on the command line:
 //
-//   1. Name of the remote to which the push is being done
-//   2. URL to which the push is being done
+//  1. Name of the remote to which the push is being done
+//  2. URL to which the push is being done
 //
 // The hook receives commit information on stdin in the form:
-//   <local ref> <local sha1> <remote ref> <remote sha1>
+//
+//	<local ref> <local sha1> <remote ref> <remote sha1>
 //
 // In the typical case, prePushCommand will get a list of git objects being
 // pushed by using the following:
 //
-//    git rev-list --objects <local sha1> ^<remote sha1>
+//	git rev-list --objects <local sha1> ^<remote sha1>
 //
 // If any of those git objects are associated with Git LFS objects, those
 // objects will be pushed to the Git LFS API.
@@ -65,7 +66,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 
 // prePushRefs parses commit information that the pre-push git hook receives:
 //
-//   <local ref> <local sha1> <remote ref> <remote sha1>
+//	<local ref> <local sha1> <remote ref> <remote sha1>
 //
 // Each line describes a proposed update of the remote ref at the remote sha to
 // the local sha. Multiple updates can be received on multiple lines (such as
