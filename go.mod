@@ -5,7 +5,7 @@ module github.com/git-lfs/git-lfs/v3
 require (
 	github.com/avast/retry-go v2.4.2+incompatible
 	github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430
-	github.com/git-lfs/gitobj/v2 v2.1.0
+	github.com/git-lfs/gitobj/v2 v2.1.1
 	github.com/git-lfs/go-netrc v0.0.0-20210914205454-f0c862dd687a
 	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/git-lfs/wildmatch/v2 v2.0.1
