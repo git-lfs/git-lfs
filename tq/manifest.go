@@ -74,6 +74,10 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 	}
 
 	sshTransfer := apiClient.SSHTransfer(operation, remote)
+	useSSHMultiplexing := false
+	if sshTransfer != nil {
+		useSSHMultiplexing = sshTransfer.IsMultiplexingEnabled()
+	}
 
 	m := &Manifest{
 		fs:                   f,
@@ -115,6 +119,10 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 	}
 
 	if sshTransfer != nil {
+		if !useSSHMultiplexing {
+			m.concurrentTransfers = 1
+		}
+
 		// Multiple concurrent transfers are not yet supported.
 		m.batchClientAdapter = &SSHBatchClient{
 			maxRetries: m.maxRetries,
