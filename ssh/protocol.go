@@ -12,6 +12,8 @@ import (
 )
 
 type PktlineConnection struct {
+	r   io.ReadCloser
+	w   io.WriteCloser
 	mu  sync.Mutex
 	cmd *subprocess.Cmd
 	pl  Pktline
@@ -39,6 +41,8 @@ func (conn *PktlineConnection) End() error {
 		return err
 	}
 	_, err = conn.ReadStatus()
+	conn.r.Close()
+	conn.w.Close()
 	conn.cmd.Wait()
 	return err
 }

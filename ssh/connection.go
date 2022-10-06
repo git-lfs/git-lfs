@@ -60,8 +60,15 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 	conn := &PktlineConnection{
 		cmd: cmd,
 		pl:  pl,
+		r:   r,
+		w:   w,
 	}
 	err = conn.Start()
+	if err != nil {
+		r.Close()
+		w.Close()
+		cmd.Wait()
+	}
 	return conn, err
 }
 
