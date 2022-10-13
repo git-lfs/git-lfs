@@ -42,7 +42,7 @@ popd >/dev/null
 
 echo "Looking for trailing whitespace..."
 if git grep -lE '[[:space:]]+$' | \
-   grep -vE '(^vendor/|\.git/(objects/|index)|\.bat$)'
+  grep -vE '(^vendor/|\.git/(objects/|index)|\.(bat|ico|bmp)$)'
 then
   exit 1
 fi
