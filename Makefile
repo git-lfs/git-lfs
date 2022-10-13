@@ -26,9 +26,9 @@ GO_TEST_EXTRA_ARGS =
 # DWARF-stripping is enabled unless DWARF=YesPlease.
 BUILTIN_LD_FLAGS =
 ifneq ("$(VENDOR)","")
-BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/config.Vendor=$(VENDOR)
+BUILTIN_LD_FLAGS += -X 'github.com/git-lfs/git-lfs/v3/config.Vendor=$(VENDOR)'
 endif
-BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/config.GitCommit=$(GIT_LFS_SHA)
+BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/v3/config.GitCommit=$(GIT_LFS_SHA)
 ifneq ("$(DWARF)","YesPlease")
 BUILTIN_LD_FLAGS += -s
 BUILTIN_LD_FLAGS += -w
