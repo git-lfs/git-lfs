@@ -158,7 +158,7 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 	multiplexEnabled := gitEnv.Bool("lfs.ssh.automultiplex", true)
 	if variant == variantSSH && multiplexDesired && multiplexEnabled {
 		controlPath, err := getControlDir(osEnv)
-		if err != nil {
+		if err == nil {
 			controlPath = filepath.Join(controlPath, "sock-%C")
 			args = append(args, "-oControlMaster=auto", fmt.Sprintf("-oControlPath=%s", controlPath))
 		}
