@@ -195,7 +195,7 @@ finalize_body_message () {
 Up to date packages are available on [PackageCloud](https://packagecloud.io/github/git-lfs) and [Homebrew](http://brew.sh/).
 
 [RPM RHEL 7/CentOS 7](https://packagecloud.io/github/git-lfs/packages/el/7/git-lfs-VERSION-1.el7.x86_64.rpm/download)
-[RPM RHEL 8/CentOS 8](https://packagecloud.io/github/git-lfs/packages/el/8/git-lfs-VERSION-1.x86_64.rpm/download)
+[RPM RHEL 8/Rocky Linux 8](https://packagecloud.io/github/git-lfs/packages/el/8/git-lfs-VERSION-1.el8.x86_64.rpm/download)
 [Debian 9](https://packagecloud.io/github/git-lfs/packages/debian/stretch/git-lfs_VERSION_amd64.deb/download)
 [Debian 10](https://packagecloud.io/github/git-lfs/packages/debian/buster/git-lfs_VERSION_amd64.deb/download)
 [Debian 11](https://packagecloud.io/github/git-lfs/packages/debian/bullseye/git-lfs_VERSION_amd64.deb/download)
