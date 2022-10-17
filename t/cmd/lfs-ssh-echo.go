@@ -60,6 +60,11 @@ func main() {
 	offset := 1
 
 	checkSufficientArgs(offset)
+	if os.Args[offset] == "-oControlMaster=auto" {
+		offset += 2
+	}
+
+	checkSufficientArgs(offset)
 	if os.Args[offset] == "-p" {
 		offset += 2
 	}

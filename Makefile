@@ -566,7 +566,7 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 # And so on.
 test : fmt $(.DEFAULT_GOAL)
 	( \
-		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; \
+		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; unset XDG_RUNTIME_DIR; \
 		tempdir="$$(mktemp -d)"; \
 		export HOME="$$tempdir"; \
 		export GIT_CONFIG_NOSYSTEM=1; \

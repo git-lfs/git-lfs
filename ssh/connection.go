@@ -9,46 +9,48 @@ import (
 )
 
 type SSHTransfer struct {
-	lock      *sync.RWMutex
-	conn      []*PktlineConnection
-	osEnv     config.Environment
-	gitEnv    config.Environment
-	meta      *SSHMetadata
-	operation string
+	lock         *sync.RWMutex
+	conn         []*PktlineConnection
+	osEnv        config.Environment
+	gitEnv       config.Environment
+	meta         *SSHMetadata
+	operation    string
+	multiplexing bool
 }
 
 func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*SSHTransfer, error) {
-	conn, err := startConnection(0, osEnv, gitEnv, meta, operation)
+	conn, multiplexing, err := startConnection(0, osEnv, gitEnv, meta, operation)
 	if err != nil {
 		return nil, err
 	}
 	return &SSHTransfer{
-		lock:      &sync.RWMutex{},
-		osEnv:     osEnv,
-		gitEnv:    gitEnv,
-		meta:      meta,
-		operation: operation,
-		conn:      []*PktlineConnection{conn},
+		lock:         &sync.RWMutex{},
+		osEnv:        osEnv,
+		gitEnv:       gitEnv,
+		meta:         meta,
+		operation:    operation,
+		multiplexing: multiplexing,
+		conn:         []*PktlineConnection{conn},
 	}, nil
 }
 
-func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, error) {
-	exe, args := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true)
+func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, bool, error) {
+	exe, args, multiplexing := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true)
 	cmd, err := subprocess.ExecCommand(exe, args...)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	r, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	w, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	err = cmd.Start()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	var pl Pktline
@@ -69,7 +71,13 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		w.Close()
 		cmd.Wait()
 	}
-	return conn, err
+	return conn, multiplexing, err
+}
+
+// Connection returns the nth connection (starting from 0) in this transfer
+// instance or nil if there is no such item.
+func (tr *SSHTransfer) IsMultiplexingEnabled() bool {
+	return tr.multiplexing
 }
 
 // Connection returns the nth connection (starting from 0) in this transfer
@@ -120,7 +128,7 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		tr.conn = tr.conn[0:n]
 	} else if n > count {
 		for i := count; i < n; i++ {
-			conn, err := startConnection(i, tr.osEnv, tr.gitEnv, tr.meta, tr.operation)
+			conn, _, err := startConnection(i, tr.osEnv, tr.gitEnv, tr.meta, tr.operation)
 			if err != nil {
 				return err
 			}

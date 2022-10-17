@@ -30,7 +30,7 @@ type SSHMetadata struct {
 	Path        string
 }
 
-func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
+func FormatArgs(cmd string, args []string, needShell bool, multiplex bool) (string, []string) {
 	if !needShell {
 		return cmd, args
 	}
@@ -38,12 +38,12 @@ func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool) (string, []string) {
-	exe, args, needShell := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired)
+func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool) (string, []string, bool) {
+	exe, args, needShell, multiplexing := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired)
 	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
-	exe, args = FormatArgs(exe, args, needShell)
+	exe, args = FormatArgs(exe, args, needShell, multiplexing)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
-	return exe, args
+	return exe, args, multiplexing
 }
 
 // Parse command, and if it looks like a valid command, return the ssh binary
@@ -129,7 +129,7 @@ func getControlDir(osEnv config.Environment) (string, error) {
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool) (exe string, baseargs []string, needShell bool) {
+func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool) (exe string, baseargs []string, needShell bool, multiplexing bool) {
 	var cmd string
 
 	ssh, _ := osEnv.Get("GIT_SSH")
@@ -155,10 +155,12 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 		args = append(args, "-batch")
 	}
 
+	multiplexing = false
 	multiplexEnabled := gitEnv.Bool("lfs.ssh.automultiplex", true)
 	if variant == variantSSH && multiplexDesired && multiplexEnabled {
 		controlPath, err := getControlDir(osEnv)
-		if err != nil {
+		if err == nil {
+			multiplexing = true
 			controlPath = filepath.Join(controlPath, "sock-%C")
 			args = append(args, "-oControlMaster=auto", fmt.Sprintf("-oControlPath=%s", controlPath))
 		}
@@ -191,7 +193,7 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 		args = append(args, meta.UserAndHost)
 	}
 
-	return cmd, args, needShell
+	return cmd, args, needShell, multiplexing
 }
 
 const defaultSSHCmd = "ssh"
