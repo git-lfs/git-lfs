@@ -36,7 +36,7 @@ gem install -V --local --force --install-dir ./%{gemdir} --wrappers --bindir ./u
 %endif
 
 %build
-%if 0%{?el8}
+%if 0%{?el8}%{?el9}
 gem build ../%{gem_name}-%{version}.gemspec
 gem install -V --local --build-root . --force --no-document %{gem_name}-%{version}.gem
 %endif
@@ -53,7 +53,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%if 0%{?el8}
+%if 0%{?el8}%{?el9}
 %dir %{gem_instdir}
 %{gem_libdir}
 %exclude %{gem_cache}
