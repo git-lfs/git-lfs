@@ -44,6 +44,9 @@ $distro_name_map = {
     "fedora/34",
     "fedora/35",
   ],
+  "rocky/9" => [
+    "el/9",
+  ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
@@ -120,6 +123,7 @@ package_files.each do |full_path|
   when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
+  when /rocky\/9/  then ["RPM RHEL 8/Rocky 9", "el/9"]
   end
 
   next unless os
