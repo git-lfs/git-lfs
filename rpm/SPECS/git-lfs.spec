@@ -33,7 +33,7 @@ ln -s $(pwd) src/github.com/git-lfs/%{name}
 %endif
 
 pushd src/github.com/git-lfs/%{name}
-  %if %{_arch} == i386
+  %if "%{_arch}" == "i386"
     GOARCH=386 FORCE_LOCALIZE=true make
   %else
     GOARCH=amd64 FORCE_LOCALIZE=true make
