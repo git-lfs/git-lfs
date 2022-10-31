@@ -45,10 +45,13 @@ func catFileBatchCheck(revs *StringChannelWrapper, lockableSet *lockableNameSet)
 	return NewStringChannelWrapper(smallRevCh, errCh), lockableCh, nil
 }
 
-// catFileBatch uses git cat-file --batch to get the object contents
-// of a git object, given its sha1. The contents will be decoded into
-// a Git LFS pointer. revs is a channel over which strings containing Git SHA1s
-// will be sent. It returns a channel from which point.Pointers can be read.
+// catFileBatch() uses an ObjectDatabase from the
+// github.com/git-lfs/gitobj/v2 package to get the contents of Git
+// blob objects, given their SHA1s, similar to the behaviour of
+// 'git cat-file --batch'.
+// Input Git blob SHA1s should be sent over the revs channel.
+// The blob contents will be decoded as Git LFS pointers and any valid
+// pointers will be returned as pointer.Pointer structs in a new channel.
 func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet, gitEnv, osEnv config.Environment) (*PointerChannelWrapper, chan string, error) {
 	pointerCh := make(chan *WrappedPointer, chanBufSize)
 	lockableCh := make(chan string, chanBufSize)
