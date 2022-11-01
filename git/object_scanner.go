@@ -36,10 +36,10 @@ type ObjectScanner struct {
 }
 
 // NewObjectScanner constructs a new instance of the `*ObjectScanner` type and
-// returns it. It backs the ObjectScanner with an invocation of the `git
-// cat-file --batch` command. If any errors were encountered while starting that
-// command, they will be returned immediately.
-//
+// returns it. It backs the ObjectScanner with an ObjectDatabase from the
+// github.com/git-lfs/gitobj/v2 package.
+// If any errors are encountered while creating the ObjectDatabase,
+// they will be returned immediately.
 // Otherwise, an `*ObjectScanner` is returned with no error.
 func NewObjectScanner(gitEnv, osEnv Environment) (*ObjectScanner, error) {
 	gitdir, err := GitCommonDir()
