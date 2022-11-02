@@ -29,6 +29,18 @@ On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
 to pull down the LFS files.  This bypasses Git's smudging functionality
 and therefore avoids its limitations.
 
+Why do I end up with small text files in my working tree instead of my files?::
+  Git LFS stores small text files called pointer files in the repository instead
+  of your large files, which it stores elsewhere.  These pointer files usually
+  start with the line `version https://git-lfs.github.com/spec/v1`.
++
+Normally, if you've run `git lfs install` at least once for your user account on
+the system, then Git LFS will be automatically invoked by Git when you check out
+files or clone a repository and this won't happen.  However, if you haven't, or
+you've explicitly chosen to skip that behaviour by using the `--skip-smudge`
+option of `git lfs install`, then you may need to use `git lfs pull` to replace
+the pointer files in your working tree with large files.
+
 Why do I end up with some of my working tree files constantly showing as modified?::
   This can happen if someone made a commit to a file that's tracked by Git LFS
   but didn't have Git LFS properly set up on their system.  The objects that
