@@ -72,6 +72,18 @@ command `git lfs fsck --pointers BASE..HEAD` (with suitable values of `BASE` and
 `HEAD`) may be used in your CI system to verify that nobody is introducing such
 problems.
 
+How do I track files that are already in a repository?::
+  If you want to track files that already exist in a repository, you need to do
+  two things.  First, you need to use `git lfs track` (or a manual modification
+  of `.gitattributes`) to mark the files as LFS files.  Then, you need to run
+  `git add --renormalize .` and commit the changes to the repository.
++
+If you skip this second step, then you'll end up with files that are marked as
+LFS files but are stored as Git files, which can lead to files which are always
+modified, as outlined in the FAQ entry above.  Note also that this doesn't
+change large files in your history.  To do that, use `git lfs migrate import
+--everything` instead, as specified in one of the entries below.
+
 How do I enable git diff to work on LFS files?::
   You can run `git config diff.lfs.textconv cat`, which will produce normal
   diffs if your files are text files.
