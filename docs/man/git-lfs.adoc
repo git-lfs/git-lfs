@@ -107,8 +107,8 @@ git-lfs-standalone-file(1)::
 
 To get started with Git LFS, the following commands can be used.
 
-. Setup Git LFS on your system. You only have to do this once per
-repository per machine:
+. Setup Git LFS on your system. You only have to do this once per user
+account:
 +
 ....
 git lfs install
