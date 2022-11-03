@@ -33,11 +33,13 @@ $distro_name_map = {
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
     "opensuse/15.3", # EOL 2022-12
+    "opensuse/15.4",
     # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.3", # LTSS ends 30 Jun 2022
     "sles/12.4",
     "sles/12.5",
-    "sles/15.3",  # Current
+    "sles/12.5",
+    "sles/15.3",
+    "sles/15.4",  # Current
   ],
   "centos/8" => [
     "el/8",
@@ -46,6 +48,7 @@ $distro_name_map = {
   ],
   "rocky/9" => [
     "el/9",
+    "fedora/36",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -72,6 +75,7 @@ $distro_name_map = {
     "debian/bookworm",  # Current testing
     "ubuntu/impish",    # EOL July 2022
     "ubuntu/jammy",     # EOL April 2027
+    "linuxmint/vanessa",# EOL April 2027
   ]
 }
 
