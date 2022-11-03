@@ -53,15 +53,6 @@ $distro_name_map = {
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
-  "debian/9" => [
-    "debian/stretch",   # EOL June 2022
-    "linuxmint/tara",   # EOL April 2023
-    "linuxmint/tessa",  # EOL April 2023
-    "linuxmint/tina",   # EOL April 2023
-    "linuxmint/tricia", # EOL April 2023
-    "ubuntu/xenial",    # ESM April 2024
-    "ubuntu/bionic",    # ESM April 2028
-  ],
   "debian/10" => [
     "debian/buster",    # EOL June 2024
     "linuxmint/ulyana", # EOL April 2025

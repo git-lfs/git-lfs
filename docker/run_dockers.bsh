@@ -59,7 +59,7 @@ done
 
 if [[ ${#IMAGES[@]} == 0 ]]; then
   # If you change this list, change script/upload as well.
-  IMAGES=(centos_7 centos_8 rocky_9 debian_9 debian_10 debian_11)
+  IMAGES=(centos_7 centos_8 rocky_9 debian_10 debian_11)
 fi
 
 mkdir -p "${PACKAGE_DIR}"
