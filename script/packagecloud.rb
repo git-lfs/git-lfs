@@ -33,11 +33,13 @@ $distro_name_map = {
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
     "opensuse/15.3", # EOL 2022-12
+    "opensuse/15.4",
     # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.3", # LTSS ends 30 Jun 2022
     "sles/12.4",
     "sles/12.5",
-    "sles/15.3",  # Current
+    "sles/12.5",
+    "sles/15.3",
+    "sles/15.4",  # Current
   ],
   "centos/8" => [
     "el/8",
@@ -46,19 +48,11 @@ $distro_name_map = {
   ],
   "rocky/9" => [
     "el/9",
+    "fedora/36",
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
   # Mint EOL https://linuxmint.com/download_all.php
-  "debian/9" => [
-    "debian/stretch",   # EOL June 2022
-    "linuxmint/tara",   # EOL April 2023
-    "linuxmint/tessa",  # EOL April 2023
-    "linuxmint/tina",   # EOL April 2023
-    "linuxmint/tricia", # EOL April 2023
-    "ubuntu/xenial",    # ESM April 2024
-    "ubuntu/bionic",    # ESM April 2028
-  ],
   "debian/10" => [
     "debian/buster",    # EOL June 2024
     "linuxmint/ulyana", # EOL April 2025
@@ -72,6 +66,7 @@ $distro_name_map = {
     "debian/bookworm",  # Current testing
     "ubuntu/impish",    # EOL July 2022
     "ubuntu/jammy",     # EOL April 2027
+    "linuxmint/vanessa",# EOL April 2027
   ]
 }
 
@@ -123,7 +118,7 @@ package_files.each do |full_path|
   when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
-  when /rocky\/9/  then ["RPM RHEL 8/Rocky 9", "el/9"]
+  when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
   end
 
   next unless os
