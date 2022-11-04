@@ -32,8 +32,9 @@ begin_test "macros"
   git lfs track '*.dat' 2>&1 | tee track.log
   grep '"*.dat" already supported' track.log
 
-  git lfs track 'dir/*.bin' 2>&1 | tee track.log
-  ! grep '"dir/*.bin" already supported' track.log
+  cd dir
+  git lfs track '*.bin' 2>&1 | tee track.log
+  ! grep '"*.bin" already supported' track.log
 )
 end_test
 
