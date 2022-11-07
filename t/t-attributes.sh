@@ -35,6 +35,16 @@ begin_test "macros"
   cd dir
   git lfs track '*.bin' 2>&1 | tee track.log
   ! grep '"*.bin" already supported' track.log
+
+  # NOTE: At present we do not test that "git lfs track" reports
+  #       "already supported" when it finds a pattern in a subdirectory's
+  #       .gitattributes file which references a macro attribute in
+  #       the top-level .gitattributes file that sets "filter=lfs".
+  #       This is because, while "git check-attr" resolves macro references
+  #       from a file such as dir/.gitattributes to .gitattributess,
+  #       "git lfs track" only resolves macro references as it reads these
+  #       files in depth-first order, so unlike Git it does not expand an
+  #       "lfs" reference to "filter=lfs" if it appears in dir/.gitattributes.
 )
 end_test
 
