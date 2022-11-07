@@ -95,3 +95,53 @@ begin_test "macros with HOME split"
   grep '"*.dat" already supported' track.log
 )
 end_test
+
+begin_test "macros with unspecified flag"
+(
+  set -e
+
+  reponame="$(basename "$0" ".sh")"
+  clone_repo "$reponame" repo-unspecified
+
+  mkdir dir
+  printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n**/*.dat lfs\n' \
+    > .gitattributes
+  printf '*.dat !lfs\n' \
+    > dir/.gitattributes
+  git add .gitattributes dir
+  git commit -m 'initial import'
+
+  contents="some data"
+  printf "$contents" > foo.dat
+  git add *.dat
+  git commit -m 'foo.dat'
+  assert_local_object "$(calc_oid "$contents")" 9
+
+  contents2="other data"
+  printf "$contents2" > dir/foo.dat
+  git add dir
+  git commit -m 'dir/foo.dat'
+  refute_local_object "$(calc_oid "$contents2")"
+
+  git lfs track '**/*.dat' 2>&1 | tee track.log
+  grep '"*\*/\*.dat" already supported' track.log
+
+  # NOTE: The intent of this test is to confirm that running the
+  #       "git lfs track '*.dat'" command in the dir/ directory returns
+  #       "already supported", because it finds the "*.dat" pattern and
+  #       resolves its reference to the "lfs" macro attribute in
+  #       top-level .gitattributes file such that a "filter" attribute
+  #       is recognized, albeit with the unspecified state set.
+  #
+  #       However, as noted in the "macros" test above, because the
+  #       "git lfs track" command parses the dir/.gitattributes file
+  #       before the top-level .gitattributes file, it does not resolve
+  #       the macro attribute reference, and our test would fail despite
+  #       our ability to parse macro attribute references with a "!"
+  #       unspecified flag character prefix.
+
+  #cd dir
+  #git lfs track '*.dat' 2>&1 | tee track.log
+  #grep '"*.dat" already supported' track.log
+)
+end_test

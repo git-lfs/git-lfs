@@ -315,6 +315,40 @@ EOF
 )
 end_test
 
+begin_test "fsck does not detect invalid pointers with negated macro patterns"
+(
+  set -e
+
+  reponame="fsck-pointers-macros-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n*.dat lfs\nb.dat !lfs\n' \
+    >.gitattributes
+  echo "test data" >a.dat
+  cp a.dat b.dat
+  mkdir dir .dir
+  printf '*.dat !lfs\n' >dir/.gitattributes
+  cp b.dat dir
+  printf '*.dat !lfs\n' >.dir/.gitattributes
+  cp b.dat .dir
+  git add .gitattributes *.dat dir .dir
+  git commit -m "first commit"
+
+  # NOTE: The "git lfs fsck" command exempts the .dir/b.dat file from the
+  #       *.dat pattern from the top-level .gitattributes and so permits
+  #       it as a valid non-pointer file; however, it permits it for a
+  #       different reason than the dir/b.dat file, because it processes
+  #       the .dir/.gitattributes file before the .gitattributes one
+  #       and does not recognize the "!lfs" macro attribute reference until
+  #       after it has processed .gitattributes.  Ideally both the dir/
+  #       and .dir/ directories should be processed identically.
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
 setup_invalid_objects () {
   git init $reponame
   cd $reponame
