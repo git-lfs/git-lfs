@@ -38,6 +38,16 @@ func (mp *MacroProcessor) ProcessLines(lines []*Line, readMacros bool) []*Line {
 						resultLine.Attrs,
 						macros...,
 					)
+				} else if attr.Unspecified && macros != nil {
+					for _, m := range macros {
+						resultLine.Attrs = append(
+							resultLine.Attrs,
+							&Attr{
+								K:           m.K,
+								Unspecified: true,
+							},
+						)
+					}
 				}
 
 				// Git copies through aliases as well as
