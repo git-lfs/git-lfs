@@ -35,7 +35,6 @@ begin_test "fsck default"
     exit 1
   fi
 
-
   echo "CORRUPTION" >> .git/lfs/objects/$aOid12/$aOid34/$aOid
 
   moved=$(canonical_path "$TRASHDIR/$reponame/.git/lfs/bad")
@@ -138,6 +137,20 @@ begin_test "fsck: outside git repository"
 )
 end_test
 
+create_invalid_pointers() {
+  valid="$1"
+  ext="${2:-dat}"
+
+  git cat-file blob ":$valid" | awk '{ sub(/$/, "\r"); print }' >"crlf.$ext"
+  base64 /dev/urandom | head -c 1025 >"large.$ext"
+  git \
+    -c "filter.lfs.process=" \
+    -c "filter.lfs.clean=cat" \
+    -c "filter.lfs.required=false" \
+    add "crlf.$ext" "large.$ext"
+  git commit -m "invalid pointers"
+}
+
 setup_invalid_pointers () {
   git init $reponame
   cd $reponame
@@ -149,14 +162,7 @@ setup_invalid_pointers () {
   git add .gitattributes *.dat
   git commit -m "first commit"
 
-  git cat-file blob :a.dat | awk '{ sub(/$/, "\r"); print }' >crlf.dat
-  base64 /dev/urandom | head -c 1025 > large.dat
-  git \
-    -c "filter.lfs.process=" \
-    -c "filter.lfs.clean=cat" \
-    -c "filter.lfs.required=false" \
-    add crlf.dat large.dat
-  git commit -m "second commit"
+  create_invalid_pointers "a.dat"
 }
 
 begin_test "fsck detects invalid pointers"
@@ -177,6 +183,50 @@ begin_test "fsck detects invalid pointers"
   [ "$RET2" -eq 1 ]
   [ $(grep -c 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log) -eq 2 ]
   [ $(grep -c 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log) -eq 2 ]
+)
+end_test
+
+begin_test "fsck detects invalid pointers with macro patterns"
+(
+  set -e
+
+  reponame="fsck-pointers-macros"
+  git init $reponame
+  cd $reponame
+
+  printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n*.dat lfs\n' \
+    >.gitattributes
+  echo "test data" >a.dat
+  mkdir dir
+  printf '*.bin lfs\n' >dir/.gitattributes
+  git add .gitattributes a.dat dir
+  git commit -m "first commit"
+
+  create_invalid_pointers "a.dat"
+
+  cd dir
+  create_invalid_pointers "a.dat" "bin"
+  cd ..
+
+  # NOTE: We should also create a .dir directory with the same files as
+  #       as in the dir/ directory, and confirm those .dir/*.bin files are
+  #       reported by "git lfs fsck" as well.  However, at the moment
+  #       "git lfs fsck" will not resolve a macro attribute reference
+  #       in .dir/.gitattributes because it sorts that file before
+  #       .gitattributes and then processes them in that order.
+
+  set +e
+  git lfs fsck >test.log 2>&1
+  RET=$?
+  git lfs fsck --pointers >>test.log 2>&1
+  RET2=$?
+  set -e
+
+  [ "$RET" -eq 1 ]
+  [ "$RET2" -eq 1 ]
+  [ $(grep -c 'pointer: nonCanonicalPointer: Pointer.*was not canonical' test.log) -eq 4 ]
+  [ $(grep -c 'pointer: unexpectedGitObject: "large.dat".*should have been a pointer but was not' test.log) -eq 2 ]
+  [ $(grep -c 'pointer: unexpectedGitObject: "dir/large.bin".*should have been a pointer but was not' test.log) -eq 2 ]
 )
 end_test
 
@@ -259,6 +309,40 @@ EOF
   cp a.dat b.dat
   git add .gitattributes *.dat
   git commit -m "Add files"
+
+  git lfs fsck
+  git lfs fsck --pointers
+)
+end_test
+
+begin_test "fsck does not detect invalid pointers with negated macro patterns"
+(
+  set -e
+
+  reponame="fsck-pointers-macros-none"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n*.dat lfs\nb.dat !lfs\n' \
+    >.gitattributes
+  echo "test data" >a.dat
+  cp a.dat b.dat
+  mkdir dir .dir
+  printf '*.dat !lfs\n' >dir/.gitattributes
+  cp b.dat dir
+  printf '*.dat !lfs\n' >.dir/.gitattributes
+  cp b.dat .dir
+  git add .gitattributes *.dat dir .dir
+  git commit -m "first commit"
+
+  # NOTE: The "git lfs fsck" command exempts the .dir/b.dat file from the
+  #       *.dat pattern from the top-level .gitattributes and so permits
+  #       it as a valid non-pointer file; however, it permits it for a
+  #       different reason than the dir/b.dat file, because it processes
+  #       the .dir/.gitattributes file before the .gitattributes one
+  #       and does not recognize the "!lfs" macro attribute reference until
+  #       after it has processed .gitattributes.  Ideally both the dir/
+  #       and .dir/ directories should be processed identically.
 
   git lfs fsck
   git lfs fsck --pointers

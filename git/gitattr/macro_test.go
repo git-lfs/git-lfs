@@ -61,6 +61,39 @@ func TestProcessLinesWithMacrosDisabled(t *testing.T) {
 	assert.Equal(t, lines[1].Attrs[0], &Attr{K: "text", V: "true"})
 }
 
+func TestProcessLinesWithUnspecifiedMacros(t *testing.T) {
+	lines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
+		"[attr]lfs filter=lfs diff=lfs merge=lfs -text",
+		"*.dat lfs",
+		"*.dat !lfs"}, "\n")))
+
+	assert.Len(t, lines, 3)
+	assert.NoError(t, err)
+
+	mp := NewMacroProcessor()
+	lines = mp.ProcessLines(lines, true)
+
+	assert.Len(t, lines, 2)
+
+	assert.Equal(t, lines[0].Macro, "")
+	assert.Equal(t, lines[0].Pattern.String(), "*.dat")
+	assert.Len(t, lines[0].Attrs, 5)
+	assert.Equal(t, lines[0].Attrs[0], &Attr{K: "filter", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[1], &Attr{K: "diff", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[2], &Attr{K: "merge", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs[3], &Attr{K: "text", V: "false"})
+	assert.Equal(t, lines[0].Attrs[4], &Attr{K: "lfs", V: "true"})
+
+	assert.Equal(t, lines[1].Macro, "")
+	assert.Equal(t, lines[1].Pattern.String(), "*.dat")
+	assert.Len(t, lines[1].Attrs, 5)
+	assert.Equal(t, lines[1].Attrs[0], &Attr{K: "filter", V: "", Unspecified: true})
+	assert.Equal(t, lines[1].Attrs[1], &Attr{K: "diff", V: "", Unspecified: true})
+	assert.Equal(t, lines[1].Attrs[2], &Attr{K: "merge", V: "", Unspecified: true})
+	assert.Equal(t, lines[1].Attrs[3], &Attr{K: "text", V: "", Unspecified: true})
+	assert.Equal(t, lines[1].Attrs[4], &Attr{K: "lfs", V: "", Unspecified: true})
+}
+
 func TestProcessLinesWithBinaryMacros(t *testing.T) {
 	lines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
 		"*.dat binary",
