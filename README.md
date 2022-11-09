@@ -187,8 +187,8 @@ $ git lfs help <subcommand>
 ```
 
 The [official documentation](docs) has command references and specifications for
-the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) on
-the wiki which answers some common questions.
+the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-faq.adoc)
+shipped with Git LFS which answers some common questions.
 
 If you have a question on how to use Git LFS, aren't sure about something, or
 are looking for input from others on tips about best practices or use cases,

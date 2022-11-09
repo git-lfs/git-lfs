@@ -628,6 +628,7 @@ MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-dedup.1 \
   man/man1/git-lfs-env.1 \
   man/man1/git-lfs-ext.1 \
+  man/man7/git-lfs-faq.7 \
   man/man1/git-lfs-fetch.1 \
   man/man1/git-lfs-filter-process.1 \
   man/man1/git-lfs-fsck.1 \
@@ -664,6 +665,7 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-dedup.1.html \
   man/html/git-lfs-env.1.html \
   man/html/git-lfs-ext.1.html \
+  man/html/git-lfs-faq.7.html \
   man/html/git-lfs-fetch.1.html \
   man/html/git-lfs-filter-process.1.html \
   man/html/git-lfs-fsck.1.html \
@@ -697,11 +699,11 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
 man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 
 # man/% generates ROFF-style man pages from the corresponding .ronn file.
-man/man1/%.1 man/man5/%.5 : docs/man/%.adoc
+man/man1/%.1 man/man5/%.5 man/man7/%.7 : docs/man/%.adoc
 	@mkdir -p man/man1 man/man5
 	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $^
 
 # man/%.html generates HTML-style man pages from the corresponding .ronn file.
-man/html/%.1.html man/html/%.5.html : docs/man/%.adoc
+man/html/%.1.html man/html/%.5.html man/html/%.7.html : docs/man/%.adoc
 	@mkdir -p man/html
 	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $^

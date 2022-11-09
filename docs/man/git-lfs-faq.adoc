@@ -1,0 +1,144 @@
+= git-lfs-faq(7)
+
+== NAME
+
+git-lfs-faq - FAQ for Git LFS
+
+== ENTRIES
+
+Does Git LFS provide a way to track files by size?::
+  No, it doesn't.  Unfortunately, Git itself doesn't specify a way to make
+  `.gitattributes` patterns apply to files of a certain size and we rely on
+  the `.gitattributes` file to specify which files are tracked by Git LFS.
++
+You _can_ use the `--above` option to `git lfs migrate import` to migrate
+all files that at the specified time are larger than a certain size.  However,
+if your files change to be smaller or larger in the future, or you add more
+files in the future that are larger than the limit you specified, you will have
+to track them manually.
++
+For these reasons, we recommend using patterns rather than `--above`.
+
+Why doesn't Git LFS handle files larger than 4 GiB on Windows?::
+  Git LFS itself handles these files just fine.  However, Git LFS is usually
+  invoked by Git, and until Git 2.34, Git itself on Windows didn't handle files
+  using smudge and clean filters (like Git LFS) that are larger than 4 GiB.
+  So you can update Git for Windows to 2.34 to natively support these file sizes.
++
+On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
+to pull down the LFS files.  This bypasses Git's smudging functionality
+and therefore avoids its limitations.
+
+Why do I end up with small text files in my working tree instead of my files?::
+  Git LFS stores small text files called pointer files in the repository instead
+  of your large files, which it stores elsewhere.  These pointer files usually
+  start with the line `version https://git-lfs.github.com/spec/v1`.
++
+Normally, if you've run `git lfs install` at least once for your user account on
+the system, then Git LFS will be automatically invoked by Git when you check out
+files or clone a repository and this won't happen.  However, if you haven't, or
+you've explicitly chosen to skip that behaviour by using the `--skip-smudge`
+option of `git lfs install`, then you may need to use `git lfs pull` to replace
+the pointer files in your working tree with large files.
+
+Why do I end up with some of my working tree files constantly showing as modified?::
+  This can happen if someone made a commit to a file that's tracked by Git LFS
+  but didn't have Git LFS properly set up on their system.  The objects that
+  were checked into the repository are Git objects, not the pointers to Git LFS
+  objects, and when Git checks these files out, it shows them as modified.
++
+There are also several other possible ways to encounter this problem, such as an
+incomplete migration of your repository.  For example, you should not use `git
+lfs track` to track patterns that are already in your repository without running
+`git add --renormalize .`, since that can lead to this problem.
++
+Users frequently find that this cannot be changed by doing `git reset --hard` or
+other techniques because Git then checks the files out and marks them as
+modified again.  The best way to solve this problem is by fixing the files and
+the committing the change, which you can do with the following on an otherwise
+clean tree:
++
+[source,shell-session]
+----
+$ git add --renormalize .
+$ git commit -m "Fix broken LFS files"
+----
++
+This requires that every branch you want to fix have this done to it.
++
+To prevent this from reoccurring in the future, make sure that everyone working
+with large files on a project has run `git lfs install` at least once.  The
+command `git lfs fsck --pointers BASE..HEAD` (with suitable values of `BASE` and
+`HEAD`) may be used in your CI system to verify that nobody is introducing such
+problems.
+
+How do I track files that are already in a repository?::
+  If you want to track files that already exist in a repository, you need to do
+  two things.  First, you need to use `git lfs track` (or a manual modification
+  of `.gitattributes`) to mark the files as LFS files.  Then, you need to run
+  `git add --renormalize .` and commit the changes to the repository.
++
+If you skip this second step, then you'll end up with files that are marked as
+LFS files but are stored as Git files, which can lead to files which are always
+modified, as outlined in the FAQ entry above.  Note also that this doesn't
+change large files in your history.  To do that, use `git lfs migrate import
+--everything` instead, as specified in one of the entries below.
+
+How do I enable git diff to work on LFS files?::
+  You can run `git config diff.lfs.textconv cat`, which will produce normal
+  diffs if your files are text files.
+
+How do I enable git diff to work on LFS files based on extension or path?::
+  If the above solution is too broad, each entry in the `.gitattributes` file
+  can be customized by creating a custom global converter:
++
+[source,shell-session]
+----
+$ git config --global diff.lfstext.textconv cat
+----
++
+Any given `.gitattributes` entry for large text files can be customized to use
+  this global text converter (e.g., patch files), whereas binary formats can
+  continue to use the conventional lfs diff tool, like so:
++
+[source,shell-session]
+----
+$ cat .gitattributes
+....
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.patch filter=lfs diff=lfstext merge=lfs -text
+....
+----
++
+Be advised that all developers sharing this repo with such a modified
+`.gitattributes` file must have similarly configured the `lfstext` text
+converter, whether globally or on a per repository basis.
+
+How do I convert from using Git LFS to a plain Git repository?::
+  If you'd like to stop using Git LFS and switch back to storing your large
+  files in the plain Git format, you can do so with `git lfs migrate export
+  --everything`.  Note that you will need to provide an appropriate `--include`
+  option to match all the patterns that you currently have tracked in any ref.
++
+This also rewrites history, so the Git object IDs of many, if not all, of your
+objects will change.
+
+I'm using Git LFS, but I still see GitHub's large file error.  How do I fix this?::
+  GitHub rejects large files anywhere in the history of your repository, not
+  just in the latest commit.  If you're still seeing this message, then you have
+  some large files somewhere in your history, even if in the latest commits
+  you've moved them to Git LFS.
++
+To fix this, you can use `git lfs migrate import --everything` with an
+appropriate `--include` argument.  For example, if you wanted to move your
+`.jpg` and `.png` files into Git LFS, you can do that with
+`git lfs migrate import --everything --include="\*.jpg,*.png"`.  More complicated
+patterns are possible: run `git help gitattributes` for more information on
+valid patterns.  Note that if you're specifying directories, using slashes is
+mandatory: backslashes are not allowed as path separators.
+
+== SEE ALSO
+
+git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
+
+Part of the git-lfs(1) suite.
