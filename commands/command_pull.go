@@ -113,7 +113,8 @@ func pull(filter *filepathfilter.Filter) {
 	}
 
 	if singleCheckout.Skip() {
-		fmt.Println(tr.Tr.Get("Skipping object checkout, Git LFS is not installed for this repository. Consider installing it with 'git lfs install'."))
+		fmt.Println(tr.Tr.Get("Skipping object checkout, Git LFS is not installed for this repository.\n" +
+		                      "Consider installing it with 'git lfs install'."))
 	}
 }
 
