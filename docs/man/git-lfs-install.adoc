@@ -50,8 +50,9 @@ and clean filters if they are not already set.
   manual "git lfs pull" every time a new commit is checked out on your
   repository.
 `--skip-repo`::
-  Skips setup of the local repo; use if you want to install the global lfs
-  filters but not make changes to the current repo.
+  Skips installation of hooks into the local repository; use if you want to
+  install the LFS filters but not make changes to the hooks.  It is valid to use
+  `--local`, `--global`, or `--system` in conjunction with this option.
 
 == SEE ALSO
 
