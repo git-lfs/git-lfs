@@ -137,6 +137,23 @@ patterns are possible: run `git help gitattributes` for more information on
 valid patterns.  Note that if you're specifying directories, using slashes is
 mandatory: backslashes are not allowed as path separators.
 
+I'm using Jenkins and `git lfs install` fails due to an invalid hook path.  What do I do?::
+  Recent versions of Jenkins have set `core.hooksPath` to various values,
+  notably `NUL:` on Windows, with the goal of disabling hooks.  This is not a
+  valid path on Windows, nor a valid value for this configuration option, so
+  when `git lfs install` runs and Git LFS attempts to install hooks, the
+  operation fails.
++
+The easiest way to solve this problem is by using the `--skip-repo` option to
+`git lfs install`, which skips the installation of the hooks.  Despite the name,
+it can be successfully combined with `--local` if you need that option.
++
+Note that this prevents things like `git push` from pushing LFS objects and
+locked files from being read only, since those are implemented by hooks.  If you
+need that functionality, you should review the Jenkins documentation about how
+to properly configure the environment in such a situation so that hooks can be
+used.
+
 == SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
