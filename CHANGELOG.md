@@ -1,5 +1,81 @@
 # Git LFS Changelog
 
+## 3.3.0 (30 November 2022)
+
+This release is a feature release which includes package support for Red Hat
+Enterprise Linux 9 and compatible OSes, experimental support for multiple
+remotes, and some command-line helpers for `git lfs push`.
+
+In this release, we no longer include vendored versions of our dependencies in
+the repository or the tarballs.  These were a source of noise and bloat, and
+users can easily download the required dependencies with Go itself.  Users who
+need to continue to vendor the dependencies can use the `make vendor` target.
+
+In addition, we've also switched the documentation to AsciiDoc from
+ronn-flavoured Markdown and included the FAQ in the repository.  This means that
+the manual pages now render properly in the GitHub web interface and it's also
+much easier to create additional formats, such as PDF, by leveraging the ability
+of Asciidoctor to convert to DocBook.
+
+It should also be noted that `git lfs migrate import --everything` now processes
+all refs that aren't special to Git instead of just branches and tags.  This is
+what it was documented to do, but didn't, so we've fixed it.
+
+Finally, please note that future releases may be done by a different member of
+the core team than many of the past releases, and thus may be signed by a
+different OpenPGP key.  Please follow [the steps in the README to download all
+of the keys for the core
+team](https://github.com/git-lfs/git-lfs#verifying-releases) to verify releases
+successfully in the future.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dhiwakarK for fixing a broken link
+* @dscho for improving our installer
+* @Leo1690 for speeding things up with sparse checkout
+* @pratap043 for proposing an extension to locking
+* @rcoup for fixing our Makefile and adding scripting features to `git lfs push`
+* @srohmen for adding support for alternative remotes
+* @WhatTheFuzz for improving our error messages
+* @wuhaochen for fixing a long-standing bug with `git lfs migrate import`
+
+### Features
+
+* Add the FAQ in the repository #5167 (@bk2204)
+* Add support for Rocky Linux 9 #5144 (@bk2204)
+* push: add ability to read refs/oids from stdin #5086 (@rcoup)
+* Allow alternative remotes to be handled by LFS #5066 (@srohmen)
+* Switch documentation to AsciiDoc #5054 (@bk2204)
+
+### Bugs
+
+* Handle macro attribute references with unspecified flag #5168 (@chrisd8088)
+* Fixed broken link for git-lfs-migrate #5153 (@dhiwakarK)
+* ssh: disable concurrent transfers if no multiplexing #5136 (@bk2204)
+* Fix setting commit & vendor variables via make #5141 (@rcoup)
+* ssh: don't leak resources when falling back to legacy protocol #5137 (@bk2204)
+* Bump gitobj to v2.1.1 #5130 (@bk2204)
+* tools: don't match MINGW as Cygwin #5106 (@bk2204)
+* installer: handle `BashOnly` Git for Windows gracefully #5048 (@dscho)
+* Change git-lfs migrate import --everything to migrate everything except for special git refs #5045 (@wuhaochen)
+
+### Misc
+
+* Use --sparse parameter for ls-files for performance optimization #5187 (@Leo1690)
+* Add information to ambiguous error message. #5172 (@WhatTheFuzz)
+* Distro update for v3.3.0 #5169 (@bk2204)
+* docs/man: clarify Git LFS setup instructions #5166 (@larsxschneider)
+* Update more stale comments relating to object scanning #5164 (@chrisd8088)
+* Update stale comments relating to object scanning and uploading #5163 (@chrisd8088)
+* script/cibuild: exclude icons from whitespace check #5142 (@bk2204)
+* Update to Go version 1.19 #5126 (@chrisd8088)
+* Drop vendoring #4903 (@bk2204)
+* Adding locking_notes.md #5079 (@pratap043)
+* t: set init.defaultBranch #5082 (@bk2204)
+* go.mod: require gopkg.in/yaml.v3 v3.0.1 #5033 (@bk2204)
+* script/upload: improve readability of asset verification #5032 (@bk2204)
+
 ## 3.2.0 (25 May 2022)
 
 This release is a feature release which includes support for machine-readable
