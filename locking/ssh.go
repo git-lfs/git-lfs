@@ -228,7 +228,7 @@ func (c *sshLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequ
 	conn := c.connection()
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage("list-locks", args)
+	err := conn.SendMessage("list-lock", args)
 	if err != nil {
 		return nil, 0, err
 	}
