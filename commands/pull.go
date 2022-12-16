@@ -18,11 +18,9 @@ import (
 // Handles the process of checking out a single file, and updating the git
 // index.
 func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckout {
-	manifest := getTransferManifestOperationRemote("download", remote)
-
 	clean, ok := gitEnv.Get("filter.lfs.clean")
 	if !ok || len(clean) == 0 {
-		return &noOpCheckout{manifest: manifest}
+		return &noOpCheckout{remote: remote}
 	}
 
 	// Get a converter from repo-relative to cwd-relative
@@ -35,7 +33,8 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 	return &singleCheckout{
 		gitIndexer:    &gitIndexer{},
 		pathConverter: pathConverter,
-		manifest:      manifest,
+		manifest:      nil,
+		remote:        remote,
 	}
 }
 
@@ -51,9 +50,13 @@ type singleCheckout struct {
 	gitIndexer    *gitIndexer
 	pathConverter lfs.PathConverter
 	manifest      *tq.Manifest
+	remote        string
 }
 
 func (c *singleCheckout) Manifest() *tq.Manifest {
+	if c.manifest == nil {
+		c.manifest = getTransferManifestOperationRemote("download", c.remote)
+	}
 	return c.manifest
 }
 
@@ -113,9 +116,13 @@ func (c *singleCheckout) Close() {
 
 type noOpCheckout struct {
 	manifest *tq.Manifest
+	remote   string
 }
 
 func (c *noOpCheckout) Manifest() *tq.Manifest {
+	if c.manifest == nil {
+		c.manifest = getTransferManifestOperationRemote("download", c.remote)
+	}
 	return c.manifest
 }
 
