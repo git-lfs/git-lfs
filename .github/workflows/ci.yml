@@ -6,7 +6,7 @@ jobs:
     name: Build with default Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         go: ['1.19.x']
     runs-on: ${{ matrix.os }}
     steps:
@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         go: ['1.18.x']
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-go@v2
@@ -107,7 +107,7 @@ jobs:
     name: Build with latest Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -118,7 +118,7 @@ jobs:
     name: Build with earliest Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -127,7 +127,7 @@ jobs:
     - run: script/cibuild
   build-docker:
     name: Build Linux packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: ruby/setup-ruby@v1
@@ -136,7 +136,7 @@ jobs:
     - run: ./docker/run_dockers.bsh --prune
   build-docker-cross:
     name: Build Cross Linux packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [arm64]
