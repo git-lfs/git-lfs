@@ -49,11 +49,6 @@ fi
 
 SPEC=${CURDIR}/SPECS/git-lfs.spec
 
-if [[ ${VERSION_ID[0]} == 5 ]]; then
-  if ! rpm -q epel-release > /dev/null 2>&1; then
-    $SUDO yum install -y epel-release
-  fi
-fi
 $SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
