@@ -42,23 +42,6 @@ $SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
-if ! command -v go; then
-  echo "Installing go... one way or another"
-  if [[ ${VERSION_ID[0]} == 5 ]]; then
-    $SUDO yum install -y curl.x86_64 glibc gcc
-    ${CURDIR}/golang_patch.bsh
-    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/noarch/golang-1*.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-bin-linux-amd64-1*.rpm \
-    ${CURDIR}/RPMS/noarch/golang-src-1*.noarch.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-linux-amd64-1*.noarch.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-linux-386-1*.noarch.rpm
-  else
-    $SUDO yum install -y epel-release
-    $SUDO yum install -y golang
-  fi
-fi
-
 if command -v ruby > /dev/null 2>&1; then
   IFS_OLD=${IFS}
   IFS=.
