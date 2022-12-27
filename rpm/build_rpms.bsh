@@ -64,7 +64,7 @@ pushd ${CURDIR}/..
   #Use the version output to grab the version number and short sha
   #(that yes, I could have gotten from git myself)
   LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')
-  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
+  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' "$SPEC"
 popd
 
 #Prep the SOURCES dir for git-lfs
@@ -92,6 +92,6 @@ touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 echo "Build git-lfs rpm..."
 
 #--no-deps added for now so you can compile without official rpms installed
-"${RPMBUILD[@]}" --nodeps -ba ${CURDIR}/SPECS/git-lfs.spec
+"${RPMBUILD[@]}" --nodeps -ba "$SPEC"
 
 echo "All Done!"
