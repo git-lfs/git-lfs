@@ -42,41 +42,6 @@ $SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
-if command -v ruby > /dev/null 2>&1; then
-  IFS_OLD=${IFS}
-  IFS=.
-  RUBY_VERSION=($(ruby -e "print RUBY_VERSION"))
-  IFS=${IFS_OLD}
-else
-  RUBY_VERSION=(0 0 0)
-fi
-
-if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if [[ ${VERSION_ID[0]} < 7 ]]; then
-    echo "Downloading ruby..."
-
-    if ! rpm -q epel-release; then
-      $SUDO yum install -y epel-release #Optional part of centos
-    fi
-
-    $SUDO yum install -y patch libyaml-devel glibc-headers autoconf gcc-c++ glibc-devel readline-devel zlib-devel libffi-devel openssl-devel automake libtool sqlite-devel
-    pushd ${CURDIR}/SOURCES
-      curl -L -O http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
-    popd
-    echo "Building ruby..."
-    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
-    echo "Installing ruby..."
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
-    $SUDO yum erase -y libyaml-devel autoconf gcc-c++ readline-devel zlib-devel openssl-devel automake libtool sqlite-devel
-  else
-    $SUDO yum install -y ruby ruby-devel
-  fi
-fi
-
-if [[ ${VERSION_ID[0]} == 8 ]]; then
-  $SUDO yum install -y rubygems-devel
-fi
-
 if ! command -v asciidoctor; then
   echo "Downloading some ruby gems..."
   pushd ${CURDIR}/SOURCES
