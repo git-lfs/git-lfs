@@ -36,31 +36,11 @@ export PATH=${PATH}:/usr/local/bin
 
 set -vx
 
-echo "Downloading/checking for some essentials..."
-if command -v git > /dev/null 2>&1; then
-  GIT_VERSION=($(git --version))
-  IFS_OLD=${IFS}
-  IFS=.
-  GIT_VERSION=(${GIT_VERSION[2]})
-  IFS=${IFS_OLD}
-else
-  GIT_VERSION=(0 0 0)
-fi
-
 SPEC=${CURDIR}/SPECS/git-lfs.spec
 
 $SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
-
-if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
-  if [[ ${VERSION_ID[0]} != 6 ]]; then
-    $SUDO yum install -y git
-  else
-    curl https://setup.ius.io/ | $SUDO bash
-    yum install -y "git >= 1.8.2"
-  fi
-fi
 
 if ! command -v go; then
   echo "Installing go... one way or another"
