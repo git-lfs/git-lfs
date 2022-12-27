@@ -43,16 +43,16 @@ $SUDO yum install -y rpm-build
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
 if ! command -v asciidoctor; then
-  echo "Downloading some ruby gems..."
+  echo "Downloading Asciidoctor ruby gem..."
   pushd ${CURDIR}/SOURCES
     curl -L -O https://rubygems.org/downloads/asciidoctor-2.0.17.gem
   popd
 
-  echo "Building ruby gems..."
+  echo "Building Asciidoctor ruby gem..."
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-asciidoctor.spec
 
-  echo "Installing ruby gems..."
-  $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
+  echo "Installing Asciidoctor ruby gem..."
+  $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm | grep -v debuginfo)
 fi
 
 rm -fr ${CURDIR}/{BUILD,BUILDROOT}
