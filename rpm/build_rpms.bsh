@@ -3,15 +3,10 @@
 set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
-if [ -e /etc/os-release ]; then
-  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
-  OS_NAME=$(source /etc/os-release; echo ${NAME})
-  OS_NAME=${OS_NAME,,}
-else #Basically Centos 5/6
-  VERSION_ID=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
-  OS_NAME=$(awk '{print tolower($1)}' /etc/redhat-release)
-  #Stupid ancient bash 3...
-fi
+
+VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
+OS_NAME=$(source /etc/os-release; echo ${NAME})
+OS_NAME=${OS_NAME,,}
 
 case "${OS_NAME}" in
   centos*|red*|almalinux|rocky*)
