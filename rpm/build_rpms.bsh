@@ -86,9 +86,10 @@ rm -rf ${CURDIR}/tmptar
 #cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
-echo "Build git-lfs rpm..."
+echo "Build git-lfs RPMs..."
 
 #--no-deps added for now so you can compile without official rpms installed
 "${RPMBUILD[@]}" --nodeps -ba "$SPEC"
+"${RPMBUILD[@]}" --nodeps --target=i686 -bb "$SPEC"
 
 echo "All Done!"
