@@ -27,9 +27,6 @@ case "${OS_NAME}" in
 esac
 
 RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --define "dist ${RPM_DIST}")
-if [[ ${NODEPS:-0} != 0 ]]; then
-  RPMBUILD=("${RPMBUILD[@]}" --nodeps)
-fi
 
 SUDO=${SUDO=`if command -v sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
