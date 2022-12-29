@@ -121,8 +121,8 @@ jobs:
         name: macos-assets
     - run: CGO_ENABLED=0 make release
     - run: rm -f bin/releases/*windows* bin/releases/*darwin*
-    - run: 'find windows-assets -name "*windows*" -type f | xargs -L1 -I{} mv {} bin/releases'
-    - run: 'find macos-assets -name "*darwin*" -type f | xargs -L1 -I{} mv {} bin/releases'
+    - run: 'find windows-assets -name "*windows*" -type f | xargs -I{} mv {} bin/releases'
+    - run: 'find macos-assets -name "*darwin*" -type f | xargs -I{} mv {} bin/releases'
     - run: script/upload --skip-verify $(git describe)
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
