@@ -8,9 +8,7 @@ in the RPMS directory and a source-rpm in SRPMS.
 In order to expedite installing all dependencies (mainly asciidoctor and golang)
 and download any needed files a build_rpms.bsh script is included. This is the
 **RECOMMENDED** way to build the rpms. It will install all yum packages in
-order to build the rpm. This can be especially difficult in CentOS 5 and 6,
-but it will build and install a suitable golang/ruby so that git-lfs can be
-built.
+order to build the rpm.
 
 Simple run:
 

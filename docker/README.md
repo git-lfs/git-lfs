@@ -47,7 +47,7 @@ To only run certain docker images, supply them as arguments, e.g.
 
     ./docker/run_docker.bsh debian_7
     ./docker/run_docker.bsh centos_7 debian_8
-    ./docker/run_docker.bsh centos_{6,7}
+    ./docker/run_docker.bsh centos_{7,8}
 
 And only those images will be run.
 
@@ -101,10 +101,10 @@ In order to save the necessary dependencies, call `./docker/run_dockers.bsh` on
 will be extracted from the images and saved in the `./repo` directory.
 (This _can_ be done in one command)
 
-    ./docker/run_dockers.bsh centos_6_env centos_6
+    ./docker/run_dockers.bsh centos_7_env centos_7
 
-This isn't all that important anymore, unless you want ruby2 and the gems used to
-make the man pages for CentOS 6 where ruby2 is not natively available. Calling
+This isn't all that important anymore, unless you want the Ruby gem used to
+make the man pages for CentOS where it is not natively available. Calling
 the environment building images only needs to be done once, they should remain in
 the `./repo` directory afterwards.
 
