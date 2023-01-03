@@ -1,11 +1,11 @@
 # GIT_LFS_SHA is the '--short'-form SHA1 of the current revision of Git LFS.
-GIT_LFS_SHA ?= $(shell git rev-parse --short HEAD)
+GIT_LFS_SHA ?= $(shell env -u GIT_TRACE git rev-parse --short HEAD)
 # VERSION is the longer-form describe output of the current revision of Git LFS,
 # used for identifying intermediate releases.
 #
 # If Git LFS is being built for a published release, VERSION and GIT_LFS_SHA
 # should be identical.
-VERSION ?= $(shell git describe HEAD)
+VERSION ?= $(shell env -u GIT_TRACE git describe HEAD)
 
 # PREFIX is VERSION without the leading v, for use in archive prefixes.
 PREFIX ?= $(patsubst v%,git-lfs-%,$(VERSION))
