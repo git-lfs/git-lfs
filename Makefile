@@ -1,11 +1,11 @@
 # GIT_LFS_SHA is the '--short'-form SHA1 of the current revision of Git LFS.
-GIT_LFS_SHA ?= $(shell git rev-parse --short HEAD)
+GIT_LFS_SHA ?= $(shell env -u GIT_TRACE git rev-parse --short HEAD)
 # VERSION is the longer-form describe output of the current revision of Git LFS,
 # used for identifying intermediate releases.
 #
 # If Git LFS is being built for a published release, VERSION and GIT_LFS_SHA
 # should be identical.
-VERSION ?= $(shell git describe HEAD)
+VERSION ?= $(shell env -u GIT_TRACE git describe HEAD)
 
 # PREFIX is VERSION without the leading v, for use in archive prefixes.
 PREFIX ?= $(patsubst v%,git-lfs-%,$(VERSION))
@@ -26,9 +26,9 @@ GO_TEST_EXTRA_ARGS =
 # DWARF-stripping is enabled unless DWARF=YesPlease.
 BUILTIN_LD_FLAGS =
 ifneq ("$(VENDOR)","")
-BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/config.Vendor=$(VENDOR)
+BUILTIN_LD_FLAGS += -X 'github.com/git-lfs/git-lfs/v3/config.Vendor=$(VENDOR)'
 endif
-BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/config.GitCommit=$(GIT_LFS_SHA)
+BUILTIN_LD_FLAGS += -X github.com/git-lfs/git-lfs/v3/config.GitCommit=$(GIT_LFS_SHA)
 ifneq ("$(DWARF)","YesPlease")
 BUILTIN_LD_FLAGS += -s
 BUILTIN_LD_FLAGS += -w
@@ -53,6 +53,11 @@ RONN ?= ronn
 # RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
 RONN_EXTRA_ARGS ?=
 
+# ASCIIDOCTOR is the name of the 'asciidoctor' program used to generate man pages.
+ASCIIDOCTOR ?= asciidoctor
+# ASCIIDOCTOR_EXTRA_ARGS are extra arguments given to the $(ASCIIDOCTOR) program when invoked.
+ASCIIDOCTOR_EXTRA_ARGS ?= -a reproducible
+
 # GREP is the name of the program used for regular expression matching, or
 # 'grep' if unset.
 GREP ?= grep
@@ -68,9 +73,6 @@ GOIMPORTS_EXTRA_OPTS ?= -w -l
 
 # TAR is the tar command, either GNU or BSD (libarchive) tar.
 TAR ?= tar
-
-# BSDTAR is BSD (libarchive) tar.
-BSDTAR ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo bsdtar || echo $(TAR))
 
 TAR_XFORM_ARG ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
 TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
@@ -173,12 +175,16 @@ endif
 # entrypoint be given, hence the below conditional. On Windows, it is required
 # that an entrypoint not be given so that goversioninfo can successfully embed
 # the resource.syso file (for more, see below).
+#
+# BSDTAR is BSD (libarchive) tar.
 ifeq ($(OS),Windows_NT)
 X ?= .exe
 BUILD_MAIN ?=
+BSDTAR ?= C:/Windows/system32/tar.exe
 else
 X ?=
 BUILD_MAIN ?= ./git-lfs.go
+BSDTAR ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo bsdtar || echo $(TAR))
 endif
 
 # BUILD is a macro used to build a single binary of Git LFS using the above
@@ -407,12 +413,14 @@ $(RELEASE_INCLUDES) bin/git-lfs-darwin-% script/install.sh
 # CRLF in the non-binary components of the artifact.
 bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-windows-%.exe
 	@mkdir -p bin/releases
-	$(BSDTAR) --format zip \
-		-s '!bin/!$(PREFIX)/!' \
-		-s '!script/!$(PREFIX)/!' \
-		-s '!\(.*\)\.md!$(PREFIX)/\1.md!' \
-		-s '!man!$(PREFIX)/man!' \
-		-cf $@ $^
+	# Windows's bsdtar doesn't support -s, so do the same thing as for Darwin, but
+	# by hand.
+	temp=$$(mktemp -d); \
+	file="$$PWD/$@" && \
+	mkdir -p "$$temp/$(PREFIX)/man" && \
+	cp -r $^ "$$temp/$(PREFIX)" && \
+	(cd "$$temp" && $(BSDTAR) --format zip -cf "$$file" $(PREFIX)) && \
+	$(RM) -r "$$temp"
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
@@ -558,7 +566,7 @@ test-race : GO_TEST_EXTRA_ARGS=-race
 # And so on.
 test : fmt $(.DEFAULT_GOAL)
 	( \
-		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; \
+		unset GIT_DIR; unset GIT_WORK_TREE; unset XDG_CONFIG_HOME; unset XDG_RUNTIME_DIR; \
 		tempdir="$$(mktemp -d)"; \
 		export HOME="$$tempdir"; \
 		export GIT_CONFIG_NOSYSTEM=1; \
@@ -612,36 +620,6 @@ lint : $(SOURCES)
 	| $(GREP) -v "github.com/git-lfs/git-lfs" \
 	| $(GREP) "."
 
-# generate index.txt for ronn HTML man page link generation
-.PHONY : index.txt
-index.txt :
-	@echo "Generating index.txt for ronn"
-	@( \
-		printf "# internal\n" >index.txt; \
-		for f in $$(cd docs/man && ls git-lfs*.ronn); do \
-			l=$$(printf "$$f" | sed -E 's/\.([1-9])\.ronn$$/(\1)/'); \
-			printf "%s %s\n" "$$l $$f"; \
-		done >>index.txt; \
-		printf "\n# external\n" >>index.txt; \
-		for l in $$(awk 'p && FNR==1 {p=0}; \
-		                 p && /^#/ {p=0}; \
-		                 p && length; \
-		                 /^## SEE ALSO/ {p=1};' \
-				docs/man/git-lfs*.ronn | \
-				sed 's/[^-a-z0-9()]/ /g' | tr -s ' ' '\n' | \
-				sort -u | grep '([1-9])' | grep -v ^git-lfs); do \
-			p=$$(printf "$$l" | head -c 3); \
-			if [ "$$p" = "git" ]; then \
-				f="git-scm.com/docs/%s"; \
-				u=$$(printf "$$l" | sed -E 's/^(.*)\([1-9]\)$$/\1/'); \
-			else \
-				f="man7.org/linux/man-pages/man%s.html"; \
-				u=$$(printf "$$l" | sed -E 's/^(.*)\(([1-9])\)$$/\2\/\1.\2/'); \
-			fi; \
-			printf "%s https://$$f\n" "$$l" "$$u"; \
-		done >>index.txt; \
-	)
-
 # MAN_ROFF_TARGETS is a list of all ROFF-style targets in the man pages.
 MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-clean.1 \
@@ -650,6 +628,7 @@ MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-dedup.1 \
   man/man1/git-lfs-env.1 \
   man/man1/git-lfs-ext.1 \
+  man/man7/git-lfs-faq.7 \
   man/man1/git-lfs-fetch.1 \
   man/man1/git-lfs-filter-process.1 \
   man/man1/git-lfs-fsck.1 \
@@ -686,6 +665,7 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-dedup.1.html \
   man/html/git-lfs-env.1.html \
   man/html/git-lfs-ext.1.html \
+  man/html/git-lfs-faq.7.html \
   man/html/git-lfs-fetch.1.html \
   man/html/git-lfs-filter-process.1.html \
   man/html/git-lfs-fsck.1.html \
@@ -716,14 +696,14 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
 
 # man generates all ROFF- and HTML-style manpage targets.
 .PHONY : man
-man : index.txt $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
+man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 
 # man/% generates ROFF-style man pages from the corresponding .ronn file.
-man/man1/% man/man5/% : docs/man/%.ronn
+man/man1/%.1 man/man5/%.5 man/man7/%.7 : docs/man/%.adoc
 	@mkdir -p man/man1 man/man5
-	$(RONN) $(RONN_EXTRA_ARGS) -r --pipe < $^ > $@
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $^
 
 # man/%.html generates HTML-style man pages from the corresponding .ronn file.
-man/html/%.html : docs/man/%.ronn
+man/html/%.1.html man/html/%.5.html man/html/%.7.html : docs/man/%.adoc
 	@mkdir -p man/html
-	$(RONN) $(RONN_EXTRA_ARGS) -5 --pipe < $^ > $@
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $^

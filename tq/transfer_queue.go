@@ -142,6 +142,7 @@ type abortableWaitGroup struct {
 	wq      sync.WaitGroup
 	counter int
 	mu      sync.Mutex
+	abort   bool
 }
 
 func newAbortableWaitGroup() *abortableWaitGroup {
@@ -152,22 +153,27 @@ func (q *abortableWaitGroup) Add(delta int) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.counter += delta
-	q.wq.Add(delta)
+	if !q.abort {
+		q.counter += delta
+		q.wq.Add(delta)
+	}
 }
 
 func (q *abortableWaitGroup) Done() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.counter -= 1
-	q.wq.Done()
+	if !q.abort {
+		q.counter -= 1
+		q.wq.Done()
+	}
 }
 
 func (q *abortableWaitGroup) Abort() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	q.abort = true
 	q.wq.Add(-q.counter)
 }
 
@@ -398,22 +404,22 @@ func (q *TransferQueue) remember(t *objectTuple) objects {
 // collectBatches collects batches in a loop, prioritizing failed items from the
 // previous before adding new items. The process works as follows:
 //
-//   1. Create a new batch, of size `q.batchSize`, and containing no items
-//   2. While the batch contains less items than `q.batchSize` AND the channel
-//      is open, read one item from the `q.incoming` channel.
-//      a. If the read was a channel close, go to step 4.
-//      b. If the read was a transferable item, go to step 3.
-//   3. Append the item to the batch.
-//   4. Sort the batch by descending object size, make a batch API call, send
-//      the items to the `*adapterBase`.
-//   5. In a separate goroutine, process the worker results, incrementing and
-//      appending retries if possible. On the main goroutine, accept new items
-//      into "pending".
-//   6. Concat() the "next" and "pending" batches such that no more items than
-//      the maximum allowed per batch are in next, and the rest are in pending.
-//   7. If the `q.incoming` channel is open, go to step 2.
-//   8. If the next batch is empty AND the `q.incoming` channel is closed,
-//      terminate immediately.
+//  1. Create a new batch, of size `q.batchSize`, and containing no items
+//  2. While the batch contains less items than `q.batchSize` AND the channel
+//     is open, read one item from the `q.incoming` channel.
+//     a. If the read was a channel close, go to step 4.
+//     b. If the read was a transferable item, go to step 3.
+//  3. Append the item to the batch.
+//  4. Sort the batch by descending object size, make a batch API call, send
+//     the items to the `*adapterBase`.
+//  5. In a separate goroutine, process the worker results, incrementing and
+//     appending retries if possible. On the main goroutine, accept new items
+//     into "pending".
+//  6. Concat() the "next" and "pending" batches such that no more items than
+//     the maximum allowed per batch are in next, and the rest are in pending.
+//  7. If the `q.incoming` channel is open, go to step 2.
+//  8. If the next batch is empty AND the `q.incoming` channel is closed,
+//     terminate immediately.
 //
 // collectBatches runs in its own goroutine.
 func (q *TransferQueue) collectBatches() {

@@ -107,10 +107,10 @@ func Int(value string, def int) int {
 // The "boolean state associated with a given key" is defined as the
 // case-insensitive string comparison with the following:
 //
-// 1) true if...
-//   "true", "1", "on", "yes", or "t"
-// 2) false if...
-//   "false", "0", "off", "no", "f", or otherwise.
+//  1. true if...
+//     "true", "1", "on", "yes", or "t"
+//  2. false if...
+//     "false", "0", "off", "no", "f", or otherwise.
 func Bool(value string, def bool) bool {
 	if len(value) == 0 {
 		return def

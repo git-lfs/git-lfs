@@ -1,5 +1,216 @@
 # Git LFS Changelog
 
+## 3.3.0 (30 November 2022)
+
+This release is a feature release which includes package support for Red Hat
+Enterprise Linux 9 and compatible OSes, experimental support for multiple
+remotes, and some command-line helpers for `git lfs push`.
+
+In this release, we no longer include vendored versions of our dependencies in
+the repository or the tarballs.  These were a source of noise and bloat, and
+users can easily download the required dependencies with Go itself.  Users who
+need to continue to vendor the dependencies can use the `make vendor` target.
+
+In addition, we've also switched the documentation to AsciiDoc from
+ronn-flavoured Markdown and included the FAQ in the repository.  This means that
+the manual pages now render properly in the GitHub web interface and it's also
+much easier to create additional formats, such as PDF, by leveraging the ability
+of Asciidoctor to convert to DocBook.
+
+It should also be noted that `git lfs migrate import --everything` now processes
+all refs that aren't special to Git instead of just branches and tags.  This is
+what it was documented to do, but didn't, so we've fixed it.
+
+Finally, please note that future releases may be done by a different member of
+the core team than many of the past releases, and thus may be signed by a
+different OpenPGP key.  Please follow [the steps in the README to download all
+of the keys for the core
+team](https://github.com/git-lfs/git-lfs#verifying-releases) to verify releases
+successfully in the future.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @dhiwakarK for fixing a broken link
+* @dscho for improving our installer
+* @Leo1690 for speeding things up with sparse checkout
+* @pratap043 for proposing an extension to locking
+* @rcoup for fixing our Makefile and adding scripting features to `git lfs push`
+* @srohmen for adding support for alternative remotes
+* @WhatTheFuzz for improving our error messages
+* @wuhaochen for fixing a long-standing bug with `git lfs migrate import`
+
+### Features
+
+* Add the FAQ in the repository #5167 (@bk2204)
+* Add support for Rocky Linux 9 #5144 (@bk2204)
+* push: add ability to read refs/oids from stdin #5086 (@rcoup)
+* Allow alternative remotes to be handled by LFS #5066 (@srohmen)
+* Switch documentation to AsciiDoc #5054 (@bk2204)
+
+### Bugs
+
+* Handle macro attribute references with unspecified flag #5168 (@chrisd8088)
+* Fixed broken link for git-lfs-migrate #5153 (@dhiwakarK)
+* ssh: disable concurrent transfers if no multiplexing #5136 (@bk2204)
+* Fix setting commit & vendor variables via make #5141 (@rcoup)
+* ssh: don't leak resources when falling back to legacy protocol #5137 (@bk2204)
+* Bump gitobj to v2.1.1 #5130 (@bk2204)
+* tools: don't match MINGW as Cygwin #5106 (@bk2204)
+* installer: handle `BashOnly` Git for Windows gracefully #5048 (@dscho)
+* Change git-lfs migrate import --everything to migrate everything except for special git refs #5045 (@wuhaochen)
+
+### Misc
+
+* Use --sparse parameter for ls-files for performance optimization #5187 (@Leo1690)
+* Add information to ambiguous error message. #5172 (@WhatTheFuzz)
+* Distro update for v3.3.0 #5169 (@bk2204)
+* docs/man: clarify Git LFS setup instructions #5166 (@larsxschneider)
+* Update more stale comments relating to object scanning #5164 (@chrisd8088)
+* Update stale comments relating to object scanning and uploading #5163 (@chrisd8088)
+* script/cibuild: exclude icons from whitespace check #5142 (@bk2204)
+* Update to Go version 1.19 #5126 (@chrisd8088)
+* Drop vendoring #4903 (@bk2204)
+* Adding locking_notes.md #5079 (@pratap043)
+* t: set init.defaultBranch #5082 (@bk2204)
+* go.mod: require gopkg.in/yaml.v3 v3.0.1 #5033 (@bk2204)
+* script/upload: improve readability of asset verification #5032 (@bk2204)
+
+## 3.2.0 (25 May 2022)
+
+This release is a feature release which includes support for machine-readable
+formats for a couple more commands, plus the ability to automatically merge
+LFS-based text files from the command-line.  It's likely that the merge driver
+will see future improvements, but if you have feedback on the design, please use
+the discussions feature.
+
+Note that our binary release archives no longer unpack into the current
+directory, and now contain a top-level directory just like the source archives
+do.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @bbodenmiller for fixing the formatting in our manual pages
+* @breyed for fixing a typo in our manual pages
+* @btoll for improving our README
+* @rcoup for fixing our Accept header syntax
+* @vtbassmatt for documenting our deprecation of NTLM
+
+### Features
+
+* ls-files: add a --json option #5007 (@bk2204)
+* Add --json output for git lfs track #5006 (@bk2204)
+* Add a merge driver #4970 (@bk2204)
+* lfs: don't write hooks when they haven't changed #4935 (@bk2204)
+* Tarballs, not tarbombs #4980 (@bk2204)
+
+### Bugs
+
+* Apply several Makefile fixes for Windows #5016 (@bk2204)
+* git: don't panic on pkt-line without equals #4982 (@bk2204)
+* lfshttp: fix invalid Accept header syntax #4996 (@rcoup)
+* Grammar fix #4981 (@breyed)
+* Use `gitignore`-style path matching for additional commands #4951 (@chrisd8088)
+* Avoid pruning when identical files both match and do not match `lfs.fetchexclude` #4973 (@chrisd8088)
+* Apply `lfs.fetchexclude` filter to previous commits when pruning #4968 (@chrisd8088)
+* Update and correct several error message strings #4943 (@chrisd8088)
+* script/upload: correct RHEL 8 package repo #4936 (@bk2204)
+* lfs: add old hook content to the list of old hooks #4878 (@bk2204)
+* .github/workflows: install packagecloud gem #4873 (@bk2204)
+
+### Misc
+
+* Update distros for packagecloud.io #5010 (@bk2204)
+* lfshttp: log the Negotiate error on failure #5000 (@bk2204)
+* Build CI on Windows 2022 #4997 (@chrisd8088)
+* workflows: use ronn-ng #4992 (@bk2204)
+* Multiple hash support #4971 (@bk2204)
+* note deprecation of NTLM #4987 (@vtbassmatt)
+* Update to Go 1.18, drop older Go version support, and update modules and dependencies #4963 (@chrisd8088)
+* Update tests to check `prune` command excludes `lfs.fetchexclude` paths #4964 (@chrisd8088)
+* Add test to check `prune` command retains tagged unpushed objects #4962 (@chrisd8088)
+* Adjust test helpers and tests related to path filtering #4960 (@chrisd8088)
+* Include shell path in restricted `PATH` in credential helper path test #4959 (@chrisd8088)
+* Build test helper commands with `.exe` file extension on Windows #4954 (@chrisd8088)
+* Update Windows signing certificate SHA hash in `Makefile` #4946 (@chrisd8088)
+* remove unused `Pipe[Media]Command()` functions #4942 (@chrisd8088)
+* Makefile: remove legacy trimpath code #4938 (@bk2204)
+* add Inno Setup check of Git install paths and remove old uninstaller checks #4925 (@chrisd8088)
+* note `git lfs push --all` only pushes local refs in man page #4898 (@chrisd8088)
+* Build man pages into per-section subdirectories #4890 (@chrisd8088)
+* Call out destructive command in README #4880 (@btoll)
+* Improve formatting #4863 (@bbodenmiller)
+* docs/howto: remind core team member to check Actions workflows #4868 (@bk2204)
+* .github: fix syntax error in release workflow #4866 (@bk2204)
+
+## 3.1.4 (19 Apr 2022)
+
+This release is a bugfix release to fix some problems during the build of
+v3.1.3.  There are otherwise no substantial changes from v3.1.3.
+
+### Misc
+
+* Use only Windows Server 2019 runners for CI in GitHub Actions #4883 (@chrisd8088)
+* remove unused `Pipe[Media]Command()` functions #4942 (@chrisd8088)
+
+## 3.1.3 (19 Apr 2022)
+
+This release introduces a security fix for Windows systems, which has been
+assigned CVE-2022-24826.
+
+On Windows, if Git LFS operates on a malicious repository with a `..exe` file as
+well as a file named `git.exe`, and `git.exe` is not found in PATH, the `..exe`
+program will be executed, permitting the attacker to execute arbitrary code.
+Similarly, if the malicious repository contains files named `..exe` and
+`cygpath.exe`, and `cygpath.exe` is not found in PATH, the `..exe` program will
+be executed when certain Git LFS commands are run.
+
+This security problem does not affect Unix systems.  This is the same issue as
+CVE-2020-27955 and CVE-2021-21237, but the fix for those issue was incomplete
+and certain options can still cause the problem to occur.
+
+This occurs because on Windows, Go includes (and prefers) the current directory
+when the name of a command run does not contain a directory separator, and it
+continues to search for programs even when the specified program name is empty.
+This has been solved by failing if the path is empty or not found.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @yuske for reporting this to us responsibly
+
+### Bugs
+
+* Report errors when finding executables and revise PATH search tests (@chrisd8088)
+
+### Misc
+
+* Update Windows signing certificate SHA hash in Makefile (@chrisd8088)
+
+## 3.1.2 (16 Feb 2022)
+
+This is a bugfix release which fixes a bug in `git lfs install` and some issues
+in our CI release processes, including one that prevented arm64 packages for
+Debian 11 from being uploaded.
+
+### Bugs
+
+* lfs: add old hook content to the list of old hooks #4878 (@bk2204)
+
+### Misc
+
+* Revert "Merge pull request #4795 from bk2204/actions-checkout-v2" #4877 (@bk2204)
+* .github/workflows: install packagecloud gem #4873 (@bk2204)
+
+## 3.1.1 (14 Feb 2022)
+
+This is a bugfix release which fixes a syntax error in the release workflow.
+
+### Misc
+
+* .github: fix syntax error in release workflow #4866 (@bk2204)
+
 ## 3.1.0 (14 Feb 2022)
 
 This release is a feature release which includes support for fallback from

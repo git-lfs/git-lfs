@@ -1,0 +1,56 @@
+= git-lfs-ls-files(1)
+
+== NAME
+
+git-lfs-ls-files - Show information about Git LFS files in the index and working tree
+
+== SYNOPSIS
+
+`git lfs ls-files` [<ref>] +
+`git lfs ls-files` <ref> <ref>
+
+== DESCRIPTION
+
+Display paths of Git LFS files that are found in the tree at the given
+reference. If no reference is given, scan the currently checked-out
+branch. If two references are given, the LFS files that are modified
+between the two references are shown; deletions are not listed.
+
+An asterisk (*) after the OID indicates a full object, a minus (-)
+indicates an LFS pointer.
+
+== OPTIONS
+
+`-l`::
+`--long`::
+   Show the entire 64 character OID, instead of just first 10.
+`-s`::
+`--size`::
+   Show the size of the LFS object between parenthesis at the end of a line.
+`-d`::
+`--debug`::
+   Show as much information as possible about a LFS file. This is intended for
+   manual inspection; the exact format may change at any time.
+`-a`::
+`--all`::
+   Inspects the full history of the repository, not the current HEAD (or other
+   provided reference). This will include previous versions of LFS objects that
+   are no longer found in the current tree.
+`--deleted`::
+  Shows the full history of the given reference, including objects that have
+  been deleted.
+`-I <paths>`::
+`--include=<paths>`::
+   Include paths matching only these patterns; see <<_fetch_settings>>.
+`-X <paths>`::
+`--exclude=<paths>`::
+   Exclude paths matching any of these patterns; see <<_fetch_settings>>.
+`-n`::
+`--name-only`::
+   Show only the lfs tracked file names.
+
+== SEE ALSO
+
+git-lfs-status(1), git-lfs-config(5).
+
+Part of the git-lfs(1) suite.

@@ -1,0 +1,89 @@
+= git-lfs-checkout(1)
+
+== NAME
+
+git-lfs-checkout - Update working copy with file content if available
+
+== SYNOPSIS
+
+`git lfs checkout` [<glob-pattern>...] +
+`git lfs checkout` --to <file> {--base|--ours|--theirs} <conflict-obj-path>
+
+== DESCRIPTION
+
+Try to ensure that the working copy contains file content for Git LFS
+objects for the current ref, if the object data is available. Does not
+download any content; see git-lfs-fetch(1) for that.
+
+Checkout scans the current ref for all LFS objects that would be
+required, then where a file is either missing in the working copy, or
+contains placeholder pointer content with the same SHA, the real file
+content is written, provided we have it in the local store. Modified
+files are never overwritten.
+
+One or more s may be provided as arguments to restrict the set of files
+that are updated. Glob patterns are matched as per the format described
+in gitignore(5).
+
+When used with `--to` and the working tree is in a conflicted state due
+to a merge, this option checks out one of the three stages a conflicting
+Git LFS object into a separate file (which can be outside of the work
+tree). This can make using diff tools to inspect and resolve merges
+easier. A single Git LFS object's file path must be provided in
+`<conflict-obj-path>`.
+
+== OPTIONS
+
+`--base`::
+  Check out the merge base of the specified file.
+`--ours`::
+  Check out our side (that of the current branch) of the
+  conflict for the specified file.
+`--theirs`::
+  Check out their side (that of the other branch) of the
+conflict for the specified file.
+`--to <path>`::
+  If the working tree is in a conflicted state, check out the
+  portion of the conflict specified by `--base`, `--ours`, or `--theirs`
+  to the given path.
+
+== EXAMPLES
+
+* Checkout all files that are missing or placeholders:
+
+....
+$ git lfs checkout
+....
+
+* Checkout a specific couple of files:
+
+....
+$ git lfs checkout path/to/file1.png path/to.file2.png
+....
+
+* Checkout a path with a merge conflict into separate files:
+
+....
+# Attempt merge with a branch that has a merge conflict
+$ git merge conflicting-branch
+CONFLICT (content): Merge conflict in path/to/conflicting/file.dat
+
+# Checkout versions of the conflicting file into temp files
+$ git lfs checkout ours.dat --ours path/to/conflicting/file.dat
+$ git lfs checkout theirs.dat --theirs path/to/conflicting/file.dat
+
+# Compare conflicting versions in ours.dat and theirs.dat,
+# then resolve conflict (e.g., by choosing one version over
+# the other, or creating a new version)
+
+# Cleanup and continue with merge
+$ rm ours.dat theirs.dat
+$ git add path/to/conflicting/file.dat
+$ git merge --continue
+....
+
+== SEE ALSO
+
+git-lfs-fetch(1), git-lfs-pull(1), gitignore(5).
+
+Part of the git-lfs(1) suite.

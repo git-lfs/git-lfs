@@ -130,7 +130,7 @@ $ git commit -m "add psd"
 > **Note that this will rewrite history and change all of the Git object IDs in your
 > repository, just like the export version of this command.**
 >
-> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.1.ronn).
+> For more information, read [`git-lfs-migrate(1)`](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.adoc).
 
 You can confirm that Git LFS is managing your PSD file:
 
@@ -187,8 +187,8 @@ $ git lfs help <subcommand>
 ```
 
 The [official documentation](docs) has command references and specifications for
-the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) on
-the wiki which answers some common questions.
+the tool.  There's also a [FAQ](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-faq.adoc)
+shipped with Git LFS which answers some common questions.
 
 If you have a question on how to use Git LFS, aren't sure about something, or
 are looking for input from others on tips about best practices or use cases,

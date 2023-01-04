@@ -29,6 +29,10 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 		"--cached",
 	}
 
+	if IsGitVersionAtLeast("2.35.0") {
+		args = append(args, "--sparse")
+	}
+
 	if standardExclude {
 		args = append(args, "--exclude-standard")
 	}

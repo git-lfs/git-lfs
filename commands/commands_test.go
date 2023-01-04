@@ -47,3 +47,11 @@ func TestDetermineIncludeExcludePathsReturnsNothingWhenAbsent(t *testing.T) {
 	assert.Empty(t, i)
 	assert.Empty(t, e)
 }
+
+func TestSpecialGitRefsExclusion(t *testing.T) {
+	assert.True(t, isSpecialGitRef("refs/notes/commits"))
+	assert.True(t, isSpecialGitRef("refs/bisect/bad"))
+	assert.True(t, isSpecialGitRef("refs/replace/abcdef90"))
+	assert.True(t, isSpecialGitRef("refs/stash"))
+	assert.False(t, isSpecialGitRef("refs/commits/abcdef90"))
+}

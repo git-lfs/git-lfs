@@ -607,6 +607,7 @@ setup() {
     git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
+    git config --global init.defaultBranch main
   fi | sed -e 's/^/# /g'
 
   # setup the git credential password storage
@@ -842,7 +843,12 @@ add_symlink() {
 urlify() {
   if [ "$IS_WINDOWS" -eq 1 ]
   then
-    echo "$1" | sed -e 's,\\,/,g' -e 's,:,%3a,g' -e 's, ,%20,g'
+    local prefix="" path="$(canonical_path "$1")"
+    if echo "$path" | grep -qsv "^/"
+    then
+      prefix="/"
+    fi
+    echo "$prefix$path" | sed -e 's,\\,/,g' -e 's,:,%3a,g' -e 's, ,%20,g'
   else
     echo "$1"
   fi

@@ -12,13 +12,16 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
-// runCatFileBatch uses 'git cat-file --batch' to get the object contents of a
-// git object, given its sha1. The contents will be decoded into a Git LFS
-// pointer. Git Blob SHA1s are read from the sha1Ch channel and fed to STDIN.
-// Results are parsed from STDOUT, and any eligible LFS pointers are sent to
-// pointerCh. If a Git Blob is not an LFS pointer, check the lockableSet to see
-// if that blob is for a locked file. Any errors are sent to errCh. An error is
-// returned if the 'git cat-file' command fails to start.
+// runCatFileBatch() uses an ObjectDatabase from the
+// github.com/git-lfs/gitobj/v2 package to get the contents of Git
+// blob objects, given their SHA1s, similar to the behaviour of
+// 'git cat-file --batch'.
+// Git blob SHA1s are read from the revs channel and fed to an
+// ObjectScanner which looks them up in the ObjectDatabase.
+// The contents will be decoded as Git LFS pointers and any valid pointers
+// will be sent to pointerCh.
+// If a Git blob is not an LFS pointer, check the lockableSet to see
+// if that blob is for a locked file.  Any errors are sent to errCh.
 func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error, gitEnv, osEnv config.Environment) error {
 	scanner, err := NewPointerScanner(gitEnv, osEnv)
 	if err != nil {

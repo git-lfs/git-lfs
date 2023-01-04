@@ -1,5 +1,5 @@
 Name:           git-lfs
-Version:        3.1.0
+Version:        3.3.0
 Release:        1%{?dist}
 Summary:        Git extension for versioning large files
 
@@ -9,7 +9,7 @@ URL:            https://git-lfs.github.com/
 Source0:        https://github.com/git-lfs/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  perl-Digest-SHA
-BuildRequires:  golang, tar, rubygem-ronn, which, git >= 1.8.2, gettext-devel
+BuildRequires:  golang, tar, rubygem-asciidoctor, which, git >= 1.8.2, gettext-devel
 
 Requires: git >= 1.8.2
 
@@ -33,7 +33,7 @@ ln -s $(pwd) src/github.com/git-lfs/%{name}
 %endif
 
 pushd src/github.com/git-lfs/%{name}
-  %if %{_arch} == i386
+  %if "%{_arch}" == "i386"
     GOARCH=386 FORCE_LOCALIZE=true make
   %else
     GOARCH=amd64 FORCE_LOCALIZE=true make
@@ -46,8 +46,10 @@ make man
 install -D bin/git-lfs ${RPM_BUILD_ROOT}/usr/bin/git-lfs
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man1
 mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man5
+mkdir -p -m 755 ${RPM_BUILD_ROOT}/usr/share/man/man7
 install -D man/man1/*.1 ${RPM_BUILD_ROOT}/usr/share/man/man1
 install -D man/man5/*.5 ${RPM_BUILD_ROOT}/usr/share/man/man5
+install -D man/man7/*.7 ${RPM_BUILD_ROOT}/usr/share/man/man7
 
 %post
 # The --skip-repo option prevents failure if / is a Git repository with existing
@@ -83,6 +85,7 @@ rm -rf %{buildroot}
 /usr/bin/git-lfs
 /usr/share/man/man1/*.1.gz
 /usr/share/man/man5/*.5.gz
+/usr/share/man/man7/*.7.gz
 
 %changelog
 * Sun Dec 6 2015 Andrew Neff <andyneff@users.noreply.github.com> - 1.1.0-1

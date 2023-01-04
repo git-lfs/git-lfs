@@ -1,0 +1,61 @@
+= git-lfs-install(1)
+
+== NAME
+
+git-lfs-install - Install Git LFS configuration.
+
+== SYNOPSIS
+
+`git lfs install` [options]
+
+== DESCRIPTION
+
+Perform the following actions to ensure that Git LFS is setup properly:
+
+* Set up the clean and smudge filters under the name "lfs" in the global
+Git config.
+* Install a pre-push hook to run git-lfs-pre-push(1) for the current
+repository, if run from inside one. If "core.hooksPath" is configured in
+any Git configuration (and supported, i.e., the installed Git version is
+at least 2.9.0), then the pre-push hook will be installed to that
+directory instead.
+
+== OPTIONS
+
+Without any options, `git lfs install` will only setup the "lfs" smudge
+and clean filters if they are not already set.
+
+`--force`::
+  Sets the "lfs" smudge and clean filters, overwriting existing values.
+`--local`::
+  Sets the "lfs" smudge and clean filters in the local repository's git config,
+  instead of the global git config (~/.gitconfig).
+`--worktree`::
+  Sets the "lfs" smudge and clean filters in the current working tree's git
+  config, instead of the global git config (~/.gitconfig) or local repository's
+  git config ($GIT_DIR/config). If multiple working trees are in use, the Git
+  config extension `worktreeConfig` must be enabled to use this option. If only
+  one working tree is in use, `--worktree` has the same effect as `--local`.
+  This option is only available if the installed Git version is at least 2.20.0
+  and therefore supports the "worktreeConfig" extension.
+`--manual`::
+  Print instructions for manually updating your hooks to include git-lfs
+  functionality. Use this option if `git lfs install` fails because of existing
+  hooks and you want to retain their functionality.
+`--system`::
+  Sets the "lfs" smudge and clean filters in the system git config, e.g.
+  /etc/gitconfig instead of the global git config (~/.gitconfig).
+`--skip-smudge`::
+  Skips automatic downloading of objects on clone or pull. This requires a
+  manual "git lfs pull" every time a new commit is checked out on your
+  repository.
+`--skip-repo`::
+  Skips installation of hooks into the local repository; use if you want to
+  install the LFS filters but not make changes to the hooks.  It is valid to use
+  `--local`, `--global`, or `--system` in conjunction with this option.
+
+== SEE ALSO
+
+git-lfs-uninstall(1), git-worktree(1).
+
+Part of the git-lfs(1) suite.

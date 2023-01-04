@@ -79,10 +79,10 @@ func lockCommand(cmd *cobra.Command, args []string) {
 // will be returned.
 //
 // For example:
-//     - Working directory: /code/foo/bar/
-//     - Repository root: /code/foo/
-//     - File to lock: ./baz
-//     - Resolved path bar/baz
+//   - Working directory: /code/foo/bar/
+//   - Repository root: /code/foo/
+//   - File to lock: ./baz
+//   - Resolved path bar/baz
 func lockPath(file string) (string, error) {
 	repo, err := git.RootDir()
 	if err != nil {

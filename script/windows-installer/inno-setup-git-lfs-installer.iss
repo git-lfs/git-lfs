@@ -101,6 +101,56 @@ begin
     Result := Pos(';' + UpperCase(ParamExpanded) + '\;', ';' + UpperCase(OrigPath) + ';') = 0;
 end;
 
+function SetEnvironmentVariable(lpName,lpValue:String):Boolean;
+external 'SetEnvironmentVariableW@Kernel32.dll stdcall delayload';
+
+// When Git for Windows is installed with the PATH option "Bash only", i.e.
+// _without_ adding anything to the global `PATH`, we will not find `git.exe`
+// there.
+//
+// Detect that situation and add `<Git>\cmd` to the `PATH` so that we find it
+// when registering Git LFS later.
+function AddGitForWindowsCMDToPATHIfNeeded: boolean;
+var
+  Domain: Integer;
+  Key, PathOption, AppPath, Path: string;
+begin
+  Result := False;
+
+  Key := 'Microsoft\Windows\CurrentVersion\Uninstall\Git_is1';
+  if RegKeyExists(HKEY_LOCAL_MACHINE, 'Software\Wow6432Node\' + Key) then begin
+    Domain := HKEY_LOCAL_MACHINE;
+    Key := 'Software\Wow6432Node\' + Key;
+  end else if RegKeyExists(HKEY_CURRENT_USER, 'Software\Wow6432Node\' + Key) then begin
+    Domain := HKEY_CURRENT_USER;
+    Key := 'Software\Wow6432Node\' + Key;
+  end else if RegKeyExists(HKEY_LOCAL_MACHINE, 'Software\' + Key) then begin
+    Domain := HKEY_LOCAL_MACHINE;
+    Key := 'Software\' + Key;
+  end else if RegKeyExists(HKEY_CURRENT_USER, 'Software\' + Key) then begin
+    Domain := HKEY_CURRENT_USER;
+    Key := 'Software\' + Key;
+  end else
+    Exit;
+
+  if (not RegQueryStringValue(Domain, Key, 'Inno Setup CodeFile: Path Option', PathOption)) or
+    (PathOption <> 'BashOnly') or
+    (not RegQueryStringValue(Domain, Key, 'Inno Setup: App Path', AppPath)) or
+    (not FileExists(AppPath + '\cmd\git.exe'))
+  then
+    Exit;
+
+  // Extend PATH so that it finds `git.exe`
+  Path := GetEnv('PATH');
+  if Path = '' then
+    Path := AppPath + '\cmd'
+  else
+    Path := AppPath + '\cmd;' + Path;
+
+  SetEnvironmentVariable('PATH', Path);
+  Result := True;
+end;
+
 // Verify that a Git executable is found in the PATH, and if it does not
 // reside in either 'C:\Program Files' or 'C:\Program Files (x86)', warn
 // the user in case it is not the Git installation they expected.
@@ -152,8 +202,13 @@ begin
       end;
     until Result or (PathExt = '');
   until Result or (PathEnv = '');
-  SuppressibleMsgBox(
-    'Could not find Git; can not ' + RegisterOrDeregister + ' Git LFS.', mbError, MB_OK, IDOK);
+
+  if AddGitForWindowsCMDToPATHIfNeeded
+  then
+    Result := True
+  else
+    SuppressibleMsgBox(
+      'Could not find Git; can not ' + RegisterOrDeregister + ' Git LFS.', mbError, MB_OK, IDOK);
 end;
 
 // Runs the lfs initialization.

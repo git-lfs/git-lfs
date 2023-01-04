@@ -1,0 +1,80 @@
+= git-lfs-track(1)
+
+== NAME
+
+git-lfs-track - View or add Git LFS paths to Git attributes
+
+== SYNOPSIS
+
+`git lfs track` [options] [<pattern>...]
+
+== DESCRIPTION
+
+Start tracking the given patterns(s) through Git LFS. The argument is
+written to .gitattributes. If no paths are provided, simply list the
+currently-tracked paths.
+
+The https://git-scm.com/docs/gitattributes[gitattributes documentation]
+states that patterns use the
+https://git-scm.com/docs/gitignore[gitignore pattern rules] to match
+paths. This means that patterns which contain asterisk (`*`), question
+mark (`?`), and the bracket characters (`[` and `]`) are treated
+specially; to disable this behavior and treat them literally instead,
+use `--filename` or escape the character with a backslash.
+
+== OPTIONS
+
+`--verbose`::
+`-v`::
+   If enabled, have `git lfs track` log files which it will touch. Disabled by
+   default.
+`--dry-run`::
+`-d`::
+   If enabled, have `git lfs track` log all actions it would normally take
+   (adding entries to .gitattributes, touching files on disk, etc) without
+   performing any mutative operations to the disk.
++
+`git lfs track --dry-run [files]` also implicitly mocks the behavior of
+passing the `--verbose`, and will log in greater detail what it is
+doing.
++
+Disabled by default.
+`--filename`::
+  Treat the arguments as literal filenames, not as patterns. Any special glob
+  characters in the filename will be escaped when writing the `.gitattributes`
+  file.
+`--lockable`::
+`-l`::
+  Make the paths 'lockable', meaning they should be locked to edit them, and
+  will be made read-only in the working copy when not locked.
+`--not-lockable`::
+  Remove the lockable flag from the paths so they are no longer read-only unless
+  locked.
+`--no-excluded`::
+  Do not list patterns that are excluded in the output; only list patterns that
+  are tracked.
+--no-modify-attrs:
+  Makes matched entries stat-dirty so that Git can re-index files you wish to
+  convert to LFS. Does not modify any `.gitattributes` file(s).
+
+== EXAMPLES
+
+* List the patterns that Git LFS is currently tracking:
++
+`git lfs track`
+* Configure Git LFS to track GIF files:
++
+`git lfs track "*.gif"`
+* Configure Git LFS to track PSD files and make them read-only unless
+locked:
++
+`git lfs track --lockable "*.psd"`
+* Configure Git LFS to track the file named `project [1].psd`:
++
+`git lfs track --filename "project [1].psd"`
+
+== SEE ALSO
+
+git-lfs-untrack(1), git-lfs-install(1), gitattributes(5), gitignore(5).
+
+Part of the git-lfs(1) suite.

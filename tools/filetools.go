@@ -244,11 +244,11 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 // repo. The callback guaranteed to be called sequentially. The function returns
 // once all files and errors have triggered callbacks.
 // It differs in the following ways:
-//  * Uses goroutines to parallelise large dirs and descent into subdirs
-//  * Does not provide sorted output; parents will always be before children but
-//    there are no other guarantees. Use parentDir argument in the callback to
-//    determine absolute path rather than tracking it yourself
-//  * Automatically ignores any .git directories
+//   - Uses goroutines to parallelise large dirs and descent into subdirs
+//   - Does not provide sorted output; parents will always be before children but
+//     there are no other guarantees. Use parentDir argument in the callback to
+//     determine absolute path rather than tracking it yourself
+//   - Automatically ignores any .git directories
 //
 // rootDir - Absolute path to the top of the repository working directory
 func FastWalkDir(rootDir string, cb FastWalkCallback) {

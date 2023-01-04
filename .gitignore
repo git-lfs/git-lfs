@@ -3,9 +3,7 @@ benchmark/
 out/
 resource.syso
 
-# only allow man/*.\d.ronn files
 man/*
-index.txt
 
 *.test
 tmp
@@ -42,3 +40,5 @@ tr/tr_gen.go
 
 lfstest-*
 !lfstest-*.go
+
+vendor/

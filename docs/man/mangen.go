@@ -42,11 +42,15 @@ func readManDir() (string, []os.FileInfo) {
 	return "", nil
 }
 
+func titleizeXref(s string) string {
+	return strings.Replace(strings.ToTitle(s[1:2])+s[2:], "_", " ", -1)
+}
+
 var (
 	verbose = flag.Bool("verbose", false, "Show verbose output.")
 )
 
-// Reads all .ronn files & and converts them to string literals
+// Reads all .adoc files & and converts them to string literals
 // triggered by "go generate" comment
 // Literals are inserted into a map using an init function, this means
 // that there are no compilation errors if 'go generate' hasn't been run, just
@@ -65,19 +69,21 @@ func main() {
 	out.WriteString("package commands\n\nfunc init() {\n")
 	out.WriteString("\t// THIS FILE IS GENERATED, DO NOT EDIT\n")
 	out.WriteString("\t// Use 'go generate ./commands' to update\n")
-	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.\d.ronn`)
-	headerregex := regexp.MustCompile(`^###?\s+([A-Za-z0-9 ]+)`)
-	// only pick up caps in links to avoid matching optional args
-	linkregex := regexp.MustCompile(`\[([A-Z\- ]+)\]`)
+	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.adoc`)
+	headerregex := regexp.MustCompile(`^==\s+([A-Za-z0-9 ]+)`)
+	// cross-references
+	linkregex := regexp.MustCompile(`<<([^,>]+)(?:,([^>]+))?>>`)
 	// man links
 	manlinkregex := regexp.MustCompile(`(git)(?:-(lfs))?-([a-z\-]+)\(\d\)`)
+	// source blocks
+	sourceblockregex := regexp.MustCompile(`\[source(,.*)?\]`)
 	count := 0
 	for _, f := range fs {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
 			infof(os.Stderr, "%v\n", f.Name())
 			cmd := match[1]
 			if len(cmd) == 0 {
-				// This is git-lfs.1.ronn
+				// This is git-lfs.1.adoc
 				cmd = "git-lfs"
 			}
 			out.WriteString("\tManPages[\"" + cmd + "\"] = `")
@@ -86,18 +92,20 @@ func main() {
 				warnf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)
 			}
-			// Process the ronn to make it nicer as help text
+			// Process the asciidoc to make it nicer as help text
 			scanner := bufio.NewScanner(contentf)
 			firstHeaderDone := false
 			skipNextLineIfBlank := false
-			lastLineWasBullet := false
+			lastLineWasList := false
+			isSourceBlock := false
+			sourceBlockLine := ""
 		scanloop:
 			for scanner.Scan() {
 				line := scanner.Text()
 				trimmedline := strings.TrimSpace(line)
 				if skipNextLineIfBlank && len(trimmedline) == 0 {
 					skipNextLineIfBlank = false
-					lastLineWasBullet = false
+					lastLineWasList = false
 					continue
 				}
 
@@ -105,6 +113,8 @@ func main() {
 				if hmatch := headerregex.FindStringSubmatch(line); hmatch != nil {
 					header := strings.ToLower(hmatch[1])
 					switch header {
+					case "name":
+						continue
 					case "synopsis":
 						// Ignore this, just go direct to command
 
@@ -121,14 +131,17 @@ func main() {
 						out.WriteString(strings.Repeat("-", len(header)) + "\n")
 					}
 					firstHeaderDone = true
-					lastLineWasBullet = false
+					lastLineWasList = false
 					continue
 				}
 
 				if lmatches := linkregex.FindAllStringSubmatch(line, -1); lmatches != nil {
 					for _, lmatch := range lmatches {
-						linktext := strings.ToLower(lmatch[1])
-						line = strings.Replace(line, lmatch[0], `"`+strings.ToUpper(linktext[:1])+linktext[1:]+`"`, 1)
+						if len(lmatch) > 2 && lmatch[2] != "" {
+							line = strings.Replace(line, lmatch[0], `"`+lmatch[2]+`"`, 1)
+						} else {
+							line = strings.Replace(line, lmatch[0], `"`+titleizeXref(lmatch[1])+`"`, 1)
+						}
 					}
 				}
 				if manmatches := manlinkregex.FindAllStringSubmatch(line, -1); manmatches != nil {
@@ -137,21 +150,45 @@ func main() {
 					}
 				}
 
+				if sourceblockmatches := sourceblockregex.FindStringIndex(line); sourceblockmatches != nil {
+					isSourceBlock = true
+					continue
+				}
+
 				// Skip content until after first header
 				if !firstHeaderDone {
 					continue
 				}
 				// OK, content here
 
-				// remove characters that markdown would render invisible in a text env.
-				for _, invis := range []string{"`", "<br>"} {
-					line = strings.Replace(line, invis, "", -1)
+				// handle source block headers
+				if isSourceBlock {
+					sourceBlockLine = line
+					isSourceBlock = false
+					line = ""
+					continue
+				} else if sourceBlockLine != "" && line == sourceBlockLine {
+					line = ""
+					sourceBlockLine = ""
 				}
 
-				// indent bullets
+				// remove characters that asciidoc would render invisible in a text env.
+				for _, invis := range []string{"`", "...."} {
+					line = strings.Replace(line, invis, "", -1)
+				}
+				line = strings.TrimSuffix(line, " +")
+
+				// indent bullets and definition lists
 				if strings.HasPrefix(line, "*") {
-					lastLineWasBullet = true
-				} else if lastLineWasBullet && !strings.HasPrefix(line, " ") {
+					lastLineWasList = true
+				} else if strings.HasSuffix(line, "::") {
+					lastLineWasList = true
+					line = strings.TrimSuffix(line, ":")
+				} else if lastLineWasList && line == "+" {
+					line = ""
+				} else if lastLineWasList && line == "" {
+					lastLineWasList = false
+				} else if lastLineWasList && !strings.HasPrefix(line, " ") {
 					// indent paragraphs under bullets if not already done
 					line = "  " + line
 				}

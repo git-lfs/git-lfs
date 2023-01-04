@@ -38,10 +38,13 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 	return nil
 }
 
-// catFileBatchTree uses git cat-file --batch to get the object contents
-// of a git object, given its sha1. The contents will be decoded into
-// a Git LFS pointer. treeblobs is a channel over which blob entries
-// will be sent. It returns a channel from which point.Pointers can be read.
+// catFileBatchTree() uses an ObjectDatabase from the
+// github.com/git-lfs/gitobj/v2 package to get the contents of Git
+// blob objects, given their SHA1s from git.TreeBlob structs, similar
+// to the behaviour of 'git cat-file --batch'.
+// Input git.TreeBlob structs should be sent over the treeblobs channel.
+// The blob contents will be decoded as Git LFS pointers and any valid
+// pointers will be returned as pointer.Pointer structs in a new channel.
 func catFileBatchTree(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.Environment) (*PointerChannelWrapper, error) {
 	scanner, err := NewPointerScanner(gitEnv, osEnv)
 	if err != nil {

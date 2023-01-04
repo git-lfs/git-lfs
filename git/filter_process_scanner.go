@@ -18,15 +18,15 @@ import (
 //
 // Reading a request (and errors) is as follows:
 //
-//     s := NewFilterProcessScanner(os.Stdin, os.Stderr)
-//     for s.Scan() {
-//             req := s.Request()
-//     	       // ...
-//     }
+//	s := NewFilterProcessScanner(os.Stdin, os.Stderr)
+//	for s.Scan() {
+//	        req := s.Request()
+//		       // ...
+//	}
 //
-//     if err := s.Err(); err != nil {
-//             // ...
-//     }
+//	if err := s.Err(); err != nil {
+//	        // ...
+//	}
 type FilterProcessScanner struct {
 	// pl is the *pktline instance used to read and write packets back and
 	// forth between Git.

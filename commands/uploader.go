@@ -190,8 +190,8 @@ func (c *uploadContext) prepareUpload(unfiltered ...*lfs.WrappedPointer) []*lfs.
 	// scanner
 	uniqOids := tools.NewStringSet()
 
-	// separate out objects that _should_ be uploaded, but don't exist in
-	// .git/lfs/objects. Those will skipped if the server already has them.
+	// Skip any objects which we've seen or already uploaded, as well
+	// as any which are locked by other users.
 	for _, p := range unfiltered {
 		// object already uploaded in this process, or we've already
 		// seen this OID (see above), skip!
@@ -358,6 +358,8 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 		return nil, errors.Wrap(err, tr.Tr.Get("Error uploading file %s (%s)", filename, oid))
 	}
 
+	// Skip the object if its corresponding file does not exist in
+	// .git/lfs/objects/.
 	if len(filename) > 0 {
 		if missing, err = c.ensureFile(filename, localMediaPath, oid); err != nil && !errors.IsCleanPointerError(err) {
 			return nil, err

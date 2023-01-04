@@ -1,0 +1,32 @@
+= git-lfs-update(1)
+
+== NAME
+
+git-lfs-update - Update Git hooks
+
+== SYNOPSIS
+
+`git lfs update` [--manual | --force]
+
+== DESCRIPTION
+
+Updates the Git hooks used by Git LFS. Silently upgrades known hook
+contents. If you have your own custom hooks you may need to use one of
+the extended options below.
+
+== OPTIONS
+
+`--manual`::
+`-m`::
+  Print instructions for manually updating your hooks to include git-lfs
+  functionality. Use this option if `git lfs update` fails because of existing
+  hooks and you want to retain their functionality.
+`--force`::
+`-f`::
+  Forcibly overwrite any existing hooks with git-lfs hooks. Use this option if
+  `git lfs update` fails because of existing hooks but you don't care about
+  their current contents.
+
+== SEE ALSO
+
+Part of the git-lfs(1) suite.

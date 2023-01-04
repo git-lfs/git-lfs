@@ -336,7 +336,7 @@ func porcelainStatusLine(entry *lfs.DiffIndexEntry) string {
 // relativize relatives a path from "from" to "to". For instance, note that, for
 // any paths "from" and "to", that:
 //
-//   to == filepath.Clean(filepath.Join(from, relativize(from, to)))
+//	to == filepath.Clean(filepath.Join(from, relativize(from, to)))
 func relativize(from, to string) string {
 	if len(from) == 0 {
 		return to

@@ -220,6 +220,14 @@ func (c *Configuration) IsDefaultRemote() bool {
 	return c.Remote() == defaultRemote
 }
 
+func (c *Configuration) AutoDetectRemoteEnabled() bool {
+	return c.Git.Bool("lfs.remote.autodetect", false)
+}
+
+func (c *Configuration) SearchAllRemotesEnabled() bool {
+	return c.Git.Bool("lfs.remote.searchall", false)
+}
+
 // Remote returns the default remote based on:
 // 1. The currently tracked remote branch, if present
 // 2. The value of remote.lfsdefault.
@@ -514,9 +522,9 @@ func (c *Configuration) UnsetGitLocalKey(key string) (string, error) {
 
 // loadGitConfig is a temporary measure to support legacy behavior dependent on
 // accessing properties set by ReadGitConfig, namely:
-//  - `c.extensions`
-//  - `c.uniqRemotes`
-//  - `c.gitConfig`
+//   - `c.extensions`
+//   - `c.uniqRemotes`
+//   - `c.gitConfig`
 //
 // Since the *gitEnvironment is responsible for setting these values on the
 // (*config.Configuration) instance, we must call that method, if it exists.

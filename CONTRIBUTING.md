@@ -82,8 +82,8 @@ feedback that isn't a bug report or feature request, or learn about use cases or
 best practices with Git LFS.  There's even a search box to help you see if
 someone has already answered your question!
 
-You can also check [the FAQ](https://github.com/git-lfs/git-lfs/wiki/FAQ) to see
-if your question is well known and already has an easy answer.
+You can also check [the FAQ](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-faq.adoc)
+to see if your question is well known and already has an easy answer.
 
 ## Issues
 
