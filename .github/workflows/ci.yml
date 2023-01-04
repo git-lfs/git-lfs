@@ -54,6 +54,8 @@ jobs:
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
+      # We move the MSYS2 installed for Ruby aside to prevent use of its Git,
+      # which does not honour the PATH we set to our built git-lfs binary.
     - uses: actions/setup-go@v2
       with:
         go-version: '1.19.x'
@@ -69,6 +71,8 @@ jobs:
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" env -u TMPDIR script/cibuild
       shell: bash
+      # We clear the TMPDIR set for Ruby so mktemp and Go use the same
+      # volume for temporary files.
     - run: rm -f commands/mancontent_gen.go
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B

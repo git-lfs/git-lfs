@@ -15,6 +15,8 @@ jobs:
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
+      # We move the MSYS2 installed for Ruby aside to prevent use of its Git,
+      # which does not honour the PATH we set to our built git-lfs binary.
     - uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
@@ -34,6 +36,8 @@ jobs:
       shell: bash
       env:
         CERT_CONTENTS: ${{secrets.WINDOWS_CERT_BASE64}}
+      # We clear the TMPDIR set for Ruby so mktemp and Go use the same
+      # volume for temporary files.
     - run: PATH="$HOME/go/bin:$PATH" GOARCH=amd64 go generate && env -u TMPDIR make bin/releases/git-lfs-windows-amd64-$(git describe).zip
       shell: bash
       env:
