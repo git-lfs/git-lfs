@@ -2,10 +2,10 @@ package ssh
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -110,9 +110,14 @@ func findRuntimeDir(osEnv config.Environment) string {
 }
 
 func getControlDir(osEnv config.Environment) (string, error) {
+	tmpdir, pattern := "", "sock-*"
+	if runtime.GOOS == "darwin" {
+		// On Darwin, the default temporary directory results in a socket path that's too long.
+		tmpdir = "/tmp"
+	}
 	dir := findRuntimeDir(osEnv)
 	if dir == "" {
-		return ioutil.TempDir("", "sock-*")
+		return os.MkdirTemp(tmpdir, pattern)
 	}
 	dir = filepath.Join(dir, "git-lfs")
 	err := os.Mkdir(dir, 0700)
@@ -121,7 +126,7 @@ func getControlDir(osEnv config.Environment) (string, error) {
 		// os.ErrExist, but that's not available on Go 1.11.
 		perr, ok := err.(*os.PathError)
 		if !ok || perr.Err != syscall.EEXIST {
-			return ioutil.TempDir("", "sock-*")
+			return os.MkdirTemp(tmpdir, pattern)
 		}
 	}
 	return dir, nil
