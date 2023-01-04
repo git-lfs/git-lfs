@@ -468,6 +468,32 @@ $ git lfs migrate import --no-rewrite \
   test.zip *.mp3 *.psd
 ....
 
+=== Migrate from Git LFS
+
+If you no longer wish to use Git LFS for some or all of your files, you can
+use the `export` mode to convert Git LFS objects into regular Git blobs again.
+
+The `export` mode requires at least one `--include` pathspec, and will
+download any objects not found locally from your `origin` Git remote, or
+from the Git remote you specify with the `--remote` option.
+
+....
+# Convert all zip Git LFS objects to files in your main branch
+$ git lfs migrate export --include-ref=main --include="*.zip"
+
+# Convert all zip Git LFS objects to files in every local branch,
+# fetching any object data not cached locally from the my-remote Git remote
+$ git lfs migrate export --everything --include="*.zip" --remote=my-remote
+
+# Convert all Git LFS objects to files in every local branch
+$ git lfs migrate export --everything --include="*"
+....
+
+Note: This will require a force-push to any existing Git remotes. Using
+the `--all` option when force-pushing may be convenient if many refs
+were updated, e.g., after exporting from Git LFS with the `--everything`
+option.
+
 == SEE ALSO
 
 git-lfs-checkout(1), git-lfs-ls-files(1), git-lfs-track(1),
