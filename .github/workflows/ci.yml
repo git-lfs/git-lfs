@@ -6,13 +6,21 @@ jobs:
     name: Build with default Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         go: ['1.19.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-ruby@v1
-    - uses: actions/setup-go@v2
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
+      # We update the current tag as the checkout step turns annotated tags
+      # into lightweight ones by accident, breaking "git describe".
+      # See https://github.com/actions/checkout/issues/882 for details.
+    - uses: ruby/setup-ruby@v1
+    - run: gem install asciidoctor
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
@@ -21,7 +29,6 @@ jobs:
       if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       env:
           DEBIAN_FRONTEND: noninteractive
-    - run: gem install asciidoctor
     - run: script/cibuild
       env:
           FORCE_LOCALIZE: true
@@ -30,7 +37,7 @@ jobs:
           FORCE_LOCALIZE: true
     - run: mkdir -p bin/assets
     - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}
         path: bin/assets
@@ -39,10 +46,14 @@ jobs:
     strategy:
       matrix:
         go: ['1.18.x']
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-go@v2
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
@@ -50,9 +61,18 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-ruby@v1
-    - uses: actions/setup-go@v2
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
+      shell: bash
+    - uses: ruby/setup-ruby@v1
+    - run: gem install asciidoctor
+    - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
+      # We move the MSYS2 installed for Ruby aside to prevent use of its Git,
+      # which does not honour the PATH we set to our built git-lfs binary.
+    - uses: actions/setup-go@v3
       with:
         go-version: '1.19.x'
     - run: mkdir -p "$HOME/go/bin"
@@ -61,14 +81,14 @@ jobs:
     - run: cinst InnoSetup -y
     - run: cinst strawberryperl -y
     - run: refreshenv
-    - run: gem install asciidoctor
-      shell: bash
     - run: make man
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
-    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" script/cibuild
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" env -u TMPDIR script/cibuild
       shell: bash
+      # We clear the TMPDIR set for Ruby so mktemp and Go use the same
+      # volume for temporary files.
     - run: rm -f commands/mancontent_gen.go
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B
@@ -95,7 +115,7 @@ jobs:
       shell: bash
     - run: mv *.exe bin/assets
       shell: bash
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v3
       with:
         name: windows-latest
         path: bin/assets
@@ -103,10 +123,14 @@ jobs:
     name: Build with latest Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: GIT_DEFAULT_HASH=sha256 script/cibuild
@@ -114,37 +138,49 @@ jobs:
     name: Build with earliest Git
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
   build-docker:
     name: Build Linux packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-ruby@v1
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
+    - uses: ruby/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
     - run: ./docker/run_dockers.bsh --prune
   build-docker-cross:
     name: Build Cross Linux packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [arm64]
         container: [debian_11]
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-ruby@v1
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+      if: ${{ github.ref_type == 'tag' }}
+    - uses: ruby/setup-ruby@v1
     - run: |
         echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
         sudo systemctl restart docker.service
         docker version -f '{{.Server.Experimental}}'
-    - uses: docker/setup-qemu-action@v1
+    - uses: docker/setup-qemu-action@v2
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=$ARCH $CONTAINER)
       env:

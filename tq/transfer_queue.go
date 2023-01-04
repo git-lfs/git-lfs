@@ -142,6 +142,7 @@ type abortableWaitGroup struct {
 	wq      sync.WaitGroup
 	counter int
 	mu      sync.Mutex
+	abort   bool
 }
 
 func newAbortableWaitGroup() *abortableWaitGroup {
@@ -152,22 +153,27 @@ func (q *abortableWaitGroup) Add(delta int) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.counter += delta
-	q.wq.Add(delta)
+	if !q.abort {
+		q.counter += delta
+		q.wq.Add(delta)
+	}
 }
 
 func (q *abortableWaitGroup) Done() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	q.counter -= 1
-	q.wq.Done()
+	if !q.abort {
+		q.counter -= 1
+		q.wq.Done()
+	}
 }
 
 func (q *abortableWaitGroup) Abort() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	q.abort = true
 	q.wq.Add(-q.counter)
 }
 

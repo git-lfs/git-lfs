@@ -3,15 +3,10 @@
 set -eu
 
 CURDIR=$(cd $(dirname ${BASH_SOURCE[0]}); pwd)
-if [ -e /etc/os-release ]; then
-  VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
-  OS_NAME=$(source /etc/os-release; echo ${NAME})
-  OS_NAME=${OS_NAME,,}
-else #Basically Centos 5/6
-  VERSION_ID=($(head -n 1 /etc/redhat-release | \grep -Eo '[0-9]+'))
-  OS_NAME=$(awk '{print tolower($1)}' /etc/redhat-release)
-  #Stupid ancient bash 3...
-fi
+
+VERSION_ID=$(source /etc/os-release; echo ${VERSION_ID%%.*})
+OS_NAME=$(source /etc/os-release; echo ${NAME})
+OS_NAME=${OS_NAME,,}
 
 case "${OS_NAME}" in
   centos*|red*|almalinux|rocky*)
@@ -32,109 +27,29 @@ case "${OS_NAME}" in
 esac
 
 RPMBUILD=(rpmbuild --define "_topdir ${CURDIR}" --define "dist ${RPM_DIST}")
-if [[ ${NODEPS:-0} != 0 ]]; then
-  RPMBUILD=("${RPMBUILD[@]}" --nodeps)
-fi
 
 SUDO=${SUDO=`if command -v sudo > /dev/null 2>&1; then echo sudo; fi`}
 export PATH=${PATH}:/usr/local/bin
 
 set -vx
 
-echo "Downloading/checking for some essentials..."
-if command -v git > /dev/null 2>&1; then
-  GIT_VERSION=($(git --version))
-  IFS_OLD=${IFS}
-  IFS=.
-  GIT_VERSION=(${GIT_VERSION[2]})
-  IFS=${IFS_OLD}
-else
-  GIT_VERSION=(0 0 0)
-fi
-
 SPEC=${CURDIR}/SPECS/git-lfs.spec
 
-if [[ ${VERSION_ID[0]} == 5 ]]; then
-  if ! rpm -q epel-release > /dev/null 2>&1; then
-    $SUDO yum install -y epel-release
-  fi
-fi
-$SUDO yum install -y make curl rpm-build tar bison perl-Digest-SHA
+$SUDO yum install -y rpm-build
 
 mkdir -p ${CURDIR}/{BUILD,BUILDROOT,SOURCES,RPMS,SRPMS}
 
-if ( [[ ${GIT_VERSION[0]} == 1 ]] && [[ ${GIT_VERSION[1]} < 8 ]] ) || [[ ${GIT_VERSION[0]} < 1 ]]; then
-  if [[ ${VERSION_ID[0]} != 6 ]]; then
-    $SUDO yum install -y git
-  else
-    curl https://setup.ius.io/ | $SUDO bash
-    yum install -y "git >= 1.8.2"
-  fi
-fi
-
-if ! command -v go; then
-  echo "Installing go... one way or another"
-  if [[ ${VERSION_ID[0]} == 5 ]]; then
-    $SUDO yum install -y curl.x86_64 glibc gcc
-    ${CURDIR}/golang_patch.bsh
-    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/golang.spec
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/noarch/golang-1*.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-bin-linux-amd64-1*.rpm \
-    ${CURDIR}/RPMS/noarch/golang-src-1*.noarch.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-linux-amd64-1*.noarch.rpm \
-    ${CURDIR}/RPMS/noarch/golang-pkg-linux-386-1*.noarch.rpm
-  else
-    $SUDO yum install -y epel-release
-    $SUDO yum install -y golang
-  fi
-fi
-
-if command -v ruby > /dev/null 2>&1; then
-  IFS_OLD=${IFS}
-  IFS=.
-  RUBY_VERSION=($(ruby -e "print RUBY_VERSION"))
-  IFS=${IFS_OLD}
-else
-  RUBY_VERSION=(0 0 0)
-fi
-
-if [[ ${RUBY_VERSION[0]} < 2 ]]; then
-  if [[ ${VERSION_ID[0]} < 7 ]]; then
-    echo "Downloading ruby..."
-
-    if ! rpm -q epel-release; then
-      $SUDO yum install -y epel-release #Optional part of centos
-    fi
-
-    $SUDO yum install -y patch libyaml-devel glibc-headers autoconf gcc-c++ glibc-devel readline-devel zlib-devel libffi-devel openssl-devel automake libtool sqlite-devel
-    pushd ${CURDIR}/SOURCES
-      curl -L -O http://cache.ruby-lang.org/pub/ruby/2.2/ruby-2.2.2.tar.gz
-    popd
-    echo "Building ruby..."
-    "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/ruby.spec
-    echo "Installing ruby..."
-    $SUDO yum install -y --nogpgcheck ${CURDIR}/RPMS/x86_64/ruby*.rpm
-    $SUDO yum erase -y libyaml-devel autoconf gcc-c++ readline-devel zlib-devel openssl-devel automake libtool sqlite-devel
-  else
-    $SUDO yum install -y ruby ruby-devel
-  fi
-fi
-
-if [[ ${VERSION_ID[0]} == 8 ]]; then
-  $SUDO yum install -y rubygems-devel
-fi
-
 if ! command -v asciidoctor; then
-  echo "Downloading some ruby gems..."
+  echo "Downloading Asciidoctor ruby gem..."
   pushd ${CURDIR}/SOURCES
     curl -L -O https://rubygems.org/downloads/asciidoctor-2.0.17.gem
   popd
 
-  echo "Building ruby gems..."
+  echo "Building Asciidoctor ruby gem..."
   "${RPMBUILD[@]}" -ba ${CURDIR}/SPECS/rubygem-asciidoctor.spec
 
-  echo "Installing ruby gems..."
-  $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm ${CURDIR}/RPMS/x86_64/rubygem-*.rpm | grep -v debuginfo)
+  echo "Installing Asciidoctor ruby gem..."
+  $SUDO yum install -y --nogpgcheck $(ls ${CURDIR}/RPMS/noarch/rubygem-*.rpm | grep -v debuginfo)
 fi
 
 rm -fr ${CURDIR}/{BUILD,BUILDROOT}
@@ -146,7 +61,7 @@ pushd ${CURDIR}/..
   #Use the version output to grab the version number and short sha
   #(that yes, I could have gotten from git myself)
   LFS_VERSION=$(./bin/git-lfs version | sed -r 's|.*/([0-9.]*).*|\1|')
-  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' ${CURDIR}/SPECS/git-lfs.spec
+  sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' "$SPEC"
 popd
 
 #Prep the SOURCES dir for git-lfs
@@ -171,9 +86,10 @@ rm -rf ${CURDIR}/tmptar
 #cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
 
-echo "Build git-lfs rpm..."
+echo "Build git-lfs RPMs..."
 
 #--no-deps added for now so you can compile without official rpms installed
-"${RPMBUILD[@]}" --nodeps -ba ${CURDIR}/SPECS/git-lfs.spec
+"${RPMBUILD[@]}" --nodeps -ba "$SPEC"
+"${RPMBUILD[@]}" --nodeps --target=i686 -bb "$SPEC"
 
 echo "All Done!"
