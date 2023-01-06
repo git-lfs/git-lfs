@@ -150,10 +150,12 @@ func getHookInstallSteps() string {
 		ExitWithError(err)
 	}
 	hooks := lfs.LoadHooks(hookDir, cfg)
+	hookDir = filepath.ToSlash(hookDir)
+	workingDir := filepath.ToSlash(fmt.Sprintf("%s%c", cfg.LocalWorkingDir(), os.PathSeparator))
 	steps := make([]string, 0, len(hooks))
 	for _, h := range hooks {
 		steps = append(steps, fmt.Sprintf("%s\n\n%s",
-			tr.Tr.Get("Add the following to '.git/hooks/%s':", h.Type),
+			tr.Tr.Get("Add the following to '%s/%s':", strings.TrimPrefix(hookDir, workingDir), h.Type),
 			tools.Indent(h.Contents)))
 	}
 

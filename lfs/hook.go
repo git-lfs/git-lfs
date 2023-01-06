@@ -17,8 +17,9 @@ import (
 
 var (
 	// The basic hook which just calls 'git lfs TYPE'
-	hookBaseContent = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/{{Command}}'.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
-	hookOldContent  = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/{{Command}}.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
+	hookBaseContent = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the '{{Command}}' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
+	hookOldContent  = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/{{Command}}'.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
+	hookOldContent2 = "#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting .git/hooks/{{Command}}.\\n\"; exit 2; }\ngit lfs {{Command}} \"$@\""
 )
 
 // A Hook represents a githook as described in http://git-scm.com/docs/githooks.
@@ -41,10 +42,11 @@ func LoadHooks(hookDir string, cfg *config.Configuration) []*Hook {
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }\ngit lfs pre-push \"$@\"",
 			"#!/bin/sh\ncommand -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }\ngit lfs pre-push \"$@\"",
 			hookOldContent,
+			hookOldContent2,
 		}, cfg),
-		NewStandardHook("post-checkout", hookDir, []string{hookOldContent}, cfg),
-		NewStandardHook("post-commit", hookDir, []string{hookOldContent}, cfg),
-		NewStandardHook("post-merge", hookDir, []string{hookOldContent}, cfg),
+		NewStandardHook("post-checkout", hookDir, []string{hookOldContent, hookOldContent2}, cfg),
+		NewStandardHook("post-commit", hookDir, []string{hookOldContent, hookOldContent2}, cfg),
+		NewStandardHook("post-merge", hookDir, []string{hookOldContent, hookOldContent2}, cfg),
 	}
 }
 

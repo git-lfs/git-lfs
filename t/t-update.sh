@@ -7,19 +7,19 @@ begin_test "update"
   set -e
 
   pre_push_hook="#!/bin/sh
-command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/pre-push'.\\n\"; exit 2; }
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\\n\"; exit 2; }
 git lfs pre-push \"\$@\""
 
   post_checkout_hook="#!/bin/sh
-command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-checkout'.\\n\"; exit 2; }
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-checkout' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\\n\"; exit 2; }
 git lfs post-checkout \"\$@\""
 
   post_commit_hook="#!/bin/sh
-command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-commit'.\\n\"; exit 2; }
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-commit' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\\n\"; exit 2; }
 git lfs post-commit \"\$@\""
 
   post_merge_hook="#!/bin/sh
-command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-merge'.\\n\"; exit 2; }
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-merge' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\\n\"; exit 2; }
 git lfs post-merge \"\$@\""
 
   mkdir without-pre-push
@@ -71,15 +71,22 @@ git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   # replace old hook 4
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 0; }
-git lfs pre-push \"$@\""
+git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   [ "Updated Git hooks." = "$(git lfs update)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # replace old hook 5
   echo "#!/bin/sh
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository has been set up with Git LFS but Git LFS is not installed.\\n\"; exit 2; }
-git lfs pre-push \"$@\""
+git lfs pre-push \"\$@\"" > .git/hooks/pre-push
   [ "Updated Git hooks." = "$(git lfs update)" ]
+
+  # replace old hook 6
+  echo "#!/bin/sh
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/pre-push'.\\n\"; exit 2; }
+git lfs pre-push \"\$@\"" > .git/hooks/pre-push
+  [ "Updated Git hooks." = "$(git lfs update)" ]
+  [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
   [ "$pre_push_hook" = "$(cat .git/hooks/pre-push)" ]
 
   # don't replace unexpected hook
@@ -114,25 +121,25 @@ To resolve this, either:
   expected="Add the following to '.git/hooks/pre-push':
 
 	#!/bin/sh
-	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/pre-push'.\n\"; exit 2; }
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
 	git lfs pre-push \"\$@\"
 
 Add the following to '.git/hooks/post-checkout':
 
 	#!/bin/sh
-	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-checkout'.\n\"; exit 2; }
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-checkout' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
 	git lfs post-checkout \"\$@\"
 
 Add the following to '.git/hooks/post-commit':
 
 	#!/bin/sh
-	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-commit'.\n\"; exit 2; }
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-commit' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
 	git lfs post-commit \"\$@\"
 
 Add the following to '.git/hooks/post-merge':
 
 	#!/bin/sh
-	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting '.git/hooks/post-merge'.\n\"; exit 2; }
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-merge' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
 	git lfs post-merge \"\$@\""
 
   [ "$expected" = "$(git lfs update --manual 2>&1)" ]
@@ -147,6 +154,61 @@ Add the following to '.git/hooks/post-merge':
   [ "$post_checkout_hook" = "$(cat .git/hooks/post-checkout)" ]
   [ "$post_commit_hook" = "$(cat .git/hooks/post-commit)" ]
   [ "$post_merge_hook" = "$(cat .git/hooks/post-merge)" ]
+
+  # test manual steps with core.hookspath
+  gitversion=$(git version | cut -d" " -f3)
+  set +e
+  compare_version "$gitversion" 2.9.0
+  result=$?
+  set -e
+  if [ "$result" -ne "$VERSION_LOWER" ]
+  then
+    mkdir hooks
+    rm -fr .git/hooks
+    git config core.hookspath hooks
+    echo "test" > hooks/pre-push
+    echo "test" > hooks/post-checkout
+    echo "test" > hooks/post-commit
+    echo "test" > hooks/post-merge
+
+    expected="Add the following to 'hooks/pre-push':
+
+	#!/bin/sh
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
+	git lfs pre-push \"\$@\"
+
+Add the following to 'hooks/post-checkout':
+
+	#!/bin/sh
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-checkout' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
+	git lfs post-checkout \"\$@\"
+
+Add the following to 'hooks/post-commit':
+
+	#!/bin/sh
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-commit' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
+	git lfs post-commit \"\$@\"
+
+Add the following to 'hooks/post-merge':
+
+	#!/bin/sh
+	command -v git-lfs >/dev/null 2>&1 || { echo >&2 \"\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-merge' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n\"; exit 2; }
+	git lfs post-merge \"\$@\""
+    [ "$expected" = "$(git lfs update --manual 2>&1)" ]
+    [ "test" = "$(cat hooks/pre-push)" ]
+    [ "test" = "$(cat hooks/post-checkout)" ]
+    [ "test" = "$(cat hooks/post-commit)" ]
+    [ "test" = "$(cat hooks/post-merge)" ]
+
+    # force replace unexpected hook
+    [ "Updated Git hooks." = "$(git lfs update --force)" ]
+    [ "$pre_push_hook" = "$(cat hooks/pre-push)" ]
+    [ "$post_checkout_hook" = "$(cat hooks/post-checkout)" ]
+    [ "$post_commit_hook" = "$(cat hooks/post-commit)" ]
+    [ "$post_merge_hook" = "$(cat hooks/post-merge)" ]
+
+    test -d .git/hooks && exit 1
+  fi
 
   has_test_dir || exit 0
 
