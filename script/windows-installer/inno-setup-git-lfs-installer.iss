@@ -168,7 +168,10 @@ begin
     RegisterOrDeregister := 'register';
 
   PFiles32 := ExpandConstant('{commonpf32}\')
-  PFiles64 := ExpandConstant('{commonpf64}\')
+  if IsWin64 then
+    PFiles64 := ExpandConstant('{commonpf64}\')
+  else
+    PFiles64 := PFiles32; // `commonpf64` is not available on 32-bit Windows
 
   PathEnv := GetEnv('PATH') + ';';
   repeat
