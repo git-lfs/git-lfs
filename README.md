@@ -18,7 +18,7 @@ for an overview of features.
 
 #### On Linux
 
-Debian and RPM packages are available from packagecloud, see the Linux [installation instructions](INSTALLING.md).
+Debian and RPM packages are available from packagecloud, see the [Linux installation instructions](INSTALLING.md).
 
 #### On macOS
 
