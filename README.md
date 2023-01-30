@@ -47,9 +47,12 @@ For arm64, only Debian packages are built and only for recent versions due to th
 
 #### From source
 
-[This repository](https://github.com/git-lfs/git-lfs.git) can also be built from source using the latest version
-of [Go](https://golang.org), and the available instructions
-in our [Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
+- Ensure you have the latest version of Go, GNU make, and a standard Unix-compatible build environment installed.
+- On Windows, install `goversioninfo` with `go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest`.
+- Run `make`.
+- Place the `git-lfs` binary, which can be found in `bin`, on your system’s executable `$PATH` or equivalent.
+- Git LFS requires global configuration changes once per-machine. This can be done by
+running: `git lfs install`
 
 #### Verifying releases
 
