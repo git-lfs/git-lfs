@@ -28,18 +28,17 @@ $client = Packagecloud::Client.new(credentials)
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
   "centos/7" => [
-    "el/7",
-    "scientific/7",
+    "el/7",         # EOL June 2024
+    "scientific/7", # EOL June 2024
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
     "opensuse/15.3", # EOL 2022-12
-    "opensuse/15.4",
+    "opensuse/15.4", # EOL November 2023
     # SLES EOL https://www.suse.com/lifecycle/
     "sles/12.4",
-    "sles/12.5",
-    "sles/12.5",
+    "sles/12.5", # EOL October 2024 (LTSS October 2027)
     "sles/15.3",
-    "sles/15.4",  # Current
+    "sles/15.4", # Current
   ],
   "centos/8" => [
     "el/8",
