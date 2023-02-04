@@ -32,22 +32,18 @@ $distro_name_map = {
     "scientific/7", # EOL June 2024
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-    "opensuse/15.3", # EOL 2022-12
     "opensuse/15.4", # EOL November 2023
     # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.4",
     "sles/12.5", # EOL October 2024 (LTSS October 2027)
-    "sles/15.3",
     "sles/15.4", # Current
   ],
   "centos/8" => [
     "el/8",
-    "fedora/34",
-    "fedora/35",
   ],
   "rocky/9" => [
     "el/9",
-    "fedora/36",
+    "fedora/36", # EOL May 2023
+    "fedora/37", # EOL November 2023
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -63,9 +59,10 @@ $distro_name_map = {
   "debian/11" => [
     "debian/bullseye",  # Current stable
     "debian/bookworm",  # Current testing
-    "ubuntu/impish",    # EOL July 2022
     "ubuntu/jammy",     # EOL April 2027
+    "ubuntu/kinetic",   # EOL July 2023
     "linuxmint/vanessa",# EOL April 2027
+    "linuxmint/vera",   # EOL April 2027
   ]
 }
 
