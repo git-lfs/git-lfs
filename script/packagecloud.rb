@@ -110,12 +110,8 @@ package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
   os, distro = case full_path
-  when /debian\/8/  then ["Debian 8",  "debian/jessie"]
-  when /debian\/9/  then ["Debian 9",  "debian/stretch"]
   when /debian\/10/ then ["Debian 10", "debian/buster"]
   when /debian\/11/ then ["Debian 11", "debian/bullseye"]
-  when /centos\/5/  then ["RPM RHEL 5/CentOS 5", "el/5"]
-  when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
   when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
