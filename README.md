@@ -14,41 +14,36 @@ for an overview of features.
 
 ## Getting Started
 
-### Downloading
-
-You can install the Git LFS client in several different ways, depending on your
-setup and preferences.
-
-* **Linux users**. Debian and RPM packages are available from
-  [PackageCloud](https://packagecloud.io/github/git-lfs/install).
-* **macOS users**. [Homebrew](https://brew.sh) bottles are distributed, and can
-  be installed via `brew install git-lfs`.
-* **Windows users**. Git LFS is included in the distribution of
-  [Git for Windows](https://gitforwindows.org/). Alternatively, you can
-  install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
-* **Binary packages**. In addition, [binary packages](https://github.com/git-lfs/git-lfs/releases) are
-available for Linux, macOS, Windows, and FreeBSD.
-* **Building from source**. [This repository](https://github.com/git-lfs/git-lfs.git) can also be
-built from source using the latest version of [Go](https://golang.org), and the
-available instructions in our
-[Wiki](https://github.com/git-lfs/git-lfs/wiki/Installation#source).
-
-Note that Debian and RPM packages are built for all OSes for amd64 and i386.
-For arm64, only Debian packages for the latest Debian release are built due to the cost of building in emulation.
-
 ### Installing
+
+#### On Linux
+
+Debian and RPM packages are available from packagecloud, see the [Linux installation instructions](INSTALLING.md).
+
+#### On macOS
+
+[Homebrew](https://brew.sh) bottles are distributed and can be installed via `brew install git-lfs`.
+
+#### On Windows
+
+Git LFS is included in the distribution of [Git for Windows](https://gitforwindows.org/).
+Alternatively, you can install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
 
 #### From binary
 
-The [binary packages](https://github.com/git-lfs/git-lfs/releases) include a script which will:
+[Binary packages](https://github.com/git-lfs/git-lfs/releases) are
+available for Linux, macOS, Windows, and FreeBSD.
+The binary packages include a script which will:
 
 - Install Git LFS binaries onto the system `$PATH`
-- Run `git lfs install` to
-perform required global configuration changes.
+- Run `git lfs install` to perform required global configuration changes.
 
 ```ShellSession
 $ ./install.sh
 ```
+
+Note that Debian and RPM packages are built for multiple Linux distributions and versions for both amd64 and i386.
+For arm64, only Debian packages are built and only for recent versions due to the cost of building in emulation.
 
 #### From source
 
@@ -57,11 +52,7 @@ $ ./install.sh
 - Run `make`.
 - Place the `git-lfs` binary, which can be found in `bin`, on your system’s executable `$PATH` or equivalent.
 - Git LFS requires global configuration changes once per-machine. This can be done by
-running:
-
-```ShellSession
-$ git lfs install
-```
+running: `git lfs install`
 
 #### Verifying releases
 
