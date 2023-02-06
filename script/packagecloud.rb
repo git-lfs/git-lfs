@@ -28,27 +28,22 @@ $client = Packagecloud::Client.new(credentials)
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
   "centos/7" => [
-    "el/7",
-    "scientific/7",
+    "el/7",         # EOL June 2024
+    "scientific/7", # EOL June 2024
     # opensuse https://en.opensuse.org/Lifetime
     # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-    "opensuse/15.3", # EOL 2022-12
-    "opensuse/15.4",
+    "opensuse/15.4", # EOL November 2023
     # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.4",
-    "sles/12.5",
-    "sles/12.5",
-    "sles/15.3",
-    "sles/15.4",  # Current
+    "sles/12.5", # EOL October 2024 (LTSS October 2027)
+    "sles/15.4", # Current
   ],
   "centos/8" => [
     "el/8",
-    "fedora/34",
-    "fedora/35",
   ],
   "rocky/9" => [
     "el/9",
-    "fedora/36",
+    "fedora/36", # EOL May 2023
+    "fedora/37", # EOL November 2023
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -64,9 +59,10 @@ $distro_name_map = {
   "debian/11" => [
     "debian/bullseye",  # Current stable
     "debian/bookworm",  # Current testing
-    "ubuntu/impish",    # EOL July 2022
     "ubuntu/jammy",     # EOL April 2027
+    "ubuntu/kinetic",   # EOL July 2023
     "linuxmint/vanessa",# EOL April 2027
+    "linuxmint/vera",   # EOL April 2027
   ]
 }
 
@@ -110,12 +106,8 @@ package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
   os, distro = case full_path
-  when /debian\/8/  then ["Debian 8",  "debian/jessie"]
-  when /debian\/9/  then ["Debian 9",  "debian/stretch"]
   when /debian\/10/ then ["Debian 10", "debian/buster"]
   when /debian\/11/ then ["Debian 11", "debian/bullseye"]
-  when /centos\/5/  then ["RPM RHEL 5/CentOS 5", "el/5"]
-  when /centos\/6/  then ["RPM RHEL 6/CentOS 6", "el/6"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
   when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
