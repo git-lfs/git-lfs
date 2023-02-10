@@ -30,10 +30,10 @@ jobs:
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
-    - run: cinst InnoSetup -y
-    - run: cinst strawberryperl -y
-    - run: cinst zip -y
-    - run: cinst jq -y
+    - run: choco install -y InnoSetup
+    - run: choco install -y strawberryperl
+    - run: choco install -y zip
+    - run: choco install -y jq
     - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash

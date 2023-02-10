@@ -78,8 +78,8 @@ jobs:
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
-    - run: cinst InnoSetup -y
-    - run: cinst strawberryperl -y
+    - run: choco install -y InnoSetup
+    - run: choco install -y strawberryperl
     - run: refreshenv
     - run: make man
       shell: bash
