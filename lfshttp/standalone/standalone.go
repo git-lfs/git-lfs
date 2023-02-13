@@ -39,6 +39,11 @@ type errorMessage struct {
 	Message string `json:"message"`
 }
 
+// outputErrorMessage represents an error message that may occur during startup.
+type outputErrorMessage struct {
+	Error errorMessage `json:"error"`
+}
+
 // completeMessage represents a completion response.
 type completeMessage struct {
 	Event string        `json:"event"`
@@ -288,7 +293,14 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 			var err error
 			handler, err = newHandler(cfg, output, &msg)
 			if err != nil {
-				return errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				err := errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				errMsg := outputErrorMessage{
+					Error: errorMessage{
+						Message: err.Error(),
+					},
+				}
+				json.NewEncoder(output).Encode(errMsg)
+				return err
 			}
 		}
 		if !handler.dispatch(&msg) {
