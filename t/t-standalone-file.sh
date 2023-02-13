@@ -471,3 +471,66 @@ begin_test "standalone-file-lfs.url http URL"
   git lfs fsck
 )
 end_test
+
+begin_test "standalone-file error"
+(
+  set -e
+
+  reponame="standalone-file-error"
+  setup_remote_repo "$reponame"
+
+  # clone directly, not through lfstest-gitserver
+  clone_repo "$reponame" "$reponame"
+
+  otherrepo="$(pwd)/$reponame-2.git"
+  mkdir "$otherrepo"
+
+  git remote set-url origin "file://$(urlify "$otherrepo")"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Tracking"
+
+  git checkout -b test
+
+  # set up a decent amount of data so that there's work for multiple concurrent adapters
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"verify.dat\",\"Size\":18,\"Data\":\"send-verify-action\"},
+      {\"Filename\":\"file1.dat\",\"Size\":1024},
+      {\"Filename\":\"file2.dat\",\"Size\":750}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":1050},
+      {\"Filename\":\"file3.dat\",\"Size\":660},
+      {\"Filename\":\"file4.dat\",\"Size\":230}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file5.dat\",\"Size\":1200},
+      {\"Filename\":\"file6.dat\",\"Size\":300}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":120},
+      {\"Filename\":\"file5.dat\",\"Size\":450},
+      {\"Filename\":\"file7.dat\",\"Size\":520},
+      {\"Filename\":\"file8.dat\",\"Size\":2048}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  if git push origin test 2>pusherror.log
+  then
+    exit 1
+  fi
+  cat pusherror.log
+  grep 'not.*a git repository' pusherror.log
+)
+end_test

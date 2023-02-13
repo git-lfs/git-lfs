@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -131,6 +132,9 @@ func gitDirAtPath(path string) (string, error) {
 	cmd.Cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok && len(err.Stderr) > 0 {
+			return "", errors.New(tr.Tr.Get("failed to call `git rev-parse --git-dir`: %s", string(err.Stderr)))
+		}
 		return "", errors.Wrap(err, tr.Tr.Get("failed to call `git rev-parse --git-dir`"))
 	}
 
