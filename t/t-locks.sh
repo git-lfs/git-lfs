@@ -231,3 +231,43 @@ begin_test "cached locks"
   [ $(wc -l < locks.log) -eq 1 ]
 )
 end_test
+
+begin_test "cached locks with failed lock"
+(
+  set -e
+
+  reponame="cached-locks-failed-lock"
+  setup_remote_repo "remote_$reponame"
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat"
+  echo "foo" > "cached1.dat"
+  echo "bar" > "cached2.dat"
+
+  git add "cached1.dat" "cached2.dat" ".gitattributes"
+  git commit -m "add files" | tee commit.log
+  grep "3 files changed" commit.log
+  grep "create mode 100644 cached1.dat" commit.log
+  grep "create mode 100644 cached2.dat" commit.log
+  grep "create mode 100644 .gitattributes" commit.log
+
+  git push origin main 2>&1 | tee push.log
+  grep "main -> main" push.log
+
+  git lfs lock --json "cached1.dat" | tee lock.log
+  assert_server_lock "$(assert_lock "lock.log" cached1.dat)"
+
+  git lfs lock --json "cached1.dat" "cached2.dat" | tee lock.log
+  assert_server_lock "$(assert_lock "lock.log" cached2.dat)"
+
+  git lfs locks --local | tee locks.log
+  [ $(wc -l < locks.log) -eq 2 ]
+
+  git lfs unlock --json "cached1.dat"
+
+  git lfs unlock --json "cached1.dat" "cached2.dat" || true
+
+  git lfs locks --local | tee locks.log
+  [ $(wc -l < locks.log) -eq 0 ]
+)
+end_test
