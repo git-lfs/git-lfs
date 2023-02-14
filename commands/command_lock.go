@@ -62,6 +62,7 @@ func lockCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if !success {
+		lockClient.Close()
 		os.Exit(2)
 	}
 }
