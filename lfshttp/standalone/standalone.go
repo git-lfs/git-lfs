@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -37,6 +38,11 @@ type inputMessage struct {
 // completion response.
 type errorMessage struct {
 	Message string `json:"message"`
+}
+
+// outputErrorMessage represents an error message that may occur during startup.
+type outputErrorMessage struct {
+	Error errorMessage `json:"error"`
 }
 
 // completeMessage represents a completion response.
@@ -126,6 +132,9 @@ func gitDirAtPath(path string) (string, error) {
 	cmd.Cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok && len(err.Stderr) > 0 {
+			return "", errors.New(tr.Tr.Get("failed to call `git rev-parse --git-dir`: %s", string(err.Stderr)))
+		}
 		return "", errors.Wrap(err, tr.Tr.Get("failed to call `git rev-parse --git-dir`"))
 	}
 
@@ -288,7 +297,14 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 			var err error
 			handler, err = newHandler(cfg, output, &msg)
 			if err != nil {
-				return errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				err := errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				errMsg := outputErrorMessage{
+					Error: errorMessage{
+						Message: err.Error(),
+					},
+				}
+				json.NewEncoder(output).Encode(errMsg)
+				return err
 			}
 		}
 		if !handler.dispatch(&msg) {
