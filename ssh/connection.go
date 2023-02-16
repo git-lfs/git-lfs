@@ -6,6 +6,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/pktline"
+	"github.com/rubyist/tracerx"
 )
 
 type SSHTransfer struct {
@@ -35,6 +36,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 }
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*PktlineConnection, bool, error) {
+	tracerx.Printf("spawning pure SSH connection")
 	exe, args, multiplexing := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true)
 	cmd, err := subprocess.ExecCommand(exe, args...)
 	if err != nil {
@@ -71,6 +73,7 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		w.Close()
 		cmd.Wait()
 	}
+	tracerx.Printf("pure SSH connection successful")
 	return conn, multiplexing, err
 }
 
@@ -121,6 +124,7 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 	count := len(tr.conn)
 	if n < count {
 		for _, item := range tr.conn[n:count] {
+			tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
 			if err := item.End(); err != nil {
 				return err
 			}
@@ -130,6 +134,7 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		for i := count; i < n; i++ {
 			conn, _, err := startConnection(i, tr.osEnv, tr.gitEnv, tr.meta, tr.operation)
 			if err != nil {
+				tracerx.Printf("failed to spawn pure SSH connection: %s", err)
 				return err
 			}
 			tr.conn = append(tr.conn, conn)
@@ -139,5 +144,6 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 }
 
 func (tr *SSHTransfer) Shutdown() error {
+	tracerx.Printf("shutting down pure SSH connection")
 	return tr.SetConnectionCount(0)
 }

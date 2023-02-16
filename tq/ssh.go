@@ -27,6 +27,9 @@ type SSHBatchClient struct {
 
 func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int, []string, []string, error) {
 	conn := a.transfer.Connection(0)
+	if conn == nil {
+		return 0, nil, nil, errors.Errorf(tr.Tr.Get("could not get connection for batch request"))
+	}
 	conn.Lock()
 	defer conn.Unlock()
 	err := conn.SendMessageWithLines("batch", args, batchLines)
@@ -179,6 +182,9 @@ func (a *SSHAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallbac
 		authOkFunc()
 	}
 	conn := ctx.(*ssh.PktlineConnection)
+	if conn == nil {
+		return errors.Errorf(tr.Tr.Get("could not get connection for transfer"))
+	}
 	if a.adapterBase.direction == Upload {
 		return a.upload(t, conn, cb)
 	} else {

@@ -949,6 +949,7 @@ func (q *TransferQueue) Wait() {
 
 	if q.manifest.sshTransfer != nil {
 		q.manifest.sshTransfer.Shutdown()
+		q.manifest.sshTransfer = nil
 	}
 
 	if q.unsupportedContentType {
