@@ -95,7 +95,7 @@ begin_test "fetch (shared repository)"
   rm -rf .git/lfs/objects
 
   git lfs fetch 2>&1 | tee fetch.log
-  ! grep "Could not scan" fetch.log
+  grep "Could not scan" fetch.log && exit 1
   assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log

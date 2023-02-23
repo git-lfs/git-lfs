@@ -455,7 +455,7 @@ begin_test "standalone-file-lfs.url http URL"
   [ ${PIPESTATUS[0]} = "0" ]
 
   # We should not use the custom adapter process here.
-  ! grep "xfer: started custom adapter process" push.log
+  grep "xfer: started custom adapter process" push.log && exit 1
   grep -F "$GITSERVER/$reponame" push.log
 
   # Make sure we didn't write to the wrong repo.
@@ -465,7 +465,7 @@ begin_test "standalone-file-lfs.url http URL"
   rm -fr .git/lfs/objects
 
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git lfs fetch --all 2>&1 | tee fetch.log
-  ! grep "xfer: started custom adapter process" fetch.log
+  grep "xfer: started custom adapter process" fetch.log && exit 1
   grep -F "$GITSERVER/$reponame" fetch.log
 
   git lfs fsck

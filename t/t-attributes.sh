@@ -34,7 +34,8 @@ begin_test "macros"
 
   cd dir
   git lfs track '*.bin' 2>&1 | tee track.log
-  ! grep '"*.bin" already supported' track.log
+  grep '"*.bin" already supported' track.log && exit 1
+  true
 
   # NOTE: At present we do not test that "git lfs track" reports
   #       "already supported" when it finds a pattern in a subdirectory's

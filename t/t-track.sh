@@ -74,7 +74,8 @@ begin_test "track --no-excluded"
   echo "*.mov -filter=lfs -text" >> a/b/.gitattributes
 
   git lfs track --no-excluded | tee track.log
-  ! grep "Listing excluded patterns" track.log
+  grep "Listing excluded patterns" track.log && exit 1
+  true
 )
 end_test
 

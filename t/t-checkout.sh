@@ -49,7 +49,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat folder2/nested.dat)" ]
   grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
   grep 'accepting "file1.dat"' checkout.log
-  ! grep 'rejecting "file1.dat"' checkout.log
+  grep 'rejecting "file1.dat"' checkout.log && exit 1
 
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
@@ -231,7 +231,7 @@ begin_test "checkout: conflicts"
     git commit -m "second"
 
     # This will cause a conflict.
-    ! git merge first
+    git merge first && exit 1
 
     git lfs checkout --to base.txt --base file1.dat
     git lfs checkout --to ours.txt --ours file1.dat

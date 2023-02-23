@@ -846,7 +846,7 @@ begin_test "migrate import (--everything with tag pointing to tag)"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
 
   git tag --points-at refs/tags/abc | grep -q def
-  ! git tag --points-at refs/tags/def | grep -q abc
+  git tag --points-at refs/tags/def | grep -q abc && exit 1
 
   assert_local_object "$md_main_oid" "140"
   assert_local_object "$md_feature_oid" "30"

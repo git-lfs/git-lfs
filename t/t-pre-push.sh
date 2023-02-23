@@ -1216,7 +1216,8 @@ begin_test "pre-push with pushDefault and explicit remote"
   GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git push origin main 2>&1 | tee push.log
 
   assert_server_object "$reponame" 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4 "refs/heads/main"
-  ! grep wrong-url push.log
+  grep wrong-url push.log && exit 1
+  true
 )
 end_test
 
@@ -1280,7 +1281,8 @@ begin_test "pre-push does not traverse Git objects server has"
   # Verify that we haven't tried to push or query for the object we already
   # pushed before; i.e., we didn't see it because we ignored its Git object
   # during traversal.
-  ! grep $contents_oid push.log
+  grep $contents_oid push.log && exit 1
+  true
 )
 end_test
 

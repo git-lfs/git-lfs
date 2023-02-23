@@ -101,6 +101,7 @@ begin_test "post-commit does not enter submodules"
 
   git add *.dat
   GIT_TRACE=1 git commit -m "Committed large files" 2>&1 | tee output
-  ! grep -E 'filepathfilter:.*submodule/foo' output
+  grep -E 'filepathfilter:.*submodule/foo' output && exit 1
+  true
 )
 end_test
