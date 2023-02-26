@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -1166,6 +1167,24 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 		}
 	}
 	return ret, cmd.Wait()
+}
+
+// Indicates whether a ref can be resolved via `git show-ref“
+func IsValidRef(refName string) (bool, error) {
+	cmd, err := gitNoLFS("show-ref", refName)
+	if err != nil {
+		return false, errors.New(tr.Tr.Get("failed to find `git show-ref`: %v", err))
+	}
+
+	cmd.Start()
+	err = cmd.Wait()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func parseShowRefLine(refPrefix, line string) (sha, name string, ok bool) {

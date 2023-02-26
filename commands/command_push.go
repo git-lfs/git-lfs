@@ -145,13 +145,26 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 		reflookup[ref.Name] = ref
 	}
 
+	suspiciousRefs := make([]string, 0)
+
 	refs := make([]*git.RefUpdate, len(refnames))
 	for i, name := range refnames {
 		if ref, ok := reflookup[name]; ok {
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		} else {
 			ref := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			suspiciousRefs = append(suspiciousRefs, name)
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
+		}
+	}
+
+	for _, suspiciousRef := range suspiciousRefs {
+		isValid, err := git.IsValidRef(suspiciousRef)
+		if err != nil {
+			return nil, errors.New(tr.Tr.Get("Unable to determine ref validity of %v. Error: %v", suspiciousRef, err))
+		}
+		if !isValid {
+			return nil, errors.New(tr.Tr.Get("Invalid ref: %v", suspiciousRef))
 		}
 	}
 
