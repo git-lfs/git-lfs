@@ -79,7 +79,7 @@ TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 
 # CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
 # actual signature is made with SHA-256.
-CERT_SHA1 ?= 27ea8f81ce920bccd2174e3b272f2ba247605be6
+CERT_SHA1 ?= 30a531ed3a246d3d07a4273adaef31552bf6473a
 
 # CERT_FILE is the PKCS#12 file holding the certificate.
 CERT_FILE ?=
