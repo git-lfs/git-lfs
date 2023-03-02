@@ -45,14 +45,14 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	}
 	credWrapper := c.credHelperContext.GetCredentialHelper(nil, url)
 
-	credWrapper.Input["username"] = ""
+	credWrapper.Input["username"] = []string{""}
 
 	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
 	if err != nil {
 		tracerx.Printf("Error filling credentials for %q: %v", fileurl, err)
 		return nil, err
 	}
-	pass := creds["password"]
+	pass := creds["password"][0]
 	decrypted, err := x509.DecryptPEMBlock(block, []byte(pass))
 	if err != nil {
 		credWrapper.CredentialHelper.Reject(creds)

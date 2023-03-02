@@ -51,16 +51,18 @@ func (credWrapper *CredentialHelperWrapper) FillCreds() error {
 
 // Creds represents a set of key/value pairs that are passed to 'git credential'
 // as input.
-type Creds map[string]string
+type Creds map[string][]string
 
 func bufferCreds(c Creds) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 
 	for k, v := range c {
-		buf.Write([]byte(k))
-		buf.Write([]byte("="))
-		buf.Write([]byte(v))
-		buf.Write([]byte("\n"))
+		for _, item := range v {
+			buf.Write([]byte(k))
+			buf.Write([]byte("="))
+			buf.Write([]byte(item))
+			buf.Write([]byte("\n"))
+		}
 	}
 
 	return buf
@@ -118,12 +120,12 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 // un-useable.
 func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper, u *url.URL) CredentialHelperWrapper {
 	rawurl := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
-	input := Creds{"protocol": u.Scheme, "host": u.Host}
+	input := Creds{"protocol": []string{u.Scheme}, "host": []string{u.Host}}
 	if u.User != nil && u.User.Username() != "" {
-		input["username"] = u.User.Username()
+		input["username"] = []string{u.User.Username()}
 	}
 	if u.Scheme == "cert" || ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
-		input["path"] = strings.TrimPrefix(u.Path, "/")
+		input["path"] = []string{strings.TrimPrefix(u.Path, "/")}
 	}
 
 	if helper != nil {
@@ -174,9 +176,9 @@ const (
 // provided, i.e. through the git URL
 func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 	u := &url.URL{
-		Scheme: what["protocol"],
-		Host:   what["host"],
-		Path:   what["path"],
+		Scheme: firstEntryForKey(what, "protocol"),
+		Host:   firstEntryForKey(what, "host"),
+		Path:   firstEntryForKey(what, "path"),
 	}
 
 	creds := make(Creds)
@@ -185,19 +187,19 @@ func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 	if err != nil {
 		return nil, err
 	}
-	creds["username"] = username
+	creds["username"] = []string{username}
 
 	if len(username) > 0 {
 		// If a non-empty username was given, add it to the URL via func
 		// 'net/url.User()'.
-		u.User = url.User(creds["username"])
+		u.User = url.User(username)
 	}
 
 	password, err := a.getValue(what, credValueTypePassword, u)
 	if err != nil {
 		return nil, err
 	}
-	creds["password"] = password
+	creds["password"] = []string{password}
 
 	return creds, nil
 }
@@ -216,8 +218,8 @@ func (a *AskPassCredentialHelper) getValue(what Creds, valueType credValueType, 
 
 	// Return the existing credential if it was already provided, otherwise
 	// query AskPass for it
-	if given, ok := what[valueString]; ok {
-		return given, nil
+	if given, ok := what[valueString]; ok && len(given) > 0 {
+		return given[0], nil
 	}
 	return a.getFromProgram(valueType, u)
 }
@@ -287,7 +289,9 @@ type commandCredentialHelper struct {
 
 func (h *commandCredentialHelper) Fill(creds Creds) (Creds, error) {
 	tracerx.Printf("creds: git credential fill (%q, %q, %q)",
-		creds["protocol"], creds["host"], creds["path"])
+		firstEntryForKey(creds, "protocol"),
+		firstEntryForKey(creds, "host"),
+		firstEntryForKey(creds, "path"))
 	return h.exec("fill", creds)
 }
 
@@ -298,7 +302,9 @@ func (h *commandCredentialHelper) Reject(creds Creds) error {
 
 func (h *commandCredentialHelper) Approve(creds Creds) error {
 	tracerx.Printf("creds: git credential approve (%q, %q, %q)",
-		creds["protocol"], creds["host"], creds["path"])
+		firstEntryForKey(creds, "protocol"),
+		firstEntryForKey(creds, "host"),
+		firstEntryForKey(creds, "path"))
 	_, err := h.exec("approve", creds)
 	return err
 }
@@ -331,7 +337,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	if _, ok := err.(*exec.ExitError); ok {
 		if h.SkipPrompt {
 			return nil, errors.New(tr.Tr.Get("change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s",
-				input["protocol"], input["host"]))
+				firstEntryForKey(input, "protocol"), firstEntryForKey(input, "host")))
 		}
 
 		// 'git credential' exits with 128 if the helper doesn't fill the username
@@ -351,7 +357,11 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 		if len(pieces) < 2 || len(pieces[1]) < 1 {
 			continue
 		}
-		creds[pieces[0]] = pieces[1]
+		if _, ok := creds[pieces[0]]; ok {
+			creds[pieces[0]] = append(creds[pieces[0]], pieces[1])
+		} else {
+			creds[pieces[0]] = []string{pieces[1]}
+		}
 	}
 
 	return creds, nil
@@ -368,9 +378,9 @@ func NewCredentialCacher() *credentialCacher {
 
 func credCacheKey(creds Creds) string {
 	parts := []string{
-		creds["protocol"],
-		creds["host"],
-		creds["path"],
+		firstEntryForKey(creds, "protocol"),
+		firstEntryForKey(creds, "host"),
+		firstEntryForKey(creds, "path"),
 	}
 	return strings.Join(parts, "//")
 }
@@ -383,7 +393,9 @@ func (c *credentialCacher) Fill(what Creds) (Creds, error) {
 
 	if ok {
 		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
-			what["protocol"], what["host"], what["path"])
+			firstEntryForKey(what, "protocol"),
+			firstEntryForKey(what, "host"),
+			firstEntryForKey(what, "path"))
 		return cached, nil
 	}
 
@@ -550,4 +562,11 @@ func (h *nullCredentialHelper) Approve(creds Creds) error {
 
 func (h *nullCredentialHelper) Reject(creds Creds) error {
 	return nil
+}
+
+func firstEntryForKey(input Creds, key string) string {
+	if val, ok := input[key]; ok && len(val) > 0 {
+		return val[0]
+	}
+	return ""
 }

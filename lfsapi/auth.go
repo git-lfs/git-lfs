@@ -161,7 +161,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 		err = credWrapper.FillCreds()
 		if err == nil {
 			tracerx.Printf("Filled credentials for %s", credsURL)
-			setRequestAuth(req, credWrapper.Creds["username"], credWrapper.Creds["password"])
+			setRequestAuth(req, credWrapper.Creds["username"][0], credWrapper.Creds["password"][0])
 		}
 		return credWrapper, err
 	}
