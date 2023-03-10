@@ -37,6 +37,95 @@ type Manifest interface {
 	Upgraded() bool
 }
 
+type lazyManifest struct {
+	f         *fs.Filesystem
+	apiClient *lfsapi.Client
+	operation string
+	remote    string
+	m         *concreteManifest
+}
+
+func newLazyManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *lazyManifest {
+	return &lazyManifest{
+		f:         f,
+		apiClient: apiClient,
+		operation: operation,
+		remote:    remote,
+		m:         nil,
+	}
+}
+
+func (m *lazyManifest) APIClient() *lfsapi.Client {
+	return m.Upgrade().APIClient()
+}
+
+func (m *lazyManifest) MaxRetries() int {
+	return m.Upgrade().MaxRetries()
+}
+
+func (m *lazyManifest) MaxRetryDelay() int {
+	return m.Upgrade().MaxRetryDelay()
+}
+
+func (m *lazyManifest) ConcurrentTransfers() int {
+	return m.Upgrade().ConcurrentTransfers()
+}
+
+func (m *lazyManifest) IsStandaloneTransfer() bool {
+	return m.Upgrade().IsStandaloneTransfer()
+}
+
+func (m *lazyManifest) batchClient() BatchClient {
+	return m.Upgrade().batchClient()
+}
+
+func (m *lazyManifest) GetAdapterNames(dir Direction) []string {
+	return m.Upgrade().GetAdapterNames(dir)
+}
+
+func (m *lazyManifest) GetDownloadAdapterNames() []string {
+	return m.Upgrade().GetDownloadAdapterNames()
+}
+
+func (m *lazyManifest) GetUploadAdapterNames() []string {
+	return m.Upgrade().GetUploadAdapterNames()
+}
+
+func (m *lazyManifest) getAdapterNames(adapters map[string]NewAdapterFunc) []string {
+	return m.Upgrade().getAdapterNames(adapters)
+}
+
+func (m *lazyManifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
+	m.Upgrade().RegisterNewAdapterFunc(name, dir, f)
+}
+
+func (m *lazyManifest) NewAdapterOrDefault(name string, dir Direction) Adapter {
+	return m.Upgrade().NewAdapterOrDefault(name, dir)
+}
+
+func (m *lazyManifest) NewAdapter(name string, dir Direction) Adapter {
+	return m.Upgrade().NewAdapter(name, dir)
+}
+
+func (m *lazyManifest) NewDownloadAdapter(name string) Adapter {
+	return m.Upgrade().NewDownloadAdapter(name)
+}
+
+func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
+	return m.Upgrade().NewUploadAdapter(name)
+}
+
+func (m *lazyManifest) Upgrade() *concreteManifest {
+	if m.m == nil {
+		m.m = newConcreteManifest(m.f, m.apiClient, m.operation, m.remote)
+	}
+	return m.m
+}
+
+func (m *lazyManifest) Upgraded() bool {
+	return m.m != nil
+}
+
 type concreteManifest struct {
 	// maxRetries is the maximum number of retries a single object can
 	// attempt to make before it will be dropped. maxRetryDelay is the maximum
@@ -92,7 +181,7 @@ func (m *concreteManifest) Upgraded() bool {
 }
 
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) Manifest {
-	return newConcreteManifest(f, apiClient, operation, remote)
+	return newLazyManifest(f, apiClient, operation, remote)
 }
 
 func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *concreteManifest {

@@ -241,3 +241,33 @@ begin_test "filter process: checking out a branch with --skip-smudge and checkou
   assert_pointer "b" "b.dat" "$contents_b_oid" 10
 )
 end_test
+
+begin_test "filter process: git archive does not invoke SSH"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="filter-process-archive"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  contents="test"
+  git lfs track "*.dat"
+  printf "%s" "$contents" > test.dat
+  git add .gitattributes test.dat
+  git commit -m "initial commit"
+
+  git push origin main 2>&1
+  cd ..
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  cd "$reponame-2"
+  GIT_TRACE=1 GIT_TRACE_PACKET=1 git archive -o foo.tar HEAD 2>&1 | tee archive.log
+  grep 'pure SSH' archive.log && exit 1
+  true
+)
+end_test
