@@ -10,7 +10,7 @@ import (
 )
 
 // "download" - all present
-func downloadAllExist(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func downloadAllExist(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	retobjs, err := callBatchApi(manifest, tq.Download, oidsExist)
 
 	if err != nil {
@@ -37,7 +37,7 @@ func downloadAllExist(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject
 }
 
 // "download" - all missing (test includes 404 error entry)
-func downloadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func downloadAllMissing(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	retobjs, err := callBatchApi(manifest, tq.Download, oidsMissing)
 
 	if err != nil {
@@ -69,7 +69,7 @@ func downloadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObje
 }
 
 // "download" - mixture
-func downloadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func downloadMixed(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)

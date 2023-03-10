@@ -156,7 +156,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	return verifyUpload(a.apiClient, a.remote, t)
 }
 
-func configureTusAdapter(m *Manifest) {
+func configureTusAdapter(m *concreteManifest) {
 	m.RegisterNewAdapterFunc(TusAdapterName, Upload, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:

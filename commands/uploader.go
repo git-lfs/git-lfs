@@ -72,7 +72,7 @@ func uploadRangeOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue
 type uploadContext struct {
 	Remote       string
 	DryRun       bool
-	Manifest     *tq.Manifest
+	Manifest     tq.Manifest
 	uploadedOids tools.StringSet
 	gitfilter    *lfs.GitFilter
 

@@ -351,7 +351,7 @@ const (
 	standaloneFileName = "lfs-standalone-file"
 )
 
-func configureDefaultCustomAdapters(git Env, m *Manifest) {
+func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
 	newfunc := func(name string, dir Direction) Adapter {
 		standalone := m.standaloneTransferAgent != ""
 		return newCustomAdapter(m.fs, standaloneFileName, dir, "git-lfs", "standalone-file", false, standalone)
@@ -361,7 +361,7 @@ func configureDefaultCustomAdapters(git Env, m *Manifest) {
 }
 
 // Initialise custom adapters based on current config
-func configureCustomAdapters(git Env, m *Manifest) {
+func configureCustomAdapters(git Env, m *concreteManifest) {
 	configureDefaultCustomAdapters(git, m)
 
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
