@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -110,7 +111,10 @@ PowerShell:
 		Run: func(cmd *cobra.Command, args []string) {
 			switch args[0] {
 			case "bash":
-				cmd.Root().GenBashCompletion(os.Stdout)
+				buf := new(bytes.Buffer)
+				cmd.Root().GenBashCompletion(buf)
+				buf.WriteString("_git_lfs() { __start_git-lfs; }\n") // this is needed for git bash completion to pick up the completion for the subcommand
+				buf.WriteTo(os.Stdout)
 			case "zsh":
 				cmd.Root().GenZshCompletion(os.Stdout)
 			case "fish":
