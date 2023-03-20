@@ -74,7 +74,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	var writeablePatterns []string
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
-		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
+		pattern := tools.TrimCurrentPrefix(cleanRootPath(unsanitizedPattern))
 
 		// Generate the new / changed attrib line for merging
 		var encodedArg string
