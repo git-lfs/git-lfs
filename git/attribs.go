@@ -3,6 +3,7 @@ package git
 import (
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 
@@ -101,14 +102,14 @@ func attrPathsFromFile(mp *gitattr.MacroProcessor, path, workingDir string, read
 	return AttrPathsFromReader(mp, path, workingDir, attributes, readMacros)
 }
 
-func AttrPathsFromReader(mp *gitattr.MacroProcessor, path, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
+func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
 	var paths []AttributePath
 
-	relfile, _ := filepath.Rel(workingDir, path)
+	relfile, _ := filepath.Rel(workingDir, fpath)
 	// Go 1.20 now always returns ".\foo" instead of "foo" in filepath.Rel,
 	// but only on Windows.  Strip the extra dot here so our paths are
 	// always fully relative with no "." or ".." components.
-	reldir := tools.TrimCurrentPrefix(filepath.Dir(relfile))
+	reldir := filepath.ToSlash(tools.TrimCurrentPrefix(filepath.Dir(relfile)))
 	if reldir == "." {
 		reldir = ""
 	}
@@ -141,7 +142,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, path, workingDir string, rd
 
 		pattern := line.Pattern.String()
 		if len(reldir) > 0 {
-			pattern = filepath.Join(reldir, pattern)
+			pattern = path.Join(reldir, pattern)
 		}
 
 		paths = append(paths, AttributePath{
