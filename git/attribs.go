@@ -105,7 +105,13 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, path, workingDir string, rd
 	var paths []AttributePath
 
 	relfile, _ := filepath.Rel(workingDir, path)
-	reldir := filepath.Dir(relfile)
+	// Go 1.20 now always returns ".\foo" instead of "foo" in filepath.Rel,
+	// but only on Windows.  Strip the extra dot here so our paths are
+	// always fully relative with no "." or ".." components.
+	reldir := tools.TrimCurrentPrefix(filepath.Dir(relfile))
+	if reldir == "." {
+		reldir = ""
+	}
 	source := &AttributeSource{Path: relfile}
 
 	lines, eol, err := gitattr.ParseLines(rdr)
