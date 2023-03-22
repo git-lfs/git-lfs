@@ -62,7 +62,7 @@ func Run() int {
 
 	root := NewCommand("git-lfs", gitlfsCommand)
 	root.PreRun = nil
-	
+
 	completionCmd := &cobra.Command{
 		Use:   "completion [bash|zsh|fish|powershell]",
 		Short: "Generate completion script",
@@ -129,7 +129,6 @@ PowerShell:
 	}
 
 	root.AddCommand(completionCmd)
-
 
 	// Set up help/usage funcs based on manpage text
 	helpcmd := &cobra.Command{
