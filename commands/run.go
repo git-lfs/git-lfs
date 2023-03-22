@@ -66,7 +66,7 @@ func Run() int {
 	completionCmd := &cobra.Command{
 		Use:   "completion [bash|zsh|fish|powershell]",
 		Short: "Generate completion script",
-		Long: fmt.Sprintf(`To load completions:
+		Long: tr.Tr.Get(`To load completions:
 
 Bash:
 
