@@ -653,6 +653,9 @@ begin_test "track: escaped pattern in .gitattributes"
     echo >&2 "changing flag for an existing tracked file shouldn't add another line"
     exit 1
   fi
+
+  [ "Tracking \"foo/bar/$filename\"" = "$(git lfs track "foo/bar/$filename")" ]
+  [ "\"foo/bar/$filename\" already supported" = "$(git lfs track "foo/bar/$filename")" ]
 )
 end_test
 
