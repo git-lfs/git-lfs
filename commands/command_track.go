@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -74,7 +75,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	var writeablePatterns []string
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
-		pattern := trimCurrentPrefix(cleanRootPath(unsanitizedPattern))
+		pattern := tools.TrimCurrentPrefix(cleanRootPath(unsanitizedPattern))
 
 		// Generate the new / changed attrib line for merging
 		var encodedArg string
@@ -87,7 +88,7 @@ ArgsLoop:
 
 		if !trackNoModifyAttrsFlag {
 			for _, known := range knownPatterns {
-				if unescapeAttrPattern(known.Path) == filepath.Join(relpath, pattern) &&
+				if unescapeAttrPattern(known.Path) == path.Join(relpath, pattern) &&
 					((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
 						(trackNotLockableFlag && !known.Lockable) || // disabling lockable & not lockable (no change)
 						(!trackLockableFlag && !trackNotLockableFlag)) { // leave lockable as-is in all cases

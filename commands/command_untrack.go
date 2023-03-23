@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
@@ -57,9 +58,9 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 }
 
 func removePath(path string, args []string) bool {
-	withoutCurrentDir := trimCurrentPrefix(path)
+	withoutCurrentDir := tools.TrimCurrentPrefix(path)
 	for _, t := range args {
-		if withoutCurrentDir == escapeAttrPattern(trimCurrentPrefix(t)) {
+		if withoutCurrentDir == escapeAttrPattern(tools.TrimCurrentPrefix(t)) {
 			return true
 		}
 	}

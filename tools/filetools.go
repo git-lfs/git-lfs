@@ -503,3 +503,21 @@ func CanonicalizePath(path string, missingOk bool) (string, error) {
 	}
 	return "", nil
 }
+
+const (
+	windowsPrefix = `.\`
+	nixPrefix     = `./`
+)
+
+// TrimCurrentPrefix removes a leading prefix of "./" or ".\" (referring to the
+// current directory in a platform independent manner).
+//
+// It is useful for callers such as "git lfs track" and "git lfs untrack", that
+// wish to compare filepaths and/or attributes patterns without cleaning across
+// multiple platforms.
+func TrimCurrentPrefix(p string) string {
+	if strings.HasPrefix(p, windowsPrefix) {
+		return strings.TrimPrefix(p, windowsPrefix)
+	}
+	return strings.TrimPrefix(p, nixPrefix)
+}
