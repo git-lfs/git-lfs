@@ -27,7 +27,7 @@ type TestObject struct {
 
 type ServerTest struct {
 	Name string
-	F    func(m *tq.Manifest, oidsExist, oidsMissing []TestObject) error
+	F    func(m tq.Manifest, oidsExist, oidsMissing []TestObject) error
 }
 
 var (
@@ -138,7 +138,7 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func buildManifest(r *t.Repo) (*tq.Manifest, error) {
+func buildManifest(r *t.Repo) (tq.Manifest, error) {
 	// Configure the endpoint manually
 	finder := lfsapi.NewEndpointFinder(r)
 
@@ -176,7 +176,7 @@ func (c *constantEndpoint) Endpoint(operation, remote string) lfshttp.Endpoint {
 
 func (c *constantEndpoint) RemoteEndpoint(operation, remote string) lfshttp.Endpoint { return c.e }
 
-func buildTestData(repo *t.Repo, manifest *tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
+func buildTestData(repo *t.Repo, manifest tq.Manifest) (oidsExist, oidsMissing []TestObject, err error) {
 	const oidCount = 50
 	oidsExist = make([]TestObject, 0, oidCount)
 	oidsMissing = make([]TestObject, 0, oidCount)
@@ -242,7 +242,7 @@ func saveTestOids(filename string, objs []TestObject) {
 
 }
 
-func runTests(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) bool {
+func runTests(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) bool {
 	ok := true
 	fmt.Printf("Running %d tests...\n", len(tests))
 	for _, t := range tests {
@@ -254,7 +254,7 @@ func runTests(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) bool {
 	return ok
 }
 
-func runTest(t ServerTest, manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func runTest(t ServerTest, manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	const linelen = 70
 	line := t.Name
 	if len(line) > linelen {
@@ -280,11 +280,11 @@ func exit(format string, args ...interface{}) {
 	os.Exit(2)
 }
 
-func addTest(name string, f func(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error) {
+func addTest(name string, f func(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error) {
 	tests = append(tests, ServerTest{Name: name, F: f})
 }
 
-func callBatchApi(manifest *tq.Manifest, dir tq.Direction, objs []TestObject) ([]*tq.Transfer, error) {
+func callBatchApi(manifest tq.Manifest, dir tq.Direction, objs []TestObject) ([]*tq.Transfer, error) {
 	apiobjs := make([]*tq.Transfer, 0, len(objs))
 	for _, o := range objs {
 		apiobjs = append(apiobjs, &tq.Transfer{Oid: o.Oid, Size: o.Size})

@@ -407,7 +407,7 @@ func (a *SSHAdapter) Trace(format string, args ...interface{}) {
 	tracerx.Printf(format, args...)
 }
 
-func configureSSHAdapter(m *Manifest) {
+func configureSSHAdapter(m *concreteManifest) {
 	m.RegisterNewAdapterFunc("ssh", Upload, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a

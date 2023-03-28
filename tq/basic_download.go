@@ -261,7 +261,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	return err
 }
 
-func configureBasicDownloadAdapter(m *Manifest) {
+func configureBasicDownloadAdapter(m *concreteManifest) {
 	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:

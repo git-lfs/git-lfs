@@ -209,7 +209,7 @@ type TransferQueue struct {
 	// once per unique OID on Add(), and is decremented when that transfer
 	// is marked as completed or failed, but not retried.
 	wait     *abortableWaitGroup
-	manifest *Manifest
+	manifest Manifest
 	rc       *retryCounter
 
 	// unsupportedContentType indicates whether the transfer queue ever saw
@@ -298,10 +298,9 @@ func WithBufferDepth(depth int) Option {
 }
 
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
-func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options ...Option) *TransferQueue {
+func NewTransferQueue(dir Direction, manifest Manifest, remote string, options ...Option) *TransferQueue {
 	q := &TransferQueue{
 		direction: dir,
-		client:    &tqClient{Client: manifest.APIClient()},
 		remote:    remote,
 		errorc:    make(chan error),
 		transfers: make(map[string]*objects),
@@ -314,10 +313,6 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	for _, opt := range options {
 		opt(q)
 	}
-
-	q.rc.MaxRetries = q.manifest.maxRetries
-	q.rc.MaxRetryDelay = q.manifest.maxRetryDelay
-	q.client.SetMaxRetries(q.manifest.maxRetries)
 
 	if q.batchSize <= 0 {
 		q.batchSize = defaultBatchSize
@@ -337,6 +332,18 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 	return q
 }
 
+// Ensure we have a concrete manifest and that certain delayed variables are set
+// properly.
+func (q *TransferQueue) Upgrade() {
+	if q.client == nil {
+		manifest := q.manifest.Upgrade()
+		q.client = &tqClient{Client: manifest.APIClient()}
+		q.rc.MaxRetries = manifest.maxRetries
+		q.rc.MaxRetryDelay = manifest.maxRetryDelay
+		q.client.SetMaxRetries(manifest.maxRetries)
+	}
+}
+
 // Add adds a *Transfer to the transfer queue. It only increments the amount
 // of waiting the TransferQueue has to do if the *Transfer "t" is new.
 //
@@ -347,6 +354,8 @@ func NewTransferQueue(dir Direction, manifest *Manifest, remote string, options 
 // Only one file will be transferred to/from the Path element of the first
 // transfer.
 func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool, err error) {
+	q.Upgrade()
+
 	if err != nil {
 		q.errorc <- err
 		return
@@ -384,6 +393,8 @@ func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool, er
 //
 // It returns if the value is new or not.
 func (q *TransferQueue) remember(t *objectTuple) objects {
+	q.Upgrade()
+
 	q.trMutex.Lock()
 	defer q.trMutex.Unlock()
 
@@ -498,6 +509,8 @@ func (q *TransferQueue) collectBatches() {
 // A "pending" batch is returned, along with whether or not "q.incoming" is
 // closed.
 func (q *TransferQueue) collectPendingUntil(done <-chan struct{}) (pending batch, closing bool) {
+	q.Upgrade()
+
 	for {
 		select {
 		case t, ok := <-q.incoming:
@@ -525,6 +538,8 @@ func (q *TransferQueue) collectPendingUntil(done <-chan struct{}) (pending batch
 // enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
 // processed.
 func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) {
+	q.Upgrade()
+
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
@@ -548,7 +563,8 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 
 	q.meter.Pause()
 	var bRes *BatchResponse
-	if q.manifest.standaloneTransferAgent != "" {
+	manifest := q.manifest.Upgrade()
+	if manifest.standaloneTransferAgent != "" {
 		// Trust the external transfer agent can do everything by itself.
 		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
@@ -556,7 +572,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 		bRes = &BatchResponse{
 			Objects:             objects,
-			TransferAdapterName: q.manifest.standaloneTransferAgent,
+			TransferAdapterName: manifest.standaloneTransferAgent,
 		}
 	} else {
 		// Query the Git LFS server for what transfer method to use and
@@ -651,7 +667,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 					q.Skip(o.Size)
 					q.wait.Done()
 				}
-			} else if a == nil && q.manifest.standaloneTransferAgent == "" {
+			} else if a == nil && manifest.standaloneTransferAgent == "" {
 				q.Skip(o.Size)
 				q.wait.Done()
 			} else {
@@ -680,6 +696,8 @@ func (q *TransferQueue) makeBatch() batch { return make(batch, 0, q.batchSize) }
 //
 // addToAdapter returns immediately, and does not block.
 func (q *TransferQueue) addToAdapter(e lfshttp.Endpoint, pending []*Transfer) <-chan *objectTuple {
+	q.Upgrade()
+
 	retries := make(chan *objectTuple, len(pending))
 
 	if err := q.ensureAdapterBegun(e); err != nil {
@@ -718,6 +736,8 @@ func (q *TransferQueue) addToAdapter(e lfshttp.Endpoint, pending []*Transfer) <-
 }
 
 func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Transfer, results []TransferResult) {
+	q.Upgrade()
+
 	if q.direction != Upload {
 		return transfers, nil
 	}
@@ -887,6 +907,8 @@ func (q *TransferQueue) Skip(size int64) {
 }
 
 func (q *TransferQueue) ensureAdapterBegun(e lfshttp.Endpoint) error {
+	q.Upgrade()
+
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
 
@@ -947,9 +969,12 @@ func (q *TransferQueue) Wait() {
 	q.meter.Flush()
 	q.errorwait.Wait()
 
-	if q.manifest.sshTransfer != nil {
-		q.manifest.sshTransfer.Shutdown()
-		q.manifest.sshTransfer = nil
+	if q.manifest.Upgraded() {
+		manifest := q.manifest.Upgrade()
+		if manifest.sshTransfer != nil {
+			manifest.sshTransfer.Shutdown()
+			manifest.sshTransfer = nil
+		}
 	}
 
 	if q.unsupportedContentType {

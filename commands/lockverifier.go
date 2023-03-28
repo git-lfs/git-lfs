@@ -151,7 +151,7 @@ func (lv *lockVerifier) newRefLocks(ref *git.Ref, l locking.Lock) *refLock {
 	}
 }
 
-func newLockVerifier(m *tq.Manifest) *lockVerifier {
+func newLockVerifier(m tq.Manifest) *lockVerifier {
 	lv := &lockVerifier{
 		endpoint:     getAPIClient().Endpoints.Endpoint("upload", cfg.PushRemote()),
 		verifiedRefs: make(map[string]bool),

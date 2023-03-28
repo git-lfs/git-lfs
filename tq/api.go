@@ -35,12 +35,14 @@ type BatchResponse struct {
 	endpoint            lfshttp.Endpoint
 }
 
-func Batch(m *Manifest, dir Direction, remote string, remoteRef *git.Ref, objects []*Transfer) (*BatchResponse, error) {
+func Batch(m Manifest, dir Direction, remote string, remoteRef *git.Ref, objects []*Transfer) (*BatchResponse, error) {
 	if len(objects) == 0 {
 		return &BatchResponse{}, nil
 	}
 
-	return m.batchClient().Batch(remote, &batchRequest{
+	cm := m.Upgrade()
+
+	return cm.batchClient().Batch(remote, &batchRequest{
 		Operation:            dir.String(),
 		Objects:              objects,
 		TransferAdapterNames: m.GetAdapterNames(dir),

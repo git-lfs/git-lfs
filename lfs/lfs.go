@@ -15,7 +15,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func Environ(cfg *config.Configuration, manifest *tq.Manifest, envOverrides map[string]string) []string {
+func Environ(cfg *config.Configuration, manifest tq.Manifest, envOverrides map[string]string) []string {
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
 
