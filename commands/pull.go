@@ -39,7 +39,7 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 }
 
 type abstractCheckout interface {
-	Manifest() *tq.Manifest
+	Manifest() tq.Manifest
 	Skip() bool
 	Run(*lfs.WrappedPointer)
 	RunToPath(*lfs.WrappedPointer, string) error
@@ -49,11 +49,11 @@ type abstractCheckout interface {
 type singleCheckout struct {
 	gitIndexer    *gitIndexer
 	pathConverter lfs.PathConverter
-	manifest      *tq.Manifest
+	manifest      tq.Manifest
 	remote        string
 }
 
-func (c *singleCheckout) Manifest() *tq.Manifest {
+func (c *singleCheckout) Manifest() tq.Manifest {
 	if c.manifest == nil {
 		c.manifest = getTransferManifestOperationRemote("download", c.remote)
 	}
@@ -115,11 +115,11 @@ func (c *singleCheckout) Close() {
 }
 
 type noOpCheckout struct {
-	manifest *tq.Manifest
+	manifest tq.Manifest
 	remote   string
 }
 
-func (c *noOpCheckout) Manifest() *tq.Manifest {
+func (c *noOpCheckout) Manifest() tq.Manifest {
 	if c.manifest == nil {
 		c.manifest = getTransferManifestOperationRemote("download", c.remote)
 	}

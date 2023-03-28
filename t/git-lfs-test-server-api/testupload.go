@@ -10,7 +10,7 @@ import (
 )
 
 // "upload" - all missing
-func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func uploadAllMissing(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	retobjs, err := callBatchApi(manifest, tq.Upload, oidsMissing)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func uploadAllMissing(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject
 }
 
 // "upload" - all present
-func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func uploadAllExists(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	retobjs, err := callBatchApi(manifest, tq.Upload, oidsExist)
 
 	if err != nil {
@@ -65,7 +65,7 @@ func uploadAllExists(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject)
 }
 
 // "upload" - mix of missing & present
-func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func uploadMixed(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	existSet := tools.NewStringSetWithCapacity(len(oidsExist))
 	for _, o := range oidsExist {
 		existSet.Add(o.Oid)
@@ -109,7 +109,7 @@ func uploadMixed(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) err
 
 }
 
-func uploadEdgeCases(manifest *tq.Manifest, oidsExist, oidsMissing []TestObject) error {
+func uploadEdgeCases(manifest tq.Manifest, oidsExist, oidsMissing []TestObject) error {
 	errorCases := make([]TestObject, 0, 5)
 	errorCodeMap := make(map[string]int, 5)
 	errorReasonMap := make(map[string]string, 5)
