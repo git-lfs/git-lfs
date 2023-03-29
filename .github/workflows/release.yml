@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.19.x']
+        go: ['1.20.x']
     steps:
     - uses: actions/checkout@v3
       with:
@@ -73,7 +73,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.19.x']
+        go: ['1.20.x']
     steps:
     - uses: actions/checkout@v3
       with:
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.19.x']
+        go: ['1.20.x']
     steps:
     - uses: actions/checkout@v3
       with:
