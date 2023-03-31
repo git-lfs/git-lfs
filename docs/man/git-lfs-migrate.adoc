@@ -98,14 +98,21 @@ pointers as files by using `--pointers=no-follow`. (The latter option is
 akin to how existing Git LFS pointers were handled by the `info` mode in
 prior versions of Git LFS).
 
-When using the `--everything` option, take note that it means all refs
-(local and remote) will be considered, but not necessarily all file
-types. The `import` and `info` modes consider all file types by default,
-although the `--include` and `--exclude` options constrain this
-behavior. Also note that after importing across all branches with the
-`--everything` option (and then checking to ensure the results are
-satisfactory!) it may be convenient to update multiple branches on your
-remotes by using the `--all` option to `git push`.
+When using the `--everything` option, take note that it means all commits
+reachable from all refs (local and remote) will be considered, but not
+necessarily all file types. The `import` and `info` modes consider all file
+types by default, although the `--include` and `--exclude` options constrain
+this behavior.
+
+While the `--everything` option means all commits reachable from any
+ref will be considered for migration, after migration only local refs will
+be updated even when `--everything` is specified. This ensures remote
+refs stay synchronized with their remote. In other words, `refs/heads/foo`
+will be updated with the `--everything` option, but `refs/remotes/origin/foo`
+will not, so it stays in sync with the remote until `git push origin foo`
+is performed.  After checking that the results of a migration with
+`--everything` are satisfactory, it may be convenient to push all local
+branches to your remotes by using the `--all` option to `git push`.
 
 Unless the `--skip-fetch` option is given, `git lfs migrate` always
 begins by fetching updated lists of refs from all the remotes returned
@@ -369,8 +376,9 @@ commits F, E, D, C, and B, but exclude commit A:
   --exclude-ref=refs/remotes/origin/main
 ....
 
-The presence of flag `--everything` indicates that all local and remote
-references should be migrated.
+The presence of flag `--everything` indicates that all commits reachable
+from all local and remote references should be migrated (but note that
+the remote refs themselves will not be updated).
 
 == EXAMPLES
 
@@ -443,7 +451,7 @@ $ git lfs migrate import --everything --above=100Kb
 ....
 
 Note: This will require a force-push to any existing Git remotes. Using
-the `--all` option when force-pushing may be convenient if many refs
+the `--all` option when force-pushing may be convenient if many local refs
 were updated, e.g., after importing to Git LFS with the `--everything`
 option.
 
@@ -490,7 +498,7 @@ $ git lfs migrate export --everything --include="*"
 ....
 
 Note: This will require a force-push to any existing Git remotes. Using
-the `--all` option when force-pushing may be convenient if many refs
+the `--all` option when force-pushing may be convenient if many local refs
 were updated, e.g., after exporting from Git LFS with the `--everything`
 option.
 
