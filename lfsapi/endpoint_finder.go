@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 	"sync"
+    	"bufio"
+	"regexp"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
@@ -93,6 +95,10 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) lfshttp.Endpoi
 		if e := e.RemoteEndpoint(operation, remote); len(e.Url) > 0 {
 			return e
 		}
+                // we end up returning `e.RemoteEndpoint()` regardless of the check above
+                // maybe remove this check?
+                // technically, if there is a non-default remote, the current implementation ends up calling
+                // RemoteEndpoint() twice - if the function is not idempotent, I mean break something by removing the check
 	}
 
 	return e.RemoteEndpoint(operation, defaultRemote)
@@ -117,13 +123,82 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 		return e.NewEndpoint(operation, url)
 	}
 
-	// finally fall back on git remote url (also supports pushurl)
+	// fall back on git remote url (also supports pushurl)
 	if url := e.GitRemoteURL(remote, operation == "upload"); url != "" {
 		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
+        url, err := parseFetchHead(strings.Join([]string{".git", "FETCH_HEAD"}, "/"));
+        if err == nil {
+            return e.NewEndpoint(operation, url)
+        }
 	return lfshttp.Endpoint{}
 }
+
+func parseFetchHead(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		line := scanner.Text()
+		return ExtractRemoteUrl(line)
+	}
+
+	return "", fmt.Errorf("Failed to read content from %s", filePath)
+}
+
+func ExtractRemoteUrl(line string) (string, error) {
+        re := regexp.MustCompile(`of (https://|ssh://)?(.*)`)
+	//re := regexp.MustCompile(`((?:\w+@)?[\w.-]+:(?:[\w\-./]+)|https?://[\w.-]+(?:/[\w\-./]+)?|ssh://[\w.-]+(?:/[\w\-./]+)?)`)
+
+	match := re.FindStringSubmatch(line)
+	if len(match) != 3 {
+            return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
+	}
+        maybeProtocol := match[2]
+        remoteUrl := match[3]
+        type Protocol int
+        const (
+            Https Protocol = iota
+            Ssh
+            Unknown
+        )
+        p := Unknown
+        // Try to determine the protocol for the remote URL
+        if maybeProtocol == "https://" {
+            p = Https
+        }
+        if strings.Contains(remoteUrl, ":") {
+            p = Ssh
+        }
+        if maybeProtocol == "ssh://" {
+        // If our format includes the `ssh://` prefix, replace the first `/` with `:`
+            remoteUrl = strings.Replace(remoteUrl, "/", ":", 1)
+            p = Ssh
+        }
+
+        if p == Unknown {
+            return "", fmt.Errorf("could not determine protocol for remote URL in \"%s\"", line)
+        }
+
+        // The format used in FETCH_HEAD is slightly different
+        // to what `git remote get-url` shows.
+        // For example, if `get-url` would yield git@github.com:username/reponame.git
+        // then FETCH_HEAD contains either ssh://github.com/username/reponame
+        // or github.com:username/reponame
+
+    	remoteUrl += ".git"
+        if p == Ssh {
+            remoteUrl = "git@" + remoteUrl
+        }
+
+	return remoteUrl, nil
+}
+
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 	if e.gitEnv != nil {
