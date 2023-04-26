@@ -967,6 +967,10 @@ func gitHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("CONTENT_TYPE=%s", r.Header.Get("Content-Type")),
 	}
 
+	if vals := r.Header.Values("Git-Protocol"); len(vals) == 1 {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("GIT_PROTOCOL=%s", vals[0]))
+	}
+
 	buffer := &bytes.Buffer{}
 	cmd.Stdin = r.Body
 	cmd.Stdout = buffer
