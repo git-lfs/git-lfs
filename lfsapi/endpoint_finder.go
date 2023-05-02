@@ -128,10 +128,14 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
-        url, err := parseFetchHead(strings.Join([]string{".git", "FETCH_HEAD"}, "/"));
+	gitDir, err := git.GitDir()
         if err == nil {
-            return e.NewEndpointFromCloneURL(operation, url)
+                url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
+                if err == nil {
+                        return e.NewEndpointFromCloneURL(operation, url)
+                }
         }
+
 	return lfshttp.Endpoint{}
 }
 
