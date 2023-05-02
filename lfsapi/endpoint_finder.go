@@ -130,7 +130,7 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 
         url, err := parseFetchHead(strings.Join([]string{".git", "FETCH_HEAD"}, "/"));
         if err == nil {
-            return e.NewEndpoint(operation, url)
+            return e.NewEndpointFromCloneURL(operation, url)
         }
 	return lfshttp.Endpoint{}
 }
@@ -159,8 +159,8 @@ func ExtractRemoteUrl(line string) (string, error) {
 	if len(match) != 3 {
             return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 	}
-        maybeProtocol := match[2]
-        remoteUrl := match[3]
+        maybeProtocol := match[1]
+        remoteUrl := match[2]
         type Protocol int
         const (
             Https Protocol = iota
@@ -176,7 +176,12 @@ func ExtractRemoteUrl(line string) (string, error) {
             p = Ssh
         }
         if maybeProtocol == "ssh://" {
-        // If our format includes the `ssh://` prefix, replace the first `/` with `:`
+            // Recall the (simplified) parts of a URL:
+            // https://example.com/resource
+            // ^scheme ^domain     ^path
+            // When scheme is `ssh://`, we need to change the separator between domain and path.
+            // Usually, the domain and path are separated with a '/'.
+            // For a valid SSH remote, we need them to be separated with a ':' instead.
             remoteUrl = strings.Replace(remoteUrl, "/", ":", 1)
             p = Ssh
         }
@@ -187,13 +192,15 @@ func ExtractRemoteUrl(line string) (string, error) {
 
         // The format used in FETCH_HEAD is slightly different
         // to what `git remote get-url` shows.
-        // For example, if `get-url` would yield git@github.com:username/reponame.git
-        // then FETCH_HEAD contains either ssh://github.com/username/reponame
+        // For example, if `get-url` would yield git@github.com:username/reponame.git,
+        // FETCH_HEAD would contain either ssh://github.com/username/reponame
         // or github.com:username/reponame
 
     	remoteUrl += ".git"
         if p == Ssh {
             remoteUrl = "git@" + remoteUrl
+        } else {
+            remoteUrl = "https://" + remoteUrl
         }
 
 	return remoteUrl, nil
