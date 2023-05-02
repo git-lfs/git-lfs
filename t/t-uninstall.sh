@@ -209,7 +209,7 @@ begin_test "uninstall --local with conflicting scope"
   res=$?
   set -e
 
-  [ "Only one of --local and --system options can be specified." = "$(cat err.log)" ]
+  [ "Only one of the --local, --system, --worktree, and --file options can be specified." = "$(cat err.log)" ]
   [ "0" != "$res" ]
 )
 end_test
@@ -261,5 +261,52 @@ begin_test "uninstall --local"
   [ "" = "$(git config --local filter.lfs.smudge)" ]
   [ "" = "$(git config --local filter.lfs.clean)" ]
   [ "" = "$(git config --local filter.lfs.process)" ]
+)
+end_test
+
+begin_test "uninstall --file"
+(
+  set -e
+
+  # old values that should be ignored by `uninstall --local`
+  git config --global filter.lfs.smudge "global smudge"
+  git config --global filter.lfs.clean "global clean"
+  git config --global filter.lfs.process "global filter"
+
+  reponame="$(basename "$0" ".sh")-file"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+  git lfs install --file=test-file
+
+  # local configs are correct
+  [ "git-lfs smudge -- %f" = "$(git config --file test-file filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config --file test-file filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config --file test-file filter.lfs.process)" ]
+
+  # global configs
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
+
+  git lfs uninstall --file=test-file 2>&1 | tee uninstall.log
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo >&2 "fatal: expected 'git lfs uninstall --file=test-file' to succeed"
+    exit 1
+  fi
+  grep -v "Global Git LFS configuration has been removed." uninstall.log
+
+  # global configs
+  [ "global smudge" = "$(git config filter.lfs.smudge)" ]
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config filter.lfs.clean)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config filter.lfs.process)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
+
+  # local configs are empty
+  [ "" = "$(git config --file test-file filter.lfs.smudge)" ]
+  [ "" = "$(git config --file test-file filter.lfs.clean)" ]
+  [ "" = "$(git config --file test-file filter.lfs.process)" ]
 )
 end_test

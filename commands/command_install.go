@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	fileInstall       = ""
 	forceInstall      = false
 	localInstall      = false
 	worktreeInstall   = false
@@ -40,13 +41,22 @@ func cmdInstallOptions() *lfs.FilterOptions {
 		setupRepository()
 	}
 
-	switch {
-	case localInstall && worktreeInstall:
-		Exit(tr.Tr.Get("Only one of --local and --worktree options can be specified."))
-	case localInstall && systemInstall:
-		Exit(tr.Tr.Get("Only one of --local and --system options can be specified."))
-	case worktreeInstall && systemInstall:
-		Exit(tr.Tr.Get("Only one of --worktree and --system options can be specified."))
+	destArgs := 0
+	if localInstall {
+		destArgs++
+	}
+	if worktreeInstall {
+		destArgs++
+	}
+	if systemInstall {
+		destArgs++
+	}
+	if fileInstall != "" {
+		destArgs++
+	}
+
+	if destArgs > 1 {
+		Exit(tr.Tr.Get("Only one of the --local, --system, --worktree, and --file options can be specified."))
 	}
 
 	// This call will return -1 on Windows; don't warn about this there,
@@ -59,6 +69,7 @@ func cmdInstallOptions() *lfs.FilterOptions {
 	return &lfs.FilterOptions{
 		GitConfig:  cfg.GitConfig(),
 		Force:      forceInstall,
+		File:       fileInstall,
 		Local:      localInstall,
 		Worktree:   worktreeInstall,
 		System:     systemInstall,
@@ -85,6 +96,7 @@ func init() {
 	RegisterCommand("install", installCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&forceInstall, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
+		cmd.Flags().StringVarP(&fileInstall, "file", "", "", "Set the Git LFS config for the given configuration file only.")
 		if git.IsGitVersionAtLeast("2.20.0") {
 			cmd.Flags().BoolVarP(&worktreeInstall, "worktree", "w", false, "Set the Git LFS config for the current Git working tree, if multiple working trees are configured; otherwise, the same as --local.")
 		}

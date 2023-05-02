@@ -154,7 +154,7 @@ begin_test "install --worktree with conflicting scope"
   res=$?
   set -e
 
-  [ "Only one of --local and --worktree options can be specified." = "$(cat err.log)" ]
+  [ "Only one of the --local, --system, --worktree, and --file options can be specified." = "$(cat err.log)" ]
   [ "0" != "$res" ]
 
   set +e
@@ -162,7 +162,15 @@ begin_test "install --worktree with conflicting scope"
   res=$?
   set -e
 
-  [ "Only one of --worktree and --system options can be specified." = "$(cat err.log)" ]
+  [ "Only one of the --local, --system, --worktree, and --file options can be specified." = "$(cat err.log)" ]
+  [ "0" != "$res" ]
+
+  set +e
+  git lfs install --worktree --file test-file 2>err.log
+  res=$?
+  set -e
+
+  [ "Only one of the --local, --system, --worktree, and --file options can be specified." = "$(cat err.log)" ]
   [ "0" != "$res" ]
 )
 end_test

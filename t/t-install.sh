@@ -234,6 +234,32 @@ begin_test "install --local"
 )
 end_test
 
+begin_test "install --file"
+(
+  set -e
+
+  # old values that should be ignored by `install --local`
+  git config --global filter.lfs.smudge "global smudge"
+  git config --global filter.lfs.clean "global clean"
+  git config --global filter.lfs.process "global filter"
+
+  mkdir install-file-repo
+  cd install-file-repo
+  git init
+  git lfs install --file=test-file
+
+  # local configs are correct
+  [ "git-lfs smudge -- %f" = "$(git config --file test-file filter.lfs.smudge)" ]
+  [ "git-lfs clean -- %f" = "$(git config --file test-file filter.lfs.clean)" ]
+  [ "git-lfs filter-process" = "$(git config --file test-file filter.lfs.process)" ]
+
+  # global configs
+  [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]
+  [ "global clean" = "$(git config --global filter.lfs.clean)" ]
+  [ "global filter" = "$(git config --global filter.lfs.process)" ]
+)
+end_test
+
 begin_test "install --local with failed permissions"
 (
   set -e
@@ -300,7 +326,7 @@ begin_test "install --local with conflicting scope"
   res=$?
   set -e
 
-  [ "Only one of --local and --system options can be specified." = "$(cat err.log)" ]
+  [ "Only one of the --local, --system, --worktree, and --file options can be specified." = "$(cat err.log)" ]
   [ "0" != "$res" ]
 )
 end_test

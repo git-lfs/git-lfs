@@ -31,6 +31,7 @@ type Attribute struct {
 type FilterOptions struct {
 	GitConfig  *git.Configuration
 	Force      bool
+	File       string
 	Local      bool
 	Worktree   bool
 	System     bool
@@ -142,6 +143,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 		currentValue = gitConfig.FindWorktree(key)
 	} else if opt.System {
 		currentValue = gitConfig.FindSystem(key)
+	} else if opt.File != "" {
+		currentValue = gitConfig.FindFile(opt.File, key)
 	} else {
 		currentValue = gitConfig.FindGlobal(key)
 	}
@@ -154,6 +157,8 @@ func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgrade
 			_, err = gitConfig.SetWorktree(key, value)
 		} else if opt.System {
 			_, err = gitConfig.SetSystem(key, value)
+		} else if opt.File != "" {
+			_, err = gitConfig.SetFile(opt.File, key, value)
 		} else {
 			_, err = gitConfig.SetGlobal(key, value)
 		}
@@ -175,6 +180,8 @@ func (a *Attribute) Uninstall(opt *FilterOptions) error {
 		_, err = opt.GitConfig.UnsetWorktreeSection(a.Section)
 	} else if opt.System {
 		_, err = opt.GitConfig.UnsetSystemSection(a.Section)
+	} else if opt.File != "" {
+		_, err = opt.GitConfig.UnsetFileSection(opt.File, a.Section)
 	} else {
 		_, err = opt.GitConfig.UnsetGlobalSection(a.Section)
 	}
