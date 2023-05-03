@@ -157,7 +157,6 @@ func parseFetchHead(filePath string) (string, error) {
 
 func ExtractRemoteUrl(line string) (string, error) {
         re := regexp.MustCompile(`of (https://|ssh://)?(.*)`)
-	//re := regexp.MustCompile(`((?:\w+@)?[\w.-]+:(?:[\w\-./]+)|https?://[\w.-]+(?:/[\w\-./]+)?|ssh://[\w.-]+(?:/[\w\-./]+)?)`)
 
 	match := re.FindStringSubmatch(line)
 	if len(match) != 3 {
@@ -203,7 +202,8 @@ func ExtractRemoteUrl(line string) (string, error) {
     	remoteUrl += ".git"
         if p == Ssh {
             remoteUrl = "git@" + remoteUrl
-        } else {
+        }
+        if p == Https {
             remoteUrl = "https://" + remoteUrl
         }
 
