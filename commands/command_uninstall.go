@@ -35,6 +35,7 @@ func uninstallHooksCommand(cmd *cobra.Command, args []string) {
 func init() {
 	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Remove the Git LFS config for the local Git repository only.")
+		cmd.Flags().StringVarP(&fileInstall, "file", "", "", "Remove the Git LFS config for the given configuration file only.")
 		if git.IsGitVersionAtLeast("2.20.0") {
 			cmd.Flags().BoolVarP(&worktreeInstall, "worktree", "w", false, "Remove the Git LFS config for the current Git working tree, if multiple working trees are configured; otherwise, the same as --local.")
 		}
