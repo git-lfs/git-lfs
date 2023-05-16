@@ -133,6 +133,8 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
                 url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
                 if err == nil {
                         return e.NewEndpointFromCloneURL(operation, url)
+                } else {
+                    tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
                 }
         }
 
@@ -156,9 +158,10 @@ func parseFetchHead(filePath string) (string, error) {
 }
 
 func ExtractRemoteUrl(line string) (string, error) {
-        re := regexp.MustCompile(`of (https://|ssh://)?(.*)`)
+        re := regexp.MustCompile(`\s(https://|ssh://)?([\/\.\-\:\_a-zA-Z0-9]+)$`)
 
 	match := re.FindStringSubmatch(line)
+
 	if len(match) != 3 {
             return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 	}
