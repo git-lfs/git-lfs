@@ -3,7 +3,6 @@ package githistory
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"sync"
@@ -156,14 +155,6 @@ var (
 		return func(r *Rewriter) {
 			r.filter = filter
 		}
-	}
-
-	// WithLoggerTo logs updates caused by the *git/githistory.Rewriter to
-	// the given io.Writer "sink".
-	WithLoggerTo = func(sink io.Writer, forceProgress bool) rewriterOption {
-		return WithLogger(tasklog.NewLogger(sink,
-			tasklog.ForceProgress(forceProgress),
-		))
 	}
 
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
