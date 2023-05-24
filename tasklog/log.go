@@ -115,7 +115,7 @@ func (l *Logger) Close() {
 	l.wg.Wait()
 }
 
-// Waitier creates and enqueues a new *WaitingTask.
+// Waiter creates and enqueues a new *WaitingTask.
 func (l *Logger) Waiter(msg string) *WaitingTask {
 	t := NewWaitingTask(msg)
 	l.Enqueue(t)
@@ -139,7 +139,7 @@ func (l *Logger) List(msg string) *ListTask {
 	return t
 }
 
-// List creates and enqueues a new *SimpleTask.
+// Simple creates and enqueues a new *SimpleTask.
 func (l *Logger) Simple() *SimpleTask {
 	t := NewSimpleTask()
 	l.Enqueue(t)
