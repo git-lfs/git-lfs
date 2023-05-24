@@ -189,50 +189,19 @@ func (l *Logger) consume() {
 
 	defer close(l.tasks)
 
-	pending := make([]Task, 0)
-
 	for {
-		// If there is a pending task, "peek" it off of the set of
-		// pending tasks.
-		var next Task
-		if len(pending) > 0 {
-			next = pending[0]
+		// Wait for either a) l.queue to close, or b) a new task
+		// to be submitted.
+		task, ok := <-l.queue
+		if !ok {
+			// If the queue is closed, no more new tasks may
+			// be added.
+			return
 		}
 
-		if next == nil {
-			// If there was no pending task, wait for either a)
-			// l.queue to close, or b) a new task to be submitted.
-			task, ok := <-l.queue
-			if !ok {
-				// If the queue is closed, no more new tasks may
-				// be added.
-				return
-			}
-
-			// Otherwise, add a new task to the set of tasks to
-			// process immediately, since there is no current
-			// buffer.
-			l.tasks <- task
-		} else {
-			// If there is a pending task, wait for either a) a
-			// write to process the task to become non-blocking, or
-			// b) a new task to enter the queue.
-			select {
-			case task, ok := <-l.queue:
-				if !ok {
-					// If the queue is closed, no more tasks
-					// may be added.
-					return
-				}
-				// Otherwise, add the next task to the set of
-				// pending, active tasks.
-				pending = append(pending, task)
-			case l.tasks <- next:
-				// Or "pop" the peeked task off of the pending
-				// set.
-				pending = pending[1:]
-			}
-		}
+		// Otherwise, add a new task to the set of tasks to
+		// process immediately.
+		l.tasks <- task
 	}
 }
 
