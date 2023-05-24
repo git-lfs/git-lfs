@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/tools"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/olekukonko/ts"
 )
@@ -285,7 +286,7 @@ func (l *Logger) logTask(task Task) {
 // It returns the number of bytes "n" written to the sink and the error "err",
 // if one was encountered.
 func (l *Logger) logLine(str string) (n int, err error) {
-	padding := strings.Repeat(" ", maxInt(0, l.widthFn()-len(str)))
+	padding := strings.Repeat(" ", tools.MaxInt(0, l.widthFn()-len(str)))
 
 	return l.log(str + padding + "\r")
 }
@@ -296,11 +297,4 @@ func (l *Logger) logLine(str string) (n int, err error) {
 // if one was encountered.
 func (l *Logger) log(str string) (n int, err error) {
 	return fmt.Fprint(l.sink, str)
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
