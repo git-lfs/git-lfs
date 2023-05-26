@@ -70,8 +70,8 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 }
 
 // Entry logs a line-delimited task entry.
-func (t *PercentageTask) Entry(update string) {
-	t.ch <- &Update{
+func (c *PercentageTask) Entry(update string) {
+	c.ch <- &Update{
 		S:     fmt.Sprintf("%s\n", update),
 		At:    time.Now(),
 		Force: true,
@@ -80,7 +80,6 @@ func (t *PercentageTask) Entry(update string) {
 
 // Updates implements Task.Updates and returns a channel which is written to
 // when the state of this task changes, and closed when the task is completed.
-// has been completed.
 func (c *PercentageTask) Updates() <-chan *Update {
 	return c.ch
 }
