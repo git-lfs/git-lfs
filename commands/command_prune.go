@@ -303,6 +303,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 
 func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 	task := logger.Percentage(fmt.Sprintf("prune: %s", tr.Tr.Get("Deleting objects")), uint64(len(prunableObjects)))
+	defer task.Complete()
 
 	var problems bytes.Buffer
 	// In case we fail to delete some
