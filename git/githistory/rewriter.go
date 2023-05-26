@@ -208,6 +208,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	} else {
 		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Examining commits")), uint64(len(commits)))
 	}
+	defer perc.Complete()
 
 	var vPerc *tasklog.PercentageTask
 	if opt.Verbose {
