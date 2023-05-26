@@ -197,25 +197,31 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		return
 	}
 
+	logVerboseOutput(logger, verboseOutput, len(prunableObjects), totalSize, dryRun)
+
+	if !dryRun {
+		pruneDeleteFiles(prunableObjects, logger)
+	}
+}
+
+func logVerboseOutput(logger *tasklog.Logger, verboseOutput []string, numPrunableObjects int, totalSize int64, dryRun bool) {
 	info := logger.Simple()
+	defer info.Complete()
+
 	if dryRun {
 		info.Logf("prune: %s", tr.Tr.GetN(
 			"%d file would be pruned (%s)",
 			"%d files would be pruned (%s)",
-			len(prunableObjects),
-			len(prunableObjects),
+			numPrunableObjects,
+			numPrunableObjects,
 			humanize.FormatBytes(uint64(totalSize))))
 		for _, item := range verboseOutput {
 			info.Logf("\n * %s", item)
 		}
-		info.Complete()
 	} else {
 		for _, item := range verboseOutput {
 			info.Logf("\n%s", item)
 		}
-		info.Complete()
-
-		pruneDeleteFiles(prunableObjects, logger)
 	}
 }
 

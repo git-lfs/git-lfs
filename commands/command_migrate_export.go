@@ -158,11 +158,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
 	if bare, _ := git.IsBare(); !bare {
-		t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
-		err := git.Checkout("", nil, true)
-		t.Complete()
-
-		if err != nil {
+		if err := performForceCheckout(l); err != nil {
 			ExitWithError(err)
 		}
 	}
@@ -177,6 +173,13 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	// Prune our cache
 	prune(fetchPruneCfg, false, false, true)
+}
+
+func performForceCheckout(l *tasklog.Logger) error {
+	t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
+	defer t.Complete()
+
+	return git.Checkout("", nil, true)
 }
 
 // trackedFromExportFilter returns an ordered set of strings where each entry
