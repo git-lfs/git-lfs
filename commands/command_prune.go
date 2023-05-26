@@ -197,8 +197,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		return
 	}
 
-	info := tasklog.NewSimpleTask()
-	logger.Enqueue(info)
+	info := logger.Simple()
 	if dryRun {
 		info.Logf("prune: %s", tr.Tr.GetN(
 			"%d file would be pruned (%s)",
@@ -255,10 +254,8 @@ func pruneCheckErrors(taskErrors []error) {
 func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, logger *tasklog.Logger) {
 	defer waitg.Done()
 
-	task := tasklog.NewSimpleTask()
+	task := logger.Simple()
 	defer task.Complete()
-
-	logger.Enqueue(task)
 
 	localCount := 0
 	retainCount := 0
