@@ -402,6 +402,7 @@ func (c *Client) lockIdFromPath(path string) (string, error) {
 		Filters: []lockFilter{
 			{Property: "path", Value: path},
 		},
+		Refspec: c.RemoteRef.Refspec(),
 	})
 
 	if err != nil {
