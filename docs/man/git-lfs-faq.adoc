@@ -154,6 +154,41 @@ need that functionality, you should review the Jenkins documentation about how
 to properly configure the environment in such a situation so that hooks can be
 used.
 
+Why are LFS files not included when I archive a subdirectory?::
+  When you run `git archive` with only a subdirectory, such as `git archive
+  HEAD:src`, Git resolves the revision (in this case, `HEAD:src`) to a tree, and
+  only processes items in that tree.  Because the `.gitattributes` file is
+  typically only in the root of the repository, Git doesn't even see that file,
+  which controls whether files are considered LFS files, and hence doesn't
+  consider any of the files in the directory as LFS files, and thus doesn't
+  invoke Git LFS at all.
++
+Since Git LFS doesn't even get invoked in this case, there's no way to change
+how this works.  If you just want to include the single subdirectory without
+stripping the prefix, you can do this: `git archive -o archive.tar.gz
+--prefix=archive/ HEAD src`.  If you do want to strip the subdirectory name
+(`src`) in this case, one option if you have the libarchive tar (available on Windows
+and macOS as `tar`, and usually on Linux as `bsdtar`) is to do something like
+this script:
++
+[source,shell]
+----
+#!/bin/sh
+
+# With trailing slash.
+ARCHIVE_PREFIX="archive/"
+# Without trailing slash.
+SOURCE_PREFIX="src"
+# Without directory or file components.
+REVISION="HEAD"
+
+temp=$(mktemp -d)
+
+git archive --prefix="$ARCHIVE_PREFIX" "$REVISION" "$SOURCE_PREFIX" | bsdtar -C "$temp" -xf -
+bsdtar -s "!^\./!$ARCHIVE_PREFIX!" --format=pax -czf archive.tar.gz -C "$temp/$ARCHIVE_PREFIX$SOURCE_PREFIX" .
+rm -fr "$temp"
+----
+
 == SEE ALSO
 
 git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
