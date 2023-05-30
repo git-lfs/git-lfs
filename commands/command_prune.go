@@ -197,26 +197,31 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 		return
 	}
 
-	info := tasklog.NewSimpleTask()
-	logger.Enqueue(info)
+	logVerboseOutput(logger, verboseOutput, len(prunableObjects), totalSize, dryRun)
+
+	if !dryRun {
+		pruneDeleteFiles(prunableObjects, logger)
+	}
+}
+
+func logVerboseOutput(logger *tasklog.Logger, verboseOutput []string, numPrunableObjects int, totalSize int64, dryRun bool) {
+	info := logger.Simple()
+	defer info.Complete()
+
 	if dryRun {
 		info.Logf("prune: %s", tr.Tr.GetN(
 			"%d file would be pruned (%s)",
 			"%d files would be pruned (%s)",
-			len(prunableObjects),
-			len(prunableObjects),
+			numPrunableObjects,
+			numPrunableObjects,
 			humanize.FormatBytes(uint64(totalSize))))
 		for _, item := range verboseOutput {
 			info.Logf("\n * %s", item)
 		}
-		info.Complete()
 	} else {
 		for _, item := range verboseOutput {
 			info.Logf("\n%s", item)
 		}
-		info.Complete()
-
-		pruneDeleteFiles(prunableObjects, logger)
 	}
 }
 
@@ -255,10 +260,8 @@ func pruneCheckErrors(taskErrors []error) {
 func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGroup, logger *tasklog.Logger) {
 	defer waitg.Done()
 
-	task := tasklog.NewSimpleTask()
+	task := logger.Simple()
 	defer task.Complete()
-
-	logger.Enqueue(task)
 
 	localCount := 0
 	retainCount := 0
@@ -306,6 +309,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 
 func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 	task := logger.Percentage(fmt.Sprintf("prune: %s", tr.Tr.Get("Deleting objects")), uint64(len(prunableObjects)))
+	defer task.Complete()
 
 	var problems bytes.Buffer
 	// In case we fail to delete some

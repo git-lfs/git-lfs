@@ -3,7 +3,6 @@ package githistory
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"sync"
@@ -158,14 +157,6 @@ var (
 		}
 	}
 
-	// WithLoggerTo logs updates caused by the *git/githistory.Rewriter to
-	// the given io.Writer "sink".
-	WithLoggerTo = func(sink io.Writer, forceProgress bool) rewriterOption {
-		return WithLogger(tasklog.NewLogger(sink,
-			tasklog.ForceProgress(forceProgress),
-		))
-	}
-
 	// WithLogger logs updates caused by the *git/githistory.Rewriter to the
 	// be given to the provided logger, "l".
 	WithLogger = func(l *tasklog.Logger) rewriterOption {
@@ -217,6 +208,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	} else {
 		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Examining commits")), uint64(len(commits)))
 	}
+	defer perc.Complete()
 
 	var vPerc *tasklog.PercentageTask
 	if opt.Verbose {
