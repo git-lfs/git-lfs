@@ -120,14 +120,14 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 		return nil
 	}
 
-	lines = mp.ProcessLines(lines, readMacros)
+	patternLines := mp.ProcessLines(lines, readMacros)
 
-	for _, line := range lines {
+	for _, line := range patternLines {
 		lockable := false
 		tracked := false
 		hasFilter := false
 
-		for _, attr := range line.Attrs {
+		for _, attr := range line.Attrs() {
 			if attr.K == FilterAttrib {
 				hasFilter = true
 				tracked = attr.V == "lfs"
@@ -140,7 +140,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 			continue
 		}
 
-		pattern := line.Pattern.String()
+		pattern := line.Pattern().String()
 		if len(reldir) > 0 {
 			pattern = path.Join(reldir, pattern)
 		}

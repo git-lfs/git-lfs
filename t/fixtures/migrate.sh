@@ -210,6 +210,8 @@ setup_single_local_branch_complex_tracked() {
 # - Commit 'A' has 120 bytes of random data in a.txt, and tracks *.txt under Git
 #   LFS, but a.txt is not stored as an LFS object.
 #
+#   If "macro" is passed as an argument, a macro attribute definition is
+#   added to the .gitattributes file.
 #   If "link" is passed as an argument, the .gitattributes file is created
 #   as a symlink to a gitattrs file.
 setup_single_local_branch_tracked_corrupt() {
@@ -224,7 +226,9 @@ setup_single_local_branch_tracked_corrupt() {
 
   base64 < /dev/urandom | head -c 120 > a.txt
 
- if [[ $1 == "link" ]]; then
+  if [[ $1 == "macro" ]]; then
+    echo "[attr]foo foo" >>.gitattributes
+  elif [[ $1 == "link" ]]; then
     mv .gitattributes gitattrs
 
     add_symlink gitattrs .gitattributes

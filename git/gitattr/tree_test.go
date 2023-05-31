@@ -17,33 +17,41 @@ var (
 		wildmatch.SystemCase)
 
 	example = &Tree{
-		Lines: []*Line{{
-			Pattern: dat,
-			Attrs: []*Attr{
-				{
-					K: "filter", V: "lfs",
-				},
-				{
-					K: "diff", V: "lfs",
-				},
-				{
-					K: "merge", V: "lfs",
-				},
-				{
-					K: "text", V: "false",
-				},
-			},
-		}},
-		Children: map[string]*Tree{
-			"subdir": &Tree{
-				Lines: []*Line{{
-					Pattern: dat,
-					Attrs: []*Attr{
+		Lines: []Line{
+			&patternLine{
+				pattern: dat,
+				lineAttrs: lineAttrs{
+					attrs: []*Attr{
 						{
-							K: "subdir", V: "yes",
+							K: "filter", V: "lfs",
+						},
+						{
+							K: "diff", V: "lfs",
+						},
+						{
+							K: "merge", V: "lfs",
+						},
+						{
+							K: "text", V: "false",
 						},
 					},
-				}},
+				},
+			},
+		},
+		Children: map[string]*Tree{
+			"subdir": &Tree{
+				Lines: []Line{
+					&patternLine{
+						pattern: dat,
+						lineAttrs: lineAttrs{
+							attrs: []*Attr{
+								{
+									K: "subdir", V: "yes",
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}

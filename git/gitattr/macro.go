@@ -23,25 +23,26 @@ func NewMacroProcessor() *MacroProcessor {
 // ProcessLines reads the specified lines, returning a new set of lines which
 // all have a valid pattern.  If readMacros is true, it additionally loads any
 // macro lines as it reads them.
-func (mp *MacroProcessor) ProcessLines(lines []*Line, readMacros bool) []*Line {
-	result := make([]*Line, 0, len(lines))
+func (mp *MacroProcessor) ProcessLines(lines []Line, readMacros bool) []PatternLine {
+	result := make([]PatternLine, 0, len(lines))
 	for _, line := range lines {
-		if line.Pattern != nil {
-			resultLine := Line{
-				Pattern: line.Pattern,
-				Attrs:   make([]*Attr, 0, len(line.Attrs)),
-			}
-			for _, attr := range line.Attrs {
+		switch l := line.(type) {
+		case PatternLine:
+			var lineAttrs lineAttrs
+			lineAttrs.attrs = make([]*Attr, 0, len(l.Attrs()))
+
+			resultLine := &patternLine{l.Pattern(), lineAttrs}
+			for _, attr := range l.Attrs() {
 				macros := mp.macros[attr.K]
 				if attr.V == "true" && macros != nil {
-					resultLine.Attrs = append(
-						resultLine.Attrs,
+					resultLine.attrs = append(
+						resultLine.attrs,
 						macros...,
 					)
 				} else if attr.Unspecified && macros != nil {
 					for _, m := range macros {
-						resultLine.Attrs = append(
-							resultLine.Attrs,
+						resultLine.attrs = append(
+							resultLine.attrs,
 							&Attr{
 								K:           m.K,
 								Unspecified: true,
@@ -52,14 +53,16 @@ func (mp *MacroProcessor) ProcessLines(lines []*Line, readMacros bool) []*Line {
 
 				// Git copies through aliases as well as
 				// expanding them.
-				resultLine.Attrs = append(
-					resultLine.Attrs,
+				resultLine.attrs = append(
+					resultLine.attrs,
 					attr,
 				)
 			}
-			result = append(result, &resultLine)
-		} else if readMacros {
-			mp.macros[line.Macro] = line.Attrs
+			result = append(result, resultLine)
+		case MacroLine:
+			if readMacros {
+				mp.macros[l.Macro()] = l.Attrs()
+			}
 		}
 	}
 	return result
