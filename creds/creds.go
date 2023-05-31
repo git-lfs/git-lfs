@@ -74,7 +74,8 @@ type CredentialHelperContext struct {
 	askpassCredHelper *AskPassCredentialHelper
 	cachingCredHelper *credentialCacher
 
-	urlConfig *config.URLConfig
+	urlConfig      *config.URLConfig
+	wwwAuthHeaders []string
 }
 
 func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
@@ -113,6 +114,10 @@ func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environm
 	return c
 }
 
+func (ctxt *CredentialHelperContext) SetWWWAuthHeaders(headers []string) {
+	ctxt.wwwAuthHeaders = headers
+}
+
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
@@ -126,6 +131,9 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 	}
 	if u.Scheme == "cert" || ctxt.urlConfig.Bool("credential", rawurl, "usehttppath", false) {
 		input["path"] = []string{strings.TrimPrefix(u.Path, "/")}
+	}
+	if len(ctxt.wwwAuthHeaders) != 0 && !ctxt.urlConfig.Bool("credential", rawurl, "skipwwwauth", false) {
+		input["wwwauth[]"] = ctxt.wwwAuthHeaders
 	}
 
 	if helper != nil {

@@ -48,7 +48,7 @@ func main() {
 
 func fill() {
 	scanner := bufio.NewScanner(os.Stdin)
-	creds := map[string]string{}
+	creds := map[string][]string{}
 	for scanner.Scan() {
 		line := scanner.Text()
 		parts := strings.SplitN(line, "=", 2)
@@ -58,7 +58,11 @@ func fill() {
 		}
 
 		fmt.Fprintf(os.Stderr, "CREDS RECV: %s\n", line)
-		creds[parts[0]] = strings.TrimSpace(parts[1])
+		if _, ok := creds[parts[0]]; ok {
+			creds[parts[0]] = append(creds[parts[0]], strings.TrimSpace(parts[1]))
+		} else {
+			creds[parts[0]] = []string{strings.TrimSpace(parts[1])}
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -66,8 +70,8 @@ func fill() {
 		os.Exit(1)
 	}
 
-	hostPieces := strings.SplitN(creds["host"], ":", 2)
-	user, pass, err := credsForHostAndPath(hostPieces[0], creds["path"])
+	hostPieces := strings.SplitN(firstEntryForKey(creds, "host"), ":", 2)
+	user, pass, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -75,17 +79,30 @@ func fill() {
 
 	if user != "skip" {
 		if _, ok := creds["username"]; !ok {
-			creds["username"] = user
+			creds["username"] = []string{user}
 		}
 
 		if _, ok := creds["password"]; !ok {
-			creds["password"] = pass
+			creds["password"] = []string{pass}
 		}
 	}
 
+	mode := os.Getenv("LFS_TEST_CREDS_WWWAUTH")
+	wwwauth := firstEntryForKey(creds, "wwwauth[]")
+	if mode == "required" && !strings.HasPrefix(wwwauth, "Basic ") {
+		fmt.Fprintf(os.Stderr, "Missing required 'wwwauth[]' key in credentials\n")
+		os.Exit(1)
+	} else if mode == "forbidden" && wwwauth != "" {
+		fmt.Fprintf(os.Stderr, "Unexpected 'wwwauth[]' key in credentials\n")
+		os.Exit(1)
+	}
+	delete(creds, "wwwauth[]")
+
 	for key, value := range creds {
-		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, value)
-		fmt.Fprintf(os.Stdout, "%s=%s\n", key, value)
+		for _, entry := range value {
+			fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
+			fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
+		}
 	}
 }
 
@@ -127,4 +144,11 @@ func credsFromFilename(file string) (string, string, error) {
 
 func log() {
 	fmt.Fprintf(os.Stderr, "CREDS received command: %s (ignored)\n", os.Args[1])
+}
+
+func firstEntryForKey(input map[string][]string, key string) string {
+	if val, ok := input[key]; ok && len(val) > 0 {
+		return val[0]
+	}
+	return ""
 }

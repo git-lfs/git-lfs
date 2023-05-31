@@ -68,7 +68,7 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 	res, err := c.doWithCreds(req, credWrapper, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
-			newMode, newModes := getAuthAccess(res, access.Mode(), c.access)
+			newMode, newModes, headers := getAuthAccess(res, access.Mode(), c.access)
 			newAccess := access.Upgrade(newMode)
 			if newAccess.Mode() != access.Mode() {
 				c.Endpoints.SetAccess(newAccess)
@@ -79,6 +79,7 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 				req.Header.Del("Authorization")
 				credWrapper.CredentialHelper.Reject(credWrapper.Creds)
 			}
+			c.credContext.SetWWWAuthHeaders(headers)
 		}
 	}
 
@@ -314,14 +315,18 @@ var (
 	authenticateHeaders = []string{"Lfs-Authenticate", "Www-Authenticate"}
 )
 
-func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.AccessMode) (creds.AccessMode, []creds.AccessMode) {
+func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.AccessMode) (creds.AccessMode, []creds.AccessMode, []string) {
 	newModes := make([]creds.AccessMode, 0, len(modes))
 	for _, mode := range modes {
 		if access != mode {
 			newModes = append(newModes, mode)
 		}
 	}
+	headers := make([]string, 0)
 	if res != nil {
+		for _, headerName := range authenticateHeaders {
+			headers = append(headers, res.Header[headerName]...)
+		}
 		supportedModes := make(map[creds.AccessMode]struct{})
 		for _, headerName := range authenticateHeaders {
 			for _, auth := range res.Header[headerName] {
@@ -338,10 +343,10 @@ func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.Ac
 		}
 		for _, mode := range newModes {
 			if _, ok := supportedModes[mode]; ok {
-				return mode, newModes
+				return mode, newModes, headers
 			}
 		}
 	}
 
-	return creds.BasicAccess, newModes
+	return creds.BasicAccess, newModes, headers
 }
