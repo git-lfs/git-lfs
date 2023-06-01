@@ -210,6 +210,9 @@ setup_single_local_branch_complex_tracked() {
 # - Commit 'A' has 120 bytes of random data in a.txt, and tracks *.txt under Git
 #   LFS, but a.txt is not stored as an LFS object.
 #
+#   If "lfsmacro" is passed as an argument, a macro attribute definition
+#   which sets the LFS filter attribute is added to the .gitattributes file,
+#   and then referenced by the test file pattern attribute.
 #   If "macro" is passed as an argument, a macro attribute definition is
 #   added to the .gitattributes file.
 #   If "link" is passed as an argument, the .gitattributes file is created
@@ -221,17 +224,23 @@ setup_single_local_branch_tracked_corrupt() {
 
   remove_and_create_local_repo "$reponame"
 
-  echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
   git lfs uninstall
 
   base64 < /dev/urandom | head -c 120 > a.txt
 
-  if [[ $1 == "macro" ]]; then
-    echo "[attr]foo foo" >>.gitattributes
-  elif [[ $1 == "link" ]]; then
-    mv .gitattributes gitattrs
+  if [[ $1 == "lfsmacro" ]]; then
+    printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n*.txt lfs\n' \
+      >.gitattributes
+  else
+    echo "*.txt filter=lfs diff=lfs merge=lfs -text" > .gitattributes
 
-    add_symlink gitattrs .gitattributes
+    if [[ $1 == "macro" ]]; then
+      echo "[attr]foo foo" >>.gitattributes
+    elif [[ $1 == "link" ]]; then
+      mv .gitattributes gitattrs
+
+      add_symlink gitattrs .gitattributes
+    fi
   fi
 
   git add .gitattributes a.txt

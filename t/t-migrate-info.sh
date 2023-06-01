@@ -797,6 +797,28 @@ begin_test "migrate info (potential fixup, --fixup, .gitattributes with macro)"
 )
 end_test
 
+# NOTE: We skip this test for now as the "git lfs migrate" commands do not
+#       fully process macro attribute definitions yet.
+#begin_test "migrate info (potential fixup, --fixup, .gitattributes with LFS macro)"
+#(
+#  set -e
+#
+#  setup_single_local_branch_tracked_corrupt lfsmacro
+#
+#  original_head="$(git rev-parse HEAD)"
+#
+#  # Ensure "fixup" command reports files which should be tracked but have not
+#  # been stored properly as LFS pointers, and ignores .gitattributes files.
+#  diff -u <(git lfs migrate info --fixup 2>&1 | tail -n 1) <(cat <<-EOF
+#	*.txt	120 B	1/1 file 	100%
+#	EOF)
+#
+#  migrated_head="$(git rev-parse HEAD)"
+#
+#  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+#)
+#end_test
+
 begin_test "migrate info (potential fixup, complex nested)"
 (
   set -e
