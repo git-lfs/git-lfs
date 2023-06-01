@@ -154,3 +154,21 @@ EOF
   )
 )
 end_test
+
+begin_test "migrate import (no potential fixup, --fixup, no .gitattributes)"
+(
+  set -e
+
+  setup_multiple_local_branches
+
+  original_head="$(git rev-parse HEAD)"
+
+  # Ensure "fixup" command reports nothing if no files are tracked by LFS.
+  git lfs migrate import --everything --fixup --yes >migrate.log
+  [ "0" -eq "$(cat migrate.log | wc -l)" ]
+
+  migrated_head="$(git rev-parse HEAD)"
+
+  assert_ref_unmoved "HEAD" "$original_head" "$migrated_head"
+)
+end_test

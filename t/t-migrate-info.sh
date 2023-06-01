@@ -482,7 +482,7 @@ EOF
 )
 end_test
 
-begin_test "migrate info (--fixup, no .gitattributes)"
+begin_test "migrate info (no potential fixup, --fixup, no .gitattributes)"
 (
   set -e
 
@@ -491,7 +491,8 @@ begin_test "migrate info (--fixup, no .gitattributes)"
   original_head="$(git rev-parse HEAD)"
 
   # Ensure "fixup" command reports nothing if no files are tracked by LFS.
-  [ "0" -eq "$(git lfs migrate info --everything --fixup 2>/dev/null | wc -l)" ]
+  git lfs migrate info --everything --fixup >migrate.log
+  [ "0" -eq "$(cat migrate.log | wc -l)" ]
 
   migrated_head="$(git rev-parse HEAD)"
 

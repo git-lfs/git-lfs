@@ -228,8 +228,6 @@ setup_single_local_branch_tracked_corrupt() {
     mv .gitattributes gitattrs
 
     add_symlink gitattrs .gitattributes
-
-    git add .gitattributes
   fi
 
   git add .gitattributes a.txt
