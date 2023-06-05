@@ -62,7 +62,7 @@ func (s *GitScanner) Close() {
 }
 
 // RemoteForPush sets up this *GitScanner to scan for objects to push to the
-// given remote. Needed for ScanRangeToRemote().
+// given remote. Needed for ScanMultiRangeToRemote().
 func (s *GitScanner) RemoteForPush(r string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -74,25 +74,6 @@ func (s *GitScanner) RemoteForPush(r string) error {
 	s.remote = r
 	s.skippedRefs = calcSkippedRefs(r)
 	return nil
-}
-
-// ScanRangeToRemote scans through all unique objects reachable from the
-// "include" ref but not reachable from the "exclude" ref and which the
-// given remote does not have. See RemoteForPush().
-func (s *GitScanner) ScanRangeToRemote(include, exclude string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
-	if err != nil {
-		return err
-	}
-
-	s.mu.Lock()
-	if len(s.remote) == 0 {
-		s.mu.Unlock()
-		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
-	}
-	s.mu.Unlock()
-
-	return scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
 
 // ScanMultiRangeToRemote scans through all unique objects reachable from the
