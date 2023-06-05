@@ -93,7 +93,6 @@ func pull(filter *filepathfilter.Filter) {
 	}
 
 	meter.Start()
-	gitscanner.Close()
 	q.Wait()
 	wg.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)

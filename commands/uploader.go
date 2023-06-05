@@ -22,10 +22,7 @@ import (
 
 func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll bool) error {
 	gitscanner := ctx.buildGitScanner()
-	defer func() {
-		gitscanner.Close()
-		ctx.ReportErrors()
-	}()
+	defer ctx.ReportErrors()
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	exclude := make([]string, 0, len(updates))

@@ -136,7 +136,6 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 		return nil, err
 	}
 
-	tempgitscanner.Close()
 	return pointers, multiErr
 }
 
@@ -180,7 +179,6 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 		return nil, err
 	}
 
-	tempgitscanner.Close()
 	return pointers, multiErr
 }
 
@@ -212,7 +210,6 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 		ExitWithError(err)
 	}
 
-	tempgitscanner.Close()
 	return fetchAndReportToChan(pointers, filter, nil)
 }
 
@@ -316,8 +313,6 @@ func scanAll() []*lfs.WrappedPointer {
 	if err := tempgitscanner.ScanAll(nil); err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-
-	tempgitscanner.Close()
 
 	if multiErr != nil {
 		Panic(multiErr, tr.Tr.Get("Could not scan for Git LFS files"))

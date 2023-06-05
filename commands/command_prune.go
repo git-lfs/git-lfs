@@ -121,8 +121,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	progresswait.Add(1)
 	go pruneTaskDisplayProgress(progressChan, &progresswait, logger)
 
-	taskwait.Wait() // wait for subtasks
-	gitscanner.Close()
+	taskwait.Wait()   // wait for subtasks
 	close(retainChan) // triggers retain collector to end now all tasks have
 	retainwait.Wait() // make sure all retained objects added
 
