@@ -30,7 +30,6 @@ type GitScanner struct {
 
 	closed  bool
 	started time.Time
-	mu      sync.Mutex
 	cfg     *config.Configuration
 }
 
@@ -50,9 +49,6 @@ func NewGitScanner(cfg *config.Configuration, cb GitScannerFoundPointer) *GitSca
 // Close stops exits once all processing has stopped, and all resources are
 // tracked and cleaned up.
 func (s *GitScanner) Close() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.closed {
 		return
 	}
@@ -63,17 +59,13 @@ func (s *GitScanner) Close() {
 
 // RemoteForPush sets up this *GitScanner to scan for objects to push to the
 // given remote. Needed for ScanMultiRangeToRemote().
-func (s *GitScanner) RemoteForPush(r string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+func (s *GitScanner) RemoteForPush(r string) {
 	if len(s.remote) > 0 && s.remote != r {
 		return errors.New(tr.Tr.Get("trying to set remote to %q, already set to %q", r, s.remote))
 	}
 
 	s.remote = r
 	s.skippedRefs = calcSkippedRefs(r)
-	return nil
 }
 
 // ScanMultiRangeToRemote scans through all unique objects reachable from the
@@ -85,12 +77,9 @@ func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb
 		return err
 	}
 
-	s.mu.Lock()
 	if len(s.remote) == 0 {
-		s.mu.Unlock()
 		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
-	s.mu.Unlock()
 
 	return scanRefsToChanSingleIncludeMultiExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
 }
@@ -239,9 +228,6 @@ func (s *GitScanner) ScanIndex(ref string, cb GitScannerFoundPointer) error {
 }
 
 func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	opts := newScanRefsOptions()
 	opts.ScanMode = mode
 	opts.RemoteName = s.remote

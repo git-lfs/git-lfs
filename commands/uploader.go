@@ -21,11 +21,7 @@ import (
 )
 
 func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll bool) error {
-	gitscanner, err := ctx.buildGitScanner()
-	if err != nil {
-		return err
-	}
-
+	gitscanner := ctx.buildGitScanner()
 	defer func() {
 		gitscanner.Close()
 		ctx.ReportErrors()
@@ -153,11 +149,12 @@ func (c *uploadContext) addScannerError(err error) {
 	}
 }
 
-func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
+func (c *uploadContext) buildGitScanner() *lfs.GitScanner {
 	gitscanner := lfs.NewGitScanner(cfg, nil)
+	gitscanner.RemoteForPush(c.Remote)
 	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
 	gitscanner.PotentialLockables = c.lockVerifier
-	return gitscanner, gitscanner.RemoteForPush(c.Remote)
+	return gitscanner
 }
 
 func (c *uploadContext) gitScannerCallback(tqueue *tq.TransferQueue) func(*lfs.WrappedPointer, error) {
