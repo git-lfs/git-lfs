@@ -169,6 +169,124 @@ begin_test "credentials with useHttpPath, with correct password"
 )
 end_test
 
+begin_test "credentials send wwwauth[] by default"
+(
+  set -e
+  ensure_git_version_isnt $VERSION_LOWER "2.41.0"
+  export LFS_TEST_CREDS_WWWAUTH=required
+
+  reponame="$(basename "$0" ".sh")-wwwauth-required"
+  setup_remote_repo "$reponame"
+
+  printf "path:$reponame" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # creating new branch does not re-send any objects existing on other
+  # remote branches anymore, generate new object, different from prev tests
+  contents="b"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > b.dat
+  git add b.dat
+  git add .gitattributes
+  git commit -m "add b.dat"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
+  echo "approvals:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  echo "credential calls have path:"
+  credcalls="$(grep "creds: git credential" push.log)"
+  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  expected="$(echo "$credcalls" | wc -l)"
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+)
+end_test
+
+begin_test "credentials sends wwwauth[] and fails with finicky helper"
+(
+  set -e
+  ensure_git_version_isnt $VERSION_LOWER "2.41.0"
+  export LFS_TEST_CREDS_WWWAUTH=forbidden
+
+  reponame="$(basename "$0" ".sh")-wwwauth-forbidden-finicky"
+  setup_remote_repo "$reponame"
+
+  printf "path:$reponame" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # creating new branch does not re-send any objects existing on other
+  # remote branches anymore, generate new object, different from prev tests
+  contents="b"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > b.dat
+  git add b.dat
+  git add .gitattributes
+  git commit -m "add b.dat"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
+  echo "approvals:"
+  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+)
+end_test
+
+begin_test "credentials skips wwwauth[] with option"
+(
+  set -e
+  ensure_git_version_isnt $VERSION_LOWER "2.41.0"
+  export LFS_TEST_CREDS_WWWAUTH=forbidden
+
+  reponame="$(basename "$0" ".sh")-wwwauth-skip"
+  setup_remote_repo "$reponame"
+  git config --global credential.$GITSERVER.skipwwwauth true
+
+  printf "path:$reponame" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # creating new branch does not re-send any objects existing on other
+  # remote branches anymore, generate new object, different from prev tests
+  contents="b"
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > b.dat
+  git add b.dat
+  git add .gitattributes
+  git commit -m "add b.dat"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
+  echo "approvals:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  echo "fills:"
+  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  echo "credential calls have path:"
+  credcalls="$(grep "creds: git credential" push.log)"
+  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  expected="$(echo "$credcalls" | wc -l)"
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+)
+end_test
+
 begin_test "git credential"
 (
   set -e

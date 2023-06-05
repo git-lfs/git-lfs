@@ -1589,6 +1589,7 @@ func skipIfNoCookie(w http.ResponseWriter, r *http.Request, id string) bool {
 func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
+		w.Header().Add("Lfs-Authenticate", "Basic realm=\"testsuite\"")
 		w.WriteHeader(401)
 		return true
 	}
