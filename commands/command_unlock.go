@@ -109,6 +109,11 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			success = false
 		} else if !locksCmdFlags.JSON {
 			Print(tr.Tr.Get("Unlocked Lock %s", unlockCmdFlags.Id))
+		} else {
+			locks = append(locks, unlockResponse{
+				Id:     unlockCmdFlags.Id,
+				Unlocked: true,
+			})
 		}
 	} else {
 		Exit(tr.Tr.Get("Exactly one of --id or a set of paths must be provided"))
