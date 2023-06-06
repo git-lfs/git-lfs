@@ -2,7 +2,6 @@ package lfs
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -25,10 +24,13 @@ type GitScanner struct {
 	FoundPointer       GitScannerFoundPointer
 	FoundLockable      GitScannerFoundLockable
 	PotentialLockables GitScannerSet
+
+	cfg                *config.Configuration
+	mode               ScanningMode
+	skipDeletedBlobs   bool
+	commitsOnly        bool
 	remote             string
 	skippedRefs        []string
-
-	cfg     *config.Configuration
 }
 
 type GitScannerFoundPointer func(*WrappedPointer, error)
@@ -37,6 +39,14 @@ type GitScannerFoundLockable func(filename string)
 type GitScannerSet interface {
 	Contains(string) bool
 }
+
+type ScanningMode int
+
+const (
+	ScanRefsMode          = ScanningMode(iota) // 0 - or default scan mode
+	ScanAllMode           = ScanningMode(iota)
+	ScanRangeToRemoteMode = ScanningMode(iota)
+)
 
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
@@ -68,8 +78,10 @@ func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb
 		return errors.New(tr.Tr.Get("unable to scan starting at %q: no remote set", include))
 	}
 
+	s.mode = ScanRangeToRemoteMode
+
 	start := time.Now()
-	err = scanRefsToChanSingleIncludeMultiExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), s.opts(ScanRangeToRemoteMode))
+	err = scanRefsToChanSingleIncludeMultiExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanMultiRangeToRemote", start)
 
 	return err
@@ -84,11 +96,8 @@ func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPoint
 		return err
 	}
 
-	opts := s.opts(ScanRefsMode)
-	opts.SkipDeletedBlobs = false
-
 	start := time.Now()
-	err = scanRefsToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsToChan(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanRefs", start)
 
 	return err
@@ -103,11 +112,8 @@ func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPoi
 		return err
 	}
 
-	opts := s.opts(ScanRefsMode)
-	opts.SkipDeletedBlobs = false
-
 	start := time.Now()
-	err = scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsToChanSingleIncludeExclude(s, callback, include, exclude, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanRefRange", start)
 
 	return err
@@ -123,12 +129,10 @@ func (s *GitScanner) ScanRefRangeByTree(include, exclude string, cb GitScannerFo
 		return err
 	}
 
-	opts := s.opts(ScanRefsMode)
-	opts.SkipDeletedBlobs = false
-	opts.CommitsOnly = true
+	s.commitsOnly = true
 
 	start := time.Now()
-	err = scanRefsByTree(s, callback, []string{include}, []string{exclude}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsByTree(s, callback, []string{include}, []string{exclude}, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanRefRangeByTree", start)
 
 	return err
@@ -148,11 +152,10 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 		return err
 	}
 
-	opts := s.opts(ScanRefsMode)
-	opts.SkipDeletedBlobs = true
+	s.skipDeletedBlobs = true
 
 	start := time.Now()
-	err = scanRefsToChanSingleIncludeExclude(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsToChanSingleIncludeExclude(s, callback, ref, "", s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanRef", start)
 
 	return err
@@ -167,12 +170,11 @@ func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error 
 		return err
 	}
 
-	opts := s.opts(ScanRefsMode)
-	opts.SkipDeletedBlobs = true
-	opts.CommitsOnly = true
+	s.skipDeletedBlobs = true
+	s.commitsOnly = true
 
 	start := time.Now()
-	err = scanRefsByTree(s, callback, []string{ref}, []string{}, s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsByTree(s, callback, []string{ref}, []string{}, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanRefByTree", start)
 
 	return err
@@ -186,11 +188,10 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 		return err
 	}
 
-	opts := s.opts(ScanAllMode)
-	opts.SkipDeletedBlobs = false
+	s.mode = ScanAllMode
 
 	start := time.Now()
-	err = scanRefsToChanSingleIncludeExclude(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv(), opts)
+	err = scanRefsToChanSingleIncludeExclude(s, callback, "", "", s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanAll", start)
 
 	return err
@@ -272,14 +273,6 @@ func (s *GitScanner) ScanIndex(ref string, cb GitScannerFoundPointer) error {
 	return err
 }
 
-func (s *GitScanner) opts(mode ScanningMode) *ScanRefsOptions {
-	opts := newScanRefsOptions()
-	opts.ScanMode = mode
-	opts.RemoteName = s.remote
-	opts.skippedRefs = s.skippedRefs
-	return opts
-}
-
 func firstGitScannerCallback(callbacks ...GitScannerFoundPointer) (GitScannerFoundPointer, error) {
 	for _, cb := range callbacks {
 		if cb == nil {
@@ -289,42 +282,4 @@ func firstGitScannerCallback(callbacks ...GitScannerFoundPointer) (GitScannerFou
 	}
 
 	return nil, missingCallbackErr
-}
-
-type ScanningMode int
-
-const (
-	ScanRefsMode          = ScanningMode(iota) // 0 - or default scan mode
-	ScanAllMode           = ScanningMode(iota)
-	ScanRangeToRemoteMode = ScanningMode(iota)
-)
-
-type ScanRefsOptions struct {
-	ScanMode         ScanningMode
-	RemoteName       string
-	SkipDeletedBlobs bool
-	CommitsOnly      bool
-	skippedRefs      []string
-	nameMap          map[string]string
-	mutex            *sync.Mutex
-}
-
-func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
-	o.mutex.Lock()
-	name, ok := o.nameMap[sha]
-	o.mutex.Unlock()
-	return name, ok
-}
-
-func (o *ScanRefsOptions) SetName(sha, name string) {
-	o.mutex.Lock()
-	o.nameMap[sha] = name
-	o.mutex.Unlock()
-}
-
-func newScanRefsOptions() *ScanRefsOptions {
-	return &ScanRefsOptions{
-		nameMap: make(map[string]string, 0),
-		mutex:   &sync.Mutex{},
-	}
 }
