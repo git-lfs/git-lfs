@@ -21,7 +21,6 @@ func IsCallbackMissing(err error) bool {
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	Filter             *filepathfilter.Filter
-	FoundPointer       GitScannerFoundPointer
 	FoundLockable      GitScannerFoundLockable
 	PotentialLockables GitScannerSet
 
@@ -29,6 +28,7 @@ type GitScanner struct {
 	mode               ScanningMode
 	skipDeletedBlobs   bool
 	commitsOnly        bool
+	foundPointer       GitScannerFoundPointer
 	remote             string
 	skippedRefs        []string
 }
@@ -51,7 +51,7 @@ const (
 // NewGitScanner initializes a *GitScanner for a Git repository in the current
 // working directory.
 func NewGitScanner(cfg *config.Configuration, cb GitScannerFoundPointer) *GitScanner {
-	return &GitScanner{FoundPointer: cb, cfg: cfg}
+	return &GitScanner{cfg: cfg, foundPointer: cb}
 }
 
 // RemoteForPush sets up this *GitScanner to scan for objects to push to the
@@ -69,7 +69,7 @@ func (s *GitScanner) RemoteForPush(r string) {
 // "include" ref but not reachable from any "exclude" refs and which the
 // given remote does not have. See RemoteForPush().
 func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb
 // but not reachable from any "exclude" refs, including objects that have
 // been modified or deleted.
 func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (s *GitScanner) ScanRefs(include, exclude []string, cb GitScannerFoundPoint
 // ref but not reachable from the "exclude" ref, including objects that have
 // been modified or deleted.
 func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (s *GitScanner) ScanRefRange(include, exclude string, cb GitScannerFoundPoi
 // been modified or deleted.  Objects which appear in multiple trees will
 // be visited once per tree.
 func (s *GitScanner) ScanRefRangeByTree(include, exclude string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (s *GitScanner) ScanRefWithDeleted(ref string, cb GitScannerFoundPointer) e
 // ScanRef scans through all unique objects in the current ref, excluding
 // objects that have been modified or deleted before the ref.
 func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (s *GitScanner) ScanRef(ref string, cb GitScannerFoundPointer) error {
 // objects that have been modified or deleted before the ref.  Objects which
 // appear in multiple trees will be visited once per tree.
 func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (s *GitScanner) ScanRefByTree(ref string, cb GitScannerFoundPointer) error 
 // ScanAll scans through all unique objects in the repository, including
 // objects that have been modified or deleted.
 func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (s *GitScanner) ScanAll(cb GitScannerFoundPointer) error {
 // ref. Differs from ScanRefs in that multiple files in the tree with the same
 // content are all reported.
 func (s *GitScanner) ScanTree(ref string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (s *GitScanner) ScanTree(ref string, cb GitScannerFoundPointer) error {
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
 func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerFoundPointer) erro
 
 // ScanStashed scans for all LFS pointers referenced solely by a stash
 func (s *GitScanner) ScanStashed(cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func (s *GitScanner) ScanStashed(cb GitScannerFoundPointer) error {
 // Does not include pointers which were still in use at ref (use ScanRefsToChan
 // for that)
 func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
@@ -261,7 +261,7 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitSca
 
 // ScanIndex scans the git index for modified LFS objects.
 func (s *GitScanner) ScanIndex(ref string, cb GitScannerFoundPointer) error {
-	callback, err := firstGitScannerCallback(cb, s.FoundPointer)
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
