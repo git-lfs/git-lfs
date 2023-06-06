@@ -20,17 +20,19 @@ func IsCallbackMissing(err error) bool {
 
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
-	Filter             *filepathfilter.Filter
-	FoundLockable      GitScannerFoundLockable
-	PotentialLockables GitScannerSet
+	Filter *filepathfilter.Filter
 
-	cfg                *config.Configuration
-	mode               ScanningMode
-	skipDeletedBlobs   bool
-	commitsOnly        bool
-	foundPointer       GitScannerFoundPointer
+	cfg              *config.Configuration
+	mode             ScanningMode
+	skipDeletedBlobs bool
+	commitsOnly      bool
+	foundPointer     GitScannerFoundPointer
+
+	// only set by NewGitScannerForPush()
 	remote             string
 	skippedRefs        []string
+	foundLockable      GitScannerFoundLockable
+	potentialLockables GitScannerSet
 }
 
 type GitScannerFoundPointer func(*WrappedPointer, error)
@@ -54,20 +56,24 @@ func NewGitScanner(cfg *config.Configuration, cb GitScannerFoundPointer) *GitSca
 	return &GitScanner{cfg: cfg, foundPointer: cb}
 }
 
-// RemoteForPush sets up this *GitScanner to scan for objects to push to the
-// given remote. Needed for ScanMultiRangeToRemote().
-func (s *GitScanner) RemoteForPush(r string) {
-	if len(s.remote) > 0 && s.remote != r {
-		return errors.New(tr.Tr.Get("trying to set remote to %q, already set to %q", r, s.remote))
+// NewGitScannerForPush initializes a *GitScanner for a Git repository
+// in the current working directory, to scan for objects to push to the
+// given remote and for locks on non-LFS objects held by other users.
+// Needed for ScanMultiRangeToRemote(), and for ScanRefWithDeleted() when
+// used for a "git lfs push --all" command.
+func NewGitScannerForPush(cfg *config.Configuration, remote string, cb GitScannerFoundLockable, potentialLockables GitScannerSet) *GitScanner {
+	return &GitScanner{
+		cfg:                cfg,
+		remote:             remote,
+		skippedRefs:        calcSkippedRefs(remote),
+		foundLockable:      cb,
+		potentialLockables: potentialLockables,
 	}
-
-	s.remote = r
-	s.skippedRefs = calcSkippedRefs(r)
 }
 
 // ScanMultiRangeToRemote scans through all unique objects reachable from the
 // "include" ref but not reachable from any "exclude" refs and which the
-// given remote does not have. See RemoteForPush().
+// given remote does not have. See NewGitScannerForPush().
 func (s *GitScanner) ScanMultiRangeToRemote(include string, exclude []string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {

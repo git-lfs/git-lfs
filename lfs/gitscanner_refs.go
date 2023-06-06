@@ -71,13 +71,13 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 		return err
 	}
 
-	lockableSet := &lockableNameSet{nameMap: nameMap, set: scanner.PotentialLockables}
+	lockableSet := &lockableNameSet{nameMap: nameMap, set: scanner.potentialLockables}
 	smallShas, batchLockableCh, err := catFileBatchCheck(revs, lockableSet)
 	if err != nil {
 		return err
 	}
 
-	lockableCb := scanner.FoundLockable
+	lockableCb := scanner.foundLockable
 	if lockableCb == nil {
 		lockableCb = noopFoundLockable
 	}

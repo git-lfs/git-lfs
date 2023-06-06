@@ -147,11 +147,7 @@ func (c *uploadContext) addScannerError(err error) {
 }
 
 func (c *uploadContext) buildGitScanner() *lfs.GitScanner {
-	gitscanner := lfs.NewGitScanner(cfg, nil)
-	gitscanner.RemoteForPush(c.Remote)
-	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
-	gitscanner.PotentialLockables = c.lockVerifier
-	return gitscanner
+	return lfs.NewGitScannerForPush(cfg, c.Remote, func(n string) { c.lockVerifier.LockedByThem(n) }, c.lockVerifier)
 }
 
 func (c *uploadContext) gitScannerCallback(tqueue *tq.TransferQueue) func(*lfs.WrappedPointer, error) {
