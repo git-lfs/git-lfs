@@ -214,7 +214,7 @@ func (s *GitScanner) ScanStashed(cb GitScannerFoundPointer) error {
 		return err
 	}
 
-	return scanStashed(callback, s)
+	return scanStashed(callback)
 }
 
 // ScanPreviousVersions scans changes reachable from ref (commit) back to since.
