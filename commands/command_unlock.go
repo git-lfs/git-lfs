@@ -111,7 +111,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 			Print(tr.Tr.Get("Unlocked Lock %s", unlockCmdFlags.Id))
 		} else {
 			locks = append(locks, unlockResponse{
-				Id:     unlockCmdFlags.Id,
+				Id:       unlockCmdFlags.Id,
 				Unlocked: true,
 			})
 		}
