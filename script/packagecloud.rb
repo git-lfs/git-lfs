@@ -60,12 +60,15 @@ $distro_name_map = {
     "ubuntu/focal",     # EOL April 2025
   ],
   "debian/11" => [
-    "debian/bullseye",  # Current stable
-    "debian/bookworm",  # Current testing
+    "debian/bullseye",  # EOL June 2026
     "ubuntu/jammy",     # EOL April 2027
     "ubuntu/kinetic",   # EOL July 2023
     "linuxmint/vanessa",# EOL April 2027
     "linuxmint/vera",   # EOL April 2027
+  ],
+  "debian/12" => [
+    "debian/bookworm",  # Current stable
+    "debian/trixie",    # Current testing
   ]
 }
 
@@ -113,6 +116,7 @@ package_files.each do |full_path|
   os, distro = case full_path
   when /debian\/10/ then ["Debian 10", "debian/buster"]
   when /debian\/11/ then ["Debian 11", "debian/bullseye"]
+  when /debian\/12/ then ["Debian 12", "debian/bookworm"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
   when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
