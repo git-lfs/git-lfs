@@ -25,6 +25,9 @@ $client = Packagecloud::Client.new(credentials)
 
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
+#
+# If you change the keys of this list, change the values below, as well as
+# script/upload and docker/run_dockers.bsh.
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
   "centos/7" => [
@@ -105,6 +108,8 @@ end
 package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
+  # If you change the entries below, change the keys above, as well as
+  # script/upload and docker/run_dockers.bsh.
   os, distro = case full_path
   when /debian\/10/ then ["Debian 10", "debian/buster"]
   when /debian\/11/ then ["Debian 11", "debian/bullseye"]
