@@ -163,7 +163,7 @@ jobs:
     strategy:
       matrix:
         arch: [arm64]
-        container: [debian_11]
+        container: [debian_12]
     steps:
     - uses: actions/checkout@v3
       with:
