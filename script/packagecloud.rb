@@ -45,8 +45,8 @@ $distro_name_map = {
   ],
   "rocky/9" => [
     "el/9",
-    "fedora/36", # EOL May 2023
     "fedora/37", # EOL November 2023
+    "fedora/38", # EOL May 2024
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -63,6 +63,7 @@ $distro_name_map = {
     "debian/bullseye",  # EOL June 2026
     "ubuntu/jammy",     # EOL April 2027
     "ubuntu/kinetic",   # EOL July 2023
+    "ubuntu/lunar",     # EOL January 2024
     "linuxmint/vanessa",# EOL April 2027
     "linuxmint/vera",   # EOL April 2027
   ],
