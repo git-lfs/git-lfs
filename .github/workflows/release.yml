@@ -34,7 +34,6 @@ jobs:
     - run: choco install -y strawberryperl
     - run: choco install -y zip
     - run: choco install -y jq
-    - run: refreshenv
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
     - run: mkdir -p bin/releases
