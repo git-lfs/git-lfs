@@ -151,8 +151,8 @@ func (e *endpointGitFinder) NewEndpointFromCloneURL(operation, rawurl string) lf
 		return ep
 	}
 
-	if strings.HasSuffix(rawurl, "/") {
-		ep.Url = rawurl[0 : len(rawurl)-1]
+	if strings.HasSuffix(ep.Url, "/") {
+		ep.Url = ep.Url[0 : len(ep.Url)-1]
 	}
 
 	if strings.HasPrefix(ep.Url, "file://") {

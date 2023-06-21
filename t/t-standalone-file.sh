@@ -66,6 +66,7 @@ do_upload_download_test () {
 
 do_local_path_test () {
   local reponame="$1"
+  local suffix="$2"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
@@ -111,17 +112,17 @@ do_local_path_test () {
   cd "$TRASHDIR"
 
   # Check a clone using an absolute Unix-style path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$testdir" "$reponame-repo1"  2>&1 | tee clonecustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$testdir$suffix" "$reponame-repo1"  2>&1 | tee clonecustom.log
   (cd "$reponame-repo1" && git lfs fsck)
   grep "xfer: started custom adapter process" clonecustom.log
 
   # Check a clone using a relative path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$reponame-repo1" "$reponame-repo2"  2>&1 | tee clonecustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$reponame-repo1$suffix" "$reponame-repo2"  2>&1 | tee clonecustom.log
   (cd "$reponame-repo2" && git lfs fsck)
   grep "xfer: started custom adapter process" clonecustom.log
 
   # Check a clone using an absolute native-style path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$(native_path "$testdir")" "$reponame-repo3"  2>&1 | tee clonecustom.log
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$(native_path "$testdir")$suffix" "$reponame-repo3"  2>&1 | tee clonecustom.log
   (cd "$reponame-repo3" && git lfs fsck)
   grep "xfer: started custom adapter process" clonecustom.log
 
@@ -318,7 +319,22 @@ begin_test "standalone-file-local-path"
   # clone directly, not through lfstest-gitserver
   clone_repo_url "$REMOTEDIR/$reponame.git" $reponame
 
-  do_local_path_test "$reponame"
+  do_local_path_test "$reponame" ""
+)
+end_test
+
+begin_test "standalone-file-local-path-trailing-slash"
+(
+  set -e
+
+  # setup a git repo to be used as a local repo, not remote
+  reponame="standalone-file-local-path-trailing-slash"
+  setup_remote_repo "$reponame"
+
+  # clone directly, not through lfstest-gitserver
+  clone_repo_url "$REMOTEDIR/$reponame.git/" $reponame
+
+  do_local_path_test "$reponame" "$suffix"
 )
 end_test
 
