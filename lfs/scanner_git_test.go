@@ -109,7 +109,6 @@ func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 		return nil, err
 	}
 
-	gitscanner.Close()
 	return pointers, multiErr
 }
 

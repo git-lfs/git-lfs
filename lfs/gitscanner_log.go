@@ -70,7 +70,7 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 	return nil
 }
 
-func scanStashed(cb GitScannerFoundPointer, s *GitScanner) error {
+func scanStashed(cb GitScannerFoundPointer) error {
 	// Stashes are actually 2-3 commits, each containing one of:
 	// 1. Working copy (WIP) modified files
 	// 2. Index changes

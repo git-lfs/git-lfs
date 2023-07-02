@@ -308,6 +308,25 @@ begin_test "unlocking a lock by id"
 )
 end_test
 
+begin_test "unlocking a lock by id (--json)"
+(
+  set -e
+
+  reponame="unlock_by_id_json"
+  setup_repo "$reponame" "c_json.dat"
+
+  git lfs lock --json "c_json.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c_json.dat)
+  assert_server_lock "$reponame" "$id"
+
+  git lfs unlock --json --id="$id" 2>&1 | tee unlock.log
+  grep "\"unlocked\":true" unlock.log
+
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "unlocking a lock without sufficient info"
 (
   set -e

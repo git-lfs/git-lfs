@@ -50,6 +50,37 @@ func TestPercentageTaskCallsDoneWhenComplete(t *testing.T) {
 	if _, ok := <-task.Updates(); ok {
 		t.Fatalf("expected channel to be closed")
 	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			t.Fatal("tasklog: expected *PercentageTask.Complete() to not panic")
+		}
+	}()
+
+	task.Complete()
+}
+
+func TestPercentageTaskCompleteClosesUpdates(t *testing.T) {
+	task := NewPercentageTask("example", 10)
+
+	select {
+	case v, ok := <-task.Updates():
+		if ok {
+			assert.Equal(t, "example:   0% (0/10)", v.S)
+		} else {
+			t.Fatal("expected channel to be open")
+		}
+	default:
+	}
+
+	assert.EqualValues(t, 7, task.Count(7))
+	assert.Equal(t, "example:  70% (7/10)", (<-task.Updates()).S)
+
+	task.Complete()
+
+	if _, ok := <-task.Updates(); ok {
+		t.Fatalf("expected channel to be closed")
+	}
 }
 
 func TestPercentageTaskIsThrottled(t *testing.T) {

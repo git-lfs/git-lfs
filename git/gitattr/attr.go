@@ -14,9 +14,33 @@ import (
 
 const attrPrefix = "[attr]"
 
-// Line carries a single line from a repository's .gitattributes file, affecting
-// a single pattern and applying zero or more attributes.
-type Line struct {
+type Line interface {
+	Attrs() []*Attr
+}
+
+type PatternLine interface {
+	Pattern() *wildmatch.Wildmatch
+	Line
+}
+
+type MacroLine interface {
+	Macro() string
+	Line
+}
+
+type lineAttrs struct {
+	// Attrs is the list of attributes defined in a .gitattributes line.
+	//
+	// It is populated in-order as it was written in the .gitattributes file
+	// being read, from left to right.
+	attrs []*Attr
+}
+
+func (l *lineAttrs) Attrs() []*Attr {
+	return l.attrs
+}
+
+type patternLine struct {
 	// Pattern is a wildmatch pattern that, when matched, indicates that all
 	// of the below attributes (Attrs) should be applied to that tree entry.
 	//
@@ -24,19 +48,28 @@ type Line struct {
 	// from. For example, /.gitattributes affects all blobs in the
 	// repository, while /path/to/.gitattributes affects all blobs that are
 	// direct or indirect children of /path/to.
-	Pattern *wildmatch.Wildmatch
+	pattern *wildmatch.Wildmatch
+	// Attrs is the list of attributes to be applied when the above pattern
+	// matches a given filename.
+	lineAttrs
+}
+
+func (pl *patternLine) Pattern() *wildmatch.Wildmatch {
+	return pl.pattern
+}
+
+type macroLine struct {
 	// Macro is the name of a macro that, when matched, indicates that all
 	// of the below attributes (Attrs) should be applied to that tree
 	// entry.
-	//
-	// A given entry will have exactly one of Pattern or Macro set.
-	Macro string
-	// Attrs is the list of attributes to be applied when the above pattern
-	// matches a given filename.
-	//
-	// It is populated in-order as it was written in the .gitattributes file
-	// being read, from left to right.
-	Attrs []*Attr
+	macro string
+	// Attrs is the list of attributes to be applied when the above macro
+	// name is matched for a given filename.
+	lineAttrs
+}
+
+func (ml *macroLine) Macro() string {
+	return ml.macro
 }
 
 // Attr is a single attribute that may be applied to a file.
@@ -60,8 +93,8 @@ type Attr struct {
 //
 // If an error was encountered, it will be returned and the []*Line should be
 // considered unusable.
-func ParseLines(r io.Reader) ([]*Line, string, error) {
-	var lines []*Line
+func ParseLines(r io.Reader) ([]Line, string, error) {
+	var lines []Line
 
 	splitter := &lineEndingSplitter{}
 
@@ -104,7 +137,7 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 			}
 		}
 
-		var attrs []*Attr
+		var lineAttrs lineAttrs
 
 		for _, s := range strings.Split(applied, " ") {
 			if s == "" {
@@ -127,22 +160,21 @@ func ParseLines(r io.Reader) ([]*Line, string, error) {
 				attr.V = "true"
 			}
 
-			attrs = append(attrs, &attr)
+			lineAttrs.attrs = append(lineAttrs.attrs, &attr)
 		}
 
-		var matchPattern *wildmatch.Wildmatch
+		var line Line
 		if pattern != "" {
-			matchPattern = wildmatch.NewWildmatch(pattern,
+			matchPattern := wildmatch.NewWildmatch(pattern,
 				wildmatch.Basename, wildmatch.SystemCase,
 				wildmatch.GitAttributes,
 			)
+			line = &patternLine{matchPattern, lineAttrs}
+		} else {
+			line = &macroLine{macro, lineAttrs}
 		}
 
-		lines = append(lines, &Line{
-			Macro:   macro,
-			Pattern: matchPattern,
-			Attrs:   attrs,
-		})
+		lines = append(lines, line)
 	}
 
 	if err := scanner.Err(); err != nil {

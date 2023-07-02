@@ -245,7 +245,6 @@ func statusScanRefRange(ref *git.Ref) {
 
 		Print("\t%s (%s)", p.Name, p.Oid)
 	})
-	defer gitscanner.Close()
 
 	Print("%s\n", tr.Tr.Get("Objects to be pushed to %s:", remoteRef.Name))
 	if err := gitscanner.ScanRefRange(ref.Sha, remoteRef.Sha, nil); err != nil {

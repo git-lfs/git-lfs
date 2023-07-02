@@ -162,7 +162,6 @@ func doFsckObjects(include, exclude string, useIndex bool) []string {
 		}
 	}
 
-	gitscanner.Close()
 	return corruptOids
 }
 
@@ -209,7 +208,6 @@ func doFsckPointers(include, exclude string) []corruptPointer {
 		}
 	}
 
-	gitscanner.Close()
 	return corruptPointers
 }
 

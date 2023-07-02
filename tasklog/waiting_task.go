@@ -28,8 +28,8 @@ func (w *WaitingTask) Complete() {
 	close(w.ch)
 }
 
-// Done implements Task.Done and returns a channel which is closed when
-// Complete() is called.
+// Updates implements the Task.Updates function and returns a channel of updates
+// to log to the sink.
 func (w *WaitingTask) Updates() <-chan *Update {
 	return w.ch
 }

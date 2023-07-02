@@ -12,21 +12,21 @@ func TestNetrcWithHostAndPort(t *testing.T) {
 	netrcHelper.netrcFinder = &fakeNetrc{}
 
 	what := make(Creds)
-	what["protocol"] = "http"
-	what["host"] = "netrc-host:123"
-	what["path"] = "/foo/bar"
+	what["protocol"] = []string{"http"}
+	what["host"] = []string{"netrc-host:123"}
+	what["path"] = []string{"/foo/bar"}
 
 	creds, err := netrcHelper.Fill(what)
 	if err != nil {
 		t.Fatalf("error retrieving netrc credentials: %s", err)
 	}
 
-	username := creds["username"]
+	username := creds["username"][0]
 	if username != "abc" {
 		t.Fatalf("bad username: %s", username)
 	}
 
-	password := creds["password"]
+	password := creds["password"][0]
 	if password != "def" {
 		t.Fatalf("bad password: %s", password)
 	}
@@ -37,21 +37,21 @@ func TestNetrcWithHost(t *testing.T) {
 	netrcHelper.netrcFinder = &fakeNetrc{}
 
 	what := make(Creds)
-	what["protocol"] = "http"
-	what["host"] = "netrc-host"
-	what["path"] = "/foo/bar"
+	what["protocol"] = []string{"http"}
+	what["host"] = []string{"netrc-host"}
+	what["path"] = []string{"/foo/bar"}
 
 	creds, err := netrcHelper.Fill(what)
 	if err != nil {
 		t.Fatalf("error retrieving netrc credentials: %s", err)
 	}
 
-	username := creds["username"]
+	username := creds["username"][0]
 	if username != "abc" {
 		t.Fatalf("bad username: %s", username)
 	}
 
-	password := creds["password"]
+	password := creds["password"][0]
 	if password != "def" {
 		t.Fatalf("bad password: %s", password)
 	}
@@ -62,9 +62,9 @@ func TestNetrcWithBadHost(t *testing.T) {
 	netrcHelper.netrcFinder = &fakeNetrc{}
 
 	what := make(Creds)
-	what["protocol"] = "http"
-	what["host"] = "other-host"
-	what["path"] = "/foo/bar"
+	what["protocol"] = []string{"http"}
+	what["host"] = []string{"other-host"}
+	what["path"] = []string{"/foo/bar"}
 
 	_, err := netrcHelper.Fill(what)
 	if err != credHelperNoOp {

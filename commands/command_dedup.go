@@ -85,7 +85,6 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 			atomic.AddInt64(&dedupStats.totalProcessedSize, p.Size)
 		}
 	})
-	defer gitScanner.Close()
 
 	if err := gitScanner.ScanTree("HEAD", nil); err != nil {
 		ExitWithError(err)

@@ -25,6 +25,9 @@ $client = Packagecloud::Client.new(credentials)
 
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
+#
+# If you change the keys of this list, change the values below, as well as
+# script/upload and docker/run_dockers.bsh.
 $distro_name_map = {
   # RHEL EOL https://access.redhat.com/support/policy/updates/errata
   "centos/7" => [
@@ -42,8 +45,8 @@ $distro_name_map = {
   ],
   "rocky/9" => [
     "el/9",
-    "fedora/36", # EOL May 2023
     "fedora/37", # EOL November 2023
+    "fedora/38", # EOL May 2024
   ],
   # Debian EOL https://wiki.debian.org/LTS/
   # Ubuntu EOL https://wiki.ubuntu.com/Releases
@@ -57,12 +60,16 @@ $distro_name_map = {
     "ubuntu/focal",     # EOL April 2025
   ],
   "debian/11" => [
-    "debian/bullseye",  # Current stable
-    "debian/bookworm",  # Current testing
+    "debian/bullseye",  # EOL June 2026
     "ubuntu/jammy",     # EOL April 2027
     "ubuntu/kinetic",   # EOL July 2023
+    "ubuntu/lunar",     # EOL January 2024
     "linuxmint/vanessa",# EOL April 2027
     "linuxmint/vera",   # EOL April 2027
+  ],
+  "debian/12" => [
+    "debian/bookworm",  # Current stable
+    "debian/trixie",    # Current testing
   ]
 }
 
@@ -105,9 +112,12 @@ end
 package_files.each do |full_path|
   next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
   next unless full_path =~ /\/git-lfs[-|_]\d/
+  # If you change the entries below, change the keys above, as well as
+  # script/upload and docker/run_dockers.bsh.
   os, distro = case full_path
   when /debian\/10/ then ["Debian 10", "debian/buster"]
   when /debian\/11/ then ["Debian 11", "debian/bullseye"]
+  when /debian\/12/ then ["Debian 12", "debian/bookworm"]
   when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
   when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
   when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]

@@ -54,6 +54,7 @@ func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockab
 		}
 		close(smallRevCh)
 		close(errCh)
+		close(lockableCh)
 	}()
 
 	return nil

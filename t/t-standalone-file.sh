@@ -64,6 +64,70 @@ do_upload_download_test () {
   [ "$(echo "$objectlist" | wc -l)" -eq 12 ]
 }
 
+do_local_path_test () {
+  local reponame="$1"
+  local suffix="$2"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Tracking"
+
+  git checkout -b test
+
+  # set up a decent amount of data so that there's work for multiple concurrent adapters
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -10d)\",
+    \"Files\":[
+      {\"Filename\":\"verify.dat\",\"Size\":18,\"Data\":\"send-verify-action\"},
+      {\"Filename\":\"file1.dat\",\"Size\":1024},
+      {\"Filename\":\"file2.dat\",\"Size\":750}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -7d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":1050},
+      {\"Filename\":\"file3.dat\",\"Size\":660},
+      {\"Filename\":\"file4.dat\",\"Size\":230}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file5.dat\",\"Size\":1200},
+      {\"Filename\":\"file6.dat\",\"Size\":300}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -2d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":120},
+      {\"Filename\":\"file5.dat\",\"Size\":450},
+      {\"Filename\":\"file7.dat\",\"Size\":520},
+      {\"Filename\":\"file8.dat\",\"Size\":2048}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  testdir="$(pwd)"
+
+  cd "$TRASHDIR"
+
+  # Check a clone using an absolute Unix-style path.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$testdir$suffix" "$reponame-repo1"  2>&1 | tee clonecustom.log
+  (cd "$reponame-repo1" && git lfs fsck)
+  grep "xfer: started custom adapter process" clonecustom.log
+
+  # Check a clone using a relative path.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$reponame-repo1$suffix" "$reponame-repo2"  2>&1 | tee clonecustom.log
+  (cd "$reponame-repo2" && git lfs fsck)
+  grep "xfer: started custom adapter process" clonecustom.log
+
+  # Check a clone using an absolute native-style path.
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$(native_path "$testdir")$suffix" "$reponame-repo3"  2>&1 | tee clonecustom.log
+  (cd "$reponame-repo3" && git lfs fsck)
+  grep "xfer: started custom adapter process" clonecustom.log
+
+}
+
 begin_test "standalone-file-upload-download-bare"
 (
   set -e
@@ -255,64 +319,22 @@ begin_test "standalone-file-local-path"
   # clone directly, not through lfstest-gitserver
   clone_repo_url "$REMOTEDIR/$reponame.git" $reponame
 
-  git lfs track "*.dat" 2>&1 | tee track.log
-  grep "Tracking \"\*.dat\"" track.log
-  git add .gitattributes
-  git commit -m "Tracking"
+  do_local_path_test "$reponame" ""
+)
+end_test
 
-  git checkout -b test
+begin_test "standalone-file-local-path-trailing-slash"
+(
+  set -e
 
-  # set up a decent amount of data so that there's work for multiple concurrent adapters
-  echo "[
-  {
-    \"CommitDate\":\"$(get_date -10d)\",
-    \"Files\":[
-      {\"Filename\":\"verify.dat\",\"Size\":18,\"Data\":\"send-verify-action\"},
-      {\"Filename\":\"file1.dat\",\"Size\":1024},
-      {\"Filename\":\"file2.dat\",\"Size\":750}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -7d)\",
-    \"Files\":[
-      {\"Filename\":\"file1.dat\",\"Size\":1050},
-      {\"Filename\":\"file3.dat\",\"Size\":660},
-      {\"Filename\":\"file4.dat\",\"Size\":230}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -5d)\",
-    \"Files\":[
-      {\"Filename\":\"file5.dat\",\"Size\":1200},
-      {\"Filename\":\"file6.dat\",\"Size\":300}]
-  },
-  {
-    \"CommitDate\":\"$(get_date -2d)\",
-    \"Files\":[
-      {\"Filename\":\"file3.dat\",\"Size\":120},
-      {\"Filename\":\"file5.dat\",\"Size\":450},
-      {\"Filename\":\"file7.dat\",\"Size\":520},
-      {\"Filename\":\"file8.dat\",\"Size\":2048}]
-  }
-  ]" | lfstest-testutils addcommits
+  # setup a git repo to be used as a local repo, not remote
+  reponame="standalone-file-local-path-trailing-slash"
+  setup_remote_repo "$reponame"
 
-  testdir="$(pwd)"
+  # clone directly, not through lfstest-gitserver
+  clone_repo_url "$REMOTEDIR/$reponame.git/" $reponame
 
-  cd "$TRASHDIR"
-
-  # Check a clone using an absolute Unix-style path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$testdir" "$reponame-repo1"  2>&1 | tee clonecustom.log
-  (cd "$reponame-repo1" && git lfs fsck)
-  grep "xfer: started custom adapter process" clonecustom.log
-
-  # Check a clone using a relative path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$reponame-repo1" "$reponame-repo2"  2>&1 | tee clonecustom.log
-  (cd "$reponame-repo2" && git lfs fsck)
-  grep "xfer: started custom adapter process" clonecustom.log
-
-  # Check a clone using an absolute native-style path.
-  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git clone "$(native_path "$testdir")" "$reponame-repo3"  2>&1 | tee clonecustom.log
-  (cd "$reponame-repo3" && git lfs fsck)
-  grep "xfer: started custom adapter process" clonecustom.log
-
+  do_local_path_test "$reponame" "$suffix"
 )
 end_test
 

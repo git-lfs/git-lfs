@@ -12,7 +12,7 @@ import (
 // repository.
 type Tree struct {
 	// Lines are the lines of the .gitattributes at this level of the tree.
-	Lines []*Line
+	Lines []Line
 	// Children are the named child directories in the repository.
 	Children map[string]*Tree
 }
@@ -61,7 +61,7 @@ func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
 // in that .gitattributes, or an error. If no .gitattributes blob was found,
 // return nil.
-func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, string, error) {
+func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]Line, string, error) {
 	var at int = -1
 	for i, e := range t.Entries {
 		if e.Name == ".gitattributes" {
@@ -92,8 +92,10 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]*Line, string, er
 func (t *Tree) Applied(to string) []*Attr {
 	var attrs []*Attr
 	for _, line := range t.Lines {
-		if line.Pattern.Match(to) {
-			attrs = append(attrs, line.Attrs...)
+		if l, ok := line.(PatternLine); ok {
+			if l.Pattern().Match(to) {
+				attrs = append(attrs, line.Attrs()...)
+			}
 		}
 	}
 

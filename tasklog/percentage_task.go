@@ -70,17 +70,25 @@ func (c *PercentageTask) Count(n uint64) (new uint64) {
 }
 
 // Entry logs a line-delimited task entry.
-func (t *PercentageTask) Entry(update string) {
-	t.ch <- &Update{
+func (c *PercentageTask) Entry(update string) {
+	c.ch <- &Update{
 		S:     fmt.Sprintf("%s\n", update),
 		At:    time.Now(),
 		Force: true,
 	}
 }
 
+// Complete notes that the task is completed by setting the number of
+// completed elements to the total number of elements, and if necessary
+// closing the Updates channel, which yields the logger to the next Task.
+func (c *PercentageTask) Complete() {
+	if count := atomic.SwapUint64(&c.n, c.total); count < c.total {
+		close(c.ch)
+	}
+}
+
 // Updates implements Task.Updates and returns a channel which is written to
 // when the state of this task changes, and closed when the task is completed.
-// has been completed.
 func (c *PercentageTask) Updates() <-chan *Update {
 	return c.ch
 }

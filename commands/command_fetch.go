@@ -61,9 +61,6 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	}
 
 	success := true
-	gitscanner := lfs.NewGitScanner(cfg, nil)
-	defer gitscanner.Close()
-
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
@@ -139,7 +136,6 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 		return nil, err
 	}
 
-	tempgitscanner.Close()
 	return pointers, multiErr
 }
 
@@ -154,18 +150,16 @@ func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 
 func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 	// This could be a long process so use the chan version & report progress
-	task := tasklog.NewSimpleTask()
-	defer task.Complete()
-
 	logger := tasklog.NewLogger(OutputWriter,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	logger.Enqueue(task)
-	var numObjs int64
+	task := logger.Simple()
+	defer task.Complete()
 
 	// use temp gitscanner to collect pointers
 	var pointers []*lfs.WrappedPointer
 	var multiErr error
+	var numObjs int64
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			if multiErr != nil {
@@ -185,7 +179,6 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 		return nil, err
 	}
 
-	tempgitscanner.Close()
 	return pointers, multiErr
 }
 
@@ -217,7 +210,6 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 		ExitWithError(err)
 	}
 
-	tempgitscanner.Close()
 	return fetchAndReportToChan(pointers, filter, nil)
 }
 
@@ -293,18 +285,16 @@ func fetchAll() bool {
 
 func scanAll() []*lfs.WrappedPointer {
 	// This could be a long process so use the chan version & report progress
-	task := tasklog.NewSimpleTask()
-	defer task.Complete()
-
 	logger := tasklog.NewLogger(OutputWriter,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	logger.Enqueue(task)
-	var numObjs int64
+	task := logger.Simple()
+	defer task.Complete()
 
 	// use temp gitscanner to collect pointers
 	var pointers []*lfs.WrappedPointer
 	var multiErr error
+	var numObjs int64
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			if multiErr != nil {
@@ -323,8 +313,6 @@ func scanAll() []*lfs.WrappedPointer {
 	if err := tempgitscanner.ScanAll(nil); err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-
-	tempgitscanner.Close()
 
 	if multiErr != nil {
 		Panic(multiErr, tr.Tr.Get("Could not scan for Git LFS files"))
