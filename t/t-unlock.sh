@@ -451,3 +451,42 @@ begin_test "unlock with git-lfs-transfer"
   refute_server_lock_ssh "$reponame" "$id" "refs/heads/main"
 )
 end_test
+
+begin_test "client is sending a remote ref to the server"
+(
+  set -e
+
+  reponame="client-is-sending-a-remote-ref-to-the-server"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+# setup repo gitattributes and commit a test file
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+  git push origin main
+
+# lock the file with curl verbose output and record the output to lock.log
+  GIT_CURL_VERBOSE=1 git lfs lock a.dat | tee lock.log
+
+# retrieve the lock id from the lock.log
+  id=$(assert_lock lock.log a.dat)
+
+# check file is locked on server
+  assert_server_lock "$reponame" "$id"
+
+# check that the refspec is sent via the request body in the lock request
+# not sure in this pattern cause the output is multiline
+  grep -E "POST.|\n*\"ref\":{\"name\":\"refs\/heads\/main\"}" lock.log
+
+# unlock the file with curl verbose output and record the output to unlock.log
+  GIT_CURL_VERBOSE=1 git lfs unlock a.dat | tee unlock.log
+
+# check that the refspec is sent via the locks request url
+  grep -E "GET.*&refspec=refs%2Fheads%2Fmain" unlock.log
+
+# check that the refspec is sent via the request body in the unlock request
+# not sure in this pattern cause the output is multiline
+  grep -E "POST.|\n*\"ref\":{\"name\":\"refs\/heads\/main\"}" unlock.log
+)
