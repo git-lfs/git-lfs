@@ -142,7 +142,7 @@ func FormatPercentSequences(pattern string, replacements map[string]string) stri
 }
 
 func Trace(name string, args ...string) {
-       tracerx.Printf("exec: %s %s", name, quotedArgs(args))
+	tracerx.Printf("exec: %s %s", name, quotedArgs(args))
 }
 
 func quotedArgs(args []string) string {
