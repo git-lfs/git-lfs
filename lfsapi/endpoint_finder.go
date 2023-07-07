@@ -128,8 +128,7 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
         if err == nil {
                 url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
                 if err == nil {
-                    tracerx.Printf("invoking NewEndpoint with %s", url)
-                    endpoint := e.NewEndpoint("download", url);
+                    endpoint := e.NewEndpointFromCloneURL("download", url);
                     return endpoint
                 } else {
                     tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
@@ -164,53 +163,6 @@ func ExtractRemoteUrl(line string) (string, error) {
             return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 	}
         return strings.TrimSpace(match[0]), nil;
-
-        //maybeProtocol := match[1]
-        //remoteUrl := match[2]
-        //type Protocol int
-        //const (
-        //    Https Protocol = iota
-        //    Ssh
-        //    Unknown
-        //)
-        //p := Unknown
-        //// Try to determine the protocol for the remote URL
-        //if maybeProtocol == "https://" {
-        //    p = Https
-        //}
-        //if strings.Contains(remoteUrl, ":") {
-        //    p = Ssh
-        //}
-        //if maybeProtocol == "ssh://" {
-        //    // Recall the (simplified) parts of a URL:
-        //    // https://example.com/resource
-        //    // ^scheme ^domain     ^path
-        //    // When scheme is `ssh://`, we need to change the separator between domain and path.
-        //    // Usually, the domain and path are separated with a '/'.
-        //    // For a valid SSH remote, we need them to be separated with a ':' instead.
-        //    remoteUrl = strings.Replace(remoteUrl, "/", ":", 1)
-        //    p = Ssh
-        //}
-
-        //if p == Unknown {
-        //    return "", fmt.Errorf("could not determine protocol for remote URL in \"%s\"", line)
-        //}
-
-        //// The format used in FETCH_HEAD is slightly different
-        //// to what `git remote get-url` shows.
-        //// For example, if `get-url` would yield git@github.com:username/reponame.git,
-        //// FETCH_HEAD would contain either ssh://github.com/username/reponame
-        //// or github.com:username/reponame
-
-    	//remoteUrl += ".git"
-        //if p == Ssh {
-        //    remoteUrl = "git@" + remoteUrl
-        //}
-        //if p == Https {
-        //    remoteUrl = "https://" + remoteUrl
-        //}
-
-	//return remoteUrl, nil
 }
 
 
