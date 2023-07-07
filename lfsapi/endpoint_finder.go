@@ -95,10 +95,6 @@ func (e *endpointGitFinder) getEndpoint(operation, remote string) lfshttp.Endpoi
 		if e := e.RemoteEndpoint(operation, remote); len(e.Url) > 0 {
 			return e
 		}
-                // we end up returning `e.RemoteEndpoint()` regardless of the check above
-                // maybe remove this check?
-                // technically, if there is a non-default remote, the current implementation ends up calling
-                // RemoteEndpoint() twice - if the function is not idempotent, I mean break something by removing the check
 	}
 
 	return e.RemoteEndpoint(operation, defaultRemote)
@@ -132,7 +128,9 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
         if err == nil {
                 url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
                 if err == nil {
-                        return e.NewEndpointFromCloneURL(operation, url)
+                    tracerx.Printf("invoking NewEndpoint with %s", url)
+                    endpoint := e.NewEndpoint("download", url);
+                    return endpoint
                 } else {
                     tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
                 }
@@ -165,52 +163,54 @@ func ExtractRemoteUrl(line string) (string, error) {
 	if len(match) != 3 {
             return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 	}
-        maybeProtocol := match[1]
-        remoteUrl := match[2]
-        type Protocol int
-        const (
-            Https Protocol = iota
-            Ssh
-            Unknown
-        )
-        p := Unknown
-        // Try to determine the protocol for the remote URL
-        if maybeProtocol == "https://" {
-            p = Https
-        }
-        if strings.Contains(remoteUrl, ":") {
-            p = Ssh
-        }
-        if maybeProtocol == "ssh://" {
-            // Recall the (simplified) parts of a URL:
-            // https://example.com/resource
-            // ^scheme ^domain     ^path
-            // When scheme is `ssh://`, we need to change the separator between domain and path.
-            // Usually, the domain and path are separated with a '/'.
-            // For a valid SSH remote, we need them to be separated with a ':' instead.
-            remoteUrl = strings.Replace(remoteUrl, "/", ":", 1)
-            p = Ssh
-        }
+        return strings.TrimSpace(match[0]), nil;
 
-        if p == Unknown {
-            return "", fmt.Errorf("could not determine protocol for remote URL in \"%s\"", line)
-        }
+        //maybeProtocol := match[1]
+        //remoteUrl := match[2]
+        //type Protocol int
+        //const (
+        //    Https Protocol = iota
+        //    Ssh
+        //    Unknown
+        //)
+        //p := Unknown
+        //// Try to determine the protocol for the remote URL
+        //if maybeProtocol == "https://" {
+        //    p = Https
+        //}
+        //if strings.Contains(remoteUrl, ":") {
+        //    p = Ssh
+        //}
+        //if maybeProtocol == "ssh://" {
+        //    // Recall the (simplified) parts of a URL:
+        //    // https://example.com/resource
+        //    // ^scheme ^domain     ^path
+        //    // When scheme is `ssh://`, we need to change the separator between domain and path.
+        //    // Usually, the domain and path are separated with a '/'.
+        //    // For a valid SSH remote, we need them to be separated with a ':' instead.
+        //    remoteUrl = strings.Replace(remoteUrl, "/", ":", 1)
+        //    p = Ssh
+        //}
 
-        // The format used in FETCH_HEAD is slightly different
-        // to what `git remote get-url` shows.
-        // For example, if `get-url` would yield git@github.com:username/reponame.git,
-        // FETCH_HEAD would contain either ssh://github.com/username/reponame
-        // or github.com:username/reponame
+        //if p == Unknown {
+        //    return "", fmt.Errorf("could not determine protocol for remote URL in \"%s\"", line)
+        //}
 
-    	remoteUrl += ".git"
-        if p == Ssh {
-            remoteUrl = "git@" + remoteUrl
-        }
-        if p == Https {
-            remoteUrl = "https://" + remoteUrl
-        }
+        //// The format used in FETCH_HEAD is slightly different
+        //// to what `git remote get-url` shows.
+        //// For example, if `get-url` would yield git@github.com:username/reponame.git,
+        //// FETCH_HEAD would contain either ssh://github.com/username/reponame
+        //// or github.com:username/reponame
 
-	return remoteUrl, nil
+    	//remoteUrl += ".git"
+        //if p == Ssh {
+        //    remoteUrl = "git@" + remoteUrl
+        //}
+        //if p == Https {
+        //    remoteUrl = "https://" + remoteUrl
+        //}
+
+	//return remoteUrl, nil
 }
 
 
@@ -272,6 +272,7 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 	case "ssh", "git+ssh", "ssh+git":
 		return lfshttp.EndpointFromSshUrl(u)
 	case "http", "https":
+                tracerx.Printf("NewEndpoint: using http case")
 		return lfshttp.EndpointFromHttpUrl(u)
 	case "git":
 		return endpointFromGitUrl(u, e)
