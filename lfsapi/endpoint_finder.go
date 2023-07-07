@@ -224,7 +224,6 @@ func (e *endpointGitFinder) NewEndpoint(operation, rawurl string) lfshttp.Endpoi
 	case "ssh", "git+ssh", "ssh+git":
 		return lfshttp.EndpointFromSshUrl(u)
 	case "http", "https":
-                tracerx.Printf("NewEndpoint: using http case")
 		return lfshttp.EndpointFromHttpUrl(u)
 	case "git":
 		return endpointFromGitUrl(u, e)
