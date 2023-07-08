@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -184,12 +185,16 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
+	fmt.Println("F0")
+
 	lsFiles, err := NewLsFiles(workingDir, true, true)
 	if err != nil {
 		tracerx.Printf("Error finding .gitattributes: %v", err)
+		fmt.Println("F1")
 		return paths
 	}
 
+	fmt.Println("F2")
 	if gitattributesFiles, present := lsFiles.FilesByName[".gitattributes"]; present {
 		for _, f := range gitattributesFiles {
 			tracerx.Printf("findAttributeFiles: located %s", f.FullPath)
@@ -199,12 +204,15 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 			})
 		}
 	}
+	fmt.Println("F3")
 
 	// reverse the order of the files so more specific entries are found first
 	// when iterating from the front (respects precedence)
 	sort.Slice(paths[:], func(i, j int) bool {
 		return len(paths[i].path) > len(paths[j].path)
 	})
+
+	fmt.Println("F4")
 
 	return paths
 }

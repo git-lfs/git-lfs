@@ -2,6 +2,7 @@ package git
 
 import (
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -47,6 +48,8 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 
 	tracerx.Printf("NewLsFiles: running in %s git %s",
 		workingDir, strings.Join(args, " "))
+
+	fmt.Println("Volta a ser rapido aqui")
 
 	// Capture stdout and stderr
 	stdout, err := cmd.StdoutPipe()
