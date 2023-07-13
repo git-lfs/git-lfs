@@ -663,14 +663,11 @@ begin_test "track: escaped glob pattern in .gitattributes"
 (
   set -e
 
-  # None of these characters are valid in the Win32 subsystem.
-  [ "$IS_WINDOWS" -eq 1 ] && exit 0
-
   reponame="track-escaped-glob"
   git init "$reponame"
   cd "$reponame"
 
-  filename='*[foo]bar?.txt'
+  filename='[foo]bar.txt'
   contents='I need escaping'
   contents_oid=$(calc_oid "$contents")
 
@@ -713,6 +710,32 @@ begin_test "track: escaped glob pattern with spaces in .gitattributes"
 
   # If Git understood our escaping, we'll have a pointer. Otherwise, we won't.
   assert_pointer "main" "$filename" "$contents_oid" 15
+)
+end_test
+
+begin_test "track: verbose logging"
+(
+  set -e
+
+  reponame="track-verbose-logging"
+  git init "$reponame"
+  cd "$reponame"
+
+  filename='[foo]bar.bin'
+  contents='I need escaping'
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > "$filename"
+
+  printf 'Hello, world!\n' > a.txt
+  git add a.txt "$filename"
+  git commit -m 'some files'
+
+  git lfs track -v "*.txt" 2>&1 | tee output
+  grep "Found 1 files previously added to Git matching pattern:" output
+
+  git lfs track -v --filename "$filename" 2>&1 | tee output
+  grep "Found 1 files previously added to Git matching pattern:" output
 )
 end_test
 
