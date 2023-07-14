@@ -1315,8 +1315,9 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	cmd, err := gitNoLFS(
 		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
+		"--ignored",
 		"--cached", // include things which are staged but not committed right now
-		"--",       // no ambiguous patterns
+		"-x",
 		safePattern)
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git ls-files`: %v", err))
