@@ -72,9 +72,24 @@ func Run() int {
 			switch args[0] {
 			case "bash":
 				completion := new(bytes.Buffer)
-				cmd.Root().GenBashCompletion(completion)
-				completion.WriteString("_git_lfs() { __start_git-lfs; }\n") // this is needed for git bash completion to pick up the completion for the subcommand
-				completion.WriteTo(os.Stdout)
+				cmd.Root().GenBashCompletionV2(completion, true)
+
+				// this is needed for git bash completion to pick up the completion for the subcommand
+				completionSource := []byte(`    local out directive
+    __git-lfs_get_completion_results
+`)
+				completionReplace := []byte(`    if [[ ${words[0]} == "git" && ${words[1]} == "lfs" ]]; then
+        words=("git-lfs" "${words[@]:2:${#words[@]}-2}")
+        __git-lfs_debug "Rewritten words[*]: ${words[*]},"
+    fi
+
+    local out directive
+    __git-lfs_get_completion_results
+`)
+				newCompletion := bytes.NewBuffer(bytes.Replace(completion.Bytes(), completionSource, completionReplace, 1))
+				newCompletion.WriteString("_git_lfs() { __start_git-lfs; }\n")
+
+				newCompletion.WriteTo(os.Stdout)
 			case "fish":
 				cmd.Root().GenFishCompletion(os.Stdout, true)
 			case "zsh":
