@@ -624,6 +624,7 @@ lint : $(SOURCES)
 MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-clean.1 \
   man/man1/git-lfs-clone.1 \
+  man/man1/git-lfs-completion.1 \
   man/man5/git-lfs-config.5 \
   man/man1/git-lfs-dedup.1 \
   man/man1/git-lfs-env.1 \
@@ -661,6 +662,7 @@ MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
 MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-clean.1.html \
   man/html/git-lfs-clone.1.html \
+  man/html/git-lfs-completion.1.html \
   man/html/git-lfs-config.5.html \
   man/html/git-lfs-dedup.1.html \
   man/html/git-lfs-env.1.html \
