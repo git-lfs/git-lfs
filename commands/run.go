@@ -72,7 +72,7 @@ func Run() int {
 			switch args[0] {
 			case "bash":
 				completion := new(bytes.Buffer)
-				cmd.Root().GenBashCompletionV2(completion, true)
+				cmd.Root().GenBashCompletionV2(completion, false)
 
 				// this is needed for git bash completion to pick up the completion for the subcommand
 				completionSource := []byte(`    local out directive
@@ -91,14 +91,14 @@ func Run() int {
 
 				newCompletion.WriteTo(os.Stdout)
 			case "fish":
-				cmd.Root().GenFishCompletion(os.Stdout, true)
+				cmd.Root().GenFishCompletion(os.Stdout, false)
 			case "zsh":
 				completion := new(bytes.Buffer)
-				cmd.Root().GenZshCompletion(completion)
+				cmd.Root().GenZshCompletionNoDesc(completion)
 
 				// this is needed for git zsh completion to use the right command for completion
-				completionSource := []byte(`    requestComp="${words[1]} __complete ${words[2,-1]}"`)
-				completionReplace := []byte(`    requestComp="git-${words[1]#*git-} __complete ${words[2,-1]}"`)
+				completionSource := []byte(`    requestComp="${words[1]} __completeNoDesc ${words[2,-1]}"`)
+				completionReplace := []byte(`    requestComp="git-${words[1]#*git-} __completeNoDesc ${words[2,-1]}"`)
 				newCompletion := bytes.NewBuffer(bytes.Replace(completion.Bytes(), completionSource, completionReplace, 1))
 
 				newCompletion.WriteTo(os.Stdout)
