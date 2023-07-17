@@ -95,7 +95,12 @@ func Run() int {
 			case "zsh":
 				completion := new(bytes.Buffer)
 				cmd.Root().GenZshCompletion(completion)
-				newCompletion := bytes.NewBuffer(bytes.Replace(completion.Bytes(), []byte("requestComp=\"${words[1]}"), []byte("requestComp=\"git-${words[1]#*git-}"), 1)) // this is needed for git zsh completion to use the right command for completion
+
+				// this is needed for git zsh completion to use the right command for completion
+				completionSource := []byte(`    requestComp="${words[1]} __complete ${words[2,-1]}"`)
+				completionReplace := []byte(`    requestComp="git-${words[1]#*git-} __complete ${words[2,-1]}"`)
+				newCompletion := bytes.NewBuffer(bytes.Replace(completion.Bytes(), completionSource, completionReplace, 1))
+
 				newCompletion.WriteTo(os.Stdout)
 			}
 		},
