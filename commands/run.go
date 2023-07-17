@@ -64,9 +64,9 @@ func Run() int {
 	root.PreRun = nil
 
 	completionCmd := &cobra.Command{
-		Use:                   "completion [bash|zsh|fish]",
+		Use:                   "completion [bash|fish|zsh]",
 		DisableFlagsInUseLine: true,
-		ValidArgs:             []string{"bash", "zsh", "fish"},
+		ValidArgs:             []string{"bash", "fish", "zsh"},
 		Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			switch args[0] {
@@ -75,13 +75,13 @@ func Run() int {
 				cmd.Root().GenBashCompletion(completion)
 				completion.WriteString("_git_lfs() { __start_git-lfs; }\n") // this is needed for git bash completion to pick up the completion for the subcommand
 				completion.WriteTo(os.Stdout)
+			case "fish":
+				cmd.Root().GenFishCompletion(os.Stdout, true)
 			case "zsh":
 				completion := new(bytes.Buffer)
 				cmd.Root().GenZshCompletion(completion)
 				newCompletion := bytes.NewBuffer(bytes.Replace(completion.Bytes(), []byte("requestComp=\"${words[1]}"), []byte("requestComp=\"git-${words[1]#*git-}"), 1)) // this is needed for git zsh completion to use the right command for completion
 				newCompletion.WriteTo(os.Stdout)
-			case "fish":
-				cmd.Root().GenFishCompletion(os.Stdout, true)
 			}
 		},
 	}
