@@ -10,9 +10,7 @@ type MacroProcessor struct {
 
 // NewMacroProcessor returns a new MacroProcessor object for parsing macros.
 func NewMacroProcessor() *MacroProcessor {
-	fmt.Println("H0")
 	macros := make(map[string][]*Attr)
-	fmt.Println("H1")
 
 	// This is built into Git.
 	macros["binary"] = []*Attr{

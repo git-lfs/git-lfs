@@ -42,14 +42,10 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		installHooks(false)
 	}
 
-	fmt.Println("Comeca a demorar aqui")
-
 	if len(args) == 0 {
 		listPatterns()
 		return
 	}
-
-	fmt.Println("D0")
 
 	if trackJSONFlag {
 		Exit(tr.Tr.Get("--json option can't be combined with arguments"))
@@ -57,36 +53,24 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 	mp := gitattr.NewMacroProcessor()
 
-	fmt.Println("D1")
-
 	// Intentionally do _not_ consider global- and system-level
 	// .gitattributes here.  Parse them still to expand any macros.
 	git.GetSystemAttributePaths(mp, cfg.Os)
-	fmt.Println("D2")
 	git.GetRootAttributePaths(mp, cfg.Git)
-	fmt.Println("D3")
 	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
-	fmt.Println("D4")
 	lineEnd := getAttributeLineEnding(knownPatterns)
-	fmt.Println("D5")
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
 	}
-	fmt.Println("D6")
 
 	wd, _ := tools.Getwd()
-	fmt.Println("D7")
 	wd = tools.ResolveSymlinks(wd)
-	fmt.Println("D8")
 	relpath, err := filepath.Rel(cfg.LocalWorkingDir(), wd)
-	fmt.Println("D9")
 	if err != nil {
 		Exit(tr.Tr.Get("Current directory %q outside of Git working directory %q.", wd, cfg.LocalWorkingDir()))
 	}
-	fmt.Println("D10")
 
 	changedAttribLines := make(map[string]string)
-	fmt.Println("D11")
 	var readOnlyPatterns []string
 	var writeablePatterns []string
 ArgsLoop:
@@ -252,10 +236,7 @@ type PatternData struct {
 }
 
 func listPatterns() {
-	fmt.Println("E0")
-
 	knownPatterns := getAllKnownPatterns()
-	fmt.Println("E1")
 	if trackJSONFlag {
 		patterns := struct {
 			Patterns []PatternData `json:"patterns"`
@@ -268,17 +249,13 @@ func listPatterns() {
 				Lockable: p.Lockable,
 			})
 		}
-		fmt.Println("E2")
 
 		encoder := json.NewEncoder(os.Stdout)
-		fmt.Println("E3")
 		encoder.SetIndent("", " ")
 		err := encoder.Encode(patterns)
-		fmt.Println("E4")
 		if err != nil {
 			ExitWithError(err)
 		}
-		fmt.Println("E5")
 		return
 	}
 
@@ -309,7 +286,6 @@ func listPatterns() {
 }
 
 func getAllKnownPatterns() []git.AttributePath {
-	fmt.Println("G0")
 
 	mp := gitattr.NewMacroProcessor()
 
