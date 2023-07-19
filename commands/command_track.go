@@ -249,7 +249,6 @@ func listPatterns() {
 				Lockable: p.Lockable,
 			})
 		}
-
 		encoder := json.NewEncoder(os.Stdout)
 		encoder.SetIndent("", " ")
 		err := encoder.Encode(patterns)
@@ -286,7 +285,6 @@ func listPatterns() {
 }
 
 func getAllKnownPatterns() []git.AttributePath {
-
 	mp := gitattr.NewMacroProcessor()
 
 	// Parse these in this order so that macros in one file are properly

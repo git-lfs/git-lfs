@@ -23,9 +23,6 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	Debug("nf1")
-	Print("nf1")
-
 	requireGitVersion()
 
 	lockClient := newLockClient()

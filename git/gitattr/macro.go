@@ -58,9 +58,7 @@ func (mp *MacroProcessor) ProcessLines(lines []Line, readMacros bool) []PatternL
 					attr,
 				)
 			}
-
 			result = append(result, resultLine)
-
 		case MacroLine:
 			if readMacros {
 				mp.macros[l.Macro()] = l.Attrs()
