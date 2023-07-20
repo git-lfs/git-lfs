@@ -136,10 +136,7 @@ var (
 	// value of os.Getenv("HOME") for the returned *user.User's "HomeDir"
 	// member.
 	currentUser func() (*user.User, error) = func() (*user.User, error) {
-		u, err := user.Current()
-		if err != nil {
-			return nil, err
-		}
+		u := &user.User{}
 		u.HomeDir = os.Getenv("HOME")
 		return u, nil
 	}
