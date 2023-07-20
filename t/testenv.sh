@@ -137,6 +137,10 @@ LFS_CLIENT_KEY_FILE_ENCRYPTED="$REMOTEDIR/client.enc.key"
 # the fake home dir used for the initial setup
 TESTHOME="$REMOTEDIR/home"
 
+# This directory contains the expected output of the "git lfs completion"
+# command for different shells.
+COMPLETIONSDIR="$ROOTDIR/t/fixtures/completions"
+
 GIT_LFS_FORCE_PROGRESS=1
 GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
