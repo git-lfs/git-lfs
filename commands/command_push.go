@@ -79,6 +79,10 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		}
 		uploadsWithObjectIDs(ctx, argList)
 	} else {
+		if !useStdin && !pushAll && len(argList) < 1 {
+			Print(tr.Tr.Get("At least one ref must be supplied without --all"))
+			os.Exit(1)
+		}
 		uploadsBetweenRefAndRemote(ctx, argList)
 	}
 }

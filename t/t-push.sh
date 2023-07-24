@@ -53,6 +53,16 @@ begin_test "push with bad ref"
 )
 end_test
 
+begin_test "push with nothing"
+(
+  set -e
+  push_repo_setup "push-nothing"
+
+  git lfs push origin 2>&1 | tee push.log
+  grep "At least one ref must be supplied without --all" push.log
+)
+end_test
+
 begin_test "push with given remote, configured pushRemote"
 (
   set -e
