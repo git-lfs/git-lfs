@@ -108,22 +108,3 @@ package_files.each do |full_path|
     end
   end
 end
-
-package_files.each do |full_path|
-  next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
-  next unless full_path =~ /\/git-lfs[-|_]\d/
-  # If you change the entries below, change the keys above, as well as
-  # script/upload and docker/run_dockers.bsh.
-  os, distro = case full_path
-  when /debian\/10/ then ["Debian 10", "debian/buster"]
-  when /debian\/11/ then ["Debian 11", "debian/bullseye"]
-  when /debian\/12/ then ["Debian 12", "debian/bookworm"]
-  when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
-  when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
-  when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
-  end
-
-  next unless os
-
-  puts "[#{os}](https://packagecloud.io/#{packagecloud_user}/git-lfs/packages/#{distro}/#{File.basename(full_path)}/download)"
-end
