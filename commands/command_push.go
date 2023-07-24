@@ -71,7 +71,9 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if pushObjectIDs {
-		if len(argList) < 1 {
+		// We allow no object IDs with `--stdin` to make scripting
+		// easier and avoid having to special-case this in scripts.
+		if !useStdin && len(argList) < 1 {
 			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
 			os.Exit(1)
 		}

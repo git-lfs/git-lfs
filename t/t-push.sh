@@ -432,6 +432,9 @@ begin_test "push object id(s)"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
+  git lfs push --object-id origin --dry-run 2>&1 | tee push.log
+  grep "At least one object ID must be supplied with --object-id" push.log
+
   git lfs push --object-id origin \
     4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340 \
     2>&1 | tee push.log
@@ -464,9 +467,8 @@ begin_test "push object id(s) via stdin"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
-  echo "" | git lfs push --object-id origin --stdin --dry-run \
-    2>&1 | tee push.log
-  grep "At least one object ID must be supplied with --object-id" push.log
+  git lfs push --object-id origin --stdin --dry-run </dev/null 2>&1 | tee push.log
+  grep "At least one object ID must be supplied with --object-id" push.log && exit 1
 
   echo "4c48d2a6991c9895bcddcf027e1e4907280bcf21975492b1afbade396d6a3340" | \
     git lfs push --object-id origin --stdin --dry-run "c0ffee" \
