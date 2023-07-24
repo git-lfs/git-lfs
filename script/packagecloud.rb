@@ -8,6 +8,7 @@ packagecloud_token = ENV["PACKAGECLOUD_TOKEN"] || begin
 end
 
 require "json"
+require_relative 'lib/distro'
 
 packagecloud_ruby_minimum_version = "1.0.4"
 begin
@@ -25,53 +26,7 @@ $client = Packagecloud::Client.new(credentials)
 
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
-#
-# If you change the keys of this list, change the values below, as well as
-# script/upload and docker/run_dockers.bsh.
-$distro_name_map = {
-  # RHEL EOL https://access.redhat.com/support/policy/updates/errata
-  "centos/7" => [
-    "el/7",         # EOL June 2024
-    "scientific/7", # EOL June 2024
-    # opensuse https://en.opensuse.org/Lifetime
-    # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-    "opensuse/15.4", # EOL November 2023
-    # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.5", # EOL October 2024 (LTSS October 2027)
-    "sles/15.4", # Current
-  ],
-  "centos/8" => [
-    "el/8",
-  ],
-  "rocky/9" => [
-    "el/9",
-    "fedora/37", # EOL November 2023
-    "fedora/38", # EOL May 2024
-  ],
-  # Debian EOL https://wiki.debian.org/LTS/
-  # Ubuntu EOL https://wiki.ubuntu.com/Releases
-  # Mint EOL https://linuxmint.com/download_all.php
-  "debian/10" => [
-    "debian/buster",    # EOL June 2024
-    "linuxmint/ulyana", # EOL April 2025
-    "linuxmint/ulyssa", # EOL April 2025
-    "linuxmint/uma",    # EOL April 2025
-    "linuxmint/una",    # EOL April 2025
-    "ubuntu/focal",     # EOL April 2025
-  ],
-  "debian/11" => [
-    "debian/bullseye",  # EOL June 2026
-    "ubuntu/jammy",     # EOL April 2027
-    "ubuntu/kinetic",   # EOL July 2023
-    "ubuntu/lunar",     # EOL January 2024
-    "linuxmint/vanessa",# EOL April 2027
-    "linuxmint/vera",   # EOL April 2027
-  ],
-  "debian/12" => [
-    "debian/bookworm",  # Current stable
-    "debian/trixie",    # Current testing
-  ]
-}
+$distro_name_map = DistroMap.distro_name_map
 
 # caches distro id lookups
 $distro_id_map = {}
