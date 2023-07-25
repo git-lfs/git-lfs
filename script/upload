@@ -51,6 +51,9 @@ categorize_arch () {
   if [ "$arch" = "ppc64le" ]
   then
     echo "Little-endian 64-bit PowerPC"
+  elif [ "$arch" = "riscv64" ]
+  then
+    echo "64-bit RISC-V"
   else
     echo "$arch" | tr a-z A-Z
   fi
