@@ -1,5 +1,90 @@
 # Git LFS Changelog
 
+## 3.4.0 (26 July 2023)
+
+This release is a feature release which includes support for generating
+shell scripts for command-line tab-completion of Git LFS commands with
+the new `git-lfs-completion(1)` command, providing multiple headers to Git
+credential helpers (a new feature as of Git 2.41), and installing Git LFS
+with a Git configuration file stored under the XDG configuration path.
+
+Note that this release will be made by a different member of the core
+team than the person who performed many of the past releases, and thus
+this release will be signed with a different OpenPGP key.  Please follow
+[the steps in the README to download all of the keys for the core
+team](https://github.com/git-lfs/git-lfs#verifying-releases) to verify
+this release.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @anihm136 for implementing shell completion script generation
+* @aymanbagabas for multiple fixes to our SSH and transfer queue code
+* @dscho for ensuring our Windows installer works on 32-bit systems
+* @dyrone for correcting an erroneous file name in our documentation
+* @jlosito for making sure our CI job actions are up to date
+* @nfgferreira for speeding up the track command on Windows
+* @ry167 for improving our Ubuntu installation instructions
+* @salvorizza for fixing a JSON bug in our unlock command
+* @slonopotamus for cleaning up accommodations for legacy Go versions
+* @steffen for improving our installation documentation
+
+### Features
+
+* Add support for `wwwauth[]` to credential helpers #5381 (@bk2204)
+* Add a `--file` option to install and uninstall #5355 (@bk2204)
+* Add shell completion generation #5311 (@anihm136)
+
+### Bugs
+
+* Handle local paths with trailing slashes #5402 (@bk2204)
+* Unlock by ID with JSON Flag returns empty array #5385 (@salvorizza)
+* Refactor macro attribute handling to prevent crashes with `--fixup` migration option #5382 (@chrisd8088)
+* locks: print warning about locking API to standard error #5350 (@bk2204)
+* Avoid needlessly spawning SSH connections with `git archive` #5309 (@bk2204)
+* standalone: print an error if the destination isn't a Git repository #5283 (@bk2204)
+* locks: ensure local locks are synced on error #5284 (@bk2204)
+* installer: let it work on 32-bit Windows again #5266 (@dscho)
+* fix(ssh): use /tmp to place control dir on darwin #5223 (@aymanbagabas)
+* commands: avoid remote connections in checkout #5226 (@bk2204)
+* fix(tq): stop adding transfers to queue after abort #5230 (@aymanbagabas)
+* fix: pure SSH list lock command name #5219 (@aymanbagabas)
+* git: match patterns, not file names, for tracked files #5423 (@bk2204)
+* Resolve git-lfs track slowness on Windows due to unneeded user lookup #5431 (@nfgferreira)
+
+### Misc
+
+* Update distributions #5392 (@bk2204)
+* workflows: remove refreshenv #5393 (@bk2204)
+* Refactor `GitScanner` and simplify implementation #5389 (@chrisd8088)
+* Ensure all logging tasks are closed and simplify log task dispatching #5375 (@chrisd8088)
+* FAQ: add entry on archiving subdirectories #5349 (@bk2204)
+* Drop pre-1.13 Go compatibility code #5364 (@slonopotamus)
+* Fix CI by enabling Git protocol v2 #5353 (@bk2204)
+* Clarify `git lfs migrate` handling of local and remote references #5327 (@chrisd8088)
+* Update to Go version 1.20 #5326 (@chrisd8088)
+* Remove stale video link #5325 (@chrisd8088)
+* Fix Windows CI with Go 1.20 #5317 (@bk2204)
+* Update Windows signing certificate hash #5300 (@chrisd8088)
+* t: avoid incorrect negated commands #5282 (@bk2204)
+* Update golang.org/x/text #5290 (@bk2204)
+* Improve error handling for pure SSH protocol #5063 (@bk2204)
+* workflow: use `choco install` #5281 (@bk2204)
+* Update Linux releases in Packagecloud publication script #5276 (@chrisd8088)
+* Simplify and deduplicate installation instructions #5260 (@steffen)
+* Make hooks refer to `core.hookspath` #5245 (@bk2204)
+* Update INSTALLING.md to fix ubuntu derivative command and allow easy install for some distros #5014 (@ry167)
+* Check for github action updates monthly #5228 (@jlosito)
+* Upgrade workflows to latest Ubuntu and Actions versions #5243 (@chrisd8088)
+* Upgrade GitHub Actions workflows to use `ruby/setup-ruby@v1` #5236 (@chrisd8088)
+* Add `git lfs migrate export` command examples to manual page #5239 (@chrisd8088)
+* Unset `GIT_TRACE` environment variable for Git commands in `Makefile` #5240 (@chrisd8088)
+* Clean up RPM builds and fix i686 RPM file names #5241 (@chrisd8088)
+* Add a FAQ entry on Jenkins problems #5177 (@bk2204)
+* Fix missing parameter in git lfs logs manual page #5414 (@chrisd8088)
+* proposals: fix filename typo #5425 (@dyrone)
+* Update shell tab-completion script support and add manual page #5429 (@chrisd8088)
+
 ## 3.3.0 (30 November 2022)
 
 This release is a feature release which includes package support for Red Hat
