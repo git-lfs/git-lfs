@@ -155,14 +155,21 @@ func parseFetchHead(filePath string) (string, error) {
 }
 
 func ExtractRemoteUrl(line string) (string, error) {
-        re := regexp.MustCompile(`\s(https://|ssh://)?([\/\.\-\:\_a-zA-Z0-9]+)$`)
+        // see https://regex101.com/r/lYla7c/1
+        re := regexp.MustCompile(`^[a-f0-9]{40,64}\t(not-for-merge)?\t(tag |branch |)'.*' of (?P<url>[\/\.\-\:\_a-zA-Z0-9]+)$`)
 
 	match := re.FindStringSubmatch(line)
 
-	if len(match) != 3 {
-            return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
-	}
-        return strings.TrimSpace(match[0]), nil;
+        for i, name := range re.SubexpNames() {
+            if name == "url" {
+                if len(match) < i {
+                    break
+                }
+                return strings.TrimSpace(match[i]), nil;
+            }
+        }
+
+        return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 }
 
 
