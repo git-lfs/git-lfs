@@ -14,7 +14,7 @@ require (
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.7.0
 	github.com/ssgelm/cookiejarparser v1.0.1
 	github.com/stretchr/testify v1.6.1
 	github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
@@ -27,7 +27,7 @@ require (
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gofork v1.0.0 // indirect
