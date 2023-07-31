@@ -154,6 +154,27 @@ need that functionality, you should review the Jenkins documentation about how
 to properly configure the environment in such a situation so that hooks can be
 used.
 
+Can I use a proxy with Git LFS?::
+  Yes, Git LFS supports proxies using the same mechanisms that Git supports,
+  namely the `http_proxy` environment variable and the configuration of
+  `http.proxy` (or `http.*.proxy` for per-URL usage).  However, Git LFS only
+  supports proxies which use Basic or no authentication, and it doesn't
+  currently support Digest or Kerberos authentication.
++
+If you're using a proxy, we recommend that you set the full URL in the proxy
+value, including a scheme.  Thus, `http://example.com:3128` is a better choice
+than `example.com:3128`.  If you need a username and password, they must be
+percent-encoded in the URL, so a username of `foo\bar` with a password of
+`abc@123+` using the above proxy would be
+`http://foo%5cbar:abc%40123%2b@example.com:3128`.
++
+Note that, just like with Git, proxies must not modify, buffer, tamper with, or
+change the response to the data in any way, upstream or downstream, and any
+proxy which does so will break things and is not supported. The Git LFS
+developers don't recommend any sort of proxy, including any sort of antivirus,
+firewall, or monitoring software, which performs TLS interception because these
+are known to cause breakage and in general have been shown to worsen security.
+
 Why are LFS files not included when I archive a subdirectory?::
   When you run `git archive` with only a subdirectory, such as `git archive
   HEAD:src`, Git resolves the revision (in this case, `HEAD:src`) to a tree, and
