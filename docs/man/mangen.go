@@ -70,7 +70,7 @@ func main() {
 	out.WriteString("\t// THIS FILE IS GENERATED, DO NOT EDIT\n")
 	out.WriteString("\t// Use 'go generate ./commands' to update\n")
 	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.adoc`)
-	headerregex := regexp.MustCompile(`^(===?)\s+([A-Za-z0-9 ]+)`)
+	headerregex := regexp.MustCompile(`^(===?)\s+([A-Za-z0-9 -]+)`)
 	// cross-references
 	linkregex := regexp.MustCompile(`<<([^,>]+)(?:,([^>]+))?>>`)
 	// man links
