@@ -6,8 +6,10 @@ git-lfs-faq - FAQ for Git LFS
 
 == ENTRIES
 
+[[cat-file-size]]
 === File Size
 
+[[faq-track-by-size]]
 Does Git LFS provide a way to track files by size?::
   No, it doesn't.  Unfortunately, Git itself doesn't specify a way to make
   `.gitattributes` patterns apply to files of a certain size and we rely on
@@ -21,6 +23,7 @@ to track them manually.
 +
 For these reasons, we recommend using patterns rather than `--above`.
 
+[[faq-4gb-windows]]
 Why doesn't Git LFS handle files larger than 4 GiB on Windows?::
   Git LFS itself handles these files just fine.  However, Git LFS is usually
   invoked by Git, and until Git 2.34, Git itself on Windows didn't handle files
@@ -31,8 +34,10 @@ On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
 to pull down the LFS files.  This bypasses Git's smudging functionality
 and therefore avoids its limitations.
 
+[[cat-working-tree-contents]]
 === Working Tree Contents
 
+[[faq-only-pointer-files]]
 Why do I end up with small text files in my working tree instead of my files?::
   Git LFS stores small text files called pointer files in the repository instead
   of your large files, which it stores elsewhere.  These pointer files usually
@@ -45,6 +50,7 @@ you've explicitly chosen to skip that behaviour by using the `--skip-smudge`
 option of `git lfs install`, then you may need to use `git lfs pull` to replace
 the pointer files in your working tree with large files.
 
+[[faq-working-tree-modified]]
 Why do I end up with some of my working tree files constantly showing as modified?::
   This can happen if someone made a commit to a file that's tracked by Git LFS
   but didn't have Git LFS properly set up on their system.  The objects that
@@ -76,8 +82,10 @@ command `git lfs fsck --pointers BASE..HEAD` (with suitable values of `BASE` and
 `HEAD`) may be used in your CI system to verify that nobody is introducing such
 problems.
 
+[[cat-tracking-and-migration]]
 === Tracking and Migration
 
+[[faq-track-existing-files]]
 How do I track files that are already in a repository?::
   If you want to track files that already exist in a repository, you need to do
   two things.  First, you need to use `git lfs track` (or a manual modification
@@ -90,6 +98,7 @@ modified, as outlined in the FAQ entry above.  Note also that this doesn't
 change large files in your history.  To do that, use `git lfs migrate import
 --everything` instead, as specified in one of the entries below.
 
+[[faq-export-to-git]]
 How do I convert from using Git LFS to a plain Git repository?::
   If you'd like to stop using Git LFS and switch back to storing your large
   files in the plain Git format, you can do so with `git lfs migrate export
@@ -99,6 +108,7 @@ How do I convert from using Git LFS to a plain Git repository?::
 This also rewrites history, so the Git object IDs of many, if not all, of your
 objects will change.
 
+[[faq-github-large-files]]
 I'm using Git LFS, but I still see GitHub's large file error.  How do I fix this?::
   GitHub rejects large files anywhere in the history of your repository, not
   just in the latest commit.  If you're still seeing this message, then you have
@@ -113,8 +123,10 @@ patterns are possible: run `git help gitattributes` for more information on
 valid patterns.  Note that if you're specifying directories, using slashes is
 mandatory: backslashes are not allowed as path separators.
 
+[[cat-configuration]]
 === Configuration
 
+[[faq-proxy]]
 Can I use a proxy with Git LFS?::
   Yes, Git LFS supports proxies using the same mechanisms that Git supports,
   namely the `http_proxy` environment variable and the configuration of
@@ -136,12 +148,15 @@ developers don't recommend any sort of proxy, including any sort of antivirus,
 firewall, or monitoring software, which performs TLS interception because these
 are known to cause breakage and in general have been shown to worsen security.
 
+[[cat-git-features]]
 === Working with Git Features
 
+[[faq-git-diff-on-lfs]]
 How do I enable git diff to work on LFS files?::
   You can run `git config diff.lfs.textconv cat`, which will produce normal
   diffs if your files are text files.
 
+[[faq-git-diff-on-lfs-by-path]]
 How do I enable git diff to work on LFS files based on extension or path?::
   If the above solution is too broad, each entry in the `.gitattributes` file
   can be customized by creating a custom global converter:
@@ -168,6 +183,7 @@ Be advised that all developers sharing this repo with such a modified
 `.gitattributes` file must have similarly configured the `lfstext` text
 converter, whether globally or on a per repository basis.
 
+[[faq-archive-subdirectory]]
 Why are LFS files not included when I archive a subdirectory?::
   When you run `git archive` with only a subdirectory, such as `git archive
   HEAD:src`, Git resolves the revision (in this case, `HEAD:src`) to a tree, and
@@ -203,8 +219,10 @@ bsdtar -s "!^\./!$ARCHIVE_PREFIX!" --format=pax -czf archive.tar.gz -C "$temp/$A
 rm -fr "$temp"
 ----
 
+[[cat-non-git-tools]]
 === Working with Non-Git Tools
 
+[[faq-jenkins-hooks]]
 I'm using Jenkins and `git lfs install` fails due to an invalid hook path.  What do I do?::
   Recent versions of Jenkins have set `core.hooksPath` to various values,
   notably `NUL:` on Windows, with the goal of disabling hooks.  This is not a
