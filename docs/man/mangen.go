@@ -77,6 +77,8 @@ func main() {
 	manlinkregex := regexp.MustCompile(`(git)(?:-(lfs))?-([a-z\-]+)\(\d\)`)
 	// source blocks
 	sourceblockregex := regexp.MustCompile(`\[source(,.*)?\]`)
+	// anchors
+	anchorregex := regexp.MustCompile(`\[\[(.+)\]\]`)
 	count := 0
 	for _, f := range fs {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
@@ -157,6 +159,11 @@ func main() {
 
 				if sourceblockmatches := sourceblockregex.FindStringIndex(line); sourceblockmatches != nil {
 					isSourceBlock = true
+					continue
+				}
+
+				if anchormatches := anchorregex.FindStringIndex(line); anchormatches != nil {
+					// Skip anchors.
 					continue
 				}
 
