@@ -148,6 +148,44 @@ developers don't recommend any sort of proxy, including any sort of antivirus,
 firewall, or monitoring software, which performs TLS interception because these
 are known to cause breakage and in general have been shown to worsen security.
 
+[[faq-tls-ca]]
+Can I use a custom set of SSL/TLS certificate authorities with Git LFS?::
+  Yes, Git LFS supports configuring trusted certificate authorities and client
+  certificates for HTTPS, using the same configuration as for Git.
++
+To configure a set of trusted certificate authorities, you can use
+`http.sslCAPath` to specify a directory of files, each one containing a PKCS#1
+certificate of a trusted certificate authority.  If you'd prefer to use a single
+file with all trusted certificates, you can use `http.sslCAInfo` to refer to a
+single file containing PKCS#1 certificates, one following the other.
++
+For example, on Debian, to set this option to provide the default behavior, you
+could run `git config http.sslCAPath /etc/ssl/certs`.  Note that it's also
+possible to set these configuration options on a per-URL basis, like so: `git
+config http.https://example.com/.sslCAPath /etc/ssl/certs`.
++
+Note that PKCS#12 files are a Git for Windows extension to Git and are not
+supported by Git LFS.  Additionally, take into account the information about
+TLS-intercepting proxies above if this configuration is because of a
+TLS-intercepting proxy.
+
+[[faq-tls-client-config]]
+Can I use an SSL/TLS client certificate with Git LFS?::
+  Yes, Git LFS supports configuring client certificates and keys using the same
+  configuration as for Git.
++
+To configure a client certificate, use the `http.sslCert` configuration option
+pointing to a file containing a PKCS#1 certificate.  To configure the
+corresponding key, use `http.sslKey` with a file containing a PEM-encoded key.
+If it is encrypted, you will be prompted using the credential helper for the
+passphrase.
++
+Usually you will want to specify these values on a per-URL basis, such as the
+following: `git config http.https://example.com/.sslKey
+/home/user/.certs/mine.key`.
++
+Note that PKCS#8 and PKCS#12 files are not supported by Git LFS.
+
 [[cat-git-features]]
 === Working with Git Features
 
