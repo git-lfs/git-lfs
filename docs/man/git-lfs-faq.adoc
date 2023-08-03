@@ -6,6 +6,10 @@ git-lfs-faq - FAQ for Git LFS
 
 == ENTRIES
 
+[[cat-file-size]]
+=== File Size
+
+[[faq-track-by-size]]
 Does Git LFS provide a way to track files by size?::
   No, it doesn't.  Unfortunately, Git itself doesn't specify a way to make
   `.gitattributes` patterns apply to files of a certain size and we rely on
@@ -19,6 +23,7 @@ to track them manually.
 +
 For these reasons, we recommend using patterns rather than `--above`.
 
+[[faq-4gb-windows]]
 Why doesn't Git LFS handle files larger than 4 GiB on Windows?::
   Git LFS itself handles these files just fine.  However, Git LFS is usually
   invoked by Git, and until Git 2.34, Git itself on Windows didn't handle files
@@ -29,6 +34,10 @@ On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
 to pull down the LFS files.  This bypasses Git's smudging functionality
 and therefore avoids its limitations.
 
+[[cat-working-tree-contents]]
+=== Working Tree Contents
+
+[[faq-only-pointer-files]]
 Why do I end up with small text files in my working tree instead of my files?::
   Git LFS stores small text files called pointer files in the repository instead
   of your large files, which it stores elsewhere.  These pointer files usually
@@ -41,6 +50,7 @@ you've explicitly chosen to skip that behaviour by using the `--skip-smudge`
 option of `git lfs install`, then you may need to use `git lfs pull` to replace
 the pointer files in your working tree with large files.
 
+[[faq-working-tree-modified]]
 Why do I end up with some of my working tree files constantly showing as modified?::
   This can happen if someone made a commit to a file that's tracked by Git LFS
   but didn't have Git LFS properly set up on their system.  The objects that
@@ -72,6 +82,10 @@ command `git lfs fsck --pointers BASE..HEAD` (with suitable values of `BASE` and
 `HEAD`) may be used in your CI system to verify that nobody is introducing such
 problems.
 
+[[cat-tracking-and-migration]]
+=== Tracking and Migration
+
+[[faq-track-existing-files]]
 How do I track files that are already in a repository?::
   If you want to track files that already exist in a repository, you need to do
   two things.  First, you need to use `git lfs track` (or a manual modification
@@ -84,10 +98,103 @@ modified, as outlined in the FAQ entry above.  Note also that this doesn't
 change large files in your history.  To do that, use `git lfs migrate import
 --everything` instead, as specified in one of the entries below.
 
+[[faq-export-to-git]]
+How do I convert from using Git LFS to a plain Git repository?::
+  If you'd like to stop using Git LFS and switch back to storing your large
+  files in the plain Git format, you can do so with `git lfs migrate export
+  --everything`.  Note that you will need to provide an appropriate `--include`
+  option to match all the patterns that you currently have tracked in any ref.
++
+This also rewrites history, so the Git object IDs of many, if not all, of your
+objects will change.
+
+[[faq-github-large-files]]
+I'm using Git LFS, but I still see GitHub's large file error.  How do I fix this?::
+  GitHub rejects large files anywhere in the history of your repository, not
+  just in the latest commit.  If you're still seeing this message, then you have
+  some large files somewhere in your history, even if in the latest commits
+  you've moved them to Git LFS.
++
+To fix this, you can use `git lfs migrate import --everything` with an
+appropriate `--include` argument.  For example, if you wanted to move your
+`.jpg` and `.png` files into Git LFS, you can do that with
+`git lfs migrate import --everything --include="\*.jpg,*.png"`.  More complicated
+patterns are possible: run `git help gitattributes` for more information on
+valid patterns.  Note that if you're specifying directories, using slashes is
+mandatory: backslashes are not allowed as path separators.
+
+[[cat-configuration]]
+=== Configuration
+
+[[faq-proxy]]
+Can I use a proxy with Git LFS?::
+  Yes, Git LFS supports proxies using the same mechanisms that Git supports,
+  namely the `http_proxy` environment variable and the configuration of
+  `http.proxy` (or `http.*.proxy` for per-URL usage).  However, Git LFS only
+  supports proxies which use Basic or no authentication, and it doesn't
+  currently support Digest or Kerberos authentication.
++
+If you're using a proxy, we recommend that you set the full URL in the proxy
+value, including a scheme.  Thus, `http://example.com:3128` is a better choice
+than `example.com:3128`.  If you need a username and password, they must be
+percent-encoded in the URL, so a username of `foo\bar` with a password of
+`abc@123+` using the above proxy would be
+`http://foo%5cbar:abc%40123%2b@example.com:3128`.
++
+Note that, just like with Git, proxies must not modify, buffer, tamper with, or
+change the response to the data in any way, upstream or downstream, and any
+proxy which does so will break things and is not supported. The Git LFS
+developers don't recommend any sort of proxy, including any sort of antivirus,
+firewall, or monitoring software, which performs TLS interception because these
+are known to cause breakage and in general have been shown to worsen security.
+
+[[faq-tls-ca]]
+Can I use a custom set of SSL/TLS certificate authorities with Git LFS?::
+  Yes, Git LFS supports configuring trusted certificate authorities and client
+  certificates for HTTPS, using the same configuration as for Git.
++
+To configure a set of trusted certificate authorities, you can use
+`http.sslCAPath` to specify a directory of files, each one containing a PKCS#1
+certificate of a trusted certificate authority.  If you'd prefer to use a single
+file with all trusted certificates, you can use `http.sslCAInfo` to refer to a
+single file containing PKCS#1 certificates, one following the other.
++
+For example, on Debian, to set this option to provide the default behavior, you
+could run `git config http.sslCAPath /etc/ssl/certs`.  Note that it's also
+possible to set these configuration options on a per-URL basis, like so: `git
+config http.https://example.com/.sslCAPath /etc/ssl/certs`.
++
+Note that PKCS#12 files are a Git for Windows extension to Git and are not
+supported by Git LFS.  Additionally, take into account the information about
+TLS-intercepting proxies above if this configuration is because of a
+TLS-intercepting proxy.
+
+[[faq-tls-client-config]]
+Can I use an SSL/TLS client certificate with Git LFS?::
+  Yes, Git LFS supports configuring client certificates and keys using the same
+  configuration as for Git.
++
+To configure a client certificate, use the `http.sslCert` configuration option
+pointing to a file containing a PKCS#1 certificate.  To configure the
+corresponding key, use `http.sslKey` with a file containing a PEM-encoded key.
+If it is encrypted, you will be prompted using the credential helper for the
+passphrase.
++
+Usually you will want to specify these values on a per-URL basis, such as the
+following: `git config http.https://example.com/.sslKey
+/home/user/.certs/mine.key`.
++
+Note that PKCS#8 and PKCS#12 files are not supported by Git LFS.
+
+[[cat-git-features]]
+=== Working with Git Features
+
+[[faq-git-diff-on-lfs]]
 How do I enable git diff to work on LFS files?::
   You can run `git config diff.lfs.textconv cat`, which will produce normal
   diffs if your files are text files.
 
+[[faq-git-diff-on-lfs-by-path]]
 How do I enable git diff to work on LFS files based on extension or path?::
   If the above solution is too broad, each entry in the `.gitattributes` file
   can be customized by creating a custom global converter:
@@ -114,67 +221,7 @@ Be advised that all developers sharing this repo with such a modified
 `.gitattributes` file must have similarly configured the `lfstext` text
 converter, whether globally or on a per repository basis.
 
-How do I convert from using Git LFS to a plain Git repository?::
-  If you'd like to stop using Git LFS and switch back to storing your large
-  files in the plain Git format, you can do so with `git lfs migrate export
-  --everything`.  Note that you will need to provide an appropriate `--include`
-  option to match all the patterns that you currently have tracked in any ref.
-+
-This also rewrites history, so the Git object IDs of many, if not all, of your
-objects will change.
-
-I'm using Git LFS, but I still see GitHub's large file error.  How do I fix this?::
-  GitHub rejects large files anywhere in the history of your repository, not
-  just in the latest commit.  If you're still seeing this message, then you have
-  some large files somewhere in your history, even if in the latest commits
-  you've moved them to Git LFS.
-+
-To fix this, you can use `git lfs migrate import --everything` with an
-appropriate `--include` argument.  For example, if you wanted to move your
-`.jpg` and `.png` files into Git LFS, you can do that with
-`git lfs migrate import --everything --include="\*.jpg,*.png"`.  More complicated
-patterns are possible: run `git help gitattributes` for more information on
-valid patterns.  Note that if you're specifying directories, using slashes is
-mandatory: backslashes are not allowed as path separators.
-
-I'm using Jenkins and `git lfs install` fails due to an invalid hook path.  What do I do?::
-  Recent versions of Jenkins have set `core.hooksPath` to various values,
-  notably `NUL:` on Windows, with the goal of disabling hooks.  This is not a
-  valid path on Windows, nor a valid value for this configuration option, so
-  when `git lfs install` runs and Git LFS attempts to install hooks, the
-  operation fails.
-+
-The easiest way to solve this problem is by using the `--skip-repo` option to
-`git lfs install`, which skips the installation of the hooks.  Despite the name,
-it can be successfully combined with `--local` if you need that option.
-+
-Note that this prevents things like `git push` from pushing LFS objects and
-locked files from being read only, since those are implemented by hooks.  If you
-need that functionality, you should review the Jenkins documentation about how
-to properly configure the environment in such a situation so that hooks can be
-used.
-
-Can I use a proxy with Git LFS?::
-  Yes, Git LFS supports proxies using the same mechanisms that Git supports,
-  namely the `http_proxy` environment variable and the configuration of
-  `http.proxy` (or `http.*.proxy` for per-URL usage).  However, Git LFS only
-  supports proxies which use Basic or no authentication, and it doesn't
-  currently support Digest or Kerberos authentication.
-+
-If you're using a proxy, we recommend that you set the full URL in the proxy
-value, including a scheme.  Thus, `http://example.com:3128` is a better choice
-than `example.com:3128`.  If you need a username and password, they must be
-percent-encoded in the URL, so a username of `foo\bar` with a password of
-`abc@123+` using the above proxy would be
-`http://foo%5cbar:abc%40123%2b@example.com:3128`.
-+
-Note that, just like with Git, proxies must not modify, buffer, tamper with, or
-change the response to the data in any way, upstream or downstream, and any
-proxy which does so will break things and is not supported. The Git LFS
-developers don't recommend any sort of proxy, including any sort of antivirus,
-firewall, or monitoring software, which performs TLS interception because these
-are known to cause breakage and in general have been shown to worsen security.
-
+[[faq-archive-subdirectory]]
 Why are LFS files not included when I archive a subdirectory?::
   When you run `git archive` with only a subdirectory, such as `git archive
   HEAD:src`, Git resolves the revision (in this case, `HEAD:src`) to a tree, and
@@ -209,6 +256,27 @@ git archive --prefix="$ARCHIVE_PREFIX" "$REVISION" "$SOURCE_PREFIX" | bsdtar -C 
 bsdtar -s "!^\./!$ARCHIVE_PREFIX!" --format=pax -czf archive.tar.gz -C "$temp/$ARCHIVE_PREFIX$SOURCE_PREFIX" .
 rm -fr "$temp"
 ----
+
+[[cat-non-git-tools]]
+=== Working with Non-Git Tools
+
+[[faq-jenkins-hooks]]
+I'm using Jenkins and `git lfs install` fails due to an invalid hook path.  What do I do?::
+  Recent versions of Jenkins have set `core.hooksPath` to various values,
+  notably `NUL:` on Windows, with the goal of disabling hooks.  This is not a
+  valid path on Windows, nor a valid value for this configuration option, so
+  when `git lfs install` runs and Git LFS attempts to install hooks, the
+  operation fails.
++
+The easiest way to solve this problem is by using the `--skip-repo` option to
+`git lfs install`, which skips the installation of the hooks.  Despite the name,
+it can be successfully combined with `--local` if you need that option.
++
+Note that this prevents things like `git push` from pushing LFS objects and
+locked files from being read only, since those are implemented by hooks.  If you
+need that functionality, you should review the Jenkins documentation about how
+to properly configure the environment in such a situation so that hooks can be
+used.
 
 == SEE ALSO
 
