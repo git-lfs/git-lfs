@@ -1,4 +1,5 @@
 #compdef git-lfs
+compdef _git-lfs git-lfs
 
 # zsh completion for git-lfs                              -*- shell-script -*-
 
@@ -17,8 +18,9 @@ _git-lfs()
     local shellCompDirectiveNoFileComp=4
     local shellCompDirectiveFilterFileExt=8
     local shellCompDirectiveFilterDirs=16
+    local shellCompDirectiveKeepOrder=32
 
-    local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace
+    local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace keepOrder
     local -a completions
 
     __git-lfs_debug "\n========= starting completion logic =========="
@@ -136,6 +138,11 @@ _git-lfs()
         noSpace="-S ''"
     fi
 
+    if [ $((directive & shellCompDirectiveKeepOrder)) -ne 0 ]; then
+        __git-lfs_debug "Activating keep order."
+        keepOrder="-V"
+    fi
+
     if [ $((directive & shellCompDirectiveFilterFileExt)) -ne 0 ]; then
         # File extension filtering
         local filteringCmd
@@ -171,7 +178,7 @@ _git-lfs()
         return $result
     else
         __git-lfs_debug "Calling _describe"
-        if eval _describe "completions" completions $flagPrefix $noSpace; then
+        if eval _describe $keepOrder "completions" completions $flagPrefix $noSpace; then
             __git-lfs_debug "_describe found some completions"
 
             # Return the success of having called _describe

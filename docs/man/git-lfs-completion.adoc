@@ -211,7 +211,6 @@ tab-completion, as described in the <<_shells>> section.
 +
 ....
 % source <(git lfs completion zsh)
-% compdef _git-lfs git-lfs
 ....
 
 === Automatically loading completions for future shell sessions
