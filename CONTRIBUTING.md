@@ -152,9 +152,10 @@ $ script/cibuild     # runs everything, with verbose debug output
 
 ## Updating 3rd party packages
 
-1. Update `go.mod`.
-1. Run `make vendor` to update the code in the `vendor` directory.
-1. Commit the change.  Git LFS vendors the full source code in the repository.
+1. Update `go.mod` and `go.sum`. You can ensure the latter is up-to-date by
+   using Go tools instead of manually editing `go.mod` (e.g., `go get
+   gopath@version`) or by running `go mod tidy` or `make go.sum`.
+1. Commit the change.
 1. Submit a pull request.
 
 ## Releasing
