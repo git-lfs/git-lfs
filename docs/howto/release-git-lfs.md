@@ -7,15 +7,15 @@ determining.
 
 We follow Semantic Versioning standards as follows:
 
-  * `MAJOR` releases are done on a scale of 1-2 years. These encompass breaking,
+  * `MAJOR` releases are done on a scale of 2-4 years. These encompass breaking,
     incompatible API changes, or command-line interface changes that would
     cause existing programs or use-cases scripted against Git LFS to break.
 
-  * `MINOR` releases are done on a scale of 1-2 months. These encompass new
+  * `MINOR` releases are done on a scale of 2-6 months. These encompass new
     features, bug fixes, and other "medium"-sized changes into a semi-regular
     release schedule.
 
-  * `PATCH` releases are done on the scale of 1-2 weeks. These encompass
+  * `PATCH` releases are done on the scale of weeks to months. These encompass
     critical bug fixes, but lack new features. They are amended to a `MINOR`
     release "series", or, if serious enough (e.g., security vulnerabilities,
     etc.) are backported to previous versions.
