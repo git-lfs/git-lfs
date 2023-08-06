@@ -55,20 +55,20 @@ tests at all times. New features are added via the feature-branch workflow, or
 (optionally) from a contributor's fork.
 
 This is done so that `main` can progress and grow new features, while
-historical releases, such as `v2.n.0` can receive bug fixes as they are applied
-to main, eventually culminating in a `v2.n.1` (and so on) release.
+historical releases, such as `vM.N.0` can receive bug fixes as they are applied
+to main, eventually culminating in a `vM.N.1` (and so on) release.
 
 ## Building a release
 
-Let release `v2.n.m` denote the version that we are _releasing_. When `m` is
+Let release `vM.N.P` denote the version that we are _releasing_. When `N` is
 equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
-`v2.n`-series. Let `v2.n-1` denote the previous release series.
+`vM.N`-series. Let `vM.(N-1)` denote the previous release series.
 
   1. First, we write the release notes and do the housekeeping required to
      indicate a new version. On a new branch, called `release-next`, do the
      following:
 
-     * Run `script/changelog v2.n-1.0...HEAD` and categorize each merge commit
+     * Run `script/changelog vM.(N-1).0...HEAD` and categorize each merge commit
        as a feature, bug-fix, miscellaneous change, or skipped. Ensure that your
        `~/.netrc` credentials are kept up-to-date in order to make requests to
        the GitHub API.
@@ -82,15 +82,15 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
          community contributions.
 
        * If you are releasing a MINOR version, and not a PATCH, and if there
-         were non-zero PATCH versions released in the `v2.n-1` series, also
+         were non-zero PATCH versions released in the `vM.(N-1)` series, also
          include any changes from the latest CHANGELOG in that series, too.
 
-     * Run `script/update-version v2.n.m` to update the version number in all of
+     * Run `script/update-version vM.N.P` to update the version number in all of
        the relevant files.
 
   2. Then, create a pull request of your changes with head `release-next`. If
      you're building a MAJOR or MINOR release, set the base to `main`.
-     Otherwise, set the base to `release-2.n`.
+     Otherwise, set the base to `release-M.N`.
 
      Run Continuous Integration, and ensure that it passes.
      Notify the `@git-lfs/release` team, a collection of humans who are
@@ -101,7 +101,7 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
 
   3. Once approved and verified, merge the pull request you created in the
      previous step. Locally, create a GPG-signed tag on the merge commit called
-     `v2.n.m`:
+     `vM.N.P`:
 
      ```ShellSession
      $ git show -q HEAD
@@ -112,16 +112,16 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
 
          Merge pull request #3150 from git-lfs/release-next
 
-             release: v2.n.0
-     $ git tag -s v2.n.m
+             release: vM.N.0
+     $ git tag -s vM.N.P
      $ git describe HEAD
-     v2.n.m
+     vM.N.P
      ```
 
   4. Push the tag, via:
 
      ```ShellSession
-     $ git push origin v2.n.m
+     $ git push origin vM.N.P
      ```
 
      This will kick off the process of building the release artifacts.  This
@@ -132,7 +132,7 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
   5. From the command line, finalize the release process by signing the release:
 
      ```ShellSession
-     $ script/upload --finalize v2.n.m
+     $ script/upload --finalize vM.N.P
      ```
 
      If you want to inspect the data before approving it, pass the `--inspect`
@@ -169,12 +169,12 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      [Homebrew/homebrew-core#32161](https://github.com/Homebrew/homebrew-core/pull/32161),
      then celebrate.
 
-### Building `v2.n.0` (MINOR versions)
+### Building `vM.N.0` (MINOR versions)
 
-When building a MINOR release, we introduce a new `release-2.n` branch which
-will receive all new features and bug fixes since `release-2.n-1`. The change
-set described by `v2.n-1.0` and `v2.n.0` is as reported by `git log
-v2.n-1.0...main` at the time of release.
+When building a MINOR release, we introduce a new `release-M.N` branch which
+will receive all new features and bug fixes since `release-M.(N-1)`. The change
+set described by `vM.(N-1).0` and `vM.N.0` is as reported by `git log
+vM.(N-1).0...main` at the time of release.
 
   1. To introduce this new branch (after creating and merging `release-next`
      into `main`), simply run:
@@ -182,25 +182,25 @@ v2.n-1.0...main` at the time of release.
      ```ShellSession
      $ git branch
      * main
-     $ git checkout -b release-2.n
+     $ git checkout -b release-M.N
      ```
 
   2. Then, proceed to follow the guidelines above.
 
-### Building `v2.n.m` (PATCH versions)
+### Building `vM.N.P` (PATCH versions)
 
 When building a PATCH release, follow the same process as above, with the
 additional caveat that we must cherry-pick merges from main to the release
 branch.
 
-  1. To begin, checkout the branch `release-2.n`, and ensure that you have the
+  1. To begin, checkout the branch `release-M.N`, and ensure that you have the
      latest changes from the remote.
 
   2. Gather a set of potential candidates to "backport" to the older release
      with:
 
      ```ShellSession
-     $ git log --merges --first-parent v2.n.m-1...main
+     $ git log --merges --first-parent vM.N.(P-1)...main
      ```
 
    3. For each merge that you want to backport, run:
