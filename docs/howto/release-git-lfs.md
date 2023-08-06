@@ -28,12 +28,16 @@ We package several artifacts for each tagged release. They are:
 
       |     | operating system | architecture |
       | --- | ---------------- | ------------ |
-      | git-lfs-darwin-386-v@{version}.tar.gz | darwin | 386 |
       | git-lfs-darwin-amd64-v@{version}.tar.gz | darwin | amd64 |
+      | git-lfs-darwin-arm64-v@{version}.tar.gz | darwin | arm64 |
       | git-lfs-freebsd-386-v@{version}.tar.gz | freebsd | 386 |
       | git-lfs-freebsd-amd64-v@{version}.tar.gz | freebsd | amd64 |
       | git-lfs-linux-386-v@{version}.tar.gz | linux (generic) | 386 |
       | git-lfs-linux-amd64-v@{version}.tar.gz | linux (generic) | amd64 |
+      | git-lfs-linux-arm-v@{version}.tar.gz | linux (generic) | arm |
+      | git-lfs-linux-arm64-v@{version}.tar.gz | linux (generic) | arm64 |
+      | git-lfs-linux-ppc64le-v@{version}.tar.gz | linux (generic) | ppc64le |
+      | git-lfs-linux-s390x-v@{version}.tar.gz | linux (generic) | s390x |
 
   2. `git-lfs-windows-v@{release}-@{arch}.zip` for the following values:
 
@@ -41,6 +45,7 @@ We package several artifacts for each tagged release. They are:
       | --- | ---------------- | ------------ |
       | git-lfs-windows-386-v@{version}.zip | windows | 386 |
       | git-lfs-windows-amd64-v@{version}.zip | windows | amd64 |
+      | git-lfs-windows-arm64-v@{version}.zip | windows | arm64 |
 
   3. `git-lfs-windows-v@{release}.exe`, a signed Windows installer that contains
      copies of both `-x86` and `-x64` copies of Git LFS.
