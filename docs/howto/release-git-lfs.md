@@ -56,7 +56,7 @@ tests at all times. New features are added via the feature-branch workflow, or
 
 This is done so that `main` can progress and grow new features, while
 historical releases, such as `vM.N.0` can receive bug fixes as they are applied
-to main, eventually culminating in a `vM.N.1` (and so on) release.
+to `main`, eventually culminating in a `vM.N.1` (and so on) release.
 
 ## Building a release
 
@@ -190,7 +190,7 @@ vM.(N-1).0...main` at the time of release.
 ### Building `vM.N.P` (PATCH versions)
 
 When building a PATCH release, follow the same process as above, with the
-additional caveat that we must cherry-pick merges from main to the release
+additional caveat that we must cherry-pick merges from `main` to the release
 branch.
 
   1. To begin, checkout the branch `release-M.N`, and ensure that you have the
