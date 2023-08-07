@@ -174,17 +174,27 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      [Homebrew/homebrew-core#32161](https://github.com/Homebrew/homebrew-core/pull/32161),
      then celebrate.
 
-### Building `vM.N.P` (PATCH versions)
+### Building PATCH versions
 
-When building a PATCH release, follow the same process as above, with the
-additional caveat that we must cherry-pick merges from `main` to the release
-branch.
+When building a PATCH release, we cherry-pick merges from `main` to the
+`vM.N` release branch, creating the branch first if it does not exist,
+and then use that branch as the base for the PATCH release.
 
-  1. To begin, checkout the branch `release-M.N`, and ensure that you have the
-     latest changes from the remote.
+  1. If the `release-M.N` branch does not already exist, create it from
+     the corresponding MINOR release tag (or MAJOR release tag, if no
+     MINOR releases have been made since the last MAJOR release):
 
-  2. Gather a set of potential candidates to "backport" to the older release
-     with:
+     ```ShellSession
+     $ git checkout -b release-M.N vM.N.0
+     ```
+
+     If the release branch already exists because this is not the first
+     patch release for the given MINOR (or MAJOR) release, simply checkout
+     the `release-M.N` branch, and ensure that you have the latest changes
+     from the remote.
+
+  2. Gather a set of potential candidates to backport to the `release-M.N`
+     branch with:
 
      ```ShellSession
      $ git log --merges --first-parent vM.N.(P-1)...main
@@ -196,7 +206,9 @@ branch.
       $ git cherry-pick -m1 <SHA-1>
       ```
 
-      To cherry-pick the merge onto your release branch, adoption the first
-      parent as the mainline.
+      This will cherry-pick the merge onto your release branch, using
+      the `-m1` option to specify that the first parent of the merge
+      corresponds to the mainline.
 
-   4. Then, proceed to follow the guidelines above.
+   4. Then follow the [guidelines](#building-a-release) above, using the
+      `release-M.N` branch as the base for the new PATCH release.
