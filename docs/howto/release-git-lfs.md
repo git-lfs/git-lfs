@@ -60,38 +60,67 @@ tests at all times. New features are added via the feature-branch workflow, or
 (optionally) from a contributor's fork.
 
 This is done so that `main` can progress and grow new features, while
-historical releases, such as `vM.N.0` can receive bug fixes as they are applied
+historical releases such as `vM.N.0` can receive bug fixes as they are applied
 to `main`, eventually culminating in a `vM.N.1` (and so on) release.
 
 ## Building a release
 
-Let release `vM.N.P` denote the version that we are _releasing_. When `N` is
-equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
-`vM.N`-series. Let `vM.(N-1)` denote the previous release series.
+Let release `vM.N.P` denote the version that we are _releasing_.
+
+When `P` is equal to zero, we say that we are releasing a MINOR version of
+Git LFS in the `vM.N`-series, unless `N` is also equal to zero, in which
+case we are releasing a MAJOR version.  Conversely, if `P` is not equal
+to zero, we are releasing a PATCH version.
 
   1. First, we write the release notes and do the housekeeping required to
-     indicate a new version. On a new branch, called `release-next`, do the
-     following:
+     indicate a new version.  For a MAJOR or MINOR version, we start with
+     a `main` branch which is up to date with the latest changes from the
+     remote and then checkout a new `release-next` branch from that base.
 
-     * Run `script/changelog vM.(N-1).0...HEAD` and categorize each merge commit
-       as a feature, bug-fix, miscellaneous change, or skipped. Ensure that your
-       `~/.netrc` credentials are kept up-to-date in order to make requests to
-       the GitHub API.
+     If we are releasing a PATCH version, we create a `release-M.N` branch
+     with cherry-picked merges from the `main` branch, as described in
+     the [instructions](#building-patch-versions) below, and then checkout
+     the `release-next` branch from that base.
 
-       This will write a portion of the CHANGELOG to stdout, which you should
-       copy and paste into `CHANGELOG.md`, along with an H2-level heading
-       containing the version and release date (consistent with the existing
-       style in the document.)
+     We next perform the following steps to prepare the `release-next` branch:
 
-       * Optionally write 1-2 paragraphs summarizing the release, and calling out
-         community contributions.
+     * Run `script/changelog` and categorize each merge commit as a feature,
+       bug fix, miscellaneous change, or a change to be skipped and ignored.
+       Ensure that your `~/.netrc` credentials are up-to-date in order to
+       make requests to the GitHub API, or use a `GITHUB_TOKEN` environment
+       variable.
 
-       * If you are releasing a MINOR version, and not a PATCH, and if there
-         were non-zero PATCH versions released in the `vM.(N-1)` series, also
-         include any changes from the latest CHANGELOG in that series, too.
+       The `changelog` script will write a portion of the new CHANGELOG to
+       stdout, which you should copy and paste into `CHANGELOG.md`, along with
+       an H2-level heading containing the new version and the expected release
+       date.  This heading should be consistent with the exising style in the
+       document.
 
-     * Run `script/update-version vM.N.P` to update the version number in all of
-       the relevant files.
+       For a MAJOR release, use `script/changelog v(M-1).L.0...HEAD`, where
+       `(M-1)` is the previous MAJOR release number and `L` is the final
+       MINOR release number in that series.  For a MINOR release, use
+       `script/changelog vM.(N-1).0...HEAD`, where `(N-1)` is the previous
+       MINOR release number, and for a PATCH release, use
+       `script/changelog vM.N.(P-1)...HEAD`, where `(P-1)` is the previous
+       PATCH release number.
+
+       * Optionally write 1-2 paragraphs summarizing the release and calling
+         out community contributions.
+
+       * If we are releasing a MAJOR or MINOR version and not a PATCH, and
+         if the most recent non-PATCH release was followed by a series of one
+         or more PATCH releases, include any changes listed in the CHANGELOG
+         of that series' release branch in the new release's CHANGELOG.
+         (For a new MAJOR version, the prior release branch would be named
+         `release-(M-1).L`, following the terminology defined above, while
+         for a new MINOR version the prior release branch would be named
+         `release-M.(N-1)`.)
+
+     * Run `script/update-version vM.N.P` to update the version number in all
+       of the relevant files.
+
+     * Adjust the date in the `debian/changelog` entry to reflect the
+       expected release date rather than the current date.
 
   2. Then, create a pull request of your changes with head `release-next`. If
      you're building a MAJOR or MINOR release, set the base to `main`.
