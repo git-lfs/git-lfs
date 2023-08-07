@@ -232,10 +232,17 @@ to zero, we are releasing a PATCH version.
       url: "https://git-lfs.com"
      ```
 
-     Then update [our fork](https://github.com/git-lfs/Homebrew-core) of
-     `Homebrew/homebrew-core` similar to
-     [Homebrew/homebrew-core#32161](https://github.com/Homebrew/homebrew-core/pull/32161),
-     then celebrate.
+  9. Create a GitHub PR to update the Homebrew formula for Git LFS with
+     the `brew bump-formula-pr` command on a macOS system.  The SHA-256 value
+     should correspond with the packaged artifact containing the new
+     release's source files which is available at the given URL:
+
+     ```
+     $ brew bump-formula-pr \
+         --url https://github.com/git-lfs/git-lfs/releases/download/vM.N.P/git-lfs-vM.N.P.tar.gz \
+         --sha256 <SHA-256> \
+         git-lfs
+     ```
 
 ### Building PATCH versions
 
