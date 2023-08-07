@@ -122,16 +122,40 @@ to zero, we are releasing a PATCH version.
      * Adjust the date in the `debian/changelog` entry to reflect the
        expected release date rather than the current date.
 
-  2. Then, create a pull request of your changes with head `release-next`. If
-     you're building a MAJOR or MINOR release, set the base to `main`.
-     Otherwise, set the base to `release-M.N`.
+  2. Then, push the `release-next` branch and create a pull request with your
+     changes from the branch.  If you're building a MAJOR or MINOR release,
+     set the base to the `main` branch.  Otherwise, set the base to the
+     `release-M.N` branch.
 
-     Run Continuous Integration, and ensure that it passes.
-     Notify the `@git-lfs/release` team, a collection of humans who are
-     interested in Git LFS releases.
+     * Add the `release` label to the PR.
 
-     Verify that the Actions tab contains no indications of errors for the
-     workflows, especially the release workflow.
+     * In the PR description, consider uploading builds for implementers to
+       use in testing.  These can be generated from a local tag, which
+       does not need to be signed (but must be annotated).  The build
+       artifacts will be placed in the `bin/releases` directory and may
+       be uploaded from there:
+
+       ```ShellSession
+       $ git tag -m vM.N.P-pre vM.N.P-pre
+       $ make release
+       $ ls bin/releases
+       ```
+
+     * Notify the `@git-lfs/releases` and `@git-lfs/implementers` teams,
+       collections of humans who are interested in Git LFS releases.
+
+     * Ensure that the normal Continuous Integration workflow for PRs
+       that runs automatically in GitHub Actions succeeds fully.
+
+     * As the GitHub Actions release workflow will not run for PRs, consider
+       creating an annotated tag with the `-pre` suffix and pushing the tag,
+       which will trigger a run of the release workflow that does not upload
+       artifacts to Packagecloud.  Alternatively, in a private clone of
+       the repository, create such a tag from the `release-next` branch plus
+       one commit to change to the repository name in `script/upload`, and
+       push the tag so Actions will run the release workflow.  Ensure that
+       the workflow succeeds (excepting the Packagecloud upload step, which
+       will be skipped).
 
   3. Once approved and verified, merge the pull request you created in the
      previous step. Locally, create a GPG-signed tag on the merge commit called
