@@ -174,24 +174,6 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      [Homebrew/homebrew-core#32161](https://github.com/Homebrew/homebrew-core/pull/32161),
      then celebrate.
 
-### Building `vM.N.0` (MINOR versions)
-
-When building a MINOR release, we introduce a new `release-M.N` branch which
-will receive all new features and bug fixes since `release-M.(N-1)`. The change
-set described by `vM.(N-1).0` and `vM.N.0` is as reported by `git log
-vM.(N-1).0...main` at the time of release.
-
-  1. To introduce this new branch (after creating and merging `release-next`
-     into `main`), simply run:
-
-     ```ShellSession
-     $ git branch
-     * main
-     $ git checkout -b release-M.N
-     ```
-
-  2. Then, proceed to follow the guidelines above.
-
 ### Building `vM.N.P` (PATCH versions)
 
 When building a PATCH release, follow the same process as above, with the
