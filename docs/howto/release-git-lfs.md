@@ -109,18 +109,25 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      `vM.N.P`:
 
      ```ShellSession
-     $ git show -q HEAD
-     commit 9377560199b9d7cd2d3c38524a2a7f61aedc89db
-     Merge: 3f3faa90 a55b7fd9
-     Author: Taylor Blau <ttaylorr@github.com>
-     Date:   Thu Jul 26 14:48:39 2018 -0500
+     $ git show -q --pretty=%s%n%b HEAD
+     Merge pull request #xxxx from git-lfs/release-next
+     release: vM.N.P
 
-         Merge pull request #3150 from git-lfs/release-next
+     $ git tag -s vM.N.P -m vM.N.P
 
-             release: vM.N.0
-     $ git tag -s vM.N.P
      $ git describe HEAD
      vM.N.P
+
+     $ git show -q --pretty=%s%d%n%b vM.N.P
+     tag vM.N.P
+     Tagger: ...
+
+     vM.N.P
+     -----BEGIN PGP SIGNATURE-----
+     ...
+     -----END PGP SIGNATURE-----
+     Merge pull request #xxxx from git-lfs/release-next (tag: vM.N.P)
+     release: vM.N.P
      ```
 
   4. Push the tag, via:
@@ -155,18 +162,16 @@ equal to 0, we say that we are releasing a MINOR version of Git LFS, in the
      similar to the following:
 
      ```diff
-     diff --git a/_config.yml b/_config.yml
-     index 03f23d8..6767f6f 100644
-     --- a/_config.yml
-     +++ b/_config.yml
+     --- _config.yml
+     +++ _config.yml
      @@ -1,7 +1,7 @@
       # Site settings
       title: "Git Large File Storage"
       description: "Git Large File Storage (LFS) replaces large files such as audio samples, videos, datasets, and graphics with text pointers inside Git, while storing the file contents on a remote server like GitHub.com or GitHub Enterprise."
-     -git-lfs-release: 2.5.1
-     +git-lfs-release: 2.5.2
+     -git-lfs-release: M.(N-1).0
+     +git-lfs-release: M.N.0
 
-      url: "https://git-lfs.github.com"
+      url: "https://git-lfs.com"
      ```
 
      Then update [our fork](https://github.com/git-lfs/Homebrew-core) of
