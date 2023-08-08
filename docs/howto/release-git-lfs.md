@@ -200,6 +200,11 @@ to zero, we are releasing a PATCH version.
      $ script/upload --finalize vM.N.P
      ```
 
+     Note that this script requires GnuPG as well as Ruby (with the OpenSSL
+     gem) and several other tools.  You will need to provide your GitHub
+     credentials in your `~/.netrc` file or via a `GITHUB_TOKEN` environment
+     variable.
+
      If you want to inspect the data before approving it, pass the `--inspect`
      option, which will drop you to a shell and let you look at things.  If the
      shell exits successfully, the build will be signed; otherwise, the process
