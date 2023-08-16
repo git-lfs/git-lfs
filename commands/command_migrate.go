@@ -38,6 +38,8 @@ var (
 	// above the provided size.
 	migrateImportAboveFmt string
 
+	migrateImportAboveOnlyBinary bool
+
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
 	migrateEverything bool
@@ -396,6 +398,7 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().StringVar(&migrateImportAboveFmt, "above", "", "--above=<n>")
+	importCmd.Flags().BoolVar(&migrateImportAboveOnlyBinary, "above-only-binary", false, "--above only applies to binary files")
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")

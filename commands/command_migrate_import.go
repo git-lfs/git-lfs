@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -155,6 +156,19 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			}
 			if (above > 0) && (uint64(b.Size) < above) {
 				return b, nil
+			}
+			if migrateImportAboveOnlyBinary {
+				// Running file externally is slow... Linux's file looks at first 7M
+				cmd := exec.Command("file", "-k", path)
+				var out strings.Builder
+				cmd.Stdout = &out
+				if err := cmd.Run(); err != nil {
+					ExitWithError(errors.Wrap(err, tr.Tr.Get("failed to run 'file'")))
+				}
+				s := out.String()
+				if strings.Contains(s, "ASCII") || strings.Contains(s, "UTF-8") {
+					return b, nil
+				}
 			}
 
 			if migrateFixup {
