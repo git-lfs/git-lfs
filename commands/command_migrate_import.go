@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -314,12 +313,8 @@ func skipBecauseText(
 		}
 		s := out.String()
 		if matchAntimatch(s, typeSkipRe) {
-			log.Printf("Text %s %s", path, s)
 			return blobContents, true
 		}
-		log.Printf("Binary %s %s", path, s)
-	} else {
-		log.Printf("Path binary %s", path)
 	}
 	return blobContents, false
 }

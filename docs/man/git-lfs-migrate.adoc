@@ -247,6 +247,24 @@ files tracked and stored with Git LFS. It supports all the core
   may be specified as a number of bytes, or a number followed by a storage unit,
   e.g., "1b", "20 MB", "3 TiB", etc. This option cannot be used with the
   `--include`, `--exclude`, and `--fixup` options.
+`--above-not-by-type=<regexes>`::
+  Do not migrate files matching the --above option, whose output through the `file` utility
+   matches <regexes>.
+  `regexes` is a `;` delimited list of regular expressions where the first matches,
+  the second countermands the first, etc. e.g., "ASCII|Unicode;postscript"
+  would match files that look like text, unless they also looked like postscript.
+`--above-not-by-path=<regexes>`::
+  Do not migrate files matching the --above option, whose paths match <regexes>.
+  In particular, this skips `--above-not-by-type` which can be expensive.
+  `regexes` is a `;` delimited list of regular expressions where the first matches,
+  the second countermands the first, etc. e.g., "\.(txt|sh|c|h|cxx|pl|go)$;/very-volatile-files/"
+  would match files with the given extension, unless they are in the `very-volatile-files` directory.
+`--above-and-by-path=<regexes>`::
+  Do migrate files matching the --above option, whose paths match <regexes>.
+  This is useful to sidestep `--above-not-by-type` which can be expensive.
+  `regexes` is a `;` delimited list of regular expressions where the first matches,
+  the second countermands the first, etc. e.g., "\.(png|exe|jpg)$;/never-changing-files/"
+  would match files with the given extension, unless they are in the `never-changing-files` directory.
 `--object-map=<path>`::
   Write to `path` a file with the mapping of each rewritten commits. The file
   format is CSV with this pattern: `OLD-SHA`,`NEW-SHA`
