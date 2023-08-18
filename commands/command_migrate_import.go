@@ -5,9 +5,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -147,6 +150,18 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	typeSkipRe := compileRegexList(";", migrateImportAboveNotByTypeFmt)
+	pathSkipRe := compileRegexList(";", migrateImportAboveNotByPathFmt)
+	pathTrackRe := compileRegexList(";", migrateImportAboveAndByPathFmt)
+
+	if above == 0 && (len(typeSkipRe) != 0 || len(pathSkipRe) != 0 || len(pathTrackRe) != 0) {
+		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above there is no context for --above-not-by-type or --above-not-by-path or --above-and-by-path")))
+	}
+
+	if len(typeSkipRe) != 0 && len(pathTrackRe) == 0 {
+		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above-not-by-type there is no context for --above-and-by-path to skip : all files that pass --above-not-by-path will be counted anyway")))
+	}
+
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
@@ -157,18 +172,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			if (above > 0) && (uint64(b.Size) < above) {
 				return b, nil
 			}
-			if migrateImportAboveOnlyBinary {
-				// Running file externally is slow... Linux's file looks at first 7M
-				cmd := exec.Command("file", "-k", path)
-				var out strings.Builder
-				cmd.Stdout = &out
-				if err := cmd.Run(); err != nil {
-					ExitWithError(errors.Wrap(err, tr.Tr.Get("failed to run 'file'")))
-				}
-				s := out.String()
-				if strings.Contains(s, "ASCII") || strings.Contains(s, "UTF-8") {
-					return b, nil
-				}
+
+			blobContents, skip := skipBecauseText(b.Contents, path, pathSkipRe, pathTrackRe, typeSkipRe)
+			if skip {
+				return b, nil
 			}
 
 			if migrateFixup {
@@ -187,7 +194,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 			var buf bytes.Buffer
 
-			if _, err := clean(gitfilter, &buf, b.Contents, path, b.Size); err != nil {
+			if _, err := clean(gitfilter, &buf, blobContents, path, b.Size); err != nil {
 				return nil, err
 			}
 
@@ -276,6 +283,69 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	if err := checkoutNonBare(l); err != nil {
 		ExitWithError(errors.Wrap(err, tr.Tr.Get("Could not checkout")))
 	}
+}
+
+func skipBecauseText(
+	blobContents io.Reader,
+	path string,
+	pathSkipRe []*regexp.Regexp,
+	pathTrackRe []*regexp.Regexp,
+	typeSkipRe []*regexp.Regexp,
+) (io.Reader, bool) {
+	if len(pathSkipRe) != 0 && matchAntimatch(path, pathSkipRe) {
+		return blobContents, true
+	}
+
+	// If we're running file externally, allow pathTrackRe to short-circuit some binaries by extension.
+	if len(typeSkipRe) != 0 && (len(pathTrackRe) == 0 || !matchAntimatch(path, pathTrackRe)) {
+		// Need a reader for 'file' and for clean()
+		buffer := new(strings.Builder)
+		_, err := io.Copy(buffer, blobContents)
+		if err != nil {
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("failed to copy-read from blob")))
+		}
+		blobContents = strings.NewReader(buffer.String())
+		cmd := exec.Command("file", "-kb", "-")
+		cmd.Stdin = strings.NewReader(buffer.String())
+		var out strings.Builder
+		cmd.Stdout = &out
+		if err := cmd.Run(); err != nil {
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("failed to run 'file'")))
+		}
+		s := out.String()
+		if matchAntimatch(s, typeSkipRe) {
+			log.Printf("Text %s %s", path, s)
+			return blobContents, true
+		}
+		log.Printf("Binary %s %s", path, s)
+	} else {
+		log.Printf("Path binary %s", path)
+	}
+	return blobContents, false
+}
+
+func compileRegexList(sep, regexes string) []*regexp.Regexp {
+	if regexes == "" {
+		return make([]*regexp.Regexp, 0)
+	}
+	parts := strings.Split(regexes, sep)
+	results := make([]*regexp.Regexp, len(parts))
+	for i, pattern := range parts {
+		results[i] = regexp.MustCompile(pattern)
+	}
+	return results
+}
+
+func matchAntimatch(candidate string, regexes []*regexp.Regexp) bool {
+	if len(regexes) == 0 {
+		ExitWithError(errors.New(tr.Tr.Get("Could not match empty regex list")))
+	}
+	for i, regex := range regexes {
+		if !regex.MatchString(candidate) {
+			return i%2 == 1
+		}
+	}
+	return len(regexes)%2 == 1
 }
 
 // generateMigrateCommitMessage generates a commit message used with

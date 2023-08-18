@@ -38,7 +38,24 @@ var (
 	// above the provided size.
 	migrateImportAboveFmt string
 
-	migrateImportAboveOnlyBinary bool
+	// migrateImportAboveNotByTypeFmt indicates the presence of the
+	// --above-not-by-type=<regexes> flag and modifies --above=<size> to
+	// ignore files where the 'file' utility's analysis matches the
+	// given regex chain. Example, ASCII|Unicode;postscript will match
+	// ASCII or Unicode files, unless they are also postscript.
+	migrateImportAboveNotByTypeFmt string
+
+	// migrateImportAboveNotByPathFmt indicates the presence of the
+	// --above-not-by-path=<regexes> flag and skips the expensive analysis
+	// of --above-not-by-type where the path is reliable enough.
+	// Example: .(c|h|cxx|hxx|java|kt|kts|go|rb|py)$ skips by extension.
+	migrateImportAboveNotByPathFmt string
+
+	// migrateImportAboveAndByPathFmt indicates the presence of the
+	// --above-and-by-path=<regex> flag and skips the expensive analysis
+	// of --above-not-by-type where the path is reliable enough.
+	// Example, .(png|gif|jpg|jpeg|png|exe|lib|so)$ tracks by extension.
+	migrateImportAboveAndByPathFmt string
 
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
@@ -398,7 +415,9 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().StringVar(&migrateImportAboveFmt, "above", "", "--above=<n>")
-	importCmd.Flags().BoolVar(&migrateImportAboveOnlyBinary, "above-only-binary", false, "--above only applies to binary files")
+	importCmd.Flags().StringVar(&migrateImportAboveAndByPathFmt, "above-and-by-path", "", "--above-and-by-path=<regex><!<regex>>* matching paths are tracked by above without examining type")
+	importCmd.Flags().StringVar(&migrateImportAboveNotByPathFmt, "above-not-by-path", "", "--above-not-by-path=<regex><!<regex>>* matching paths are skipped by above without examining type")
+	importCmd.Flags().StringVar(&migrateImportAboveNotByTypeFmt, "above-not-by-type", "", "--above-not-by-type=<regex><!<regex>>* skipped by above if '/bin/file file' output matches, second RE countermands, etc.")
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
