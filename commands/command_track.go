@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -331,7 +332,12 @@ var (
 )
 
 func escapeGlobCharacters(s string) string {
-	var escaped string = strings.Replace(s, `\`, "/", -1)
+	var escaped string
+	if runtime.GOOS == "windows" {
+		escaped = strings.Replace(s, `\`, "/", -1)
+	} else {
+		escaped = strings.Replace(s, `\`, `\\`, -1)
+	}
 
 	for _, ch := range trackEscapeStrings {
 		escaped = strings.Replace(escaped, ch, fmt.Sprintf("\\%s", ch), -1)
@@ -343,8 +349,13 @@ func escapeGlobCharacters(s string) string {
 	return escaped
 }
 
-func escapeAttrPattern(unescaped string) string {
-	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
+func escapeAttrPattern(s string) string {
+	var escaped string
+	if runtime.GOOS == "windows" {
+		escaped = strings.Replace(s, `\`, "/", -1)
+	} else {
+		escaped = strings.Replace(s, `\`, `\\`, -1)
+	}
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
@@ -358,6 +369,10 @@ func unescapeAttrPattern(escaped string) string {
 
 	for to, from := range trackEscapePatterns {
 		unescaped = strings.Replace(unescaped, from, to, -1)
+	}
+
+	if runtime.GOOS != "windows" {
+		unescaped = strings.Replace(unescaped, `\\`, `\`, -1)
 	}
 
 	return unescaped
