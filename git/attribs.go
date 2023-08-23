@@ -1,15 +1,18 @@
 package git
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -64,19 +67,36 @@ func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Env) []AttributePath 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) []AttributePath {
-	prefix, _ := env.Get("PREFIX")
-	if len(prefix) == 0 {
-		prefix = string(filepath.Separator)
-	}
+func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) ([]AttributePath, error) {
+	var path string
+	if IsGitVersionAtLeast("2.42.0") {
+		cmd, err := gitNoLFS("var", "GIT_ATTR_SYSTEM")
+		if err != nil {
+			return nil, errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
+		}
+		out, err := cmd.Output()
+		if err != nil {
+			return nil, errors.New(tr.Tr.Get("failed to call `git var GIT_ATTR_SYSTEM`: %v", err))
+		}
+		paths := strings.Split(string(out), "\n")
+		if len(paths) == 0 {
+			return nil, nil
+		}
+		path = paths[0]
+	} else {
+		prefix, _ := env.Get("PREFIX")
+		if len(prefix) == 0 {
+			prefix = string(filepath.Separator)
+		}
 
-	path := filepath.Join(prefix, "etc", "gitattributes")
+		path = filepath.Join(prefix, "etc", "gitattributes")
+	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil
+		return nil, nil
 	}
 
-	return attrPathsFromFile(mp, path, "", true)
+	return attrPathsFromFile(mp, path, "", true), nil
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are

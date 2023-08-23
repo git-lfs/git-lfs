@@ -237,7 +237,10 @@ type PatternData struct {
 }
 
 func listPatterns() {
-	knownPatterns := getAllKnownPatterns()
+	knownPatterns, err := getAllKnownPatterns()
+	if err != nil {
+		Exit("unable to list patterns: %s", err)
+	}
 	if trackJSONFlag {
 		patterns := struct {
 			Patterns []PatternData `json:"patterns"`
@@ -285,19 +288,22 @@ func listPatterns() {
 	}
 }
 
-func getAllKnownPatterns() []git.AttributePath {
+func getAllKnownPatterns() ([]git.AttributePath, error) {
 	mp := gitattr.NewMacroProcessor()
 
 	// Parse these in this order so that macros in one file are properly
 	// expanded when referred to in a later file, then order them in the
 	// order we want.
-	systemPatterns := git.GetSystemAttributePaths(mp, cfg.Os)
+	systemPatterns, err := git.GetSystemAttributePaths(mp, cfg.Os)
+	if err != nil {
+		return nil, err
+	}
 	globalPatterns := git.GetRootAttributePaths(mp, cfg.Git)
 	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	knownPatterns = append(knownPatterns, globalPatterns...)
 	knownPatterns = append(knownPatterns, systemPatterns...)
 
-	return knownPatterns
+	return knownPatterns, nil
 }
 
 func getAttributeLineEnding(attribs []git.AttributePath) string {
