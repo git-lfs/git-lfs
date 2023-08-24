@@ -124,7 +124,12 @@ begin_test "track directory"
   cd dir
   git init
 
-  git lfs track "foo bar\\*" | tee track.txt
+  if [ "$IS_WINDOWS" -eq 1 ]
+  then
+    git lfs track "foo bar\\*" | tee track.txt
+  else
+    git lfs track "foo bar/*" | tee track.txt
+  fi
   [ "foo[[:space:]]bar/* filter=lfs diff=lfs merge=lfs -text" = "$(cat .gitattributes)" ]
   [ "Tracking \"foo bar/*\"" = "$(cat track.txt)" ]
 
@@ -692,15 +697,20 @@ begin_test "track: escaped glob pattern with spaces in .gitattributes"
   # None of these characters are valid in the Win32 subsystem.
   [ "$IS_WINDOWS" -eq 1 ] && exit 0
 
-  reponame="track-escaped-glob"
+  reponame="track-escaped-glob-spaces"
   git init "$reponame"
   cd "$reponame"
 
-  filename="*[foo] bar?.txt"
+  # Note that the \n is literally just that; it is not a newline.
+  filename='*[foo] \n bar?.txt'
   contents='I need escaping'
   contents_oid=$(calc_oid "$contents")
 
-  git lfs track --filename "$filename"
+  git lfs track --filename "$filename" >output 2>&1
+  # This error would occur if `git ls-files` didn't handle the backslash
+  # properly.
+  grep 'Error marking' output && exit 1
+  rm -f output
   git add .
   cat .gitattributes
 
