@@ -14,9 +14,9 @@ begin_test "fetch lfs-tracked file despite no remote"
 
   # Grab the rev for `git archive` later
   echo $(pwd)
-  rev=$(git rev-parse HEAD) 
+  rev=$(git rev-parse HEAD)
   cd ..
-  
+
   # Initialize a bare repo we can fetch into
   mkdir $reponame_dst
   cd $reponame_dst
@@ -52,7 +52,7 @@ begin_test "fallback ignored when remote present"
   # This part is subtle
   # Add repo A as a remote and fetch from it
   # But then fetch from repo B. This points FETCH_HEAD to repo B
-  # We're testing that git-lfs will ignore FETCH_HEAD, since FETCH_HEAD is 
+  # We're testing that git-lfs will ignore FETCH_HEAD, since FETCH_HEAD is
   # a fallback, only used when no remote is set
   git remote add origin "$GITSERVER/$reponame_src_A"
   git fetch
@@ -64,3 +64,4 @@ begin_test "fallback ignored when remote present"
   grep -v "test_file_B.dat" archive.out
 )
 end_test
+
