@@ -41,18 +41,18 @@ func newRenamedTestAdapter(name string, dir Direction) Adapter {
 	return &testAdapter{"RENAMED", dir}
 }
 
-func testBasicAdapterExists(t *testing.T) {
+func TestBasicAdapterExists(t *testing.T) {
 	m := NewManifest(nil, nil, "", "")
 
 	assert := assert.New(t)
 
 	dls := m.GetDownloadAdapterNames()
 	if assert.NotNil(dls) {
-		assert.Equal([]string{"basic"}, dls)
+		assert.ElementsMatch([]string{"basic", "lfs-standalone-file", "ssh"}, dls)
 	}
 	uls := m.GetUploadAdapterNames()
 	if assert.NotNil(uls) {
-		assert.Equal([]string{"basic"}, uls)
+		assert.ElementsMatch([]string{"basic", "lfs-standalone-file", "ssh"}, dls)
 	}
 
 	da := m.NewDownloadAdapter("basic")
@@ -68,25 +68,52 @@ func testBasicAdapterExists(t *testing.T) {
 	}
 }
 
-func testAdapterRegAndOverride(t *testing.T) {
+func TestAdapterRegAndOverride(t *testing.T) {
 	m := NewManifest(nil, nil, "", "")
 	assert := assert.New(t)
 
-	assert.Nil(m.NewDownloadAdapter("test"))
-	assert.Nil(m.NewUploadAdapter("test"))
+	assert.Nil(m.NewAdapter("test", Download))
+	assert.Nil(m.NewAdapter("test", Upload))
+
+	da := m.NewDownloadAdapter("test")
+	if assert.NotNil(da) {
+		assert.Equal("basic", da.Name())
+		assert.Equal(Download, da.Direction())
+	}
+
+	ua := m.NewUploadAdapter("test")
+	if assert.NotNil(ua) {
+		assert.Equal("basic", ua.Name())
+		assert.Equal(Upload, ua.Direction())
+	}
 
 	m.RegisterNewAdapterFunc("test", Upload, newTestAdapter)
-	assert.Nil(m.NewDownloadAdapter("test"))
-	assert.NotNil(m.NewUploadAdapter("test"))
+	assert.Nil(m.NewAdapter("test", Download))
+	assert.NotNil(m.NewAdapter("test", Upload))
+
+	da = m.NewDownloadAdapter("test")
+	if assert.NotNil(da) {
+		assert.Equal("basic", da.Name())
+		assert.Equal(Download, da.Direction())
+	}
+
+	ua = m.NewUploadAdapter("test")
+	if assert.NotNil(ua) {
+		assert.Equal("test", ua.Name())
+		assert.Equal(Upload, ua.Direction())
+	}
 
 	m.RegisterNewAdapterFunc("test", Download, newTestAdapter)
-	da := m.NewDownloadAdapter("test")
+	assert.NotNil(m.NewAdapter("test", Download))
+	assert.NotNil(m.NewAdapter("test", Upload))
+
+	da = m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
 		assert.Equal("test", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
 
-	ua := m.NewUploadAdapter("test")
+	ua = m.NewUploadAdapter("test")
 	if assert.NotNil(ua) {
 		assert.Equal("test", ua.Name())
 		assert.Equal(Upload, ua.Direction())
@@ -114,7 +141,7 @@ func testAdapterRegAndOverride(t *testing.T) {
 	}
 }
 
-func testAdapterRegButBasicOnly(t *testing.T) {
+func TestAdapterRegButBasicOnly(t *testing.T) {
 	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.basictransfersonly": "yes",
 	}))
@@ -127,12 +154,21 @@ func testAdapterRegButBasicOnly(t *testing.T) {
 	m.RegisterNewAdapterFunc("test", Upload, newTestAdapter)
 	m.RegisterNewAdapterFunc("test", Download, newTestAdapter)
 	// Will still be created if we ask for them
-	assert.NotNil(m.NewUploadAdapter("test"))
-	assert.NotNil(m.NewDownloadAdapter("test"))
+	da := m.NewDownloadAdapter("test")
+	if assert.NotNil(da) {
+		assert.Equal("test", da.Name())
+		assert.Equal(Download, da.Direction())
+	}
+
+	ua := m.NewUploadAdapter("test")
+	if assert.NotNil(ua) {
+		assert.Equal("test", ua.Name())
+		assert.Equal(Upload, ua.Direction())
+	}
 
 	// But list will exclude
 	ld := m.GetDownloadAdapterNames()
-	assert.Equal([]string{BasicAdapterName}, ld)
+	assert.Equal([]string{"basic"}, ld)
 	lu := m.GetUploadAdapterNames()
-	assert.Equal([]string{BasicAdapterName}, lu)
+	assert.Equal([]string{"basic"}, lu)
 }

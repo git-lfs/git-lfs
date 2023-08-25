@@ -134,7 +134,6 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 
 		seen[p.Name] = struct{}{}
 	})
-	defer gitscanner.Close()
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	gitscanner.Filter = buildFilepathFilter(cfg, includeArg, excludeArg, false)

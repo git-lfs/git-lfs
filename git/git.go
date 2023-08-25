@@ -1313,10 +1313,11 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 
 	var ret []string
 	cmd, err := gitNoLFS(
-		"-c", "core.quotepath=false", // handle special chars in filenames
 		"ls-files",
+		"--ignored",
 		"--cached", // include things which are staged but not committed right now
-		"--",       // no ambiguous patterns
+		"-z",       // handle special chars in filenames
+		"-x",
 		safePattern)
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git ls-files`: %v", err))
@@ -1328,6 +1329,7 @@ func GetTrackedFiles(pattern string) ([]string, error) {
 	}
 	cmd.Start()
 	scanner := bufio.NewScanner(outp)
+	scanner.Split(tools.SplitOnNul)
 	for scanner.Scan() {
 		line := scanner.Text()
 

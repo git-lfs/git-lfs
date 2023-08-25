@@ -70,13 +70,15 @@ func main() {
 	out.WriteString("\t// THIS FILE IS GENERATED, DO NOT EDIT\n")
 	out.WriteString("\t// Use 'go generate ./commands' to update\n")
 	fileregex := regexp.MustCompile(`git-lfs(?:-([A-Za-z\-]+))?.adoc`)
-	headerregex := regexp.MustCompile(`^==\s+([A-Za-z0-9 ]+)`)
+	headerregex := regexp.MustCompile(`^(===?)\s+([A-Za-z0-9 -]+)`)
 	// cross-references
 	linkregex := regexp.MustCompile(`<<([^,>]+)(?:,([^>]+))?>>`)
 	// man links
 	manlinkregex := regexp.MustCompile(`(git)(?:-(lfs))?-([a-z\-]+)\(\d\)`)
 	// source blocks
 	sourceblockregex := regexp.MustCompile(`\[source(,.*)?\]`)
+	// anchors
+	anchorregex := regexp.MustCompile(`\[\[(.+)\]\]`)
 	count := 0
 	for _, f := range fs {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
@@ -111,26 +113,31 @@ func main() {
 
 				// Special case headers
 				if hmatch := headerregex.FindStringSubmatch(line); hmatch != nil {
-					header := strings.ToLower(hmatch[1])
-					switch header {
-					case "name":
-						continue
-					case "synopsis":
-						// Ignore this, just go direct to command
+					if len(hmatch[1]) == 2 {
+						header := strings.ToLower(hmatch[2])
+						switch header {
+						case "name":
+							continue
+						case "synopsis":
+							// Ignore this, just go direct to command
 
-					case "description":
-						// Just skip the header & newline
-						skipNextLineIfBlank = true
-					case "options":
-						out.WriteString("Options:" + "\n")
-					case "see also":
-						// don't include any content after this
-						break scanloop
-					default:
-						out.WriteString(strings.ToUpper(header[:1]) + header[1:] + "\n")
-						out.WriteString(strings.Repeat("-", len(header)) + "\n")
+						case "description":
+							// Just skip the header & newline
+							skipNextLineIfBlank = true
+						case "options":
+							out.WriteString("Options:" + "\n")
+						case "see also":
+							// don't include any content after this
+							break scanloop
+						default:
+							out.WriteString(strings.ToUpper(header[:1]) + header[1:] + "\n")
+							out.WriteString(strings.Repeat("-", len(header)) + "\n")
+						}
+						firstHeaderDone = true
+					} else {
+						out.WriteString(hmatch[2] + "\n")
+						out.WriteString(strings.Repeat("~", len(hmatch[2])) + "\n")
 					}
-					firstHeaderDone = true
 					lastLineWasList = false
 					continue
 				}
@@ -152,6 +159,11 @@ func main() {
 
 				if sourceblockmatches := sourceblockregex.FindStringIndex(line); sourceblockmatches != nil {
 					isSourceBlock = true
+					continue
+				}
+
+				if anchormatches := anchorregex.FindStringIndex(line); anchormatches != nil {
+					// Skip anchors.
 					continue
 				}
 

@@ -21,15 +21,8 @@ import (
 )
 
 func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll bool) error {
-	gitscanner, err := ctx.buildGitScanner()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		gitscanner.Close()
-		ctx.ReportErrors()
-	}()
+	gitscanner := ctx.buildGitScanner()
+	defer ctx.ReportErrors()
 
 	verifyLocksForUpdates(ctx.lockVerifier, updates)
 	exclude := make([]string, 0, len(updates))
@@ -153,11 +146,8 @@ func (c *uploadContext) addScannerError(err error) {
 	}
 }
 
-func (c *uploadContext) buildGitScanner() (*lfs.GitScanner, error) {
-	gitscanner := lfs.NewGitScanner(cfg, nil)
-	gitscanner.FoundLockable = func(n string) { c.lockVerifier.LockedByThem(n) }
-	gitscanner.PotentialLockables = c.lockVerifier
-	return gitscanner, gitscanner.RemoteForPush(c.Remote)
+func (c *uploadContext) buildGitScanner() *lfs.GitScanner {
+	return lfs.NewGitScannerForPush(cfg, c.Remote, func(n string) { c.lockVerifier.LockedByThem(n) }, c.lockVerifier)
 }
 
 func (c *uploadContext) gitScannerCallback(tqueue *tq.TransferQueue) func(*lfs.WrappedPointer, error) {

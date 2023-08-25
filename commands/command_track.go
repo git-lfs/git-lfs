@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -236,7 +237,10 @@ type PatternData struct {
 }
 
 func listPatterns() {
-	knownPatterns := getAllKnownPatterns()
+	knownPatterns, err := getAllKnownPatterns()
+	if err != nil {
+		Exit("unable to list patterns: %s", err)
+	}
 	if trackJSONFlag {
 		patterns := struct {
 			Patterns []PatternData `json:"patterns"`
@@ -284,19 +288,22 @@ func listPatterns() {
 	}
 }
 
-func getAllKnownPatterns() []git.AttributePath {
+func getAllKnownPatterns() ([]git.AttributePath, error) {
 	mp := gitattr.NewMacroProcessor()
 
 	// Parse these in this order so that macros in one file are properly
 	// expanded when referred to in a later file, then order them in the
 	// order we want.
-	systemPatterns := git.GetSystemAttributePaths(mp, cfg.Os)
+	systemPatterns, err := git.GetSystemAttributePaths(mp, cfg.Os)
+	if err != nil {
+		return nil, err
+	}
 	globalPatterns := git.GetRootAttributePaths(mp, cfg.Git)
 	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	knownPatterns = append(knownPatterns, globalPatterns...)
 	knownPatterns = append(knownPatterns, systemPatterns...)
 
-	return knownPatterns
+	return knownPatterns, nil
 }
 
 func getAttributeLineEnding(attribs []git.AttributePath) string {
@@ -331,7 +338,12 @@ var (
 )
 
 func escapeGlobCharacters(s string) string {
-	var escaped string = strings.Replace(s, `\`, "/", -1)
+	var escaped string
+	if runtime.GOOS == "windows" {
+		escaped = strings.Replace(s, `\`, "/", -1)
+	} else {
+		escaped = strings.Replace(s, `\`, `\\`, -1)
+	}
 
 	for _, ch := range trackEscapeStrings {
 		escaped = strings.Replace(escaped, ch, fmt.Sprintf("\\%s", ch), -1)
@@ -343,8 +355,13 @@ func escapeGlobCharacters(s string) string {
 	return escaped
 }
 
-func escapeAttrPattern(unescaped string) string {
-	var escaped string = strings.Replace(unescaped, `\`, "/", -1)
+func escapeAttrPattern(s string) string {
+	var escaped string
+	if runtime.GOOS == "windows" {
+		escaped = strings.Replace(s, `\`, "/", -1)
+	} else {
+		escaped = strings.Replace(s, `\`, `\\`, -1)
+	}
 
 	for from, to := range trackEscapePatterns {
 		escaped = strings.Replace(escaped, from, to, -1)
@@ -358,6 +375,10 @@ func unescapeAttrPattern(escaped string) string {
 
 	for to, from := range trackEscapePatterns {
 		unescaped = strings.Replace(unescaped, from, to, -1)
+	}
+
+	if runtime.GOOS != "windows" {
+		unescaped = strings.Replace(unescaped, `\\`, `\`, -1)
 	}
 
 	return unescaped

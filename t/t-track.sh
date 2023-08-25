@@ -124,7 +124,12 @@ begin_test "track directory"
   cd dir
   git init
 
-  git lfs track "foo bar\\*" | tee track.txt
+  if [ "$IS_WINDOWS" -eq 1 ]
+  then
+    git lfs track "foo bar\\*" | tee track.txt
+  else
+    git lfs track "foo bar/*" | tee track.txt
+  fi
   [ "foo[[:space:]]bar/* filter=lfs diff=lfs merge=lfs -text" = "$(cat .gitattributes)" ]
   [ "Tracking \"foo bar/*\"" = "$(cat track.txt)" ]
 
@@ -615,6 +620,13 @@ end_test
 begin_test "track (system gitattributes)"
 (
   set -e
+  gitversion=$(git version | cut -d" " -f3)
+  set +e
+  compare_version "$gitversion" 2.42.0
+  result=$?
+  set -e
+  # We no longer read the PREFIX variable as of Git 2.42.0.
+  [ "$result" -ne "$VERSION_LOWER" ] && exit 0
 
   reponame="track-system-gitattributes"
   git init "$reponame"
@@ -663,14 +675,11 @@ begin_test "track: escaped glob pattern in .gitattributes"
 (
   set -e
 
-  # None of these characters are valid in the Win32 subsystem.
-  [ "$IS_WINDOWS" -eq 1 ] && exit 0
-
   reponame="track-escaped-glob"
   git init "$reponame"
   cd "$reponame"
 
-  filename='*[foo]bar?.txt'
+  filename='[foo]bar.txt'
   contents='I need escaping'
   contents_oid=$(calc_oid "$contents")
 
@@ -695,15 +704,20 @@ begin_test "track: escaped glob pattern with spaces in .gitattributes"
   # None of these characters are valid in the Win32 subsystem.
   [ "$IS_WINDOWS" -eq 1 ] && exit 0
 
-  reponame="track-escaped-glob"
+  reponame="track-escaped-glob-spaces"
   git init "$reponame"
   cd "$reponame"
 
-  filename="*[foo] bar?.txt"
+  # Note that the \n is literally just that; it is not a newline.
+  filename='*[foo] \n bar?.txt'
   contents='I need escaping'
   contents_oid=$(calc_oid "$contents")
 
-  git lfs track --filename "$filename"
+  git lfs track --filename "$filename" >output 2>&1
+  # This error would occur if `git ls-files` didn't handle the backslash
+  # properly.
+  grep 'Error marking' output && exit 1
+  rm -f output
   git add .
   cat .gitattributes
 
@@ -713,6 +727,32 @@ begin_test "track: escaped glob pattern with spaces in .gitattributes"
 
   # If Git understood our escaping, we'll have a pointer. Otherwise, we won't.
   assert_pointer "main" "$filename" "$contents_oid" 15
+)
+end_test
+
+begin_test "track: verbose logging"
+(
+  set -e
+
+  reponame="track-verbose-logging"
+  git init "$reponame"
+  cd "$reponame"
+
+  filename='[foo]bar.bin'
+  contents='I need escaping'
+  contents_oid=$(calc_oid "$contents")
+
+  printf "%s" "$contents" > "$filename"
+
+  printf 'Hello, world!\n' > a.txt
+  git add a.txt "$filename"
+  git commit -m 'some files'
+
+  git lfs track -v "*.txt" 2>&1 | tee output
+  grep "Found 1 files previously added to Git matching pattern:" output
+
+  git lfs track -v --filename "$filename" 2>&1 | tee output
+  grep "Found 1 files previously added to Git matching pattern:" output
 )
 end_test
 

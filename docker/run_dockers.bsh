@@ -39,7 +39,7 @@ function split_image_name()
 }
 
 # Parse Arguments
-IMAGES=()
+IMAGES=
 PRUNE=
 ARCH=amd64
 while [[ $# -gt 0 ]]; do
@@ -52,19 +52,18 @@ while [[ $# -gt 0 ]]; do
     DOCKER_CMD="${@}"
     break
   else
-    IMAGES+=("$1")
+    IMAGES="$IMAGES $1"
   fi
   shift
 done
 
-if [[ ${#IMAGES[@]} == 0 ]]; then
-  # If you change this list, change script/upload as well.
-  IMAGES=(centos_7 centos_8 rocky_9 debian_10 debian_11)
+if [[ -z "$IMAGES" ]]; then
+  IMAGES="$(script/distro-tool --image-names)"
 fi
 
 mkdir -p "${PACKAGE_DIR}"
 #Run docker to build packages
-for IMAGE_NAME in "${IMAGES[@]}"; do
+for IMAGE_NAME in $IMAGES; do
   split_image_name "${IMAGE_NAME}" #set IMAGE_NAME and IMAGE_INFO
 
   #It CAN'T be empty () with set -u... So I put some defaults in here

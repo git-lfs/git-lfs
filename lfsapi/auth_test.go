@@ -39,7 +39,7 @@ func TestAuthenticateHeaderAccess(t *testing.T) {
 			res := &http.Response{Header: make(http.Header)}
 			res.Header.Set(key, value)
 			t.Logf("%s: %s", key, value)
-			result, _ := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
+			result, _, _ := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
 			assert.Equal(t, expected, result)
 		}
 	}
@@ -48,11 +48,11 @@ func TestAuthenticateHeaderAccess(t *testing.T) {
 func TestDualAccessModes(t *testing.T) {
 	res := &http.Response{Header: make(http.Header)}
 	res.Header["Www-Authenticate"] = []string{"Negotiate 123", "Basic 456"}
-	access, next := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
+	access, next, _ := getAuthAccess(res, creds.NoneAccess, creds.AllAccessModes())
 	assert.Equal(t, creds.NegotiateAccess, access)
-	access, next = getAuthAccess(res, access, next)
+	access, next, _ = getAuthAccess(res, access, next)
 	assert.Equal(t, creds.BasicAccess, access)
-	access, _ = getAuthAccess(res, access, next)
+	access, _, _ = getAuthAccess(res, access, next)
 	assert.Equal(t, creds.BasicAccess, access)
 }
 
@@ -104,11 +104,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
-		"username": "user",
-		"password": "pass",
-		"protocol": "http",
-		"host":     srv.Listener.Addr().String(),
+	assert.True(t, cred.IsApproved(creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"pass"},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
 	})))
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
 	assert.Equal(t, creds.BasicAccess, (&access).Mode())
@@ -143,12 +143,12 @@ func TestDoWithAuthReject(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	invalidCreds := creds.Creds(map[string]string{
-		"username": "user",
-		"password": "wrong_pass",
-		"path":     "",
-		"protocol": "http",
-		"host":     srv.Listener.Addr().String(),
+	invalidCreds := creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"wrong_pass"},
+		"path":     []string{""},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
 	})
 
 	cred := newMockCredentialHelper()
@@ -174,12 +174,12 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.False(t, cred.IsApproved(invalidCreds))
-	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
-		"username": "user",
-		"password": "pass",
-		"path":     "",
-		"protocol": "http",
-		"host":     srv.Listener.Addr().String(),
+	assert.True(t, cred.IsApproved(creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"pass"},
+		"path":     []string{""},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
 	})))
 	assert.EqualValues(t, 3, called)
 }
@@ -284,11 +284,11 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.True(t, cred.IsApproved(creds.Creds(map[string]string{
-		"username": "user",
-		"password": "pass",
-		"protocol": "http",
-		"host":     srv.Listener.Addr().String(),
+	assert.True(t, cred.IsApproved(creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"pass"},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
 	})))
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
 	assert.Equal(t, creds.BasicAccess, (&access).Mode())
@@ -315,9 +315,9 @@ func (m *mockCredentialHelper) Fill(input creds.Creds) (creds.Creds, error) {
 		output[key] = value
 	}
 	if _, ok := output["username"]; !ok {
-		output["username"] = "user"
+		output["username"] = []string{"user"}
 	}
-	output["password"] = "pass"
+	output["password"] = []string{"pass"}
 	return output, nil
 }
 
@@ -333,7 +333,11 @@ func (m *mockCredentialHelper) Reject(creds creds.Creds) error {
 
 func (m *mockCredentialHelper) IsApproved(creds creds.Creds) bool {
 	if found, ok := m.Approved[credsToKey(creds)]; ok {
-		return found["password"] == creds["password"]
+		if len(found["password"]) == 1 && len(creds["password"]) == 1 {
+			return found["password"][0] == creds["password"][0]
+		} else {
+			return len(found["password"]) == 0 && len(creds["password"]) == 0
+		}
 	}
 	return false
 }
@@ -341,7 +345,11 @@ func (m *mockCredentialHelper) IsApproved(creds creds.Creds) bool {
 func credsToKey(creds creds.Creds) string {
 	var kvs []string
 	for _, k := range []string{"protocol", "host", "path"} {
-		kvs = append(kvs, fmt.Sprintf("%s:%s", k, creds[k]))
+		value := ""
+		if v, ok := creds[k]; ok && len(v) == 1 {
+			value = v[0]
+		}
+		kvs = append(kvs, fmt.Sprintf("%s:%s", k, value))
 	}
 
 	return strings.Join(kvs, " ")
@@ -396,11 +404,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"git-server.com"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -418,12 +426,12 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
-					"path":     "repo/lfs",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"git-server.com"},
+					"password": []string{"monkey"},
+					"path":     []string{"repo/lfs"},
 				},
 			},
 		},
@@ -441,12 +449,12 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
-					"path":     "repo/lfs",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"git-server.com"},
+					"password": []string{"monkey"},
+					"path":     []string{"repo/lfs"},
 				},
 			},
 		},
@@ -480,11 +488,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("user", "monkey"),
 				CredsURL:      "https://user@git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "user",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"user"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -502,11 +510,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"git-server.com"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -552,11 +560,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "http://git-server.com/repo/lfs/locks",
-				Creds: map[string]string{
-					"protocol": "http",
-					"host":     "git-server.com",
-					"username": "git-server.com",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"http"},
+					"host":     []string{"git-server.com"},
+					"username": []string{"git-server.com"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -573,11 +581,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("lfs-server.com", "monkey"),
 				CredsURL:      "https://lfs-server.com/repo/lfs/locks",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "lfs-server.com",
-					"username": "lfs-server.com",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"lfs-server.com"},
+					"username": []string{"lfs-server.com"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -594,11 +602,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com:8080", "monkey"),
 				CredsURL:      "https://git-server.com:8080/repo/lfs/locks",
-				Creds: map[string]string{
-					"protocol": "https",
-					"host":     "git-server.com:8080",
-					"username": "git-server.com:8080",
-					"password": "monkey",
+				Creds: map[string][]string{
+					"protocol": []string{"https"},
+					"host":     []string{"git-server.com:8080"},
+					"username": []string{"git-server.com:8080"},
+					"password": []string{"monkey"},
 				},
 			},
 		},
@@ -617,11 +625,11 @@ func TestGetCreds(t *testing.T) {
 				Access:        creds.BasicAccess,
 				Authorization: basicAuth("git-server.com", "monkey"),
 				CredsURL:      "https://git-server.com/repo/lfs",
-				Creds: map[string]string{
-					"host":     "git-server.com",
-					"password": "monkey",
-					"protocol": "https",
-					"username": "git-server.com",
+				Creds: map[string][]string{
+					"host":     []string{"git-server.com"},
+					"password": []string{"monkey"},
+					"protocol": []string{"https"},
+					"username": []string{"git-server.com"},
 				},
 			},
 		},
@@ -676,7 +684,7 @@ func (f *fakeCredentialFiller) Fill(input creds.Creds) (creds.Creds, error) {
 	if _, ok := output["username"]; !ok {
 		output["username"] = input["host"]
 	}
-	output["password"] = "monkey"
+	output["password"] = []string{"monkey"}
 	return output, nil
 }
 
@@ -727,19 +735,19 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	// host.
 	srv2.URL = strings.Replace(srv2.URL, "127.0.0.1", "0.0.0.0", 1)
 
-	creds1 = creds.Creds(map[string]string{
-		"protocol": "http",
-		"host":     strings.TrimPrefix(srv1.URL, "http://"),
+	creds1 = creds.Creds(map[string][]string{
+		"protocol": []string{"http"},
+		"host":     []string{strings.TrimPrefix(srv1.URL, "http://")},
 
-		"username": "user1",
-		"password": "pass1",
+		"username": []string{"user1"},
+		"password": []string{"pass1"},
 	})
-	creds2 = creds.Creds(map[string]string{
-		"protocol": "http",
-		"host":     strings.TrimPrefix(srv2.URL, "http://"),
+	creds2 = creds.Creds(map[string][]string{
+		"protocol": []string{"http"},
+		"host":     []string{strings.TrimPrefix(srv2.URL, "http://")},
 
-		"username": "user2",
-		"password": "pass2",
+		"username": []string{"user2"},
+		"password": []string{"pass2"},
 	})
 
 	defer srv1.Close()

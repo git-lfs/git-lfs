@@ -266,11 +266,9 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 	}
 
 	if !migrateSkipFetch {
-		w := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Fetching remote refs")))
-		if err := git.Fetch(remotes...); err != nil {
+		if err := fetchRemoteRefs(l, remotes); err != nil {
 			return nil, err
 		}
-		w.Complete()
 	}
 
 	for _, remote := range remotes {
@@ -289,6 +287,13 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 	}
 
 	return refs, nil
+}
+
+func fetchRemoteRefs(l *tasklog.Logger, remotes []string) error {
+	w := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Fetching remote refs")))
+	defer w.Complete()
+
+	return git.Fetch(remotes...)
 }
 
 // formatRefName returns the fully-qualified name for the given Git reference

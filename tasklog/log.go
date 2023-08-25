@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/tools"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/olekukonko/ts"
 )
@@ -115,7 +116,7 @@ func (l *Logger) Close() {
 	l.wg.Wait()
 }
 
-// Waitier creates and enqueues a new *WaitingTask.
+// Waiter creates and enqueues a new *WaitingTask.
 func (l *Logger) Waiter(msg string) *WaitingTask {
 	t := NewWaitingTask(msg)
 	l.Enqueue(t)
@@ -139,7 +140,7 @@ func (l *Logger) List(msg string) *ListTask {
 	return t
 }
 
-// List creates and enqueues a new *SimpleTask.
+// Simple creates and enqueues a new *SimpleTask.
 func (l *Logger) Simple() *SimpleTask {
 	t := NewSimpleTask()
 	l.Enqueue(t)
@@ -188,50 +189,19 @@ func (l *Logger) consume() {
 
 	defer close(l.tasks)
 
-	pending := make([]Task, 0)
-
 	for {
-		// If there is a pending task, "peek" it off of the set of
-		// pending tasks.
-		var next Task
-		if len(pending) > 0 {
-			next = pending[0]
+		// Wait for either a) l.queue to close, or b) a new task
+		// to be submitted.
+		task, ok := <-l.queue
+		if !ok {
+			// If the queue is closed, no more new tasks may
+			// be added.
+			return
 		}
 
-		if next == nil {
-			// If there was no pending task, wait for either a)
-			// l.queue to close, or b) a new task to be submitted.
-			task, ok := <-l.queue
-			if !ok {
-				// If the queue is closed, no more new tasks may
-				// be added.
-				return
-			}
-
-			// Otherwise, add a new task to the set of tasks to
-			// process immediately, since there is no current
-			// buffer.
-			l.tasks <- task
-		} else {
-			// If there is a pending task, wait for either a) a
-			// write to process the task to become non-blocking, or
-			// b) a new task to enter the queue.
-			select {
-			case task, ok := <-l.queue:
-				if !ok {
-					// If the queue is closed, no more tasks
-					// may be added.
-					return
-				}
-				// Otherwise, add the next task to the set of
-				// pending, active tasks.
-				pending = append(pending, task)
-			case l.tasks <- next:
-				// Or "pop" the peeked task off of the pending
-				// set.
-				pending = pending[1:]
-			}
-		}
+		// Otherwise, add a new task to the set of tasks to
+		// process immediately.
+		l.tasks <- task
 	}
 }
 
@@ -285,7 +255,7 @@ func (l *Logger) logTask(task Task) {
 // It returns the number of bytes "n" written to the sink and the error "err",
 // if one was encountered.
 func (l *Logger) logLine(str string) (n int, err error) {
-	padding := strings.Repeat(" ", maxInt(0, l.widthFn()-len(str)))
+	padding := strings.Repeat(" ", tools.MaxInt(0, l.widthFn()-len(str)))
 
 	return l.log(str + padding + "\r")
 }
@@ -296,11 +266,4 @@ func (l *Logger) logLine(str string) (n int, err error) {
 // if one was encountered.
 func (l *Logger) log(str string) (n int, err error) {
 	return fmt.Fprint(l.sink, str)
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

@@ -80,7 +80,6 @@ jobs:
     - run: set GOPATH=%HOME%\go
     - run: choco install -y InnoSetup
     - run: choco install -y strawberryperl
-    - run: refreshenv
     - run: make man
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
@@ -168,7 +167,7 @@ jobs:
     strategy:
       matrix:
         arch: [arm64]
-        container: [debian_11]
+        container: [debian_12]
     steps:
     - uses: actions/checkout@v3
       with:

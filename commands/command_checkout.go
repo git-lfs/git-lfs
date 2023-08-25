@@ -76,7 +76,6 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	if err := chgitscanner.ScanTree(ref.Sha, nil); err != nil {
 		ExitWithError(err)
 	}
-	chgitscanner.Close()
 
 	meter.Start()
 	for _, p := range pointers {

@@ -8,6 +8,7 @@ packagecloud_token = ENV["PACKAGECLOUD_TOKEN"] || begin
 end
 
 require "json"
+require_relative 'lib/distro'
 
 packagecloud_ruby_minimum_version = "1.0.4"
 begin
@@ -25,46 +26,7 @@ $client = Packagecloud::Client.new(credentials)
 
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
-$distro_name_map = {
-  # RHEL EOL https://access.redhat.com/support/policy/updates/errata
-  "centos/7" => [
-    "el/7",         # EOL June 2024
-    "scientific/7", # EOL June 2024
-    # opensuse https://en.opensuse.org/Lifetime
-    # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-    "opensuse/15.4", # EOL November 2023
-    # SLES EOL https://www.suse.com/lifecycle/
-    "sles/12.5", # EOL October 2024 (LTSS October 2027)
-    "sles/15.4", # Current
-  ],
-  "centos/8" => [
-    "el/8",
-  ],
-  "rocky/9" => [
-    "el/9",
-    "fedora/36", # EOL May 2023
-    "fedora/37", # EOL November 2023
-  ],
-  # Debian EOL https://wiki.debian.org/LTS/
-  # Ubuntu EOL https://wiki.ubuntu.com/Releases
-  # Mint EOL https://linuxmint.com/download_all.php
-  "debian/10" => [
-    "debian/buster",    # EOL June 2024
-    "linuxmint/ulyana", # EOL April 2025
-    "linuxmint/ulyssa", # EOL April 2025
-    "linuxmint/uma",    # EOL April 2025
-    "linuxmint/una",    # EOL April 2025
-    "ubuntu/focal",     # EOL April 2025
-  ],
-  "debian/11" => [
-    "debian/bullseye",  # Current stable
-    "debian/bookworm",  # Current testing
-    "ubuntu/jammy",     # EOL April 2027
-    "ubuntu/kinetic",   # EOL July 2023
-    "linuxmint/vanessa",# EOL April 2027
-    "linuxmint/vera",   # EOL April 2027
-  ]
-}
+$distro_name_map = DistroMap.distro_name_map
 
 # caches distro id lookups
 $distro_id_map = {}
@@ -100,20 +62,4 @@ package_files.each do |full_path|
       end
     end
   end
-end
-
-package_files.each do |full_path|
-  next if full_path.include?("SRPM") || full_path.include?("i386") || full_path.include?("i686")
-  next unless full_path =~ /\/git-lfs[-|_]\d/
-  os, distro = case full_path
-  when /debian\/10/ then ["Debian 10", "debian/buster"]
-  when /debian\/11/ then ["Debian 11", "debian/bullseye"]
-  when /centos\/7/  then ["RPM RHEL 7/CentOS 7", "el/7"]
-  when /centos\/8/  then ["RPM RHEL 8/CentOS 8", "el/8"]
-  when /rocky\/9/  then ["RPM RHEL 9/Rocky Linux 9", "el/9"]
-  end
-
-  next unless os
-
-  puts "[#{os}](https://packagecloud.io/#{packagecloud_user}/git-lfs/packages/#{distro}/#{File.basename(full_path)}/download)"
 end
