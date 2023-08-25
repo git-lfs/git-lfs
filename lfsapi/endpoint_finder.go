@@ -125,7 +125,9 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 	}
 
 	gitDir, err := git.GitDir()
-        if err == nil {
+        // Finally, fall back on .git/FETCH_HEAD but only if it exists and no specific remote was requested
+        // We can't know which remote FETCH_HEAD is pointing to
+        if err == nil && remote == defaultRemote {
                 url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
                 if err == nil {
                     endpoint := e.NewEndpointFromCloneURL("download", url);
