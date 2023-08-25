@@ -620,6 +620,13 @@ end_test
 begin_test "track (system gitattributes)"
 (
   set -e
+  gitversion=$(git version | cut -d" " -f3)
+  set +e
+  compare_version "$gitversion" 2.42.0
+  result=$?
+  set -e
+  # We no longer read the PREFIX variable as of Git 2.42.0.
+  [ "$result" -ne "$VERSION_LOWER" ] && exit 0
 
   reponame="track-system-gitattributes"
   git init "$reponame"
