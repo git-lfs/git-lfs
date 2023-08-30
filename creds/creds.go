@@ -572,6 +572,8 @@ func (h *nullCredentialHelper) Reject(creds Creds) error {
 	return nil
 }
 
+// FirstEntryForKey extracts and returns the first entry for a given key, or
+// returns the empty string if no value for that key is available.
 func FirstEntryForKey(input Creds, key string) string {
 	if val, ok := input[key]; ok && len(val) > 0 {
 		return val[0]
