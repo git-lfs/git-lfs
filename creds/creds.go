@@ -184,9 +184,9 @@ const (
 // provided, i.e. through the git URL
 func (a *AskPassCredentialHelper) Fill(what Creds) (Creds, error) {
 	u := &url.URL{
-		Scheme: firstEntryForKey(what, "protocol"),
-		Host:   firstEntryForKey(what, "host"),
-		Path:   firstEntryForKey(what, "path"),
+		Scheme: FirstEntryForKey(what, "protocol"),
+		Host:   FirstEntryForKey(what, "host"),
+		Path:   FirstEntryForKey(what, "path"),
 	}
 
 	creds := make(Creds)
@@ -297,9 +297,9 @@ type commandCredentialHelper struct {
 
 func (h *commandCredentialHelper) Fill(creds Creds) (Creds, error) {
 	tracerx.Printf("creds: git credential fill (%q, %q, %q)",
-		firstEntryForKey(creds, "protocol"),
-		firstEntryForKey(creds, "host"),
-		firstEntryForKey(creds, "path"))
+		FirstEntryForKey(creds, "protocol"),
+		FirstEntryForKey(creds, "host"),
+		FirstEntryForKey(creds, "path"))
 	return h.exec("fill", creds)
 }
 
@@ -310,9 +310,9 @@ func (h *commandCredentialHelper) Reject(creds Creds) error {
 
 func (h *commandCredentialHelper) Approve(creds Creds) error {
 	tracerx.Printf("creds: git credential approve (%q, %q, %q)",
-		firstEntryForKey(creds, "protocol"),
-		firstEntryForKey(creds, "host"),
-		firstEntryForKey(creds, "path"))
+		FirstEntryForKey(creds, "protocol"),
+		FirstEntryForKey(creds, "host"),
+		FirstEntryForKey(creds, "path"))
 	_, err := h.exec("approve", creds)
 	return err
 }
@@ -345,7 +345,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	if _, ok := err.(*exec.ExitError); ok {
 		if h.SkipPrompt {
 			return nil, errors.New(tr.Tr.Get("change the GIT_TERMINAL_PROMPT env var to be prompted to enter your credentials for %s://%s",
-				firstEntryForKey(input, "protocol"), firstEntryForKey(input, "host")))
+				FirstEntryForKey(input, "protocol"), FirstEntryForKey(input, "host")))
 		}
 
 		// 'git credential' exits with 128 if the helper doesn't fill the username
@@ -386,9 +386,9 @@ func NewCredentialCacher() *credentialCacher {
 
 func credCacheKey(creds Creds) string {
 	parts := []string{
-		firstEntryForKey(creds, "protocol"),
-		firstEntryForKey(creds, "host"),
-		firstEntryForKey(creds, "path"),
+		FirstEntryForKey(creds, "protocol"),
+		FirstEntryForKey(creds, "host"),
+		FirstEntryForKey(creds, "path"),
 	}
 	return strings.Join(parts, "//")
 }
@@ -401,9 +401,9 @@ func (c *credentialCacher) Fill(what Creds) (Creds, error) {
 
 	if ok {
 		tracerx.Printf("creds: git credential cache (%q, %q, %q)",
-			firstEntryForKey(what, "protocol"),
-			firstEntryForKey(what, "host"),
-			firstEntryForKey(what, "path"))
+			FirstEntryForKey(what, "protocol"),
+			FirstEntryForKey(what, "host"),
+			FirstEntryForKey(what, "path"))
 		return cached, nil
 	}
 
@@ -572,7 +572,9 @@ func (h *nullCredentialHelper) Reject(creds Creds) error {
 	return nil
 }
 
-func firstEntryForKey(input Creds, key string) string {
+// FirstEntryForKey extracts and returns the first entry for a given key, or
+// returns the empty string if no value for that key is available.
+func FirstEntryForKey(input Creds, key string) string {
 	if val, ok := input[key]; ok && len(val) > 0 {
 		return val[0]
 	}
