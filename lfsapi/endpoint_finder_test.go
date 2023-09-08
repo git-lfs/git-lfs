@@ -3,9 +3,9 @@ package lfsapi
 import (
 	"io/ioutil"
 	"os"
+	"regexp"
 	"runtime"
 	"testing"
-        "regexp"
 
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
@@ -747,8 +747,8 @@ func TestExtractRemoteUrlForSSH(t *testing.T) {
 }
 
 func TestExtractRemoteUrlForGit(t *testing.T) {
-        line := "90ed234fb0708235a733bcae0e5b90bd4fac5321		branch 'master' of example.com:git-lfs/git-lfs"
-        expected := "example.com:git-lfs/git-lfs"
+	line := "90ed234fb0708235a733bcae0e5b90bd4fac5321		branch 'master' of example.com:git-lfs/git-lfs"
+	expected := "example.com:git-lfs/git-lfs"
 
 	result, err := ExtractRemoteUrl(line)
 	assert.Nil(t, err)
@@ -757,25 +757,24 @@ func TestExtractRemoteUrlForGit(t *testing.T) {
 
 func TestExtractRemoteUrlNoURL(t *testing.T) {
 	invalid := []string{
-            "text without url",
-            // invalid characters in base64 git hash
-            "qwert34fb0708235a733bcae0e5b90bd4fac5321		branch 'master' of example.com:git-lfs/git-lfs",
-            // invalid git hash length
-            "90ed234fb0708235a733bcae0e5b90bd4fac532		branch 'master' of example.com:git-lfs/git-lfs",
-            // other label present where only `not-for-merge` label allowed
-            "90ed234fb0708235a733bcae0e5b90bd4fac532	disallowed-label	branch 'master' of example.com:git-lfs/git-lfs",
-            // other type present where only `tag` or `branch` allowed
-            "90ed234fb0708235a733bcae0e5b90bd4fac532		othertype 'master' of example.com:git-lfs/git-lfs",
-            // missing `of`
-            "90ed234fb0708235a733bcae0e5b90bd4fac5321		branch 'master' example.com:git-lfs/git-lfs",
-            // missing `'`
-            "90ed234fb0708235a733bcae0e5b90bd4fac5321		branch of example.com:git-lfs/git-lfs",
-        }
-        for _, line := range invalid {
-	    result, err := ExtractRemoteUrl(line)
-	    assert.NotNil(t, err)
-            assert.Regexp(t, regexp.MustCompile("^failed to extract remote URL.*$"), err.Error())
-	    assert.Equal(t, "", result)
-        }
+		"text without url",
+		// invalid characters in base64 git hash
+		"qwert34fb0708235a733bcae0e5b90bd4fac5321		branch 'master' of example.com:git-lfs/git-lfs",
+		// invalid git hash length
+		"90ed234fb0708235a733bcae0e5b90bd4fac532		branch 'master' of example.com:git-lfs/git-lfs",
+		// other label present where only `not-for-merge` label allowed
+		"90ed234fb0708235a733bcae0e5b90bd4fac532	disallowed-label	branch 'master' of example.com:git-lfs/git-lfs",
+		// other type present where only `tag` or `branch` allowed
+		"90ed234fb0708235a733bcae0e5b90bd4fac532		othertype 'master' of example.com:git-lfs/git-lfs",
+		// missing `of`
+		"90ed234fb0708235a733bcae0e5b90bd4fac5321		branch 'master' example.com:git-lfs/git-lfs",
+		// missing `'`
+		"90ed234fb0708235a733bcae0e5b90bd4fac5321		branch of example.com:git-lfs/git-lfs",
+	}
+	for _, line := range invalid {
+		result, err := ExtractRemoteUrl(line)
+		assert.NotNil(t, err)
+		assert.Regexp(t, regexp.MustCompile("^failed to extract remote URL.*$"), err.Error())
+		assert.Equal(t, "", result)
+	}
 }
-

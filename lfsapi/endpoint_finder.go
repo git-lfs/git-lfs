@@ -1,14 +1,14 @@
 package lfsapi
 
 import (
+	"bufio"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
-    	"bufio"
-	"regexp"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
@@ -125,17 +125,17 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 	}
 
 	gitDir, err := git.GitDir()
-        // Finally, fall back on .git/FETCH_HEAD but only if it exists and no specific remote was requested
-        // We can't know which remote FETCH_HEAD is pointing to
-        if err == nil && remote == defaultRemote {
-                url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"));
-                if err == nil {
-                    endpoint := e.NewEndpointFromCloneURL("download", url);
-                    return endpoint
-                } else {
-                    tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
-                }
-        }
+	// Finally, fall back on .git/FETCH_HEAD but only if it exists and no specific remote was requested
+	// We can't know which remote FETCH_HEAD is pointing to
+	if err == nil && remote == defaultRemote {
+		url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"))
+		if err == nil {
+			endpoint := e.NewEndpointFromCloneURL("download", url)
+			return endpoint
+		} else {
+			tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
+		}
+	}
 
 	return lfshttp.Endpoint{}
 }
@@ -157,23 +157,22 @@ func parseFetchHead(filePath string) (string, error) {
 }
 
 func ExtractRemoteUrl(line string) (string, error) {
-        // see https://regex101.com/r/lYla7c/1
-        re := regexp.MustCompile(`^[a-f0-9]{40,64}\t(not-for-merge)?\t(tag |branch |)'.*' of (?P<url>[\/\.\-\:\_a-zA-Z0-9]+)$`)
+	// see https://regex101.com/r/lYla7c/1
+	re := regexp.MustCompile(`^[a-f0-9]{40,64}\t(not-for-merge)?\t(tag |branch |)'.*' of (?P<url>[\/\.\-\:\_a-zA-Z0-9]+)$`)
 
 	match := re.FindStringSubmatch(line)
 
-        for i, name := range re.SubexpNames() {
-            if name == "url" {
-                if len(match) < i {
-                    break
-                }
-                return strings.TrimSpace(match[i]), nil;
-            }
-        }
+	for i, name := range re.SubexpNames() {
+		if name == "url" {
+			if len(match) < i {
+				break
+			}
+			return strings.TrimSpace(match[i]), nil
+		}
+	}
 
-        return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
+	return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 }
-
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 	if e.gitEnv != nil {
