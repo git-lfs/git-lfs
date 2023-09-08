@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-make fmt
-GO15VENDOREXPERIMENT=1 go run script/*.go -cmd release "$@"
