@@ -1,10 +1,12 @@
 package lfsapi
 
 import (
+	"bufio"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -117,12 +119,59 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 		return e.NewEndpoint(operation, url)
 	}
 
-	// finally fall back on git remote url (also supports pushurl)
+	// fall back on git remote url (also supports pushurl)
 	if url := e.GitRemoteURL(remote, operation == "upload"); url != "" {
 		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
+	gitDir, err := git.GitDir()
+	// Finally, fall back on .git/FETCH_HEAD but only if it exists and no specific remote was requested
+	// We can't know which remote FETCH_HEAD is pointing to
+	if err == nil && remote == defaultRemote {
+		url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"))
+		if err == nil {
+			endpoint := e.NewEndpointFromCloneURL("download", url)
+			return endpoint
+		} else {
+			tracerx.Printf("failed parsing FETCH_HEAD: %s", err)
+		}
+	}
+
 	return lfshttp.Endpoint{}
+}
+
+func parseFetchHead(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		line := scanner.Text()
+		return ExtractRemoteUrl(line)
+	}
+
+	return "", fmt.Errorf("Failed to read content from %s", filePath)
+}
+
+func ExtractRemoteUrl(line string) (string, error) {
+	// see https://regex101.com/r/lYla7c/1
+	re := regexp.MustCompile(`^[a-f0-9]{40,64}\t(not-for-merge)?\t(tag |branch |)'.*' of (?P<url>[\/\.\-\:\_a-zA-Z0-9]+)$`)
+
+	match := re.FindStringSubmatch(line)
+
+	for i, name := range re.SubexpNames() {
+		if name == "url" {
+			if len(match) < i {
+				break
+			}
+			return strings.TrimSpace(match[i]), nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to extract remote URL from \"%s\"", line)
 }
 
 func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
