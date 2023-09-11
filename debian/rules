@@ -40,7 +40,6 @@ override_dh_auto_build:
 	if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_BUILD_GNU_TYPE)" ]; then\
 		cp -rf $(BUILD_DIR)/bin/*/* $(BUILD_DIR)/bin/; \
 	fi
-	rm $(BUILD_DIR)/bin/script
 	rm $(BUILD_DIR)/bin/man
 	make man
 
