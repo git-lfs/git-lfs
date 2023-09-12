@@ -77,15 +77,6 @@ for IMAGE_NAME in $IMAGES; do
     OTHER_OPTIONS+=("--rm")
   fi
 
-  if [ -s ${CUR_DIR}/${IMAGE_NAME}.key ]; then
-    CONTAINER_NAME=git-lfs-gpg ${CUR_DIR}/gpg-agent_preload.bsh
-    OTHER_OPTIONS+=("--volumes-from" "git-lfs-gpg")
-    OTHER_OPTIONS+=("-v" "${CUR_DIR}/${IMAGE_NAME}.key:${MINGW_PATCH}/tmp/${IMAGE_NAME}.key")
-    OTHER_OPTIONS+=("-e" "$(docker exec git-lfs-gpg cat ${MINGW_PATCH}/tmp/gpg-agent/gpg_agent_info)")
-    #Do I need this? Or can I get away with hardcoding???
-    #GPG_AGENT_INFO=/tmp/gpg-agent/S.gpg-agent:1:1
-  fi
-
   FINAL_UID=$(id -u)
   FINAL_GID=$(id -g)
   if [[ $FINAL_UID == 0 ]]; then
