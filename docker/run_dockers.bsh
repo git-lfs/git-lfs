@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 
 # Usage:
-#  ./run_dockers.bsh - Run all the docker images
-#  ./run_dockers.bsh centos_6 centos_7 - Run only CentOS 6 & 7 image
-#  ./run_dockers.bsh centos_6 -- bash #Runs bash in the CentOS 6 docker
-#
-# Special Environments Variables
-#  REPO_HOSTNAME - Override the hostname for all the repos generated/tested
-#  AUTO_REMOVE - Default 1. If set to 0, it will not automatically delete the
-#                docker instance when done. This can be useful for a post mortem
-#                analysis. Just make sure you clean up the docker instances
-#                manually
+#  ./run_dockers.bsh                   # Run all the Docker images
+#  ./run_dockers.bsh centos_6 centos_7 # Run only the CentOS 6 & 7 Docker images
+#  ./run_dockers.bsh centos_6 -- bash  # Run Bash in the CentOS 6 Docker image
+#  ./run_dockers.bsh --prune           # Remove each Docker image after running
+#  ./run_dockers.bsh --arch=<arch>     # Build for a specific architecture,
+#                                      # e.g., arm64
+
+# Special Environment Variables
+#  AUTO_REMOVE - Default 1. If set to 0, the Docker container will not be
+#                automatically deleted when done.  This can be useful for a
+#                post-mortem analysis.  Just make sure you clean up the Docker
+#                containers manually.
 
 set -eu
 
@@ -90,7 +92,6 @@ for IMAGE_NAME in $IMAGES; do
   IMAGE_REPO_DIR="${PACKAGE_DIR}"/"${IMAGE_INFO[0]}"/"${IMAGE_INFO[1]}"
   $SUDO docker run "${OTHER_OPTIONS[@]}" ${DOCKER_OTHER_OPTIONS-} \
                    -e USER=root \
-                   -e REPO_HOSTNAME=${REPO_HOSTNAME:-git-lfs.github.com} \
                    -e FINAL_UID=${FINAL_UID} \
                    -e FINAL_GID=${FINAL_GID} \
                    -v "${MINGW_PATCH}${REPO_DIR}:/src" \
