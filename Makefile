@@ -13,6 +13,10 @@ PREFIX ?= $(patsubst v%,git-lfs-%,$(VERSION))
 # GO is the name of the 'go' binary used to compile Git LFS.
 GO ?= go
 
+# GOTOOLCHAIN is an environment variable which, when set to 'local',
+# prevents Go from downloading and running non-local versions of itself.
+export GOTOOLCHAIN = local
+
 # GO_TEST_EXTRA_ARGS are extra arguments given to invocations of 'go test'.
 #
 # Examples include:

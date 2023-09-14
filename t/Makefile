@@ -5,6 +5,10 @@ DEFAULT_TEST_TARGET ?= test
 
 GO ?= go
 
+# GOTOOLCHAIN is an environment variable which, when set to 'local',
+# prevents Go from downloading and running non-local versions of itself.
+export GOTOOLCHAIN = local
+
 ifeq ($(OS),Windows_NT)
 X ?= .exe
 else
