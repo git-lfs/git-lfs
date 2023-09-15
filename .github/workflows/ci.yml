@@ -1,5 +1,7 @@
 name: CI
 on: [push, pull_request]
+env:
+  GOTOOLCHAIN: local
 
 jobs:
   build-default:
@@ -7,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.20.x']
+        go: ['1.21.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -45,7 +47,7 @@ jobs:
     name: Build with specific Go
     strategy:
       matrix:
-        go: ['1.19.x']
+        go: ['1.20.x']
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -74,7 +76,7 @@ jobs:
       # which does not honour the PATH we set to our built git-lfs binary.
     - uses: actions/setup-go@v4
       with:
-        go-version: '1.20.x'
+        go-version: '1.21.x'
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
