@@ -35,7 +35,7 @@ Alternatively, you can install a recent version of Git LFS from the [Chocolatey]
 available for Linux, macOS, Windows, and FreeBSD.
 The binary packages include a script which will:
 
-- Install Git LFS binaries onto the system `$PATH`
+- Install Git LFS binaries onto the system `$PATH`.  On Windows in particular, you may need to restart your command shell so any change to `$PATH` will take effect and Git can locate the Git LFS binary.
 - Run `git lfs install` to perform required global configuration changes.
 
 ```ShellSession
