@@ -58,7 +58,7 @@ clean :
 	$(RM) $(TEST_CMDS)
 
 ../bin/%$X : cmd/%.go
-	go build -o $@ $^
+	$(GO) build -o $@ $^
 
 ../bin/git-lfs-test-server-api$X : $(TEST_API_SRCS)
-	go build -o $@ $^
+	$(GO) build -o $@ $^
