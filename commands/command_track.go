@@ -166,11 +166,6 @@ ArgsLoop:
 	// Any items left in the map, write new lines at the end of the file
 	// Note this is only new patterns, not ones which changed locking flags
 	for pattern, newline := range changedAttribLines {
-		if !trackNoModifyAttrsFlag {
-			// Newline already embedded
-			attributesFile.WriteString(newline)
-		}
-
 		// Also, for any new patterns we've added, make sure any existing git
 		// tracked files have their timestamp updated so they will now show as
 		// modified note this is relative to current dir which is how we write
@@ -203,6 +198,11 @@ ArgsLoop:
 		}
 		if matchedBlocklist {
 			continue
+		}
+
+		if !trackNoModifyAttrsFlag {
+			// Newline already embedded
+			attributesFile.WriteString(newline)
 		}
 
 		for _, f := range gittracked {
