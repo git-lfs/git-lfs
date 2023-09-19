@@ -22,6 +22,23 @@ begin_test "unlocking a lock by path with good ref"
   id=$(assert_lock lock.log c.dat)
   assert_server_lock "$reponame" "$id" "refs/heads/main"
 
+  git lfs unlock "c.dat"
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+)
+end_test
+
+begin_test "unlocking a lock by id with good ref"
+(
+  set -e
+
+  reponame="unlock-by-id-main-branch-required"
+  setup_repo "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
   git lfs unlock --id="$id"
   refute_server_lock "$reponame" "$id" "refs/heads/main"
 )
@@ -32,6 +49,34 @@ begin_test "unlocking a lock by path with tracked ref"
   set -e
 
   reponame="unlock-by-path-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+
+  git config push.default upstream
+  git config branch.main.merge refs/heads/tracked
+  git config branch.main.remote origin
+  git push origin main
+
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/tracked"
+
+  git lfs unlock "c.dat"
+  refute_server_lock "$reponame" "$id" "refs/heads/tracked"
+)
+end_test
+
+begin_test "unlocking a lock by id with tracked ref"
+(
+  set -e
+
+  reponame="unlock-by-id-tracked-branch-required"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -76,7 +121,7 @@ begin_test "unlocking a lock by path with bad ref"
   assert_server_lock "$reponame" "$id" "refs/heads/other"
 
   git checkout main
-  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  git lfs unlock "c.dat" 2>&1 | tee unlock.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs lock \'a.dat\'' to fail"
     exit 1
