@@ -10,6 +10,23 @@ setup_repo () {
   git commit -m 'Mark files lockable'
 }
 
+begin_test "unlocking a lock by path without a ref required"
+(
+  set -e
+
+  reponame="unlock-by-path-main-branch-not-required"
+  setup_repo "$reponame" "c.dat"
+
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  git lfs unlock "c.dat"
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+)
+end_test
+
 begin_test "unlocking a lock by path with good ref"
 (
   set -e
@@ -97,6 +114,32 @@ begin_test "unlocking a lock by id with tracked ref"
 
   git lfs unlock --id="$id"
   refute_server_lock "$reponame" "$id" "refs/heads/tracked"
+)
+end_test
+
+begin_test "unlocking a lock by path with bad ref without a ref required"
+(
+  set -e
+
+  reponame="unlock-by-path-other-branch-not-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "c" > c.dat
+  git add .gitattributes c.dat
+  git commit -m "add c.dat"
+  git push origin main:other
+
+  git checkout -b other
+  git lfs lock --json "c.dat" | tee lock.log
+
+  id=$(assert_lock lock.log c.dat)
+  assert_server_lock "$reponame" "$id" "refs/heads/other"
+
+  git checkout main
+  git lfs unlock "c.dat"
+  refute_server_lock "$reponame" "$id" "refs/heads/other"
 )
 end_test
 
