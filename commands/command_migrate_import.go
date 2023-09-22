@@ -149,16 +149,16 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	typeSkipRe := compileRegexList(";", migrateImportAboveNotByTypeFmt)
-	pathSkipRe := compileRegexList(";", migrateImportAboveNotByPathFmt)
-	pathTrackRe := compileRegexList(";", migrateImportAboveAndByPathFmt)
+	typeSkipRe := compileRegexList(";", migrateImportAboveExcludeByTypeFmt)
+	pathSkipRe := compileRegexList(";", migrateImportAboveExcludeByPathFmt)
+	pathTrackRe := compileRegexList(";", migrateImportAboveIncludeByPathFmt)
 
 	if above == 0 && (len(typeSkipRe) != 0 || len(pathSkipRe) != 0 || len(pathTrackRe) != 0) {
-		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above there is no context for --above-not-by-type or --above-not-by-path or --above-and-by-path")))
+		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above there is no context for --above-exclude-by-type or --above-exclude-by-path or --above-include-by-path")))
 	}
 
 	if len(typeSkipRe) != 0 && len(pathTrackRe) == 0 {
-		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above-not-by-type there is no context for --above-and-by-path to skip : all files that pass --above-not-by-path will be counted anyway")))
+		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above-exclude-by-type there is no context for --above-include-by-path to skip : all files that pass --above-exclude-by-path will be counted anyway")))
 	}
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
