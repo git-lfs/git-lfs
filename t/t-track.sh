@@ -377,7 +377,7 @@ begin_test "track blocklisted files by name"
   git add .gitattributes
   git commit -m 'Initial commit'
 
-  git lfs track .gitattributes 2>&1 > track.log
+  git lfs track .gitattributes 2>&1 > track.log && exit 1
   grep "Pattern '.gitattributes' matches forbidden file '.gitattributes'" track.log
   [ -z "$(git status --porcelain | grep -v '^??')" ]
 )
@@ -396,11 +396,11 @@ begin_test "track blocklisted files with glob"
   git add .gitattributes
   git commit -m 'Initial commit'
 
-  git lfs track ".git*" 2>&1 > track.log
+  git lfs track ".git*" 2>&1 > track.log && exit 1
   grep "Pattern '.git\*' matches forbidden file" track.log
   [ -z "$(git status --porcelain | grep -v '^??')" ]
 
-  git lfs track "*" 2>&1 > track.log
+  git lfs track "*" 2>&1 > track.log && exit 1
   grep "Pattern '\*' matches forbidden file" track.log
   [ -z "$(git status --porcelain | grep -v '^??')" ]
 )

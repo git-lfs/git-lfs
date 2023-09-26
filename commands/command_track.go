@@ -163,6 +163,8 @@ ArgsLoop:
 		}
 	}
 
+	modified := false
+	sawError := false
 	// Any items left in the map, write new lines at the end of the file
 	// Note this is only new patterns, not ones which changed locking flags
 	for pattern, newline := range changedAttribLines {
@@ -204,6 +206,7 @@ ArgsLoop:
 			// Newline already embedded
 			attributesFile.WriteString(newline)
 		}
+		modified = true
 
 		for _, f := range gittracked {
 			if trackVerboseLoggingFlag || trackDryRunFlag {
@@ -215,6 +218,7 @@ ArgsLoop:
 				err := os.Chtimes(f, now, now)
 				if err != nil {
 					LoggedError(err, tr.Tr.Get("Error marking %q modified: %s", f, err))
+					sawError = true
 					continue
 				}
 			}
@@ -226,6 +230,19 @@ ArgsLoop:
 	err = lockClient.FixFileWriteFlagsInDir(relpath, readOnlyPatterns, writeablePatterns)
 	if err != nil {
 		LoggedError(err, tr.Tr.Get("Error changing lockable file permissions: %s", err))
+		sawError = true
+	}
+
+	if sawError {
+		os.Exit(2)
+	}
+	// If we didn't modify things, but that's because the patterns
+	// were already supported, don't return an error, since what the
+	// user wanted has already been done.
+	// Otherwise, if we didn't modify things but only because the
+	// patterns were disallowed, return an error.
+	if !modified && len(changedAttribLines) > 0 {
+		os.Exit(1)
 	}
 }
 
