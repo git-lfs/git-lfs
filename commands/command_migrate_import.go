@@ -157,7 +157,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above there is no context for --above-exclude-by-type or --above-exclude-by-path or --above-include-by-path")))
 	}
 
-	if len(typeSkipRe) != 0 && len(pathTrackRe) == 0 {
+	if len(typeSkipRe) == 0 && len(pathTrackRe) != 0 {
 		ExitWithError(errors.Errorf(tr.Tr.Get("Without --above-exclude-by-type there is no context for --above-include-by-path to skip : all files that pass --above-exclude-by-path will be counted anyway")))
 	}
 
