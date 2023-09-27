@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
@@ -51,12 +53,14 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 	}
 
 	var prevWritten int64
-
+	deadline := time.Now().Add(tasklog.DefaultLoggingThrottle)
 	cb := tools.CopyCallback(func(total int64, written int64, current int) error {
-		if written != prevWritten {
-			_, err := file.Write([]byte(fmt.Sprintf("%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)))
+		now := time.Now()
+		if written != prevWritten && (!now.Before(deadline) || written >= total) {
+			_, err := fmt.Fprintf(file, "%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)
 			file.Sync()
 			prevWritten = written
+			deadline = now.Add(tasklog.DefaultLoggingThrottle)
 			return wrapProgressError(err, event, logPath)
 		}
 

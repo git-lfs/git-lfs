@@ -2,8 +2,12 @@ package lfs
 
 import (
 	"bytes"
+	"os"
 	"testing"
+	"time"
 
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,4 +67,44 @@ func TestReadWithCallback(t *testing.T) {
 	assert.Len(t, calledRead, 2)
 	assert.Equal(t, 3, int(calledRead[0]))
 	assert.Equal(t, 5, int(calledRead[1]))
+}
+
+func TestCopyCallbackFileThrottle(t *testing.T) {
+	tmpDir := t.TempDir()
+	logFile := tmpDir + "/git_lfs_progress.log"
+	osMf := config.UniqMapFetcher(map[string]string{
+		"GIT_LFS_PROGRESS": logFile,
+	})
+	gitMf := config.UniqMapFetcher(map[string]string{})
+
+	gf := GitFilter{
+		cfg: &config.Configuration{
+			Os:  config.EnvironmentOf(osMf),
+			Git: config.EnvironmentOf(gitMf),
+		},
+	}
+
+	bufSize := int64(128 * 1024)
+	cb, f, err := gf.CopyCallbackFile("clean", "test_copy", 1, 1)
+	assert.NoError(t, err)
+	defer f.Close()
+
+	r := &tools.CallbackReader{
+		TotalSize: bufSize,
+		Reader:    bytes.NewReader(make([]byte, bufSize)),
+		C:         cb,
+	}
+	readbuf := make([]byte, 32*1024)
+	r.Read(readbuf) // message skipped
+	time.Sleep(tasklog.DefaultLoggingThrottle)
+
+	r.Read(readbuf) // message logged due to delay
+	r.Read(readbuf) // message skipped
+	r.Read(readbuf) // message logged because reader is finished
+
+	logBytes, err := os.ReadFile(logFile)
+	assert.Nil(t, err)
+
+	expectedLog := "clean 1/1 65536/131072 test_copy\nclean 1/1 131072/131072 test_copy\n"
+	assert.Equal(t, expectedLog, string(logBytes))
 }
