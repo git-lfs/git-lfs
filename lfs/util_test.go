@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/jmhodges/clock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,11 +77,13 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 	})
 	gitMf := config.UniqMapFetcher(map[string]string{})
 
+	fc := clock.NewFake()
 	gf := GitFilter{
 		cfg: &config.Configuration{
 			Os:  config.EnvironmentOf(osMf),
 			Git: config.EnvironmentOf(gitMf),
 		},
+		clk: fc,
 	}
 
 	bufSize := int64(128 * 1024)
@@ -96,10 +98,13 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 	}
 	readbuf := make([]byte, 32*1024)
 	r.Read(readbuf) // message skipped
-	time.Sleep(tasklog.DefaultLoggingThrottle)
 
+	fc.Add(tasklog.DefaultLoggingThrottle)
 	r.Read(readbuf) // message logged due to delay
+
+	fc.Add(tasklog.DefaultLoggingThrottle / 2)
 	r.Read(readbuf) // message skipped
+
 	r.Read(readbuf) // message logged because reader is finished
 
 	logBytes, err := os.ReadFile(logFile)
