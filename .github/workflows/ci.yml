@@ -12,7 +12,7 @@ jobs:
         go: ['1.21.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -50,7 +50,7 @@ jobs:
         go: ['1.20.x']
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -63,7 +63,7 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -127,7 +127,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -142,7 +142,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -154,7 +154,7 @@ jobs:
     name: Build Linux packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
@@ -171,7 +171,7 @@ jobs:
         arch: [arm64]
         container: [debian_12]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
