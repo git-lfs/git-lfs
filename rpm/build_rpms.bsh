@@ -82,10 +82,6 @@ popd
 echo "Cleaning ${CURDIR}/tmptar again"
 rm -rf ${CURDIR}/tmptar
 
-#TODO TASK 2
-#cp ${CURDIR}/../docker/public.key ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
-touch ${CURDIR}/SOURCES/RPM-GPG-KEY-GITLFS
-
 echo "Build git-lfs RPMs..."
 
 #--no-deps added for now so you can compile without official rpms installed
