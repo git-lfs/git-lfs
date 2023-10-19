@@ -219,7 +219,7 @@ func parseOid(value string) (string, error) {
 		return "", errors.New(tr.Tr.Get("Invalid OID type: %s", parts[0]))
 	}
 	oid := parts[1]
-	if !oidRE.Match([]byte(oid)) {
+	if !oidRE.MatchString(oid) {
 		return "", errors.New(tr.Tr.Get("Invalid OID: %s", oid))
 	}
 	return oid, nil
@@ -289,7 +289,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		}
 
 		if expected := pointerKeys[line]; key != expected {
-			if !extRE.Match([]byte(key)) {
+			if !extRE.MatchString(key) {
 				err = errors.NewBadPointerKeyError(expected, key)
 				return
 			}
