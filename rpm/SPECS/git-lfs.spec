@@ -5,7 +5,7 @@ Summary:        Git extension for versioning large files
 
 Group:          Applications/Archiving
 License:        MIT
-URL:            https://git-lfs.github.com/
+URL:            https://git-lfs.com/
 Source0:        https://github.com/git-lfs/git-lfs/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  perl-Digest-SHA

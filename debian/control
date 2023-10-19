@@ -11,4 +11,4 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, git (>= 1.8.2)
 Built-Using: ${misc:Built-Using}
 Description: Git Large File Support
  An open source Git extension for versioning large files
-Homepage: https://git-lfs.github.com/
+Homepage: https://git-lfs.com/
