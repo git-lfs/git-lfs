@@ -162,6 +162,12 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 
 		pattern := line.Pattern().String()
 		if len(reldir) > 0 {
+			if len(pattern) > 0 {
+				slashCount := strings.Count(pattern, "/")
+				if slashCount == 0 || (slashCount == 1 && pattern[len(pattern)-1:] == "/") {
+					pattern = path.Join("**", pattern)
+				}
+			}
 			pattern = path.Join(reldir, pattern)
 		}
 
