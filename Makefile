@@ -127,9 +127,6 @@ XGOTEXT ?= xgotext
 # CODESIGN is the macOS signing tool.
 CODESIGN ?= codesign
 
-# GON is the macOS notarizing tool.
-GON ?= gon
-
 # SIGNTOOL is the Windows signing tool.
 SIGNTOOL ?= signtool.exe
 

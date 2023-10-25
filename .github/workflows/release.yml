@@ -86,7 +86,6 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
-    - run: brew install mitchellh/gon/gon
     - run: make release
       env:
           FORCE_LOCALIZE: true
