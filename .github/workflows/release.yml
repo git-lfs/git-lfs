@@ -86,7 +86,6 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
-    - run: brew install mitchellh/gon/gon
     - run: make release
       env:
           FORCE_LOCALIZE: true
@@ -100,6 +99,7 @@ jobs:
       env:
         DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
         DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
+        DARWIN_DEV_TEAM: ${{secrets.MACOS_DEV_TEAM}}
         DARWIN_CERT_ID: ${{secrets.MACOS_CERT_ID}}
     - uses: actions/upload-artifact@v3
       with:

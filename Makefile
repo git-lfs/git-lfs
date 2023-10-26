@@ -106,6 +106,8 @@ DARWIN_CERT_ID ?=
 # certificate is located.
 DARWIN_KEYCHAIN_ID ?= CI.keychain
 
+export DARWIN_DEV_USER DARWIN_DEV_PASS DARWIN_DEV_TEAM
+
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -124,9 +126,6 @@ XGOTEXT ?= xgotext
 
 # CODESIGN is the macOS signing tool.
 CODESIGN ?= codesign
-
-# GON is the macOS notarizing tool.
-GON ?= gon
 
 # SIGNTOOL is the Windows signing tool.
 SIGNTOOL ?= signtool.exe
@@ -516,7 +515,7 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
 			do \
-				$(GON) "$$temp/manifest.json" && break; \
+				script/notarize "$$i" && break; \
 			done; \
 		); \
 		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; [ "$$status" -eq 0 ] || exit "$$status"; \

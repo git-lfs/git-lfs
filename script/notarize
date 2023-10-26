@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Notarizes the file given on the command line with the Apple ID in
+# $DARWIN_DEV_USER, the password in $DARWIN_DEV_PASS, and the team ID (usually
+# ten characters) in $DARWIN_DEV_TEAM.
+#
+# This script exists to not echo these variables into the log.  Don't run this
+# on a multi-user system, only in CI.
+
+xcrun notarytool submit "$1" \
+  --apple-id "$DARWIN_DEV_USER" --password "$DARWIN_DEV_PASS" --team-id "$DARWIN_DEV_TEAM" \
+  --wait
