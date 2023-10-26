@@ -37,6 +37,7 @@ type endpointGitFinder struct {
 	gitConfig   *git.Configuration
 	gitEnv      config.Environment
 	gitProtocol string
+	gitDir      string
 
 	aliasMu     sync.Mutex
 	aliases     map[string]string
@@ -53,10 +54,19 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		ctx = lfshttp.NewContext(nil, nil, nil)
 	}
 
+	var gitDir string
+	cfg := ctx.GitConfig()
+	if cfg != nil && cfg.GitDir != "" {
+		gitDir = cfg.GitDir
+	} else if dir, err := git.GitDir(); err == nil {
+		gitDir = dir
+	}
+
 	e := &endpointGitFinder{
 		gitConfig:   ctx.GitConfig(),
 		gitEnv:      ctx.GitEnv(),
 		gitProtocol: "https",
+		gitDir:      gitDir,
 		aliases:     make(map[string]string),
 		pushAliases: make(map[string]string),
 		urlAccess:   make(map[string]creds.AccessMode),
@@ -128,11 +138,10 @@ func (e *endpointGitFinder) RemoteEndpoint(operation, remote string) lfshttp.End
 		return e.NewEndpointFromCloneURL(operation, url)
 	}
 
-	gitDir, err := git.GitDir()
 	// Finally, fall back on .git/FETCH_HEAD but only if it exists and no specific remote was requested
 	// We can't know which remote FETCH_HEAD is pointing to
-	if err == nil && remote == defaultRemote {
-		url, err := parseFetchHead(strings.Join([]string{gitDir, "FETCH_HEAD"}, "/"))
+	if e.gitDir != "" && remote == defaultRemote {
+		url, err := parseFetchHead(strings.Join([]string{e.gitDir, "FETCH_HEAD"}, "/"))
 		if err == nil {
 			endpoint := e.NewEndpointFromCloneURL("download", url)
 			return endpoint
