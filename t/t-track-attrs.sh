@@ -35,3 +35,20 @@ begin_test "track (--no-modify-attrs)"
 )
 end_test
 
+begin_test "track (--dry-run)"
+(
+  set -e
+
+  reponame="track-dry-run"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track --dry-run "*.dat"
+
+  echo "contents" > a.dat
+  git add a.dat
+
+  git commit -m "add a.dat"
+  refute_pointer "main" "a.dat"
+)
+end_test
