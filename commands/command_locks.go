@@ -19,7 +19,11 @@ var (
 )
 
 func locksCommand(cmd *cobra.Command, args []string) {
-	filters, err := locksCmdFlags.Filters()
+	lockData, err := computeLockData()
+	if err != nil {
+		ExitWithError(err)
+	}
+	filters, err := locksCmdFlags.Filters(lockData)
 	if err != nil {
 		Exit(tr.Tr.Get("Error building filters: %v", err))
 	}
@@ -154,11 +158,11 @@ type locksFlags struct {
 }
 
 // Filters produces a filter based on locksFlags instance.
-func (l *locksFlags) Filters() (map[string]string, error) {
+func (l *locksFlags) Filters(data *lockData) (map[string]string, error) {
 	filters := make(map[string]string)
 
 	if l.Path != "" {
-		path, err := lockPath(l.Path)
+		path, err := lockPath(data, l.Path)
 		if err != nil {
 			return nil, err
 		}
