@@ -531,13 +531,20 @@ func ValidateRemote(remote string) error {
 	if err != nil {
 		return err
 	}
+	return ValidateRemoteFromList(remotes, remote)
+}
+
+// ValidateRemote checks that a named remote is valid for use given a list from
+// RemoteList.  This is completely identical to ValidateRemote, except that it
+// allows caching the remote list.
+func ValidateRemoteFromList(remotes []string, remote string) error {
 	for _, r := range remotes {
 		if r == remote {
 			return nil
 		}
 	}
 
-	if err = ValidateRemoteURL(remote); err == nil {
+	if err := ValidateRemoteURL(remote); err == nil {
 		return nil
 	}
 
