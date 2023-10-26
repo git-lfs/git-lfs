@@ -41,6 +41,7 @@ type endpointGitFinder struct {
 	aliasMu     sync.Mutex
 	aliases     map[string]string
 	pushAliases map[string]string
+	remoteList  []string
 
 	accessMu  sync.Mutex
 	urlAccess map[string]creds.AccessMode
@@ -60,6 +61,9 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		pushAliases: make(map[string]string),
 		urlAccess:   make(map[string]creds.AccessMode),
 	}
+
+	remotes, _ := git.RemoteList()
+	e.remoteList = remotes
 
 	e.urlConfig = config.NewURLConfig(e.gitEnv)
 	if v, ok := e.gitEnv.Get("lfs.gitprotocol"); ok {
@@ -187,7 +191,7 @@ func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 		}
 	}
 
-	if err := git.ValidateRemote(remote); err == nil {
+	if err := git.ValidateRemoteFromList(e.remoteList, remote); err == nil {
 		return remote
 	}
 
