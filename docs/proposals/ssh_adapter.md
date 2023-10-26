@@ -147,7 +147,6 @@ batch-response = status-command
                  (*batch-oid-line | error-message)
                  flush-pkt
 batch-oid-line = PKT-LINE(oid size action *(key=[value]) LF)
-error-message = PKT-LINE("message " data LF)
 ```
 
 If the status command is successful (that is, the status is not 200-series
@@ -204,7 +203,7 @@ status-success-response = status-success-command
                           flush-pkt
 status-success-command = PKT-LINE("status 200" LF)
 binary-data = *PKT-LINE(data)
-status-error-response = status-error-response
+status-error-response = status-error-command
                         *argument
                         delim-pkt
                         error-message
