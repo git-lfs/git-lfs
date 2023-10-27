@@ -39,6 +39,10 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 	setupWorkingCopy()
 
+	if trackDryRunFlag {
+		trackNoModifyAttrsFlag = true
+	}
+
 	if !cfg.Os.Bool("GIT_LFS_TRACK_NO_INSTALL_HOOKS", false) {
 		installHooks(false)
 	}
