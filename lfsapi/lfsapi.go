@@ -1,6 +1,7 @@
 package lfsapi
 
 import (
+	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
@@ -57,6 +58,11 @@ func (c *Client) SSHTransfer(operation, remote string) *ssh.SSHTransfer {
 	}
 	endpoint := c.Endpoints.Endpoint(operation, remote)
 	if len(endpoint.SSHMetadata.UserAndHost) == 0 {
+		return nil
+	}
+	uc := config.NewURLConfig(c.context.GitEnv())
+	if val, ok := uc.Get("lfs", endpoint.OriginalUrl, "sshtransfer"); ok && val != "negotiate" && val != "always" {
+		tracerx.Printf("skipping pure SSH protocol connection by request")
 		return nil
 	}
 	ctx := c.Context()

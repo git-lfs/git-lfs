@@ -72,6 +72,16 @@ begin_test "list a single lock (SSH; git-lfs-authenticate)"
   grep "f.dat" locks.log
   grep "Git LFS Tests" locks.log
   grep "lfs-ssh-echo.*git-lfs-authenticate /$reponame download" trace.log
+
+  GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=never lfs locks --path "f.dat" 2>trace.log | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
+  grep "f.dat" locks.log
+  grep "Git LFS Tests" locks.log
+  grep "lfs-ssh-echo.*git-lfs-authenticate /$reponame download" trace.log
+  grep "skipping pure SSH protocol" trace.log
+
+  GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=always lfs locks --path "f.dat" 2>trace.log && exit 1
+  grep "git-lfs-authenticate has been disabled by request" trace.log
 )
 end_test
 
@@ -95,6 +105,16 @@ begin_test "list a single lock (SSH; git-lfs-transfer)"
 
   GIT_TRACE=1 git lfs locks --path "f.dat" 2>trace.log | tee locks.log
   cat trace.log
+  [ $(wc -l < locks.log) -eq 1 ]
+  grep "f.dat" locks.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+
+  GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=always lfs locks --path "f.dat" 2>trace.log | tee locks.log
+  [ $(wc -l < locks.log) -eq 1 ]
+  grep "f.dat" locks.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+
+  GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=negotiate lfs locks --path "f.dat" 2>trace.log | tee locks.log
   [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
   grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log

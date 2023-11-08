@@ -564,7 +564,8 @@ func TestEndpointParsing(t *testing.T) {
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "",
+				Operation:   "",
+				OriginalUrl: "ssh://git@github.com/git-lfs/git-lfs.git",
 			},
 		},
 		"port bare ssh": {
@@ -576,7 +577,8 @@ func TestEndpointParsing(t *testing.T) {
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "443",
 				},
-				Operation: "",
+				Operation:   "",
+				OriginalUrl: "ssh://git@lfshttp.github.com:443/git-lfs/git-lfs.git",
 			},
 		},
 		"no user bare ssh": {
@@ -588,7 +590,8 @@ func TestEndpointParsing(t *testing.T) {
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "",
+				Operation:   "",
+				OriginalUrl: "ssh://github.com/git-lfs/git-lfs.git",
 			},
 		},
 		"bare word bare ssh": {
@@ -600,7 +603,8 @@ func TestEndpointParsing(t *testing.T) {
 					Path:        "git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "",
+				Operation:   "",
+				OriginalUrl: "ssh://github/git-lfs/git-lfs.git",
 			},
 		},
 		"insteadof alias": {
@@ -612,7 +616,8 @@ func TestEndpointParsing(t *testing.T) {
 					Path:        "",
 					Port:        "",
 				},
-				Operation: "",
+				Operation:   "",
+				OriginalUrl: "https://github.com/git-lfs/git-lfs.git",
 			},
 		},
 		"remote helper": {
@@ -663,7 +668,8 @@ func TestInsteadOf(t *testing.T) {
 					Path:        "",
 					Port:        "",
 				},
-				Operation: "download",
+				Operation:   "download",
+				OriginalUrl: "https://example.com/git-lfs/git-lfs.git",
 			},
 		},
 		"pushinsteadof alias (upload)": {
@@ -676,7 +682,8 @@ func TestInsteadOf(t *testing.T) {
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "upload",
+				Operation:   "upload",
+				OriginalUrl: "ssh://example.com/git-lfs/git-lfs.git",
 			},
 		},
 		"exp alias (download)": {
@@ -689,7 +696,8 @@ func TestInsteadOf(t *testing.T) {
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "download",
+				Operation:   "download",
+				OriginalUrl: "ssh://example.com/git-lfs/git-lfs.git",
 			},
 		},
 		"exp alias (upload)": {
@@ -702,7 +710,8 @@ func TestInsteadOf(t *testing.T) {
 					Path:        "/git-lfs/git-lfs.git",
 					Port:        "",
 				},
-				Operation: "upload",
+				Operation:   "upload",
+				OriginalUrl: "ssh://example.com/git-lfs/git-lfs.git",
 			},
 		},
 	} {

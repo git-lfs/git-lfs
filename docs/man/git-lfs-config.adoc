@@ -318,6 +318,13 @@ Supports URL config lookup as described in:
 https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this
 value per-host:
 `git config --global lfs.https://github.com/.locksverify [true|false]`.
+* `lfs.sshtransfer` / `lfs.<url>.sshtransfer`
++
+Configures whether SSH transfers (the pure SSH protocol) are used.
+By default (or if the value is set to `negotiate`), the pure SSH protocol is
+tried first, and then the older hybrid protocol.  If `always` is used, then
+only the pure SSH protocol is tried.  Similarly, if `never` is used, then only
+the hybrid protocol is attempted.
 * `lfs.<url>.contenttype`
 +
 Determines whether Git LFS should attempt to detect an appropriate HTTP
