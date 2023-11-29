@@ -67,6 +67,8 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 		cache:              &nilLockCacher{},
 		cfg:                cfg,
 		ModifyIgnoredFiles: lfsClient.GitEnv().Bool("lfs.lockignoredfiles", false),
+		LocalWorkingDir:    cfg.LocalWorkingDir(),
+		LocalGitDir:        cfg.LocalGitDir(),
 	}, nil
 }
 
@@ -120,7 +122,7 @@ func (c *Client) LockFile(path string) (Lock, error) {
 		return Lock{}, errors.Wrap(err, tr.Tr.Get("lock cache"))
 	}
 
-	abs, err := getAbsolutePath(path)
+	abs, err := c.getAbsolutePath(path)
 	if err != nil {
 		return Lock{}, errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 	}
@@ -141,13 +143,8 @@ func (c *Client) LockFile(path string) (Lock, error) {
 // dir/foo/bar.txt, getAbsolutePath will return:
 //
 //	/usr/local/src/my-repo/dir/foo/bar.txt
-func getAbsolutePath(p string) (string, error) {
-	root, err := git.RootDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(root, p), nil
+func (c *Client) getAbsolutePath(p string) (string, error) {
+	return filepath.Join(c.LocalWorkingDir, p), nil
 }
 
 // UnlockFile attempts to unlock a file on the current remote
@@ -182,7 +179,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 	}
 
 	if unlockRes.Lock != nil {
-		abs, err := getAbsolutePath(unlockRes.Lock.Path)
+		abs, err := c.getAbsolutePath(unlockRes.Lock.Path)
 		if err != nil {
 			return errors.Wrap(err, tr.Tr.Get("make lock path absolute"))
 		}

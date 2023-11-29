@@ -58,6 +58,11 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(lockRemote)
 	}
 
+	lockData, err := computeLockData()
+	if err != nil {
+		ExitWithError(err)
+	}
+
 	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)
 	lockClient := newLockClient()
 	lockClient.RemoteRef = refUpdate.RemoteRef()
@@ -67,7 +72,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	success := true
 	if hasPath {
 		for _, pathspec := range args {
-			path, err := lockPath(pathspec)
+			path, err := lockPath(lockData, pathspec)
 			if err != nil {
 				if !unlockCmdFlags.Force {
 					locks = handleUnlockError(locks, "", path, errors.New(tr.Tr.Get("Unable to determine path: %v", err.Error())))
