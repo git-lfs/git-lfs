@@ -446,35 +446,50 @@ bin/releases/git-lfs-$(VERSION).tar.gz :
 release-linux:
 	./docker/run_dockers.bsh
 
-# release-windows is a target that builds and signs Windows binaries.  It must
-# be run on a Windows machine under Git Bash.
-#
-# You may sign with a different certificate by specifying CERT_ID.
-.PHONY : release-windows
-release-windows: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
+# release-windows-stage-1 is a target that builds the Windows Git LFS binaries
+# and prepares them for signing.  It must be run on a Windows machine under Git
+# Bash.
+.PHONY : release-windows-stage-1
+release-windows-stage-1: tmp/stage1
 
-bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz :
-	$(RM) git-lfs-windows-*.exe
+# After this stage completes, the binaries in this directory will be signed.
+tmp/stage1:
+	$(RM) -r tmp/stage1
+	@mkdir -p tmp/stage1
 	@# Using these particular filenames is required for the Inno Setup script to
 	@# work properly.
 	$(MAKE) -B GOOS=windows X=.exe GOARCH=amd64 && cp ./bin/git-lfs.exe ./git-lfs-x64.exe
 	$(MAKE) -B GOOS=windows X=.exe GOARCH=386 && cp ./bin/git-lfs.exe ./git-lfs-x86.exe
 	$(MAKE) -B GOOS=windows X=.exe GOARCH=arm64 && cp ./bin/git-lfs.exe ./git-lfs-arm64.exe
-	@echo Signing git-lfs-x64.exe
-	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x64.exe
-	@echo Signing git-lfs-x86.exe
-	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-x86.exe
-	@echo Signing git-lfs-arm64.exe
-	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-arm64.exe
+	mv git-lfs-x64.exe git-lfs-x86.exe git-lfs-arm64.exe tmp/stage1
+
+# release-windows-stage-2 is a target that builds the InnoSetup installer and
+# prepares it for signing.  It must be run on a Windows machine under Git Bash.
+.PHONY : release-windows-stage-2
+release-windows-stage-2: tmp/stage2
+
+# After this stage completes, the binaries in tmp/stage2 will be signed.
+tmp/stage2: tmp/stage1
+	cp tmp/stage1/*.exe .
+	@# The git-lfs-windows-*.exe file will be named according to the version
+	@# number in the versioninfo.json, not according to $(VERSION).
 	iscc.exe script/windows-installer/inno-setup-git-lfs-installer.iss
-	@# This file will be named according to the version number in the
-	@# versioninfo.json, not according to $(VERSION).
 	mv git-lfs-windows-*.exe git-lfs-windows.exe
-	@echo Signing git-lfs-windows.exe
-	@$(SIGNTOOL) sign -debug -fd sha256 -tr http://timestamp.digicert.com -td sha256 $(CERT_ARGS) -v git-lfs-windows.exe
-	mv git-lfs-x64.exe git-lfs-windows-amd64.exe
-	mv git-lfs-x86.exe git-lfs-windows-386.exe
-	mv git-lfs-arm64.exe git-lfs-windows-arm64.exe
+	$(RM) -r tmp/stage2
+	@mkdir -p tmp/stage2
+	cp git-lfs-windows.exe tmp/stage2
+
+# release-windows-stage-3 is a target that produces an archive from signed
+# Windows binaries from the previous stages.  It must be run on a Windows
+# machine under Git Bash.
+.PHONY : release-windows-stage-3
+release-windows-stage-3: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
+
+bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz : tmp/stage1 tmp/stage2
+	mv tmp/stage1/git-lfs-x64.exe git-lfs-windows-amd64.exe
+	mv tmp/stage1/git-lfs-x86.exe git-lfs-windows-386.exe
+	mv tmp/stage1/git-lfs-arm64.exe git-lfs-windows-arm64.exe
+	mv tmp/stage2/git-lfs-windows.exe git-lfs-windows.exe
 	@# We use tar because Git Bash doesn't include zip.
 	$(TAR) -czf $@ git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
 	$(RM) git-lfs-windows-amd64.exe git-lfs-windows-386.exe git-lfs-windows-arm64.exe git-lfs-windows.exe
