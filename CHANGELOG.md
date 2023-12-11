@@ -1,5 +1,15 @@
 # Git LFS Changelog
 
+## 3.4.1 (13 Dec 2023)
+
+This is a bugfix release which resolves a bug introduced in the
+v3.4.0 release, where Git LFS may crash if the Git credential manager
+returns credentials containing one or more empty fields.
+
+### Bugs
+
+* Fix a panic in the credential code #5490 (@bk2204)
+
 ## 3.4.0 (26 July 2023)
 
 This release is a feature release which includes support for generating
