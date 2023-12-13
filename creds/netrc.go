@@ -63,7 +63,7 @@ func newNetrcCredentialHelper(osEnv config.Environment) *netrcCredentialHelper {
 }
 
 func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
-	host, err := getNetrcHostname(firstEntryForKey(what, "host"))
+	host, err := getNetrcHostname(FirstEntryForKey(what, "host"))
 	if err != nil {
 		return nil, credHelperNoOp
 	}
@@ -72,7 +72,7 @@ func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
 	if c.skip[host] {
 		return nil, credHelperNoOp
 	}
-	if machine := c.netrcFinder.FindMachine(host, firstEntryForKey(what, "username")); machine != nil {
+	if machine := c.netrcFinder.FindMachine(host, FirstEntryForKey(what, "username")); machine != nil {
 		creds := make(Creds)
 		creds["username"] = []string{machine.Login}
 		creds["password"] = []string{machine.Password}
@@ -82,9 +82,9 @@ func (c *netrcCredentialHelper) Fill(what Creds) (Creds, error) {
 		creds["path"] = what["path"]
 		creds["source"] = []string{"netrc"}
 		tracerx.Printf("netrc: git credential fill (%q, %q, %q, %q)",
-			firstEntryForKey(what, "protocol"),
-			firstEntryForKey(what, "host"), machine.Login,
-			firstEntryForKey(what, "path"))
+			FirstEntryForKey(what, "protocol"),
+			FirstEntryForKey(what, "host"), machine.Login,
+			FirstEntryForKey(what, "path"))
 		return creds, nil
 	}
 
@@ -105,15 +105,15 @@ func getNetrcHostname(hostname string) (string, error) {
 }
 
 func (c *netrcCredentialHelper) Approve(what Creds) error {
-	if firstEntryForKey(what, "source") == "netrc" {
-		host, err := getNetrcHostname(firstEntryForKey(what, "host"))
+	if FirstEntryForKey(what, "source") == "netrc" {
+		host, err := getNetrcHostname(FirstEntryForKey(what, "host"))
 		if err != nil {
 			return credHelperNoOp
 		}
 		tracerx.Printf("netrc: git credential approve (%q, %q, %q)",
-			firstEntryForKey(what, "protocol"),
-			firstEntryForKey(what, "host"),
-			firstEntryForKey(what, "path"))
+			FirstEntryForKey(what, "protocol"),
+			FirstEntryForKey(what, "host"),
+			FirstEntryForKey(what, "path"))
 		c.mu.Lock()
 		c.skip[host] = false
 		c.mu.Unlock()
@@ -123,7 +123,7 @@ func (c *netrcCredentialHelper) Approve(what Creds) error {
 }
 
 func (c *netrcCredentialHelper) Reject(what Creds) error {
-	if firstEntryForKey(what, "source") == "netrc" {
+	if FirstEntryForKey(what, "source") == "netrc" {
 		host, err := getNetrcHostname(what["host"][0])
 		if err != nil {
 			return credHelperNoOp
