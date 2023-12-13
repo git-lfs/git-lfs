@@ -315,7 +315,7 @@ hook. You should set this if you're not using File Locking, or your Git
 server verifies locked files on pushes automatically.
 +
 Supports URL config lookup as described in:
-https://git-scm.com/docs/git-config#git-config-httplturlgt. To set this
+https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt. To set this
 value per-host:
 `git config --global lfs.https://github.com/.locksverify [true|false]`.
 * `lfs.sshtransfer` / `lfs.<url>.sshtransfer`
