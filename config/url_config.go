@@ -22,7 +22,7 @@ func NewURLConfig(git Environment) *URLConfig {
 }
 
 // Get retrieves a `http.{url}.{key}` for the given key and urls, following the
-// rules in https://git-scm.com/docs/git-config#git-config-httplturlgt.
+// rules in https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt.
 // The value for `http.{key}` is returned as a fallback if no config keys are
 // set for the given urls.
 func (c *URLConfig) Get(prefix, rawurl, key string) (string, bool) {
