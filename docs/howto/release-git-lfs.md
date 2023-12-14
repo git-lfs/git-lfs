@@ -101,8 +101,8 @@ to zero, we are releasing a PATCH version.
        MINOR release number in that series.  For a MINOR release, use
        `script/changelog vM.(N-1).0...HEAD`, where `(N-1)` is the previous
        MINOR release number, and for a PATCH release, use
-       `script/changelog vM.N.(P-1)...HEAD`, where `(P-1)` is the previous
-       PATCH release number.
+       `script/changelog --patch vM.N.(P-1)...HEAD`, where `(P-1)` is the
+       previous PATCH release number.
 
        * Optionally write 1-2 paragraphs summarizing the release and calling
          out community contributions.
@@ -117,10 +117,16 @@ to zero, we are releasing a PATCH version.
          `release-M.(N-1)`.)
 
      * Run `script/update-version vM.N.P` to update the version number in all
-       of the relevant files.
+       of the relevant files.  Note that this script requires a version of
+       `sed(1)` compatible with the GNU implementation.
 
      * Adjust the date in the `debian/changelog` entry to reflect the
        expected release date rather than the current date.
+
+     * Commit all the files changed in the steps above in a single new commit:
+       ```ShellSession
+       $ git commit -m 'release: vM.N.P'
+       ```
 
   2. Then, push the `release-next` branch and create a pull request with your
      changes from the branch.  If you're building a MAJOR or MINOR release,
@@ -131,9 +137,13 @@ to zero, we are releasing a PATCH version.
 
      * In the PR description, consider uploading builds for implementers to
        use in testing.  These can be generated from a local tag, which
-       does not need to be signed (but must be annotated).  The build
-       artifacts will be placed in the `bin/releases` directory and may
-       be uploaded from there:
+       does not need to be signed (but must be annotated).  Check that the
+       local version of Go is equivalent to the most recent one used by the
+       GitHub Actions workflows for the release branch, which may be different
+       from that used on the `main` branch.  For a patch release in particular
+       you may need to downgrade your local Go version.  The build artifacts
+       will be placed in the `bin/releases` directory and may be uploaded
+       into the PR from there:
 
        ```ShellSession
        $ git tag -m vM.N.P-pre vM.N.P-pre
@@ -152,7 +162,7 @@ to zero, we are releasing a PATCH version.
        which will trigger a run of the release workflow that does not upload
        artifacts to Packagecloud.  Alternatively, in a private clone of
        the repository, create such a tag from the `release-next` branch plus
-       one commit to change to the repository name in `script/upload`, and
+       one commit to change the repository name in `script/upload`, and
        push the tag so Actions will run the release workflow.  Ensure that
        the workflow succeeds (excepting the Packagecloud upload step, which
        will be skipped).
@@ -238,6 +248,7 @@ to zero, we are releasing a PATCH version.
      release's source files which is available at the given URL:
 
      ```
+     $ brew tap homebrew/core
      $ brew bump-formula-pr \
          --url https://github.com/git-lfs/git-lfs/releases/download/vM.N.P/git-lfs-vM.N.P.tar.gz \
          --sha256 <SHA-256> \
