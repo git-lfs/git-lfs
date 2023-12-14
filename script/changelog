@@ -3,7 +3,7 @@
 # Interactively generates a changelog over a range of commits:
 
 commit_summary() {
-  local hash=$1
+  local hash="$1"
 
   pr=$(git show $hash | grep -o "#\([0-9]*\)" | cut -c 2-)
   prjson="$(curl -n https://api.github.com/repos/git-lfs/git-lfs/pulls/$pr 2>/dev/null)"
@@ -21,7 +21,11 @@ commit_summary() {
 }
 
 revisions_in () {
-  git rev-list --merges --first-parent $1
+  if [ "$patch" -eq 1 ]; then
+    git rev-list --first-parent "$1"
+  else
+    git rev-list --merges --first-parent "$1"
+  fi
 }
 
 noninteractive () {
@@ -46,7 +50,14 @@ if [ "$1" = "--noninteractive" ]; then
   shift
 fi
 
-range=$1
+if [ "$1" = "--patch" ]; then
+  patch=1
+  shift
+else
+  patch=0
+fi
+
+range="$1"
 
 if [ "$range" = "" ]; then
   echo "Usage: $0 [options] base..next"
@@ -64,7 +75,7 @@ bugs=""
 misc=""
 
 for rev in $(revisions_in "$range"); do
-  git show $rev
+  git show -s $rev
 
   processed=0
   while [ $processed -eq 0 ]; do
