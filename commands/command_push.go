@@ -159,11 +159,12 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 	}
 
 	for _, suspiciousRef := range suspiciousRefs {
-		isValid, err := git.IsValidRef(suspiciousRef)
+		resolvedRef, err := git.ResolveRef(suspiciousRef)
+
 		if err != nil {
 			return nil, errors.New(tr.Tr.Get("Unable to determine ref validity of %v. Error: %v", suspiciousRef, err))
 		}
-		if !isValid {
+		if resolvedRef == nil {
 			return nil, errors.New(tr.Tr.Get("Invalid ref: %v", suspiciousRef))
 		}
 	}
