@@ -57,6 +57,21 @@ begin_test "init for fetch tests"
 )
 end_test
 
+begin_test "fetch (invalid ref)"
+(
+  set -e
+  cd clone
+  rm -rf .git/lfs/objects
+
+  # should return non-zero
+  set +e
+  git lfs fetch origin jibberish
+  fetch_exit=$?
+  set -e
+  [ "$fetch_exit" != "0" ]
+)
+end_test
+
 begin_test "fetch"
 (
   set -e
