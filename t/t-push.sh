@@ -26,6 +26,20 @@ begin_test "push with good ref"
 )
 end_test
 
+begin_test "push with invalid ref"
+(
+  set -e
+  push_repo_setup "push-invalid-branch-required"
+
+  # should return non-zero
+  set +e
+  git lfs push origin jibberish
+  push_exit=$?
+  set -e
+  [ "$push_exit" != "0" ]
+)
+end_test
+
 begin_test "push with tracked ref"
 (
   set -e
