@@ -251,6 +251,14 @@ func (c *Client) ExtraHeadersFor(req *http.Request) http.Header {
 			copy[k] = append(copy[k], v)
 		}
 	}
+
+	// There must only be a single Authorization HTTP header.
+	// We keep the first specified header, which should be the one explicitly set by git-lfs.
+	vals, ok := copy["Authorization"]
+	if ok && len(vals) > 1 {
+		copy["Authorization"] = []string{ vals[0] }
+	}
+
 	return copy
 }
 
