@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,7 +21,7 @@ func warnf(w io.Writer, format string, a ...interface{}) {
 	fmt.Fprintf(w, format, a...)
 }
 
-func readPoDir() (string, []os.FileInfo) {
+func readPoDir() (string, []os.DirEntry) {
 	rootDirs := []string{
 		".",
 		"..",
@@ -31,7 +30,7 @@ func readPoDir() (string, []os.FileInfo) {
 
 	var err error
 	for _, rootDir := range rootDirs {
-		fs, err := ioutil.ReadDir(filepath.Join(rootDir, "po", "build"))
+		fs, err := os.ReadDir(filepath.Join(rootDir, "po", "build"))
 		if err == nil {
 			return rootDir, fs
 		}
@@ -69,7 +68,7 @@ func main() {
 		if match := fileregex.FindStringSubmatch(f.Name()); match != nil {
 			infof(os.Stderr, "%v\n", f.Name())
 			cmd := match[1]
-			content, err := ioutil.ReadFile(filepath.Join(poDir, f.Name()))
+			content, err := os.ReadFile(filepath.Join(poDir, f.Name()))
 			if err != nil {
 				warnf(os.Stderr, "Failed to open %v: %v\n", f.Name(), err)
 				os.Exit(2)

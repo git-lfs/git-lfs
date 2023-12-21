@@ -1,7 +1,6 @@
 package kv
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestStoreSimple(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfstest1")
+	tmpf, err := os.CreateTemp("", "lfstest1")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
@@ -89,11 +88,10 @@ func TestStoreSimple(t *testing.T) {
 		assert.Fail(t, "Should be no entries")
 		return true
 	})
-
 }
 
 func TestStoreOptimisticConflict(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfstest2")
+	tmpf, err := os.CreateTemp("", "lfstest2")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)
@@ -138,11 +136,10 @@ func TestStoreOptimisticConflict(t *testing.T) {
 	assert.Equal(t, "value4", v) // we overwrote this so would not be merged
 	v = kvs1.Get("key5")
 	assert.Equal(t, "value5_fromkvs2", v)
-
 }
 
 func TestStoreReduceSize(t *testing.T) {
-	tmpf, err := ioutil.TempFile("", "lfstest3")
+	tmpf, err := os.CreateTemp("", "lfstest3")
 	assert.Nil(t, err)
 	filename := tmpf.Name()
 	defer os.Remove(filename)

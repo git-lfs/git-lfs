@@ -6,7 +6,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -131,7 +130,7 @@ func credsForHostAndPath(host, path string) (string, string, error) {
 }
 
 func credsFromFilename(file string) (string, string, error) {
-	userPass, err := ioutil.ReadFile(file)
+	userPass, err := os.ReadFile(file)
 	if err != nil {
 		return "", "", fmt.Errorf("Error opening %q: %s", file, err)
 	}

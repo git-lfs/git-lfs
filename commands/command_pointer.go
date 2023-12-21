@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -52,7 +51,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 				ExitWithError(err)
 			}
 		} else if pointerStdin {
-			r = ioutil.NopCloser(os.Stdin)
+			r = io.NopCloser(os.Stdin)
 		} else {
 			ExitWithError(errors.New(tr.Tr.Get("Must specify either --file or --stdin with --compare")))
 		}

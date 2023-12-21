@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -23,7 +22,7 @@ func untrackCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	data, err := ioutil.ReadFile(".gitattributes")
+	data, err := os.ReadFile(".gitattributes")
 	if err != nil {
 		return
 	}

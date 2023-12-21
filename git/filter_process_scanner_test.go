@@ -2,7 +2,7 @@ package git
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/git-lfs/pktline"
@@ -120,7 +120,7 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	assert.Equal(t, req.Header["other"], "woot")
 	assert.Equal(t, req.Header["crazy"], "'sq',\\$x=.bin")
 
-	payload, err := ioutil.ReadAll(req.Payload)
+	payload, err := io.ReadAll(req.Payload)
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("first\nsecond\n"), payload)
 }

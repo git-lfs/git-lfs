@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -33,7 +32,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	by, err := ioutil.ReadFile(filepath.Join(cfg.LocalLogDir(), name))
+	by, err := os.ReadFile(filepath.Join(cfg.LocalLogDir(), name))
 	if err != nil {
 		Exit(tr.Tr.Get("Error reading log: %s", name))
 	}
@@ -58,7 +57,7 @@ func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 }
 
 func sortedLogs() []string {
-	fileinfos, err := ioutil.ReadDir(cfg.LocalLogDir())
+	fileinfos, err := os.ReadDir(cfg.LocalLogDir())
 	if err != nil {
 		return []string{}
 	}

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -127,7 +126,7 @@ func performDownload(apiClient *lfsapi.Client, oid string, size int64, a *action
 	}
 	defer res.Body.Close()
 
-	dlFile, err := ioutil.TempFile("", "lfscustomdl")
+	dlFile, err := os.CreateTemp("", "lfscustomdl")
 	if err != nil {
 		sendTransferError(oid, 3, err.Error(), writer, errWriter)
 		return
@@ -211,7 +210,7 @@ func performUpload(apiClient *lfsapi.Client, oid string, size int64, a *action, 
 		return
 	}
 
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	// completed

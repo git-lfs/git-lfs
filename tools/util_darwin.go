@@ -5,7 +5,6 @@ package tools
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -58,13 +57,13 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 		return false, errors.New(tr.Tr.Get("Unsupported OS version. 10.12.x Sierra or higher required."))
 	}
 
-	src, err := ioutil.TempFile(dir, "src")
+	src, err := os.CreateTemp(dir, "src")
 	if err != nil {
 		return false, err
 	}
 	defer os.Remove(src.Name())
 
-	dst, err := ioutil.TempFile(dir, "dst")
+	dst, err := os.CreateTemp(dir, "dst")
 	if err != nil {
 		return false, err
 	}

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -128,7 +127,7 @@ ArgsLoop:
 		attributesFile *os.File
 	)
 	if !trackNoModifyAttrsFlag {
-		attribContents, err = ioutil.ReadFile(".gitattributes")
+		attribContents, err = os.ReadFile(".gitattributes")
 		// it's fine for file to not exist
 		if err != nil && !os.IsNotExist(err) {
 			Print(tr.Tr.Get("Error reading '.gitattributes' file"))

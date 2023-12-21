@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -72,12 +72,12 @@ func getClientCertForHost(c *Client, host string) *tls.Certificate {
 	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
-	cert, err := ioutil.ReadFile(hostSslCert)
+	cert, err := os.ReadFile(hostSslCert)
 	if err != nil {
 		tracerx.Printf("Error reading client cert file %q: %v", hostSslCert, err)
 		return nil
 	}
-	key, err := ioutil.ReadFile(hostSslKey)
+	key, err := os.ReadFile(hostSslKey)
 	if err != nil {
 		tracerx.Printf("Error reading client key file %q: %v", hostSslKey, err)
 		return nil
@@ -154,7 +154,7 @@ func appendCertsFromFilesInDir(pool *x509.CertPool, dir string) *x509.CertPool {
 	if errpath != nil {
 		tracerx.Printf("Error reading cert dir %q: %v", dirpath, errpath)
 	}
-	files, err := ioutil.ReadDir(dirpath)
+	files, err := os.ReadDir(dirpath)
 	if err != nil {
 		tracerx.Printf("Error reading cert dir %q: %v", dir, err)
 		return pool
@@ -170,7 +170,7 @@ func appendCertsFromFile(pool *x509.CertPool, filename string) *x509.CertPool {
 	if errfile != nil {
 		tracerx.Printf("Error reading cert dir %q: %v", filenamepath, errfile)
 	}
-	data, err := ioutil.ReadFile(filenamepath)
+	data, err := os.ReadFile(filenamepath)
 	if err != nil {
 		tracerx.Printf("Error reading cert file %q: %v", filename, err)
 		return pool

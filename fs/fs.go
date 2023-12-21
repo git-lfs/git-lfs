@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -311,7 +310,7 @@ func resolveGitStorageDir(gitDir string) string {
 }
 
 func processGitRedirectFile(file, prefix string) (string, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return "", err
 	}

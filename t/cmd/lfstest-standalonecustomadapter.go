@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -136,7 +135,7 @@ func performCopy(oid, src, dst string, size int64, writer, errWriter *bufio.Writ
 }
 
 func performDownload(oid string, size int64, writer, errWriter *bufio.Writer) {
-	dlFile, err := ioutil.TempFile("", "lfscustomdl")
+	dlFile, err := os.CreateTemp("", "lfscustomdl")
 	if err != nil {
 		sendTransferError(oid, 1, err.Error(), writer, errWriter)
 		return

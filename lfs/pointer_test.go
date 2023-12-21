@@ -3,7 +3,7 @@ package lfs
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -170,7 +170,7 @@ size 12345`
 
 func TestDecodeFromEmptyReader(t *testing.T) {
 	p, buf, err := DecodeFrom(strings.NewReader(""))
-	by, _ := ioutil.ReadAll(buf)
+	by, _ := io.ReadAll(buf)
 
 	assert.Nil(t, err)
 	assert.Equal(t, p.Oid, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")

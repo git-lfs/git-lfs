@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +22,7 @@ func warnf(w io.Writer, format string, a ...interface{}) {
 	fmt.Fprintf(w, format, a...)
 }
 
-func readManDir() (string, []os.FileInfo) {
+func readManDir() (string, []os.DirEntry) {
 	rootDirs := []string{
 		"..",
 		"/tmp/docker_run/git-lfs",
@@ -31,7 +30,7 @@ func readManDir() (string, []os.FileInfo) {
 
 	var err error
 	for _, rootDir := range rootDirs {
-		fs, err := ioutil.ReadDir(filepath.Join(rootDir, "docs", "man"))
+		fs, err := os.ReadDir(filepath.Join(rootDir, "docs", "man"))
 		if err == nil {
 			return rootDir, fs
 		}

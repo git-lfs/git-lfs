@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,7 +48,7 @@ func TestVerboseEnabled(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)
@@ -84,7 +83,7 @@ func TestVerboseWithBinaryBody(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 
 		assert.Equal(t, "Basic ABC", r.Header.Get("Authorization"))
-		by, err := ioutil.ReadAll(r.Body)
+		by, err := io.ReadAll(r.Body)
 		assert.Nil(t, err)
 		assert.Equal(t, "binary-request", string(by))
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -105,7 +104,7 @@ func TestVerboseWithBinaryBody(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)
@@ -163,7 +162,7 @@ func TestVerboseEnabledWithDebugging(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)
@@ -221,7 +220,7 @@ func TestVerboseDisabled(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)

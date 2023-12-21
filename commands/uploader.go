@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -109,7 +108,7 @@ func newUploadContext(dryRun bool) *uploadContext {
 
 	var sink io.Writer = os.Stdout
 	if dryRun {
-		sink = ioutil.Discard
+		sink = io.Discard
 	}
 
 	ctx.logger = tasklog.NewLogger(sink,

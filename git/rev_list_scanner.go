@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"sync"
@@ -195,7 +194,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 	return &RevListScanner{
 		s: bufio.NewScanner(stdout),
 		closeFn: func() error {
-			msg, _ := ioutil.ReadAll(stderr)
+			msg, _ := io.ReadAll(stderr)
 
 			// First check if there was a non-zero exit code given
 			// when Wait()-ing on the command execution.

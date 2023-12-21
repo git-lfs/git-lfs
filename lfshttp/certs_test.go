@@ -2,7 +2,6 @@ package lfshttp
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -57,7 +56,7 @@ func clientForHost(c *Client, host string) *http.Client {
 }
 
 func TestCertFromSSLCAInfoConfig(t *testing.T) {
-	tempfile, err := ioutil.TempFile("", "testcert")
+	tempfile, err := os.CreateTemp("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
 
@@ -103,7 +102,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 }
 
 func TestCertFromSSLCAInfoEnv(t *testing.T) {
-	tempfile, err := ioutil.TempFile("", "testcert")
+	tempfile, err := os.CreateTemp("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
 
@@ -124,7 +123,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 }
 
 func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
-	tempfile, err := ioutil.TempFile("", "testcert")
+	tempfile, err := os.CreateTemp("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
 
@@ -147,7 +146,7 @@ func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
 }
 
 func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
-	tempfile, err := ioutil.TempFile("", "testcert")
+	tempfile, err := os.CreateTemp("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
 	defer os.Remove(tempfile.Name())
 
@@ -171,11 +170,9 @@ func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
 }
 
 func TestCertFromSSLCAPathConfig(t *testing.T) {
-	tempdir, err := ioutil.TempDir("", "testcertdir")
-	assert.Nil(t, err, "Error creating temp cert dir")
-	defer os.RemoveAll(tempdir)
+	tempdir := t.TempDir()
 
-	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
+	err := os.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
 	c, err := NewClient(NewContext(nil, nil, map[string]string{
@@ -192,11 +189,9 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 }
 
 func TestCertFromSSLCAPathEnv(t *testing.T) {
-	tempdir, err := ioutil.TempDir("", "testcertdir")
-	assert.Nil(t, err, "Error creating temp cert dir")
-	defer os.RemoveAll(tempdir)
+	tempdir := t.TempDir()
 
-	err = ioutil.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
+	err := os.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
 	c, err := NewClient(NewContext(nil, map[string]string{

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -35,7 +35,7 @@ func (c *ArgsTestCase) Assert(t *testing.T) {
 	assert.EqualValues(t, c.ExpectedArgs, args)
 
 	if stdin != nil {
-		b, err := ioutil.ReadAll(stdin)
+		b, err := io.ReadAll(stdin)
 		assert.Nil(t, err)
 
 		assert.Equal(t, c.ExpectedStdin, string(b))

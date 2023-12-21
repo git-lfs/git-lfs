@@ -1,7 +1,6 @@
 package git_test // to avoid import cycles
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -518,7 +517,7 @@ func TestGetTrackedFiles(t *testing.T) {
 	assert.Equal(t, []string{"file1.txt", "file2.txt", "file3.txt", "file4.txt"}, tracked)
 
 	// Test includes staged but uncommitted files
-	ioutil.WriteFile("z_newfile.txt", []byte("Hello world"), 0644)
+	os.WriteFile("z_newfile.txt", []byte("Hello world"), 0644)
 	test.RunGitCommand(t, true, "add", "z_newfile.txt")
 	tracked, err = GetTrackedFiles("*.txt")
 	assert.Nil(t, err)
@@ -527,7 +526,7 @@ func TestGetTrackedFiles(t *testing.T) {
 	assert.Equal(t, fulllist, tracked)
 
 	// Test includes modified files (not staged)
-	ioutil.WriteFile("file1.txt", []byte("Modifications"), 0644)
+	os.WriteFile("file1.txt", []byte("Modifications"), 0644)
 	tracked, err = GetTrackedFiles("*.txt")
 	assert.Nil(t, err)
 	sort.Strings(tracked)

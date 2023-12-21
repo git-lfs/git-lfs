@@ -4,7 +4,6 @@
 package tools
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -51,7 +50,7 @@ func TestCloneFileByPath(t *testing.T) {
 	as := assert.New(t)
 
 	// Precondition
-	err := ioutil.WriteFile(src, []byte("TEST"), 0666)
+	err := os.WriteFile(src, []byte("TEST"), 0666)
 	as.NoError(err)
 
 	// Do
@@ -68,7 +67,7 @@ func TestCloneFileByPath(t *testing.T) {
 	as.NoError(err)
 	as.True(ok)
 
-	dstContents, err := ioutil.ReadFile(dst)
+	dstContents, err := os.ReadFile(dst)
 	as.NoError(err)
 	as.Equal("TEST", string(dstContents))
 }

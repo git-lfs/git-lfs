@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -48,9 +47,9 @@ func TestCloneFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			as := assert.New(t)
 
-			src, err := ioutil.TempFile(testDir, tc.name+"_src")
+			src, err := os.CreateTemp(testDir, tc.name+"_src")
 			as.NoError(err)
-			dst, err := ioutil.TempFile(testDir, tc.name+"_dst")
+			dst, err := os.CreateTemp(testDir, tc.name+"_dst")
 			as.NoError(err)
 
 			srcHash, err := fillFile(src, tc.size)

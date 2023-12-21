@@ -1,7 +1,6 @@
 package lfsapi
 
 import (
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -324,10 +323,8 @@ func TestLocalPathEndpointAddsDotGitForWorkingRepo(t *testing.T) {
 		return
 	}
 
-	path, err := ioutil.TempDir("", "lfsRepo")
-	assert.Nil(t, err)
-	path = path + "/local/path"
-	err = os.MkdirAll(path+"/.git", 0755)
+	path := t.TempDir() + "/local/path"
+	err := os.MkdirAll(path+"/.git", 0755)
 	assert.Nil(t, err)
 
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
@@ -346,10 +343,8 @@ func TestLocalPathEndpointPreservesDotGitForWorkingRepo(t *testing.T) {
 		return
 	}
 
-	path, err := ioutil.TempDir("", "lfsRepo")
-	assert.Nil(t, err)
-	path = path + "/local/path/.git"
-	err = os.MkdirAll(path, 0755)
+	path := t.TempDir() + "/local/path/.git"
+	err := os.MkdirAll(path, 0755)
 	assert.Nil(t, err)
 
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
@@ -368,10 +363,8 @@ func TestLocalPathEndpointPreservesNoDotGitForBareRepo(t *testing.T) {
 		return
 	}
 
-	path, err := ioutil.TempDir("", "lfsRepo")
-	assert.Nil(t, err)
-	path = path + "/local/path"
-	err = os.MkdirAll(path, 0755)
+	path := t.TempDir() + "/local/path"
+	err := os.MkdirAll(path, 0755)
 	assert.Nil(t, err)
 
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{
@@ -390,10 +383,8 @@ func TestLocalPathEndpointRemovesDotGitForBareRepo(t *testing.T) {
 		return
 	}
 
-	path, err := ioutil.TempDir("", "lfsRepo")
-	assert.Nil(t, err)
-	path = path + "/local/path"
-	err = os.MkdirAll(path, 0755)
+	path := t.TempDir() + "/local/path"
+	err := os.MkdirAll(path, 0755)
 	assert.Nil(t, err)
 
 	finder := NewEndpointFinder(lfshttp.NewContext(nil, nil, map[string]string{

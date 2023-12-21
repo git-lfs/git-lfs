@@ -11,7 +11,6 @@ package util
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -191,7 +190,7 @@ func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 		callback: callback,
 	}
 
-	path, err := ioutil.TempDir("", "lfsRepo")
+	path, err := os.MkdirTemp("", "lfsRepo")
 	if err != nil {
 		callback.Fatalf("Can't create temp dir for git repo: %v", err)
 	}
@@ -202,7 +201,7 @@ func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 		args = append(args, "--bare")
 		ret.GitDir = ret.Path
 	case RepoTypeSeparateDir:
-		gitdir, err := ioutil.TempDir("", "lfstestgitdir")
+		gitdir, err := os.MkdirTemp("", "lfstestgitdir")
 		if err != nil {
 			ret.Cleanup()
 			callback.Fatalf("Can't create temp dir for git repo: %v", err)

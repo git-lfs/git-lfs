@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
@@ -22,7 +21,7 @@ func TestRewriterRewritesHistory(t *testing.T) {
 
 	tip, err := r.Rewrite(&RewriteOptions{Include: []string{"refs/heads/master"},
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
-			contents, err := ioutil.ReadAll(b.Contents)
+			contents, err := io.ReadAll(b.Contents)
 			if err != nil {
 				return nil, err
 			}
@@ -132,7 +131,7 @@ func TestRewriterVisitsPackedObjects(t *testing.T) {
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			var err error
 
-			contents, err = ioutil.ReadAll(b.Contents)
+			contents, err = io.ReadAll(b.Contents)
 			if err != nil {
 				return nil, err
 			}

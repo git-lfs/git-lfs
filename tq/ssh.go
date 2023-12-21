@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -233,7 +232,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 		buffer := &bytes.Buffer{}
 		if data != nil {
 			io.CopyN(buffer, data, 1024)
-			io.Copy(ioutil.Discard, data)
+			io.Copy(io.Discard, data)
 		}
 		return errors.NewRetriableError(errors.New(tr.Tr.Get("got status %d when fetching OID %s: %s", status, t.Oid, buffer.String())))
 	}

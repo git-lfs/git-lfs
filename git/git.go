@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -909,7 +908,7 @@ func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
 
 // Manually parse a reference file like HEAD and return the Ref it resolves to
 func parseRefFile(filename string) (*Ref, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

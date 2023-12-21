@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"math/big"
@@ -389,7 +388,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	tee := io.TeeReader(r.Body, buf)
 	objs := &batchReq{}
 	err := json.NewDecoder(tee).Decode(objs)
-	io.Copy(ioutil.Discard, r.Body)
+	io.Copy(io.Discard, r.Body)
 	r.Body.Close()
 
 	debug(id, "REQUEST")
@@ -953,7 +952,7 @@ func validateTusHeaders(r *http.Request, id string) bool {
 
 func gitHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		r.Body.Close()
 	}()
 

@@ -2,7 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -189,12 +188,12 @@ func TestExpandConfigPath(t *testing.T) {
 }
 
 func TestFastWalkBasic(t *testing.T) {
-	rootDir, err := ioutil.TempDir(os.TempDir(), "GitLfsTestFastWalkBasic")
-	if err != nil {
-		assert.FailNow(t, "Unable to get temp dir: %v", err)
-	}
-	defer os.RemoveAll(rootDir)
+	wd, err := os.Getwd()
+	assert.NoError(t, err)
+
+	rootDir := t.TempDir()
 	os.Chdir(rootDir)
+	defer os.Chdir(wd)
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
@@ -234,7 +233,7 @@ func createFastWalkInputData(smallFolder, largeFolder int) []string {
 		}
 		for f := 0; f < numFiles; f++ {
 			filename := join(dir, fmt.Sprintf("file%d.txt", f))
-			ioutil.WriteFile(filename, []byte("TEST"), 0644)
+			os.WriteFile(filename, []byte("TEST"), 0644)
 			expectedEntries = append(expectedEntries, filename)
 		}
 	}
@@ -285,7 +284,7 @@ func uniq(xs []string) []string {
 }
 
 func TestSetWriteFlag(t *testing.T) {
-	f, err := ioutil.TempFile("", "lfstestwriteflag")
+	f, err := os.CreateTemp("", "lfstestwriteflag")
 	assert.Nil(t, err)
 	filename := f.Name()
 	defer os.Remove(filename)

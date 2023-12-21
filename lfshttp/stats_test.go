@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,7 +46,7 @@ func TestStatsWithKey(t *testing.T) {
 	res, err := c.Do(req)
 	require.Nil(t, err)
 
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 	assert.Nil(t, c.Close())
 
@@ -111,7 +110,7 @@ func TestStatsWithoutKey(t *testing.T) {
 
 	res, err := c.Do(req)
 	require.Nil(t, err)
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 	assert.Nil(t, c.Close())
 
@@ -155,7 +154,7 @@ func TestStatsDisabled(t *testing.T) {
 	res, err := c.Do(req)
 	require.Nil(t, err)
 
-	io.Copy(ioutil.Discard, res.Body)
+	io.Copy(io.Discard, res.Body)
 	res.Body.Close()
 
 	assert.Equal(t, 200, res.StatusCode)

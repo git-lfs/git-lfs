@@ -1,7 +1,6 @@
 package locking
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 func TestLockCache(t *testing.T) {
 	var err error
 
-	tmpf, err := ioutil.TempFile("", "testCacheLock")
+	tmpf, err := os.CreateTemp("", "testCacheLock")
 	assert.Nil(t, err)
 	defer func() {
 		os.Remove(tmpf.Name())

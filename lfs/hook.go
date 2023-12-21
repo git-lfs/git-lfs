@@ -3,7 +3,6 @@ package lfs
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,7 +100,7 @@ func (h *Hook) Install(force bool) error {
 // end, and sets the mode to octal 0755. It writes to disk unconditionally, and
 // returns at any error.
 func (h *Hook) write() error {
-	return ioutil.WriteFile(h.Path(), []byte(h.Contents+"\n"), 0755)
+	return os.WriteFile(h.Path(), []byte(h.Contents+"\n"), 0755)
 }
 
 // Upgrade upgrades the (assumed to be) existing git hook to the current
@@ -150,7 +149,7 @@ func (h *Hook) matchesCurrent() (bool, bool, error) {
 		return false, false, err
 	}
 
-	by, err := ioutil.ReadAll(io.LimitReader(file, 1024))
+	by, err := io.ReadAll(io.LimitReader(file, 1024))
 	file.Close()
 	if err != nil {
 		return false, false, err

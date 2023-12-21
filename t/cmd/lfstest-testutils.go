@@ -6,7 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -58,7 +58,7 @@ func main() {
 
 func AddCommits(repo *Repo) {
 	// Read stdin as JSON []*CommitInput
-	in, err := ioutil.ReadAll(os.Stdin)
+	in, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "addcommits: Unable to read input data: %v\n", err)
 		os.Exit(3)
