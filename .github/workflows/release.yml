@@ -127,11 +127,11 @@ jobs:
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
       env:
           DEBIAN_FRONTEND: noninteractive
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: windows-assets
         path: windows-assets
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: macos-assets
         path: macos-assets
