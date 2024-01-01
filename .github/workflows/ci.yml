@@ -22,7 +22,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/882 for details.
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
     - run: brew install gettext
@@ -55,7 +55,7 @@ jobs:
         fetch-depth: 0
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
       if: ${{ github.ref_type == 'tag' }}
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
@@ -74,7 +74,7 @@ jobs:
     - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
       # We move the MSYS2 installed for Ruby aside to prevent use of its Git,
       # which does not honour the PATH we set to our built git-lfs binary.
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@v5
       with:
         go-version: '1.21.x'
     - run: mkdir -p "$HOME/go/bin"
