@@ -54,6 +54,9 @@ categorize_arch () {
   elif [ "$arch" = "riscv64" ]
   then
     echo "64-bit RISC-V"
+  elif [ "$arch" = "loong64" ]
+  then
+    echo "64-bit LoongArch"
   else
     echo "$arch" | tr a-z A-Z
   fi
