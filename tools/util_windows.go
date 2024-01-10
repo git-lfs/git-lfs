@@ -42,7 +42,10 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 	if err != nil {
 		return false, err
 	}
-	defer os.Remove(src.Name())
+	defer func() {
+		_ = src.Close()
+		_ = os.Remove(src.Name())
+	}()
 
 	// Make src file not empty.
 	// Because `FSCTL_DUPLICATE_EXTENTS_TO_FILE` on empty file is always success even filesystem don't support it.
@@ -55,7 +58,10 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 	if err != nil {
 		return false, err
 	}
-	defer os.Remove(dst.Name())
+	defer func() {
+		_ = dst.Close()
+		_ = os.Remove(dst.Name())
+	}()
 
 	return CloneFile(dst, src)
 }
