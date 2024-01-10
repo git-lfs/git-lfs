@@ -39,7 +39,7 @@ jobs:
           FORCE_LOCALIZE: true
     - run: mkdir -p bin/assets
     - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.os }}
         path: bin/assets
@@ -116,7 +116,7 @@ jobs:
       shell: bash
     - run: mv *.exe bin/assets
       shell: bash
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: windows-latest
         path: bin/assets

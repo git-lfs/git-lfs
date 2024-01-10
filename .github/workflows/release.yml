@@ -65,7 +65,7 @@ jobs:
         FORCE_LOCALIZE: true
     - run: env -u TMPDIR make release-windows-rebuild
       shell: bash
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: windows-assets
         path: bin/releases
@@ -101,7 +101,7 @@ jobs:
         DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
         DARWIN_DEV_TEAM: ${{secrets.MACOS_DEV_TEAM}}
         DARWIN_CERT_ID: ${{secrets.MACOS_CERT_ID}}
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: macos-assets
         path: bin/releases
