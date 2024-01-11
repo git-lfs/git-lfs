@@ -4,6 +4,9 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.3.0"
 
+export CREDSDIR="$REMOTEDIR/creds-credentials"
+setup_creds
+
 begin_test "credentials with url-specific helper skips askpass"
 (
   set -e
