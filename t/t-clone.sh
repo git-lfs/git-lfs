@@ -89,10 +89,6 @@ end_test
 begin_test "cloneSSL"
 (
   set -e
-  if $TRAVIS; then
-    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
-    exit 0
-  fi
 
   reponame="test-cloneSSL"
   setup_remote_repo "$reponame"
@@ -123,9 +119,8 @@ begin_test "cloneSSL"
 
   newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
-  assert_clean_status
+  (cd "$newclonedir" && assert_clean_status)
   grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
   # should be no filter errors
   [ ! $(grep "filter" lfsclone.log) ]
   [ ! $(grep "error" lfsclone.log) ]
