@@ -146,7 +146,6 @@ GIT_CONFIG_NOSYSTEM=1
 GIT_TERMINAL_PROMPT=0
 GIT_SSH=lfs-ssh-echo
 GIT_TEMPLATE_DIR="$(native_path "$ROOTDIR/t/fixtures/templates")"
-APPVEYOR_REPO_COMMIT_MESSAGE="test: env test should look for GIT_SSH too"
 LC_ALL=C
 
 export CREDSDIR
@@ -154,7 +153,6 @@ export GIT_LFS_FORCE_PROGRESS
 export GIT_CONFIG_NOSYSTEM
 export GIT_SSH
 export GIT_TEMPLATE_DIR
-export APPVEYOR_REPO_COMMIT_MESSAGE
 export LC_ALL
 
 # Don't fail if run under git rebase -x.
