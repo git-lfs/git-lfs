@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"time"
@@ -146,10 +145,10 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			ioutil.ReadAll(cmd.Stdout)
+			io.ReadAll(cmd.Stdout)
 			ch <- gitscannerResult{Err: errors.New(tr.Tr.Get("error while scanning `git log`: %v", err))}
 		}
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		stderr, _ := io.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
 			ch <- gitscannerResult{Err: errors.New(tr.Tr.Get("error in `git log`: %v %v", err, string(stderr)))}

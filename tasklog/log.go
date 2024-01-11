@@ -3,7 +3,6 @@ package tasklog
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -63,7 +62,7 @@ func ForceProgress(v bool) Option {
 // stdout is a terminal or if forceProgress is true
 func NewLogger(sink io.Writer, options ...Option) *Logger {
 	if sink == nil {
-		sink = ioutil.Discard
+		sink = io.Discard
 	}
 
 	l := &Logger{

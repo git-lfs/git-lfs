@@ -2,7 +2,6 @@ package locking
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,8 +25,7 @@ func (a LocksById) Less(i, j int) bool { return a[i].Id < a[j].Id }
 
 func TestRemoteLocksWithCache(t *testing.T) {
 	var err error
-	tempDir, err := ioutil.TempDir("", "testCacheLock")
-	assert.Nil(t, err)
+	tempDir := t.TempDir()
 
 	remoteQueries := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -131,8 +129,7 @@ func TestRemoteLocksWithCache(t *testing.T) {
 
 func TestRefreshCache(t *testing.T) {
 	var err error
-	tempDir, err := ioutil.TempDir("", "testCacheLock")
-	assert.Nil(t, err)
+	tempDir := t.TempDir()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
@@ -195,8 +192,7 @@ func TestRefreshCache(t *testing.T) {
 
 func TestSearchLocksVerifiableWithCache(t *testing.T) {
 	var err error
-	tempDir, err := ioutil.TempDir("", "testCacheLock")
-	assert.Nil(t, err)
+	tempDir := t.TempDir()
 
 	remoteQueries := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

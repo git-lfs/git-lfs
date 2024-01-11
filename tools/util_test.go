@@ -3,7 +3,6 @@ package tools
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -16,7 +15,7 @@ func TestCopyWithCallback(t *testing.T) {
 	called := 0
 	calledWritten := make([]int64, 0, 2)
 
-	n, err := CopyWithCallback(ioutil.Discard, buf, 5, func(total int64, written int64, current int) error {
+	n, err := CopyWithCallback(io.Discard, buf, 5, func(total int64, written int64, current int) error {
 		called += 1
 		calledWritten = append(calledWritten, written)
 		assert.Equal(t, 5, int(total))

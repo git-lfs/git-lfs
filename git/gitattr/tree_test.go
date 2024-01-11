@@ -1,8 +1,6 @@
 package gitattr
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/git-lfs/gitobj/v2"
@@ -95,9 +93,7 @@ func TestTreeAppliedInIrrelevantSubtree(t *testing.T) {
 }
 
 func TestNewDiscoversSimpleTrees(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.Remove(tmp)
+	tmp := t.TempDir()
 
 	db, err := gitobj.FromFilesystem(tmp, "")
 	require.NoError(t, err)
@@ -127,9 +123,7 @@ func TestNewDiscoversSimpleTrees(t *testing.T) {
 }
 
 func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.Remove(tmp)
+	tmp := t.TempDir()
 
 	db, err := gitobj.FromFilesystem(tmp, "")
 	require.NoError(t, err)
@@ -170,9 +164,7 @@ func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
 }
 
 func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.Remove(tmp)
+	tmp := t.TempDir()
 
 	db, err := gitobj.FromFilesystem(tmp, "")
 	require.NoError(t, err)
@@ -222,9 +214,7 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 }
 
 func TestNewIgnoresChildrenAppropriately(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.Remove(tmp)
+	tmp := t.TempDir()
 
 	db, err := gitobj.FromFilesystem(tmp, "")
 	require.NoError(t, err)

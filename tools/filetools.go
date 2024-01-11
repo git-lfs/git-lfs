@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -454,7 +453,7 @@ func SetFileWriteFlag(path string, writeEnabled bool) error {
 // This function is designed to handle only temporary files that will be renamed
 // into place later somewhere within the Git repository.
 func TempFile(dir, pattern string, cfg repositoryPermissionFetcher) (*os.File, error) {
-	tmp, err := ioutil.TempFile(dir, pattern)
+	tmp, err := os.CreateTemp(dir, pattern)
 	if err != nil {
 		return nil, err
 	}

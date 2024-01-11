@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -191,7 +190,7 @@ func newHandler(cfg *config.Configuration, output *os.File, msg *inputMessage) (
 		return nil, err
 	}
 
-	tempdir, err := ioutil.TempDir(cfg.TempDir(), "lfs-standalone-file-*")
+	tempdir, err := os.MkdirTemp(cfg.TempDir(), "lfs-standalone-file-*")
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +264,7 @@ func (h *fileHandler) download(oid string, size int64) (string, string, error) {
 		return oid, "", err
 	}
 
-	tmp, err := ioutil.TempFile(h.tempdir, "download")
+	tmp, err := os.CreateTemp(h.tempdir, "download")
 	if err != nil {
 		return oid, "", err
 	}

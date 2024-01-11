@@ -5,7 +5,6 @@ package tools
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 
 	"golang.org/x/sys/unix"
@@ -16,13 +15,13 @@ import (
 //
 // If check failed (e.g. directory is read-only), returns err.
 func CheckCloneFileSupported(dir string) (supported bool, err error) {
-	src, err := ioutil.TempFile(dir, "src")
+	src, err := os.CreateTemp(dir, "src")
 	if err != nil {
 		return false, err
 	}
 	defer os.Remove(src.Name())
 
-	dst, err := ioutil.TempFile(dir, "dst")
+	dst, err := os.CreateTemp(dir, "dst")
 	if err != nil {
 		return false, err
 	}

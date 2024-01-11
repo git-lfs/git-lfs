@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -89,7 +88,7 @@ func AssertBlobContents(t *testing.T, db *gitobj.ObjectDatabase, tree, path, con
 	}
 
 	// Perform an assertion on the blob's contents.
-	got, err := ioutil.ReadAll(blob.Contents)
+	got, err := io.ReadAll(blob.Contents)
 	if err != nil {
 		t.Fatalf("gitobj: cannot read contents from blob %s: %s", path, err)
 	}
@@ -157,7 +156,7 @@ func HexDecode(t *testing.T, sha string) []byte {
 
 // copyToTmp copies the given fixture to a folder in /tmp.
 func copyToTmp(fixture string) (string, error) {
-	p, err := ioutil.TempDir("", fmt.Sprintf("git-lfs-fixture-%s", filepath.Dir(fixture)))
+	p, err := os.MkdirTemp("", fmt.Sprintf("git-lfs-fixture-%s", filepath.Dir(fixture)))
 	if err != nil {
 		return "", err
 	}
@@ -180,7 +179,7 @@ func copyDir(from, to string) error {
 		return err
 	}
 
-	entries, err := ioutil.ReadDir(from)
+	entries, err := os.ReadDir(from)
 	if err != nil {
 		return err
 	}

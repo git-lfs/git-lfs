@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -142,7 +141,7 @@ func main() {
 
 			// Otherwise, we need to POST to /shutdown, which will
 			// cause the lfstest-gitserver to abort itself.
-			url, err := ioutil.ReadFile(os.Getenv("LFS_URL_FILE"))
+			url, err := os.ReadFile(os.Getenv("LFS_URL_FILE"))
 			if err == nil {
 				_, err = http.Post(string(url)+"/shutdown",
 					"application/text",
@@ -225,7 +224,7 @@ func callWithCount(fn countFn) error {
 		return err
 	}
 
-	contents, err := ioutil.ReadAll(f)
+	contents, err := io.ReadAll(f)
 	if err != nil {
 		return err
 	}

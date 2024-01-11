@@ -2,7 +2,7 @@ package lfs
 
 import (
 	"bufio"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"strings"
 
@@ -47,7 +47,7 @@ func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockab
 		}
 		cmd.Stdin.Close()
 
-		stderr, _ := ioutil.ReadAll(cmd.Stderr)
+		stderr, _ := io.ReadAll(cmd.Stderr)
 		err := cmd.Wait()
 		if err != nil {
 			errCh <- errors.New(tr.Tr.Get("error in `git cat-file --batch-check`: %v %v", err, string(stderr)))
