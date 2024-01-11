@@ -142,7 +142,7 @@ create_invalid_pointers() {
   ext="${2:-dat}"
 
   git cat-file blob ":$valid" | awk '{ sub(/$/, "\r"); print }' >"crlf.$ext"
-  base64 /dev/urandom | head -c 1025 >"large.$ext"
+  base64 < /dev/urandom | head -c 1025 >"large.$ext"
   git \
     -c "filter.lfs.process=" \
     -c "filter.lfs.clean=cat" \

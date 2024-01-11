@@ -14,10 +14,10 @@ begin_test "malformed pointers"
   git add .gitattributes
   git commit -m "initial commit"
 
-  base64 /dev/urandom | head -c 1023 > malformed_small.dat
-  base64 /dev/urandom | head -c 1024 > malformed_exact.dat
-  base64 /dev/urandom | head -c 1025 > malformed_large.dat
-  base64 /dev/urandom | head -c 1048576 > malformed_xxl.dat
+  base64 < /dev/urandom | head -c 1023 > malformed_small.dat
+  base64 < /dev/urandom | head -c 1024 > malformed_exact.dat
+  base64 < /dev/urandom | head -c 1025 > malformed_large.dat
+  base64 < /dev/urandom | head -c 1048576 > malformed_xxl.dat
 
   git \
     -c "filter.lfs.process=" \
