@@ -125,7 +125,10 @@ func Spool(to io.Writer, from io.Reader, dir string) (n int64, err error) {
 		if err != nil {
 			return 0, errors.Wrap(err, tr.Tr.Get("Unable to create temporary file for spooling"))
 		}
-		defer os.Remove(tmp.Name())
+		defer func() {
+			tmp.Close()
+			os.Remove(tmp.Name())
+		}()
 
 		if n, err = io.Copy(tmp, from); err != nil {
 			return n, errors.Wrap(err, tr.Tr.Get("unable to spool"))
