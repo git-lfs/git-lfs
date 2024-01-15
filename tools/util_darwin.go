@@ -62,12 +62,14 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 		return false, err
 	}
 	defer os.Remove(src.Name())
+	src.Close()
 
 	dst, err := os.CreateTemp(dir, "dst")
 	if err != nil {
 		return false, err
 	}
 	defer os.Remove(dst.Name())
+	dst.Close()
 
 	return CloneFileByPath(dst.Name(), src.Name())
 }
