@@ -43,8 +43,8 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 		return false, err
 	}
 	defer func() {
-		_ = src.Close()
-		_ = os.Remove(src.Name())
+		src.Close()
+		os.Remove(src.Name())
 	}()
 
 	// Make src file not empty.
@@ -59,8 +59,8 @@ func CheckCloneFileSupported(dir string) (supported bool, err error) {
 		return false, err
 	}
 	defer func() {
-		_ = dst.Close()
-		_ = os.Remove(dst.Name())
+		dst.Close()
+		os.Remove(dst.Name())
 	}()
 
 	return CloneFile(dst, src)
@@ -71,11 +71,13 @@ func CloneFileByPath(dst, src string) (success bool, err error) {
 	if err != nil {
 		return
 	}
+	defer dstFile.Close()
 
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return
 	}
+	defer srcFile.Close()
 
 	return CloneFile(dstFile, srcFile)
 }
