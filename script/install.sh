@@ -9,12 +9,9 @@ elif [ "${BOXEN_HOME:-}" != "" ] ; then
   prefix=${BOXEN_HOME:-}
 fi
 
-local_install=false
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --local)
-      local_install=true
       prefix="$HOME/.local"
       shift
       ;;
@@ -27,7 +24,7 @@ done
 
 # Check if the user has permission to install in the specified prefix
 if [ ! -w "$prefix" ]; then
-  echo "Error: Insufficient permissions to install in $prefix. Try running with sudo or choose a different prefix."
+  echo "Error: Insufficient permissions to install in $prefix. Try running with sudo or choose a different prefix.">&2
   exit 1
 fi
 
@@ -42,4 +39,3 @@ popd > /dev/null
 
 PATH+=:"$prefix/bin"
 git lfs install
-
