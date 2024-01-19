@@ -40,10 +40,6 @@ jobs:
       shell: bash
     - run: mkdir -p bin/releases
       shell: bash
-    - run: CERT_FILE="$HOME/cert.pfx" env -u TMPDIR make release-write-certificate
-      shell: bash
-      env:
-        CERT_CONTENTS: ${{secrets.WINDOWS_CERT_BASE64}}
       # We clear the TMPDIR set for Ruby so mktemp and Go use the same
       # volume for temporary files.
     - run: PATH="$HOME/go/bin:$PATH" GOARCH=amd64 go generate && env -u TMPDIR make bin/releases/git-lfs-windows-amd64-$(git describe).zip
@@ -58,11 +54,40 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - run: PATH="$HOME/go/bin:/c/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86:$PATH" CERT_FILE="$HOME/cert.pfx" env -u TMPDIR make release-windows
+    - run: env -u TMPDIR make release-windows-stage-1
       shell: bash
       env:
-        CERT_PASS: ${{secrets.WINDOWS_CERT_PASS}}
         FORCE_LOCALIZE: true
+    - uses: azure/azure-code-signing-action@v0.2.22
+      with:
+        azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
+        azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
+        azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
+        endpoint: https://wus.codesigning.azure.net/
+        code-signing-account-name: GitHubInc
+        certificate-profile-name: GitHubInc
+        files-folder: ${{ github.workspace }}/tmp/stage1
+        files-folder-filter: exe
+        file-digest: SHA256
+        timestamp-rfc3161: http://timestamp.acs.microsoft.com
+        timestamp-digest: SHA256
+    - run: env -u TMPDIR make release-windows-stage-2
+      shell: bash
+    - uses: azure/azure-code-signing-action@v0.2.22
+      with:
+        azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
+        azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
+        azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
+        endpoint: https://wus.codesigning.azure.net/
+        code-signing-account-name: GitHubInc
+        certificate-profile-name: GitHubInc
+        files-folder: ${{ github.workspace }}/tmp/stage2
+        files-folder-filter: exe
+        file-digest: SHA256
+        timestamp-rfc3161: http://timestamp.acs.microsoft.com
+        timestamp-digest: SHA256
+    - run: env -u TMPDIR make release-windows-stage-3
+      shell: bash
     - run: env -u TMPDIR make release-windows-rebuild
       shell: bash
     - uses: actions/upload-artifact@v4
