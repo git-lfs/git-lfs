@@ -149,6 +149,9 @@ func (c *sshLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse
 	conn := c.connection()
 	conn.Lock()
 	defer conn.Unlock()
+	if !conn.IsLockingEnabled() {
+		return nil, 501, errors.NewNotImplementedError(fmt.Errorf("locking unsupported for this remote"))
+	}
 	err := conn.SendMessage("lock", args)
 	if err != nil {
 		return nil, 0, err
@@ -171,6 +174,9 @@ func (c *sshLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*un
 	conn := c.connection()
 	conn.Lock()
 	defer conn.Unlock()
+	if !conn.IsLockingEnabled() {
+		return nil, 501, errors.NewNotImplementedError(fmt.Errorf("locking unsupported for this remote"))
+	}
 	err := conn.SendMessage(fmt.Sprintf("unlock %s", id), args)
 	if err != nil {
 		return nil, 0, err
@@ -194,6 +200,9 @@ func (c *sshLockClient) Search(remote string, searchReq *lockSearchRequest) (*lo
 	conn := c.connection()
 	conn.Lock()
 	defer conn.Unlock()
+	if !conn.IsLockingEnabled() {
+		return nil, 501, errors.NewNotImplementedError(fmt.Errorf("locking unsupported for this remote"))
+	}
 	err := conn.SendMessage("list-lock", args)
 	if err != nil {
 		return nil, 0, err
@@ -228,6 +237,9 @@ func (c *sshLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequ
 	conn := c.connection()
 	conn.Lock()
 	defer conn.Unlock()
+	if !conn.IsLockingEnabled() {
+		return nil, 501, errors.NewNotImplementedError(fmt.Errorf("locking unsupported for this remote"))
+	}
 	err := conn.SendMessage("list-lock", args)
 	if err != nil {
 		return nil, 0, err
