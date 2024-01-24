@@ -12,11 +12,12 @@ import (
 )
 
 type PktlineConnection struct {
-	r   io.ReadCloser
-	w   io.WriteCloser
-	mu  sync.Mutex
-	cmd *subprocess.Cmd
-	pl  Pktline
+	r              io.ReadCloser
+	w              io.WriteCloser
+	mu             sync.Mutex
+	cmd            *subprocess.Cmd
+	pl             Pktline
+	lockingEnabled bool
 }
 
 func (conn *PktlineConnection) Lock() {
@@ -25,6 +26,10 @@ func (conn *PktlineConnection) Lock() {
 
 func (conn *PktlineConnection) Unlock() {
 	conn.mu.Unlock()
+}
+
+func (conn *PktlineConnection) IsLockingEnabled() bool {
+	return conn.lockingEnabled
 }
 
 func (conn *PktlineConnection) Start() error {
@@ -54,8 +59,11 @@ func (conn *PktlineConnection) negotiateVersion() error {
 	}
 	ok := false
 	for _, line := range pkts {
-		if line == "version=1" {
+		switch line {
+		case "version=1":
 			ok = true
+		case "locking":
+			conn.lockingEnabled = true
 		}
 	}
 	if !ok {
