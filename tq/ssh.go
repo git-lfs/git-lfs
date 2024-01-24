@@ -25,13 +25,13 @@ type SSHBatchClient struct {
 }
 
 func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int, []string, []string, error) {
-	conn := a.transfer.Connection(0)
-	if conn == nil {
-		return 0, nil, nil, errors.Errorf(tr.Tr.Get("could not get connection for batch request"))
+	conn, err := a.transfer.Connection(0)
+	if err != nil {
+		return 0, nil, nil, errors.Wrap(err, tr.Tr.Get("could not get connection for batch request"))
 	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessageWithLines("batch", args, batchLines)
+	err = conn.SendMessageWithLines("batch", args, batchLines)
 	if err != nil {
 		return 0, nil, nil, errors.Wrap(err, tr.Tr.Get("batch request"))
 	}
@@ -158,7 +158,7 @@ type SSHAdapter struct {
 // Implementations can run some startup logic here & return some context if needed
 func (a *SSHAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	a.transfer.SetConnectionCountAtLeast(workerNum + 1)
-	return a.transfer.Connection(workerNum), nil
+	return a.transfer.Connection(workerNum)
 }
 
 // WorkerEnding is called when a worker goroutine is shutting down
