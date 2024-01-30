@@ -25,13 +25,13 @@ type SSHBatchClient struct {
 }
 
 func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int, []string, []string, error) {
-	conn := a.transfer.Connection(0)
-	if conn == nil {
-		return 0, nil, nil, errors.Errorf(tr.Tr.Get("could not get connection for batch request"))
+	conn, err := a.transfer.Connection(0)
+	if err != nil {
+		return 0, nil, nil, errors.Wrap(err, tr.Tr.Get("could not get connection for batch request"))
 	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessageWithLines("batch", args, batchLines)
+	err = conn.SendMessageWithLines("batch", args, batchLines)
 	if err != nil {
 		return 0, nil, nil, errors.Wrap(err, tr.Tr.Get("batch request"))
 	}
@@ -158,7 +158,7 @@ type SSHAdapter struct {
 // Implementations can run some startup logic here & return some context if needed
 func (a *SSHAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	a.transfer.SetConnectionCountAtLeast(workerNum + 1)
-	return a.transfer.Connection(workerNum), nil
+	return workerNum, nil
 }
 
 // WorkerEnding is called when a worker goroutine is shutting down
@@ -180,18 +180,15 @@ func (a *SSHAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallbac
 	if authOkFunc != nil {
 		authOkFunc()
 	}
-	conn := ctx.(*ssh.PktlineConnection)
-	if conn == nil {
-		return errors.Errorf(tr.Tr.Get("could not get connection for transfer"))
-	}
+	workerNum := ctx.(int)
 	if a.adapterBase.direction == Upload {
-		return a.upload(t, conn, cb)
+		return a.upload(t, workerNum, cb)
 	} else {
-		return a.download(t, conn, cb)
+		return a.download(t, workerNum, cb)
 	}
 }
 
-func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
+func (a *SSHAdapter) download(t *Transfer, workerNum int, cb ProgressCallback) error {
 	rel, err := t.Rel("download")
 	if err != nil {
 		return err
@@ -212,15 +209,19 @@ func (a *SSHAdapter) download(t *Transfer, conn *ssh.PktlineConnection, cb Progr
 		os.Remove(tmpName)
 	}()
 
-	return a.doDownload(t, conn, f, cb)
+	return a.doDownload(t, workerNum, f, cb)
 }
 
 // doDownload starts a download. f is expected to be an existing file open in RW mode
-func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.File, cb ProgressCallback) error {
+func (a *SSHAdapter) doDownload(t *Transfer, workerNum int, f *os.File, cb ProgressCallback) error {
 	args := a.argumentsForTransfer(t, "download")
+	conn, err := a.transfer.Connection(workerNum)
+	if err != nil {
+		return err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage(fmt.Sprintf("get-object %s", t.Oid), args)
+	err = conn.SendMessage(fmt.Sprintf("get-object %s", t.Oid), args)
 	if err != nil {
 		return err
 	}
@@ -285,11 +286,15 @@ func (a *SSHAdapter) doDownload(t *Transfer, conn *ssh.PktlineConnection, f *os.
 	return err
 }
 
-func (a *SSHAdapter) verifyUpload(t *Transfer, conn *ssh.PktlineConnection) error {
+func (a *SSHAdapter) verifyUpload(t *Transfer, workerNum int) error {
 	args := a.argumentsForTransfer(t, "upload")
+	conn, err := a.transfer.Connection(workerNum)
+	if err != nil {
+		return err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage(fmt.Sprintf("verify-object %s", t.Oid), args)
+	err = conn.SendMessage(fmt.Sprintf("verify-object %s", t.Oid), args)
 	if err != nil {
 		return err
 	}
@@ -306,7 +311,7 @@ func (a *SSHAdapter) verifyUpload(t *Transfer, conn *ssh.PktlineConnection) erro
 	return nil
 }
 
-func (a *SSHAdapter) doUpload(t *Transfer, conn *ssh.PktlineConnection, f *os.File, cb ProgressCallback) (int, []string, []string, error) {
+func (a *SSHAdapter) doUpload(t *Transfer, workerNum int, f *os.File, cb ProgressCallback) (int, []string, []string, error) {
 	args := a.argumentsForTransfer(t, "upload")
 
 	// Ensure progress callbacks made while uploading
@@ -320,10 +325,14 @@ func (a *SSHAdapter) doUpload(t *Transfer, conn *ssh.PktlineConnection, f *os.Fi
 
 	cbr := tools.NewFileBodyWithCallback(f, t.Size, ccb)
 
+	conn, err := a.transfer.Connection(workerNum)
+	if err != nil {
+		return 0, nil, nil, err
+	}
 	conn.Lock()
 	defer conn.Unlock()
 	defer cbr.Close()
-	err := conn.SendMessageWithData(fmt.Sprintf("put-object %s", t.Oid), args, cbr)
+	err = conn.SendMessageWithData(fmt.Sprintf("put-object %s", t.Oid), args, cbr)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -331,7 +340,7 @@ func (a *SSHAdapter) doUpload(t *Transfer, conn *ssh.PktlineConnection, f *os.Fi
 }
 
 // upload starts an upload.
-func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb ProgressCallback) error {
+func (a *SSHAdapter) upload(t *Transfer, workerNum int, cb ProgressCallback) error {
 	rel, err := t.Rel("upload")
 	if err != nil {
 		return err
@@ -346,7 +355,7 @@ func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb Progres
 	}
 	defer f.Close()
 
-	status, _, lines, err := a.doUpload(t, conn, f, cb)
+	status, _, lines, err := a.doUpload(t, workerNum, f, cb)
 	if err != nil {
 		return err
 	}
@@ -369,7 +378,7 @@ func (a *SSHAdapter) upload(t *Transfer, conn *ssh.PktlineConnection, cb Progres
 
 	}
 
-	return a.verifyUpload(t, conn)
+	return a.verifyUpload(t, workerNum)
 }
 
 func (a *SSHAdapter) argumentsForTransfer(t *Transfer, action string) []string {

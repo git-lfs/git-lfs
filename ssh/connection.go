@@ -86,14 +86,28 @@ func (tr *SSHTransfer) IsMultiplexingEnabled() bool {
 }
 
 // Connection returns the nth connection (starting from 0) in this transfer
-// instance or nil if there is no such item.
-func (tr *SSHTransfer) Connection(n int) *PktlineConnection {
+// instance if it is initialized and otherwise initializes a new connection and
+// saves it in the nth position.  In all cases, nil is returned if n is greater
+// than the maximum number of connections.
+func (tr *SSHTransfer) Connection(n int) (*PktlineConnection, error) {
 	tr.lock.RLock()
-	defer tr.lock.RUnlock()
 	if n >= len(tr.conn) {
-		return nil
+		tr.lock.RUnlock()
+		return nil, nil
 	}
-	return tr.conn[n]
+	if tr.conn[n] != nil {
+		defer tr.lock.RUnlock()
+		return tr.conn[n], nil
+	}
+	tr.lock.RUnlock()
+
+	tr.lock.Lock()
+	defer tr.lock.Unlock()
+	if tr.conn[n] != nil {
+		return tr.conn[n], nil
+	}
+	conn, _, err := tr.spawnConnection(n)
+	return conn, err
 }
 
 // ConnectionCount returns the number of connections this object has.
@@ -122,6 +136,15 @@ func (tr *SSHTransfer) SetConnectionCountAtLeast(n int) error {
 	return tr.setConnectionCount(n)
 }
 
+func (tr *SSHTransfer) spawnConnection(n int) (*PktlineConnection, string, error) {
+	conn, _, controlPath, err := startConnection(n, tr.osEnv, tr.gitEnv, tr.meta, tr.operation, tr.controlPath)
+	if err != nil {
+		tracerx.Printf("failed to spawn pure SSH connection: %s", err)
+		return nil, "", err
+	}
+	return conn, controlPath, err
+}
+
 func (tr *SSHTransfer) setConnectionCount(n int) error {
 	count := len(tr.conn)
 	if n < count {
@@ -130,6 +153,10 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 			tn = 1
 		}
 		for _, item := range tr.conn[tn:count] {
+			if item == nil {
+				tracerx.Printf("skipping uninitialized lazy pure SSH connection (%d -> %d)", count, n)
+				continue
+			}
 			tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
 			if err := item.End(); err != nil {
 				return err
@@ -138,14 +165,15 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		tr.conn = tr.conn[0:tn]
 	} else if n > count {
 		for i := count; i < n; i++ {
-			conn, _, controlPath, err := startConnection(i, tr.osEnv, tr.gitEnv, tr.meta, tr.operation, tr.controlPath)
-			if err != nil {
-				tracerx.Printf("failed to spawn pure SSH connection: %s", err)
-				return err
-			}
-			tr.conn = append(tr.conn, conn)
 			if i == 0 {
+				conn, controlPath, err := tr.spawnConnection(i)
+				if err != nil {
+					return err
+				}
+				tr.conn = append(tr.conn, conn)
 				tr.controlPath = controlPath
+			} else {
+				tr.conn = append(tr.conn, nil)
 			}
 		}
 	}

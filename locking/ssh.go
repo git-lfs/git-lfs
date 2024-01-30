@@ -17,7 +17,7 @@ type sshLockClient struct {
 	*lfsapi.Client
 }
 
-func (c *sshLockClient) connection() *ssh.PktlineConnection {
+func (c *sshLockClient) connection() (*ssh.PktlineConnection, error) {
 	return c.transfer.Connection(0)
 }
 
@@ -146,10 +146,13 @@ func (c *sshLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse
 	if lockReq.Ref != nil {
 		args = append(args, fmt.Sprintf("refname=%s", lockReq.Ref.Name))
 	}
-	conn := c.connection()
+	conn, err := c.connection()
+	if err != nil {
+		return nil, 0, err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage("lock", args)
+	err = conn.SendMessage("lock", args)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -168,10 +171,13 @@ func (c *sshLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*un
 	if ref != nil {
 		args = append(args, fmt.Sprintf("refname=%s", ref.Name))
 	}
-	conn := c.connection()
+	conn, err := c.connection()
+	if err != nil {
+		return nil, 0, err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage(fmt.Sprintf("unlock %s", id), args)
+	err = conn.SendMessage(fmt.Sprintf("unlock %s", id), args)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -191,10 +197,13 @@ func (c *sshLockClient) Search(remote string, searchReq *lockSearchRequest) (*lo
 	for key, value := range values {
 		args = append(args, fmt.Sprintf("%s=%s", key, value))
 	}
-	conn := c.connection()
+	conn, err := c.connection()
+	if err != nil {
+		return nil, 0, err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage("list-lock", args)
+	err = conn.SendMessage("list-lock", args)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -225,10 +234,13 @@ func (c *sshLockClient) SearchVerifiable(remote string, vreq *lockVerifiableRequ
 	if vreq.Limit > 0 {
 		args = append(args, fmt.Sprintf("limit=%d", vreq.Limit))
 	}
-	conn := c.connection()
+	conn, err := c.connection()
+	if err != nil {
+		return nil, 0, err
+	}
 	conn.Lock()
 	defer conn.Unlock()
-	err := conn.SendMessage("list-lock", args)
+	err = conn.SendMessage("list-lock", args)
 	if err != nil {
 		return nil, 0, err
 	}
