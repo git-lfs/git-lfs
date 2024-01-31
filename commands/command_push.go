@@ -157,6 +157,9 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		} else {
 			ref := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
+			if _, err := git.ResolveRef(name); err != nil {
+				return nil, errors.New(tr.Tr.Get("Invalid ref argument: %v", name))
+			}
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		}
 	}
