@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -46,7 +47,17 @@ func (o *FilterOptions) Install() error {
 }
 
 func (o *FilterOptions) Uninstall() error {
-	return filterAttribute().Uninstall(o)
+	attrs := filterAttribute()
+	if err := attrs.Uninstall(o); err != nil {
+		return err
+	}
+	for k := range attrs.Properties {
+		name := fmt.Sprintf("%s.%s", attrs.Section, k)
+		if len(o.GitConfig.Find(name)) > 0 {
+			return errors.New(tr.Tr.Get("some filter configuration was not removed (found %s)", name))
+		}
+	}
+	return nil
 }
 
 func filterAttribute() *Attribute {
