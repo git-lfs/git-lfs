@@ -509,6 +509,13 @@ func (a RefsByName) Len() int           { return len(a) }
 func (a RefsByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a RefsByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
+// WorktreesByName implements sort.Interface for []*git.Worktree based on dir
+type WorktreesByName []*git.Worktree
+
+func (a WorktreesByName) Len() int           { return len(a) }
+func (a WorktreesByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a WorktreesByName) Less(i, j int) bool { return a[i].Dir < a[j].Dir }
+
 // WrappedPointersByOid implements sort.Interface for []*lfs.WrappedPointer based on oid
 type WrappedPointersByOid []*lfs.WrappedPointer
 

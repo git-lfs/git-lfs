@@ -157,7 +157,7 @@ func doFsckObjects(include, exclude string, useIndex bool) []string {
 	}
 
 	if useIndex {
-		if err := gitscanner.ScanIndex("HEAD", nil); err != nil {
+		if err := gitscanner.ScanIndex("HEAD", "", nil); err != nil {
 			ExitWithError(err)
 		}
 	}

@@ -229,7 +229,7 @@ func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
 }
 
-func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
+func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio.Scanner, error) {
 	if refresh {
 		_, err := gitSimple("update-index", "-q", "--refresh")
 		if err != nil {
@@ -243,6 +243,10 @@ func DiffIndex(ref string, cached bool, refresh bool) (*bufio.Scanner, error) {
 	}
 	args = append(args, ref)
 
+	if workingDir != "" {
+		args = append([]string{"-C", workingDir}, args...)
+	}
+	
 	cmd, err := gitBuffered(args...)
 	if err != nil {
 		return nil, err
@@ -856,18 +860,24 @@ func GitCommonDir() (string, error) {
 	return tools.CanonicalizePath(path, false)
 }
 
-// GetAllWorkTreeHEADs returns the refs that all worktrees are using as HEADs
+// A git worktree (ref + path)
+type Worktree struct {
+	Ref Ref
+	Dir string
+}
+
+// GetAllWorkTrees returns the refs that all worktrees are using as HEADs plus the worktree's path.
 // This returns all worktrees plus the master working copy, and works even if
 // working dir is actually in a worktree right now
 // Pass in the git storage dir (parent of 'objects') to work from
-func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
+func GetAllWorkTrees(storageDir string) ([]*Worktree, error) {
 	worktreesdir := filepath.Join(storageDir, "worktrees")
 	dirf, err := os.Open(worktreesdir)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
-	var worktrees []*Ref
+	var worktrees []*Worktree
 	if err == nil {
 		// There are some worktrees
 		defer dirf.Close()
@@ -886,7 +896,16 @@ func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
 					tracerx.Printf("Error reading %v for worktree, skipping: %v", headfile, err)
 					continue
 				}
-				worktrees = append(worktrees, ref)
+
+				// Read the gitdir file to get the location of the git repo
+				dirfile := filepath.Join(worktreesdir, dirfi.Name(), "gitdir")
+				dir, err := parseDirFile(dirfile)
+				if err != nil {
+					tracerx.Printf("Error reading %v for worktree, skipping: %v", dirfile, err)
+					continue
+				}
+
+				worktrees = append(worktrees, &Worktree{*ref, filepath.Dir(dir)})
 			}
 		}
 	}
@@ -898,11 +917,13 @@ func GetAllWorkTreeHEADs(storageDir string) ([]*Ref, error) {
 	headfile := filepath.Join(storageDir, "HEAD")
 	ref, err := parseRefFile(headfile)
 	if err == nil {
-		worktrees = append(worktrees, ref)
+		dir, err := RootDir()
+		if err == nil {
+			worktrees = append(worktrees, &Worktree{*ref, dir})
+		}
 	} else if !os.IsNotExist(err) { // ok if not exists, probably bare repo
 		tracerx.Printf("Error reading %v for main checkout, skipping: %v", headfile, err)
 	}
-
 	return worktrees, nil
 }
 
@@ -917,6 +938,15 @@ func parseRefFile(filename string) (*Ref, error) {
 		contents = strings.TrimSpace(contents[4:])
 	}
 	return ResolveRef(contents)
+}
+
+func parseDirFile(filename string) (string, error) {
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+	contents := strings.TrimSpace(string(bytes))
+	return contents, nil
 }
 
 // IsBare returns whether or not a repository is bare. It requires that the

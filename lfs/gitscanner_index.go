@@ -13,19 +13,19 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
+func scanIndex(cb GitScannerFoundPointer, ref string, workingDir string, f *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),
 		mutex:        &sync.Mutex{},
 	}
 
-	revs, err := revListIndex(ref, false, indexMap)
+	revs, err := revListIndex(ref, false, indexMap, workingDir)
 	if err != nil {
 		return err
 	}
 
-	cachedRevs, err := revListIndex(ref, true, indexMap)
+	cachedRevs, err := revListIndex(ref, true, indexMap, workingDir)
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ func scanIndex(cb GitScannerFoundPointer, ref string, f *filepathfilter.Filter, 
 // revListIndex uses git diff-index to return the list of object sha1s
 // for in the indexf. It returns a channel from which sha1 strings can be read.
 // The namMap will be filled indexFile pointers mapping sha1s to indexFiles.
-func revListIndex(atRef string, cache bool, indexMap *indexFileMap) (*StringChannelWrapper, error) {
-	scanner, err := NewDiffIndexScanner(atRef, cache, false)
+func revListIndex(atRef string, cache bool, indexMap *indexFileMap, workingDir string) (*StringChannelWrapper, error) {
+	scanner, err := NewDiffIndexScanner(atRef, cache, false, workingDir)
 	if err != nil {
 		return nil, err
 	}

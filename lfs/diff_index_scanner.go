@@ -125,11 +125,15 @@ type DiffIndexScanner struct {
 // operation would be undesirable due to the possibility of corruption. It can
 // also be disabled where another operation will have refreshed the index.
 //
+// If "workingDir" is set, the DiffIndexScanner will be run in the given
+// directory. Otherwise, the DiffIndexScanner will be run in the current
+// working directory.
+//
 // If any error was encountered in starting the command or closing its `stdin`,
 // that error will be returned immediately. Otherwise, a `*DiffIndexScanner`
 // will be returned with a `nil` error.
-func NewDiffIndexScanner(ref string, cached bool, refresh bool) (*DiffIndexScanner, error) {
-	scanner, err := git.DiffIndex(ref, cached, refresh)
+func NewDiffIndexScanner(ref string, cached bool, refresh bool, workingDir string) (*DiffIndexScanner, error) {
+	scanner, err := git.DiffIndex(ref, cached, refresh, workingDir)
 	if err != nil {
 		return nil, err
 	}
