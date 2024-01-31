@@ -628,6 +628,16 @@ begin_test "fetch raw remote url"
 )
 end_test
 
+begin_test "fetch with invalid ref"
+(
+  set -e
+  cd repo
+
+  git lfs fetch origin jibberish >fetch.log 2>&1 && exit 1
+  grep "Invalid ref argument" fetch.log
+)
+end_test
+
 begin_test "fetch with invalid remote"
 (
   set -e
