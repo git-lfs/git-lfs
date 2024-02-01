@@ -246,7 +246,7 @@ func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio
 	if workingDir != "" {
 		args = append([]string{"-C", workingDir}, args...)
 	}
-	
+
 	cmd, err := gitBuffered(args...)
 	if err != nil {
 		return nil, err

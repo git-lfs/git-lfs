@@ -481,7 +481,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 	// Don't repeat any commits, worktrees are always on their own branches but
 	// may point to the same commit
 	commits := tools.NewStringSet()
-	
+
 	if !fetchconf.PruneForce {
 		// current HEAD is done elsewhere
 		headref, err := git.CurrentRef()
@@ -544,7 +544,6 @@ func pruneTaskGetRetainedIndex(gitscanner *lfs.GitScanner, ref string, workingDi
 		return
 	}
 }
-
 
 // Background task, must call waitg.Done() once at end
 func pruneTaskGetReachableObjects(gitscanner *lfs.GitScanner, outObjectSet *tools.StringSet, errorChan chan error, waitg *sync.WaitGroup, sem *semaphore.Weighted) {
