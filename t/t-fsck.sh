@@ -511,3 +511,15 @@ begin_test "fsck operates on specified refs"
   true
 )
 end_test
+
+begin_test "fsck detects invalid ref"
+(
+  set -e
+  reponame="fsck-default"
+  git init $reponame
+  cd $reponame
+
+  git lfs fsck jibberish >fsck.log 2>&1 && exit 1
+  grep "can't resolve ref" fsck.log
+)
+end_test
