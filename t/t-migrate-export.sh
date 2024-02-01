@@ -367,6 +367,17 @@ begin_test "migrate export (include/exclude ref)"
 )
 end_test
 
+begin_test "migrate export (invalid ref)"
+(
+  set -e
+  remove_and_create_local_repo "migrate-export-invalid-ref"
+  git commit --allow-empty -m "initial commit"
+
+  git lfs migrate export --yes --include="*" jibberish >migrate.log 2>&1 && exit 1
+  grep "can't resolve ref" migrate.log
+)
+end_test
+
 begin_test "migrate export (.gitattributes with different permissions)"
 (
   set -e

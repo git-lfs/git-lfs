@@ -38,6 +38,16 @@ begin_test "push with tracked ref"
 )
 end_test
 
+begin_test "push with invalid ref"
+(
+  set -e
+  push_repo_setup "push-invalid-branch-required"
+
+  git lfs push origin jibberish >push.log 2>&1 && exit 1
+  grep "Invalid ref argument" push.log
+)
+end_test
+
 begin_test "push with bad ref"
 (
   set -e

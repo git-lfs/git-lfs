@@ -240,6 +240,17 @@ begin_test "migrate info (include/exclude ref with filter)"
 )
 end_test
 
+begin_test "migrate info (invalid ref)"
+(
+  set -e
+  remove_and_create_local_repo "migrate-info-invalid-ref"
+  git commit --allow-empty -m "initial commit"
+
+  git lfs migrate info jibberish >migrate.log 2>&1 && exit 1
+  grep "can't resolve ref" migrate.log
+)
+end_test
+
 begin_test "migrate info (nested sub-trees, no filter)"
 (
   set -e
