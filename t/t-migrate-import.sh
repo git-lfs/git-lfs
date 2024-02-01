@@ -409,6 +409,17 @@ begin_test "migrate import (include/exclude ref with filter)"
 )
 end_test
 
+begin_test "migrate import (invalid ref)"
+(
+  set -e
+  remove_and_create_local_repo "migrate-import-invalid-ref"
+  git commit --allow-empty -m "initial commit"
+
+  git lfs migrate import --yes jibberish >migrate.log 2>&1 && exit 1
+  grep "can't resolve ref" migrate.log
+)
+end_test
+
 begin_test "migrate import (above)"
 (
   set -e
