@@ -643,7 +643,7 @@ begin_test "prune verify"
   delete_server_object "remote_$reponame" "$oid_commit2_failverify"
   # this should now fail
   git lfs prune --verify-remote 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 2 verified with remote, done." prune.log
+  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
@@ -655,13 +655,20 @@ begin_test "prune verify"
   git config lfs.pruneverifyremotealways true
   # no verify arg but should be pulled from global
   git lfs prune 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 2 verified with remote, done." prune.log
+  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
   assert_local_object "$oid_commit1" "${#content_commit1}"
   assert_local_object "$oid_commit2_failverify" "${#content_commit2_failverify}"
   assert_local_object "$oid_commit3" "${#content_commit3}"
+
+  # --when-unverified=continue we would prune verified objects but skip unverified objects
+  git lfs prune --when-unverified=continue --dry-run --verbose 2>&1 | tee prune.log
+  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
+  grep "prune: 2 files would be pruned" prune.log
+  grep "$oid_commit1" prune.log
+  grep "$oid_commit3" prune.log
 
   # now try overriding the global option
   git lfs prune --no-verify-remote 2>&1 | tee prune.log
@@ -734,6 +741,113 @@ begin_test "prune verify large numbers of refs"
   # confirm that prune does not hang
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
 
+)
+end_test
+
+begin_test "prune unreachable"
+(
+  set -e
+
+  reponame="prune_unreachable"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  content_head="HEAD content"
+  content_orphan="orphan content (not pruned)"
+  content_commit3="Content for commit 3 (prune)"
+  content_commit2="Content for commit 2"
+  content_commit1="Content for commit 1 (prune)"
+  oid_head=$(calc_oid "$content_head")
+  oid_orphan=$(calc_oid "$content_orphan")
+  oid_commit3=$(calc_oid "$content_commit3")
+  oid_commit2=$(calc_oid "$content_commit2")
+  oid_commit1=$(calc_oid "$content_commit1")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -50d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit1}, \"Data\":\"$content_commit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -40d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit2}, \"Data\":\"$content_commit2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_commit3}, \"Data\":\"$content_commit3\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -25d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # push all so no unpushed reason to not prune
+  git push origin main
+
+  # set no recents so max ability to prune normally
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 0
+  git config lfs.pruneoffsetdays 1
+
+  # add one file to the index and then remove it to see if unreachable files are pruned
+  echo -n "$content_orphan" > file.dat
+  git add file.dat
+  git reset file.dat
+
+  # confirm that it would prune without --verify-unreachable
+  git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
+  grep "prune: 5 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "prune: 4 files would be pruned" prune.log
+  grep "$oid_commit3" prune.log
+  grep "$oid_commit2" prune.log
+  grep "$oid_commit1" prune.log
+  grep "$oid_orphan" prune.log
+
+  # this should now halt as one file cannot be verified
+  git lfs prune --verify-remote --verify-unreachable 2>&1 | tee prune.log
+  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "missing on remote:" prune.log
+  grep "$oid_orphan" prune.log
+
+  # No files should have been deleted
+  assert_local_object "$oid_head" "${#content_head}"
+  assert_local_object "$oid_commit1" "${#content_commit1}"
+  assert_local_object "$oid_commit2" "${#content_commit2}"
+  assert_local_object "$oid_commit3" "${#content_commit3}"
+  assert_local_object "$oid_orphan" "${#content_orphan}"
+
+  # test config option
+  git config lfs.pruneverifyunreachablealways true
+  git lfs prune --verify-remote 2>&1 | tee prune.log
+  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "missing on remote:" prune.log
+  grep "$oid_orphan" prune.log
+
+  # now try overriding the global option
+  git lfs prune --verify-remote --no-verify-unreachable --dry-run 2>&1 | tee prune.log
+  grep "prune: 5 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "prune: 4 files would be pruned" prune.log
+
+  # now test with continue to see that it does prune verified objects
+  git lfs prune --verify-remote --when-unverified=continue 2>&1 | tee prune.log
+  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "prune: Deleting objects: 100% (3/3), done." prune.log
+
+  # The orphan file should not have been deleted
+  refute_local_object "$oid_commit1" "${#content_commit1}"
+  refute_local_object "$oid_commit2" "${#content_commit2}"
+  refute_local_object "$oid_commit3" "${#content_commit3}"
+  assert_local_object "$oid_orphan" "${#content_orphan}"
 )
 end_test
 

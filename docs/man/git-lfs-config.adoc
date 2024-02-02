@@ -272,6 +272,9 @@ called if --verify-remote is enabled.
 * `lfs.pruneverifyremotealways`
 +
 Always run `git lfs prune` as if `--verify-remote` was provided.
+* `lfs.pruneverifyunreachablealways`
++
+Always run `git lfs prune` as if `--verify-unreachable` was provided.
 
 === Extensions
 
