@@ -15,3 +15,5 @@ $ git lfs <command> -h
 Details of how the Git LFS **client** works are in the [official specification](spec.md).
 
 Details of how the GIT LFS **server** works are in the [API specification](api).
+$ git lfs help <command>
+$ git lfs <command> -h
