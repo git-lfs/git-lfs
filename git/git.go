@@ -811,6 +811,11 @@ func RootDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if len(path) == 0 {
+		return "", errors.New(tr.Tr.Get("no output from `git rev-parse --show-toplevel`"))
+	}
+
 	return tools.CanonicalizePath(path, false)
 }
 
@@ -911,7 +916,7 @@ func GetAllWorkTrees(storageDir string) ([]*Worktree, error) {
 	}
 
 	// This has only established the separate worktrees, not the original checkout
-	// If the storageDir contains a HEAD file then there is a main checkout
+	// If the storageDir contains a HEAD file and a RootDir then there is a main checkout
 	// as well; this must be resolveable whether you're in the main checkout or
 	// a worktree
 	headfile := filepath.Join(storageDir, "HEAD")
@@ -920,6 +925,8 @@ func GetAllWorkTrees(storageDir string) ([]*Worktree, error) {
 		dir, err := RootDir()
 		if err == nil {
 			worktrees = append(worktrees, &Worktree{*ref, dir})
+		} else { // ok if not exists, probably bare repo
+			tracerx.Printf("Error getting toplevel for main checkout, skipping: %v", err)
 		}
 	} else if !os.IsNotExist(err) { // ok if not exists, probably bare repo
 		tracerx.Printf("Error reading %v for main checkout, skipping: %v", headfile, err)
