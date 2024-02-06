@@ -266,14 +266,14 @@ func (s *GitScanner) ScanPreviousVersions(ref string, since time.Time, cb GitSca
 }
 
 // ScanIndex scans the git index for modified LFS objects.
-func (s *GitScanner) ScanIndex(ref string, cb GitScannerFoundPointer) error {
+func (s *GitScanner) ScanIndex(ref string, workingDir string, cb GitScannerFoundPointer) error {
 	callback, err := firstGitScannerCallback(cb, s.foundPointer)
 	if err != nil {
 		return err
 	}
 
 	start := time.Now()
-	err = scanIndex(callback, ref, s.Filter, s.cfg.GitEnv(), s.cfg.OSEnv())
+	err = scanIndex(callback, ref, workingDir, s.Filter, s.cfg.GitEnv(), s.cfg.OSEnv())
 	tracerx.PerformanceSince("ScanIndex", start)
 
 	return err

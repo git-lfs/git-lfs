@@ -144,7 +144,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 		//
 		// Do so to avoid showing "mixed" results, e.g., ls-files output
 		// from a specific historical revision, and the index.
-		if err := gitscanner.ScanIndex(ref, nil); err != nil {
+		if err := gitscanner.ScanIndex(ref, "", nil); err != nil {
 			Exit(tr.Tr.Get("Could not scan for Git LFS index: %s", err))
 		}
 	}

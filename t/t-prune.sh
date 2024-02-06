@@ -1187,6 +1187,63 @@ begin_test "prune recent changes with --recent"
 )
 end_test
 
+begin_test "prune keep files in index"
+(
+  set -e
+
+  reponame="prune_index"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat"
+
+  # generate content we'll use
+  content_inrepo="this is the original committed data"
+  oid_inrepo=$(calc_oid "$content_inrepo")
+  content_new="this data will be indexed"
+  oid_new=$(calc_oid "$content_new")
+  content_untracked="This data will be untracked and added to the index and should not be deleted"
+  oid_untracked=$(calc_oid "$content_untracked")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_inrepo}, \"Data\":\"$content_inrepo\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  # now modify the file, and add it to the index
+  printf '%s' "$content_new" > file.dat
+  git add .
+
+  # now add the file, and add it to the index
+  printf '%s' "$content_untracked" > untracked.dat
+  git add .
+
+  assert_local_object "$oid_new" "${#content_new}"
+  assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_untracked" "${#content_untracked}"
+
+  # prune data, should not delete.
+  git lfs prune
+
+  assert_local_object "$oid_new" "${#content_new}"
+  assert_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_untracked" "${#content_untracked}"
+
+  git push origin HEAD
+
+  # force prune data should not delete in index
+  git lfs prune --force
+
+  assert_local_object "$oid_new" "${#content_new}"
+  refute_local_object "$oid_inrepo" "${#content_inrepo}"
+  assert_local_object "$oid_untracked" "${#content_untracked}"
+)
+end_test
+
 begin_test "prune --force"
 (
   set -e
