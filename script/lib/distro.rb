@@ -34,10 +34,11 @@ class DistroMap
           "scientific/7", # EOL June 2024
           # opensuse https://en.opensuse.org/Lifetime
           # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-          "opensuse/15.4", # EOL November 2023
+          "opensuse/15.5", # EOL December 2024
+          "opensuse/15.6", # EOL December 2025
           # SLES EOL https://www.suse.com/lifecycle/
           "sles/12.5", # EOL October 2024 (LTSS October 2027)
-          "sles/15.4", # Current
+          "sles/15.5", # Current
         ],
       },
       "centos/8" => {
@@ -58,8 +59,9 @@ class DistroMap
         package_tag: "-1.el9",
         equivalent: [
           "el/9",
-          "fedora/37", # EOL November 2023
           "fedora/38", # EOL May 2024
+          "fedora/39", # EOL Dec 2024
+          "fedora/40", # Current
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
@@ -87,12 +89,13 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/bullseye",  # EOL June 2026
-          "ubuntu/jammy",     # EOL April 2027
-          "ubuntu/kinetic",   # EOL July 2023
-          "ubuntu/lunar",     # EOL January 2024
-          "linuxmint/vanessa",# EOL April 2027
-          "linuxmint/vera",   # EOL April 2027
+          "debian/bullseye",    # EOL June 2026
+          "ubuntu/jammy",       # EOL April 2027
+          "ubuntu/mantic",      # EOL July 2024
+          "linuxmint/vanessa",  # EOL April 2027
+          "linuxmint/vera",     # EOL April 2027
+          "linuxmint/victoria", # EOL April 2027
+          "linuxmint/virginia", # EOL April 2027
         ],
       },
       "debian/12" => {
@@ -104,6 +107,7 @@ class DistroMap
         equivalent: [
           "debian/bookworm",  # Current stable
           "debian/trixie",    # Current testing
+          "ubuntu/noble",     # EOL June 2029
         ]
       },
     }
