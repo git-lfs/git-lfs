@@ -37,6 +37,53 @@ EOF)
 )
 end_test
 
+begin_test "ls-files: files in subdirectory"
+(
+  set -e
+
+  reponame="ls-files-subdir"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "%s" "$missing" > subdir/missing.dat
+  git add subdir
+  git commit -m "add file in subdirectory"
+
+  contents="some data"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > subdir/some.dat
+
+  echo "some text" > subdir/some.txt
+
+  [ "${missing_oid:0:10} * subdir/missing.dat" = "$(git lfs ls-files)" ]
+
+  git rm subdir/missing.dat
+  git add subdir
+  git commit -m "add and remove files in subdirectory"
+
+  expected="${oid:0:10} * subdir/some.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: subdir/some.dat
+    size: 9
+checkout: true
+download: true
+     oid: sha256 $oid
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
 begin_test "ls-files: --size"
 (
   set -e
@@ -571,5 +618,52 @@ EOF
 }
 EOF
   diff -u actual expected
+)
+end_test
+
+begin_test "ls-files: files in subdirectory (--json)"
+(
+  set -e
+
+  reponame="ls-files-subdir-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "%s" "$missing" > subdir/missing.dat
+  git add subdir
+  git commit -m "add file in subdirectory"
+
+  contents="some data"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > subdir/some.dat
+
+  echo "some text" > subdir/some.txt
+
+  git rm subdir/missing.dat
+  git add subdir
+  git commit -m "add and remove files in subdirectory"
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "subdir/some.dat",
+   "size": 9,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
 )
 end_test
