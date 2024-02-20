@@ -84,6 +84,59 @@ EOF)
 )
 end_test
 
+begin_test "ls-files: checkout and download status"
+(
+  set -e
+
+  reponame="ls-files-status"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  # Note that if we don't remove b.dat from the working tree as well as the
+  # Git LFS object cache, Git calls (as invoked by Git LFS) may restore the
+  # cache copy from the working tree copy by re-invoking Git LFS in
+  # "clean" filter mode.
+  git add a.dat b.dat
+  rm a.dat b.dat
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+
+  expected="${oid1:0:10} - a.dat
+${oid2:0:10} - b.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: a.dat
+    size: 1
+checkout: false
+download: true
+     oid: sha256 $oid1
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: b.dat
+    size: 1
+checkout: false
+download: false
+     oid: sha256 $oid2
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
 begin_test "ls-files: --size"
 (
   set -e
@@ -660,6 +713,60 @@ begin_test "ls-files: files in subdirectory (--json)"
    "downloaded": true,
    "oid_type": "sha256",
    "oid": "$oid",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
+)
+end_test
+
+begin_test "ls-files: checkout and download status (--json)"
+(
+  set -e
+
+  reponame="ls-files-status-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  # Note that if we don't remove b.dat from the working tree as well as the
+  # Git LFS object cache, Git calls (as invoked by Git LFS) may restore the
+  # cache copy from the working tree copy by re-invoking Git LFS in
+  # "clean" filter mode.
+  git add a.dat b.dat
+  rm a.dat b.dat
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "a.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid1",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "b.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": false,
+   "oid_type": "sha256",
+   "oid": "$oid2",
    "version": "https://git-lfs.github.com/spec/v1"
   }
  ]
