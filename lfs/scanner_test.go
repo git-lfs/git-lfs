@@ -44,10 +44,10 @@ index 9daa2e5..c648385 100644
 -size 16849
 +oid sha256:3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b
 +size 3152388
-diff --git a/radial_2.png b/radial_2.png
+diff --git "a/radial_2.png" "b/radial_2.png"
 index 9daa2e5..c648385 100644
---- a/radial_2.png
-+++ b/radial_2.png
+--- "a/radial_2.png"
++++ "b/radial_2.png"
 @@ -1,3 +1,3 @@
  version https://git-lfs.github.com/spec/v1
 -ext-0-foo sha256:36485434f4f8a55150282ae7c78619a89de52721c00f48159f2562463df9c043
