@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -344,6 +345,12 @@ func (s *logScanner) setFilename(name string) {
 	// Trim last character if it's a quote
 	if len(name) > 0 && name[len(name)-1] == '"' {
 		name = name[:len(name)-1]
+	}
+
+	// Convert octals to proper UTF-8 code
+	unquotedName, err := strconv.Unquote(`"` + name + `"`)
+	if err == nil {
+		name = unquotedName
 	}
 
 	s.currentFilename = name
