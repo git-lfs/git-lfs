@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -68,19 +70,19 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 
 // getClientCertForHost returns a client certificate for a specific host (which may
 // be "host:port" loaded from the gitconfig
-func getClientCertForHost(c *Client, host string) *tls.Certificate {
+func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
 	cert, err := os.ReadFile(hostSslCert)
 	if err != nil {
 		tracerx.Printf("Error reading client cert file %q: %v", hostSslCert, err)
-		return nil
+		return nil, errors.Wrapf(err, tr.Tr.Get("Error reading client cert file %q", hostSslCert))
 	}
 	key, err := os.ReadFile(hostSslKey)
 	if err != nil {
 		tracerx.Printf("Error reading client key file %q: %v", hostSslKey, err)
-		return nil
+		return nil, errors.Wrapf(err, tr.Tr.Get("Error reading client key file %q", hostSslKey))
 	}
 
 	block, _ := pem.Decode(key)
@@ -88,16 +90,16 @@ func getClientCertForHost(c *Client, host string) *tls.Certificate {
 		key, err = decryptPEMBlock(c, block, hostSslKey, key)
 		if err != nil {
 			tracerx.Printf("Unable to decrypt client key file %q: %v", hostSslKey, err)
-			return nil
+			return nil, errors.Wrapf(err, tr.Tr.Get("Error reading client key file %q (not a PKCS#1 file?)", hostSslKey))
 		}
 	}
 
 	certobj, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		tracerx.Printf("Error reading client cert/key %v", err)
-		return nil
+		return nil, errors.Wrapf(err, tr.Tr.Get("Error reading client cert/key"))
 	}
-	return &certobj
+	return &certobj, nil
 }
 
 // getRootCAsForHost returns a certificate pool for that specific host (which may
