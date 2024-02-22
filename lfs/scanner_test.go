@@ -82,11 +82,11 @@ index 0000000..8519883
 +size 125873
 lfs-commit-sha: 64b3372e108daaa593412d5e1d9df8169a9547ea e99c9cac7ff3f3cf1b2e670a64a5a381c44ffceb
 
-diff --git a/hobbit_5armies_2.mov b/hobbit_5armies_2.mov
+diff --git "a/hobbit_5armies_2.mov" "b/hobbit_5armies_2.mov"
 new file mode 100644
 index 0000000..92a88f8
 --- /dev/null
-+++ b/hobbit_5armies_2.mov
++++ "b/hobbit_5armies_2.mov"
 @@ -0,0 +1,3 @@
 +version https://git-lfs.github.com/spec/v1
 +ext-0-foo sha256:b37197ac149950d057521bcb7e00806f0528e19352bd72767165bc390d4f055e
