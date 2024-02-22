@@ -58,6 +58,7 @@ func Environ(cfg *config.Configuration, manifest tq.Manifest, envOverrides map[s
 		fmt.Sprintf("FetchRecentRefsIncludeRemotes=%v", fetchPruneConfig.FetchRecentRefsIncludeRemotes),
 		fmt.Sprintf("PruneOffsetDays=%d", fetchPruneConfig.PruneOffsetDays),
 		fmt.Sprintf("PruneVerifyRemoteAlways=%v", fetchPruneConfig.PruneVerifyRemoteAlways),
+		fmt.Sprintf("PruneVerifyUnreachableAlways=%v", fetchPruneConfig.PruneVerifyUnreachableAlways),
 		fmt.Sprintf("PruneRemoteName=%s", fetchPruneConfig.PruneRemoteName),
 		fmt.Sprintf("LfsStorageDir=%s", cfg.LFSStorageDir()),
 		fmt.Sprintf("AccessDownload=%s", download.Mode()),

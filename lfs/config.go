@@ -17,8 +17,10 @@ type FetchPruneConfig struct {
 	// Number of days added to FetchRecent*; data outside combined window will be
 	// deleted when prune is run. (default 3)
 	PruneOffsetDays int
-	// Always verify with remote before pruning
+	// Always verify with remote before pruning reachable objects
 	PruneVerifyRemoteAlways bool
+	// When verifiying, always verify all reachable and unreachable objects with remote (default false)
+	PruneVerifyUnreachableAlways bool
 	// Name of remote to check for unpushed and verify checks
 	PruneRemoteName string
 	// Whether to ignore all recent options.
@@ -40,6 +42,7 @@ func NewFetchPruneConfig(git config.Environment) FetchPruneConfig {
 		FetchRecentAlways:             git.Bool("lfs.fetchrecentalways", false),
 		PruneOffsetDays:               git.Int("lfs.pruneoffsetdays", 3),
 		PruneVerifyRemoteAlways:       git.Bool("lfs.pruneverifyremotealways", false),
+		PruneVerifyUnreachableAlways:  git.Bool("lfs.pruneverifyunreachablealways", false),
 		PruneRemoteName:               pruneRemote,
 		PruneRecent:                   false,
 		PruneForce:                    false,

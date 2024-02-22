@@ -37,6 +37,236 @@ EOF)
 )
 end_test
 
+begin_test "ls-files: files in subdirectory"
+(
+  set -e
+
+  reponame="ls-files-subdir"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "%s" "$missing" > subdir/missing.dat
+  git add subdir
+  git commit -m "add file in subdirectory"
+
+  contents="some data"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > subdir/some.dat
+
+  echo "some text" > subdir/some.txt
+
+  [ "${missing_oid:0:10} * subdir/missing.dat" = "$(git lfs ls-files)" ]
+
+  git rm subdir/missing.dat
+  git add subdir
+  git commit -m "add and remove files in subdirectory"
+
+  expected="${oid:0:10} * subdir/some.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: subdir/some.dat
+    size: 9
+checkout: true
+download: true
+     oid: sha256 $oid
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
+begin_test "ls-files: run within subdirectory"
+(
+  set -e
+
+  reponame="ls-files-in-subdir"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > subdir/b.dat
+
+  cd subdir
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  git add ../a.dat b.dat
+
+  expected="${oid1:0:10} * a.dat
+${oid2:0:10} * subdir/b.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: a.dat
+    size: 1
+checkout: true
+download: true
+     oid: sha256 $oid1
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: subdir/b.dat
+    size: 1
+checkout: true
+download: true
+     oid: sha256 $oid2
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
+begin_test "ls-files: checkout and download status"
+(
+  set -e
+
+  reponame="ls-files-status"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  # Note that if we don't remove b.dat from the working tree as well as the
+  # Git LFS object cache, Git calls (as invoked by Git LFS) may restore the
+  # cache copy from the working tree copy by re-invoking Git LFS in
+  # "clean" filter mode.
+  git add a.dat b.dat
+  rm a.dat b.dat
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+
+  expected="${oid1:0:10} - a.dat
+${oid2:0:10} - b.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: a.dat
+    size: 1
+checkout: false
+download: true
+     oid: sha256 $oid1
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: b.dat
+    size: 1
+checkout: false
+download: false
+     oid: sha256 $oid2
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
+begin_test "ls-files: checkout and download status (run within subdirectory)"
+(
+  set -e
+
+  reponame="ls-files-status-in-subdir"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  mkdir subdir
+  cd subdir
+
+  contents3="c"
+  oid3="$(calc_oid "$contents3")"
+  printf "%s" "$contents3" > c.dat
+  contents4="d"
+  oid4="$(calc_oid "$contents4")"
+  printf "%s" "$contents4" > d.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  # Note that if we don't remove b.dat and d.dat from the working tree as
+  # well as the Git LFS object cache, Git calls (as invoked by Git LFS) may
+  # restore the cache copies from the working tree copies by re-invoking
+  # Git LFS in "clean" filter mode.
+  git add ../a.dat ../b.dat c.dat d.dat
+  rm ../a.dat ../b.dat c.dat d.dat
+  rm "../.git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+  rm "../.git/lfs/objects/${oid4:0:2}/${oid4:2:2}/$oid4"
+
+  expected="${oid1:0:10} - a.dat
+${oid2:0:10} - b.dat
+${oid3:0:10} - subdir/c.dat
+${oid4:0:10} - subdir/d.dat"
+
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: a.dat
+    size: 1
+checkout: false
+download: true
+     oid: sha256 $oid1
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: b.dat
+    size: 1
+checkout: false
+download: false
+     oid: sha256 $oid2
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: subdir/c.dat
+    size: 1
+checkout: false
+download: true
+     oid: sha256 $oid3
+ version: https://git-lfs.github.com/spec/v1
+
+filepath: subdir/d.dat
+    size: 1
+checkout: false
+download: false
+     oid: sha256 $oid4
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+)
+end_test
+
 begin_test "ls-files: --size"
 (
   set -e
@@ -571,5 +801,240 @@ EOF
 }
 EOF
   diff -u actual expected
+)
+end_test
+
+begin_test "ls-files: files in subdirectory (--json)"
+(
+  set -e
+
+  reponame="ls-files-subdir-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "%s" "$missing" > subdir/missing.dat
+  git add subdir
+  git commit -m "add file in subdirectory"
+
+  contents="some data"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > subdir/some.dat
+
+  echo "some text" > subdir/some.txt
+
+  git rm subdir/missing.dat
+  git add subdir
+  git commit -m "add and remove files in subdirectory"
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "subdir/some.dat",
+   "size": 9,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
+)
+end_test
+
+begin_test "ls-files: run within subdirectory (--json)"
+(
+  set -e
+
+  reponame="ls-files-in-subdir-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  mkdir subdir
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > subdir/b.dat
+
+  cd subdir
+
+  git add ../a.dat b.dat
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "a.dat",
+   "size": 1,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid1",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "subdir/b.dat",
+   "size": 1,
+   "checkout": true,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid2",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
+)
+end_test
+
+begin_test "ls-files: checkout and download status (--json)"
+(
+  set -e
+
+  reponame="ls-files-status-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  # Note that if we don't remove b.dat from the working tree as well as the
+  # Git LFS object cache, Git calls (as invoked by Git LFS) may restore the
+  # cache copy from the working tree copy by re-invoking Git LFS in
+  # "clean" filter mode.
+  git add a.dat b.dat
+  rm a.dat b.dat
+  rm ".git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "a.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid1",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "b.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": false,
+   "oid_type": "sha256",
+   "oid": "$oid2",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
+)
+end_test
+
+begin_test "ls-files: checkout and download status (run within subdirectory) (--json)"
+(
+  set -e
+
+  reponame="ls-files-status-in-subdir-json"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents1="a"
+  oid1="$(calc_oid "$contents1")"
+  printf "%s" "$contents1" > a.dat
+  contents2="b"
+  oid2="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+
+  mkdir subdir
+  cd subdir
+
+  contents3="c"
+  oid3="$(calc_oid "$contents3")"
+  printf "%s" "$contents3" > c.dat
+  contents4="d"
+  oid4="$(calc_oid "$contents4")"
+  printf "%s" "$contents4" > d.dat
+
+  # Note that if we don't remove b.dat and d.dat from the working tree as
+  # well as the Git LFS object cache, Git calls (as invoked by Git LFS) may
+  # restore the cache copies from the working tree copies by re-invoking
+  # Git LFS in "clean" filter mode.
+  git add ../a.dat ../b.dat c.dat d.dat
+  rm ../a.dat ../b.dat c.dat d.dat
+  rm "../.git/lfs/objects/${oid2:0:2}/${oid2:2:2}/$oid2"
+  rm "../.git/lfs/objects/${oid4:0:2}/${oid4:2:2}/$oid4"
+
+  diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "a.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid1",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "b.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": false,
+   "oid_type": "sha256",
+   "oid": "$oid2",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "subdir/c.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid3",
+   "version": "https://git-lfs.github.com/spec/v1"
+  },
+  {
+   "name": "subdir/d.dat",
+   "size": 1,
+   "checkout": false,
+   "downloaded": false,
+   "oid_type": "sha256",
+   "oid": "$oid4",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
 )
 end_test

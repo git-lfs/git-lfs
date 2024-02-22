@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -181,7 +182,7 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 // Returns true if a pointer appears to be properly smudge on checkout
 func fileExistsOfSize(p *lfs.WrappedPointer) bool {
 	path := cfg.Filesystem().DecodePathname(p.Name)
-	info, err := os.Stat(path)
+	info, err := os.Stat(filepath.Join(cfg.LocalWorkingDir(), path))
 	return err == nil && info.Size() == p.Size
 }
 
