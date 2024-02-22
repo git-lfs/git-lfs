@@ -25,12 +25,15 @@ import (
 )
 
 var (
-	pruneDryRunArg      bool
-	pruneVerboseArg     bool
-	pruneVerifyArg      bool
-	pruneRecentArg      bool
-	pruneForceArg       bool
-	pruneDoNotVerifyArg bool
+	pruneDryRunArg                 bool
+	pruneVerboseArg                bool
+	pruneVerifyArg                 bool
+	pruneRecentArg                 bool
+	pruneForceArg                  bool
+	pruneDoNotVerifyArg            bool
+	pruneVerifyUnreachableArg      bool
+	pruneDoNotVerifyUnreachableArg bool
+	pruneWhenUnverifiedArg         string
 )
 
 func pruneCommand(cmd *cobra.Command, args []string) {
@@ -42,17 +45,30 @@ func pruneCommand(cmd *cobra.Command, args []string) {
 	fetchPruneConfig := lfs.NewFetchPruneConfig(cfg.Git)
 	verify := !pruneDoNotVerifyArg &&
 		(fetchPruneConfig.PruneVerifyRemoteAlways || pruneVerifyArg)
+	verifyUnreachable := !pruneDoNotVerifyUnreachableArg && (pruneVerifyUnreachableArg || fetchPruneConfig.PruneVerifyUnreachableAlways)
+
+	continueWhenUnverified := false
+	switch pruneWhenUnverifiedArg {
+	case "halt":
+		continueWhenUnverified = false
+	case "continue":
+		continueWhenUnverified = true
+	default:
+		Exit(tr.Tr.Get("Invalid value for --when-unverified: %s", pruneWhenUnverifiedArg))
+	}
+
 	fetchPruneConfig.PruneRecent = pruneRecentArg || pruneForceArg
 	fetchPruneConfig.PruneForce = pruneForceArg
-	prune(fetchPruneConfig, verify, pruneDryRunArg, pruneVerboseArg)
+	prune(fetchPruneConfig, verify, verifyUnreachable, continueWhenUnverified, pruneDryRunArg, pruneVerboseArg)
 }
 
 type PruneProgressType int
 
 const (
-	PruneProgressTypeLocal  = PruneProgressType(iota)
-	PruneProgressTypeRetain = PruneProgressType(iota)
-	PruneProgressTypeVerify = PruneProgressType(iota)
+	PruneProgressTypeLocal      = PruneProgressType(iota)
+	PruneProgressTypeRetain     = PruneProgressType(iota)
+	PruneProgressTypeVerify     = PruneProgressType(iota)
+	PruneProgressTypeUnverified = PruneProgressType(iota)
 )
 
 // Progress from a sub-task of prune
@@ -62,7 +78,7 @@ type PruneProgress struct {
 }
 type PruneProgressChan chan PruneProgress
 
-func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose bool) {
+func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, verifyUnreachable, continueWhenUnverified, dryRun, verbose bool) {
 	localObjects := make([]fs.Object, 0, 100)
 	retainedObjects := tools.NewStringSetWithCapacity(100)
 
@@ -78,7 +94,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	// one completes really fast & hits 0 unexpectedly
 	// each main process can Add() to the wg itself if it subdivides the task
 	taskwait.Add(5) // 1..5: localObjects, current & recent refs, unpushed, worktree, stashes
-	if verifyRemote {
+	if verifyRemote && !verifyUnreachable {
 		taskwait.Add(1) // 6
 	}
 
@@ -106,7 +122,7 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	go pruneTaskGetRetainedUnpushed(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
 	go pruneTaskGetRetainedWorktree(gitscanner, fetchPruneConfig, retainChan, errorChan, &taskwait, sem)
 	go pruneTaskGetRetainedStashed(gitscanner, retainChan, errorChan, &taskwait, sem)
-	if verifyRemote {
+	if verifyRemote && !verifyUnreachable {
 		reachableObjects = tools.NewStringSetWithCapacity(100)
 		go pruneTaskGetReachableObjects(gitscanner, &reachableObjects, errorChan, &taskwait, sem)
 	}
@@ -172,8 +188,6 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 			}
 
 			if verifyRemote {
-				tracerx.Printf("VERIFYING: %v", file.Oid)
-
 				verifyQueue.Add(downloadTransfer(&lfs.WrappedPointer{
 					Pointer: lfs.NewPointer(file.Oid, file.Size, nil),
 				}))
@@ -184,9 +198,20 @@ func prune(fetchPruneConfig lfs.FetchPruneConfig, verifyRemote, dryRun, verbose 
 	if verifyRemote {
 		verifyQueue.Wait()
 		verifywait.Wait()
+
+		var problems bytes.Buffer
+		prunableObjectsLen := len(prunableObjects)
+		prunableObjects, problems = pruneGetVerifiedPrunableObjects(prunableObjects, reachableObjects, verifiedObjects, verifyUnreachable)
+		if prunableObjectsLen != len(prunableObjects) {
+			progressChan <- PruneProgress{PruneProgressTypeUnverified, prunableObjectsLen - len(prunableObjects)}
+		}
+
 		close(progressChan) // after verify but before check
 		progresswait.Wait()
-		pruneCheckVerified(prunableObjects, reachableObjects, verifiedObjects)
+
+		if !continueWhenUnverified && problems.Len() > 0 {
+			Exit("%s\n%v", tr.Tr.Get("These objects to be pruned are missing on remote:"), problems.String())
+		}
 	} else {
 		close(progressChan)
 		progresswait.Wait()
@@ -224,27 +249,31 @@ func logVerboseOutput(logger *tasklog.Logger, verboseOutput []string, numPrunabl
 	}
 }
 
-func pruneCheckVerified(prunableObjects []string, reachableObjects, verifiedObjects tools.StringSet) {
-	// There's no issue if an object is not reachable and missing, only if reachable & missing
-	var problems bytes.Buffer
+func pruneGetVerifiedPrunableObjects(prunableObjects []string, reachableObjects, verifiedObjects tools.StringSet, verifyUnreachable bool) ([]string, bytes.Buffer) {
+	verifiedPrunableObjects := make([]string, 0, len(verifiedObjects))
+	var unverified bytes.Buffer
+
 	for _, oid := range prunableObjects {
-		// Test verified first as most likely reachable
-		if !verifiedObjects.Contains(oid) {
-			if reachableObjects.Contains(oid) {
-				problems.WriteString(fmt.Sprintf(" * %v\n", oid))
+		if verifiedObjects.Contains(oid) {
+			verifiedPrunableObjects = append(verifiedPrunableObjects, oid)
+		} else {
+			if verifyUnreachable {
+				tracerx.Printf("UNVERIFIED: %v", oid)
+				unverified.WriteString(fmt.Sprintf(" * %v\n", oid))
 			} else {
-				// Just to indicate why it doesn't matter that we didn't verify
-				tracerx.Printf("UNREACHABLE: %v", oid)
+				// There's no issue if an object is not reachable and missing, only if reachable & missing
+				if reachableObjects.Contains(oid) {
+					unverified.WriteString(fmt.Sprintf(" * %v\n", oid))
+				} else {
+					// Just to indicate why it doesn't matter that we didn't verify
+					tracerx.Printf("UNREACHABLE: %v", oid)
+					verifiedPrunableObjects = append(verifiedPrunableObjects, oid)
+				}
 			}
 		}
 	}
-	// technically we could still prune the other oids, but this indicates a
-	// more serious issue because the local state implies that these can be
-	// deleted but that's incorrect; bad state has occurred somehow, might need
-	// push --all to resolve
-	if problems.Len() > 0 {
-		Exit("%s\n%v", tr.Tr.Get("These objects to be pruned are missing on remote:"), problems.String())
-	}
+
+	return verifiedPrunableObjects, unverified
 }
 
 func pruneCheckErrors(taskErrors []error) {
@@ -265,6 +294,7 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 	localCount := 0
 	retainCount := 0
 	verifyCount := 0
+	notRemoteCount := 0
 	var msg string
 	for p := range progressChan {
 		switch p.ProgressType {
@@ -274,12 +304,17 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 			retainCount++
 		case PruneProgressTypeVerify:
 			verifyCount++
+		case PruneProgressTypeUnverified:
+			notRemoteCount += p.Count
 		}
 		msg = fmt.Sprintf("prune: %s, %s",
 			tr.Tr.GetN("%d local object", "%d local objects", localCount, localCount),
 			tr.Tr.GetN("%d retained", "%d retained", retainCount, retainCount))
 		if verifyCount > 0 {
 			msg += tr.Tr.GetN(", %d verified with remote", ", %d verified with remote", verifyCount, verifyCount)
+		}
+		if notRemoteCount > 0 {
+			msg += tr.Tr.GetN(", %d not on remote", ", %d not on remote", notRemoteCount, notRemoteCount)
 		}
 		task.Log(msg)
 	}
@@ -571,7 +606,10 @@ func init() {
 		cmd.Flags().BoolVarP(&pruneVerboseArg, "verbose", "v", false, "Print full details of what is/would be deleted")
 		cmd.Flags().BoolVarP(&pruneRecentArg, "recent", "", false, "Prune even recent objects")
 		cmd.Flags().BoolVarP(&pruneForceArg, "force", "f", false, "Prune everything that has been pushed")
-		cmd.Flags().BoolVarP(&pruneVerifyArg, "verify-remote", "c", false, "Verify that remote has LFS files before deleting")
+		cmd.Flags().BoolVarP(&pruneVerifyArg, "verify-remote", "c", false, "Verify that remote has reachable LFS files before deleting")
 		cmd.Flags().BoolVar(&pruneDoNotVerifyArg, "no-verify-remote", false, "Override lfs.pruneverifyremotealways and don't verify")
+		cmd.Flags().BoolVar(&pruneVerifyUnreachableArg, "verify-unreachable", false, "When using --verify-remote, additionally verify unreachable LFS files before deleting.")
+		cmd.Flags().BoolVar(&pruneDoNotVerifyUnreachableArg, "no-verify-unreachable", false, "Override lfs.pruneverifyunreachablealways and don't verify unreachable objects")
+		cmd.Flags().StringVar(&pruneWhenUnverifiedArg, "when-unverified", "halt", "halt|continue the execution when objects are not found on the remote")
 	})
 }

@@ -18,17 +18,19 @@ func TestFetchPruneConfigDefault(t *testing.T) {
 	assert.Equal(t, 3, fp.PruneOffsetDays)
 	assert.Equal(t, "origin", fp.PruneRemoteName)
 	assert.False(t, fp.PruneVerifyRemoteAlways)
+	assert.False(t, fp.PruneVerifyUnreachableAlways)
 }
 
 func TestFetchPruneConfigCustom(t *testing.T) {
 	cfg := config.NewFrom(config.Values{
 		Git: map[string][]string{
-			"lfs.fetchrecentrefsdays":     []string{"12"},
-			"lfs.fetchrecentremoterefs":   []string{"false"},
-			"lfs.fetchrecentcommitsdays":  []string{"9"},
-			"lfs.pruneoffsetdays":         []string{"30"},
-			"lfs.pruneverifyremotealways": []string{"true"},
-			"lfs.pruneremotetocheck":      []string{"upstream"},
+			"lfs.fetchrecentrefsdays":          []string{"12"},
+			"lfs.fetchrecentremoterefs":        []string{"false"},
+			"lfs.fetchrecentcommitsdays":       []string{"9"},
+			"lfs.pruneoffsetdays":              []string{"30"},
+			"lfs.pruneverifyremotealways":      []string{"true"},
+			"lfs.pruneverifyunreachablealways": []string{"true"},
+			"lfs.pruneremotetocheck":           []string{"upstream"},
 		},
 	})
 	fp := NewFetchPruneConfig(cfg.Git)
@@ -39,4 +41,5 @@ func TestFetchPruneConfigCustom(t *testing.T) {
 	assert.Equal(t, 30, fp.PruneOffsetDays)
 	assert.Equal(t, "upstream", fp.PruneRemoteName)
 	assert.True(t, fp.PruneVerifyRemoteAlways)
+	assert.True(t, fp.PruneVerifyUnreachableAlways)
 }

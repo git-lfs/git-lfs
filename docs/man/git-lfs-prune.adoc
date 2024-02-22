@@ -55,11 +55,22 @@ gitignore(5).
   configuration options specified below in <<_recent_files>>.
 `--verify-remote`::
 `-c`::
-  Contact the remote and check that copies of the files we would delete
+  Contact the remote and check that copies of reachable files we would delete
   definitely exist before deleting. See <<_verify_remote>>.
 `--no-verify-remote`::
   Disables remote verification if lfs.pruneverifyremotealways was enabled in
   settings. See <<_verify_remote>>.
+`--verify-reachable`::
+  When doing `--verify-remote` contact the remote and check unreachable
+  objects as well. See <<_verify_remote>>.
+`--no-verify-reachable`::
+  Disables remote verification of unreachable files if
+  lfs.pruneverifyunreachablealways was enabled in settings. See
+  <<_verify_remote>>.
+`--when-unverified=<halt,continue>`::
+  When `--verify-remote` cannot verify an object on the remote, either halt
+  the execution or continue the deletion of verified objects. See
+  <<_verify_remote>>.
 `--verbose`::
 `-v`::
   Report the full detail of what is/would be deleted.
@@ -105,8 +116,8 @@ pruning purposes.
 
 == VERIFY REMOTE
 
-The `--verify-remote` option calls the remote to ensure that any LFS
-files to be deleted have copies on the remote before actually deleting
+The `--verify-remote` option calls the remote to ensure that any reachable
+LFS files to be deleted have copies on the remote before actually deleting
 them.
 
 Usually the check performed by <<_unpushed_lfs_files>> is enough to
@@ -124,6 +135,16 @@ also requires prune to distinguish between totally unreachable files
 referenced only by orphaned commits), and files which are still
 referenced, but by commits which are prunable. This makes the prune
 process take longer.
+
+If you want to verify unreachable objects as well, set the
+`--verify-unreachable` option.
+
+You can check for unreachable objects by default by setting
+`lfs.pruneverifyunreachablealways` to true.
+
+By default, `--verify-remote` halts execution if a file cannot be
+verified. Set `--when-unverified=continue` to not halt exceution but
+continue deleting all objects that can be verified.
 
 == DEFAULT REMOTE
 

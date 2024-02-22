@@ -172,7 +172,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	fetchPruneCfg.FetchRecentRefsDays = 0
 
 	// Prune our cache
-	prune(fetchPruneCfg, false, false, true)
+	prune(fetchPruneCfg, false, false, false, false, true)
 }
 
 func performForceCheckout(l *tasklog.Logger) error {
