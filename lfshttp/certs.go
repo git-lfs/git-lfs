@@ -74,6 +74,16 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
+	hostSslKey, err := tools.ExpandPath(hostSslKey, false)
+	if err != nil {
+		return nil, errors.Wrapf(err, tr.Tr.Get("Error resolving key path %q", hostSslKey))
+	}
+
+	hostSslCert, err = tools.ExpandPath(hostSslCert, false)
+	if err != nil {
+		return nil, errors.Wrapf(err, tr.Tr.Get("Error resolving cert path %q", hostSslCert))
+	}
+
 	cert, err := os.ReadFile(hostSslCert)
 	if err != nil {
 		tracerx.Printf("Error reading client cert file %q: %v", hostSslCert, err)
