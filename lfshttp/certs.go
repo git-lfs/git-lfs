@@ -86,6 +86,9 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 	}
 
 	block, _ := pem.Decode(key)
+	if block == nil {
+		return nil, errors.New(tr.Tr.Get("Error decoding PEM block from %q", hostSslKey))
+	}
 	if x509.IsEncryptedPEMBlock(block) {
 		key, err = decryptPEMBlock(c, block, hostSslKey, key)
 		if err != nil {
