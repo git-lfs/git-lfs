@@ -298,6 +298,20 @@ begin_test "fetch with missing object"
 )
 end_test
 
+begin_test "fetch does not crash on empty key files"
+(
+  set -e
+  cd clone
+  rm -rf .git/lfs/objects
+
+  git config --local http.sslKey /dev/null
+  git config --local http.sslCert /dev/null
+
+  git lfs fetch origin main 2>&1 | tee fetch.log
+  grep "Error decoding PEM block" fetch.log
+)
+end_test
+
 begin_test "fetch-all"
 (
   set -e

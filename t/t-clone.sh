@@ -220,9 +220,58 @@ begin_test "clone ClientCert"
 )
 end_test
 
+begin_test "clone ClientCert with homedir certs"
+(
+  set -e
+
+  # Windows triggers a credential helper problem.
+  if [ $IS_WINDOWS -eq 1 ]; then
+    exit 0
+  fi
+
+  reponame="test-cloneClientCert-homedir"
+
+  cp "$LFS_CLIENT_KEY_FILE" "$HOME/lfs-client-key-file"
+  cp "$LFS_CLIENT_CERT_FILE" "$HOME/lfs-client-cert-file"
+
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "~/lfs-client-key-file"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "~/lfs-client-cert-file"
+
+  setup_remote_repo "$reponame"
+  clone_repo_clientcert "$reponame" "$reponame"
+  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
+    echo "Skipping due to SSL client cert bug in Git"
+    exit 0
+  fi
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # generate some test data & commits with random LFS data
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -5d)\",
+    \"Files\":[
+      {\"Filename\":\"file1.dat\",\"Size\":100},
+      {\"Filename\":\"file2.dat\",\"Size\":75}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -1d)\",
+    \"Files\":[
+      {\"Filename\":\"file3.dat\",\"Size\":30}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin main
+)
+end_test
+
 begin_test "clone with flags"
 (
   set -e
+
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
+  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
 
   reponame="$(basename "$0" ".sh")-flags"
   setup_remote_repo "$reponame"
