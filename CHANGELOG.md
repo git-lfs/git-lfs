@@ -1,5 +1,92 @@
 # Git LFS Changelog
 
+## 3.5.0 (28 February 2024)
+
+This release is a feature release which includes support for LoongArch and
+RISC-V Linux binary tarballs, `FETCH_HEAD` as a remote source (from a plain
+`git fetch`), better support for detection of the system gitattributes file,
+and configuration options for the SSH protocol.  In this release, the
+`FETCH_HEAD` support is experimental and subject to change.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @jochenhz for improvements to `git lfs prune`
+* @murez for improvements to our installation script
+* @qiangxuhui for tooling to build 64-bit LoongArch packages
+* @AaronDewes for tooling to build 64-bit RISC-V packages
+* @b-camacho for allowing `FETCH_HEAD` as a fallback remote source
+* @tigsikram for fixing some broken links
+* @aymanbagabas for fixing our SSH protocol documentation
+* @KyleFromKitware for improvements to the pure SSH protocol
+* @Juneezee for several code cleanups
+* @cmaves for improving performance of our progress indications
+* @QuLogic for improving completions and updating docs
+* @philip-peterson for helping detect invalid refs in `git lfs push`
+* @bogomolets-owl for helping include the reference specified in unlock requests
+
+### Features
+
+* Add --verify-unreachable option to LFS prune #5648 (@jochenhz)
+* attribute: warn if config exists after uninstalling #5635 (@bk2204)
+* Initialize sessions lazily #5634 (@bk2204)
+* Add a `--local` argument to install.sh #5618 (@murez)
+* Provide loong64 Binary Support #5607 (@qiangxuhui)
+* Improve locking performance #5561 (@bk2204)
+* Allow configuring the SSH protocol #5555 (@bk2204)
+* Add `FETCH_HEAD` as fallback remote source #5357 (@b-camacho)
+* Use `git var` to find system gitattributes file #5412 (@bk2204)
+* Add RISC-V support #5438 (@AaronDewes)
+
+### Bugs
+
+* Add support for homedir expansion in SSL key and cert paths #5657 (@bk2204)
+* Display correct status information when `git lfs ls-files` run in subdirectory #5653 (@chrisd8088)
+* Fix git lfs prune is deleting staged files in the index #5637 (@jochenhz)
+* Report invalid ref in `git lfs push` command #5639 (@chrisd8088)
+* Always close open files when cloning and spooling #5617 (@chrisd8088)
+* Fix git-scm.com links #5589 (@tigsikram)
+* doc: update ssh_adapter.md #5560 (@aymanbagabas)
+* track: don't modify `.gitattributes` with `--dry-run` #5559 (@bk2204)
+* Update project home page URL in Linux builds and remove unused spec files #5551 (@chrisd8088)
+* Retrieve endpoint URL only once when checking standalone transfer adapter configurations #5550 (@chrisd8088)
+* ssh: Specifically designate a master multiplex connection #5537 (@KyleFromKitware)
+* Include reference specifier in unlock requests #5538 (@chrisd8088)
+* tq/transfer: copy Id and Token #5534 (@KyleFromKitware)
+* Mock time in copy callback log file test #5524 (@chrisd8088)
+* track: reject attempts to modify `.gitattributes` #5515 (@bk2204)
+* Fix a panic in the credential code #5490 (@bk2204)
+* Avoid modifying the mtime of empty files #5491 (@bk2204)
+* Make track handle backslashes correctly on Unix #5482 (@bk2204)
+* Print an error when pushing with no refs #5437 (@bk2204)
+
+### Misc
+
+* workflows: update to Go 1.22 #5650 (@bk2204)
+* Distro updates for v3.5 #5647 (@bk2204)
+* Use Azure Code Signing for Windows release binaries #5630 (@bk2204)
+* Fix flaky test `t-credentials.sh` #5616 (@bk2204)
+* t: pipe random data to `base64(1)` to be compatible with macOS #5614 (@chrisd8088)
+* Replace deprecated `io/ioutil` functions #5595 (@Juneezee)
+* t/t-path.sh: avoid flaky test setup failure on Windows due to new Go path security checks #5611 (@chrisd8088)
+* build(deps): bump golang.org/x/crypto from 0.14.0 to 0.17.0 #5591 (@dependabot[bot])
+* Update release documentation and changelog summary script for patch releases #5590 (@chrisd8088)
+* Update notarization to use `notarytool` #5554 (@bk2204)
+* lfs: avoid unnecessary byte/string conversion #5552 (@Juneezee)
+* build(deps): bump golang.org/x/net from 0.7.0 to 0.17.0 #5541 (@dependabot[bot])
+* Limit CopyCallbackFile to print every 200 ms #5504 (@cmaves)
+* Update to Go 1.21 #5487 (@chrisd8088)
+* Add installation note about restarting shells on Windows for PATH changes #5507 (@chrisd8088)
+* Remove unused Docker scripts and update README #5506 (@chrisd8088)
+* Remove old and unused release script #5500 (@chrisd8088)
+* Update and expand documentation of the Git LFS release process #5452 (@chrisd8088)
+* Update cobra to 1.7.0 #5444 (@QuLogic)
+* Add FAQ entries for TLS data #5446 (@bk2204)
+* Remove vendoring instructions from contributing docs #5443 (@QuLogic)
+* FAQ: add an entry about proxies #5445 (@bk2204)
+* tq/transfer_test.go: enable and fix all tests #5442 (@chrisd8088)
+* Add a single source of truth for distro info #5439 (@bk2204)
+
 ## 3.4.0 (26 July 2023)
 
 This release is a feature release which includes support for generating
