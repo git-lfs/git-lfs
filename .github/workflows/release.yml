@@ -38,6 +38,11 @@ jobs:
     - run: choco install -y jq
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
+    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+      with:
+        flavor: minimal
+      # We install the SDK so as to have access to the msgfmt.exe binary
+      # from the GNU gettext package.
     - run: mkdir -p bin/releases
       shell: bash
       # We clear the TMPDIR set for Ruby so mktemp and Go use the same
