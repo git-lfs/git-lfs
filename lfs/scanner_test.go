@@ -44,10 +44,10 @@ index 9daa2e5..c648385 100644
 -size 16849
 +oid sha256:3301b3da173d231f0f6b1f9bf075e573758cd79b3cfeff7623a953d708d6688b
 +size 3152388
-diff --git a/radial_2.png b/radial_2.png
+diff --git "a/r\303\251publiquefran\303\247aise.bin" "b/r\303\251publiquefran\303\247aise.bin"
 index 9daa2e5..c648385 100644
---- a/radial_2.png
-+++ b/radial_2.png
+--- "a/r\303\251publiquefran\303\247aise.bin"
++++ "b/r\303\251publiquefran\303\247aise.bin"
 @@ -1,3 +1,3 @@
  version https://git-lfs.github.com/spec/v1
 -ext-0-foo sha256:36485434f4f8a55150282ae7c78619a89de52721c00f48159f2562463df9c043
@@ -82,11 +82,11 @@ index 0000000..8519883
 +size 125873
 lfs-commit-sha: 64b3372e108daaa593412d5e1d9df8169a9547ea e99c9cac7ff3f3cf1b2e670a64a5a381c44ffceb
 
-diff --git a/hobbit_5armies_2.mov b/hobbit_5armies_2.mov
+diff --git "a/hobbit_5armies_2.mov" "b/hobbit_5armies_2.mov"
 new file mode 100644
 index 0000000..92a88f8
 --- /dev/null
-+++ b/hobbit_5armies_2.mov
++++ "b/hobbit_5armies_2.mov"
 @@ -0,0 +1,3 @@
 +version https://git-lfs.github.com/spec/v1
 +ext-0-foo sha256:b37197ac149950d057521bcb7e00806f0528e19352bd72767165bc390d4f055e
@@ -113,7 +113,7 @@ func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
-		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
 		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
 		assert.Equal(t, int64(3152388), p.Size)
 	}
@@ -166,6 +166,23 @@ func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 	assert.Nil(t, scanner.Pointer())
 }
 
+func TestLogScannerAdditionsFilterIncludeOctals(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffAdditions, r)
+	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes)
+
+	// modification, + side with extensions
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
+		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
+		assert.Equal(t, int64(3152388), p.Size)
+	}
+	assertScannerDone(t, scanner)
+	assert.Nil(t, scanner.Pointer())
+}
+
 func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
@@ -184,7 +201,7 @@ func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
-		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
 		assert.Equal(t, "4b666195c133d8d0541ad0bc0e77399b9dc81861577a98314ac1ff1e9877893a", p.Oid)
 		assert.Equal(t, int64(3152388), p.Size)
 	}
@@ -246,7 +263,7 @@ func TestLogScannerDeletionsNoFiltering(t *testing.T) {
 	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
-		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
 		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
 		assert.Equal(t, int64(16849), p.Size)
 	}
@@ -266,6 +283,23 @@ func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 		assert.Equal(t, "flare_1.png", p.Name)
 		assert.Equal(t, "ea61c67cc5e8b3504d46de77212364045f31d9a023ad4448a1ace2a2fb4eed28", p.Oid)
 		assert.Equal(t, int64(72982), p.Size)
+	}
+
+	assertScannerDone(t, scanner)
+}
+
+func TestLogScannerDeletionsFilterIncludeOctals(t *testing.T) {
+	r := strings.NewReader(pointerParseLogOutput)
+	scanner := newLogScanner(LogDiffDeletions, r)
+	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes)
+
+	// modification, - side with extensions
+	assertNextScan(t, scanner)
+	p := scanner.Pointer()
+	if assert.NotNil(t, p) {
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
+		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
+		assert.Equal(t, int64(16849), p.Size)
 	}
 
 	assertScannerDone(t, scanner)
@@ -298,7 +332,7 @@ func TestLogScannerDeletionsFilterExclude(t *testing.T) {
 	assertNextScan(t, scanner)
 	p = scanner.Pointer()
 	if assert.NotNil(t, p) {
-		assert.Equal(t, "radial_2.png", p.Name)
+		assert.Equal(t, "républiquefrançaise.bin", p.Name)
 		assert.Equal(t, "334c8a0a520cf9f58189dba5a9a26c7bff2769b4a3cc199650c00618bde5b9dd", p.Oid)
 		assert.Equal(t, int64(16849), p.Size)
 	}

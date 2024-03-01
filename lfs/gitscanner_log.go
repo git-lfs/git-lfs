@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -216,7 +217,7 @@ func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 		// no need to compile these regexes on every `git-lfs` call, just ones that
 		// use the scanner.
 		commitHeaderRegex:    regexp.MustCompile(fmt.Sprintf(`^lfs-commit-sha: (%s)(?: (%s))*`, git.ObjectIDRegex, git.ObjectIDRegex)),
-		fileHeaderRegex:      regexp.MustCompile(`^diff --git a\/(.+?)\s+b\/(.+)`),
+		fileHeaderRegex:      regexp.MustCompile(`^diff --git "?a\/(.+?)\s+"?b\/(.+)`),
 		fileMergeHeaderRegex: regexp.MustCompile(`^diff --cc (.+)`),
 		pointerDataRegex:     regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`),
 	}
@@ -341,6 +342,17 @@ func (s *logScanner) scan() (*WrappedPointer, bool) {
 }
 
 func (s *logScanner) setFilename(name string) {
+	// Trim last character if it's a quote
+	if len(name) > 0 && name[len(name)-1] == '"' {
+		name = name[:len(name)-1]
+	}
+
+	// Convert octals to proper UTF-8 code
+	unquotedName, err := strconv.Unquote(`"` + name + `"`)
+	if err == nil {
+		name = unquotedName
+	}
+
 	s.currentFilename = name
 	s.currentFileIncluded = s.Filter.Allows(name)
 }
