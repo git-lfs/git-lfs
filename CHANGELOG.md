@@ -1,5 +1,17 @@
 # Git LFS Changelog
 
+## 3.5.1 (7 March 2024)
+
+This release is a patch release which includes some fixes to the release
+process to properly build assets.  It should have no user-visible changes from
+v3.5.0.
+
+### Misc
+
+* Build release assets with Go 1.21 #5668 (@bk2204)
+* script/packagecloud: instantiate distro map properly #5662 (@bk2204)
+* Install msgfmt on Windows in CI and release workflows #5666 (@chrisd8088)
+
 ## 3.5.0 (28 February 2024)
 
 This release is a feature release which includes support for LoongArch and
