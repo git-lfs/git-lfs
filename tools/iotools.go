@@ -19,6 +19,20 @@ const (
 	memoryBufferLimit = 1024
 )
 
+func CopyNWithCallBack(w io.Writer, r io.Reader, totalSize, startByte, endByte int64, cb CopyCallback) (int64, error) {
+	if cb == nil {
+		return io.CopyN(w, r, endByte-startByte+1)
+	}
+
+	cbReader := &CallbackReader{
+		C:         cb,
+		TotalSize: totalSize,
+		Reader:    r,
+	}
+
+	return io.CopyN(w, cbReader, endByte-startByte+1)
+}
+
 // CopyWithCallback copies reader to writer while performing a progress callback
 func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb CopyCallback) (int64, error) {
 	if success, _ := CloneFile(writer, reader); success {

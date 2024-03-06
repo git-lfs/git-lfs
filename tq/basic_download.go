@@ -1,19 +1,28 @@
 package tq
 
 import (
+	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"sync"
 
+	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
+)
+
+const (
+	RANGE_ACCEPT_HEADER        = "Accept-Ranges"
+	RANGE_ACCEPT_VALUE         = "bytes"
+	MIN_MULTI_THREAD_FILE_SIZE = 104857600 // 100MB
+	MAX_MULTI_THREAD_COUNT     = 64
 )
 
 // Adapter for basic HTTP downloads, includes resuming via HTTP Range
@@ -60,18 +69,236 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 		return err
 	}
 
-	// Attempt to resume download. No error checking here. If we fail, we'll simply download from the start
-	tools.RobustRename(a.downloadFilename(t), f.Name())
+	rel, err := t.Rel("download")
+	if err != nil {
+		return err
+	}
+	if rel == nil {
+		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
+	}
 
-	// Open temp file. It is either empty or partially downloaded
-	f, err = os.OpenFile(f.Name(), os.O_RDWR, 0644)
+	// Small files do not need to be downloaded using multi-threading
+	if t.Size < MIN_MULTI_THREAD_FILE_SIZE {
+		return a.singleThreadDownload(t, rel, cb, authOkFunc, tmpName)
+	}
+
+	return a.multiThreadsDownload(t, rel, cb, authOkFunc, f.Name())
+}
+
+// Returns path where partially downloaded file should be stored for download resuming
+func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
+	return filepath.Join(a.tempDir(), t.Oid+".part")
+}
+
+type chunkRes struct {
+	endByte int64
+	err     error
+}
+
+func (a *basicDownloadAdapter) multiThreadsDownload(t *Transfer, rel *Action, cb ProgressCallback, authOkFunc func(), dlFilePath string) error {
+	uc := config.NewURLConfig(a.apiClient.GitEnv())
+	threadsCount := 8
+	if v, ok := uc.Get("lfs", rel.Href, "downloadthreads"); ok {
+		if i, err := strconv.Atoi(v); err == nil {
+			threadsCount = i
+
+			// Avoid opening too many threads
+			if threadsCount > MAX_MULTI_THREAD_COUNT {
+				threadsCount = MAX_MULTI_THREAD_COUNT
+			}
+		}
+	}
+
+	if threadsCount <= 0 {
+		return a.singleThreadDownload(t, rel, cb, authOkFunc, dlFilePath)
+	}
+
+	req, err := a.newHTTPRequest("HEAD", rel)
 	if err != nil {
 		return err
 	}
 
+	req = a.apiClient.LogRequest(req, "lfs.data.head")
+	res, err := a.makeRequest(t, req)
+	if err != nil {
+		return a.singleThreadDownload(t, rel, cb, authOkFunc, dlFilePath)
+	}
+	defer res.Body.Close()
+
+	// don't support range
+	if res.Header.Get(RANGE_ACCEPT_HEADER) != RANGE_ACCEPT_VALUE {
+		return a.singleThreadDownload(t, rel, cb, authOkFunc, dlFilePath)
+	}
+
+	fileSize := res.ContentLength
+	if err = os.Truncate(dlFilePath, fileSize); err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	resultMap := sync.Map{}
+	wg.Add(threadsCount)
+
+	chunkSize := t.Size / int64(threadsCount)
+	for i := 0; i < threadsCount; i++ {
+		startByte := int64(i) * chunkSize
+		endByte := startByte + chunkSize - 1
+
+		if i == threadsCount-1 {
+			endByte = fileSize - 1
+		}
+		go a.downloadChunk(t, rel, dlFilePath, cb, &wg, &resultMap, startByte, endByte)
+	}
+
+	if authOkFunc != nil {
+		authOkFunc()
+	}
+
+	wg.Wait()
+
+	//
+	for retry := 0; retry < 3; retry++ {
+		resultMap.Range(func(key, value interface{}) bool {
+			v, ok := value.(*chunkRes)
+			if !ok {
+				return true
+			}
+
+			start, ok := key.(int64)
+			if !ok {
+				return true
+			}
+
+			if v.err != nil {
+				wg.Add(1)
+				go a.downloadChunk(t, rel, dlFilePath, cb, &wg, &resultMap, start, v.endByte)
+			}
+
+			return true
+		})
+		wg.Wait()
+	}
+
+	var resultErr error
+	resultMap.Range(func(key, value interface{}) bool {
+		v, ok := value.(*chunkRes)
+		if !ok {
+			return true
+		}
+
+		if v.err != nil {
+			resultErr = v.err
+			return true
+		}
+
+		return true
+	})
+
+	if resultErr != nil {
+		return resultErr
+	}
+
+	// check file hash
+	dlFile, err := os.Open(dlFilePath)
+	if err != nil {
+		return err
+	}
+	hash := tools.NewLfsContentHash()
+	written, err := io.Copy(hash, dlFile)
+	err2 := dlFile.Close()
+	if err != nil {
+		return err
+	}
+	if err2 != nil {
+		return errors.New(tr.Tr.Get("can't close temporary file %q: %v", dlFilePath, err2))
+	}
+
+	actual := hex.EncodeToString(hash.Sum(nil))
+	if actual != t.Oid {
+		return errors.New(tr.Tr.Get("expected OID %s, got %s after %d bytes written", t.Oid, actual, written))
+	}
+
+	err = tools.RenameFileCopyPermissions(dlFilePath, t.Path)
+	if _, err2 := os.Stat(t.Path); err2 == nil {
+		// Target file already exists, possibly was downloaded by other git-lfs process
+		return nil
+	}
+	return err
+}
+
+// Download part of file, from startByte to endByte
+func (a *basicDownloadAdapter) downloadChunk(t *Transfer, rel *Action, fileName string, cb ProgressCallback, wg *sync.WaitGroup, resultMap *sync.Map, startByte, endByte int64) {
+	var err error
+
+	defer func() {
+		res := &chunkRes{
+			err:     err,
+			endByte: endByte,
+		}
+		resultMap.Store(startByte, res)
+		wg.Done()
+	}()
+
+	req, err := a.newHTTPRequest("GET", rel)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", startByte, endByte))
+	req = a.apiClient.LogRequest(req, "lfs.data.download")
+
+	res, err := a.makeRequest(t, req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+
+	f, err := os.OpenFile(fileName, os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	_, err = f.Seek(startByte, io.SeekStart)
+	if err != nil {
+		return
+	}
+
+	ccb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		if cb != nil {
+			return cb(t.Name, totalSize, readSoFar, readSinceLast)
+		}
+		return nil
+	}
+
+	_, err = tools.CopyNWithCallBack(f, res.Body, res.ContentLength, startByte, endByte, ccb)
+}
+
+// download starts or resumes and download. dlFile is expected to be an existing file open in RW mode
+func (a *basicDownloadAdapter) singleThreadDownload(t *Transfer, rel *Action, cb ProgressCallback, authOkFunc func(), dlFilePath string) error {
+	var err error
+
+	// Attempt to resume download. No error checking here. If we fail, we'll simply download from the start
+	tools.RobustRename(a.downloadFilename(t), dlFilePath)
+
+	// Open temp file. It is either empty or partially downloaded
+	dlFile, err := os.OpenFile(dlFilePath, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			dlFile.Close()
+			// Rename file so next download can resume from where we stopped.
+			// No error checking here, if rename fails then file will be deleted and there just will be no download resuming
+			tools.RobustRename(dlFilePath, a.downloadFilename(t))
+		}
+	}()
+
 	// Read any existing data into hash
 	hash := tools.NewLfsContentHash()
-	fromByte, err := io.Copy(hash, f)
+	fromByte, err := io.Copy(hash, dlFile)
 	if err != nil {
 		return err
 	}
@@ -82,42 +309,15 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 			tracerx.Printf("xfer: Attempting to resume download of %q from byte %d", t.Oid, fromByte)
 		} else {
 			// Somehow we have more data than expected. Let's retry from the beginning.
-			if _, err := f.Seek(0, io.SeekStart); err != nil {
+			if _, err := dlFile.Seek(0, io.SeekStart); err != nil {
 				return err
 			}
-			if err := f.Truncate(0); err != nil {
+			if err := dlFile.Truncate(0); err != nil {
 				return err
 			}
 			fromByte = 0
 			hash = nil
 		}
-	}
-
-	err = a.download(t, cb, authOkFunc, f, fromByte, hash)
-
-	if err != nil {
-		f.Close()
-		// Rename file so next download can resume from where we stopped.
-		// No error checking here, if rename fails then file will be deleted and there just will be no download resuming
-		tools.RobustRename(f.Name(), a.downloadFilename(t))
-	}
-
-	return err
-}
-
-// Returns path where partially downloaded file should be stored for download resuming
-func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
-	return filepath.Join(a.tempDir(), t.Oid+".part")
-}
-
-// download starts or resumes and download. dlFile is expected to be an existing file open in RW mode
-func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
-	rel, err := t.Rel("download")
-	if err != nil {
-		return err
-	}
-	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
 	}
 
 	req, err := a.newHTTPRequest("GET", rel)
@@ -148,7 +348,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 			if err := dlFile.Truncate(0); err != nil {
 				return err
 			}
-			return a.download(t, cb, authOkFunc, dlFile, 0, nil)
+			return a.singleThreadDownload(t, rel, cb, authOkFunc, dlFilePath)
 		}
 
 		// Special-cae status code 429 - retry after certain time
@@ -211,7 +411,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 				// sent everything. Don't re-request, use this one from byte 0
 			} else {
 				// re-request needed
-				return a.download(t, cb, authOkFunc, dlFile, fromByte, hash)
+				return a.singleThreadDownload(t, rel, cb, authOkFunc, dlFilePath)
 			}
 		}
 	}
