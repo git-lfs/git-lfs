@@ -26,7 +26,7 @@ $client = Packagecloud::Client.new(credentials)
 
 # matches package directories built by docker to one or more packagecloud distros
 # https://packagecloud.io/docs#os_distro_version
-$distro_name_map = DistroMap.distro_name_map
+$distro_name_map = DistroMap.new.distro_name_map
 
 # caches distro id lookups
 $distro_id_map = {}
