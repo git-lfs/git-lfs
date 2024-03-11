@@ -566,6 +566,16 @@ func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 	return cmd.Run()
 }
 
+// UpdateRefsFromStdinInDir initializes a "git update-ref" command which will
+// read a series of reference update instructions from standard input and
+// execute them. The command will operate within the given working
+// directory "wd". The instructions should follow the NUL-terminated format.
+func UpdateRefsFromStdinInDir(wd string) (*subprocess.Cmd, error) {
+	cmd, err := gitNoLFS("update-ref", "--stdin", "-z")
+	cmd.Dir = wd
+	return cmd, err
+}
+
 // ValidateRemote checks that a named remote is valid for use
 // Mainly to check user-supplied remotes & fail more nicely
 func ValidateRemote(remote string) error {
