@@ -1,10 +1,14 @@
 package ssh
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/pktline"
 	"github.com/rubyist/tracerx"
 )
@@ -39,6 +43,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
 	tracerx.Printf("spawning pure SSH connection")
+	var errbuf bytes.Buffer
 	exe, args, multiplexing, controlPath := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true, multiplexControlPath)
 	cmd, err := subprocess.ExecCommand(exe, args...)
 	if err != nil {
@@ -52,6 +57,7 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 	if err != nil {
 		return nil, false, "", err
 	}
+	cmd.Stderr = &errbuf
 	err = cmd.Start()
 	if err != nil {
 		return nil, false, "", err
@@ -74,6 +80,7 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		r.Close()
 		w.Close()
 		cmd.Wait()
+		err = errors.Combine([]error{err, fmt.Errorf(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr))})
 	}
 	tracerx.Printf("pure SSH connection successful")
 	return conn, multiplexing, controlPath, err
