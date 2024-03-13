@@ -559,11 +559,11 @@ write_creds_file() {
 
 setup_creds() {
   mkdir -p "$CREDSDIR"
-  write_creds_file "user:pass" "$CREDSDIR/127.0.0.1"
-  write_creds_file ":pass" "$CREDSDIR/--$certpath"
-  write_creds_file ":pass" "$CREDSDIR/--$keypath"
-  write_creds_file ":pass" "$CREDSDIR/--$homecertpath"
-  write_creds_file ":pass" "$CREDSDIR/--$homekeypath"
+  write_creds_file ":user:pass" "$CREDSDIR/127.0.0.1"
+  write_creds_file "::pass" "$CREDSDIR/--$certpath"
+  write_creds_file "::pass" "$CREDSDIR/--$keypath"
+  write_creds_file "::pass" "$CREDSDIR/--$homecertpath"
+  write_creds_file "::pass" "$CREDSDIR/--$homekeypath"
 }
 
 # setup initializes the clean, isolated environment for integration tests.
