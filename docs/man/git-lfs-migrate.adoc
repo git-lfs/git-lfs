@@ -160,6 +160,8 @@ upper/lower case letters.
   the only such prompt is the one asking whether to overwrite (destroy) any
   working copy changes. Thus, specifying this option may cause data loss if you
   are not careful.
+`--rewrite-messages`::
+  Replace commit hashes in commit messages with their rewritten counterparts.
 `[branch ...]`::
   Migrate only the set of branches listed. If not given, `git-lfs-migrate(1)`
   will migrate the currently checked out branch.
