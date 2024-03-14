@@ -59,6 +59,7 @@ var (
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
+		"auth-bearer",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
@@ -373,7 +374,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	}
 
 	if repo == "netrctest" {
-		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		_, user, pass, err := extractAuth(r.Header.Get("Authorization"))
 		if err != nil || (user != "netrcuser" || pass != "netrcpass") {
 			w.WriteHeader(403)
 			return
@@ -1206,7 +1207,7 @@ func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
 	enc := json.NewEncoder(w)
 
 	if repo == "netrctest" {
-		user, pass, err := extractAuth(r.Header.Get("Authorization"))
+		_, user, pass, err := extractAuth(r.Header.Get("Authorization"))
 		if err != nil || (user == "netrcuser" && pass == "badpassretry") {
 			writeLFSError(w, 401, "Error: Bad Auth")
 			return
@@ -1422,7 +1423,7 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 		return true
 	}
 
-	user, pass, err := extractAuth(auth)
+	_, user, pass, err := extractAuth(auth)
 	if err != nil {
 		writeLFSError(w, 403, err.Error())
 		return true
@@ -1555,23 +1556,26 @@ func newLfsStorage() *lfsStorage {
 	}
 }
 
-func extractAuth(auth string) (string, string, error) {
+func extractAuth(auth string) (string, string, string, error) {
 	if strings.HasPrefix(auth, "Basic ") {
 		decodeBy, err := base64.StdEncoding.DecodeString(auth[6:len(auth)])
 		decoded := string(decodeBy)
 
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 
 		parts := strings.SplitN(decoded, ":", 2)
 		if len(parts) == 2 {
-			return parts[0], parts[1], nil
+			return "Basic", parts[0], parts[1], nil
 		}
-		return "", "", nil
+		return "", "", "", nil
+	} else if strings.HasPrefix(auth, "Bearer ") {
+		authtype, cred, _ := strings.Cut(auth, " ")
+		return authtype, "", cred, nil
 	}
 
-	return "", "", nil
+	return "", "", "", nil
 }
 
 func skipIfNoCookie(w http.ResponseWriter, r *http.Request, id string) bool {
@@ -1586,32 +1590,52 @@ func skipIfNoCookie(w http.ResponseWriter, r *http.Request, id string) bool {
 }
 
 func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
+	wantedAuth := "Basic realm=\"testsuite\""
+	authHeader := "Lfs-Authenticate"
+	if strings.HasPrefix(r.URL.Path, "/auth-bearer") {
+		wantedAuth = "Bearer"
+		authHeader = "Www-Authenticate"
+	}
+
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
-		w.Header().Add("Lfs-Authenticate", "Basic realm=\"testsuite\"")
+		w.Header().Add(authHeader, wantedAuth)
 		w.WriteHeader(401)
 		return true
 	}
 
-	user, pass, err := extractAuth(auth)
+	authtype, user, cred, err := extractAuth(auth)
 	if err != nil {
 		w.WriteHeader(403)
 		debug(id, "Error decoding auth: %s", err)
 		return true
 	}
 
-	switch user {
-	case "user":
-		if pass == "pass" {
+	if !strings.HasPrefix(wantedAuth, authtype) {
+		w.WriteHeader(403)
+		debug(id, "Unwanted auth: %s (wanted %q)", authtype, wantedAuth)
+		return true
+	}
+
+	switch authtype {
+	case "Basic":
+		switch user {
+		case "user":
+			if cred == "pass" {
+				return false
+			}
+		case "netrcuser", "requirecreds":
+			return false
+		case "path":
+			if strings.HasPrefix(r.URL.Path, "/"+cred) {
+				return false
+			}
+			debug(id, "auth attempt against: %q", r.URL.Path)
+		}
+	case "Bearer":
+		if cred == "token" {
 			return false
 		}
-	case "netrcuser", "requirecreds":
-		return false
-	case "path":
-		if strings.HasPrefix(r.URL.Path, "/"+pass) {
-			return false
-		}
-		debug(id, "auth attempt against: %q", r.URL.Path)
 	}
 
 	w.WriteHeader(403)
