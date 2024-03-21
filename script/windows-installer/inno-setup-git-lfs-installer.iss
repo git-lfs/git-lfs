@@ -167,9 +167,9 @@ begin
   else
     RegisterOrDeregister := 'register';
 
-  PFiles32 := ExpandConstant('{commonpf32}\')
+  PFiles32 := AnsiLowercase(ExpandConstant('{commonpf32}\'))
   if IsWin64 then
-    PFiles64 := ExpandConstant('{commonpf64}\')
+    PFiles64 := AnsiLowercase(ExpandConstant('{commonpf64}\'))
   else
     PFiles64 := PFiles32; // `commonpf64` is not available on 32-bit Windows
 
@@ -186,7 +186,7 @@ begin
       PathExt := Copy(PathExt, j+1, Length(PathExt)-j);
 
       if FileExists(Path + Ext) then begin
-        if (Pos(PFiles32, Path) = 1) or (Pos(PFiles64, Path) = 1) then begin
+        if (Pos(PFiles32, AnsiLowercase(Path)) = 1) or (Pos(PFiles64, AnsiLowercase(Path)) = 1) then begin
           Result := True;
           Exit;
         end;
