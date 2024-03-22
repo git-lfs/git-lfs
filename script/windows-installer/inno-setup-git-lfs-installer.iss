@@ -179,7 +179,7 @@ begin
     Path := Copy(PathEnv, 1, i-1) + '\git';
     PathEnv := Copy(PathEnv, i+1, Length(PathEnv)-i);
 
-    PathExt := GetEnv('PATHEXT') + ';';
+    PathExt := AnsiLowercase(GetEnv('PATHEXT')) + ';';
     repeat
       j := Pos(';', PathExt);
       Ext := Copy(PathExt, 1, j-1);
