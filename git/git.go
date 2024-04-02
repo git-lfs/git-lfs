@@ -258,6 +258,23 @@ func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio
 	return bufio.NewScanner(cmd.Stdout), nil
 }
 
+func DiffIndexWithPaths(ref string, cached bool, paths []string) (string, error) {
+	args := []string{"diff-index"}
+	if cached {
+		args = append(args, "--cached")
+	}
+	args = append(args, ref)
+	args = append(args, "--")
+	args = append(args, paths...)
+
+	output, err := gitSimple(args...)
+	if err != nil {
+		return "", err
+	}
+
+	return output, nil
+}
+
 func HashObject(r io.Reader) (string, error) {
 	cmd, err := gitNoLFS("hash-object", "--stdin")
 	if err != nil {

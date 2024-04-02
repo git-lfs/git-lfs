@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -69,14 +70,27 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 
 	// Check the content - either missing or still this pointer (not exist is ok)
 	filepointer, err := lfs.DecodePointerFromFile(cwdfilepath)
-	if err != nil && !os.IsNotExist(err) {
-		if errors.IsNotAPointerError(err) || errors.IsBadPointerKeyError(err) {
-			// File has non-pointer content, leave it alone
+	if err != nil {
+		if os.IsNotExist(err) {
+			output, err := git.DiffIndexWithPaths("HEAD", true, []string{p.Name})
+			if err != nil {
+				LoggedError(err, tr.Tr.Get("Checkout error trying to run diff-index: %s", err))
+				return
+			}
+			if strings.HasPrefix(output, ":100644 000000 ") || strings.HasPrefix(output, ":100755 000000 ") {
+				// This file is deleted in the index.  Don't try
+				// to check it out.
+				return
+			}
+		} else {
+			if errors.IsNotAPointerError(err) || errors.IsBadPointerKeyError(err) {
+				// File has non-pointer content, leave it alone
+				return
+			}
+
+			LoggedError(err, tr.Tr.Get("Checkout error: %s", err))
 			return
 		}
-
-		LoggedError(err, tr.Tr.Get("Checkout error: %s", err))
-		return
 	}
 
 	if filepointer != nil && filepointer.Oid != p.Oid {

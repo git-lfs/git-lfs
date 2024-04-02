@@ -51,6 +51,14 @@ begin_test "checkout"
   grep 'accepting "file1.dat"' checkout.log
   grep 'rejecting "file1.dat"' checkout.log && exit 1
 
+  git rm file1.dat
+
+  echo "checkout should skip replacing files deleted in index"
+  git lfs checkout
+  [ ! -f file1.dat ]
+
+  git reset --hard
+
   # Remove the working directory
   rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
 
