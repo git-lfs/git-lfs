@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -19,6 +20,39 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 	treeShas, err := lsTreeBlobs(ref, func(t *git.TreeBlob) bool {
 		return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
 	})
+	if err != nil {
+		return err
+	}
+
+	pcw, err := catFileBatchTree(treeShas, gitEnv, osEnv)
+	if err != nil {
+		return err
+	}
+
+	for p := range pcw.Results {
+		cb(p, nil)
+	}
+
+	if err := pcw.Wait(); err != nil {
+		cb(nil, err)
+	}
+	return nil
+}
+
+func runScanLFSFiles(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
+	var treeShas *TreeBlobChannelWrapper
+	var err error
+	if git.IsGitVersionAtLeast("2.42.0") {
+		treeShas, err = lsFilesBlobs(func(t *git.TreeBlob) bool {
+			return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
+		})
+	} else {
+		treeShas, err = lsTreeBlobs(ref, func(t *git.TreeBlob) bool {
+			return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
+		})
+	}
+	// We don't use the nameMap approach here since that's imprecise when >1 file
+	// can be using the same content
 	if err != nil {
 		return err
 	}
@@ -98,7 +132,13 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.En
 // The returned channel will be sent these blobs which should be sent to catFileBatchTree
 // for final check & conversion to Pointer
 func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChannelWrapper, error) {
-	cmd, err := git.LsTree(ref)
+	return lsBlobs(func() (*subprocess.BufferedCmd, error) {
+		return git.LsTree(ref)
+	}, predicate)
+}
+
+func lsBlobs(backend func() (*subprocess.BufferedCmd, error), predicate func(*git.TreeBlob) bool) (*TreeBlobChannelWrapper, error) {
+	cmd, err := backend()
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +166,15 @@ func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChann
 	}()
 
 	return NewTreeBlobChannelWrapper(blobs, errchan), nil
+}
+
+// Use ls-files at ref to find a list of candidate tree blobs which might be lfs files
+// The returned channel will be sent these blobs which should be sent to catFileBatchTree
+// for final check & conversion to Pointer
+func lsFilesBlobs(predicate func(*git.TreeBlob) bool) (*TreeBlobChannelWrapper, error) {
+	return lsBlobs(func() (*subprocess.BufferedCmd, error) {
+		return git.LsFilesLFS()
+	}, predicate)
 }
 
 func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.Environment) (map[string]*WrappedPointer, *filepathfilter.Filter, error) {
