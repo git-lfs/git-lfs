@@ -2,9 +2,11 @@ package filepathfilter
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/wildmatch/v2"
+	"github.com/golang/groupcache/lru"
 	"github.com/rubyist/tracerx"
 )
 
@@ -19,6 +21,8 @@ type Filter struct {
 	include      []Pattern
 	exclude      []Pattern
 	defaultValue bool
+	cache        *lru.Cache
+	cacheLock    sync.Mutex
 }
 
 type PatternType bool
@@ -37,6 +41,8 @@ func (p PatternType) String() string {
 
 type options struct {
 	defaultValue bool
+	useCache     bool
+	cacheSize    int
 }
 
 type Option func(*options)
@@ -49,12 +55,32 @@ func DefaultValue(val bool) Option {
 	}
 }
 
+func EnableCache(size int) Option {
+	return func(args *options) {
+		args.useCache = true
+		args.cacheSize = size
+	}
+}
+
+func DisableCache() Option {
+	return func(args *options) {
+		args.useCache = false
+	}
+}
+
 func NewFromPatterns(include, exclude []Pattern, setters ...Option) *Filter {
-	args := &options{defaultValue: true}
+	args := &options{defaultValue: true, useCache: false}
 	for _, setter := range setters {
 		setter(args)
 	}
-	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+
+	f := &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+
+	if args.useCache && args.cacheSize >= 0 {
+		f.cache = lru.New(args.cacheSize)
+	}
+
+	return f
 }
 
 func New(include, exclude []string, ptype PatternType, setters ...Option) *Filter {
@@ -82,11 +108,7 @@ func wildmatchToString(ps ...Pattern) []string {
 	return s
 }
 
-func (f *Filter) Allows(filename string) bool {
-	if f == nil {
-		return true
-	}
-
+func (f *Filter) allows(filename string) bool {
 	var included bool
 	for _, inc := range f.include {
 		if included = inc.Match(filename); included {
@@ -118,6 +140,31 @@ func (f *Filter) Allows(filename string) bool {
 	// No patterns matched and our default value is true.
 	tracerx.Printf("filepathfilter: accepting %q", filename)
 	return true
+}
+
+func (f *Filter) Allows(filename string) bool {
+	if f == nil {
+		return true
+	}
+
+	if f.cache != nil {
+		f.cacheLock.Lock()
+		res, ok := f.cache.Get(filename)
+		f.cacheLock.Unlock()
+		if ok {
+			return res.(bool)
+		}
+	}
+
+	res := f.allows(filename)
+
+	if f.cache != nil {
+		f.cacheLock.Lock()
+		f.cache.Add(filename, res)
+		f.cacheLock.Unlock()
+	}
+
+	return res
 }
 
 type wm struct {
