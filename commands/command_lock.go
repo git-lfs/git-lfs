@@ -94,7 +94,7 @@ func computeLockData() (*lockData, error) {
 	}, nil
 }
 
-// lockPaths relativizes the given filepath such that it is relative to the root
+// lockPath relativizes the given filepath such that it is relative to the root
 // path of the repository it is contained within, taking into account the
 // working directory of the caller.
 //
