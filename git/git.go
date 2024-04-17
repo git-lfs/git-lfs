@@ -316,6 +316,18 @@ func LsTree(ref string) (*subprocess.BufferedCmd, error) {
 	)
 }
 
+func LsFilesLFS() (*subprocess.BufferedCmd, error) {
+	// This requires Git 2.42.0 for `--format` with `objecttype`.
+	return gitNoLFSBuffered(
+		"ls-files",
+		"--cached",
+		"--full-name",
+		"-z",
+		"--format=%(objectmode) %(objecttype) %(objectname) %(objectsize)\t%(path)",
+		":(top,attr:filter=lfs)",
+	)
+}
+
 func ResolveRef(ref string) (*Ref, error) {
 	outp, err := gitNoLFSSimple("rev-parse", ref, "--symbolic-full-name", ref)
 	if err != nil {

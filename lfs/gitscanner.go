@@ -219,6 +219,22 @@ func (s *GitScanner) ScanTree(ref string, cb GitScannerFoundPointer) error {
 	return err
 }
 
+// ScanLFSFiles takes a ref, which points to HEAD, and returns WrappedPointer
+// objects in the index or tree at that ref. Differs from ScanRefs in that
+// multiple files in the tree with the same content are all reported.
+func (s *GitScanner) ScanLFSFiles(ref string, cb GitScannerFoundPointer) error {
+	callback, err := firstGitScannerCallback(cb, s.foundPointer)
+	if err != nil {
+		return err
+	}
+
+	start := time.Now()
+	err = runScanLFSFiles(callback, ref, s.Filter, s.cfg.GitEnv(), s.cfg.OSEnv())
+	tracerx.PerformanceSince("ScanLFSFiles", start)
+
+	return err
+}
+
 // ScanUnpushed scans history for all LFS pointers which have been added but not
 // pushed to the named remote. remote can be left blank to mean 'any remote'.
 func (s *GitScanner) ScanUnpushed(remote string, cb GitScannerFoundPointer) error {

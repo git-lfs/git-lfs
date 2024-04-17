@@ -14,6 +14,8 @@ begin_test "clone"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -732,6 +734,8 @@ begin_test "clone (HTTP server/proxy require cookies)"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
