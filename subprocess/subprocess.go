@@ -50,6 +50,36 @@ func BufferedExec(name string, args ...string) (*BufferedCmd, error) {
 	}, nil
 }
 
+// StdoutBufferedExec starts up a command and creates a stdin pipe and a
+// buffered stdout pipe, with stderr directed to /dev/null, wrapped in a
+// BufferedCmd. The stdout buffer will be of stdoutBufSize bytes.
+func StdoutBufferedExec(name string, args ...string) (*BufferedCmd, error) {
+	cmd, err := ExecCommand(name, args...)
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return &BufferedCmd{
+		cmd,
+		stdin,
+		bufio.NewReaderSize(stdout, stdoutBufSize),
+		nil,
+	}, nil
+}
+
 // SimpleExec is a small wrapper around os/exec.Command.
 func SimpleExec(name string, args ...string) (string, error) {
 	cmd, err := ExecCommand(name, args...)
