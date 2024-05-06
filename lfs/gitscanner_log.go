@@ -137,6 +137,14 @@ func scanStashed(cb GitScannerFoundPointer) error {
 func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection, cmd *subprocess.BufferedCmd, filter *filepathfilter.Filter) {
 	ch := make(chan gitscannerResult, chanBufSize)
 
+	cherr := make(chan []byte)
+
+	go func() {
+		stderr, _ := io.ReadAll(cmd.Stderr)
+		cherr <- stderr
+		close(cherr)
+	}()
+
 	go func() {
 		scanner := newLogScanner(direction, cmd.Stdout)
 		scanner.Filter = filter
@@ -149,7 +157,7 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 			io.ReadAll(cmd.Stdout)
 			ch <- gitscannerResult{Err: errors.New(tr.Tr.Get("error while scanning `git log`: %v", err))}
 		}
-		stderr, _ := io.ReadAll(cmd.Stderr)
+		stderr := <-cherr
 		err := cmd.Wait()
 		if err != nil {
 			ch <- gitscannerResult{Err: errors.New(tr.Tr.Get("error in `git log`: %v %v", err, string(stderr)))}
