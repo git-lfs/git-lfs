@@ -212,6 +212,10 @@ func gitNoLFSBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 	return subprocess.BufferedExec("git", gitConfigNoLFS(args...)...)
 }
 
+func gitNoLFSBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.StdoutBufferedExec("git", gitConfigNoLFS(args...)...)
+}
+
 // Invoke Git with enabled LFS filters
 func git(args ...string) (*subprocess.Cmd, error) {
 	return subprocess.ExecCommand("git", args...)
@@ -223,6 +227,10 @@ func gitSimple(args ...string) (string, error) {
 
 func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 	return subprocess.BufferedExec("git", args...)
+}
+
+func gitBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
+	return subprocess.StdoutBufferedExec("git", args...)
 }
 
 func CatFile() (*subprocess.BufferedCmd, error) {
@@ -247,7 +255,7 @@ func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio
 		args = append([]string{"-C", workingDir}, args...)
 	}
 
-	cmd, err := gitBuffered(args...)
+	cmd, err := gitBufferedStdout(args...)
 	if err != nil {
 		return nil, err
 	}
