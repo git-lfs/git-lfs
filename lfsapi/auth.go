@@ -162,7 +162,7 @@ func (c *Client) getCreds(remote string, access creds.Access, req *http.Request)
 		err = credWrapper.FillCreds()
 		if err == nil {
 			tracerx.Printf("Filled credentials for %s", credsURL)
-			setRequestAuth(req, creds.FirstEntryForKey(credWrapper.Creds, "username"), creds.FirstEntryForKey(credWrapper.Creds, "password"))
+			setRequestAuthWithCreds(req, credWrapper.Creds)
 		}
 		return credWrapper, err
 	}
@@ -303,6 +303,20 @@ func setRequestAuth(req *http.Request, user, pass string) {
 	req.Header.Set("Authorization", auth)
 }
 
+func setRequestAuthWithCreds(req *http.Request, c creds.Creds) {
+	authtype := creds.FirstEntryForKey(c, "authtype")
+	credential := creds.FirstEntryForKey(c, "credential")
+	if len(authtype) == 0 && len(credential) == 0 {
+		user := creds.FirstEntryForKey(c, "username")
+		pass := creds.FirstEntryForKey(c, "password")
+		setRequestAuth(req, user, pass)
+		return
+	}
+
+	auth := fmt.Sprintf("%s %s", authtype, credential)
+	req.Header.Set("Authorization", auth)
+}
+
 func getReqOperation(req *http.Request) string {
 	operation := "download"
 	if req.Method == "POST" || req.Method == "PUT" {
@@ -335,10 +349,7 @@ func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.Ac
 					continue
 				}
 
-				switch creds.AccessMode(pieces[0]) {
-				case creds.BasicAccess, creds.NegotiateAccess:
-					supportedModes[creds.AccessMode(pieces[0])] = struct{}{}
-				}
+				supportedModes[creds.AccessMode(pieces[0])] = struct{}{}
 			}
 		}
 		for _, mode := range newModes {
