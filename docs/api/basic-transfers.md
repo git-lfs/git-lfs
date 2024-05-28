@@ -141,4 +141,7 @@ Git LFS clients send:
 < HTTP/1.1 200 OK
 ```
 
+The client may also include a `charset=utf-8` parameter in the
+`Content-Type` header, which servers should be prepared to accept.
+
 A 200 response means that the object exists on the server.

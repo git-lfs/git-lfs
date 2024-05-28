@@ -18,6 +18,9 @@ All File Locking requests require the following HTTP headers:
     Accept: application/vnd.git-lfs+json
     Content-Type: application/vnd.git-lfs+json
 
+The client may also include a `charset=utf-8` parameter in the
+`Content-Type` header, which servers should be prepared to accept.
+
 See the [Authentication doc](./authentication.md) for more info on how LFS
 gets authorizes Batch API requests.
 
