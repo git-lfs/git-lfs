@@ -70,19 +70,33 @@ func fill() {
 	}
 
 	hostPieces := strings.SplitN(firstEntryForKey(creds, "host"), ":", 2)
-	user, pass, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
+	authtype, user, cred, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
-	if user != "skip" {
+	capas := discoverCapabilities(creds)
+
+	switch authtype {
+	case "skip":
+	case "":
 		if _, ok := creds["username"]; !ok {
 			creds["username"] = []string{user}
 		}
 
 		if _, ok := creds["password"]; !ok {
-			creds["password"] = []string{pass}
+			creds["password"] = []string{cred}
+		}
+	default:
+		if _, ok := capas["authtype"]; ok {
+			if _, ok := creds["authtype"]; !ok {
+				creds["authtype"] = []string{authtype}
+			}
+
+			if _, ok := creds["credential"]; !ok {
+				creds["credential"] = []string{cred}
+			}
 		}
 	}
 
@@ -97,7 +111,16 @@ func fill() {
 	}
 	delete(creds, "wwwauth[]")
 
+	// Send capabilities first to all for one-pass parsing.
+	for _, entry := range creds["capability[]"] {
+		key := "capability[]"
+		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
+		fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
+	}
 	for key, value := range creds {
+		if key == "capability[]" {
+			continue
+		}
 		for _, entry := range value {
 			fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 			fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
@@ -105,7 +128,24 @@ func fill() {
 	}
 }
 
-func credsForHostAndPath(host, path string) (string, string, error) {
+func discoverCapabilities(creds map[string][]string) map[string]struct{} {
+	capas := make(map[string]struct{})
+	supportedCapas := map[string]struct{}{
+		"authtype": struct{}{},
+	}
+	capasToSend := []string{}
+	for _, capa := range creds["capability[]"] {
+		capas[capa] = struct{}{}
+		// Only pass on capabilities we support.
+		if _, ok := supportedCapas[capa]; ok {
+			capasToSend = append(capasToSend, capa)
+		}
+	}
+	creds["capability[]"] = capasToSend
+	return capas
+}
+
+func credsForHostAndPath(host, path string) (string, string, string, error) {
 	var hostFilename string
 
 	// We need hostFilename to end in a slash so that our credentials all
@@ -120,25 +160,25 @@ func credsForHostAndPath(host, path string) (string, string, error) {
 
 	if len(path) > 0 {
 		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
-		u, p, err := credsFromFilename(pathFilename)
+		authtype, u, cred, err := credsFromFilename(pathFilename)
 		if err == nil {
-			return u, p, err
+			return authtype, u, cred, err
 		}
 	}
 
 	return credsFromFilename(hostFilename)
 }
 
-func credsFromFilename(file string) (string, string, error) {
-	userPass, err := os.ReadFile(file)
+func credsFromFilename(file string) (string, string, string, error) {
+	credential, err := os.ReadFile(file)
 	if err != nil {
-		return "", "", fmt.Errorf("Error opening %q: %s", file, err)
+		return "", "", "", fmt.Errorf("Error opening %q: %s", file, err)
 	}
-	credsPieces := strings.SplitN(strings.TrimSpace(string(userPass)), ":", 2)
-	if len(credsPieces) != 2 {
-		return "", "", fmt.Errorf("Invalid data %q while reading %q", string(userPass), file)
+	credsPieces := strings.SplitN(strings.TrimSpace(string(credential)), ":", 3)
+	if len(credsPieces) != 3 {
+		return "", "", "", fmt.Errorf("Invalid data %q while reading %q", string(credential), file)
 	}
-	return credsPieces[0], credsPieces[1], nil
+	return credsPieces[0], credsPieces[1], credsPieces[2], nil
 }
 
 func log() {

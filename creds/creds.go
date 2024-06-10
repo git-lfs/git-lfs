@@ -56,6 +56,7 @@ type Creds map[string][]string
 func bufferCreds(c Creds) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 
+	buf.Write([]byte("capability[]=authtype\n"))
 	for k, v := range c {
 		for _, item := range v {
 			buf.Write([]byte(k))
