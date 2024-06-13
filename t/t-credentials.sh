@@ -327,6 +327,7 @@ begin_test "git credential"
 
   printf ":git:server" > "$CREDSDIR/credential-test.com"
   printf ":git:path" > "$CREDSDIR/credential-test.com--some-path"
+  printf 'Multistage::bazquux:state1:state2:\nMultistage::foobar::state1:true' > "$CREDSDIR/example.com"
 
   mkdir empty
   cd empty
@@ -366,6 +367,42 @@ path=some/path" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
 host=credential-test.com
 username=git
 password=server"
+
+  [ "$expected" = "$(cat cred.log)" ]
+
+  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+
+  echo "capability[]=authtype
+capability[]=state
+protocol=http
+host=example.com" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
+  cat cred.log
+
+  expected="capability[]=authtype
+capability[]=state
+authtype=Multistage
+credential=foobar
+protocol=http
+host=example.com
+continue=1
+state[]=lfstest:state1"
+
+  [ "$expected" = "$(cat cred.log)" ]
+
+  echo "capability[]=authtype
+capability[]=state
+protocol=http
+host=example.com
+state[]=lfstest:state1" | GIT_TERMINAL_PROMPT=0 git credential fill > cred.log
+  cat cred.log
+
+  expected="capability[]=authtype
+capability[]=state
+authtype=Multistage
+credential=bazquux
+protocol=http
+host=example.com
+state[]=lfstest:state2"
 
   [ "$expected" = "$(cat cred.log)" ]
 )

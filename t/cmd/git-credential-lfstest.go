@@ -112,8 +112,14 @@ func fill() {
 		os.Exit(1)
 	}
 
+	result := map[string][]string{}
 	capas := discoverCapabilities(creds)
-	result := cred.Serialize(capas, creds["state[]"])
+	for _, cred := range credentials {
+		result = cred.Serialize(capas, creds["state[]"])
+		if len(result) != 0 {
+			break
+		}
+	}
 	for _, k := range []string{"host", "protocol", "path", "capability[]"} {
 		if v, ok := creds[k]; ok {
 			result[k] = v
@@ -165,7 +171,7 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 	return capas
 }
 
-func credsForHostAndPath(host, path string) (credential, error) {
+func credsForHostAndPath(host, path string) ([]credential, error) {
 	var hostFilename string
 
 	// We need hostFilename to end in a slash so that our credentials all
@@ -204,7 +210,7 @@ func parseOneCredential(s, file string) (credential, error) {
 	//	If MULTISTAGE is set to "true", then the multistage flag is set.
 	// :USERNAME:PASSWORD
 	//	This is a normal username and password.
-	credsPieces := strings.SplitN(strings.TrimSpace(s), ":", 3)
+	credsPieces := strings.Split(strings.TrimSpace(s), ":")
 	if len(credsPieces) != 3 && len(credsPieces) != 6 {
 		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(s), file)
 	}
@@ -225,12 +231,21 @@ func parseOneCredential(s, file string) (credential, error) {
 	}
 }
 
-func credsFromFilename(file string) (credential, error) {
+func credsFromFilename(file string) ([]credential, error) {
 	fileContents, err := os.ReadFile(file)
 	if err != nil {
-		return credential{}, fmt.Errorf("Error opening %q: %s", file, err)
+		return nil, fmt.Errorf("Error opening %q: %s", file, err)
 	}
-	return parseOneCredential(string(fileContents), file)
+	lines := strings.Split(strings.TrimSpace(string(fileContents)), "\n")
+	creds := make([]credential, 0, len(lines))
+	for _, line := range lines {
+		cred, err := parseOneCredential(line, file)
+		if err != nil {
+			return nil, err
+		}
+		creds = append(creds, cred)
+	}
+	return creds, nil
 }
 
 func log() {
