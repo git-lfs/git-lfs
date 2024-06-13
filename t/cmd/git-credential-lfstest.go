@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -27,16 +28,29 @@ type credential struct {
 	username   string
 	password   string
 	credential string
+	matchState string
+	state      string
+	multistage bool
 	skip       bool
 }
 
-func (c *credential) Serialize(capabilities map[string]struct{}) map[string][]string {
+func (c *credential) Serialize(capabilities map[string]struct{}, state []string) map[string][]string {
+	formattedState := fmt.Sprintf("lfstest:%s", c.state)
+	formattedMatchState := fmt.Sprintf("lfstest:%s", c.matchState)
 	creds := make(map[string][]string)
 	if c.skip {
 		// Do nothing.
 	} else if _, ok := capabilities["authtype"]; ok && len(c.authtype) != 0 && len(c.credential) != 0 {
-		creds["authtype"] = []string{c.authtype}
-		creds["credential"] = []string{c.credential}
+		if _, ok := capabilities["state"]; len(c.matchState) == 0 || (ok && slices.Contains(state, formattedMatchState)) {
+			creds["authtype"] = []string{c.authtype}
+			creds["credential"] = []string{c.credential}
+			if ok {
+				creds["state[]"] = []string{formattedState}
+				if c.multistage {
+					creds["continue"] = []string{"1"}
+				}
+			}
+		}
 	} else if len(c.username) != 0 && len(c.password) != 0 {
 		creds["username"] = []string{c.username}
 		creds["password"] = []string{c.password}
@@ -99,7 +113,12 @@ func fill() {
 	}
 
 	capas := discoverCapabilities(creds)
-	creds = cred.Serialize(capas)
+	result := cred.Serialize(capas, creds["state[]"])
+	for _, k := range []string{"host", "protocol", "path", "capability[]"} {
+		if v, ok := creds[k]; ok {
+			result[k] = v
+		}
+	}
 
 	mode := os.Getenv("LFS_TEST_CREDS_WWWAUTH")
 	wwwauth := firstEntryForKey(creds, "wwwauth[]")
@@ -110,15 +129,14 @@ func fill() {
 		fmt.Fprintf(os.Stderr, "Unexpected 'wwwauth[]' key in credentials\n")
 		os.Exit(1)
 	}
-	delete(creds, "wwwauth[]")
 
 	// Send capabilities first to all for one-pass parsing.
-	for _, entry := range creds["capability[]"] {
+	for _, entry := range result["capability[]"] {
 		key := "capability[]"
 		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
 	}
-	for key, value := range creds {
+	for key, value := range result {
 		if key == "capability[]" {
 			continue
 		}
@@ -133,6 +151,7 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 	capas := make(map[string]struct{})
 	supportedCapas := map[string]struct{}{
 		"authtype": struct{}{},
+		"state":    struct{}{},
 	}
 	capasToSend := []string{}
 	for _, capa := range creds["capability[]"] {
@@ -171,20 +190,42 @@ func credsForHostAndPath(host, path string) (credential, error) {
 }
 
 func credsFromFilename(file string) (credential, error) {
+	// Each line in a file is of the following form:
+	//
+	// skip::
+	//	The literal word "skip" means to skip emitting credentials.
+	// AUTHTYPE::CREDENTIAL
+	//	If the authtype is not empty, then this is an authtype and
+	//	credential.
+	// AUTHTYPE::CREDENTIAL:MATCH:STATE:MULTISTAGE
+	//	Like above, but this matches only if MATCH is empty or if the
+	//	state[] entry is present and matches "lfstest:MATCH".  If so,
+	//	the value "lfstest:STATE" is emitted as the new state[] entry.
+	//	If MULTISTAGE is set to "true", then the multistage flag is set.
+	// :USERNAME:PASSWORD
+	//	This is a normal username and password.
 	fileContents, err := os.ReadFile(file)
 	if err != nil {
 		return credential{}, fmt.Errorf("Error opening %q: %s", file, err)
 	}
 	credsPieces := strings.SplitN(strings.TrimSpace(string(fileContents)), ":", 3)
-	if len(credsPieces) != 3 {
+	if len(credsPieces) != 3 && len(credsPieces) != 6 {
 		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(fileContents), file)
 	}
 	if credsPieces[0] == "skip" {
 		return credential{skip: true}, nil
 	} else if len(credsPieces[0]) == 0 {
 		return credential{username: credsPieces[1], password: credsPieces[2]}, nil
-	} else {
+	} else if len(credsPieces) == 3 {
 		return credential{authtype: credsPieces[0], credential: credsPieces[2]}, nil
+	} else {
+		return credential{
+			authtype:   credsPieces[0],
+			credential: credsPieces[2],
+			matchState: credsPieces[3],
+			state:      credsPieces[4],
+			multistage: credsPieces[5] == "true",
+		}, nil
 	}
 }
 
