@@ -22,6 +22,28 @@ var (
 	credsDir = ""
 )
 
+type credential struct {
+	authtype   string
+	username   string
+	password   string
+	credential string
+	skip       bool
+}
+
+func (c *credential) Serialize(capabilities map[string]struct{}) map[string][]string {
+	creds := make(map[string][]string)
+	if c.skip {
+		// Do nothing.
+	} else if _, ok := capabilities["authtype"]; ok && len(c.authtype) != 0 && len(c.credential) != 0 {
+		creds["authtype"] = []string{c.authtype}
+		creds["credential"] = []string{c.credential}
+	} else if len(c.username) != 0 && len(c.password) != 0 {
+		creds["username"] = []string{c.username}
+		creds["password"] = []string{c.password}
+	}
+	return creds
+}
+
 func init() {
 	if len(credsDir) == 0 {
 		credsDir = os.Getenv("CREDSDIR")
@@ -70,35 +92,14 @@ func fill() {
 	}
 
 	hostPieces := strings.SplitN(firstEntryForKey(creds, "host"), ":", 2)
-	authtype, user, cred, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
+	credentials, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
 	capas := discoverCapabilities(creds)
-
-	switch authtype {
-	case "skip":
-	case "":
-		if _, ok := creds["username"]; !ok {
-			creds["username"] = []string{user}
-		}
-
-		if _, ok := creds["password"]; !ok {
-			creds["password"] = []string{cred}
-		}
-	default:
-		if _, ok := capas["authtype"]; ok {
-			if _, ok := creds["authtype"]; !ok {
-				creds["authtype"] = []string{authtype}
-			}
-
-			if _, ok := creds["credential"]; !ok {
-				creds["credential"] = []string{cred}
-			}
-		}
-	}
+	creds = cred.Serialize(capas)
 
 	mode := os.Getenv("LFS_TEST_CREDS_WWWAUTH")
 	wwwauth := firstEntryForKey(creds, "wwwauth[]")
@@ -145,7 +146,7 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 	return capas
 }
 
-func credsForHostAndPath(host, path string) (string, string, string, error) {
+func credsForHostAndPath(host, path string) (credential, error) {
 	var hostFilename string
 
 	// We need hostFilename to end in a slash so that our credentials all
@@ -160,25 +161,31 @@ func credsForHostAndPath(host, path string) (string, string, string, error) {
 
 	if len(path) > 0 {
 		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
-		authtype, u, cred, err := credsFromFilename(pathFilename)
+		cred, err := credsFromFilename(pathFilename)
 		if err == nil {
-			return authtype, u, cred, err
+			return cred, err
 		}
 	}
 
 	return credsFromFilename(hostFilename)
 }
 
-func credsFromFilename(file string) (string, string, string, error) {
-	credential, err := os.ReadFile(file)
+func credsFromFilename(file string) (credential, error) {
+	fileContents, err := os.ReadFile(file)
 	if err != nil {
-		return "", "", "", fmt.Errorf("Error opening %q: %s", file, err)
+		return credential{}, fmt.Errorf("Error opening %q: %s", file, err)
 	}
-	credsPieces := strings.SplitN(strings.TrimSpace(string(credential)), ":", 3)
+	credsPieces := strings.SplitN(strings.TrimSpace(string(fileContents)), ":", 3)
 	if len(credsPieces) != 3 {
-		return "", "", "", fmt.Errorf("Invalid data %q while reading %q", string(credential), file)
+		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(fileContents), file)
 	}
-	return credsPieces[0], credsPieces[1], credsPieces[2], nil
+	if credsPieces[0] == "skip" {
+		return credential{skip: true}, nil
+	} else if len(credsPieces[0]) == 0 {
+		return credential{username: credsPieces[1], password: credsPieces[2]}, nil
+	} else {
+		return credential{authtype: credsPieces[0], credential: credsPieces[2]}, nil
+	}
 }
 
 func log() {
