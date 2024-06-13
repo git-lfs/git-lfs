@@ -189,7 +189,7 @@ func credsForHostAndPath(host, path string) (credential, error) {
 	return credsFromFilename(hostFilename)
 }
 
-func credsFromFilename(file string) (credential, error) {
+func parseOneCredential(s, file string) (credential, error) {
 	// Each line in a file is of the following form:
 	//
 	// skip::
@@ -204,13 +204,9 @@ func credsFromFilename(file string) (credential, error) {
 	//	If MULTISTAGE is set to "true", then the multistage flag is set.
 	// :USERNAME:PASSWORD
 	//	This is a normal username and password.
-	fileContents, err := os.ReadFile(file)
-	if err != nil {
-		return credential{}, fmt.Errorf("Error opening %q: %s", file, err)
-	}
-	credsPieces := strings.SplitN(strings.TrimSpace(string(fileContents)), ":", 3)
+	credsPieces := strings.SplitN(strings.TrimSpace(s), ":", 3)
 	if len(credsPieces) != 3 && len(credsPieces) != 6 {
-		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(fileContents), file)
+		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(s), file)
 	}
 	if credsPieces[0] == "skip" {
 		return credential{skip: true}, nil
@@ -227,6 +223,14 @@ func credsFromFilename(file string) (credential, error) {
 			multistage: credsPieces[5] == "true",
 		}, nil
 	}
+}
+
+func credsFromFilename(file string) (credential, error) {
+	fileContents, err := os.ReadFile(file)
+	if err != nil {
+		return credential{}, fmt.Errorf("Error opening %q: %s", file, err)
+	}
+	return parseOneCredential(string(fileContents), file)
 }
 
 func log() {
