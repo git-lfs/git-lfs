@@ -59,7 +59,7 @@ var (
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
-		"auth-bearer",
+		"auth-bearer", "auth-multistage",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
@@ -1594,7 +1594,7 @@ func extractAuth(auth string) (string, string, string, error) {
 			return "Basic", parts[0], parts[1], nil
 		}
 		return "", "", "", nil
-	} else if strings.HasPrefix(auth, "Bearer ") {
+	} else if strings.HasPrefix(auth, "Bearer ") || strings.HasPrefix(auth, "Multistage ") {
 		authtype, cred, _ := strings.Cut(auth, " ")
 		return authtype, "", cred, nil
 	}
@@ -1618,6 +1618,11 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 	authHeader := "Lfs-Authenticate"
 	if strings.HasPrefix(r.URL.Path, "/auth-bearer") {
 		wantedAuth = "Bearer"
+		authHeader = "Www-Authenticate"
+	}
+
+	if strings.HasPrefix(r.URL.Path, "/auth-multistage") {
+		wantedAuth = "Multistage type=foo"
 		authHeader = "Www-Authenticate"
 	}
 
@@ -1658,6 +1663,16 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 		}
 	case "Bearer":
 		if cred == "token" {
+			return false
+		}
+	case "Multistage":
+		if cred == "cred1" {
+			wantedAuth = "Multistage type=bar"
+			w.Header().Add(authHeader, wantedAuth)
+			w.WriteHeader(401)
+			debug(id, "auth stage 1 succeeded: %q", auth)
+			return true
+		} else if cred == "cred2" {
 			return false
 		}
 	}
