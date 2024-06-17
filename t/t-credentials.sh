@@ -320,6 +320,35 @@ begin_test "credentials can authenticate with Bearer auth"
 )
 end_test
 
+begin_test "credentials can authenticate with multistage auth"
+(
+  set -e
+  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+
+  reponame="auth-multistage-token"
+  setup_remote_repo "$reponame"
+
+  printf 'Multistage::cred2:state1:state2:\nMultistage::cred1::state1:true' > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  contents="b"
+
+  printf "%s" "$contents" > b.dat
+  git add b.dat
+  git add .gitattributes
+  git commit -m "add b.dat"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
+  grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
+  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+)
+end_test
 
 begin_test "git credential"
 (
