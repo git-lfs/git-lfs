@@ -57,7 +57,7 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "unknown-oid",
+		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer",
 	}
@@ -709,6 +709,14 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Setting header to: ", strconv.Itoa(timeLeft))
 				return
 			}
+		case "storage-upload-retry-later-no-header":
+			if _, isWaiting := checkRateLimit("storage", "upload", repo, oid); isWaiting {
+				w.WriteHeader(http.StatusTooManyRequests)
+
+				w.Write([]byte("rate limit reached"))
+				fmt.Println("Not setting Retry-After header")
+				return
+			}
 		case "storage-compress":
 			if r.Header.Get("Accept-Encoding") != "gzip" {
 				w.WriteHeader(500)
@@ -757,6 +765,12 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Retry-After", strconv.Itoa(secsToWait))
 					by = []byte("rate limit reached")
 					fmt.Println("Setting header to: ", strconv.Itoa(secsToWait))
+				}
+			} else if len(by) == len("storage-download-retry-later-no-header") && string(by) == "storage-download-retry-later-no-header" {
+				if _, wait := checkRateLimit("storage", "download", repo, oid); wait {
+					statusCode = http.StatusTooManyRequests
+					by = []byte("rate limit reached")
+					fmt.Println("Not setting Retry-After header")
 				}
 			} else if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
 				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
