@@ -412,6 +412,10 @@ type retriableLaterError struct {
 }
 
 func NewRetriableLaterError(err error, header string) error {
+	if header == "" {
+		return nil
+	}
+
 	secs, err := strconv.Atoi(header)
 	if err == nil {
 		return retriableLaterError{
