@@ -70,6 +70,7 @@ func (c *Client) handleResponse(res *http.Response) error {
 		if retLaterErr != nil {
 			return retLaterErr
 		}
+		return errors.NewRetriableError(err)
 	}
 
 	if res.StatusCode > 499 && res.StatusCode != 501 && res.StatusCode != 507 && res.StatusCode != 509 {
