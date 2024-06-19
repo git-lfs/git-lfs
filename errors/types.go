@@ -416,19 +416,19 @@ func NewRetriableLaterError(err error, header string) error {
 		return nil
 	}
 
-	secs, err := strconv.Atoi(header)
-	if err == nil {
+	secs, parseErr := strconv.Atoi(header)
+	if parseErr == nil {
 		return retriableLaterError{
 			wrappedError:  newWrappedError(err, ""),
 			timeAvailable: time.Now().Add(time.Duration(secs) * time.Second),
 		}
 	}
 
-	time, err := time.Parse(time.RFC1123, header)
-	if err == nil {
+	parseTime, parseErr := time.Parse(time.RFC1123, header)
+	if parseErr == nil {
 		return retriableLaterError{
 			wrappedError:  newWrappedError(err, ""),
-			timeAvailable: time,
+			timeAvailable: parseTime,
 		}
 	}
 
