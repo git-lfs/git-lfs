@@ -37,6 +37,7 @@ func (a *basicUploadAdapter) tempDir() string {
 func (a *basicUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
 	return nil, nil
 }
+
 func (a *basicUploadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
 }
 
@@ -125,7 +126,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		}
 
 		if res.StatusCode == 429 {
-			retLaterErr := errors.NewRetriableLaterError(err, res.Header["Retry-After"][0])
+			retLaterErr := errors.NewRetriableLaterError(err, res.Header.Get("Retry-After"))
 			if retLaterErr != nil {
 				return retLaterErr
 			}
@@ -201,6 +202,7 @@ func (s *startCallbackReader) Read(p []byte) (n int, err error) {
 	}
 	return s.ReadSeekCloser.Read(p)
 }
+
 func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCallbackReader {
 	return &startCallbackReader{
 		ReadSeekCloser: r,

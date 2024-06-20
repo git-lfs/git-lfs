@@ -412,19 +412,23 @@ type retriableLaterError struct {
 }
 
 func NewRetriableLaterError(err error, header string) error {
-	secs, err := strconv.Atoi(header)
-	if err == nil {
+	if header == "" {
+		return nil
+	}
+
+	secs, parseErr := strconv.Atoi(header)
+	if parseErr == nil {
 		return retriableLaterError{
 			wrappedError:  newWrappedError(err, ""),
 			timeAvailable: time.Now().Add(time.Duration(secs) * time.Second),
 		}
 	}
 
-	time, err := time.Parse(time.RFC1123, header)
-	if err == nil {
+	parseTime, parseErr := time.Parse(time.RFC1123, header)
+	if parseErr == nil {
 		return retriableLaterError{
 			wrappedError:  newWrappedError(err, ""),
-			timeAvailable: time,
+			timeAvailable: parseTime,
 		}
 	}
 

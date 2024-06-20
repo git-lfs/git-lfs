@@ -130,3 +130,29 @@ begin_test "batch clone with multiple files causes retries"
   popd
 )
 end_test
+
+begin_test "batch upload causes retries (missing header)"
+(
+  set -e
+
+  reponame="upload-batch-retry-later-no-header"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" batch-repo-upload-no-header
+
+  contents="content"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
+    exit 1
+  fi
+
+  assert_server_object "$reponame" "$oid"
+)
+end_test
