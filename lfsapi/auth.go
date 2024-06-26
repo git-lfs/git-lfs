@@ -16,14 +16,16 @@ import (
 )
 
 var (
-	defaultEndpointFinder = NewEndpointFinder(nil)
+	defaultEndpointFinder  = NewEndpointFinder(nil)
+	defaultMaxAuthAttempts = 3
 )
 
 // DoWithAuth sends an HTTP request to get an HTTP response. It attempts to add
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic authentication.
 func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
-	res, err := c.doWithAuth(remote, access, req, nil)
+	count := 0
+	res, err := c.doWithAuth(remote, &count, access, req, nil)
 
 	if errors.IsAuthError(err) {
 		if len(req.Header.Get("Authorization")) == 0 {
@@ -44,7 +46,8 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 // the same way as DoWithAuth, but will not retry the request if it fails with
 // an authorization error.
 func (c *Client) DoWithAuthNoRetry(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
-	return c.doWithAuth(remote, access, req, nil)
+	count := 0
+	return c.doWithAuth(remote, &count, access, req, nil)
 }
 
 // DoAPIRequestWithAuth sends an HTTP request to get an HTTP response similarly
@@ -57,18 +60,24 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 	return c.DoWithAuth(remote, access, req)
 }
 
-func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Request, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithAuth(remote string, count *int, access creds.Access, req *http.Request, via []*http.Request) (*http.Response, error) {
+	if *count == defaultMaxAuthAttempts {
+		return nil, fmt.Errorf("too many authentication attempts")
+	}
+
 	req.Header = c.client.ExtraHeadersFor(req)
 
 	credWrapper, err := c.getCreds(remote, access, req)
 	if err != nil {
 		return nil, err
 	}
+	c.credContext.SetStateFields(credWrapper.Creds["state[]"])
 
-	res, err := c.doWithCreds(req, credWrapper, access, via)
+	res, err := c.doWithCreds(req, count, credWrapper, access, via)
 	if err != nil {
 		if errors.IsAuthError(err) {
-			newMode, newModes, headers := getAuthAccess(res, access.Mode(), c.access)
+			multistage := credWrapper.Creds.IsMultistage()
+			newMode, newModes, headers := getAuthAccess(res, access.Mode(), c.access, multistage)
 			newAccess := access.Upgrade(newMode)
 			if newAccess.Mode() != access.Mode() {
 				c.Endpoints.SetAccess(newAccess)
@@ -77,7 +86,11 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 
 			if credWrapper.Creds != nil {
 				req.Header.Del("Authorization")
-				credWrapper.CredentialHelper.Reject(credWrapper.Creds)
+				if multistage && *count < defaultMaxAuthAttempts && res != nil && res.StatusCode == 401 {
+					*count++
+				} else {
+					credWrapper.CredentialHelper.Reject(credWrapper.Creds)
+				}
 			}
 			c.credContext.SetWWWAuthHeaders(headers)
 		}
@@ -90,7 +103,7 @@ func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Reques
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, count *int, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
 	if access.Mode() == creds.NegotiateAccess {
 		return c.doWithNegotiate(req, credWrapper)
 	}
@@ -111,7 +124,7 @@ func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelp
 		return res, errors.New(tr.Tr.Get("failed to redirect request"))
 	}
 
-	return c.doWithAuth("", access, redirectedReq, via)
+	return c.doWithAuth("", count, access, redirectedReq, via)
 }
 
 // getCreds fills the authorization header for the given request if possible,
@@ -329,10 +342,10 @@ var (
 	authenticateHeaders = []string{"Lfs-Authenticate", "Www-Authenticate"}
 )
 
-func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.AccessMode) (creds.AccessMode, []creds.AccessMode, []string) {
+func getAuthAccess(res *http.Response, access creds.AccessMode, modes []creds.AccessMode, multistage bool) (creds.AccessMode, []creds.AccessMode, []string) {
 	newModes := make([]creds.AccessMode, 0, len(modes))
 	for _, mode := range modes {
-		if access != mode {
+		if multistage || access != mode {
 			newModes = append(newModes, mode)
 		}
 	}

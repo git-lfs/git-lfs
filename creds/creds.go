@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"sync"
 
@@ -53,10 +54,15 @@ func (credWrapper *CredentialHelperWrapper) FillCreds() error {
 // as input.
 type Creds map[string][]string
 
+func (c Creds) IsMultistage() bool {
+	return slices.Contains([]string{"1", "true"}, FirstEntryForKey(c, "continue"))
+}
+
 func bufferCreds(c Creds) *bytes.Buffer {
 	buf := new(bytes.Buffer)
 
 	buf.Write([]byte("capability[]=authtype\n"))
+	buf.Write([]byte("capability[]=state\n"))
 	for k, v := range c {
 		for _, item := range v {
 			buf.Write([]byte(k))
@@ -77,6 +83,7 @@ type CredentialHelperContext struct {
 
 	urlConfig      *config.URLConfig
 	wwwAuthHeaders []string
+	state          []string
 }
 
 func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
@@ -119,6 +126,10 @@ func (ctxt *CredentialHelperContext) SetWWWAuthHeaders(headers []string) {
 	ctxt.wwwAuthHeaders = headers
 }
 
+func (ctxt *CredentialHelperContext) SetStateFields(fields []string) {
+	ctxt.state = fields
+}
+
 // getCredentialHelper parses a 'credsConfig' from the git and OS environments,
 // returning the appropriate CredentialHelper to authenticate requests with.
 //
@@ -135,6 +146,9 @@ func (ctxt *CredentialHelperContext) GetCredentialHelper(helper CredentialHelper
 	}
 	if len(ctxt.wwwAuthHeaders) != 0 && !ctxt.urlConfig.Bool("credential", rawurl, "skipwwwauth", false) {
 		input["wwwauth[]"] = ctxt.wwwAuthHeaders
+	}
+	if len(ctxt.state) != 0 {
+		input["state[]"] = ctxt.state
 	}
 
 	if helper != nil {

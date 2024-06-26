@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -21,6 +22,41 @@ var (
 	delim    = '\n'
 	credsDir = ""
 )
+
+type credential struct {
+	authtype   string
+	username   string
+	password   string
+	credential string
+	matchState string
+	state      string
+	multistage bool
+	skip       bool
+}
+
+func (c *credential) Serialize(capabilities map[string]struct{}, state []string) map[string][]string {
+	formattedState := fmt.Sprintf("lfstest:%s", c.state)
+	formattedMatchState := fmt.Sprintf("lfstest:%s", c.matchState)
+	creds := make(map[string][]string)
+	if c.skip {
+		// Do nothing.
+	} else if _, ok := capabilities["authtype"]; ok && len(c.authtype) != 0 && len(c.credential) != 0 {
+		if _, ok := capabilities["state"]; len(c.matchState) == 0 || (ok && slices.Contains(state, formattedMatchState)) {
+			creds["authtype"] = []string{c.authtype}
+			creds["credential"] = []string{c.credential}
+			if ok {
+				creds["state[]"] = []string{formattedState}
+				if c.multistage {
+					creds["continue"] = []string{"1"}
+				}
+			}
+		}
+	} else if len(c.username) != 0 && len(c.password) != 0 {
+		creds["username"] = []string{c.username}
+		creds["password"] = []string{c.password}
+	}
+	return creds
+}
 
 func init() {
 	if len(credsDir) == 0 {
@@ -70,33 +106,23 @@ func fill() {
 	}
 
 	hostPieces := strings.SplitN(firstEntryForKey(creds, "host"), ":", 2)
-	authtype, user, cred, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
+	credentials, err := credsForHostAndPath(hostPieces[0], firstEntryForKey(creds, "path"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
+	result := map[string][]string{}
 	capas := discoverCapabilities(creds)
-
-	switch authtype {
-	case "skip":
-	case "":
-		if _, ok := creds["username"]; !ok {
-			creds["username"] = []string{user}
+	for _, cred := range credentials {
+		result = cred.Serialize(capas, creds["state[]"])
+		if len(result) != 0 {
+			break
 		}
-
-		if _, ok := creds["password"]; !ok {
-			creds["password"] = []string{cred}
-		}
-	default:
-		if _, ok := capas["authtype"]; ok {
-			if _, ok := creds["authtype"]; !ok {
-				creds["authtype"] = []string{authtype}
-			}
-
-			if _, ok := creds["credential"]; !ok {
-				creds["credential"] = []string{cred}
-			}
+	}
+	for _, k := range []string{"host", "protocol", "path", "capability[]"} {
+		if v, ok := creds[k]; ok {
+			result[k] = v
 		}
 	}
 
@@ -109,15 +135,14 @@ func fill() {
 		fmt.Fprintf(os.Stderr, "Unexpected 'wwwauth[]' key in credentials\n")
 		os.Exit(1)
 	}
-	delete(creds, "wwwauth[]")
 
 	// Send capabilities first to all for one-pass parsing.
-	for _, entry := range creds["capability[]"] {
+	for _, entry := range result["capability[]"] {
 		key := "capability[]"
 		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
 	}
-	for key, value := range creds {
+	for key, value := range result {
 		if key == "capability[]" {
 			continue
 		}
@@ -132,6 +157,7 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 	capas := make(map[string]struct{})
 	supportedCapas := map[string]struct{}{
 		"authtype": struct{}{},
+		"state":    struct{}{},
 	}
 	capasToSend := []string{}
 	for _, capa := range creds["capability[]"] {
@@ -145,7 +171,7 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 	return capas
 }
 
-func credsForHostAndPath(host, path string) (string, string, string, error) {
+func credsForHostAndPath(host, path string) ([]credential, error) {
 	var hostFilename string
 
 	// We need hostFilename to end in a slash so that our credentials all
@@ -160,25 +186,66 @@ func credsForHostAndPath(host, path string) (string, string, string, error) {
 
 	if len(path) > 0 {
 		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
-		authtype, u, cred, err := credsFromFilename(pathFilename)
+		cred, err := credsFromFilename(pathFilename)
 		if err == nil {
-			return authtype, u, cred, err
+			return cred, err
 		}
 	}
 
 	return credsFromFilename(hostFilename)
 }
 
-func credsFromFilename(file string) (string, string, string, error) {
-	credential, err := os.ReadFile(file)
+func parseOneCredential(s, file string) (credential, error) {
+	// Each line in a file is of the following form:
+	//
+	// skip::
+	//	The literal word "skip" means to skip emitting credentials.
+	// AUTHTYPE::CREDENTIAL
+	//	If the authtype is not empty, then this is an authtype and
+	//	credential.
+	// AUTHTYPE::CREDENTIAL:MATCH:STATE:MULTISTAGE
+	//	Like above, but this matches only if MATCH is empty or if the
+	//	state[] entry is present and matches "lfstest:MATCH".  If so,
+	//	the value "lfstest:STATE" is emitted as the new state[] entry.
+	//	If MULTISTAGE is set to "true", then the multistage flag is set.
+	// :USERNAME:PASSWORD
+	//	This is a normal username and password.
+	credsPieces := strings.Split(strings.TrimSpace(s), ":")
+	if len(credsPieces) != 3 && len(credsPieces) != 6 {
+		return credential{}, fmt.Errorf("Invalid data %q while reading %q", string(s), file)
+	}
+	if credsPieces[0] == "skip" {
+		return credential{skip: true}, nil
+	} else if len(credsPieces[0]) == 0 {
+		return credential{username: credsPieces[1], password: credsPieces[2]}, nil
+	} else if len(credsPieces) == 3 {
+		return credential{authtype: credsPieces[0], credential: credsPieces[2]}, nil
+	} else {
+		return credential{
+			authtype:   credsPieces[0],
+			credential: credsPieces[2],
+			matchState: credsPieces[3],
+			state:      credsPieces[4],
+			multistage: credsPieces[5] == "true",
+		}, nil
+	}
+}
+
+func credsFromFilename(file string) ([]credential, error) {
+	fileContents, err := os.ReadFile(file)
 	if err != nil {
-		return "", "", "", fmt.Errorf("Error opening %q: %s", file, err)
+		return nil, fmt.Errorf("Error opening %q: %s", file, err)
 	}
-	credsPieces := strings.SplitN(strings.TrimSpace(string(credential)), ":", 3)
-	if len(credsPieces) != 3 {
-		return "", "", "", fmt.Errorf("Invalid data %q while reading %q", string(credential), file)
+	lines := strings.Split(strings.TrimSpace(string(fileContents)), "\n")
+	creds := make([]credential, 0, len(lines))
+	for _, line := range lines {
+		cred, err := parseOneCredential(line, file)
+		if err != nil {
+			return nil, err
+		}
+		creds = append(creds, cred)
 	}
-	return credsPieces[0], credsPieces[1], credsPieces[2], nil
+	return creds, nil
 }
 
 func log() {
