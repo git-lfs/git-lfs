@@ -14,11 +14,13 @@ case $(uname -s) in
     sudo apt-get -y build-dep git;;
 esac
 
+GIT_INSTALL_PATH="${GIT_INSTALL_DIR:-"/usr/local"}"
+
 cd "$DIR"
 printf "%s\n" \
   "NO_GETTEXT=YesPlease" \
   "NO_OPENSSL=YesPlease" \
-  "prefix=/usr/local" \
+  "prefix=$GIT_INSTALL_PATH" \
   > config.mak
 make -j2
 sudo make install

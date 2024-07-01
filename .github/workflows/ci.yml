@@ -141,6 +141,12 @@ jobs:
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
       if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
+    - run: |
+        echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
+        echo "$HOME/git/bin" >> "$GITHUB_PATH"
+      if: ${{ matrix.os == 'macos-latest' }}
+      # We install our custom Git version into a PATH location ahead of
+      # that of the Git installed by Homebrew.
     - run: script/build-git "$HOME/git"
     - run: GIT_DEFAULT_HASH=sha256 script/cibuild
   build-earliest:
@@ -159,6 +165,12 @@ jobs:
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
       if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
+    - run: |
+        echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
+        echo "$HOME/git/bin" >> "$GITHUB_PATH"
+      if: ${{ matrix.os == 'macos-latest' }}
+      # We install our custom Git version into a PATH location ahead of
+      # that of the Git installed by Homebrew.
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
   build-docker:
