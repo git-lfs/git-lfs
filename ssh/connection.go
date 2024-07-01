@@ -114,7 +114,11 @@ func (tr *SSHTransfer) Connection(n int) (*PktlineConnection, error) {
 		return tr.conn[n], nil
 	}
 	conn, _, err := tr.spawnConnection(n)
-	return conn, err
+	if err != nil {
+		return nil, err
+	}
+	tr.conn[n] = conn
+	return conn, nil
 }
 
 // ConnectionCount returns the number of connections this object has.
