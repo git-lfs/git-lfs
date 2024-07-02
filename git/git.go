@@ -330,6 +330,8 @@ func LsFilesLFS() (*subprocess.BufferedCmd, error) {
 		"ls-files",
 		"--cached",
 		"--full-name",
+		"--sparse",
+		"--exclude-standard",
 		"-z",
 		"--format=%(objectmode) %(objecttype) %(objectname) %(objectsize)\t%(path)",
 		":(top,attr:filter=lfs)",
