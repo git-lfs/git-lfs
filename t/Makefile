@@ -25,6 +25,7 @@ TEST_CMDS += ../bin/lfs-ssh-proxy-test$X
 TEST_CMDS += ../bin/lfstest-badpathcheck$X
 TEST_CMDS += ../bin/lfstest-count-tests$X
 TEST_CMDS += ../bin/lfstest-customadapter$X
+TEST_CMDS += ../bin/lfstest-genrandom$X
 TEST_CMDS += ../bin/lfstest-gitserver$X
 TEST_CMDS += ../bin/lfstest-nanomtime$X
 TEST_CMDS += ../bin/lfstest-realpath$X
