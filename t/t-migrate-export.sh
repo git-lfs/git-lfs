@@ -455,7 +455,8 @@ begin_test "migrate export (--object-map)"
 
   setup_multiple_local_branches_tracked
 
-  output_dir=$(mktemp -d)
+  output_dir="$GIT_LFS_TEST_DIR/export-object-map-$(lfstest-genrandom --base64url 32)"
+  mkdir -p "$output_dir"
 
   git log --all --pretty='format:%H' > "${output_dir}/old_sha.txt"
   git lfs migrate export --everything --include="*" --object-map "${output_dir}/object-map.txt"
