@@ -37,7 +37,7 @@ setup_local_branch_with_gitattrs() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
+  lfstest-genrandom --base64 120 >a.txt
 
   git add a.txt
   git commit -m "initial commit"
@@ -77,9 +77,9 @@ setup_local_branch_with_nested_gitattrs() {
 
   mkdir b
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
-  base64 < /dev/urandom | head -c 140 > b/a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
+  lfstest-genrandom --base64 140 >b/a.md
 
   git add a.txt a.md b/a.md
   git commit -m "initial commit"
@@ -118,8 +118,8 @@ setup_single_local_branch_untracked() {
 
   git commit --allow-empty -m "initial commit"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > "$name"
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >"$name"
 
   git add a.txt "$name"
   git commit -m "add a.txt and $name"
@@ -155,8 +155,8 @@ setup_single_local_branch_tracked() {
   git add .gitattributes
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
 
   git add a.txt a.md
   git commit -m "add a.{txt,md}"
@@ -226,7 +226,7 @@ setup_single_local_branch_tracked_corrupt() {
 
   git lfs uninstall
 
-  base64 < /dev/urandom | head -c 120 > a.txt
+  lfstest-genrandom --base64 120 >a.txt
 
   if [[ $1 == "lfsmacro" ]]; then
     printf '[attr]lfs filter=lfs diff=lfs merge=lfs -text\n*.txt lfs\n' \
@@ -268,15 +268,15 @@ setup_multiple_local_branches() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
 
   git add a.txt a.md
   git commit -m "initial commit"
 
   git checkout -b my-feature
 
-  base64 < /dev/urandom | head -c 30 > a.md
+  lfstest-genrandom --base64 30 >a.md
 
   git add a.md
   git commit -m "add an additional 30 bytes to a.md"
@@ -293,16 +293,16 @@ setup_multiple_local_branches_with_alternate_names() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 120 > no_extension
-  base64 < /dev/urandom | head -c 140 > a.txt
+  lfstest-genrandom --base64 120 >no_extension
+  lfstest-genrandom --base64 140 >a.txt
 
   git add no_extension a.txt
   git commit -m "initial commit"
 
   git checkout -b my-feature
 
-  base64 < /dev/urandom | head -c 30 > a.txt
-  base64 < /dev/urandom | head -c 100 > no_extension
+  lfstest-genrandom --base64 30 >a.txt
+  lfstest-genrandom --base64 100 >no_extension
 
   git add no_extension a.txt
   git commit -m "add an additional 30 bytes to a.txt"
@@ -363,15 +363,15 @@ setup_multiple_local_branches_tracked() {
   git add .gitattributes
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
 
   git add a.txt a.md
   git commit -m "add a.{txt,md}"
 
   git checkout -b my-feature
 
-  base64 < /dev/urandom | head -c 30 > a.md
+  lfstest-genrandom --base64 30 >a.md
 
   git add a.md
   git commit -m "add an additional 30 bytes to a.md"
@@ -394,7 +394,7 @@ setup_local_branch_with_space() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 50 > "$filename"
+  lfstest-genrandom --base64 50 >"$filename"
 
   git add "$filename"
   git commit -m "initial commit"
@@ -419,16 +419,16 @@ setup_single_remote_branch() {
 
   remove_and_create_remote_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
 
   git add a.txt a.md
   git commit -m "initial commit"
 
   git push origin main
 
-  base64 < /dev/urandom | head -c 30 > a.txt
-  base64 < /dev/urandom | head -c 50 > a.md
+  lfstest-genrandom --base64 30 >a.txt
+  lfstest-genrandom --base64 50 >a.md
 
   git add a.md a.txt
   git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
@@ -459,16 +459,16 @@ setup_single_remote_branch_tracked() {
   git add .gitattributes
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 140 > a.md
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 140 >a.md
 
   git add a.txt a.md
   git commit -m "add a.{txt,md}"
 
   git push origin main
 
-  base64 < /dev/urandom | head -c 30 > a.txt
-  base64 < /dev/urandom | head -c 50 > a.md
+  lfstest-genrandom --base64 30 >a.txt
+  lfstest-genrandom --base64 50 >a.md
 
   git add a.md a.txt
   git commit -m "add an additional 30, 50 bytes to a.{txt,md}"
@@ -498,22 +498,22 @@ setup_multiple_remote_branches() {
 
   remove_and_create_remote_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 10 > a.txt
-  base64 < /dev/urandom | head -c 11 > a.md
+  lfstest-genrandom --base64 10 >a.txt
+  lfstest-genrandom --base64 11 >a.md
   git add a.txt a.md
   git commit -m "add 10, 11 bytes, a.{txt,md}"
 
   git push origin main
 
-  base64 < /dev/urandom | head -c 20 > a.txt
-  base64 < /dev/urandom | head -c 21 > a.md
+  lfstest-genrandom --base64 20 >a.txt
+  lfstest-genrandom --base64 21 >a.md
   git add a.txt a.md
   git commit -m "add 20, 21 bytes, a.{txt,md}"
 
   git checkout -b my-feature
 
-  base64 < /dev/urandom | head -c 30 > a.txt
-  base64 < /dev/urandom | head -c 31 > a.md
+  lfstest-genrandom --base64 30 >a.txt
+  lfstest-genrandom --base64 31 >a.md
   git add a.txt a.md
   git commit -m "add 30, 31 bytes, a.{txt,md}"
 
@@ -533,22 +533,22 @@ setup_multiple_remote_branches_gitattrs() {
   git add .gitattributes
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 10 > a.txt
-  base64 < /dev/urandom | head -c 11 > a.md
+  lfstest-genrandom --base64 10 >a.txt
+  lfstest-genrandom --base64 11 >a.md
   git add a.txt a.md
   git commit -m "add 10, 11 bytes, a.{txt,md}"
 
   git push origin main
 
-  base64 < /dev/urandom | head -c 20 > a.txt
-  base64 < /dev/urandom | head -c 21 > a.md
+  lfstest-genrandom --base64 20 >a.txt
+  lfstest-genrandom --base64 21 >a.md
   git add a.txt a.md
   git commit -m "add 20, 21 bytes, a.{txt,md}"
 
   git checkout -b my-feature
 
-  base64 < /dev/urandom | head -c 30 > a.txt
-  base64 < /dev/urandom | head -c 31 > a.md
+  lfstest-genrandom --base64 30 >a.txt
+  lfstest-genrandom --base64 31 >a.md
   git add a.txt a.md
   git commit -m "add 30, 31 bytes, a.{txt,md}"
 
@@ -573,12 +573,12 @@ setup_single_local_branch_with_tags() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 1 > a.txt
+  lfstest-genrandom --base64 1 >a.txt
 
   git add a.txt
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 2 > a.txt
+  lfstest-genrandom --base64 2 >a.txt
 
   git add a.txt
   git commit -m "secondary commit"
@@ -604,12 +604,12 @@ setup_single_local_branch_with_annotated_tags() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 1 > a.txt
+  lfstest-genrandom --base64 1 >a.txt
 
   git add a.txt
   git commit -m "initial commit"
 
-  base64 < /dev/urandom | head -c 2 > a.txt
+  lfstest-genrandom --base64 2 >a.txt
 
   git add a.txt
   git commit -m "secondary commit"
@@ -630,12 +630,12 @@ setup_multiple_remotes() {
 
   git remote add fork "$GITSERVER/$forkname"
 
-  base64 < /dev/urandom | head -c 16 > a.txt
+  lfstest-genrandom --base64 16 >a.txt
   git add a.txt
   git commit -m "initial commit"
   git push origin main
 
-  base64 < /dev/urandom | head -c 16 > a.txt
+  lfstest-genrandom --base64 16 >a.txt
   git add a.txt
   git commit -m "another commit"
   git push fork main
@@ -655,7 +655,7 @@ setup_single_local_branch_deep_trees() {
   remove_and_create_local_repo "$reponame"
 
   mkdir -p foo/bar/baz
-  base64 < /dev/urandom | head -c 120 > foo/bar/baz/a.txt
+  lfstest-genrandom --base64 120 >foo/bar/baz/a.txt
 
   git add foo/bar/baz/a.txt
   git commit -m "initial commit"
@@ -676,10 +676,10 @@ setup_single_local_branch_same_file_tree_ext() {
   remove_and_create_local_repo "$reponame"
 
   mkdir -p foo bar.txt
-  base64 < /dev/urandom | head -c 120 > a.txt
-  base64 < /dev/urandom | head -c 120 > foo/a.txt
-  base64 < /dev/urandom | head -c 120 > bar.txt/b.md
-  base64 < /dev/urandom | head -c 120 > bar.txt/b.txt
+  lfstest-genrandom --base64 120 >a.txt
+  lfstest-genrandom --base64 120 >foo/a.txt
+  lfstest-genrandom --base64 120 >bar.txt/b.md
+  lfstest-genrandom --base64 120 >bar.txt/b.txt
 
   git add a.txt foo bar.txt
   git commit -m "initial commit"
@@ -699,7 +699,7 @@ setup_local_branch_with_symlink() {
 
   remove_and_create_local_repo "$reponame"
 
-  base64 < /dev/urandom | head -c 120 > a.txt
+  lfstest-genrandom --base64 120 >a.txt
 
   git add a.txt
   git commit -m "initial commit"
@@ -765,10 +765,10 @@ setup_local_branch_with_special_character_files() {
   reponame="migrate-single-local-branch-with-special-filenames"
   remove_and_create_local_repo "$reponame"
 
-  head -c 80 /dev/urandom > './test - special.bin'
-  head -c 100 /dev/urandom > './test (test2) special.bin'
+  lfstest-genrandom 80 >'./test - special.bin'
+  lfstest-genrandom 100 >'./test (test2) special.bin'
   # Windows does not allow creation of files with '*'
-  [ "$IS_WINDOWS" -eq '1' ] || head -c 120 /dev/urandom > './test * ** special.bin'
+  [ "$IS_WINDOWS" -eq '1' ] || lfstest-genrandom 120 >'./test * ** special.bin'
 
   git add *.bin
   git commit -m "initial commit"
@@ -793,7 +793,7 @@ make_bare() {
 #
 #   remove_and_create_local_repo "$reponame"
 remove_and_create_local_repo() {
-  local reponame="$(base64 < /dev/urandom | head -c 8 | $SHASUM | cut -f 1 -d ' ')-$1"
+  local reponame="$1-$(lfstest-genrandom --base64url 32)"
 
   git init "$reponame"
   cd "$reponame"
@@ -804,7 +804,7 @@ remove_and_create_local_repo() {
 #
 #   remove_and_create_remote_repo "$reponame"
 remove_and_create_remote_repo() {
-  local reponame="$(base64 < /dev/urandom | head -c 8 | $SHASUM | cut -f 1 -d ' ')-$1"
+  local reponame="$1-$(lfstest-genrandom --base64url 32)"
 
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"

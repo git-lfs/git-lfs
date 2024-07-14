@@ -10,7 +10,7 @@ begin_test "migrate export (default branch)"
   setup_multiple_local_branches_tracked
 
   # Add b.md, a pointer existing only on main
-  base64 < /dev/urandom | head -c 160 > b.md
+  lfstest-genrandom --base64 160 >b.md
   git add b.md
   git commit -m "add b.md"
 
