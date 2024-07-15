@@ -7,16 +7,10 @@ envInitConfig='git config filter.lfs.process = "git-lfs filter-process"
 git config filter.lfs.smudge = "git-lfs smudge -- %f"
 git config filter.lfs.clean = "git-lfs clean -- %f"'
 
-unset_vars () {
-    # If set, these will cause the test to fail.
-    unset GIT_LFS_NO_TEST_COUNT
-}
-
 begin_test "git worktree"
 (
     set -e
     reponame="worktree-main"
-    unset_vars
     mkdir $reponame
     cd $reponame
     git init
@@ -99,7 +93,6 @@ begin_test "git worktree with hooks"
 (
     set -e
     reponame="worktree-hooks"
-    unset_vars
     mkdir $reponame
     cd $reponame
     git init
