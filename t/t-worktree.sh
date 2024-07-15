@@ -9,7 +9,7 @@ git config filter.lfs.clean = "git-lfs clean -- %f"'
 
 unset_vars () {
     # If set, these will cause the test to fail.
-    unset GIT_LFS_NO_TEST_COUNT GIT_LFS_LOCK_ACQUIRE_DISABLED
+    unset GIT_LFS_NO_TEST_COUNT
 }
 
 begin_test "git worktree"

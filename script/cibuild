@@ -10,7 +10,6 @@ if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
   X=".exe"
   WINDOWS=1
   export GIT_LFS_NO_TEST_COUNT=1
-  export GIT_LFS_LOCK_ACQUIRE_DISABLED=1
 fi
 
 # Build git-lfs-transfer from scutiger.
