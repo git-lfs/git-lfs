@@ -62,7 +62,11 @@ func main() {
 	if err := acquire(ctx); err != nil {
 		fatal(err)
 	}
-	defer release()
+	defer func() {
+		if err := release(); err != nil {
+			fmt.Fprintf(os.Stderr, "unable to release lock file: %s\n", err)
+		}
+	}()
 
 	if len(os.Args) == 1 {
 		// Calling with no arguments indicates that we simply want to
@@ -183,8 +187,11 @@ func acquire(ctx context.Context) error {
 		case <-tick.C:
 			// Try every tick of the above ticker before giving up
 			// and trying again.
-			_, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL, 0666)
+			f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err == nil || !os.IsExist(err) {
+				if err == nil {
+					f.Close()
+				}
 				return err
 			}
 		case <-ctx.Done():
@@ -266,7 +273,7 @@ func callWithCount(fn countFn) error {
 // 't' directory of the current checkout of Git LFS.
 func path(s string) (string, error) {
 	p := filepath.Join(filepath.Dir(os.Getenv("LFSTEST_DIR")), s)
-	if err := os.MkdirAll(filepath.Dir(p), 0666); err != nil {
+	if err := os.MkdirAll(filepath.Dir(p), 0777); err != nil {
 		return "", err
 	}
 	return p, nil
