@@ -647,6 +647,11 @@ shutdown() {
   LFSTEST_DIR="$REMOTEDIR" \
   LFS_URL_FILE="$LFS_URL_FILE" \
     lfstest-count-tests decrement
+
+  # delete entire lfs test root if we created it (double check pattern)
+  if [ -z "$KEEPTRASH" ] && [ "$RM_GIT_LFS_TEST_DIR" = "yes" ] && [[ $GIT_LFS_TEST_DIR == *"$TEMPDIR_PREFIX"* ]]; then
+    rm -rf "$GIT_LFS_TEST_DIR"
+  fi
 }
 
 tap_show_plan() {

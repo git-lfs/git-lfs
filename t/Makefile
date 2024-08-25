@@ -45,9 +45,9 @@ test-commands : $(TEST_CMDS)
 
 test : test-commands
 	$(RM) -r remote test_count{,.lock}
-	@bash -c '. ./testenv.sh && setup'
-	$(PROVE) $(PROVE_EXTRA_ARGS) ./t-*.sh
-	@bash -c '. ./testenv.sh && shutdown'
+	@bash -c ". ./testenv.sh && setup && cd t && \
+		RM_GIT_LFS_TEST_DIR=no $(PROVE) $(PROVE_EXTRA_ARGS) t-*.sh && \
+		shutdown"
 
 .PHONY : $(TEST_SRCS)
 $(TEST_SRCS) : $(TEST_CMDS)
