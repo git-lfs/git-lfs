@@ -5,7 +5,8 @@ DIR="$1"
 case $(uname -s) in
   Darwin)
     brew install curl zlib pcre2 openssl
-    brew link --force curl zlib pcre2 openssl;;
+    brew link --force curl zlib pcre2 openssl
+    CURLDIR="$(curl-config --prefix)";;
   Linux)
     export DEBIAN_FRONTEND=noninteractive
     sed -e 's/^deb/deb-src/' /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/src.list
@@ -22,6 +23,11 @@ printf "%s\n" \
   "NO_OPENSSL=YesPlease" \
   "prefix=$GIT_INSTALL_PATH" \
   > config.mak
+if test -n "$CURLDIR"; then
+  printf "%s\n" \
+    "CURLDIR=$CURLDIR" \
+    >> config.mak
+fi
 make -j2
 sudo make install
 
