@@ -129,7 +129,7 @@ func main() {
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
-	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-ssl")
+	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-client-cert-url")
 	defer os.RemoveAll(clientCertUrlname)
 
 	block := &pem.Block{}
