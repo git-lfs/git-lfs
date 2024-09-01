@@ -482,11 +482,6 @@ clone_repo_clientcert() {
   fi
 
   echo "$out" > clone_client_cert.log
-  if [ $(grep -c "NSInvalidArgumentException" clone_client_cert.log) -gt 0 ]; then
-    echo "client-cert-mac-openssl" > clone_client_cert.log
-    return 0
-  fi
-
   return 1
 }
 
