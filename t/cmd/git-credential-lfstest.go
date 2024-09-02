@@ -34,7 +34,7 @@ type credential struct {
 	skip       bool
 }
 
-func (c *credential) Serialize(capabilities map[string]struct{}, state []string) map[string][]string {
+func (c *credential) Serialize(capabilities map[string]struct{}, state []string, username []string) map[string][]string {
 	formattedState := fmt.Sprintf("lfstest:%s", c.state)
 	formattedMatchState := fmt.Sprintf("lfstest:%s", c.matchState)
 	creds := make(map[string][]string)
@@ -51,8 +51,10 @@ func (c *credential) Serialize(capabilities map[string]struct{}, state []string)
 				}
 			}
 		}
-	} else if len(c.username) != 0 && len(c.password) != 0 {
-		creds["username"] = []string{c.username}
+	} else if len(c.authtype) == 0 && (len(username) == 0 || username[0] == c.username) {
+		if len(username) == 0 {
+			creds["username"] = []string{c.username}
+		}
 		creds["password"] = []string{c.password}
 	}
 	return creds
@@ -115,7 +117,7 @@ func fill() {
 	result := map[string][]string{}
 	capas := discoverCapabilities(creds)
 	for _, cred := range credentials {
-		result = cred.Serialize(capas, creds["state[]"])
+		result = cred.Serialize(capas, creds["state[]"], creds["username"])
 		if len(result) != 0 {
 			break
 		}
