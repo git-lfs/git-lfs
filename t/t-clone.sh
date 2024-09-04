@@ -4,6 +4,13 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
+# Check for a libnss3 dependency in Git until we drop support for CentOS 7.
+GIT_LIBNSS=0
+if [ "$IS_WINDOWS" -eq 0 -a "$IS_MAC" -eq 0 ]; then
+  GIT_LIBNSS="$(ldd "$(git --exec-path)"/git-remote-https | grep -c '^\s*libnss3\.' || true)"
+fi
+export GIT_LIBNSS
+
 begin_test "clone"
 (
   set -e
@@ -96,6 +103,11 @@ begin_test "cloneSSL"
     exit 0
   fi
 
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
+    exit 0
+  fi
+
   reponame="test-cloneSSL"
   setup_remote_repo "$reponame"
   clone_repo_ssl "$reponame" "$reponame"
@@ -154,6 +166,11 @@ begin_test "clone ClientCert"
   set -e
   if $TRAVIS; then
     echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
+    exit 0
+  fi
+
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
   fi
 
@@ -228,6 +245,11 @@ begin_test "clone ClientCert with homedir certs"
 
   # Windows triggers a credential helper problem.
   if [ $IS_WINDOWS -eq 1 ]; then
+    exit 0
+  fi
+
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
   fi
 
