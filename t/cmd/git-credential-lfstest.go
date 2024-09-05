@@ -122,7 +122,7 @@ func fill() {
 			break
 		}
 	}
-	for _, k := range []string{"host", "protocol", "path", "capability[]"} {
+	for _, k := range []string{"host", "protocol", "path"} {
 		if v, ok := creds[k]; ok {
 			result[k] = v
 		}
@@ -138,16 +138,14 @@ func fill() {
 		os.Exit(1)
 	}
 
-	// Send capabilities first to all for one-pass parsing.
-	for _, entry := range result["capability[]"] {
-		key := "capability[]"
+	// Send capabilities first to all for one-pass parsing, but only if
+	// client advertised capabilities matching those of the per-host data.
+	key := "capability[]"
+	for entry, _ := range capas {
 		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
 	}
 	for key, value := range result {
-		if key == "capability[]" {
-			continue
-		}
 		for _, entry := range value {
 			fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 			fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
@@ -161,15 +159,12 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 		"authtype": struct{}{},
 		"state":    struct{}{},
 	}
-	capasToSend := []string{}
 	for _, capa := range creds["capability[]"] {
-		capas[capa] = struct{}{}
 		// Only pass on capabilities we support.
 		if _, ok := supportedCapas[capa]; ok {
-			capasToSend = append(capasToSend, capa)
+			capas[capa] = struct{}{}
 		}
 	}
-	creds["capability[]"] = capasToSend
 	return capas
 }
 
