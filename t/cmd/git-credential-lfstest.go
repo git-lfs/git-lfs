@@ -175,6 +175,19 @@ func credsForHostAndPath(host, path string) ([]credential, error) {
 		if err == nil {
 			return cred, err
 		}
+
+		// Ideally we might run cygpath to convert paths like D:/...
+		// to /d/... paths, but we only need to do this to support
+		// one test of the deprecated git-lfs-clone command in our
+		// CI suite, so for simplicity we just do basic rewriting.
+		if len(path) > 2 && path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':' {
+			path = "/" + string(path[0]+32) + path[2:]
+			pathFilename := fmt.Sprintf("%s--%s", host, strings.Replace(path, "/", "-", -1))
+			cred, err := credsFromFilename(filepath.Join(credsDir, pathFilename))
+			if err == nil {
+				return cred, err
+			}
+		}
 	}
 
 	if len(host) == 0 {
