@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -168,27 +169,19 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 }
 
 func credsForHostAndPath(host, path string) ([]credential, error) {
-	var hostFilename string
-
-	// We need hostFilename to end in a slash so that our credentials all
-	// end up in the same directory.  credsDir will come in from the
-	// testsuite with a slash, but filepath.Join will strip it off if host
-	// is empty, such as when we have a file:/// or cert:/// URL.
-	if host != "" {
-		hostFilename = filepath.Join(credsDir, host)
-	} else {
-		hostFilename = credsDir
-	}
-
 	if len(path) > 0 {
-		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
-		cred, err := credsFromFilename(pathFilename)
+		pathFilename := fmt.Sprintf("%s--%s", host, strings.Replace(path, "/", "-", -1))
+		cred, err := credsFromFilename(filepath.Join(credsDir, pathFilename))
 		if err == nil {
 			return cred, err
 		}
 	}
 
-	return credsFromFilename(hostFilename)
+	if len(host) == 0 {
+		return nil, errors.New("No file available; empty 'host' key in credentials")
+	}
+
+	return credsFromFilename(filepath.Join(credsDir, host))
 }
 
 func parseOneCredential(s, file string) (credential, error) {
