@@ -122,11 +122,6 @@ func fill() {
 			break
 		}
 	}
-	for _, k := range []string{"host", "protocol", "path"} {
-		if v, ok := creds[k]; ok {
-			result[k] = v
-		}
-	}
 
 	mode := os.Getenv("LFS_TEST_CREDS_WWWAUTH")
 	wwwauth := firstEntryForKey(creds, "wwwauth[]")
@@ -136,6 +131,10 @@ func fill() {
 	} else if mode == "forbidden" && wwwauth != "" {
 		fmt.Fprintf(os.Stderr, "Unexpected 'wwwauth[]' key in credentials\n")
 		os.Exit(1)
+	}
+
+	if len(result) == 0 {
+		os.Exit(0)
 	}
 
 	// Send capabilities first to all for one-pass parsing, but only if
