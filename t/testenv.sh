@@ -111,10 +111,6 @@ REMOTEDIR="$ROOTDIR/t/remote"
 #
 CREDSDIR="$REMOTEDIR/creds/"
 
-# This is the prefix for Git config files.  See the "Test Suite" section in
-# t/README.md
-LFS_CONFIG="$REMOTEDIR/config"
-
 # This file contains the URL of the test Git server. See the "Test Suite"
 # section in t/README.md
 LFS_URL_FILE="$REMOTEDIR/url"
