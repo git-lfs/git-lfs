@@ -145,7 +145,7 @@ begin_test "cloneSSL"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
   assert_clean_status
   grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
   [ ! $(grep "filter" lfsclone.log) ]
   [ ! $(grep "error" lfsclone.log) ]
@@ -226,6 +226,7 @@ begin_test "clone ClientCert"
     rm -fr "$newclonedir"
     git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
     grep "Cloning into" lfsclone.log
+    grep "Downloading LFS objects:" lfsclone.log
     # should be no filter errors
     [ ! $(grep "filter" lfsclone.log) ]
     [ ! $(grep "error" lfsclone.log) ]
