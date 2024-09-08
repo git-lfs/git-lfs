@@ -108,6 +108,10 @@ begin_test "cloneSSL"
     exit 0
   fi
 
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
+  fi
+
   reponame="test-cloneSSL"
   setup_remote_repo "$reponame"
   clone_repo_ssl "$reponame" "$reponame"
@@ -172,6 +176,10 @@ begin_test "clone ClientCert"
   if [ "$GIT_LIBNSS" -eq 1 ]; then
     echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
+  fi
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
   fi
 
   reponame="test-cloneClientCert"
@@ -243,14 +251,13 @@ begin_test "clone ClientCert with homedir certs"
 (
   set -e
 
-  # Windows triggers a credential helper problem.
-  if [ $IS_WINDOWS -eq 1 ]; then
-    exit 0
-  fi
-
   if [ "$GIT_LIBNSS" -eq 1 ]; then
     echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
+  fi
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
   fi
 
   reponame="test-cloneClientCert-homedir"
