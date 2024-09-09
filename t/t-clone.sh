@@ -153,6 +153,7 @@ begin_test "cloneSSL"
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 30 ]
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -227,6 +228,7 @@ begin_test "clone ClientCert"
       [ $(wc -c < "file2.dat") -eq 75 ]
       [ $(wc -c < "file3.dat") -eq 30 ]
       assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
       assert_clean_status
     popd
   done
@@ -353,6 +355,7 @@ begin_test "clone with flags"
   # confirm remote is called differentorigin
   git remote get-url differentorigin
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
   rm -rf "$newclonedir"
@@ -368,6 +371,7 @@ begin_test "clone with flags"
   [ -d "$gitdir/objects" ]
   assert_hooks "$gitdir"
   pushd "$newclonedir"
+    [ ! -e "lfs" ]
     assert_clean_status
   popd
   rm -rf "$newclonedir"
@@ -431,6 +435,7 @@ begin_test "clone (with include/exclude args)"
   [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
   [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -442,6 +447,7 @@ begin_test "clone (with include/exclude args)"
   [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
   [ "b" = "$(cat b.dat)" ]
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 )
@@ -505,6 +511,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -515,6 +522,7 @@ begin_test "clone (with .lfsconfig)"
   refute_local_object "$contents_a_oid"
   assert_local_object "$contents_b_oid" 1
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -539,6 +547,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -549,6 +558,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   popd
 
@@ -663,6 +673,7 @@ begin_test "clone with submodules"
   # check everything is where it should be
   cd $local_reponame
   assert_hooks "$(dot_git_dir)"
+  [ ! -e "lfs" ]
   assert_clean_status
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
@@ -714,7 +725,7 @@ begin_test "clone in current directory"
 
     assert_local_object "$contents_oid" 8
     assert_hooks "$(dot_git_dir)"
-    [ ! -f ./lfs ]
+    [ ! -e "lfs" ]
     assert_clean_status
   popd
 )
