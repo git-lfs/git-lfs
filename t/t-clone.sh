@@ -98,10 +98,6 @@ end_test
 begin_test "cloneSSL"
 (
   set -e
-  if $TRAVIS; then
-    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
-    exit 0
-  fi
 
   if [ "$GIT_LIBNSS" -eq 1 ]; then
     echo "skip: libnss does not support the Go httptest server certificate"
@@ -170,10 +166,6 @@ end_test
 begin_test "clone ClientCert"
 (
   set -e
-  if $TRAVIS; then
-    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
-    exit 0
-  fi
 
   if [ "$GIT_LIBNSS" -eq 1 ]; then
     echo "skip: libnss does not support the Go httptest server certificate"
