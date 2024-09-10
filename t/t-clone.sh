@@ -91,7 +91,6 @@ begin_test "clone"
     [ ! -e "lfs" ]
     assert_clean_status
   popd
-
 )
 end_test
 
@@ -149,14 +148,13 @@ begin_test "cloneSSL"
 
   # check a few file sizes to make sure pulled
   pushd "$newclonedir"
-  [ $(wc -c < "file1.dat") -eq 100 ]
-  [ $(wc -c < "file2.dat") -eq 75 ]
-  [ $(wc -c < "file3.dat") -eq 30 ]
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
+    [ $(wc -c < "file1.dat") -eq 100 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 30 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
-
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
@@ -350,13 +348,13 @@ begin_test "clone with flags"
   # specific test for --branch and --origin
   git lfs clone --branch branch2 --recurse-submodules --origin differentorigin "$GITSERVER/$reponame" "$newclonedir"
   pushd "$newclonedir"
-  # this file is only on branch2
-  [ -e "fileonbranch2.dat" ]
-  # confirm remote is called differentorigin
-  git remote get-url differentorigin
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
+    # this file is only on branch2
+    [ -e "fileonbranch2.dat" ]
+    # confirm remote is called differentorigin
+    git remote get-url differentorigin
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
   rm -rf "$newclonedir"
 
@@ -428,27 +426,27 @@ begin_test "clone (with include/exclude args)"
   local_reponame="clone_with_includes"
   git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a*.dat"
   pushd "$local_reponame"
-  assert_local_object "$contents_a_oid" 1
-  refute_local_object "$contents_b_oid"
-  [ "a" = "$(cat a.dat)" ]
-  [ "a" = "$(cat a-dupe.dat)" ]
-  [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
-  [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
+    assert_local_object "$contents_a_oid" 1
+    refute_local_object "$contents_b_oid"
+    [ "a" = "$(cat a.dat)" ]
+    [ "a" = "$(cat a-dupe.dat)" ]
+    [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
+    [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
 
   local_reponame="clone_with_excludes"
   git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "b.dat" -X "a.dat"
   pushd "$local_reponame"
-  assert_local_object "$contents_b_oid" 1
-  refute_local_object "$contents_a_oid"
-  [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
-  [ "b" = "$(cat b.dat)" ]
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
+    assert_local_object "$contents_b_oid" 1
+    refute_local_object "$contents_a_oid"
+    [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
+    [ "b" = "$(cat b.dat)" ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
   popd
 )
 end_test
@@ -493,38 +491,38 @@ begin_test "clone (with .lfsconfig)"
 
   pushd "$TRASHDIR"
 
-  echo "test: clone with lfs.fetchinclude in .lfsconfig"
-  local_reponame="clone_with_config_include"
-  set +x
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame"
-  ok="$?"
-  set -x
-  if [ "0" -ne "$ok" ]; then
-    # TEMP: used to catch transient failure from above `clone` command, as in:
-    # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
-    echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
-    git lfs logs last
+    echo "test: clone with lfs.fetchinclude in .lfsconfig"
+    local_reponame="clone_with_config_include"
+    set +x
+    git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+    ok="$?"
+    set -x
+    if [ "0" -ne "$ok" ]; then
+      # TEMP: used to catch transient failure from above `clone` command, as in:
+      # https://github.com/git-lfs/git-lfs/pull/1782#issuecomment-267678319
+      echo >&2 "[!] \`git lfs clone $GITSERVER/$reponame $local_reponame\` failed"
+      git lfs logs last
 
-    exit 1
-  fi
-  pushd "$local_reponame"
-  assert_local_object "$contents_a_oid" 1
-  refute_local_object "$contents_b_oid"
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
-  popd
+      exit 1
+    fi
+    pushd "$local_reponame"
+      assert_local_object "$contents_a_oid" 1
+      refute_local_object "$contents_b_oid"
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      assert_clean_status
+    popd
 
-  echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
-  local_reponame="clone_with_config_include_and_args"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "b.dat"
-  pushd "$local_reponame"
-  refute_local_object "$contents_a_oid"
-  assert_local_object "$contents_b_oid" 1
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
-  popd
+    echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
+    local_reponame="clone_with_config_include_and_args"
+    git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "b.dat"
+    pushd "$local_reponame"
+      refute_local_object "$contents_a_oid"
+      assert_local_object "$contents_b_oid" 1
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      assert_clean_status
+    popd
 
   popd
 
@@ -539,28 +537,28 @@ begin_test "clone (with .lfsconfig)"
 
   pushd "$TRASHDIR"
 
-  echo "test: clone with lfs.fetchexclude in .lfsconfig"
-  local_reponame="clone_with_config_exclude"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame"
-  pushd "$local_reponame"
-  cat ".lfsconfig"
-  assert_local_object "$contents_b_oid" 1
-  refute_local_object "$contents_a_oid"
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
-  popd
+    echo "test: clone with lfs.fetchexclude in .lfsconfig"
+    local_reponame="clone_with_config_exclude"
+    git lfs clone "$GITSERVER/$reponame" "$local_reponame"
+    pushd "$local_reponame"
+      cat ".lfsconfig"
+      assert_local_object "$contents_b_oid" 1
+      refute_local_object "$contents_a_oid"
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      assert_clean_status
+    popd
 
-  echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
-  local_reponame="clone_with_config_exclude_and_args"
-  git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat" -X "b.dat"
-  pushd "$local_reponame"
-  assert_local_object "$contents_a_oid" 1
-  refute_local_object "$contents_b_oid"
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
-  popd
+    echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
+    local_reponame="clone_with_config_exclude_and_args"
+    git lfs clone "$GITSERVER/$reponame" "$local_reponame" -I "a.dat" -X "b.dat"
+    pushd "$local_reponame"
+      assert_local_object "$contents_a_oid" 1
+      refute_local_object "$contents_b_oid"
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      assert_clean_status
+    popd
 
   popd
 )
@@ -667,24 +665,24 @@ begin_test "clone with submodules"
 
   pushd "$TRASHDIR"
 
-  local_reponame="submod-clone"
-  git lfs clone --recursive "$GITSERVER/$reponame" "$local_reponame"
+    local_reponame="submod-clone"
+    git lfs clone --recursive "$GITSERVER/$reponame" "$local_reponame"
 
-  # check everything is where it should be
-  cd $local_reponame
-  assert_hooks "$(dot_git_dir)"
-  [ ! -e "lfs" ]
-  assert_clean_status
-  # check LFS store and working copy
-  assert_local_object "$contents_root_oid" "${#contents_root}"
-  [ $(wc -c < "root.dat") -eq ${#contents_root} ]
-  # and so on for nested subs
-  cd sub1
-  assert_local_object "$contents_sub1_oid" "${#contents_sub1}"
-  [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ]
-  cd sub2
-  assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
-  [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
+    # check everything is where it should be
+    cd $local_reponame
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    assert_clean_status
+    # check LFS store and working copy
+    assert_local_object "$contents_root_oid" "${#contents_root}"
+    [ $(wc -c < "root.dat") -eq ${#contents_root} ]
+    # and so on for nested subs
+    cd sub1
+    assert_local_object "$contents_sub1_oid" "${#contents_sub1}"
+    [ $(wc -c < "sub1.dat") -eq ${#contents_sub1} ]
+    cd sub2
+    assert_local_object "$contents_sub2_oid" "${#contents_sub2}"
+    [ $(wc -c < "sub2.dat") -eq ${#contents_sub2} ]
 
   popd
 )
