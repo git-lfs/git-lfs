@@ -1279,9 +1279,15 @@ func Fetch(remotes ...string) error {
 
 // RemoteRefs returns a list of branches & tags for a remote by actually
 // accessing the remote via git ls-remote.
-func RemoteRefs(remoteName string) ([]*Ref, error) {
+func RemoteRefs(remoteName string, ignoreTags bool) ([]*Ref, error) {
 	var ret []*Ref
-	cmd, err := gitNoLFS("ls-remote", "--heads", "--tags", "-q", remoteName)
+	args := []string{"ls-remote", "--heads", "-q"}
+	if !ignoreTags {
+		args = append(args, "--tags")
+	}
+	args = append(args, remoteName)
+	
+	cmd, err := gitNoLFS(args...)
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git ls-remote`: %v", err))
 	}

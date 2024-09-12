@@ -13,7 +13,7 @@ import (
 // remote, use a more explicit diff command.
 func calcSkippedRefs(remote string) []string {
 	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote)
-	actualRemoteRefs, _ := git.RemoteRefs(remote)
+	actualRemoteRefs, _ := git.RemoteRefs(remote, true)
 
 	// The set of remote refs can be very large. Since CachedRemoteRefs only
 	// returns branches, filter the remote refs and convert them to a set for
