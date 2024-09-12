@@ -1,8 +1,6 @@
 package filepathfilter
 
 import (
-	"strings"
-
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/wildmatch/v2"
 	"github.com/rubyist/tracerx"
@@ -163,22 +161,6 @@ func NewPattern(p string, ptype PatternType) Pattern {
 	default:
 		panic(tr.Tr.Get("unreachable"))
 	}
-}
-
-// join joins path elements together via the separator "sep" and produces valid
-// paths without multiple separators (unless multiple separators were included
-// in the original paths []string).
-func join(paths ...string) string {
-	var joined string
-
-	for i, path := range paths {
-		joined = joined + path
-		if i != len(paths)-1 && !strings.HasSuffix(path, string(sep)) {
-			joined = joined + string(sep)
-		}
-	}
-
-	return joined
 }
 
 func convertToWildmatch(rawpatterns []string, ptype PatternType) []Pattern {

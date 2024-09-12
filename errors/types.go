@@ -55,19 +55,6 @@ func IsAuthError(err error) bool {
 	return false
 }
 
-// IsSmudgeError indicates an error while smudging a files.
-func IsSmudgeError(err error) bool {
-	if e, ok := err.(interface {
-		SmudgeError() bool
-	}); ok {
-		return e.SmudgeError()
-	}
-	if parent := parentOf(err); parent != nil {
-		return IsSmudgeError(parent)
-	}
-	return false
-}
-
 // IsCleanPointerError indicates an error while cleaning a file.
 func IsCleanPointerError(err error) bool {
 	if e, ok := err.(interface {
@@ -117,20 +104,6 @@ func IsBadPointerKeyError(err error) bool {
 
 	if parent := parentOf(err); parent != nil {
 		return IsBadPointerKeyError(parent)
-	}
-	return false
-}
-
-// IsProtocolError indicates that the SSH pkt-line protocol data is invalid.
-func IsProtocolError(err error) bool {
-	if e, ok := err.(interface {
-		ProtocolError() bool
-	}); ok {
-		return e.ProtocolError()
-	}
-
-	if parent := parentOf(err); parent != nil {
-		return IsProtocolError(parent)
 	}
 	return false
 }

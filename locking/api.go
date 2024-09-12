@@ -307,10 +307,6 @@ type User struct {
 	Name string `json:"name"`
 }
 
-func NewUser(name string) *User {
-	return &User{Name: name}
-}
-
 // String implements the fmt.Stringer interface.
 func (u *User) String() string {
 	return u.Name

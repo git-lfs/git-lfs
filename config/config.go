@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
@@ -138,45 +137,6 @@ type Values struct {
 	// Git and Os are the stand-in maps used to provide values for their
 	// respective environments.
 	Git, Os map[string][]string
-}
-
-// NewFrom returns a new `*config.Configuration` that reads both its Git
-// and Environment-level values from the ones provided instead of the actual
-// `.gitconfig` file or `os.Getenv`, respectively.
-//
-// This method should only be used during testing.
-func NewFrom(v Values) *Configuration {
-	c := &Configuration{
-		Os:        EnvironmentOf(mapFetcher(v.Os)),
-		gitConfig: git.NewConfig("", ""),
-		timestamp: time.Now(),
-	}
-	c.Git = &delayedEnvironment{
-		callback: func() Environment {
-			source := &git.ConfigurationSource{
-				Lines: make([]string, 0, len(v.Git)),
-			}
-
-			for key, values := range v.Git {
-				parts := strings.Split(key, ".")
-				isCaseSensitive := len(parts) >= 3
-				hasUpper := strings.IndexFunc(key, unicode.IsUpper) > -1
-
-				// This branch should only ever trigger in
-				// tests, and only if they'd be broken.
-				if !isCaseSensitive && hasUpper {
-					panic(tr.Tr.Get("key %q has uppercase, shouldn't", key))
-				}
-				for _, value := range values {
-					fmt.Printf("Config: %s=%s\n", key, value)
-					source.Lines = append(source.Lines, fmt.Sprintf("%s=%s", key, value))
-				}
-			}
-
-			return c.readGitConfig(source)
-		},
-	}
-	return c
 }
 
 // BasicTransfersOnly returns whether to only allow "basic" HTTP transfers.

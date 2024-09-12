@@ -4,19 +4,6 @@ package config
 // the `map[string]string` type.
 type mapFetcher map[string][]string
 
-func UniqMapFetcher(m map[string]string) Fetcher {
-	multi := make(map[string][]string, len(m))
-	for k, v := range m {
-		multi[k] = []string{v}
-	}
-
-	return MapFetcher(multi)
-}
-
-func MapFetcher(m map[string][]string) Fetcher {
-	return mapFetcher(m)
-}
-
 // Get implements the func `Fetcher.Get`.
 func (m mapFetcher) Get(key string) (val string, ok bool) {
 	all := m.GetAll(key)

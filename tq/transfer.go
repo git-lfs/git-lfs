@@ -181,13 +181,6 @@ func (e ActionExpiredErr) Error() string {
 		e.Rel, e.At.In(time.Local).Format(time.RFC822))
 }
 
-func IsActionExpiredError(err error) bool {
-	if _, ok := err.(*ActionExpiredErr); ok {
-		return true
-	}
-	return false
-}
-
 // NewAdapterFunc creates new instances of Adapter. Code that wishes
 // to provide new Adapter instances should pass an implementation of this
 // function to RegisterNewTransferAdapterFunc() on a *Manifest.

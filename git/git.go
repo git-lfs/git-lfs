@@ -212,10 +212,6 @@ func gitNoLFSBuffered(args ...string) (*subprocess.BufferedCmd, error) {
 	return subprocess.BufferedExec("git", gitConfigNoLFS(args...)...)
 }
 
-func gitNoLFSBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
-	return subprocess.StdoutBufferedExec("git", gitConfigNoLFS(args...)...)
-}
-
 // Invoke Git with enabled LFS filters
 func git(args ...string) (*subprocess.Cmd, error) {
 	return subprocess.ExecCommand("git", args...)
@@ -223,10 +219,6 @@ func git(args ...string) (*subprocess.Cmd, error) {
 
 func gitSimple(args ...string) (string, error) {
 	return subprocess.SimpleExec("git", args...)
-}
-
-func gitBuffered(args ...string) (*subprocess.BufferedCmd, error) {
-	return subprocess.BufferedExec("git", args...)
 }
 
 func gitBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
@@ -300,17 +292,6 @@ func HashObject(r io.Reader) (string, error) {
 func Log(args ...string) (*subprocess.BufferedCmd, error) {
 	logArgs := append([]string{"log"}, args...)
 	return gitNoLFSBuffered(logArgs...)
-}
-
-func LsRemote(remote, remoteRef string) (string, error) {
-	if remote == "" {
-		return "", errors.New(tr.Tr.Get("remote required"))
-	}
-	if remoteRef == "" {
-		return gitNoLFSSimple("ls-remote", remote)
-
-	}
-	return gitNoLFSSimple("ls-remote", remote, remoteRef)
 }
 
 func LsTree(ref string) (*subprocess.BufferedCmd, error) {
