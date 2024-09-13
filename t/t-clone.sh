@@ -211,6 +211,7 @@ begin_test "clone ClientCert"
   git push origin main
 
   # Now clone again with 'git lfs clone', test specific clone dir
+  # Test with both unencrypted and encrypted client certificate keys
   cd "$TRASHDIR"
 
   for i in "$LFS_CLIENT_KEY_FILE" "$LFS_CLIENT_KEY_FILE_ENCRYPTED"
@@ -238,14 +239,11 @@ begin_test "clone ClientCert"
       [ ! -e "lfs" ]
       assert_clean_status
     popd
+
+    # Now check clone with standard 'git clone' and smudge download
+    rm -rf "$reponame"
+    git clone "$CLIENTCERTGITSERVER/$reponame"
   done
-
-  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
-
-  # Now check SSL clone with standard 'git clone' and smudge download
-  rm -rf "$reponame"
-  git clone "$CLIENTCERTGITSERVER/$reponame"
-
 )
 end_test
 
