@@ -56,7 +56,7 @@ begin_test "smudge with invalid pointer"
   [ "version " = "$(echo "version " | git lfs smudge)" ]
 
   # force use of a spool file with non-pointer input longer than max buffer
-  spool="$(base64 < /dev/urandom | head -c 2048)"
+  spool="$(lfstest-genrandom --base64 2048)"
   [ "$spool" = "$(echo "$spool" | git lfs smudge)" ]
 )
 end_test

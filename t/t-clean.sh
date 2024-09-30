@@ -67,8 +67,8 @@ begin_test "clean stdin"
   git init "$reponame"
   cd "$reponame"
 
-  base64 < /dev/urandom | head -c 1024 > small.dat
-  base64 < /dev/urandom | head -c 2048 > large.dat
+  lfstest-genrandom --base64 1024 >small.dat
+  lfstest-genrandom --base64 2048 >large.dat
 
   expected_small="$(calc_oid_file "small.dat")"
   expected_large="$(calc_oid_file "large.dat")"

@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.22.x']
+        go: ['1.23.x']
     steps:
     - uses: actions/checkout@v4
       with:
@@ -63,13 +63,13 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - uses: azure/azure-code-signing-action@v0.3.1
+    - uses: azure/trusted-signing-action@v0.4.0
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
         azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
         endpoint: https://wus.codesigning.azure.net/
-        code-signing-account-name: GitHubInc
+        trusted-signing-account-name: GitHubInc
         certificate-profile-name: GitHubInc
         files-folder: ${{ github.workspace }}/tmp/stage1
         files-folder-filter: exe
@@ -78,13 +78,13 @@ jobs:
         timestamp-digest: SHA256
     - run: env -u TMPDIR make release-windows-stage-2
       shell: bash
-    - uses: azure/azure-code-signing-action@v0.3.1
+    - uses: azure/trusted-signing-action@v0.4.0
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
         azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
         endpoint: https://wus.codesigning.azure.net/
-        code-signing-account-name: GitHubInc
+        trusted-signing-account-name: GitHubInc
         certificate-profile-name: GitHubInc
         files-folder: ${{ github.workspace }}/tmp/stage2
         files-folder-filter: exe
@@ -104,7 +104,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.22.x']
+        go: ['1.23.x']
     steps:
     - uses: actions/checkout@v4
       with:
@@ -143,7 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.22.x']
+        go: ['1.23.x']
     steps:
     - uses: actions/checkout@v4
       with:

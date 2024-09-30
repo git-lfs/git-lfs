@@ -10,7 +10,7 @@ begin_test "migrate export (default branch)"
   setup_multiple_local_branches_tracked
 
   # Add b.md, a pointer existing only on main
-  base64 < /dev/urandom | head -c 160 > b.md
+  lfstest-genrandom --base64 160 >b.md
   git add b.md
   git commit -m "add b.md"
 
@@ -455,7 +455,8 @@ begin_test "migrate export (--object-map)"
 
   setup_multiple_local_branches_tracked
 
-  output_dir=$(mktemp -d)
+  output_dir="$GIT_LFS_TEST_DIR/export-object-map-$(lfstest-genrandom --base64url 32)"
+  mkdir -p "$output_dir"
 
   git log --all --pretty='format:%H' > "${output_dir}/old_sha.txt"
   git lfs migrate export --everything --include="*" --object-map "${output_dir}/object-map.txt"

@@ -695,7 +695,8 @@ begin_test "prune verify large numbers of refs"
 
   content_head="HEAD content"
   content_commit1="Recent commit"
-  content_oldcommit="Old content"
+  content_oldcommit1="Old content $(lfstest-genrandom --base64 40)"
+  content_oldcommit2="Old content $(lfstest-genrandom --base64 40)"
   oid_head=$(calc_oid "$content_head")
 
   # Add two recent commits that should not be pruned
@@ -703,12 +704,12 @@ begin_test "prune verify large numbers of refs"
   {
     \"CommitDate\":\"$(get_date -50d)\",
     \"Files\":[
-      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit}, \"Data\":\"$(uuidgen)\"}]
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit1}, \"Data\":\"$content_oldcommit1\"}]
   },
   {
     \"CommitDate\":\"$(get_date -45d)\",
     \"Files\":[
-      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit}, \"Data\":\"$(uuidgen)\"}]
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit2}, \"Data\":\"$content_oldcommit2\"}]
   },
   {
     \"CommitDate\":\"$(get_date -2d)\",
@@ -740,7 +741,6 @@ begin_test "prune verify large numbers of refs"
 
   # confirm that prune does not hang
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
-
 )
 end_test
 
