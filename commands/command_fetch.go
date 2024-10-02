@@ -76,7 +76,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if len(args) > 1 {
-			refShas := make([]string, len(refs))
+			refShas := make([]string, 0, len(refs))
 			for _, ref := range refs {
 				refShas = append(refShas, ref.Sha)
 			}
