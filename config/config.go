@@ -339,6 +339,10 @@ func (c *Configuration) ForceProgress() bool {
 	return c.Os.Bool("GIT_LFS_FORCE_PROGRESS", false) || c.Git.Bool("lfs.forceprogress", false)
 }
 
+func (c *Configuration) BatchSize() int {
+	return c.Git.Int("lfs.batchsize", 100)
+}
+
 // HookDir returns the location of the hooks owned by this repository. If the
 // core.hooksPath configuration variable is supported, we prefer that and expand
 // paths appropriately.

@@ -117,6 +117,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 	q := tq.NewTransferQueue(tq.Download, manifest, f.cfg.Remote(),
 		tq.WithProgressCallback(cb),
 		tq.RemoteRef(f.RemoteRef()),
+		tq.WithBatchSize(f.cfg.BatchSize()),
 	)
 	q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size, false, nil)
 	q.Wait()
@@ -148,6 +149,7 @@ func (f *GitFilter) downloadFileFallBack(writer io.Writer, ptr *Pointer, working
 		q := tq.NewTransferQueue(tq.Download, manifest, remote,
 			tq.WithProgressCallback(cb),
 			tq.RemoteRef(f.RemoteRef()),
+			tq.WithBatchSize(f.cfg.BatchSize()),
 		)
 		q.Add(filepath.Base(workingfile), mediafile, ptr.Oid, ptr.Size, false, nil)
 		q.Wait()
