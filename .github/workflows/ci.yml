@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.22.x']
+        go: ['1.23.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
     name: Build with specific Go
     strategy:
       matrix:
-        go: ['1.21.x']
+        go: ['1.22.x']
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
       # which does not honour the PATH we set to our built git-lfs binary.
     - uses: actions/setup-go@v5
       with:
-        go-version: '1.22.x'
+        go-version: '1.23.x'
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
@@ -137,10 +137,16 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v5
       with:
-        go-version: '1.22.x'
+        go-version: '1.23.x'
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
       if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
+    - run: |
+        echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
+        echo "$HOME/git/bin" >> "$GITHUB_PATH"
+      if: ${{ matrix.os == 'macos-latest' }}
+      # We install our custom Git version into a PATH location ahead of
+      # that of the Git installed by Homebrew.
     - run: script/build-git "$HOME/git"
     - run: GIT_DEFAULT_HASH=sha256 script/cibuild
   build-earliest:
@@ -155,10 +161,16 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v5
       with:
-        go-version: '1.22.x'
+        go-version: '1.23.x'
     - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
       if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
+    - run: |
+        echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
+        echo "$HOME/git/bin" >> "$GITHUB_PATH"
+      if: ${{ matrix.os == 'macos-latest' }}
+      # We install our custom Git version into a PATH location ahead of
+      # that of the Git installed by Homebrew.
     - run: script/build-git "$HOME/git"
     - run: script/cibuild
   build-docker:
