@@ -1286,7 +1286,7 @@ func RemoteRefs(remoteName string, ignoreTags bool) ([]*Ref, error) {
 		args = append(args, "--tags")
 	}
 	args = append(args, remoteName)
-	
+
 	cmd, err := gitNoLFS(args...)
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git ls-remote`: %v", err))
@@ -1308,6 +1308,9 @@ func RemoteRefs(remoteName string, ignoreTags bool) ([]*Ref, error) {
 
 			typ := RefTypeRemoteBranch
 			if ns == "tags" {
+				if ignoreTags {
+					return nil, errors.New(tr.Tr.Get("unexpected tag returned by `git ls-remote --heads`: %s %s", name, sha))
+				}
 				typ = RefTypeRemoteTag
 			}
 			ret = append(ret, &Ref{name, typ, sha})
