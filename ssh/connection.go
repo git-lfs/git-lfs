@@ -42,7 +42,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 }
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
-	tracerx.Printf("spawning pure SSH connection")
+	tracerx.Printf("spawning pure SSH connection (#%d)", id)
 	var errbuf bytes.Buffer
 	exe, args, multiplexing, controlPath := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true, multiplexControlPath)
 	cmd, err := subprocess.ExecCommand(exe, args...)
@@ -81,8 +81,10 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		w.Close()
 		cmd.Wait()
 		err = errors.Combine([]error{err, fmt.Errorf(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr))})
+		tracerx.Printf("pure SSH connection unsuccessful (#%d)", id)
+	} else {
+		tracerx.Printf("pure SSH connection successful (#%d)", id)
 	}
-	tracerx.Printf("pure SSH connection successful")
 	return conn, multiplexing, controlPath, err
 }
 
@@ -150,7 +152,7 @@ func (tr *SSHTransfer) SetConnectionCountAtLeast(n int) error {
 func (tr *SSHTransfer) spawnConnection(n int) (*PktlineConnection, string, error) {
 	conn, _, controlPath, err := startConnection(n, tr.osEnv, tr.gitEnv, tr.meta, tr.operation, tr.controlPath)
 	if err != nil {
-		tracerx.Printf("failed to spawn pure SSH connection: %s", err)
+		tracerx.Printf("failed to spawn pure SSH connection (#%d): %s", n, err)
 		return nil, "", err
 	}
 	return conn, controlPath, err
@@ -163,12 +165,12 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		if tn == 0 {
 			tn = 1
 		}
-		for _, item := range tr.conn[tn:count] {
+		for i, item := range tr.conn[tn:count] {
 			if item == nil {
-				tracerx.Printf("skipping uninitialized lazy pure SSH connection (%d -> %d)", count, n)
+				tracerx.Printf("skipping uninitialized lazy pure SSH connection (#%d) (resetting total from %d to %d)", i, count, n)
 				continue
 			}
-			tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
+			tracerx.Printf("terminating pure SSH connection (#%d) (resetting total from %d to %d)", tn+i, count, n)
 			if err := item.End(); err != nil {
 				return err
 			}
@@ -189,7 +191,7 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 		}
 	}
 	if n == 0 && count > 0 {
-		tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
+		tracerx.Printf("terminating pure SSH connection (#0) (resetting total from %d to %d)", count, n)
 		if err := tr.conn[0].End(); err != nil {
 			return err
 		}
@@ -200,6 +202,6 @@ func (tr *SSHTransfer) setConnectionCount(n int) error {
 }
 
 func (tr *SSHTransfer) Shutdown() error {
-	tracerx.Printf("shutting down pure SSH connection")
+	tracerx.Printf("shutting down pure SSH connections")
 	return tr.SetConnectionCount(0)
 }
