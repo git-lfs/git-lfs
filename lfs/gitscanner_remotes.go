@@ -16,7 +16,7 @@ func calcSkippedRefs(remote string) []string {
 
 	// Since CachedRemoteRefs() only returns branches, request that
 	// RemoteRefs() ignore tags and also return only branches.
-	actualRemoteRefs, _ := git.RemoteRefs(remote, true)
+	actualRemoteRefs, _ := git.RemoteRefs(remote, false)
 
 	// The list of remote refs can be very large, so convert them to
 	// a set for faster lookups in the skip calculation loop.
