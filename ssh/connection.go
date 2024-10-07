@@ -96,13 +96,14 @@ func (st *SSHTransfer) IsMultiplexingEnabled() bool {
 
 // Connection returns the nth connection (starting from 0) in this transfer
 // instance if it is initialized and otherwise initializes a new connection and
-// saves it in the nth position.  In all cases, nil is returned if n is greater
-// than the maximum number of connections.
+// saves it in the nth position.  In all cases, nil is returned with an error
+// if n is greater than the maximum number of connections, including when
+// the connection array itself is nil.
 func (st *SSHTransfer) Connection(n int) (*PktlineConnection, error) {
 	st.lock.RLock()
 	if n >= len(st.conn) {
 		st.lock.RUnlock()
-		return nil, nil
+		return nil, errors.New(tr.Tr.Get("pure SSH connection unavailable (#%d)", n))
 	}
 	if st.conn[n] != nil {
 		defer st.lock.RUnlock()
