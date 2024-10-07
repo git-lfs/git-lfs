@@ -62,7 +62,6 @@ resolve_symlink() {
   else
     readlink -f "$arg"
   fi
-
 }
 
 # The root directory for the git-lfs repository by default.
@@ -84,11 +83,17 @@ else
 fi
 
 if [ -z "$GIT_LFS_TEST_DIR" ]; then
-    GIT_LFS_TEST_DIR=$(mktemp -d -t "$TEMPDIR_PREFIX")
-    GIT_LFS_TEST_DIR=$(resolve_symlink $GIT_LFS_TEST_DIR)
+    GIT_LFS_TEST_DIR="$(mktemp -d -t "$TEMPDIR_PREFIX")"
+    GIT_LFS_TEST_DIR="$(resolve_symlink "$GIT_LFS_TEST_DIR")"
     # cleanup either after single test or at end of integration (except on fail)
-    RM_GIT_LFS_TEST_DIR=yes
+    RM_GIT_LFS_TEST_DIR="yes"
 fi
+
+# Make these variables available to all test files run in the same shell,
+# particularly when setup() is run first by itself to start a single
+# common lfstest-gitserver instance.
+export GIT_LFS_TEST_DIR RM_GIT_LFS_TEST_DIR
+
 # create a temporary work space
 TMPDIR=$GIT_LFS_TEST_DIR
 
@@ -110,10 +115,6 @@ REMOTEDIR="$ROOTDIR/t/remote"
 #   $CREDSDIR/git-server.com
 #
 CREDSDIR="$REMOTEDIR/creds/"
-
-# This is the prefix for Git config files.  See the "Test Suite" section in
-# t/README.md
-LFS_CONFIG="$REMOTEDIR/config"
 
 # This file contains the URL of the test Git server. See the "Test Suite"
 # section in t/README.md

@@ -71,7 +71,7 @@ export SKIPAPITESTCOMPILE=1
 
 pushd src/github.com/git-lfs/%{name}
   make test
-  make -C t PROVE_EXTRA_ARGS=-j4 test
+  make -C t PROVE_EXTRA_ARGS=-j9 test
 popd
 
 rm -rf ${GIT_LFS_TEST_DIR}
