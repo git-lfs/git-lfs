@@ -73,8 +73,12 @@ func main() {
 		}
 		if pathArg, found := strings.CutPrefix(os.Args[offset+1], "-oControlPath="); found {
 			if master {
-				if file, err := os.OpenFile(pathArg, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0); err != nil {
-					fmt.Fprintf(os.Stderr, "expected %q to not exist", pathArg)
+				if file, err := os.OpenFile(pathArg, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666); err != nil {
+					if os.IsExist(err) {
+						fmt.Fprintf(os.Stderr, "expected %q to not exist", pathArg)
+					} else {
+						fmt.Fprintf(os.Stderr, "unable to create %q: %s", pathArg, err)
+					}
 					os.Exit(1)
 				} else {
 					file.Close()
@@ -82,7 +86,11 @@ func main() {
 				}
 			} else {
 				if file, err := os.OpenFile(pathArg, os.O_RDONLY, 0); err != nil {
-					fmt.Fprintf(os.Stderr, "expected %q to exist", pathArg)
+					if os.IsNotExist(err) {
+						fmt.Fprintf(os.Stderr, "expected %q to exist", pathArg)
+					} else {
+						fmt.Fprintf(os.Stderr, "unable to open %q: %s", pathArg, err)
+					}
 					os.Exit(1)
 				} else {
 					file.Close()
