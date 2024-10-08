@@ -191,6 +191,10 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
+func (c *Configuration) TransferBatchSize() int {
+	return c.Git.Int("lfs.transfer.batchSize", 0)
+}
+
 func (c *Configuration) FetchIncludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
@@ -337,10 +341,6 @@ func (c *Configuration) SetLockableFilesReadOnly() bool {
 
 func (c *Configuration) ForceProgress() bool {
 	return c.Os.Bool("GIT_LFS_FORCE_PROGRESS", false) || c.Git.Bool("lfs.forceprogress", false)
-}
-
-func (c *Configuration) BatchSize() int {
-	return c.Git.Int("lfs.batchsize", 100)
 }
 
 // HookDir returns the location of the hooks owned by this repository. If the

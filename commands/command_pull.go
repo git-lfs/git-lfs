@@ -47,7 +47,7 @@ func pull(filter *filepathfilter.Filter) {
 	logger.Enqueue(meter)
 	remote := cfg.Remote()
 	singleCheckout := newSingleCheckout(cfg.Git, remote)
-	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter), tq.WithBatchSize(cfg.BatchSize()))
+	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, tr.Tr.Get("Scanner error: %s", err))

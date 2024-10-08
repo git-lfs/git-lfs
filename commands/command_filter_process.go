@@ -108,7 +108,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					getTransferManifestOperationRemote("download", cfg.Remote()),
 					cfg.Remote(),
 					tq.RemoteRef(currentRemoteRef()),
-					tq.WithBatchSize(cfg.BatchSize()),
+					tq.WithBatchSize(cfg.TransferBatchSize()),
 				)
 				go infiniteTransferBuffer(q, available)
 			}

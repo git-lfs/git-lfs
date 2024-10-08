@@ -145,6 +145,16 @@ to simple HTTP.
 If set to true, this enables resumable uploads of LFS objects through
 the tus.io API. Once this feature is finalized, this setting will be
 removed, and tus.io uploads will be available for all clients.
+* `lfs.transfer.batchSize`
++
+The number of objects to download/upload sent in a single batch request
+to the LFS server. Default is 100.
++
+This value should be changed with caution, as it can have a significant
+impact on the performance of the LFS server and the server is free to
+return an HTTP 413 status code if this value is too high as the Batch
+API specification states.
+
 * `lfs.standalonetransferagent`
 +
 Allows the specified custom transfer agent to be used directly for

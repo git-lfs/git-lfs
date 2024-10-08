@@ -329,9 +329,7 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
-		cfg.Remote(),
-		tq.WithProgress(meter),
-		tq.WithBatchSize(cfg.BatchSize()),
+		cfg.Remote(), tq.WithProgress(meter),
 	)
 
 	if out != nil {
