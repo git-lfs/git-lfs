@@ -122,6 +122,7 @@ func newDownloadCheckQueue(manifest tq.Manifest, remote string, options ...tq.Op
 func newDownloadQueue(manifest tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
 	return tq.NewTransferQueue(tq.Download, manifest, remote, append(options,
 		tq.RemoteRef(currentRemoteRef()),
+		tq.WithBatchSize(cfg.TransferBatchSize()),
 	)...)
 }
 
