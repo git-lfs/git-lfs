@@ -1219,11 +1219,17 @@ func Checkout(treeish string, paths []string, force bool) error {
 	return err
 }
 
-// CachedRemoteRefs returns the list of branches & tags for a remote which are
-// currently cached locally. No remote request is made to verify them.
-func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
+// CachedRemoteRefs returns the list of branches & opionally tags for a remote 
+// which are currently cached locally. No remote request is made to verify them.
+func CachedRemoteRefs(remoteName string, withTags bool) ([]*Ref, error) {
 	var ret []*Ref
-	cmd, err := gitNoLFS("show-ref")
+	args := []string{"show-ref"}
+
+	if !withTags {
+		args = append(args, "--branches")
+	}
+
+	cmd, err := gitNoLFS(args...)
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git show-ref`: %v", err))
 	}

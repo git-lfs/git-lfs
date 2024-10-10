@@ -274,7 +274,7 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 	for _, remote := range remotes {
 		var refsForRemote []*git.Ref
 		if migrateSkipFetch {
-			refsForRemote, err = git.CachedRemoteRefs(remote)
+			refsForRemote, err = git.CachedRemoteRefs(remote, true)
 		} else {
 			refsForRemote, err = git.RemoteRefs(remote, true)
 		}
