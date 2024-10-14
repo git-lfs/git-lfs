@@ -1,3 +1,4 @@
+SHELL = bash
 RM ?= rm -f
 PROVE ?= prove
 PROVE_EXTRA_ARGS =
