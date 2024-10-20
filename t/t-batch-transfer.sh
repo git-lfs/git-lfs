@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# This is a sample Git LFS test.  See test/README.md and testhelpers.sh for
-# more documentation.
 
 . "$(dirname "$0")/testlib.sh"
 
