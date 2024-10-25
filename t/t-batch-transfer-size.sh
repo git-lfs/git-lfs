@@ -68,30 +68,18 @@ begin_test "batch storage download with small batch size"
   assert_server_object "$reponame" "$oid2"
   assert_server_object "$reponame" "$oid3"
 
-  pushd ..
-    git \
-      -c "filter.lfs.process=" \
-      -c "filter.lfs.smudge=cat" \
-      -c "filter.lfs.required=false" \
-      clone "$GITSERVER/$reponame" "$reponame-assert"
-
-    cd "$reponame-assert"
-
-    git config credential.helper lfstest
-    git config --local lfs.transfer.batchSize 1
-
-    GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected \`git lfs pull origin main\` to succeed ..."
-      exit 1
-    fi
-
-    actual_count="$(grep -c "tq: sending batch of size 1" pull.log)"
-    [ "3" = "$actual_count" ]
-
-    assert_local_object "$oid1" "${#contents1}"
-    assert_local_object "$oid2" "${#contents2}"
-    assert_local_object "$oid3" "${#contents3}"
-  popd
+  cd ..
+  git config --global lfs.transfer.batchSize 1
+  GIT_TRACE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git clone\` to succeed ..."
+    exit 1
+  fi
+  actual_count="$(grep -c "tq: sending batch of size 1" clone.log)"
+  [ "3" = "$actual_count" ]
+  cd "${reponame}-assert"
+  assert_local_object "$oid1" "${#contents1}"
+  assert_local_object "$oid2" "${#contents2}"
+  assert_local_object "$oid3" "${#contents3}"
 )
 end_test
