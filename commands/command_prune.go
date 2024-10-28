@@ -508,7 +508,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 
 	// Retain other worktree HEADs too
 	// Working copy, branch & maybe commit is different but repo is shared
-	allWorktrees, err := git.GetAllWorkTrees(cfg.LocalGitStorageDir())
+	allWorktrees, err := git.GetAllWorktrees(cfg.LocalGitStorageDir())
 	if err != nil {
 		errorChan <- err
 		return

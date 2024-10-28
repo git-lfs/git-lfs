@@ -332,7 +332,7 @@ func TestResolveEmptyCurrentRef(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 }
 
-func TestWorkTrees(t *testing.T) {
+func TestWorktrees(t *testing.T) {
 	// Only git 2.5+
 	if !IsGitVersionAtLeast("2.5.0") {
 		return
@@ -393,7 +393,7 @@ func TestWorkTrees(t *testing.T) {
 	test.RunGitCommand(t, true, "worktree", "add", "branch2_wt", "branch2")
 	test.RunGitCommand(t, true, "worktree", "add", "branch4_wt", "branch4")
 
-	worktrees, err := GetAllWorkTrees(filepath.Join(repo.Path, ".git"))
+	worktrees, err := GetAllWorktrees(filepath.Join(repo.Path, ".git"))
 	assert.NoError(t, err)
 	expectedWorktrees := []*Worktree{
 		{
@@ -448,7 +448,7 @@ func TestWorktreesBareRepo(t *testing.T) {
 		repo.Cleanup()
 	}()
 
-	worktrees, err := GetAllWorkTrees(repo.Path)
+	worktrees, err := GetAllWorktrees(repo.Path)
 	assert.NoError(t, err)
 	assert.Nil(t, worktrees)
 }

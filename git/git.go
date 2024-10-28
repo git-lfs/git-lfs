@@ -908,11 +908,11 @@ type Worktree struct {
 	Dir string
 }
 
-// GetAllWorkTrees returns the refs that all worktrees are using as HEADs plus the worktree's path.
+// GetAllWorktrees returns the refs that all worktrees are using as HEADs plus the worktree's path.
 // This returns all worktrees plus the master working copy, and works even if
 // working dir is actually in a worktree right now
 // Pass in the git storage dir (parent of 'objects') to work from
-func GetAllWorkTrees(storageDir string) ([]*Worktree, error) {
+func GetAllWorktrees(storageDir string) ([]*Worktree, error) {
 	worktreesdir := filepath.Join(storageDir, "worktrees")
 	dirf, err := os.Open(worktreesdir)
 	if err != nil && !os.IsNotExist(err) {
