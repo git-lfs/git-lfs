@@ -352,23 +352,29 @@ func TestWorkTrees(t *testing.T) {
 	inputs := []*test.CommitInput{
 		{ // 0
 			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 10},
+			},
+			Tags: []string{"tag1"},
+		},
+		{ // 1
+			Files: []*test.FileInput{
 				{Filename: "file1.txt", Size: 20},
 			},
 		},
-		{ // 1
+		{ // 2
 			NewBranch: "branch2",
 			Files: []*test.FileInput{
 				{Filename: "file1.txt", Size: 25},
 			},
 		},
-		{ // 2
+		{ // 3
 			NewBranch:      "branch3",
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
 				{Filename: "file1.txt", Size: 30},
 			},
 		},
-		{ // 3
+		{ // 4
 			NewBranch:      "branch4",
 			ParentBranches: []string{"master"}, // back on master
 			Files: []*test.FileInput{
@@ -383,17 +389,26 @@ func TestWorkTrees(t *testing.T) {
 	// We can create worktrees as subfolders for convenience
 	// Each one is checked out to a different branch
 	// Note that we *won't* create one for branch3
+	test.RunGitCommand(t, true, "worktree", "add", "tag1_wt", "tag1")
 	test.RunGitCommand(t, true, "worktree", "add", "branch2_wt", "branch2")
 	test.RunGitCommand(t, true, "worktree", "add", "branch4_wt", "branch4")
 
 	worktrees, err := GetAllWorkTrees(filepath.Join(repo.Path, ".git"))
-	assert.Equal(t, nil, err)
+	assert.NoError(t, err)
 	expectedWorktrees := []*Worktree{
+		{
+			Ref: Ref{
+				Name: outputs[0].Sha,
+				Type: RefTypeOther,
+				Sha:  outputs[0].Sha,
+			},
+			Dir: filepath.Join(repoDir, "tag1_wt"),
+		},
 		{
 			Ref: Ref{
 				Name: "master",
 				Type: RefTypeLocalBranch,
-				Sha:  outputs[0].Sha,
+				Sha:  outputs[1].Sha,
 			},
 			Dir: repoDir,
 		},
@@ -401,7 +416,7 @@ func TestWorkTrees(t *testing.T) {
 			Ref: Ref{
 				Name: "branch2",
 				Type: RefTypeLocalBranch,
-				Sha:  outputs[1].Sha,
+				Sha:  outputs[2].Sha,
 			},
 			Dir: filepath.Join(repoDir, "branch2_wt"),
 		},
@@ -409,7 +424,7 @@ func TestWorkTrees(t *testing.T) {
 			Ref: Ref{
 				Name: "branch4",
 				Type: RefTypeLocalBranch,
-				Sha:  outputs[3].Sha,
+				Sha:  outputs[4].Sha,
 			},
 			Dir: filepath.Join(repoDir, "branch4_wt"),
 		},
@@ -418,6 +433,24 @@ func TestWorkTrees(t *testing.T) {
 	sort.Sort(test.WorktreesByName(expectedWorktrees))
 	sort.Sort(test.WorktreesByName(worktrees))
 	assert.Equal(t, expectedWorktrees, worktrees, "Worktrees should be correct")
+}
+
+func TestWorktreesBareRepo(t *testing.T) {
+	// Only git 2.5+
+	if !IsGitVersionAtLeast("2.5.0") {
+		return
+	}
+
+	repo := test.NewBareRepo(t)
+	repo.Pushd()
+	defer func() {
+		repo.Popd()
+		repo.Cleanup()
+	}()
+
+	worktrees, err := GetAllWorkTrees(repo.Path)
+	assert.NoError(t, err)
+	assert.Nil(t, worktrees)
 }
 
 func TestVersionCompare(t *testing.T) {
