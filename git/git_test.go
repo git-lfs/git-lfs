@@ -381,6 +381,13 @@ func TestWorktrees(t *testing.T) {
 				{Filename: "file1.txt", Size: 40},
 			},
 		},
+		{ // 5
+			NewBranch:      "branch5",
+			ParentBranches: []string{"master"}, // back on master
+			Files: []*test.FileInput{
+				{Filename: "file1.txt", Size: 50},
+			},
+		},
 	}
 	outputs := repo.AddCommits(inputs)
 	// Checkout master again otherwise can't create a worktree from branch4 if we're on it here
@@ -392,6 +399,9 @@ func TestWorktrees(t *testing.T) {
 	test.RunGitCommand(t, true, "worktree", "add", "tag1_wt", "tag1")
 	test.RunGitCommand(t, true, "worktree", "add", "branch2_wt", "branch2")
 	test.RunGitCommand(t, true, "worktree", "add", "branch4_wt", "branch4")
+	test.RunGitCommand(t, true, "worktree", "add", "branch5_wt", "branch5")
+
+	os.RemoveAll(filepath.Join(repoDir, "branch5_wt"))
 
 	worktrees, err := GetAllWorktrees(filepath.Join(repo.Path, ".git"))
 	assert.NoError(t, err)
@@ -402,7 +412,8 @@ func TestWorktrees(t *testing.T) {
 				Type: RefTypeOther,
 				Sha:  outputs[0].Sha,
 			},
-			Dir: filepath.Join(repoDir, "tag1_wt"),
+			Dir:      filepath.Join(repoDir, "tag1_wt"),
+			Prunable: false,
 		},
 		{
 			Ref: Ref{
@@ -410,7 +421,8 @@ func TestWorktrees(t *testing.T) {
 				Type: RefTypeLocalBranch,
 				Sha:  outputs[1].Sha,
 			},
-			Dir: repoDir,
+			Dir:      repoDir,
+			Prunable: false,
 		},
 		{
 			Ref: Ref{
@@ -418,7 +430,8 @@ func TestWorktrees(t *testing.T) {
 				Type: RefTypeLocalBranch,
 				Sha:  outputs[2].Sha,
 			},
-			Dir: filepath.Join(repoDir, "branch2_wt"),
+			Dir:      filepath.Join(repoDir, "branch2_wt"),
+			Prunable: false,
 		},
 		{
 			Ref: Ref{
@@ -426,7 +439,17 @@ func TestWorktrees(t *testing.T) {
 				Type: RefTypeLocalBranch,
 				Sha:  outputs[4].Sha,
 			},
-			Dir: filepath.Join(repoDir, "branch4_wt"),
+			Dir:      filepath.Join(repoDir, "branch4_wt"),
+			Prunable: false,
+		},
+		{
+			Ref: Ref{
+				Name: "branch5",
+				Type: RefTypeLocalBranch,
+				Sha:  outputs[5].Sha,
+			},
+			Dir:      filepath.Join(repoDir, "branch5_wt"),
+			Prunable: true,
 		},
 	}
 	// Need to sort for consistent comparison

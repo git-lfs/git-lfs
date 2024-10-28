@@ -536,9 +536,11 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 			go pruneTaskGetRetainedAtRef(gitscanner, worktree.Ref.Sha, retainChan, errorChan, waitg, sem)
 		}
 
-		// Always scan the index of the worktree
-		waitg.Add(1)
-		go pruneTaskGetRetainedIndex(gitscanner, worktree.Ref.Sha, worktree.Dir, retainChan, errorChan, waitg, sem)
+		if !worktree.Prunable {
+			// Always scan the index of the worktree if it exists
+			waitg.Add(1)
+			go pruneTaskGetRetainedIndex(gitscanner, worktree.Ref.Sha, worktree.Dir, retainChan, errorChan, waitg, sem)
+		}
 	}
 }
 

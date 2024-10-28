@@ -902,10 +902,11 @@ func GitCommonDir() (string, error) {
 	return tools.CanonicalizePath(path, false)
 }
 
-// A git worktree (ref + path)
+// A git worktree (ref + path + flags)
 type Worktree struct {
-	Ref Ref
-	Dir string
+	Ref      Ref
+	Dir      string
+	Prunable bool
 }
 
 // GetAllWorktrees returns the refs that all worktrees are using as HEADs plus the worktree's path.
@@ -947,7 +948,22 @@ func GetAllWorktrees(storageDir string) ([]*Worktree, error) {
 					continue
 				}
 
-				worktrees = append(worktrees, &Worktree{*ref, filepath.Dir(dir)})
+				// Check if the worktree exists.
+				dir = filepath.Dir(dir)
+				var prunable bool
+				if _, err := os.Stat(dir); err != nil {
+					if os.IsNotExist(err) {
+						prunable = true
+					} else {
+						tracerx.Printf("Error checking worktree directory %s: %v", dir, err)
+					}
+				}
+
+				worktrees = append(worktrees, &Worktree{
+					Ref:      *ref,
+					Dir:      dir,
+					Prunable: prunable,
+				})
 			}
 		}
 	}
@@ -961,7 +977,11 @@ func GetAllWorktrees(storageDir string) ([]*Worktree, error) {
 	if err == nil {
 		dir, err := RootDir()
 		if err == nil {
-			worktrees = append(worktrees, &Worktree{*ref, dir})
+			worktrees = append(worktrees, &Worktree{
+				Ref:      *ref,
+				Dir:      dir,
+				Prunable: false,
+			})
 		} else { // ok if not exists, probably bare repo
 			tracerx.Printf("Error getting toplevel for main checkout, skipping: %v", err)
 		}
