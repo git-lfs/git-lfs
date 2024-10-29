@@ -124,6 +124,7 @@ func (c *uploadContext) NewQueue(options ...tq.Option) *tq.TransferQueue {
 	return tq.NewTransferQueue(tq.Upload, c.Manifest, c.Remote, append(options,
 		tq.DryRun(c.DryRun),
 		tq.WithProgress(c.meter),
+		tq.WithBatchSize(cfg.TransferBatchSize()),
 	)...)
 }
 

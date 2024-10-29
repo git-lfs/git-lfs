@@ -191,6 +191,10 @@ func (c *Configuration) TusTransfersAllowed() bool {
 	return c.Git.Bool("lfs.tustransfers", false)
 }
 
+func (c *Configuration) TransferBatchSize() int {
+	return c.Git.Int("lfs.transfer.batchSize", 0)
+}
+
 func (c *Configuration) FetchIncludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
