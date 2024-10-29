@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 . "$(dirname "$0")/testlib.sh"
 
@@ -70,13 +70,16 @@ begin_test "batch storage download with small batch size"
 
   cd ..
   git config --global lfs.transfer.batchSize 1
+
   GIT_TRACE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert" 2>&1 | tee clone.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected \`git clone\` to succeed ..."
     exit 1
   fi
+
   actual_count="$(grep -c "tq: sending batch of size 1" clone.log)"
   [ "3" = "$actual_count" ]
+
   cd "${reponame}-assert"
   assert_local_object "$oid1" "${#contents1}"
   assert_local_object "$oid2" "${#contents2}"
