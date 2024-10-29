@@ -182,6 +182,14 @@ func NewRepo(callback RepoCallback) *Repo {
 	})
 }
 
+// NewBareRepo creates a new bare git repo in a new temp dir
+// Note that the repository's path does not end in ".git".
+func NewBareRepo(callback RepoCallback) *Repo {
+	return newRepo(callback, &RepoCreateSettings{
+		RepoType: RepoTypeBare,
+	})
+}
+
 // newRepo creates a new git repo in a new temp dir with more control over settings
 func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret := &Repo{
