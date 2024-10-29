@@ -181,7 +181,7 @@ func credsForHostAndPath(host, path string) ([]credential, error) {
 		// one test of the deprecated git-lfs-clone command in our
 		// CI suite, so for simplicity we just do basic rewriting.
 		if len(path) > 2 && path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':' {
-			path = "/" + string(path[0]+32) + path[2:]
+			path = "/" + strings.ToLower(string(path[0])) + path[2:]
 			pathFilename := fmt.Sprintf("%s--%s", host, strings.Replace(path, "/", "-", -1))
 			cred, err := credsFromFilename(filepath.Join(credsDir, pathFilename))
 			if err == nil {

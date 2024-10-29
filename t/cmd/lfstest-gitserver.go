@@ -34,6 +34,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 var (
@@ -1780,7 +1781,7 @@ func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{})
 	for i := dekInfoIndexes[2]; i < dekInfoIndexes[3]; i++ {
 		c := clientKeyEncPEM[i]
 		if c >= 'a' && c <= 'f' {
-			clientKeyEncPEM[i] = c - 32
+			clientKeyEncPEM[i] = byte(unicode.ToUpper(rune(c)))
 		}
 	}
 
