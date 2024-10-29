@@ -508,7 +508,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 
 	// Retain other worktree HEADs too
 	// Working copy, branch & maybe commit is different but repo is shared
-	allWorktrees, err := git.GetAllWorkTrees(cfg.LocalGitStorageDir())
+	allWorktrees, err := git.GetAllWorktrees(cfg.LocalGitStorageDir())
 	if err != nil {
 		errorChan <- err
 		return
@@ -536,9 +536,11 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 			go pruneTaskGetRetainedAtRef(gitscanner, worktree.Ref.Sha, retainChan, errorChan, waitg, sem)
 		}
 
-		// Always scan the index of the worktree
-		waitg.Add(1)
-		go pruneTaskGetRetainedIndex(gitscanner, worktree.Ref.Sha, worktree.Dir, retainChan, errorChan, waitg, sem)
+		if !worktree.Prunable {
+			// Always scan the index of the worktree if it exists
+			waitg.Add(1)
+			go pruneTaskGetRetainedIndex(gitscanner, worktree.Ref.Sha, worktree.Dir, retainChan, errorChan, waitg, sem)
+		}
 	}
 }
 

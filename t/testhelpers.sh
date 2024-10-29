@@ -604,6 +604,10 @@ setup() {
     mkdir "$HOME"
   fi
 
+  # do not let Git use a different configuration file
+  unset GIT_CONFIG
+  unset XDG_CONFIG_HOME
+
   if [ ! -f $HOME/.gitconfig ]; then
     git lfs install --skip-repo
     git config --global credential.usehttppath true

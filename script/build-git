@@ -9,7 +9,13 @@ case $(uname -s) in
     CURLDIR="$(curl-config --prefix)";;
   Linux)
     export DEBIAN_FRONTEND=noninteractive
-    sed -e 's/^deb/deb-src/' /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/src.list
+    if test -f /etc/apt/sources.list.d/ubuntu.sources; then
+      # Ubuntu 24.04
+      sed -e 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources | sudo tee /etc/apt/sources.list.d/ubuntu.sources
+    else
+      # Ubuntu 22.04 and earlier
+      sed -e 's/^deb/deb-src/' /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/src.list
+    fi
     sudo apt-get update
     sudo apt-get install build-essential
     sudo apt-get -y build-dep git;;

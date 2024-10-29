@@ -1,3 +1,4 @@
+SHELL = bash
 RM ?= rm -f
 PROVE ?= prove
 PROVE_EXTRA_ARGS =
@@ -45,9 +46,9 @@ test-commands : $(TEST_CMDS)
 
 test : test-commands
 	$(RM) -r remote test_count{,.lock}
-	@bash -c ". ./testenv.sh && setup && cd t && \
+	@. ./testenv.sh && setup && cd t && \
 		RM_GIT_LFS_TEST_DIR=no $(PROVE) $(PROVE_EXTRA_ARGS) t-*.sh && \
-		shutdown"
+		shutdown
 
 .PHONY : $(TEST_SRCS)
 $(TEST_SRCS) : $(TEST_CMDS)
