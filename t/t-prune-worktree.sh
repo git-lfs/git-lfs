@@ -121,12 +121,107 @@ begin_test "prune worktree"
   grep "prune: 10 local objects, 5 retained, done." prune.log
   grep "prune: 5 files would be pruned" prune.log
 
-  # now remove a worktree & prove that frees up 1 head while keeping the other
+  # now remove a worktree and prove that frees up the object staged in the
+  # worktree's index but leaves the non-excluded object in its HEAD commit
   cd "../$reponame"
   rm -rf "../w1_$reponame"
-  git worktree prune # required to get git to tidy worktree metadata
+  git lfs prune --dry-run 2>&1 | tee prune.log
+  grep "prune: 10 local objects, 4 retained, done." prune.log
+  grep "prune: 6 files would be pruned" prune.log
+
+  # now ask Git to tidy the worktree metadata and prove that frees up the
+  # non-excluded object in the removed worktree's HEAD commit
+  git worktree prune
   git lfs prune --dry-run 2>&1 | tee prune.log
   grep "prune: 10 local objects, 3 retained, done." prune.log
   grep "prune: 7 files would be pruned" prune.log
+)
+end_test
+
+begin_test "prune worktree (bare main)"
+(
+  set -e
+
+  reponame="prune_worktree_bare"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  content_head="First checkout HEAD"
+  content_worktree1head="Worktree 1 head"
+  content_worktree1excluded="Worktree 1 excluded by filter"
+  content_worktree1indexed="Worktree 1 indexed"
+  content_oldcommit1="Always pruned 1"
+  content_oldcommit2="Always pruned 2"
+
+  oid_head=$(calc_oid "$content_head")
+  oid_worktree1head=$(calc_oid "$content_worktree1head")
+  oid_worktree1excluded=$(calc_oid "$content_worktree1excluded")
+  oid_worktree1indexed=$(calc_oid "$content_worktree1indexed")
+  oid_oldcommit1=$(calc_oid "$content_oldcommit1"])
+  oid_oldcommit2=$(calc_oid "$content_oldcommit2")
+
+  echo "[
+  {
+    \"CommitDate\":\"$(get_date -40d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit1}, \"Data\":\"$content_oldcommit1\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -35d)\",
+    \"NewBranch\":\"branch1\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_oldcommit2}, \"Data\":\"$content_oldcommit2\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -20d)\",
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_worktree1head}, \"Data\":\"$content_worktree1head\"},
+      {\"Filename\":\"foo/file.dat\",\"Size\":${#content_worktree1excluded}, \"Data\":\"$content_worktree1excluded\"}]
+  },
+  {
+    \"CommitDate\":\"$(get_date -30d)\",
+    \"ParentBranches\":[\"main\"],
+    \"Files\":[
+      {\"Filename\":\"file.dat\",\"Size\":${#content_head}, \"Data\":\"$content_head\"}]
+  }
+  ]" | lfstest-testutils addcommits
+
+  git push origin main:main branch1:branch1
+
+  # checkout bare repo
+  cd ..
+  git clone --bare "$GITSERVER/remote_${reponame}" "${reponame}-bare"
+  cd "${reponame}-bare"
+
+  # fetch all LFS objects
+  git lfs fetch --all
+
+  # set retention configurations which should be ignored because there
+  # are no remote branches, so all objects are considered unpushed
+  git config lfs.fetchrecentrefsdays 0
+  git config lfs.fetchrecentremoterefs true
+  git config lfs.fetchrecentcommitsdays 0
+
+  # We need to prevent MSYS from rewriting /foo into a Windows path.
+  MSYS_NO_PATHCONV=1 git config "lfs.fetchexclude" "/foo"
+
+  # now add worktree on the branch
+  git worktree add "../w1_$reponame" "branch1"
+
+  # stage files in worktree
+  cd "../w1_$reponame"
+  echo "$content_worktree1indexed" > indexed.dat
+  git lfs track "*.dat"
+  git add indexed.dat
+
+  # should retain all objects because there are no remote branches
+  # in a bare repo, so all objects are considered unpushed
+  git lfs prune --dry-run 2>&1 | tee prune.log
+  grep "prune: 6 local objects, 6 retained, done." prune.log
+  [ "0" -eq "$(grep -c "files would be pruned" prune.log)" ]
 )
 end_test

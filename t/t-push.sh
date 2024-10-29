@@ -874,6 +874,44 @@ begin_test 'push with multiple refs and data the server already has'
 )
 end_test
 
+begin_test 'push with multiple tag refs'
+(
+  set -e
+
+  reponame="push-multi-ref-tags"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="abc123"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git tag v1.0.0
+
+  git push origin main v1.0.0
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  contents2="def456"
+  contents2_oid="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > b.dat
+  git add b.dat
+  git commit -m "add b.dat"
+
+  git tag v1.0.1
+
+  git lfs push origin v1.0.1
+
+  assert_server_object "$reponame" "$contents2_oid"
+)
+end_test
+
 begin_test "push custom reference"
 (
   set -e

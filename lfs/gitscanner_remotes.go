@@ -13,16 +13,16 @@ import (
 // remote, use a more explicit diff command.
 func calcSkippedRefs(remote string) []string {
 	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote)
-	actualRemoteRefs, _ := git.RemoteRefs(remote)
 
-	// The set of remote refs can be very large. Since CachedRemoteRefs only
-	// returns branches, filter the remote refs and convert them to a set for
-	// faster lookups in the skip calculation loop.
-	actualRemoteBranchRefs := tools.NewStringSet()
+	// Since CachedRemoteRefs() only returns branches, request that
+	// RemoteRefs() ignore tags and also return only branches.
+	actualRemoteRefs, _ := git.RemoteRefs(remote, false)
+
+	// The list of remote refs can be very large, so convert them to
+	// a set for faster lookups in the skip calculation loop.
+	actualRemoteRefsSet := tools.NewStringSet()
 	for _, ref := range actualRemoteRefs {
-		if ref.Type == git.RefTypeRemoteBranch {
-			actualRemoteBranchRefs.Add(ref.Name)
-		}
+		actualRemoteRefsSet.Add(ref.Name)
 	}
 
 	// Only check for missing refs on remote; if the ref is different it has moved
@@ -30,7 +30,7 @@ func calcSkippedRefs(remote string) []string {
 	// (force push) then that will cause a re-evaluation in a subsequent command.
 	var skippedRefs []string
 	for _, cachedRef := range cachedRemoteRefs {
-		if actualRemoteBranchRefs.Contains(cachedRef.Name) {
+		if actualRemoteRefsSet.Contains(cachedRef.Name) {
 			skippedRefs = append(skippedRefs, "^"+cachedRef.Sha)
 		}
 	}

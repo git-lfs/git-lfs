@@ -578,17 +578,15 @@ setup() {
   git lfs version | sed -e 's/^/# /g'
   git version | sed -e 's/^/# /g'
 
-  if [ -z "$GIT_LFS_NO_TEST_COUNT" ]; then
-    LFSTEST_URL="$LFS_URL_FILE" \
-    LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" \
-    LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" \
-    LFSTEST_DIR="$REMOTEDIR" \
-    LFSTEST_CERT="$LFS_CERT_FILE" \
-    LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
-    LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
-    LFSTEST_CLIENT_KEY_ENCRYPTED="$LFS_CLIENT_KEY_FILE_ENCRYPTED" \
-      lfstest-count-tests increment
-  fi
+  LFSTEST_URL="$LFS_URL_FILE" \
+  LFSTEST_SSL_URL="$LFS_SSL_URL_FILE" \
+  LFSTEST_CLIENT_CERT_URL="$LFS_CLIENT_CERT_URL_FILE" \
+  LFSTEST_DIR="$REMOTEDIR" \
+  LFSTEST_CERT="$LFS_CERT_FILE" \
+  LFSTEST_CLIENT_CERT="$LFS_CLIENT_CERT_FILE" \
+  LFSTEST_CLIENT_KEY="$LFS_CLIENT_KEY_FILE" \
+  LFSTEST_CLIENT_KEY_ENCRYPTED="$LFS_CLIENT_KEY_FILE_ENCRYPTED" \
+    lfstest-count-tests increment
 
   wait_for_file "$LFS_URL_FILE"
   wait_for_file "$LFS_SSL_URL_FILE"
@@ -606,6 +604,10 @@ setup() {
     mkdir "$HOME"
   fi
 
+  # do not let Git use a different configuration file
+  unset GIT_CONFIG
+  unset XDG_CONFIG_HOME
+
   if [ ! -f $HOME/.gitconfig ]; then
     git lfs install --skip-repo
     git config --global credential.usehttppath true
@@ -615,7 +617,6 @@ setup() {
     git config --global http.sslcainfo "$LFS_CERT_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
     git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
-    git config --global http.$LFS_CLIENT_CERT_URL/.sslVerify "false"
     git config --global init.defaultBranch main
   fi | sed -e 's/^/# /g'
 
@@ -646,10 +647,13 @@ shutdown() {
   # every t/t-*.sh file should cleanup its trashdir
   [ -z "$KEEPTRASH" ] && rm -rf "$TRASHDIR"
 
-  if [ -z "$GIT_LFS_NO_TEST_COUNT" ]; then
-    LFSTEST_DIR="$REMOTEDIR" \
-    LFS_URL_FILE="$LFS_URL_FILE" \
-      lfstest-count-tests decrement
+  LFSTEST_DIR="$REMOTEDIR" \
+  LFS_URL_FILE="$LFS_URL_FILE" \
+    lfstest-count-tests decrement
+
+  # delete entire lfs test root if we created it (double check pattern)
+  if [ -z "$KEEPTRASH" ] && [ "$RM_GIT_LFS_TEST_DIR" = "yes" ] && [[ $GIT_LFS_TEST_DIR == *"$TEMPDIR_PREFIX"* ]]; then
+    rm -rf "$GIT_LFS_TEST_DIR"
   fi
 }
 

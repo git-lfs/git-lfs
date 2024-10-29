@@ -44,7 +44,6 @@ atexit () {
 # create the trash dir
 trap "atexit" SIGKILL SIGINT SIGTERM EXIT
 
-SHUTDOWN_LFS=yes
 GITSERVER=undefined
 
 setup
@@ -83,10 +82,6 @@ begin_test () {
     rm -rf "$TRASHDIR/home"
     mkdir "$HOME"
     cp "$TESTHOME/.gitconfig" "$HOME/.gitconfig"
-
-    # do not let Git use a different configuration file
-    unset GIT_CONFIG
-    unset XDG_CONFIG_HOME
 
     # allow the subshell to exit non-zero without exiting this process
     set -x +e

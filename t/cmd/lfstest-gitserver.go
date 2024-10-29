@@ -34,6 +34,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 var (
@@ -63,6 +64,7 @@ var (
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
+	dekInfoRE        = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
 )
 
 func main() {
@@ -129,7 +131,7 @@ func main() {
 	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
-	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-ssl")
+	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-client-cert-url")
 	defer os.RemoveAll(clientCertUrlname)
 
 	block := &pem.Block{}
@@ -1768,6 +1770,20 @@ func generateClientCertificates(rootCert *x509.Certificate, rootKey interface{})
 		log.Fatalf("creating encrypted private key: %v", err)
 	}
 	clientKeyEncPEM = pem.EncodeToMemory(clientKeyEnc)
+
+	// ensure salt is in uppercase hexadecimal for gnutls library v3.7.x:
+	// https://github.com/gnutls/gnutls/commit/4604bbde14d2c6adb2af5315f9063ad65ab50aa6
+	// https://github.com/gnutls/gnutls/blob/a0aa4780892dcc3c14cc10d823f8766ac75bcd85/lib/x509/privkey_openssl.c#L205-L206
+	dekInfoIndexes := dekInfoRE.FindSubmatchIndex(clientKeyEncPEM)
+	if dekInfoIndexes == nil || len(dekInfoIndexes) != 4 {
+		log.Fatalf("DEK-Info header not found in encrypted private key: %s", string(clientKeyEncPEM))
+	}
+	for i := dekInfoIndexes[2]; i < dekInfoIndexes[3]; i++ {
+		c := clientKeyEncPEM[i]
+		if c >= 'a' && c <= 'f' {
+			clientKeyEncPEM[i] = byte(unicode.ToUpper(rune(c)))
+		}
+	}
 
 	return
 }

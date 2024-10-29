@@ -4,6 +4,13 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
+# Check for a libnss3 dependency in Git until we drop support for CentOS 7.
+GIT_LIBNSS=0
+if [ "$IS_WINDOWS" -eq 0 -a "$IS_MAC" -eq 0 ]; then
+  GIT_LIBNSS="$(ldd "$(git --exec-path)"/git-remote-https | grep -c '^\s*libnss3\.' || true)"
+fi
+export GIT_LIBNSS
+
 begin_test "clone"
 (
   set -e
@@ -91,9 +98,14 @@ end_test
 begin_test "cloneSSL"
 (
   set -e
-  if $TRAVIS; then
-    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
+
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
+  fi
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
   fi
 
   reponame="test-cloneSSL"
@@ -102,6 +114,8 @@ begin_test "cloneSSL"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -125,9 +139,8 @@ begin_test "cloneSSL"
 
   newclonedir="testcloneSSL1"
   git lfs clone "$SSLGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
-  assert_clean_status
   grep "Cloning into" lfsclone.log
-  grep "Git LFS:" lfsclone.log
+  grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
   [ ! $(grep "filter" lfsclone.log) ]
   [ ! $(grep "error" lfsclone.log) ]
@@ -140,6 +153,7 @@ begin_test "cloneSSL"
   [ $(wc -c < "file2.dat") -eq 75 ]
   [ $(wc -c < "file3.dat") -eq 30 ]
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
 
@@ -152,9 +166,14 @@ end_test
 begin_test "clone ClientCert"
 (
   set -e
-  if $TRAVIS; then
-    echo "Skipping SSL tests, Travis has weird behaviour in validating custom certs, test locally only"
+
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
+  fi
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
   fi
 
   reponame="test-cloneClientCert"
@@ -167,6 +186,8 @@ begin_test "clone ClientCert"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -197,6 +218,7 @@ begin_test "clone ClientCert"
     rm -fr "$newclonedir"
     git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
     grep "Cloning into" lfsclone.log
+    grep "Downloading LFS objects:" lfsclone.log
     # should be no filter errors
     [ ! $(grep "filter" lfsclone.log) ]
     [ ! $(grep "error" lfsclone.log) ]
@@ -226,9 +248,13 @@ begin_test "clone ClientCert with homedir certs"
 (
   set -e
 
-  # Windows triggers a credential helper problem.
-  if [ $IS_WINDOWS -eq 1 ]; then
+  if [ "$GIT_LIBNSS" -eq 1 ]; then
+    echo "skip: libnss does not support the Go httptest server certificate"
     exit 0
+  fi
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    git config --global "http.sslBackend" "openssl"
   fi
 
   reponame="test-cloneClientCert-homedir"
@@ -248,6 +274,8 @@ begin_test "clone ClientCert with homedir certs"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -281,6 +309,8 @@ begin_test "clone with flags"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
+  git add .gitattributes
+  git commit -m "Track *.dat"
 
   # generate some test data & commits with random LFS data
   echo "[
@@ -331,6 +361,7 @@ begin_test "clone with flags"
   # confirm remote is called differentorigin
   git remote get-url differentorigin
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
   rm -rf "$newclonedir"
 
@@ -344,6 +375,9 @@ begin_test "clone with flags"
   [ -e "$newclonedir/.git" ]
   [ -d "$gitdir/objects" ]
   assert_hooks "$gitdir"
+  pushd "$newclonedir"
+    assert_clean_status
+  popd
   rm -rf "$newclonedir"
   rm -rf "$gitdir"
 
@@ -405,6 +439,7 @@ begin_test "clone (with include/exclude args)"
   [ "$(pointer $contents_a_oid 1)" = "$(cat dupe-a.dat)" ]
   [ "$(pointer $contents_b_oid 1)" = "$(cat b.dat)" ]
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
   local_reponame="clone_with_excludes"
@@ -415,6 +450,7 @@ begin_test "clone (with include/exclude args)"
   [ "$(pointer $contents_a_oid 1)" = "$(cat a.dat)" ]
   [ "b" = "$(cat b.dat)" ]
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 )
 end_test
@@ -477,6 +513,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
   echo "test: clone with lfs.fetchinclude in .lfsconfig, and args"
@@ -486,6 +523,7 @@ begin_test "clone (with .lfsconfig)"
   refute_local_object "$contents_a_oid"
   assert_local_object "$contents_b_oid" 1
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
   popd
@@ -509,6 +547,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_b_oid" 1
   refute_local_object "$contents_a_oid"
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
   echo "test: clone with lfs.fetchexclude in .lfsconfig, and args"
@@ -518,6 +557,7 @@ begin_test "clone (with .lfsconfig)"
   assert_local_object "$contents_a_oid" 1
   refute_local_object "$contents_b_oid"
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   popd
 
   popd
@@ -631,6 +671,7 @@ begin_test "clone with submodules"
   # check everything is where it should be
   cd $local_reponame
   assert_hooks "$(dot_git_dir)"
+  assert_clean_status
   # check LFS store and working copy
   assert_local_object "$contents_root_oid" "${#contents_root}"
   [ $(wc -c < "root.dat") -eq ${#contents_root} ]
@@ -682,6 +723,7 @@ begin_test "clone in current directory"
     assert_local_object "$contents_oid" 8
     assert_hooks "$(dot_git_dir)"
     [ ! -f ./lfs ]
+    assert_clean_status
   popd
 )
 end_test
