@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ type credential struct {
 	skip       bool
 }
 
-func (c *credential) Serialize(capabilities map[string]struct{}, state []string) map[string][]string {
+func (c *credential) Serialize(capabilities map[string]struct{}, state []string, username []string) map[string][]string {
 	formattedState := fmt.Sprintf("lfstest:%s", c.state)
 	formattedMatchState := fmt.Sprintf("lfstest:%s", c.matchState)
 	creds := make(map[string][]string)
@@ -51,8 +52,10 @@ func (c *credential) Serialize(capabilities map[string]struct{}, state []string)
 				}
 			}
 		}
-	} else if len(c.username) != 0 && len(c.password) != 0 {
-		creds["username"] = []string{c.username}
+	} else if len(c.authtype) == 0 && (len(username) == 0 || username[0] == c.username) {
+		if len(username) == 0 {
+			creds["username"] = []string{c.username}
+		}
 		creds["password"] = []string{c.password}
 	}
 	return creds
@@ -115,14 +118,9 @@ func fill() {
 	result := map[string][]string{}
 	capas := discoverCapabilities(creds)
 	for _, cred := range credentials {
-		result = cred.Serialize(capas, creds["state[]"])
+		result = cred.Serialize(capas, creds["state[]"], creds["username"])
 		if len(result) != 0 {
 			break
-		}
-	}
-	for _, k := range []string{"host", "protocol", "path", "capability[]"} {
-		if v, ok := creds[k]; ok {
-			result[k] = v
 		}
 	}
 
@@ -136,16 +134,18 @@ func fill() {
 		os.Exit(1)
 	}
 
-	// Send capabilities first to all for one-pass parsing.
-	for _, entry := range result["capability[]"] {
-		key := "capability[]"
+	if len(result) == 0 {
+		os.Exit(0)
+	}
+
+	// Send capabilities first to all for one-pass parsing, but only if
+	// client advertised capabilities matching those of the per-host data.
+	key := "capability[]"
+	for entry, _ := range capas {
 		fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 		fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
 	}
 	for key, value := range result {
-		if key == "capability[]" {
-			continue
-		}
 		for _, entry := range value {
 			fmt.Fprintf(os.Stderr, "CREDS SEND: %s=%s\n", key, entry)
 			fmt.Fprintf(os.Stdout, "%s=%s\n", key, entry)
@@ -159,40 +159,42 @@ func discoverCapabilities(creds map[string][]string) map[string]struct{} {
 		"authtype": struct{}{},
 		"state":    struct{}{},
 	}
-	capasToSend := []string{}
 	for _, capa := range creds["capability[]"] {
-		capas[capa] = struct{}{}
 		// Only pass on capabilities we support.
 		if _, ok := supportedCapas[capa]; ok {
-			capasToSend = append(capasToSend, capa)
+			capas[capa] = struct{}{}
 		}
 	}
-	creds["capability[]"] = capasToSend
 	return capas
 }
 
 func credsForHostAndPath(host, path string) ([]credential, error) {
-	var hostFilename string
-
-	// We need hostFilename to end in a slash so that our credentials all
-	// end up in the same directory.  credsDir will come in from the
-	// testsuite with a slash, but filepath.Join will strip it off if host
-	// is empty, such as when we have a file:/// or cert:/// URL.
-	if host != "" {
-		hostFilename = filepath.Join(credsDir, host)
-	} else {
-		hostFilename = credsDir
-	}
-
 	if len(path) > 0 {
-		pathFilename := fmt.Sprintf("%s--%s", hostFilename, strings.Replace(path, "/", "-", -1))
-		cred, err := credsFromFilename(pathFilename)
+		pathFilename := fmt.Sprintf("%s--%s", host, strings.Replace(path, "/", "-", -1))
+		cred, err := credsFromFilename(filepath.Join(credsDir, pathFilename))
 		if err == nil {
 			return cred, err
 		}
+
+		// Ideally we might run cygpath to convert paths like D:/...
+		// to /d/... paths, but we only need to do this to support
+		// one test of the deprecated git-lfs-clone command in our
+		// CI suite, so for simplicity we just do basic rewriting.
+		if len(path) > 2 && path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':' {
+			path = "/" + strings.ToLower(string(path[0])) + path[2:]
+			pathFilename := fmt.Sprintf("%s--%s", host, strings.Replace(path, "/", "-", -1))
+			cred, err := credsFromFilename(filepath.Join(credsDir, pathFilename))
+			if err == nil {
+				return cred, err
+			}
+		}
 	}
 
-	return credsFromFilename(hostFilename)
+	if len(host) == 0 {
+		return nil, errors.New("No file available; empty 'host' key in credentials")
+	}
+
+	return credsFromFilename(filepath.Join(credsDir, host))
 }
 
 func parseOneCredential(s, file string) (credential, error) {
