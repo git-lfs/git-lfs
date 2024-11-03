@@ -186,6 +186,7 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
 
   GIT_TRACE=1 git push origin main >push.log 2>&1
   grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git upload" push.log
+  assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
