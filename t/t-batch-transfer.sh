@@ -165,6 +165,53 @@ begin_test "batch transfers with ssh endpoint (git-lfs-authenticate)"
 )
 end_test
 
+assert_ssh_transfer_session_counts() {
+  local log="$1"
+  local msg="$2"
+  local min="$3"
+  local max="$4"
+
+  local count="$(grep -c "$msg" "$log")"
+
+  [ "$max" -ge "$count" ]
+  [ "$min" -le "$count" ]
+}
+
+assert_ssh_transfer_sessions() {
+  local log="$1"
+  local direction="$2"
+  local num_objs="$3"
+  local objs_per_batch="$4"
+
+  local min_expected_start=1
+  local max_expected_start=$(( num_objs > objs_per_batch ? objs_per_batch : num_objs ))
+  local min_expected_end=1
+  local max_expected_end="$max_expected_start"
+
+  local expected_ctrl=1
+
+  # On upload we currently spawn one extra control socket SSH connection
+  # to run locking commands and never shut it down cleanly, so our expected
+  # start counts are higher than our expected termination counts.
+  if [ "upload" = "$direction" ]; then
+    (( ++expected_ctrl ))
+    (( ++min_expected_start ))
+    (( ++max_expected_start ))
+  fi
+
+  local lines="$(grep "exec: lfs-ssh-echo.*git-lfs-transfer .*${reponame}.git $direction" "$log")"
+  local ctrl_count="$(printf '%s' "$lines" | grep -c -- '-oControlMaster=yes')"
+
+  [ "$expected_ctrl" -eq "$ctrl_count" ]
+
+  assert_ssh_transfer_session_counts "$log" 'spawning pure SSH connection' \
+    "$min_expected_start" "$max_expected_start"
+  assert_ssh_transfer_session_counts "$log" 'pure SSH connection successful' \
+    "$min_expected_start" "$max_expected_start"
+  assert_ssh_transfer_session_counts "$log" 'terminating pure SSH connection' \
+    "$min_expected_end" "$max_expected_end"
+}
+
 begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
 (
   set -e
@@ -184,13 +231,17 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
+  # On Windows we do not multiplex SSH connections by default, so we
+  # enforce their use in order to match other platforms' connection counts.
+  git config --global lfs.ssh.autoMultiplex true
+
   GIT_TRACE=1 git push origin main >push.log 2>&1
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git upload" push.log
+  assert_ssh_transfer_sessions 'push.log' 'upload' 1 8
   assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  assert_ssh_transfer_sessions 'trace.log' 'download' 1 8
 
   cd "$reponame-2"
   git lfs fsck
