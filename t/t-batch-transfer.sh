@@ -116,7 +116,7 @@ begin_test "batch transfers succeed with an empty hash algorithm"
   git add .gitattributes good.dat special.dat
   git commit -m "hi"
 
-  git push origin main 2>&1 | tee push.log
+  git push origin main
   assert_server_object "$reponame" "$(calc_oid "$contents")"
 )
 end_test
@@ -159,7 +159,9 @@ begin_test "batch transfers with ssh endpoint (git-lfs-authenticate)"
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
-  git push origin main 2>&1
+  GIT_TRACE=1 git push origin main >push.log 2>&1
+  [ "1" -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
+  assert_server_object "$reponame" "$(calc_oid "$contents")"
 )
 end_test
 
@@ -182,10 +184,13 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
-  git push origin main 2>&1
+  GIT_TRACE=1 git push origin main >push.log 2>&1
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git upload" push.log
+
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
   grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+
   cd "$reponame-2"
   git lfs fsck
 )
