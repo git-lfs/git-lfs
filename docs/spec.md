@@ -19,6 +19,8 @@ only a pointer file is written.
 * Values MUST NOT contain return or newline characters.
 * Pointer files MUST be stored in Git with their executable bit matching that
 of the replaced file.
+* Pointer files must be less than 1024 bytes in size, including any pointer
+  extension lines.
 * Pointer files are unique: that is, there is exactly one valid encoding for a
   pointer file.
 
