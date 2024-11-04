@@ -199,10 +199,32 @@ assert_ssh_transfer_sessions() {
     (( ++max_expected_start ))
   fi
 
+  # Versions of Git prior to 2.11.0 invoke Git LFS via the "smudge" filter
+  # rather than the "process" filter, so a separate Git LFS process runs for
+  # each downloaded object and spawns its own control socket SSH connection.
+  if [ "download" = "$direction" ]; then
+    gitversion="$(git version | cut -d" " -f3)"
+    set +e
+    compare_version "$gitversion" '2.11.0'
+    result=$?
+    set -e
+    if [ "$result" -eq "$VERSION_LOWER" ]; then
+      min_expected_start="$num_objs"
+      max_expected_start="$num_objs"
+      min_expected_end="$num_objs"
+      max_expected_end="$num_objs"
+      expected_ctrl="$num_objs"
+    fi
+  fi
+
+  local max_expected_nonctrl=$(( max_expected_start - expected_ctrl ))
+
   local lines="$(grep "exec: lfs-ssh-echo.*git-lfs-transfer .*${reponame}.git $direction" "$log")"
   local ctrl_count="$(printf '%s' "$lines" | grep -c -- '-oControlMaster=yes')"
+  local nonctrl_count="$(printf '%s' "$lines" | grep -c -- '-oControlMaster=no')"
 
   [ "$expected_ctrl" -eq "$ctrl_count" ]
+  [ "$max_expected_nonctrl" -ge "$nonctrl_count" ]
 
   assert_ssh_transfer_session_counts "$log" 'spawning pure SSH connection' \
     "$min_expected_start" "$max_expected_start"
@@ -242,6 +264,93 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
   assert_ssh_transfer_sessions 'trace.log' 'download' 1 8
+
+  cd "$reponame-2"
+  git lfs fsck
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-transfer)"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="batch-ssh-transfer-multiple"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents1="test1"
+  contents2="test2"
+  contents3="test3"
+  git lfs track "*.dat"
+  printf "%s" "$contents1" >test1.dat
+  printf "%s" "$contents2" >test2.dat
+  printf "%s" "$contents3" >test3.dat
+  git add .gitattributes test*.dat
+  git commit -m "initial commit"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  # On Windows we do not multiplex SSH connections by default, so we
+  # enforce their use in order to match other platforms' connection counts.
+  git config --global lfs.ssh.autoMultiplex true
+
+  GIT_TRACE=1 git push origin main >push.log 2>&1
+  assert_ssh_transfer_sessions 'push.log' 'upload' 3 8
+  assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
+
+  cd ..
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
+  assert_ssh_transfer_sessions 'trace.log' 'download' 3 8
+
+  cd "$reponame-2"
+  git lfs fsck
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint and multiple objects and batches (git-lfs-transfer)"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="batch-ssh-transfer-multiple-batch"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents1="test1"
+  contents2="test2"
+  contents3="test3"
+  git lfs track "*.dat"
+  printf "%s" "$contents1" >test1.dat
+  printf "%s" "$contents2" >test2.dat
+  printf "%s" "$contents3" >test3.dat
+  git add .gitattributes test*.dat
+  git commit -m "initial commit"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  # On Windows we do not multiplex SSH connections by default, so we
+  # enforce their use in order to match other platforms' connection counts.
+  git config --global lfs.ssh.autoMultiplex true
+
+  # Allow no more than two objects to be transferred in each batch.
+  git config --global lfs.concurrentTransfers 2
+
+  GIT_TRACE=1 git push origin main >push.log 2>&1
+  assert_ssh_transfer_sessions 'push.log' 'upload' 3 2
+  assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
+
+  cd ..
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
+  assert_ssh_transfer_sessions 'trace.log' 'download' 3 2
 
   cd "$reponame-2"
   git lfs fsck
