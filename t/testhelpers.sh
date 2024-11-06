@@ -62,7 +62,7 @@ assert_local_object() {
   local oid="$1"
   local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   actualsize=$(wc -c <"$f" | tr -d '[[:space:]]')
   if [ "$size" != "$actualsize" ]; then
     exit 1
@@ -79,8 +79,7 @@ refute_local_object() {
   local oid="$1"
   local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local regex="LocalMediaDir=(\S+)"
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   if [ -e $f ]; then
     if [ -z "$size" ]; then
       exit 1
@@ -99,7 +98,7 @@ refute_local_object() {
 delete_local_object() {
   local oid="$1"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   rm "$f"
 }
 
@@ -108,7 +107,7 @@ delete_local_object() {
 corrupt_local_object() {
   local oid="$1"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   cp /dev/null "$f"
 }
 
@@ -186,7 +185,7 @@ assert_remote_object() {
 
   pushd "$destination"
     local cfg="$(git lfs env | grep LocalMediaDir)"
-    local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+    local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
     actualsize="$(wc -c <"$f" | tr -d '[[:space:]]')"
     [ "$size" -eq "$actualsize" ]
   popd
