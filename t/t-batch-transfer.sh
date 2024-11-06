@@ -262,8 +262,8 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
-  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
-  assert_ssh_transfer_sessions 'trace.log' 'download' 1 8
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  assert_ssh_transfer_sessions 'clone.log' 'download' 1 8
 
   cd "$reponame-2"
   git lfs fsck
@@ -304,8 +304,8 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
   assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
 
   cd ..
-  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
-  assert_ssh_transfer_sessions 'trace.log' 'download' 3 8
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  assert_ssh_transfer_sessions 'clone.log' 'download' 3 8
 
   cd "$reponame-2"
   git lfs fsck
@@ -349,8 +349,8 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
   assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
 
   cd ..
-  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
-  assert_ssh_transfer_sessions 'trace.log' 'download' 3 2
+  GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  assert_ssh_transfer_sessions 'clone.log' 'download' 3 2
 
   cd "$reponame-2"
   git lfs fsck
