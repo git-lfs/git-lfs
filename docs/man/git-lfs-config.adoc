@@ -91,7 +91,8 @@ keepalive connections. Default: 30 minutes.
 +
 When using the pure SSH-based protocol, whether to multiplex requests
 over a single connection when possible. This option requires the use of
-OpenSSH or a compatible SSH client. Default: true.
+OpenSSH or a compatible SSH client. Default: false on Windows, otherwise
+true.
 * `lfs.ssh.retries`
 +
 Specifies the number of times Git LFS will attempt to obtain

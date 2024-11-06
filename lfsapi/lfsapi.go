@@ -62,14 +62,14 @@ func (c *Client) SSHTransfer(operation, remote string) *ssh.SSHTransfer {
 	}
 	uc := config.NewURLConfig(c.context.GitEnv())
 	if val, ok := uc.Get("lfs", endpoint.OriginalUrl, "sshtransfer"); ok && val != "negotiate" && val != "always" {
-		tracerx.Printf("skipping pure SSH protocol connection by request")
+		tracerx.Printf("skipping pure SSH protocol connection by request (%s, %s)", operation, remote)
 		return nil
 	}
 	ctx := c.Context()
-	tracerx.Printf("attempting pure SSH protocol connection")
+	tracerx.Printf("attempting pure SSH protocol connection (%s, %s)", operation, remote)
 	sshTransfer, err := ssh.NewSSHTransfer(ctx.OSEnv(), ctx.GitEnv(), &endpoint.SSHMetadata, operation)
 	if err != nil {
-		tracerx.Printf("pure SSH protocol connection failed: %s", err)
+		tracerx.Printf("pure SSH protocol connection failed (%s, %s): %s", operation, remote, err)
 		return nil
 	}
 	return sshTransfer

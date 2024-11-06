@@ -30,7 +30,7 @@ type SSHMetadata struct {
 	Path        string
 }
 
-func FormatArgs(cmd string, args []string, needShell bool, multiplex bool, controlPath string) (string, []string) {
+func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	if !needShell {
 		return cmd, args
 	}
@@ -41,7 +41,7 @@ func FormatArgs(cmd string, args []string, needShell bool, multiplex bool, contr
 func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool, multiplexControlPath string) (exe string, args []string, multiplexing bool, controlPath string) {
 	exe, args, needShell, multiplexing, controlPath := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired, multiplexControlPath)
 	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
-	exe, args = FormatArgs(exe, args, needShell, multiplexing, controlPath)
+	exe, args = FormatArgs(exe, args, needShell)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args, multiplexing, controlPath
 }
