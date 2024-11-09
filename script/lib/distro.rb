@@ -48,7 +48,6 @@ class DistroMap
         equivalent: [
           "el/8",                      # EOL May 2029
           "opensuse/15.5",             # EOL December 2024
-          "opensuse/15.6",             # EOL December 2025
           "sles/15.5",                 # EOL December 2024
         ],
       },
@@ -63,6 +62,7 @@ class DistroMap
           "fedora/38",                 # EOL May 2024
           "fedora/39",                 # EOL November 2024
           "fedora/40",                 # EOL May 2025
+          "opensuse/15.6",             # EOL December 2025
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
