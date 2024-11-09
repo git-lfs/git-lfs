@@ -90,12 +90,12 @@ class DistroMap
         package_tag: "",
         equivalent: [
           "debian/bullseye",           # EOL June 2026
-          "ubuntu/jammy",              # EOL April 2027
-          "ubuntu/mantic",             # EOL July 2024
           "linuxmint/vanessa",         # EOL April 2027
           "linuxmint/vera",            # EOL April 2027
           "linuxmint/victoria",        # EOL April 2027
           "linuxmint/virginia",        # EOL April 2027
+          "ubuntu/jammy",              # EOL April 2027
+          "ubuntu/mantic",             # EOL July 2024
         ],
       },
       "debian/12" => {
