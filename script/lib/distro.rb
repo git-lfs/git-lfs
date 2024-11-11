@@ -33,9 +33,9 @@ class DistroMap
         package_type: "rpm",
         package_tag: "-1.el7",
         equivalent: [
-          "el/7",         # EOL June 2024
-          "scientific/7", # EOL June 2024
-          "sles/12.5",    # EOL October 2024 (LTSS October 2027)
+          "el/7",                      # EOL June 2024
+          "scientific/7",              # EOL June 2024
+          "sles/12.5",                 # EOL October 2024 (LTSS October 2027)
         ],
       },
       "centos/8" => {
@@ -46,9 +46,9 @@ class DistroMap
         package_tag: "-1.el8",
         equivalent: [
           "el/8",
-          "opensuse/15.5", # EOL December 2024
-          "opensuse/15.6", # EOL December 2025
-          "sles/15.5",     # Current
+          "opensuse/15.5",             # EOL December 2024
+          "opensuse/15.6",             # EOL December 2025
+          "sles/15.5",                 # Current
         ],
       },
       "rocky/9" => {
@@ -59,9 +59,9 @@ class DistroMap
         package_tag: "-1.el9",
         equivalent: [
           "el/9",
-          "fedora/38", # EOL May 2024
-          "fedora/39", # EOL Dec 2024
-          "fedora/40", # Current
+          "fedora/38",                 # EOL May 2024
+          "fedora/39",                 # EOL Dec 2024
+          "fedora/40",                 # Current
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
@@ -74,12 +74,12 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/buster",    # EOL June 2024
-          "linuxmint/ulyana", # EOL April 2025
-          "linuxmint/ulyssa", # EOL April 2025
-          "linuxmint/uma",    # EOL April 2025
-          "linuxmint/una",    # EOL April 2025
-          "ubuntu/focal",     # EOL April 2025
+          "debian/buster",             # EOL June 2024
+          "linuxmint/ulyana",          # EOL April 2025
+          "linuxmint/ulyssa",          # EOL April 2025
+          "linuxmint/uma",             # EOL April 2025
+          "linuxmint/una",             # EOL April 2025
+          "ubuntu/focal",              # EOL April 2025
         ],
       },
       "debian/11" => {
@@ -89,13 +89,13 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/bullseye",    # EOL June 2026
-          "ubuntu/jammy",       # EOL April 2027
-          "ubuntu/mantic",      # EOL July 2024
-          "linuxmint/vanessa",  # EOL April 2027
-          "linuxmint/vera",     # EOL April 2027
-          "linuxmint/victoria", # EOL April 2027
-          "linuxmint/virginia", # EOL April 2027
+          "debian/bullseye",           # EOL June 2026
+          "ubuntu/jammy",              # EOL April 2027
+          "ubuntu/mantic",             # EOL July 2024
+          "linuxmint/vanessa",         # EOL April 2027
+          "linuxmint/vera",            # EOL April 2027
+          "linuxmint/victoria",        # EOL April 2027
+          "linuxmint/virginia",        # EOL April 2027
         ],
       },
       "debian/12" => {
@@ -105,9 +105,9 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/bookworm",  # Current stable
-          "debian/trixie",    # Current testing
-          "ubuntu/noble",     # EOL June 2029
+          "debian/bookworm",           # Current stable
+          "debian/trixie",             # Current testing
+          "ubuntu/noble",              # EOL June 2029
         ]
       },
     }
