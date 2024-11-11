@@ -42,7 +42,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 }
 
 func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
-	tracerx.Printf("spawning pure SSH connection")
+	tracerx.Printf("spawning pure SSH connection (#%d)", id)
 	var errbuf bytes.Buffer
 	exe, args, multiplexing, controlPath := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true, multiplexControlPath)
 	cmd, err := subprocess.ExecCommand(exe, args...)
@@ -81,125 +81,128 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		w.Close()
 		cmd.Wait()
 		err = errors.Combine([]error{err, fmt.Errorf(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr))})
+		tracerx.Printf("pure SSH connection unsuccessful (#%d)", id)
+	} else {
+		tracerx.Printf("pure SSH connection successful (#%d)", id)
 	}
-	tracerx.Printf("pure SSH connection successful")
 	return conn, multiplexing, controlPath, err
 }
 
 // Connection returns the nth connection (starting from 0) in this transfer
 // instance or nil if there is no such item.
-func (tr *SSHTransfer) IsMultiplexingEnabled() bool {
-	return tr.multiplexing
+func (st *SSHTransfer) IsMultiplexingEnabled() bool {
+	return st.multiplexing
 }
 
 // Connection returns the nth connection (starting from 0) in this transfer
 // instance if it is initialized and otherwise initializes a new connection and
-// saves it in the nth position.  In all cases, nil is returned if n is greater
-// than the maximum number of connections.
-func (tr *SSHTransfer) Connection(n int) (*PktlineConnection, error) {
-	tr.lock.RLock()
-	if n >= len(tr.conn) {
-		tr.lock.RUnlock()
-		return nil, nil
+// saves it in the nth position.  In all cases, nil is returned with an error
+// if n is greater than the maximum number of connections, including when
+// the connection array itself is nil.
+func (st *SSHTransfer) Connection(n int) (*PktlineConnection, error) {
+	st.lock.RLock()
+	if n >= len(st.conn) {
+		st.lock.RUnlock()
+		return nil, errors.New(tr.Tr.Get("pure SSH connection unavailable (#%d)", n))
 	}
-	if tr.conn[n] != nil {
-		defer tr.lock.RUnlock()
-		return tr.conn[n], nil
+	if st.conn[n] != nil {
+		defer st.lock.RUnlock()
+		return st.conn[n], nil
 	}
-	tr.lock.RUnlock()
+	st.lock.RUnlock()
 
-	tr.lock.Lock()
-	defer tr.lock.Unlock()
-	if tr.conn[n] != nil {
-		return tr.conn[n], nil
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	if st.conn[n] != nil {
+		return st.conn[n], nil
 	}
-	conn, _, err := tr.spawnConnection(n)
+	conn, _, err := st.spawnConnection(n)
 	if err != nil {
 		return nil, err
 	}
-	tr.conn[n] = conn
+	st.conn[n] = conn
 	return conn, nil
 }
 
 // ConnectionCount returns the number of connections this object has.
-func (tr *SSHTransfer) ConnectionCount() int {
-	tr.lock.RLock()
-	defer tr.lock.RUnlock()
-	return len(tr.conn)
+func (st *SSHTransfer) ConnectionCount() int {
+	st.lock.RLock()
+	defer st.lock.RUnlock()
+	return len(st.conn)
 }
 
 // SetConnectionCount sets the number of connections to the specified number.
-func (tr *SSHTransfer) SetConnectionCount(n int) error {
-	tr.lock.Lock()
-	defer tr.lock.Unlock()
-	return tr.setConnectionCount(n)
+func (st *SSHTransfer) SetConnectionCount(n int) error {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.setConnectionCount(n)
 }
 
 // SetConnectionCountAtLeast sets the number of connections to be not less than
 // the specified number.
-func (tr *SSHTransfer) SetConnectionCountAtLeast(n int) error {
-	tr.lock.Lock()
-	defer tr.lock.Unlock()
-	count := len(tr.conn)
+func (st *SSHTransfer) SetConnectionCountAtLeast(n int) error {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	count := len(st.conn)
 	if n <= count {
 		return nil
 	}
-	return tr.setConnectionCount(n)
+	return st.setConnectionCount(n)
 }
 
-func (tr *SSHTransfer) spawnConnection(n int) (*PktlineConnection, string, error) {
-	conn, _, controlPath, err := startConnection(n, tr.osEnv, tr.gitEnv, tr.meta, tr.operation, tr.controlPath)
+func (st *SSHTransfer) spawnConnection(n int) (*PktlineConnection, string, error) {
+	conn, _, controlPath, err := startConnection(n, st.osEnv, st.gitEnv, st.meta, st.operation, st.controlPath)
 	if err != nil {
-		tracerx.Printf("failed to spawn pure SSH connection: %s", err)
+		tracerx.Printf("failed to spawn pure SSH connection (#%d): %s", n, err)
 		return nil, "", err
 	}
 	return conn, controlPath, err
 }
 
-func (tr *SSHTransfer) setConnectionCount(n int) error {
-	count := len(tr.conn)
+func (st *SSHTransfer) setConnectionCount(n int) error {
+	count := len(st.conn)
 	if n < count {
 		tn := n
 		if tn == 0 {
 			tn = 1
 		}
-		for _, item := range tr.conn[tn:count] {
+		for i, item := range st.conn[tn:count] {
 			if item == nil {
-				tracerx.Printf("skipping uninitialized lazy pure SSH connection (%d -> %d)", count, n)
+				tracerx.Printf("skipping uninitialized lazy pure SSH connection (#%d) (resetting total from %d to %d)", i, count, n)
 				continue
 			}
-			tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
+			tracerx.Printf("terminating pure SSH connection (#%d) (resetting total from %d to %d)", tn+i, count, n)
 			if err := item.End(); err != nil {
 				return err
 			}
 		}
-		tr.conn = tr.conn[0:tn]
+		st.conn = st.conn[0:tn]
 	} else if n > count {
 		for i := count; i < n; i++ {
 			if i == 0 {
-				conn, controlPath, err := tr.spawnConnection(i)
+				conn, controlPath, err := st.spawnConnection(i)
 				if err != nil {
 					return err
 				}
-				tr.conn = append(tr.conn, conn)
-				tr.controlPath = controlPath
+				st.conn = append(st.conn, conn)
+				st.controlPath = controlPath
 			} else {
-				tr.conn = append(tr.conn, nil)
+				st.conn = append(st.conn, nil)
 			}
 		}
 	}
 	if n == 0 && count > 0 {
-		tracerx.Printf("terminating pure SSH connection (%d -> %d)", count, n)
-		if err := tr.conn[0].End(); err != nil {
+		tracerx.Printf("terminating pure SSH connection (#0) (resetting total from %d to %d)", count, n)
+		if err := st.conn[0].End(); err != nil {
 			return err
 		}
-		tr.conn = nil
-		tr.controlPath = ""
+		st.conn = nil
+		st.controlPath = ""
 	}
 	return nil
 }
 
-func (tr *SSHTransfer) Shutdown() error {
-	tracerx.Printf("shutting down pure SSH connection")
-	return tr.SetConnectionCount(0)
+func (st *SSHTransfer) Shutdown() error {
+	tracerx.Printf("shutting down pure SSH connections")
+	return st.SetConnectionCount(0)
 }

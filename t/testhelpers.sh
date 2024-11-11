@@ -176,6 +176,22 @@ assert_server_object() {
   }
 }
 
+# assert_remote_object() confirms that an object file with the given OID and
+# size is stored in the "remote" copy of a repository
+assert_remote_object() {
+  local reponame="$1"
+  local oid="$2"
+  local size="$3"
+  local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
+
+  pushd "$destination"
+    local cfg="$(git lfs env | grep LocalMediaDir)"
+    local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+    actualsize="$(wc -c <"$f" | tr -d '[[:space:]]')"
+    [ "$size" -eq "$actualsize" ]
+  popd
+}
+
 check_server_lock_ssh() {
   local reponame="$1"
   local id="$2"
