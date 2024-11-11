@@ -23,6 +23,7 @@ class DistroMap
   def self.builtin_map
     {
       # RHEL EOL https://access.redhat.com/support/policy/updates/errata
+      # Fedora EOL https://docs.fedoraproject.org/en-US/releases/
       # SLES EOL https://www.suse.com/lifecycle/
       # opensuse https://en.opensuse.org/Lifetime
       # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
@@ -45,10 +46,10 @@ class DistroMap
         package_type: "rpm",
         package_tag: "-1.el8",
         equivalent: [
-          "el/8",
+          "el/8",                      # EOL May 2029
           "opensuse/15.5",             # EOL December 2024
           "opensuse/15.6",             # EOL December 2025
-          "sles/15.5",                 # Current
+          "sles/15.5",                 # EOL December 2024
         ],
       },
       "rocky/9" => {
@@ -58,10 +59,10 @@ class DistroMap
         package_type: "rpm",
         package_tag: "-1.el9",
         equivalent: [
-          "el/9",
+          "el/9",                      # EOL May 2032
           "fedora/38",                 # EOL May 2024
-          "fedora/39",                 # EOL Dec 2024
-          "fedora/40",                 # Current
+          "fedora/39",                 # EOL November 2024
+          "fedora/40",                 # EOL May 2025
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
@@ -89,7 +90,7 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/bullseye",           # EOL June 2026
+          "debian/bullseye",           # EOL August 2026
           "linuxmint/vanessa",         # EOL April 2027
           "linuxmint/vera",            # EOL April 2027
           "linuxmint/victoria",        # EOL April 2027
@@ -105,8 +106,8 @@ class DistroMap
         package_type: "deb",
         package_tag: "",
         equivalent: [
-          "debian/bookworm",           # Current stable
-          "debian/trixie",             # Current testing
+          "debian/bookworm",           # EOL June 2028
+          "debian/trixie",             # Current testing (Debian 13)
           "ubuntu/noble",              # EOL June 2029
         ]
       },
