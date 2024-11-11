@@ -179,10 +179,6 @@ begin_test "clone ClientCert"
   reponame="test-cloneClientCert"
   setup_remote_repo "$reponame"
   clone_repo_clientcert "$reponame" "$reponame"
-  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
-    echo "Skipping due to SSL client cert bug in Git"
-    exit 0
-  fi
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
@@ -267,10 +263,6 @@ begin_test "clone ClientCert with homedir certs"
 
   setup_remote_repo "$reponame"
   clone_repo_clientcert "$reponame" "$reponame"
-  if [ $(grep -c "client-cert-mac-openssl" clone_client_cert.log) -gt 0 ]; then
-    echo "Skipping due to SSL client cert bug in Git"
-    exit 0
-  fi
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log

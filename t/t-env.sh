@@ -10,6 +10,10 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
   export MSYS2_ENV_CONV_EXCL="GIT_LFS_TEST_DIR"
 fi
 
+# The "git lfs env" command should ignore this environment variable
+# despite the "GIT_" strings in its name and value.
+export TEST_GIT_EXAMPLE="GIT_EXAMPLE"
+
 begin_test "env with no remote"
 (
   set -e
