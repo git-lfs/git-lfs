@@ -35,8 +35,7 @@ class DistroMap
         package_tag: "-1.el7",
         equivalent: [
           "el/7",                      # EOL June 2024
-          "scientific/7",              # EOL June 2024
-          "sles/12.5",                 # EOL October 2024 (LTSS October 2027)
+          "sles/12.5",                 # EOL October 2024
         ],
       },
       "centos/8" => {
@@ -59,10 +58,11 @@ class DistroMap
         package_tag: "-1.el9",
         equivalent: [
           "el/9",                      # EOL May 2032
-          "fedora/38",                 # EOL May 2024
           "fedora/39",                 # EOL November 2024
           "fedora/40",                 # EOL May 2025
+          "fedora/41",                 # EOL November 2025
           "opensuse/15.6",             # EOL December 2025
+          "sles/15.6",                 # Current
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
@@ -96,7 +96,6 @@ class DistroMap
           "linuxmint/victoria",        # EOL April 2027
           "linuxmint/virginia",        # EOL April 2027
           "ubuntu/jammy",              # EOL April 2027
-          "ubuntu/mantic",             # EOL July 2024
         ],
       },
       "debian/12" => {
@@ -108,7 +107,9 @@ class DistroMap
         equivalent: [
           "debian/bookworm",           # EOL June 2028
           "debian/trixie",             # Current testing (Debian 13)
+          "linuxmint/wilma",           # EOL April 2029
           "ubuntu/noble",              # EOL June 2029
+          "ubuntu/oracular",           # EOL July 2025
         ]
       },
     }
