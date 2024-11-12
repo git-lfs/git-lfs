@@ -47,7 +47,7 @@ func lsUrlsCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(o.Error)
 		}
 		if o.Oid != item.Oid {
-			ExitWithError(errors.Errorf(tr.Tr.Get("oid mismatch: expected %s, got %s"), item.Oid, o.Oid))
+			ExitWithError(errors.Errorf(tr.Tr.Get("oid mismatch: expected %s, got %s", item.Oid, o.Oid)))
 		}
 		a := o.Actions["download"]
 		item.Url = a.Href
