@@ -26,7 +26,7 @@ begin_test "migrate import (default branch)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
-  [ ! $(git cat-file -p "$feature:.gitattributes") ]
+  [ -z "$(git cat-file -p "$feature:.gitattributes")" ]
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
@@ -103,7 +103,7 @@ begin_test "migrate import (default branch with filter)"
   feature="$(git rev-parse refs/heads/my-feature)"
 
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
-  [ ! $(git cat-file -p "$feature:.gitattributes") ]
+  [ -z "$(git cat-file -p "$feature:.gitattributes")" ]
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
@@ -167,7 +167,7 @@ begin_test "migrate import (default branch, exclude remote refs)"
   remote="$(git rev-parse refs/remotes/origin/main)"
 
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
-  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
@@ -206,7 +206,7 @@ begin_test "migrate import (given branch, exclude remote refs)"
   remote="$(git rev-parse refs/remotes/origin/main)"
 
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
-  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
@@ -322,8 +322,8 @@ begin_test "migrate import (include/exclude ref)"
   feature="$(git rev-parse refs/heads/my-feature)"
   remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$main:.gitattributes") ]
-  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  [ -z "$(git cat-file -p "$main:.gitattributes")" ]
+  [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
@@ -360,8 +360,8 @@ begin_test "migrate import (include/exclude ref args)"
   feature="$(git rev-parse refs/heads/my-feature)"
   remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$main:.gitattributes") ]
-  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  [ -z "$(git cat-file -p "$main:.gitattributes")" ]
+  [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
@@ -400,8 +400,8 @@ begin_test "migrate import (include/exclude ref with filter)"
   feature="$(git rev-parse refs/heads/my-feature)"
   remote="$(git rev-parse refs/remotes/origin/main)"
 
-  [ ! $(git cat-file -p "$main:.gitattributes") ]
-  [ ! $(git cat-file -p "$remote:.gitattributes") ]
+  [ -z "$(git cat-file -p "$main:.gitattributes")" ]
+  [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
   echo "$feature_attrs" | grep -vq "*.md filter=lfs diff=lfs merge=lfs"

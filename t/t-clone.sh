@@ -57,8 +57,8 @@ begin_test "clone"
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
+  grep "filter" lfsclone.log && exit 1
+  grep "error" lfsclone.log && exit 1
   # should be cloned into location as per arg
   [ -d "$newclonedir" ]
 
@@ -78,8 +78,8 @@ begin_test "clone"
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
+  grep "filter" lfsclone.log && exit 1
+  grep "error" lfsclone.log && exit 1
   # clone location should be implied
   [ -d "$reponame" ]
 
@@ -142,8 +142,8 @@ begin_test "cloneSSL"
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
+  grep "filter" lfsclone.log && exit 1
+  grep "error" lfsclone.log && exit 1
   # should be cloned into location as per arg
   [ -d "$newclonedir" ]
 
@@ -216,8 +216,8 @@ begin_test "clone ClientCert"
     grep "Cloning into" lfsclone.log
     grep "Downloading LFS objects:" lfsclone.log
     # should be no filter errors
-    [ ! $(grep "filter" lfsclone.log) ]
-    [ ! $(grep "error" lfsclone.log) ]
+    grep "filter" lfsclone.log && exit 1
+    grep "error" lfsclone.log && exit 1
     # should be cloned into location as per arg
     [ -d "$newclonedir" ]
 
@@ -804,8 +804,8 @@ begin_test "clone (HTTP server/proxy require cookies)"
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
+  grep "filter" lfsclone.log && exit 1
+  grep "error" lfsclone.log && exit 1
   # should be cloned into location as per arg
   [ -d "$newclonedir" ]
 
@@ -825,8 +825,8 @@ begin_test "clone (HTTP server/proxy require cookies)"
   grep "Cloning into" lfsclone.log
   grep "Downloading LFS objects:" lfsclone.log
   # should be no filter errors
-  [ ! $(grep "filter" lfsclone.log) ]
-  [ ! $(grep "error" lfsclone.log) ]
+  grep "filter" lfsclone.log && exit 1
+  grep "error" lfsclone.log && exit 1
   # clone location should be implied
   [ -d "$reponame" ]
 
