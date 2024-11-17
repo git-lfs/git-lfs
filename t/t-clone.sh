@@ -178,6 +178,33 @@ begin_test "clone ClientCert"
     git config --global "http.sslBackend" "openssl"
   fi
 
+  # Note that the record files we create in the $CREDSDIR directory are not
+  # used until we set the "http.sslCertPasswordProtected" option to "true"
+  # and the "http.<url>.sslKey" option with the path to our TLS/SSL client
+  # certificate's encrypted private key file.  (The PEM certificate file
+  # itself is not encrypted and does not contain the private key.)
+  #
+  # When these options are set, however, Git and Git LFS will independently
+  # invoke "git credential fill" to retrieve the passphrase for the
+  # encrypted private key.  Because the "http.sslCertPasswordProtected"
+  # option is set, Git will query the credential helper, passing a
+  # "protocol=cert" line and a "path=<certfile>" line with the path
+  # from the "http.<url>.sslCert" option.  Note that this path refers
+  # to our unencrypted certificate file; Git does not use the path to
+  # the encrypted private key file from the "http.<url>.sslKey" option
+  # in its query to the credential helper.
+  #
+  # Separately, the Git LFS client will detect that the private key file
+  # specified by the "http.<url>.sslKey" option is encrypted, and so will
+  # invoke "git credential fill" to retrieve its passphrase, passing a
+  # "protocol=cert" line and a "path=<keyfile>" line with the path
+  # from the "http.<url>.sslKey" option.
+  #
+  # In order to satisfy both requests, our git-credential-lfstest helper
+  # therefore needs two record files, both with the passphrase for the
+  # encrypted private key file.  For Git, one is associated with the path
+  # to the certificate file, and for Git LFS, one is associated with the
+  # path to the key file.
   write_creds_file "::pass" "$CREDSDIR/--$(echo "$LFS_CLIENT_CERT_FILE" | tr / -)"
   write_creds_file "::pass" "$CREDSDIR/--$(echo "$LFS_CLIENT_KEY_FILE_ENCRYPTED" | tr / -)"
 
@@ -214,13 +241,13 @@ begin_test "clone ClientCert"
   # Test with both unencrypted and encrypted client certificate keys
   cd "$TRASHDIR"
 
-  for i in "$LFS_CLIENT_KEY_FILE" "$LFS_CLIENT_KEY_FILE_ENCRYPTED"
-  do
-    export GIT_SSL_CERT_PASSWORD_PROTECTED=1
-    git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$i"
+  for enc in "false" "true"; do
+    if [ "$enc" = "true" ]; then
+      git config --global "http.$LFS_CLIENT_CERT_URL/.sslKey" "$LFS_CLIENT_KEY_FILE_ENCRYPTED"
+      git config --global "http.sslCertPasswordProtected" "$enc"
+    fi
 
-    newclonedir="testcloneClietCert1"
-    rm -fr "$newclonedir"
+    newclonedir="${reponame}-${enc}"
     git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
     grep "Cloning into" lfsclone.log
     grep "Downloading LFS objects:" lfsclone.log
