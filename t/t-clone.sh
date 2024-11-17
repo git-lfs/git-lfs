@@ -11,6 +11,9 @@ if [ "$IS_WINDOWS" -eq 0 -a "$IS_MAC" -eq 0 ]; then
 fi
 export GIT_LIBNSS
 
+export CREDSDIR="$REMOTEDIR/creds-clone"
+setup_creds
+
 begin_test "clone"
 (
   set -e
@@ -174,6 +177,12 @@ begin_test "clone ClientCert"
   if [ "$IS_WINDOWS" -eq 1 ]; then
     git config --global "http.sslBackend" "openssl"
   fi
+
+  write_creds_file "::pass" "$CREDSDIR/--$(echo "$LFS_CLIENT_CERT_FILE" | tr / -)"
+  write_creds_file "::pass" "$CREDSDIR/--$(echo "$LFS_CLIENT_KEY_FILE_ENCRYPTED" | tr / -)"
+
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslCert" "$LFS_CLIENT_CERT_FILE"
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslKey" "$LFS_CLIENT_KEY_FILE"
 
   reponame="test-cloneClientCert"
   setup_remote_repo "$reponame"
@@ -844,8 +853,5 @@ begin_test "clone (HTTP server/proxy require cookies)"
     [ ! -e "lfs" ]
     assert_clean_status
   popd
-
-  # to avoid breaking t-credentials.sh
-  rm "$CREDSDIR/localhost"
 )
 end_test
