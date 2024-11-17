@@ -287,14 +287,54 @@ begin_test "clone ClientCert with homedir certs"
     git config --global "http.sslBackend" "openssl"
   fi
 
-  reponame="test-cloneClientCert-homedir"
-
-  cp "$LFS_CLIENT_KEY_FILE" "$HOME/lfs-client-key-file"
   cp "$LFS_CLIENT_CERT_FILE" "$HOME/lfs-client-cert-file"
+  cp "$LFS_CLIENT_KEY_FILE" "$HOME/lfs-client-key-file"
+  cp "$LFS_CLIENT_KEY_FILE_ENCRYPTED" "$HOME/lfs-client-key-file-encrypted"
 
-  git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "~/lfs-client-key-file"
-  git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "~/lfs-client-cert-file"
+  # Note that the record files we create in the $CREDSDIR directory are not
+  # used until we set the "http.sslCertPasswordProtected" option to "true"
+  # and the "http.<url>.sslKey" option with the path to our TLS/SSL client
+  # certificate's encrypted private key file.  (The PEM certificate file
+  # itself is not encrypted and does not contain the private key.)
+  #
+  # When these options are set, however, Git and Git LFS will independently
+  # invoke "git credential fill" to retrieve the passphrase for the
+  # encrypted private key.  Because the "http.sslCertPasswordProtected"
+  # option is set, Git will query the credential helper, passing a
+  # "protocol=cert" line and a "path=<certfile>" line with the path
+  # from the "http.<url>.sslCert" option.  Note that this path refers
+  # to our unencrypted certificate file; Git does not use the path to
+  # the encrypted private key file from the "http.<url>.sslKey" option
+  # in its query to the credential helper.
+  #
+  # Separately, the Git LFS client will detect that the private key file
+  # specified by the "http.<url>.sslKey" option is encrypted, and so will
+  # invoke "git credential fill" to retrieve its passphrase, passing a
+  # "protocol=cert" line and a "path=<keyfile>" line with the path
+  # from the "http.<url>.sslKey" option.
+  #
+  # In order to satisfy both requests, our git-credential-lfstest helper
+  # therefore needs two record files, both with the passphrase for the
+  # encrypted private key file.  For Git, one is associated with the path
+  # to the certificate file, and for Git LFS, one is associated with the
+  # path to the key file.
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    # In our MSYS2 CI environment we have to convert the Unix-style path
+    # in $HOME, which starts with /tmp/, into a path of the form /a/...
+    # so that the credential record filename we create from it matches
+    # the one our git-credential-lfstest helper will construct from the
+    # "path" values it receives from Git and Git LFS.
+    homedir="$(cygpath -m "$HOME" | sed 's,^\([A-Z]\):,/\L\1,')"
+  else
+    homedir="$HOME"
+  fi
+  write_creds_file "::pass" "$CREDSDIR/--$(echo "$homedir/lfs-client-cert-file" | tr / -)"
+  write_creds_file "::pass" "$CREDSDIR/--$(echo "$homedir/lfs-client-key-file-encrypted" | tr / -)"
 
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslCert" "~/lfs-client-cert-file"
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslKey" "~/lfs-client-key-file"
+
+  reponame="test-cloneClientCert-homedir"
   setup_remote_repo "$reponame"
   clone_repo_clientcert "$reponame" "$reponame"
 
@@ -319,6 +359,41 @@ begin_test "clone ClientCert with homedir certs"
   ]" | lfstest-testutils addcommits
 
   git push origin main
+
+  # Now clone again with 'git lfs clone', test specific clone dir
+  # Test with both unencrypted and encrypted client certificate keys
+  cd "$TRASHDIR"
+
+  for enc in "false" "true"; do
+    if [ "$enc" = "true" ]; then
+      git config --global "http.$LFS_CLIENT_CERT_URL/.sslKey" "~/lfs-client-key-file-encrypted"
+      git config --global "http.sslCertPasswordProtected" "$enc"
+    fi
+
+    newclonedir="${reponame}-${enc}"
+    git lfs clone "$CLIENTCERTGITSERVER/$reponame" "$newclonedir" 2>&1 | tee lfsclone.log
+    grep "Cloning into" lfsclone.log
+    grep "Downloading LFS objects:" lfsclone.log
+    # should be no filter errors
+    grep "filter" lfsclone.log && exit 1
+    grep "error" lfsclone.log && exit 1
+    # should be cloned into location as per arg
+    [ -d "$newclonedir" ]
+
+    # check a few file sizes to make sure pulled
+    pushd "$newclonedir"
+      [ $(wc -c < "file1.dat") -eq 100 ]
+      [ $(wc -c < "file2.dat") -eq 75 ]
+      [ $(wc -c < "file3.dat") -eq 30 ]
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      assert_clean_status
+    popd
+
+    # Now check clone with standard 'git clone' and smudge download
+    rm -rf "$reponame"
+    git clone "$CLIENTCERTGITSERVER/$reponame"
+  done
 )
 end_test
 
