@@ -2,10 +2,8 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-# HACK(taylor): git uses ".g<hash>" in the version name to signal that it is
-# from the "next" branch, which is the only (current) version of Git that has
-# support for the filter protocol.
-#
+# Only test with Git version 2.11.0 and above as that version introduced
+# support for the "filter" attribute and protocol.
 ensure_git_version_isnt $VERSION_LOWER "2.11.0"
 
 begin_test "filter process: checking out a branch"
