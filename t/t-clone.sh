@@ -94,6 +94,26 @@ begin_test "clone"
     [ ! -e "lfs" ]
     assert_clean_status
   popd
+
+  # Now check clone with standard 'git clone' and smudge download
+  rm -rf "$reponame"
+  git clone "$GITSERVER/$reponame" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+  grep "Cloning into" clone.log
+  [ -d "$reponame" ]
+
+  pushd "$reponame"
+    [ $(wc -c < "file1.dat") -eq 110 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 66 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    [ "6" -eq "$(find "$(dot_git_dir)/lfs/objects" -type f | wc -l)" ]
+    assert_clean_status
+  popd
 )
 end_test
 
@@ -161,7 +181,23 @@ begin_test "cloneSSL"
 
   # Now check SSL clone with standard 'git clone' and smudge download
   rm -rf "$reponame"
-  git clone "$SSLGITSERVER/$reponame"
+  git clone "$SSLGITSERVER/$reponame" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+  grep "Cloning into" clone.log
+  [ -d "$reponame" ]
+
+  pushd "$reponame"
+    [ $(wc -c < "file1.dat") -eq 100 ]
+    [ $(wc -c < "file2.dat") -eq 75 ]
+    [ $(wc -c < "file3.dat") -eq 30 ]
+    assert_hooks "$(dot_git_dir)"
+    [ ! -e "lfs" ]
+    [ "3" -eq "$(find "$(dot_git_dir)/lfs/objects" -type f | wc -l)" ]
+    assert_clean_status
+  popd
 )
 end_test
 
@@ -269,7 +305,23 @@ begin_test "clone ClientCert"
 
     # Now check clone with standard 'git clone' and smudge download
     rm -rf "$reponame"
-    git clone "$CLIENTCERTGITSERVER/$reponame"
+    git clone "$CLIENTCERTGITSERVER/$reponame" 2>&1 | tee clone.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected clone to succeed ..."
+      exit 1
+    fi
+    grep "Cloning into" clone.log
+    [ -d "$reponame" ]
+
+    pushd "$reponame"
+      [ $(wc -c < "file1.dat") -eq 100 ]
+      [ $(wc -c < "file2.dat") -eq 75 ]
+      [ $(wc -c < "file3.dat") -eq 30 ]
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      [ "3" -eq "$(find "$(dot_git_dir)/lfs/objects" -type f | wc -l)" ]
+      assert_clean_status
+    popd
   done
 )
 end_test
@@ -392,7 +444,23 @@ begin_test "clone ClientCert with homedir certs"
 
     # Now check clone with standard 'git clone' and smudge download
     rm -rf "$reponame"
-    git clone "$CLIENTCERTGITSERVER/$reponame"
+    git clone "$CLIENTCERTGITSERVER/$reponame" 2>&1 | tee clone.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected clone to succeed ..."
+      exit 1
+    fi
+    grep "Cloning into" clone.log
+    [ -d "$reponame" ]
+
+    pushd "$reponame"
+      [ $(wc -c < "file1.dat") -eq 100 ]
+      [ $(wc -c < "file2.dat") -eq 75 ]
+      [ $(wc -c < "file3.dat") -eq 30 ]
+      assert_hooks "$(dot_git_dir)"
+      [ ! -e "lfs" ]
+      [ "3" -eq "$(find "$(dot_git_dir)/lfs/objects" -type f | wc -l)" ]
+      assert_clean_status
+    popd
   done
 )
 end_test
