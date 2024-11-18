@@ -329,7 +329,9 @@ func LsFilesLFS() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered(
 		"ls-files",
 		"--cached",
+		"--exclude-standard",
 		"--full-name",
+		"--sparse",
 		"-z",
 		"--format=%(objectmode) %(objecttype) %(objectname) %(objectsize)\t%(path)",
 		":(top,attr:filter=lfs)",
