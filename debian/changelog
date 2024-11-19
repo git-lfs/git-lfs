@@ -1,3 +1,9 @@
+git-lfs (3.6.0) stable; urgency=low
+
+  * New upstream version
+
+ -- Chris Darroch <chrisd8088@github.com>  Wed, 20 Nov 2024 14:29:00 -0000
+
 git-lfs (3.5.0) stable; urgency=low
 
   * New upstream version
