@@ -112,7 +112,7 @@ begin_test "askpass: defaults to provided credentials"
 
   GIT_ASKPASS="lfs-askpass" GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
 
-  [ ! $(grep "filling with GIT_ASKPASS" push.log) ]
+  grep "filling with GIT_ASKPASS" push.log && exit 1
   grep "main -> main" push.log
 )
 end_test

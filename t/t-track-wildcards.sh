@@ -30,7 +30,7 @@ begin_test "track files using wildcard pattern with leading slash"
   git lfs ls-files | tee files.log
 
   grep "a.dat" files.log
-  [ ! $(grep "dir/b.dat" files.log) ] # Subdirectories ignored
+  grep "dir/b.dat" files.log && exit 1 # Subdirectories ignored
 
   # Add files after being tracked by LFS
   printf "contents" > c.dat
@@ -43,9 +43,10 @@ begin_test "track files using wildcard pattern with leading slash"
   git lfs ls-files | tee new_files.log
 
   grep "a.dat" new_files.log
-  [ ! $(grep "dir/b.dat" new_files.log) ]
+  grep "dir/b.dat" new_files.log && exit 1
   grep "c.dat" new_files.log
-  [ ! $(grep "dir/d.dat" new_files.log) ]
+  grep "dir/d.dat" new_files.log && exit 1
+  true
 )
 end_test
 

@@ -141,6 +141,10 @@ end_test
 begin_test "create lock with server using client cert"
 (
   set -e
+
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslCert" "$LFS_CLIENT_CERT_FILE"
+  git config --global "http.$LFS_CLIENT_CERT_URL/.sslKey" "$LFS_CLIENT_KEY_FILE"
+
   reponame="lock_create_client_cert"
   setup_remote_repo_with_file "$reponame" "cc.dat"
 

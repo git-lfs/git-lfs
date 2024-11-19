@@ -52,8 +52,9 @@ begin_test "migrate export (default branch)"
   echo "$main_attrs" | grep -q "*.md !text !filter !merge !diff"
   echo "$main_attrs" | grep -q "*.txt !text !filter !merge !diff"
 
-  [ ! $(echo "$feature_attrs" | grep -q "*.md !text !filter !merge !diff") ]
-  [ ! $(echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
+  echo "$feature_attrs" | grep -q "*.md !text !filter !merge !diff" && exit 1
+  echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff" && exit 1
+  true
 )
 end_test
 
@@ -253,8 +254,9 @@ begin_test "migrate export (exclude remote refs)"
   echo "$main_attrs" | grep -q "*.md !text !filter !merge !diff"
   echo "$main_attrs" | grep -q "*.txt !text !filter !merge !diff"
 
-  [ ! $(echo "$remote_attrs" | grep -q "*.md !text !filter !merge !diff") ]
-  [ ! $(echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
+  echo "$remote_attrs" | grep -q "*.md !text !filter !merge !diff" && exit 1
+  echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff" && exit 1
+  true
 )
 end_test
 
@@ -361,8 +363,8 @@ begin_test "migrate export (include/exclude ref)"
   remote_attrs="$(git cat-file -p "$remote:.gitattributes")"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  [ ! $(echo "$main_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
-  [ ! $(echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff") ]
+  echo "$main_attrs" | grep -q "*.txt !text !filter !merge !diff" && exit 1
+  echo "$remote_attrs" | grep -q "*.txt !text !filter !merge !diff" && exit 1
   echo "$feature_attrs" | grep -q "*.txt !text !filter !merge !diff"
 )
 end_test
