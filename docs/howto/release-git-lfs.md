@@ -282,15 +282,15 @@ and then use that branch as the base for the PATCH release.
      $ git log --merges --first-parent vM.N.(P-1)...main
      ```
 
-   3. For each merge that you want to backport, run:
+  3. For each merge that you want to backport, run:
 
-      ```ShellSession
-      $ git cherry-pick -m1 <SHA-1>
-      ```
+     ```ShellSession
+     $ git cherry-pick -m1 <SHA-1>
+     ```
 
-      This will cherry-pick the merge onto your release branch, using
-      the `-m1` option to specify that the first parent of the merge
-      corresponds to the mainline.
+     This will cherry-pick the merge onto your release branch, using
+     the `-m1` option to specify that the first parent of the merge
+     corresponds to the mainline.
 
-   4. Then follow the [guidelines](#building-a-release) above, using the
-      `release-M.N` branch as the base for the new PATCH release.
+  4. Then follow the [guidelines](#building-a-release) above, using the
+     `release-M.N` branch as the base for the new PATCH release.
