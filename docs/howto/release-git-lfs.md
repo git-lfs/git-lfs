@@ -94,7 +94,7 @@ to zero, we are releasing a PATCH version.
        The `changelog` script will write a portion of the new CHANGELOG to
        stdout, which you should copy and paste into `CHANGELOG.md`, along with
        an H2-level heading containing the new version and the expected release
-       date.  This heading should be consistent with the exising style in the
+       date.  This heading should be consistent with the existing style in the
        document.
 
        For a MAJOR release, use `script/changelog v(M-1).L.0...HEAD`, where
