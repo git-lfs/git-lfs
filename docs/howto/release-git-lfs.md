@@ -74,7 +74,12 @@ Git LFS in the `vM.N`-series, unless `N` is also equal to zero, in which
 case we are releasing a MAJOR version.  Conversely, if `P` is not equal
 to zero, we are releasing a PATCH version.
 
-  1. First, we write the release notes and do the housekeeping required to
+  1. Upgrade the Go version used in the `git-lfs/build-dockers` repository
+     to the latest available patch release with the same major and minor
+     version numbers as the Go version used in this repository's GitHub
+     Actions workflows.
+
+  2. Write the release notes and do the housekeeping required to
      indicate a new version.  For a MAJOR or MINOR version, we start with
      a `main` branch which is up to date with the latest changes from the
      remote and then checkout a new `release-next` branch from that base.
@@ -135,7 +140,7 @@ to zero, we are releasing a PATCH version.
        $ git commit -m 'release: vM.N.P'
        ```
 
-  2. Then, push the `release-next` branch and create a pull request with your
+  3. Push the `release-next` branch and create a pull request with your
      changes from the branch.  If you're building a MAJOR or MINOR release,
      set the base to the `main` branch.  Otherwise, set the base to the
      `release-M.N` branch.
@@ -174,7 +179,7 @@ to zero, we are releasing a PATCH version.
        the workflow succeeds (excepting the Packagecloud upload step, which
        will be skipped).
 
-  3. Once approved and verified, merge the pull request you created in the
+  4. Once approved and verified, merge the pull request you created in the
      previous step. Locally, create a GPG-signed tag on the merge commit called
      `vM.N.P`:
 
@@ -200,7 +205,7 @@ to zero, we are releasing a PATCH version.
      release: vM.N.P
      ```
 
-  4. Push the tag, via:
+  5. Push the tag, via:
 
      ```ShellSession
      $ git push origin vM.N.P
@@ -211,7 +216,7 @@ to zero, we are releasing a PATCH version.
      done, you'll end up with a draft release in the repository for the version
      in question.
 
-  5. From the command line, finalize the release process by signing the release:
+  6. From the command line, finalize the release process by signing the release:
 
      ```ShellSession
      $ script/upload --finalize vM.N.P
@@ -228,12 +233,12 @@ to zero, we are releasing a PATCH version.
      shell exits successfully, the build will be signed; otherwise, the process
      will be aborted.
 
-  6. Publish the release on GitHub, assuming it looks correct.
+  7. Publish the release on GitHub, assuming it looks correct.
 
-  7. Move any remaining items out of the milestone for the current release to a
+  8. Move any remaining items out of the milestone for the current release to a
      future release and close the milestone.
 
-  8. Update the `_config.yml` file in
+  9. Update the `_config.yml` file in
      [`git-lfs/git-lfs.github.com`](https://github.com/git-lfs/git-lfs.github.com),
      similar to the following:
 
@@ -250,7 +255,7 @@ to zero, we are releasing a PATCH version.
       url: "https://git-lfs.com"
      ```
 
-  9. If Homebrew does not automatically update within a few hours,
+ 10. If Homebrew does not automatically update within a few hours,
      create a GitHub PR to update the Homebrew formula for Git LFS with
      the `brew bump-formula-pr` command on a macOS system.  The SHA-256 value
      should correspond with the packaged artifact containing the new
@@ -270,7 +275,12 @@ When building a PATCH release, we cherry-pick merges from `main` to the
 `vM.N` release branch, creating the branch first if it does not exist,
 and then use that branch as the base for the PATCH release.
 
-  1. If the `release-M.N` branch does not already exist, create it from
+  1. Upgrade or downgrade the Go version used in the `git-lfs/build-dockers`
+     repository to the latest available patch release with the same major
+     and minor version numbers as the Go version used to build the Git LFS
+     `vM.N.(P-1)` release.
+
+  2. If the `release-M.N` branch does not already exist, create it from
      the corresponding MINOR release tag (or MAJOR release tag, if no
      MINOR releases have been made since the last MAJOR release):
 
@@ -283,14 +293,14 @@ and then use that branch as the base for the PATCH release.
      the `release-M.N` branch, and ensure that you have the latest changes
      from the remote.
 
-  2. Gather a set of potential candidates to backport to the `release-M.N`
+  3. Gather a set of potential candidates to backport to the `release-M.N`
      branch with:
 
      ```ShellSession
      $ git log --merges --first-parent vM.N.(P-1)...main
      ```
 
-  3. For each merge that you want to backport, run:
+  4. For each merge that you want to backport, run:
 
      ```ShellSession
      $ git cherry-pick -m1 <SHA-1>
@@ -300,5 +310,5 @@ and then use that branch as the base for the PATCH release.
      the `-m1` option to specify that the first parent of the merge
      corresponds to the mainline.
 
-  4. Then follow the [guidelines](#building-a-release) above, using the
+  5. Then follow the [guidelines](#building-a-release) above, using the
      `release-M.N` branch as the base for the new PATCH release.
