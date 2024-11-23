@@ -36,9 +36,9 @@ We package several artifacts for each tagged release. They are:
       | git-lfs-linux-amd64-v@{version}.tar.gz | linux (generic) | amd64 |
       | git-lfs-linux-arm-v@{version}.tar.gz | linux (generic) | arm |
       | git-lfs-linux-arm64-v@{version}.tar.gz | linux (generic) | arm64 |
+      | git-lfs-linux-loong64-v@{version}.tar.gz | linux (generic) | loong64 |
       | git-lfs-linux-ppc64le-v@{version}.tar.gz | linux (generic) | ppc64le |
       | git-lfs-linux-s390x-v@{version}.tar.gz | linux (generic) | s390x |
-      | git-lfs-linux-loong64-v@{version}.tar.gz | linux (generic) | loong64 |
 
   2. `git-lfs-windows-v@{release}-@{arch}.zip` for the following values:
 
