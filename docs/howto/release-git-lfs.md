@@ -109,6 +109,11 @@ to zero, we are releasing a PATCH version.
        * Optionally write 1-2 paragraphs summarizing the release and calling
          out community contributions.
 
+       * Call out any changes in the operating system versions required
+         by the new release, as well as any differences in the set of Linux
+         platforms for which we build release packages.  Check for any
+         new platform requirements from the version of Go in use.
+
        * If we are releasing a MAJOR or MINOR version and not a PATCH, and
          if the most recent non-PATCH release was followed by a series of one
          or more PATCH releases, include any changes listed in the CHANGELOG
@@ -212,10 +217,11 @@ to zero, we are releasing a PATCH version.
      $ script/upload --finalize vM.N.P
      ```
 
-     Note that this script requires GnuPG as well as Ruby (with the OpenSSL
-     gem) and several other tools.  You will need to provide your GitHub
-     credentials in your `~/.netrc` file or via a `GITHUB_TOKEN` environment
-     variable.
+     Note that this script requires GnuPG, with your signing key configured,
+     as well as Ruby 3.x, the OpenSSL Ruby gem, and several other tools,
+     including the GNU coreutils version of `b2sum(1)`.  You will need to
+     provide your GitHub credentials in your `~/.netrc` file or via a
+     `GITHUB_TOKEN` environment variable.
 
      If you want to inspect the data before approving it, pass the `--inspect`
      option, which will drop you to a shell and let you look at things.  If the
@@ -244,7 +250,8 @@ to zero, we are releasing a PATCH version.
       url: "https://git-lfs.com"
      ```
 
-  9. Create a GitHub PR to update the Homebrew formula for Git LFS with
+  9. If Homebrew does not automatically update within a few hours,
+     create a GitHub PR to update the Homebrew formula for Git LFS with
      the `brew bump-formula-pr` command on a macOS system.  The SHA-256 value
      should correspond with the packaged artifact containing the new
      release's source files which is available at the given URL:
