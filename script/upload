@@ -294,7 +294,9 @@ verify_assets () {
   if command -v sha3sum >/dev/null 2>&1
   then
     say "Checking assets for integrity with SHA-3..."
-    (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-' | sha3sum -c)
+    (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-256' | sed 's/.*(\(.*\)) = \(.*\)$/\2  \1/' | sha3sum -a 256 -c)
+    (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-384' | sed 's/.*(\(.*\)) = \(.*\)$/\2  \1/' | sha3sum -a 384 -c)
+    (cd "$dir" && gpg -d hashes.asc | grep 'SHA3-512' | sed 's/.*(\(.*\)) = \(.*\)$/\2  \1/' | sha3sum -a 512 -c)
   fi
   if command -v b2sum >/dev/null 2>&1
   then
