@@ -140,8 +140,6 @@ To https://github.com/git-lfs/git-lfs-test
    67fcf6a..47b2002  main -> main
 ```
 
-Note: Git LFS requires at least Git 1.8.2 on Linux or 1.8.5 on macOS.
-
 ### Uninstalling
 
 If you've decided that Git LFS isn't right for you, you can convert your
@@ -162,6 +160,10 @@ know in an issue, and we'll definitely try to help or get it fixed.
 
 Git LFS maintains a list of currently known limitations, which you can find and
 edit [here](https://github.com/git-lfs/git-lfs/wiki/Limitations).
+
+Current releases of Git LFS will work with Git versions as early as
+Git 2.0.0.  However, for best performance, using a recent version of Git
+is highly recommended.
 
 Git LFS source code utilizes Go modules in its build system, and therefore this
 project contains a `go.mod` file with a defined Go module path.  However, we
