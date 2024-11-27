@@ -25,7 +25,8 @@ func TestCredsBufferFormat(t *testing.T) {
 
 	expected := []string{"capability[]=authtype\n", "capability[]=state\n"}
 
-	buf := creds.buffer()
+	buf, err := creds.buffer()
+	assert.NoError(t, err)
 	assertCredsLinesMatch(t, expected, buf)
 
 	creds["protocol"] = []string{"https"}
@@ -34,7 +35,8 @@ func TestCredsBufferFormat(t *testing.T) {
 	expectedPrefix := strings.Join(expected, "")
 	expected = append(expected, "protocol=https\n", "host=example.com\n")
 
-	buf = creds.buffer()
+	buf, err = creds.buffer()
+	assert.NoError(t, err)
 	assert.True(t, strings.HasPrefix(buf.String(), expectedPrefix))
 	assertCredsLinesMatch(t, expected, buf)
 
@@ -43,9 +45,22 @@ func TestCredsBufferFormat(t *testing.T) {
 	expected = append(expected, "wwwauth[]=Basic realm=test\n")
 	expected = append(expected, "wwwauth[]=Negotiate\n")
 
-	buf = creds.buffer()
+	buf, err = creds.buffer()
+	assert.NoError(t, err)
 	assert.True(t, strings.HasPrefix(buf.String(), expectedPrefix))
 	assertCredsLinesMatch(t, expected, buf)
+}
+
+func TestCredsBufferProtect(t *testing.T) {
+	creds := make(Creds)
+
+	// Always disallow LF characters
+	creds["protocol"] = []string{"https"}
+	creds["host"] = []string{"one.example.com\nhost=two.example.com"}
+
+	buf, err := creds.buffer()
+	assert.Error(t, err)
+	assert.Nil(t, buf)
 }
 
 type testCredHelper struct {

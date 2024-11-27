@@ -58,13 +58,17 @@ func (c Creds) IsMultistage() bool {
 	return slices.Contains([]string{"1", "true"}, FirstEntryForKey(c, "continue"))
 }
 
-func (c Creds) buffer() *bytes.Buffer {
+func (c Creds) buffer() (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 
 	buf.Write([]byte("capability[]=authtype\n"))
 	buf.Write([]byte("capability[]=state\n"))
 	for k, v := range c {
 		for _, item := range v {
+			if strings.Contains(item, "\n") {
+				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains newline: %q", k, item))
+			}
+
 			buf.Write([]byte(k))
 			buf.Write([]byte("="))
 			buf.Write([]byte(item))
@@ -72,7 +76,7 @@ func (c Creds) buffer() *bytes.Buffer {
 		}
 	}
 
-	return buf
+	return buf, nil
 }
 
 type CredentialHelperContext struct {
@@ -338,7 +342,10 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git credential %s`: %v", subcommand, err))
 	}
-	cmd.Stdin = input.buffer()
+	cmd.Stdin, err = input.buffer()
+	if err != nil {
+		return nil, errors.New(tr.Tr.Get("invalid input to `git credential %s`: %v", subcommand, err))
+	}
 	cmd.Stdout = output
 	/*
 	   There is a reason we don't read from stderr here:
