@@ -1,11 +1,52 @@
 package creds
 
 import (
+	"bytes"
 	"errors"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func assertCredsLinesMatch(t *testing.T, expected []string, buf *bytes.Buffer) {
+	expected = append(expected, "")
+	actual := strings.SplitAfter(buf.String(), "\n")
+
+	slices.Sort(expected)
+	slices.Sort(actual)
+
+	assert.Equal(t, expected, actual)
+}
+
+func TestCredsBufferFormat(t *testing.T) {
+	creds := make(Creds)
+
+	expected := []string{"capability[]=authtype\n", "capability[]=state\n"}
+
+	buf := creds.buffer()
+	assertCredsLinesMatch(t, expected, buf)
+
+	creds["protocol"] = []string{"https"}
+	creds["host"] = []string{"example.com"}
+
+	expectedPrefix := strings.Join(expected, "")
+	expected = append(expected, "protocol=https\n", "host=example.com\n")
+
+	buf = creds.buffer()
+	assert.True(t, strings.HasPrefix(buf.String(), expectedPrefix))
+	assertCredsLinesMatch(t, expected, buf)
+
+	creds["wwwauth[]"] = []string{"Basic realm=test", "Negotiate"}
+
+	expected = append(expected, "wwwauth[]=Basic realm=test\n")
+	expected = append(expected, "wwwauth[]=Negotiate\n")
+
+	buf = creds.buffer()
+	assert.True(t, strings.HasPrefix(buf.String(), expectedPrefix))
+	assertCredsLinesMatch(t, expected, buf)
+}
 
 type testCredHelper struct {
 	fillErr    error

@@ -58,7 +58,7 @@ func (c Creds) IsMultistage() bool {
 	return slices.Contains([]string{"1", "true"}, FirstEntryForKey(c, "continue"))
 }
 
-func bufferCreds(c Creds) *bytes.Buffer {
+func (c Creds) buffer() *bytes.Buffer {
 	buf := new(bytes.Buffer)
 
 	buf.Write([]byte("capability[]=authtype\n"))
@@ -338,7 +338,7 @@ func (h *commandCredentialHelper) exec(subcommand string, input Creds) (Creds, e
 	if err != nil {
 		return nil, errors.New(tr.Tr.Get("failed to find `git credential %s`: %v", subcommand, err))
 	}
-	cmd.Stdin = bufferCreds(input)
+	cmd.Stdin = input.buffer()
 	cmd.Stdout = output
 	/*
 	   There is a reason we don't read from stderr here:
