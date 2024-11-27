@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -257,6 +258,7 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func lfsUrl(repo, oid string, redirect bool) string {
+	repo = url.QueryEscape(repo)
 	if redirect {
 		return server.URL + "/redirect307/objects/" + oid + "?r=" + repo
 	}
