@@ -36,9 +36,10 @@ We package several artifacts for each tagged release. They are:
       | git-lfs-linux-amd64-v@{version}.tar.gz | linux (generic) | amd64 |
       | git-lfs-linux-arm-v@{version}.tar.gz | linux (generic) | arm |
       | git-lfs-linux-arm64-v@{version}.tar.gz | linux (generic) | arm64 |
-      | git-lfs-linux-ppc64le-v@{version}.tar.gz | linux (generic) | ppc64le |
-      | git-lfs-linux-s390x-v@{version}.tar.gz | linux (generic) | s390x |
       | git-lfs-linux-loong64-v@{version}.tar.gz | linux (generic) | loong64 |
+      | git-lfs-linux-ppc64le-v@{version}.tar.gz | linux (generic) | ppc64le |
+      | git-lfs-linux-riscv64-v@{version}.tar.gz | linux (generic) | riscv64 |
+      | git-lfs-linux-s390x-v@{version}.tar.gz | linux (generic) | s390x |
 
   2. `git-lfs-windows-v@{release}-@{arch}.zip` for the following values:
 
@@ -73,7 +74,12 @@ Git LFS in the `vM.N`-series, unless `N` is also equal to zero, in which
 case we are releasing a MAJOR version.  Conversely, if `P` is not equal
 to zero, we are releasing a PATCH version.
 
-  1. First, we write the release notes and do the housekeeping required to
+  1. Upgrade the Go version used in the `git-lfs/build-dockers` repository
+     to the latest available patch release with the same major and minor
+     version numbers as the Go version used in this repository's GitHub
+     Actions workflows.
+
+  2. Write the release notes and do the housekeeping required to
      indicate a new version.  For a MAJOR or MINOR version, we start with
      a `main` branch which is up to date with the latest changes from the
      remote and then checkout a new `release-next` branch from that base.
@@ -94,7 +100,7 @@ to zero, we are releasing a PATCH version.
        The `changelog` script will write a portion of the new CHANGELOG to
        stdout, which you should copy and paste into `CHANGELOG.md`, along with
        an H2-level heading containing the new version and the expected release
-       date.  This heading should be consistent with the exising style in the
+       date.  This heading should be consistent with the existing style in the
        document.
 
        For a MAJOR release, use `script/changelog v(M-1).L.0...HEAD`, where
@@ -107,6 +113,11 @@ to zero, we are releasing a PATCH version.
 
        * Optionally write 1-2 paragraphs summarizing the release and calling
          out community contributions.
+
+       * Call out any changes in the operating system versions required
+         by the new release, as well as any differences in the set of Linux
+         platforms for which we build release packages.  Check for any
+         new platform requirements from the version of Go in use.
 
        * If we are releasing a MAJOR or MINOR version and not a PATCH, and
          if the most recent non-PATCH release was followed by a series of one
@@ -129,7 +140,7 @@ to zero, we are releasing a PATCH version.
        $ git commit -m 'release: vM.N.P'
        ```
 
-  2. Then, push the `release-next` branch and create a pull request with your
+  3. Push the `release-next` branch and create a pull request with your
      changes from the branch.  If you're building a MAJOR or MINOR release,
      set the base to the `main` branch.  Otherwise, set the base to the
      `release-M.N` branch.
@@ -168,7 +179,7 @@ to zero, we are releasing a PATCH version.
        the workflow succeeds (excepting the Packagecloud upload step, which
        will be skipped).
 
-  3. Once approved and verified, merge the pull request you created in the
+  4. Once approved and verified, merge the pull request you created in the
      previous step. Locally, create a GPG-signed tag on the merge commit called
      `vM.N.P`:
 
@@ -194,7 +205,7 @@ to zero, we are releasing a PATCH version.
      release: vM.N.P
      ```
 
-  4. Push the tag, via:
+  5. Push the tag, via:
 
      ```ShellSession
      $ git push origin vM.N.P
@@ -205,28 +216,29 @@ to zero, we are releasing a PATCH version.
      done, you'll end up with a draft release in the repository for the version
      in question.
 
-  5. From the command line, finalize the release process by signing the release:
+  6. From the command line, finalize the release process by signing the release:
 
      ```ShellSession
      $ script/upload --finalize vM.N.P
      ```
 
-     Note that this script requires GnuPG as well as Ruby (with the OpenSSL
-     gem) and several other tools.  You will need to provide your GitHub
-     credentials in your `~/.netrc` file or via a `GITHUB_TOKEN` environment
-     variable.
+     Note that this script requires GnuPG, with your signing key configured,
+     as well as Ruby 3.x, the OpenSSL Ruby gem, and several other tools,
+     including the GNU coreutils version of `b2sum(1)`.  You will need to
+     provide your GitHub credentials in your `~/.netrc` file or via a
+     `GITHUB_TOKEN` environment variable.
 
      If you want to inspect the data before approving it, pass the `--inspect`
      option, which will drop you to a shell and let you look at things.  If the
      shell exits successfully, the build will be signed; otherwise, the process
      will be aborted.
 
-  6. Publish the release on GitHub, assuming it looks correct.
+  7. Publish the release on GitHub, assuming it looks correct.
 
-  7. Move any remaining items out of the milestone for the current release to a
+  8. Move any remaining items out of the milestone for the current release to a
      future release and close the milestone.
 
-  8. Update the `_config.yml` file in
+  9. Update the `_config.yml` file in
      [`git-lfs/git-lfs.github.com`](https://github.com/git-lfs/git-lfs.github.com),
      similar to the following:
 
@@ -243,7 +255,8 @@ to zero, we are releasing a PATCH version.
       url: "https://git-lfs.com"
      ```
 
-  9. Create a GitHub PR to update the Homebrew formula for Git LFS with
+ 10. If Homebrew does not automatically update within a few hours,
+     create a GitHub PR to update the Homebrew formula for Git LFS with
      the `brew bump-formula-pr` command on a macOS system.  The SHA-256 value
      should correspond with the packaged artifact containing the new
      release's source files which is available at the given URL:
@@ -262,7 +275,12 @@ When building a PATCH release, we cherry-pick merges from `main` to the
 `vM.N` release branch, creating the branch first if it does not exist,
 and then use that branch as the base for the PATCH release.
 
-  1. If the `release-M.N` branch does not already exist, create it from
+  1. Upgrade or downgrade the Go version used in the `git-lfs/build-dockers`
+     repository to the latest available patch release with the same major
+     and minor version numbers as the Go version used to build the Git LFS
+     `vM.N.(P-1)` release.
+
+  2. If the `release-M.N` branch does not already exist, create it from
      the corresponding MINOR release tag (or MAJOR release tag, if no
      MINOR releases have been made since the last MAJOR release):
 
@@ -275,22 +293,22 @@ and then use that branch as the base for the PATCH release.
      the `release-M.N` branch, and ensure that you have the latest changes
      from the remote.
 
-  2. Gather a set of potential candidates to backport to the `release-M.N`
+  3. Gather a set of potential candidates to backport to the `release-M.N`
      branch with:
 
      ```ShellSession
      $ git log --merges --first-parent vM.N.(P-1)...main
      ```
 
-   3. For each merge that you want to backport, run:
+  4. For each merge that you want to backport, run:
 
-      ```ShellSession
-      $ git cherry-pick -m1 <SHA-1>
-      ```
+     ```ShellSession
+     $ git cherry-pick -m1 <SHA-1>
+     ```
 
-      This will cherry-pick the merge onto your release branch, using
-      the `-m1` option to specify that the first parent of the merge
-      corresponds to the mainline.
+     This will cherry-pick the merge onto your release branch, using
+     the `-m1` option to specify that the first parent of the merge
+     corresponds to the mainline.
 
-   4. Then follow the [guidelines](#building-a-release) above, using the
-      `release-M.N` branch as the base for the new PATCH release.
+  5. Then follow the [guidelines](#building-a-release) above, using the
+     `release-M.N` branch as the base for the new PATCH release.
