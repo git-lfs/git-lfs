@@ -99,3 +99,48 @@ begin_test "credentials rejected with carriage return"
   assert_server_object "$testreponame" "$contents_oid"
 )
 end_test
+
+begin_test "credentials rejected with null byte"
+(
+  set -e
+
+  reponame="protect-null"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+
+  git lfs track "*.dat"
+  printf "%s" "$contents" >a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  # Using localhost instead of 127.0.0.1 in the LFS API URL ensures this URL
+  # is used when filling credentials rather than the Git remote URL, which
+  # would otherwise be used since it would have the same scheme and hostname.
+  gitserver="$(echo "$GITSERVER" | sed 's/127\.0\.0\.1/localhost/')"
+  testreponame="test%00$reponame"
+  git config lfs.url "$gitserver/$testreponame.git/info/lfs"
+
+  GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs push' to fail ..."
+    exit 1
+  fi
+  grep "batch response: Git credentials for $gitserver.* not found" push.log
+  grep "credential value for path contains null byte" push.log
+  refute_server_object "$testreponame" "$contents_oid"
+
+  git config credential.protectProtocol false
+
+  GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs push' to fail ..."
+    exit 1
+  fi
+  grep "batch response: Git credentials for $gitserver.* not found" push.log
+  grep "credential value for path contains null byte" push.log
+  refute_server_object "$testreponame" "$contents_oid"
+)
+end_test

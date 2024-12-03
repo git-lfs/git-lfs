@@ -83,6 +83,17 @@ func TestCredsBufferProtect(t *testing.T) {
 	buf, err = creds.buffer(true)
 	assert.Error(t, err)
 	assert.Nil(t, buf)
+
+	// Always disallow null bytes
+	creds["host"] = []string{"one.example.com\x00host=two.example.com"}
+
+	buf, err = creds.buffer(false)
+	assert.Error(t, err)
+	assert.Nil(t, buf)
+
+	buf, err = creds.buffer(true)
+	assert.Error(t, err)
+	assert.Nil(t, buf)
 }
 
 type testCredHelper struct {

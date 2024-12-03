@@ -71,6 +71,9 @@ func (c Creds) buffer(protectProtocol bool) (*bytes.Buffer, error) {
 			if protectProtocol && strings.Contains(item, "\r") {
 				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains carriage return: %q\nIf this is intended, set `credential.protectProtocol=false`", k, item))
 			}
+			if strings.Contains(item, string(rune(0))) {
+				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains null byte: %q", k, item))
+			}
 
 			buf.Write([]byte(k))
 			buf.Write([]byte("="))
