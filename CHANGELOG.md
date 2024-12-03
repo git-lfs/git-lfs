@@ -1,5 +1,43 @@
 # Git LFS Changelog
 
+## 3.6.1 (3 December 2024)
+
+This release introduces a security fix for Linux, macOS, and Windows
+systems, which has been assigned CVE-2024-53263.
+
+When Git LFS requests credentials from Git for a remote host, it passes
+portions of the host's URL to the `git-credential(1)` command without
+checking for embedded line-ending control characters, and then sends any
+credentials it receives back from the Git credential helper to the
+remote host.  By inserting URL-encoded control characters such as
+line feed (LF) or carriage return (CR) characters into the URL, an
+attacker may be able to retrieve a user's Git credentials.
+
+By default Git LFS will now report an error if a line-ending control
+character (LF or CR) or a null byte (NUL) is found in any value Git LFS
+would otherwise pass to the `git-credential(1)` command.
+
+For users who depend on the ability to pass bare carriage return
+characters in a Git credential request, Git LFS will now honour the
+`credential.protectProtocol` Git configuration option.  If this option
+is set to `false`, Git LFS will allow carriage return characters in the
+values it sends to the `git-credential(1)` command.  This option will be
+introduced in Git as part of the remedy for the vulnerability in Git
+designated as CVE-2024-52006.
+
+Git LFS v3.6.1 will be released in coordination with releases from
+several other projects including Git, Git for Windows, and Git Credential
+Manager (GCM).
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @Ry0taK for reporting this to us responsibly
+
+### Bugs
+
+* Reject bare line-ending control characters in Git credential requests (@chrisd8088)
+
 ## 3.6.0 (20 November 2024)
 
 This release is a feature release which includes support for multi-stage
