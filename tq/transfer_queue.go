@@ -289,14 +289,6 @@ func WithProgressCallback(cb tools.CopyCallback) Option {
 	}
 }
 
-func WithBatchSize(size int) Option {
-	return func(tq *TransferQueue) { tq.batchSize = size }
-}
-
-func WithBufferDepth(depth int) Option {
-	return func(tq *TransferQueue) { tq.bufferDepth = depth }
-}
-
 // NewTransferQueue builds a TransferQueue, direction and underlying mechanism determined by adapter
 func NewTransferQueue(dir Direction, manifest Manifest, remote string, options ...Option) *TransferQueue {
 	q := &TransferQueue{
