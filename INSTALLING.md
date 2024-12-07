@@ -25,7 +25,7 @@ If you are running LinuxMint 17.1 Rebecca, which is downstream of Ubuntu Trusty 
 
 The `os` and `dist` variables passed-in will override what would be detected for your system and force the selection of the upstream distribution's repository.
 
-You may also be able to run the following to automatically detect the dist for Ubuntu based distributions such as Pop OS:
+You may also be able to run the following to automatically detect the dist for Ubuntu based distributions such as Pop!_OS:
 ```
 (. /etc/lsb-release &&
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh |
