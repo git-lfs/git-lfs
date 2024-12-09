@@ -205,11 +205,11 @@ jobs:
         docker version -f '{{.Server.Experimental}}'
     - uses: docker/setup-qemu-action@v3
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
-    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=$ARCH $CONTAINER)
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch="$ARCH" "$CONTAINER")
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}
-    - run: ./docker/run_dockers.bsh --prune --arch=$ARCH $CONTAINER
+    - run: ./docker/run_dockers.bsh --prune --arch="$ARCH" "$CONTAINER"
       env:
         ARCH: ${{matrix.arch}}
         CONTAINER: ${{matrix.container}}
