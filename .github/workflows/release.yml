@@ -116,7 +116,6 @@ jobs:
     - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
-    - run: brew install gettext
     - run: make release
       env:
           FORCE_LOCALIZE: true
