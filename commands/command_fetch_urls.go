@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
-	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
 
@@ -23,34 +21,48 @@ type fetchUrlsObject struct {
 	Header map[string]string `json:"headers,omitempty"`
 }
 
+type transferData struct {
+	Transfer tq.Transfer
+	Objects  []*fetchUrlsObject
+}
+
 func fetchUrlsCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 	var items = make([]*fetchUrlsObject, 0, len(args))
+	var transferMap = make(map[string]*transferData)
 	var transfers = make([]*tq.Transfer, 0, len(args))
 	for _, file := range args {
 		pointer, err := lfs.DecodePointerFromFile(file)
 		if err != nil {
 			ExitWithError(err)
 		}
-		items = append(items, &fetchUrlsObject{Name: file, Oid: pointer.Oid, Size: pointer.Size})
-		transfers = append(transfers, &tq.Transfer{Oid: pointer.Oid, Size: pointer.Size})
+		data, exists := transferMap[pointer.Oid]
+		item := &fetchUrlsObject{Name: file, Oid: pointer.Oid, Size: pointer.Size}
+		items = append(items, item)
+		if !exists {
+			data = &transferData{Transfer: tq.Transfer{Oid: pointer.Oid, Size: pointer.Size}, Objects: make([]*fetchUrlsObject, 0, 1)}
+			transferMap[pointer.Oid] = data
+			transfers = append(transfers, &data.Transfer)
+		}
+		data.Objects = append(data.Objects, item)
 	}
 	bRes, err := tq.Batch(getTransferManifestOperationRemote("download", cfg.Remote()), tq.Download, cfg.Remote(), nil, transfers)
 	if err != nil {
 		ExitWithError(err)
 	}
-	for i := 0; i < len(args); i++ {
-		o := bRes.Objects[i]
-		item := items[i]
+	for _, o := range bRes.Objects {
+		data, exists := transferMap[o.Oid]
+		if !exists {
+			continue
+		}
 		if o.Error != nil {
 			ExitWithError(o.Error)
-		}
-		if o.Oid != item.Oid {
-			ExitWithError(errors.Errorf(tr.Tr.Get("oid mismatch: expected %s, got %s", item.Oid, o.Oid)))
-		}
+		} // TODO: retry
 		a := o.Actions["download"]
-		item.Url = a.Href
-		item.Header = a.Header
+		for _, item := range data.Objects {
+			item.Url = a.Href
+			item.Header = a.Header
+		}
 	}
 	if fetchUrlsJson {
 		data := struct {
