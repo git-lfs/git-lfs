@@ -28,8 +28,11 @@ type transferData struct {
 
 func fetchUrlsCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
+	// items is the list of objects to fetch, initially populated from CLI args, then expanded by the batch API
 	var items = make([]*fetchUrlsObject, 0, len(args))
+	// transferMap is a map from OIDs to transfer objects + a list of fetchUrlsObject instances to fill
 	var transferMap = make(map[string]*transferData)
+	// transfers is the list of transfer objects taken from the above maps to be passed to `Batch`
 	var transfers = make([]*tq.Transfer, 0, len(args))
 	for _, file := range args {
 		pointer, err := lfs.DecodePointerFromFile(file)
