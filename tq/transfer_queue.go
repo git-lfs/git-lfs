@@ -201,7 +201,8 @@ type TransferQueue struct {
 	bufferDepth       int
 	incoming          chan *objectTuple // Channel for processing incoming items
 	errorc            chan error        // Channel for processing errors
-	watchers          []chan *Transfer
+	objectWatchers    []chan *Transfer
+	transferWatchers  []chan *Transfer
 	trMutex           *sync.Mutex
 	collectorWait     sync.WaitGroup
 	errorwait         sync.WaitGroup
@@ -373,8 +374,8 @@ func (q *TransferQueue) Add(name, path, oid string, size int64, missing bool, er
 		if objs.completed {
 			// If there is already a completed transfer chain for
 			// this OID, then this object is already "done", and can
-			// be sent through as completed to the watchers.
-			for _, w := range q.watchers {
+			// be sent through as completed to the objectWatchers.
+			for _, w := range q.objectWatchers {
 				w <- t.ToTransfer()
 			}
 		}
@@ -848,8 +849,11 @@ func (q *TransferQueue) handleTransferResult(
 		objects.completed = true
 
 		// Otherwise, if the transfer was successful, notify all of the
-		// watchers, and mark it as finished.
-		for _, c := range q.watchers {
+		// transferWatchers and objectWatchers, and mark it as finished.
+		for _, c := range q.transferWatchers {
+			c <- res.Transfer
+		}
+		for _, c := range q.objectWatchers {
 			// Send one update for each transfer with the
 			// same OID.
 			for _, t := range objects.All() {
@@ -961,7 +965,11 @@ func (q *TransferQueue) Wait() {
 	q.finishAdapter()
 	close(q.errorc)
 
-	for _, watcher := range q.watchers {
+	for _, watcher := range q.objectWatchers {
+		close(watcher)
+	}
+
+	for _, watcher := range q.transferWatchers {
 		close(watcher)
 	}
 
@@ -984,13 +992,23 @@ info:   $ git config lfs.contenttype false`))
 	}
 }
 
-// Watch returns a channel where the queue will write the value of each transfer
+// Watch returns a channel where the queue will write the value of each object transfer
 // as it completes. If multiple transfers exist with the same OID, they will all
 // be recorded here, even though only one actual transfer took place. The
 // channel will be closed when the queue finishes processing.
 func (q *TransferQueue) Watch() chan *Transfer {
 	c := make(chan *Transfer, q.batchSize)
-	q.watchers = append(q.watchers, c)
+	q.objectWatchers = append(q.objectWatchers, c)
+	return c
+}
+
+// WatchTransfers returns a channel where the queue will write the value of each transfer
+// as it completes. Contrary to Watch, only one transfer will be recorded for each actual
+// transfer, even if multiple transfers exist with the same OID. Additionally the transfers
+// will contain information about the actions that were performed
+func (q *TransferQueue) WatchTransfers() chan *Transfer {
+	c := make(chan *Transfer, q.batchSize)
+	q.transferWatchers = append(q.transferWatchers, c)
 	return c
 }
 

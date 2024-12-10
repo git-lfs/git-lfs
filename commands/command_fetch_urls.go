@@ -2,11 +2,12 @@ package commands
 
 import (
 	"encoding/json"
-	"os"
-
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
+	"os"
+	"sync"
 )
 
 var (
@@ -17,71 +18,131 @@ type fetchUrlsObject struct {
 	Name   string            `json:"name"`
 	Oid    string            `json:"oid"`
 	Size   int64             `json:"size"`
-	Url    string            `json:"url"`
+	Href   string            `json:"href"`
 	Header map[string]string `json:"headers,omitempty"`
 }
 
-type transferData struct {
-	Transfer tq.Transfer
-	Objects  []*fetchUrlsObject
+func getPointer(gitfilter *lfs.GitFilter, file string) (*lfs.Pointer, error) {
+	var pointer, err = lfs.DecodePointerFromFile(file)
+	if err == nil {
+		return pointer, nil
+	}
+	openedFile, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer openedFile.Close()
+	stat, err := openedFile.Stat()
+	if err != nil {
+		return nil, err
+	}
+	cleaned, err := gitfilter.Clean(openedFile, file, stat.Size(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer cleaned.Teardown()
+	return cleaned.Pointer, nil
+}
+
+func initData(args []string) ([]*fetchUrlsObject, []*lfs.Pointer) {
+	var items = make([]*fetchUrlsObject, 0, len(args))
+	var pointers = make([]*lfs.Pointer, 0, len(args))
+	gitfilter := lfs.NewGitFilter(cfg)
+	for _, file := range args {
+		pointer, err := getPointer(gitfilter, file)
+		if err != nil {
+			ExitWithError(err)
+		}
+		items = append(items, &fetchUrlsObject{Name: file, Oid: pointer.Oid, Size: pointer.Size})
+		pointers = append(pointers, pointer)
+	}
+	return items, pointers
+}
+
+func groupByOid(items []*fetchUrlsObject) map[string][]*fetchUrlsObject {
+	var argMap = make(map[string][]*fetchUrlsObject)
+	for _, item := range items {
+		items, exists := argMap[item.Oid]
+		if !exists {
+			items = make([]*fetchUrlsObject, 0, 1)
+		}
+		argMap[item.Oid] = append(items, item)
+	}
+	return argMap
+}
+
+func fillData(wait *sync.WaitGroup, data []*fetchUrlsObject, transfers <-chan *tq.Transfer) {
+	byOid := groupByOid(data)
+	for t := range transfers {
+		a := t.Actions["download"]
+		items, exists := byOid[t.Oid]
+		if !exists {
+			continue
+		}
+		for _, item := range items {
+			item.Href = a.Href
+			item.Header = a.Header
+		}
+	}
+	wait.Done()
+}
+
+func handleErrors(queue *tq.TransferQueue) {
+	var ok = true
+	for _, e := range queue.Errors() {
+		ok = false
+		FullError(e)
+	}
+	if !ok {
+		c := getAPIClient()
+		e := c.Endpoints.Endpoint("download", cfg.Remote())
+		Exit(tr.Tr.Get("error: failed to fetch some objects from '%s'", e.Url))
+	}
+}
+
+func populateData(args []string) []*fetchUrlsObject {
+	data, pointers := initData(args)
+	var queue = newDownloadCheckQueue(getTransferManifestOperationRemote("download", cfg.Remote()), cfg.Remote())
+	transfers := queue.WatchTransfers()
+	var wait sync.WaitGroup
+	wait.Add(1)
+	go fillData(&wait, data, transfers)
+	for _, pointer := range pointers {
+		// only use first item, as other share the OID
+		queue.Add(downloadTransfer(&lfs.WrappedPointer{Pointer: pointer}))
+	}
+
+	queue.Wait()
+	wait.Wait()
+	handleErrors(queue)
+	return data
+}
+
+func dumpJson(data []*fetchUrlsObject) {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", " ")
+	output := struct {
+		Files []*fetchUrlsObject `json:"files"`
+	}{Files: data}
+	if err := encoder.Encode(output); err != nil {
+		ExitWithError(err)
+	}
+}
+
+func dumpText(data []*fetchUrlsObject) {
+	for _, item := range data {
+		Print("%s %s", item.Name, item.Href)
+	}
 }
 
 func fetchUrlsCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
-	// items is the list of objects to fetch, initially populated from CLI args, then expanded by the batch API
-	var items = make([]*fetchUrlsObject, 0, len(args))
-	// transferMap is a map from OIDs to transfer objects + a list of fetchUrlsObject instances to fill
-	var transferMap = make(map[string]*transferData)
-	// transfers is the list of transfer objects taken from the above maps to be passed to `Batch`
-	var transfers = make([]*tq.Transfer, 0, len(args))
-	for _, file := range args {
-		pointer, err := lfs.DecodePointerFromFile(file)
-		if err != nil {
-			ExitWithError(err)
-		}
-		data, exists := transferMap[pointer.Oid]
-		item := &fetchUrlsObject{Name: file, Oid: pointer.Oid, Size: pointer.Size}
-		items = append(items, item)
-		if !exists {
-			data = &transferData{Transfer: tq.Transfer{Oid: pointer.Oid, Size: pointer.Size}, Objects: make([]*fetchUrlsObject, 0, 1)}
-			transferMap[pointer.Oid] = data
-			transfers = append(transfers, &data.Transfer)
-		}
-		data.Objects = append(data.Objects, item)
-	}
-	bRes, err := tq.Batch(getTransferManifestOperationRemote("download", cfg.Remote()), tq.Download, cfg.Remote(), nil, transfers)
-	if err != nil {
-		ExitWithError(err)
-	}
-	for _, o := range bRes.Objects {
-		data, exists := transferMap[o.Oid]
-		if !exists {
-			continue
-		}
-		if o.Error != nil {
-			ExitWithError(o.Error)
-		} // TODO: retry
-		a := o.Actions["download"]
-		for _, item := range data.Objects {
-			item.Url = a.Href
-			item.Header = a.Header
-		}
-	}
+	data := populateData(args)
 	if fetchUrlsJson {
-		data := struct {
-			Urls []*fetchUrlsObject `json:"files"`
-		}{Urls: items}
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", " ")
-		if err := encoder.Encode(data); err != nil {
-			ExitWithError(err)
-		}
+		dumpJson(data)
 	} else {
-		for _, item := range items {
-			Print("%s %s", item.Name, item.Url)
-		}
+		dumpText(data)
 	}
-
 }
 
 func init() {
