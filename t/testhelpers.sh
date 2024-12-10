@@ -62,7 +62,7 @@ assert_local_object() {
   local oid="$1"
   local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   actualsize=$(wc -c <"$f" | tr -d '[[:space:]]')
   if [ "$size" != "$actualsize" ]; then
     exit 1
@@ -79,8 +79,7 @@ refute_local_object() {
   local oid="$1"
   local size="$2"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local regex="LocalMediaDir=(\S+)"
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   if [ -e $f ]; then
     if [ -z "$size" ]; then
       exit 1
@@ -99,7 +98,7 @@ refute_local_object() {
 delete_local_object() {
   local oid="$1"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   rm "$f"
 }
 
@@ -108,7 +107,7 @@ delete_local_object() {
 corrupt_local_object() {
   local oid="$1"
   local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
   cp /dev/null "$f"
 }
 
@@ -186,7 +185,7 @@ assert_remote_object() {
 
   pushd "$destination"
     local cfg="$(git lfs env | grep LocalMediaDir)"
-    local f="${cfg:14}/${oid:0:2}/${oid:2:2}/$oid"
+    local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
     actualsize="$(wc -c <"$f" | tr -d '[[:space:]]')"
     [ "$size" -eq "$actualsize" ]
   popd
@@ -577,10 +576,6 @@ write_creds_file() {
 setup_creds() {
   mkdir -p "$CREDSDIR"
   write_creds_file ":user:pass" "$CREDSDIR/127.0.0.1"
-  write_creds_file "::pass" "$CREDSDIR/--$certpath"
-  write_creds_file "::pass" "$CREDSDIR/--$keypath"
-  write_creds_file "::pass" "$CREDSDIR/--$homecertpath"
-  write_creds_file "::pass" "$CREDSDIR/--$homekeypath"
 }
 
 # setup initializes the clean, isolated environment for integration tests.
@@ -632,16 +627,10 @@ setup() {
     git config --global user.name "Git LFS Tests"
     git config --global user.email "git-lfs@example.com"
     git config --global http.sslcainfo "$LFS_CERT_FILE"
-    git config --global http.$LFS_CLIENT_CERT_URL/.sslKey "$LFS_CLIENT_KEY_FILE"
-    git config --global http.$LFS_CLIENT_CERT_URL/.sslCert "$LFS_CLIENT_CERT_FILE"
     git config --global init.defaultBranch main
   fi | sed -e 's/^/# /g'
 
   # setup the git credential password storage
-  local certpath="$(echo "$LFS_CLIENT_CERT_FILE" | tr / -)"
-  local keypath="$(echo "$LFS_CLIENT_KEY_FILE_ENCRYPTED" | tr / -)"
-  local homecertpath="$(echo "$TRASHDIR/home/lfs-client-cert-file" | tr / -)"
-  local homekeypath="$(echo "$TRASHDIR/home/lfs-client-key-file" | tr / -)"
   setup_creds
 
   echo "#"

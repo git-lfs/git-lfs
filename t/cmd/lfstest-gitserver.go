@@ -156,7 +156,10 @@ func main() {
 	debug("init", "server client cert url: %s", serverClientCert.URL)
 
 	<-stopch
-	debug("init", "git server done")
+	server.Close()
+	serverTLS.Close()
+	serverClientCert.Close()
+	debug("close", "git server done")
 }
 
 // writeTestStateFile writes contents to either the file referenced by the

@@ -132,7 +132,7 @@ begin_test "migrate import --no-rewrite (nested .gitattributes)"
 
   # Ensure a .md filter does not exist in the top-level .gitattributes
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
-  [ !"$(echo "$main_attrs" | grep -q ".md")" ]
+  echo "$main_attrs" | grep -q ".md" && exit 1
 
   # Ensure a .md filter exists in the nested .gitattributes
   nested_attrs="$(git cat-file -p "$main:b/.gitattributes")"

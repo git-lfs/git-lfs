@@ -392,3 +392,70 @@ begin_test "pull with empty file doesn't modify mtime"
   diff -u foo.mtime foo.mtime2
 )
 end_test
+
+begin_test "pull with partial clone and sparse checkout and index"
+(
+  set -e
+
+  # Only test with Git version 2.42.0 as it introduced support for the
+  # "objecttype" format option to the "git ls-files" command, which our
+  # code requires.
+  ensure_git_version_isnt "$VERSION_LOWER" "2.42.0"
+
+  reponame="pull-sparse"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents1="a"
+  contents1_oid=$(calc_oid "$contents1")
+  contents2="b"
+  contents2_oid=$(calc_oid "$contents2")
+  contents3="c"
+  contents3_oid=$(calc_oid "$contents3")
+
+  mkdir in-dir out-dir
+  printf "%s" "$contents1" >a.dat
+  printf "%s" "$contents2" >in-dir/b.dat
+  printf "%s" "$contents3" >out-dir/c.dat
+  git add .
+  git commit -m "add files"
+
+  git push origin main
+
+  assert_server_object "$reponame" "$contents1_oid"
+  assert_server_object "$reponame" "$contents2_oid"
+  assert_server_object "$reponame" "$contents3_oid"
+
+  # Create a partial clone with a cone-mode sparse checkout of one directory
+  # and a sparse index, which is important because otherwise the "git ls-files"
+  # command ignores the --sparse option and lists all Git LFS files.
+  cd ..
+  git clone --filter=tree:0 --depth=1 --no-checkout \
+    "$GITSERVER/$reponame" "${reponame}-partial"
+
+  cd "${reponame}-partial"
+  git sparse-checkout init --cone --sparse-index
+  git sparse-checkout set "in-dir"
+  git checkout main
+
+  [ -d "in-dir" ]
+  [ ! -e "out-dir" ]
+
+  assert_local_object "$contents1_oid" 1
+  assert_local_object "$contents2_oid" 1
+  refute_local_object "$contents3_oid"
+
+  # Git LFS objects associated with files outside of the sparse cone
+  # should not be pulled.
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep -q "Downloading LFS objects" pull.log && exit 1
+
+  refute_local_object "$contents3_oid"
+)
+end_test
