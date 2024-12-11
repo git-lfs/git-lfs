@@ -1,0 +1,24 @@
+= git-lfs-fetch-urls(1)
+
+== NAME
+
+git-lfs-fetch-urls - Get download URLs for Git LFS files in a tree
+
+== SYNOPSIS
+
+`git lfs fetch-urls` [options] [<file>...]
+
+== DESCRIPTION
+
+Display temporary download links for the given paths for the current ref.
+The paths must point to existing files and can be LFS pointers or smudged
+files. HTTP headers are also included in the output.
+
+== OPTIONS
+
+`--json`::
+  Give the output in a stable json format for scripts.
+
+== SEE ALSO
+
+Part of the git-lfs(1) suite.
