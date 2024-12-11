@@ -657,6 +657,7 @@ MAN_ROFF_TARGETS = man/man1/git-lfs-checkout.1 \
   man/man1/git-lfs-ext.1 \
   man/man7/git-lfs-faq.7 \
   man/man1/git-lfs-fetch.1 \
+  man/man1/git-lfs-fetch-urls.1 \
   man/man1/git-lfs-filter-process.1 \
   man/man1/git-lfs-fsck.1 \
   man/man1/git-lfs-install.1 \
@@ -695,6 +696,7 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-ext.1.html \
   man/html/git-lfs-faq.7.html \
   man/html/git-lfs-fetch.1.html \
+  man/html/git-lfs-fetch-urls.1.html \
   man/html/git-lfs-filter-process.1.html \
   man/html/git-lfs-fsck.1.html \
   man/html/git-lfs-install.1.html \

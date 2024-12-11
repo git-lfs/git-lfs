@@ -44,6 +44,8 @@ git-lfs-ext(1)::
   Display Git LFS extension details.
 git-lfs-fetch(1)::
   Download Git LFS files from a remote.
+git-lfs-fetch-urls(1)::
+  Get download URLs for Git LFS files in a tree.
 git-lfs-fsck(1)::
   Check Git LFS files for consistency.
 git-lfs-install(1)::
