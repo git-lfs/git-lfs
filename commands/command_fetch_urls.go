@@ -143,6 +143,11 @@ func dumpJson(data []*fetchUrlsObject) {
 func dumpText(data []*fetchUrlsObject) {
 	for _, item := range data {
 		Print("%s %s", item.Name, item.Href)
+		if item.Header != nil {
+			for key, value := range item.Header {
+				Print("  %s: %s", key, value)
+			}
+		}
 	}
 }
 
