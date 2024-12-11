@@ -83,24 +83,27 @@ func fillData(wait *sync.WaitGroup, data []*fetchUrlsObject, transfers <-chan *t
 			item.Href = a.Href
 			item.Header = a.Header
 		}
+		delete(byOid, t.Oid)
+	}
+	// any remaining items are missing, mark by removing the name
+	for _, items := range byOid {
+		for _, item := range items {
+			item.Name = ""
+		}
 	}
 	wait.Done()
 }
 
-func handleErrors(queue *tq.TransferQueue) {
+func checkForErrors(queue *tq.TransferQueue) bool {
 	var ok = true
 	for _, e := range queue.Errors() {
 		ok = false
 		FullError(e)
 	}
-	if !ok {
-		c := getAPIClient()
-		e := c.Endpoints.Endpoint("download", cfg.Remote())
-		Exit(tr.Tr.Get("error: failed to fetch some objects from '%s'", e.Url))
-	}
+	return ok
 }
 
-func populateData(args []string) []*fetchUrlsObject {
+func populateData(args []string) ([]*fetchUrlsObject, bool) {
 	data, pointers := initData(args)
 	var queue = newDownloadCheckQueue(getTransferManifestOperationRemote("download", cfg.Remote()), cfg.Remote())
 	transfers := queue.WatchTransfers()
@@ -111,11 +114,19 @@ func populateData(args []string) []*fetchUrlsObject {
 		// only use first item, as other share the OID
 		queue.Add(downloadTransfer(&lfs.WrappedPointer{Pointer: pointer}))
 	}
-
 	queue.Wait()
 	wait.Wait()
-	handleErrors(queue)
-	return data
+	return data, checkForErrors(queue)
+}
+
+func removeUnnamed(data []*fetchUrlsObject) []*fetchUrlsObject {
+	var result = make([]*fetchUrlsObject, 0, len(data))
+	for _, item := range data {
+		if item.Name != "" {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func dumpJson(data []*fetchUrlsObject) {
@@ -137,11 +148,17 @@ func dumpText(data []*fetchUrlsObject) {
 
 func fetchUrlsCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
-	data := populateData(args)
+	data, ok := populateData(args)
+	data = removeUnnamed(data)
 	if fetchUrlsJson {
 		dumpJson(data)
 	} else {
 		dumpText(data)
+	}
+	if !ok {
+		c := getAPIClient()
+		e := c.Endpoints.Endpoint("download", cfg.Remote())
+		Exit(tr.Tr.Get("error: failed to fetch some objects from '%s'", e.Url))
 	}
 }
 
