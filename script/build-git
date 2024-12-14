@@ -4,8 +4,7 @@ DIR="$1"
 
 case $(uname -s) in
   Darwin)
-    brew link --force curl
-    CURLDIR="$(curl-config --prefix)";;
+    CURLDIR="$(brew --prefix curl)";;
   Linux)
     export DEBIAN_FRONTEND=noninteractive
     if test -f /etc/apt/sources.list.d/ubuntu.sources; then
