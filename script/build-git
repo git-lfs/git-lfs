@@ -36,4 +36,12 @@ make -j2
 sudo make install
 
 echo "Git version:"
-git --version
+git --version --build-options
+
+echo "Git library dependencies:"
+case $(uname -s) in
+  Darwin)
+    otool -L "$(git --exec-path)/git-http-fetch";;
+  Linux)
+    ldd "$(git --exec-path)/git-http-fetch";;
+esac
