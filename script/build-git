@@ -32,7 +32,7 @@ if test -n "$CURLDIR"; then
     "CURLDIR=$CURLDIR" \
     >> config.mak
 fi
-make -j2
+make -j4
 sudo make install
 
 echo "Git version:"
