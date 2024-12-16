@@ -77,10 +77,6 @@ func trackingRef(g Env, localRef *Ref) *Ref {
 	return localRef
 }
 
-func (u *RefUpdate) RemoteRefCommitish() string {
-	return refCommitish(u.RemoteRef())
-}
-
 func refCommitish(r *Ref) string {
 	if len(r.Sha) > 0 {
 		return r.Sha

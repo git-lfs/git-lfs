@@ -108,28 +108,6 @@ type ScanRefsOptions struct {
 	Names map[string]string
 }
 
-// GetName returns the name associated with a given blob/tree sha and "true" if
-// it exists, or ("", false) if it doesn't.
-//
-// GetName is guarded by a use of o.Mutex, and is goroutine safe.
-func (o *ScanRefsOptions) GetName(sha string) (string, bool) {
-	o.Mutex.Lock()
-	defer o.Mutex.Unlock()
-
-	name, ok := o.Names[sha]
-	return name, ok
-}
-
-// SetName sets the name associated with a given blob/tree sha.
-//
-// SetName is guarded by a use of o.Mutex, and is therefore goroutine safe.
-func (o *ScanRefsOptions) SetName(sha, name string) {
-	o.Mutex.Lock()
-	defer o.Mutex.Unlock()
-
-	o.Names[sha] = name
-}
-
 // RevListScanner is a Scanner type that parses through results of the `git
 // rev-list` command.
 type RevListScanner struct {

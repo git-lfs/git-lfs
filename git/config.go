@@ -40,15 +40,6 @@ func NewConfig(workdir, gitdir string) *Configuration {
 	return &Configuration{WorkDir: workdir, GitDir: gitdir}
 }
 
-// NewReadOnlyConfig creates a new configuration that returns an error if an
-// attempt to write to the configuration is made.
-func NewReadOnlyConfig(workdir, gitdir string) *Configuration {
-	cfg := NewConfig(workdir, gitdir)
-	cfg.readOnly = true
-	return cfg
-
-}
-
 func ParseConfigLines(lines string, onlySafeKeys bool) *ConfigurationSource {
 	return &ConfigurationSource{
 		Lines:        strings.Split(lines, "\n"),
