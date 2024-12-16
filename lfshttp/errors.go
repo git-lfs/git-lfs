@@ -124,5 +124,5 @@ func defaultError(res *http.Response) error {
 		msgFmt = tr.Tr.Get("Server error %%s from HTTP %d", res.StatusCode)
 	}
 
-	return errors.Errorf(fmt.Sprintf(msgFmt), res.Request.URL)
+	return errors.Errorf(fmt.Sprintf(msgFmt, res.Request.URL))
 }
