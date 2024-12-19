@@ -19,7 +19,7 @@ require (
 	github.com/ssgelm/cookiejarparser v1.0.1
 	github.com/stretchr/testify v1.6.1
 	github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.33.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
 )
