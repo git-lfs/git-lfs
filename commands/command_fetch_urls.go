@@ -2,12 +2,13 @@ package commands
 
 import (
 	"encoding/json"
+	"os"
+	"sync"
+
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
-	"os"
-	"sync"
 )
 
 var (
