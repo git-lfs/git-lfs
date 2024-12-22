@@ -140,8 +140,6 @@ export::
   See <<_include_and_exclude>>.
 `--include-ref=<refname>`::
   See <<_include_and_exclude_references>>.
-`--include-ref=<refname>`::
-  See <<_include_and_exclude_references>>.
 `--exclude-ref=<refname>`::
   See <<_include_and_exclude_references>>.
 `--skip-fetch`::
