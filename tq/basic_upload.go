@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -23,15 +22,6 @@ const (
 // Adapter for basic uploads (non resumable)
 type basicUploadAdapter struct {
 	*adapterBase
-}
-
-func (a *basicUploadAdapter) tempDir() string {
-	// Dedicated to this adapter rather than shared with basic download.
-	d := filepath.Join(os.TempDir(), "git-lfs-basic-temp")
-	if err := tools.MkdirAll(d, a.fs); err != nil {
-		return os.TempDir()
-	}
-	return d
 }
 
 func (a *basicUploadAdapter) WorkerStarting(workerNum int) (interface{}, error) {

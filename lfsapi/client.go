@@ -19,13 +19,6 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-// do performs an *http.Request respecting redirects, and handles the response
-// as defined in c.handleResponse. Notably, it does not alter the headers for
-// the request argument in any way.
-func (c *Client) do(req *http.Request, remote string, via []*http.Request) (*http.Response, error) {
-	return c.client.Do(req)
-}
-
 func (c *Client) doWithAccess(req *http.Request, remote string, via []*http.Request, mode creds.AccessMode) (*http.Response, error) {
 	return c.client.DoWithAccess(req, mode)
 }
