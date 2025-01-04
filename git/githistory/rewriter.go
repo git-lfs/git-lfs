@@ -32,7 +32,7 @@ type Rewriter struct {
 	// filter will cull out any unmodifiable subtrees and blobs.
 	filter *filepathfilter.Filter
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
-	// loaded from.
+	// loaded.
 	db *gitobj.ObjectDatabase
 	// l is the *tasklog.Logger to which updates are written.
 	l *tasklog.Logger
@@ -581,7 +581,7 @@ func (r *Rewriter) Filter() *filepathfilter.Filter {
 	return r.filter
 }
 
-// cacheEntry caches then given "from" entry so that it is always rewritten as
+// cacheEntry caches the given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
 func (r *Rewriter) cacheEntry(path string, from, to *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
