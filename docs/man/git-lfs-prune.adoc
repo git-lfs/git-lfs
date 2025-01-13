@@ -60,10 +60,10 @@ gitignore(5).
 `--no-verify-remote`::
   Disables remote verification if lfs.pruneverifyremotealways was enabled in
   settings. See <<_verify_remote>>.
-`--verify-reachable`::
+`--verify-unreachable`::
   When doing `--verify-remote` contact the remote and check unreachable
   objects as well. See <<_verify_remote>>.
-`--no-verify-reachable`::
+`--no-verify-unreachable`::
   Disables remote verification of unreachable files if
   lfs.pruneverifyunreachablealways was enabled in settings. See
   <<_verify_remote>>.
