@@ -324,34 +324,7 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func WatchFetchedPointers(pointers []*lfs.WrappedPointer, queue *tq.TransferQueue) <-chan *lfs.WrappedPointer {
-	out := make(chan *lfs.WrappedPointer)
-	dlwatch := queue.Watch()
-
-	go func() {
-		// fetch only reports single OID, but OID *might* be referenced by multiple
-		// WrappedPointers if same content is at multiple paths, so map oid->slice
-		oidToPointers := make(map[string][]*lfs.WrappedPointer, len(pointers))
-		for _, pointer := range pointers {
-			plist := oidToPointers[pointer.Oid]
-			oidToPointers[pointer.Oid] = append(plist, pointer)
-		}
-
-		for t := range dlwatch {
-			plist, ok := oidToPointers[t.Oid]
-			if !ok {
-				continue
-			}
-			for _, p := range plist {
-				out <- p
-			}
-		}
-		close(out)
-	}()
-	return out
-}
-
-func PrintFetchedPointers(out <-chan *lfs.WrappedPointer) {
+func PrintTransfers(out <-chan *tq.Transfer) {
 	for p := range out {
 		Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
 	}
@@ -367,8 +340,7 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 	)
 
 	if fetchDryRunArg {
-		out := WatchFetchedPointers(pointers, q)
-		go PrintFetchedPointers(out)
+		go PrintTransfers(q.Watch())
 	}
 
 	for _, p := range pointers {
@@ -396,17 +368,9 @@ func MissingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, 
 	meter := buildProgressMeter(fetchDryRunArg, tq.Download)
 	logger.Enqueue(meter)
 
-	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
-		// no need to download the same object multiple times
-		if seen[p.Oid] {
-			continue
-		}
-
-		seen[p.Oid] = true
-
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
 		if cfg.LFSObjectExists(p.Oid, p.Size) {
