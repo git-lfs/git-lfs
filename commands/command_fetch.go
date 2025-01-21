@@ -19,6 +19,7 @@ var (
 	fetchRecentArg bool
 	fetchAllArg    bool
 	fetchPruneArg  bool
+	fetchForceArg  bool
 	fetchDryRunArg bool
 )
 
@@ -64,6 +65,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	success := true
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
+	fetchPruneCfg.PruneForce = fetchForceArg
 
 	if fetchAllArg {
 		if fetchRecentArg {
@@ -333,7 +335,7 @@ func PrintTransfers(out <-chan *tq.Transfer) {
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetch(allpointers []*lfs.WrappedPointer) bool {
-	pointers, meter := MissingPointers(allpointers)
+	pointers, meter := gatherPointers(allpointers)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
@@ -361,27 +363,27 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 	return ok
 }
 
-func MissingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
+func gatherPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
 	meter := buildProgressMeter(fetchDryRunArg, tq.Download)
 	logger.Enqueue(meter)
 
-	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	ret := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
-		// no need to download objects that exist locally already
+		// no need to download objects that exist locally already, unless `--refetch` was provided
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
-		if cfg.LFSObjectExists(p.Oid, p.Size) {
+		if !fetchForceArg && cfg.LFSObjectExists(p.Oid, p.Size) {
 			continue
 		}
 
-		missing = append(missing, p)
+		ret = append(ret, p)
 		meter.Add(p.Size)
 	}
 
-	return missing, meter
+	return ret, meter
 }
 
 func init() {
@@ -391,6 +393,7 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+		cmd.Flags().BoolVarP(&fetchForceArg, "force", "f", false, "Also fetch objects that are already present locally")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
 	})
 }
