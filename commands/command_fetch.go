@@ -107,7 +107,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		verifyUnreachable := fetchPruneCfg.PruneVerifyUnreachableAlways
 
 		// assume false for non available options in fetch
-		prune(fetchPruneCfg, verify, verifyUnreachable, false, false, false)
+		prune(fetchPruneCfg, verify, verifyUnreachable, false, fetchDryRunArg, fetchDryRunArg)
 	}
 
 	if !success {
