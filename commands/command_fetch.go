@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -20,7 +21,18 @@ var (
 	fetchAllArg    bool
 	fetchPruneArg  bool
 	fetchDryRunArg bool
+	fetchJsonArg   bool
 )
+
+func hasToPrintTransfers() bool {
+	return fetchJsonArg || fetchDryRunArg
+}
+
+func printHumanReadable(format string, args ...interface{}) {
+	if !fetchJsonArg {
+		Print(format, args...)
+	}
+}
 
 func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 	includeFlag := cmd.Flag("include")
@@ -61,6 +73,11 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		refs = []*git.Ref{ref}
 	}
 
+	if fetchJsonArg && fetchPruneArg {
+		// git lfs prune has no `--json` flag, so let's not allow that here for the moment
+		Exit(tr.Tr.Get("Cannot combine --json with --prune"))
+	}
+
 	success := true
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
@@ -73,7 +90,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Exit(tr.Tr.Get("Cannot combine --all with --include or --exclude"))
 		}
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
-			Print(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
+			printHumanReadable(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
 		}
 
 		if len(args) > 1 {
@@ -91,7 +108,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
+			printHumanReadable("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
 			s := fetchRef(ref.Sha, filter)
 			success = success && s
 		}
@@ -230,7 +247,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print("fetch: %s", tr.Tr.GetN(
+		printHumanReadable("fetch: %s", tr.Tr.GetN(
 			"Fetching recent branches within %v day",
 			"Fetching recent branches within %v days",
 			fetchconf.FetchRecentRefsDays,
@@ -249,7 +266,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
+				printHumanReadable("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
 				k := fetchRef(ref.Sha, filter)
 				ok = ok && k
 			}
@@ -264,7 +281,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue
 			}
-			Print("fetch: %s", tr.Tr.GetN(
+			printHumanReadable("fetch: %s", tr.Tr.GetN(
 				"Fetching changes within %v day of %v",
 				"Fetching changes within %v days of %v",
 				fetchconf.FetchRecentCommitsDays,
@@ -282,7 +299,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 
 func fetchAll() bool {
 	pointers := scanAll()
-	Print("fetch: %s", tr.Tr.Get("Fetching all references..."))
+	printHumanReadable("fetch: %s", tr.Tr.Get("Fetching all references..."))
 	return fetch(pointers)
 }
 
@@ -325,8 +342,25 @@ func scanAll() []*lfs.WrappedPointer {
 }
 
 func PrintTransfers(out <-chan *tq.Transfer) {
-	for p := range out {
-		Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
+	for t := range out {
+		Print("%s %s => %s", tr.Tr.Get("fetch"), t.Oid, t.Name)
+	}
+}
+
+func GatherTransfers(out <-chan *tq.Transfer, transfers *[]*tq.Transfer) {
+	for t := range out {
+		*transfers = append(*transfers, t)
+	}
+}
+
+func PrintFetchedJson(transfers []*tq.Transfer) {
+	data := struct {
+		Transfers []*tq.Transfer `json:"transfers"`
+	}{Transfers: transfers}
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", " ")
+	if err := encoder.Encode(data); err != nil {
+		ExitWithError(err)
 	}
 }
 
@@ -339,8 +373,15 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
 	)
 
-	if fetchDryRunArg {
-		go PrintTransfers(q.Watch())
+	var transfers []*tq.Transfer
+
+	if hasToPrintTransfers() {
+		out := q.Watch()
+		if fetchJsonArg {
+			go GatherTransfers(out, &transfers)
+		} else if fetchDryRunArg {
+			go PrintTransfers(out)
+		}
 	}
 
 	for _, p := range pointers {
@@ -358,6 +399,9 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		ok = false
 		FullError(err)
 	}
+	if fetchJsonArg {
+		PrintFetchedJson(transfers)
+	}
 	return ok
 }
 
@@ -365,7 +409,7 @@ func MissingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, 
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	meter := buildProgressMeter(fetchDryRunArg, tq.Download)
+	meter := buildProgressMeter(hasToPrintTransfers(), tq.Download)
 	logger.Enqueue(meter)
 
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -392,5 +436,6 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
+		cmd.Flags().BoolVar(&fetchJsonArg, "json", false, "Give the output in JSON format for scripts.")
 	})
 }

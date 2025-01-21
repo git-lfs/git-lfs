@@ -42,6 +42,9 @@ This does not update the working copy.
 `--dry-run`::
 `-d`::
   Print what would be fetched, without actually fetching anything.
+`--porcelain`::
+  Give the output in an easy-to-parse format for scripts.
+
 
 == INCLUDE AND EXCLUDE
 
