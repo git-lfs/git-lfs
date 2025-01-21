@@ -19,6 +19,7 @@ var (
 	fetchRecentArg bool
 	fetchAllArg    bool
 	fetchPruneArg  bool
+	fetchDryRunArg bool
 )
 
 func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
@@ -147,7 +148,7 @@ func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetchAndReportToChan(pointers, filter, nil)
+	return fetch(pointers, filter)
 }
 
 func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
@@ -189,7 +190,7 @@ func fetchRefs(refs []string) bool {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetchAndReportToChan(pointers, nil, nil)
+	return fetch(pointers, nil)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
@@ -212,7 +213,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 		ExitWithError(err)
 	}
 
-	return fetchAndReportToChan(pointers, filter, nil)
+	return fetch(pointers, filter)
 }
 
 // Fetch recent objects based on config
@@ -282,7 +283,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 func fetchAll() bool {
 	pointers := scanAll()
 	Print("fetch: %s", tr.Tr.Get("Fetching all references..."))
-	return fetchAndReportToChan(pointers, nil, nil)
+	return fetch(pointers, nil)
 }
 
 func scanAll() []*lfs.WrappedPointer {
@@ -323,22 +324,31 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-// Fetch and report completion of each OID to a channel (optional, pass nil to skip)
+func StartProcessingFetchedPointers() chan<- *lfs.WrappedPointer {
+	if !fetchDryRunArg {
+		return nil
+	}
+	out := make(chan *lfs.WrappedPointer)
+	go func() {
+		for p := range out {
+			Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
+		}
+	}()
+	return out
+}
+
+// Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter, out chan<- *lfs.WrappedPointer) bool {
-	ready, pointers, meter := readyAndMissingPointers(allpointers, filter)
+func fetch(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) bool {
+	pointers, meter := MissingPointers(allpointers, filter)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
-		cfg.Remote(), tq.WithProgress(meter),
+		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
 	)
 
-	if out != nil {
-		// If we already have it, or it won't be fetched
-		// report it to chan immediately to support pull/checkout
-		for _, p := range ready {
-			out <- p
-		}
+	out := StartProcessingFetchedPointers()
 
+	if out != nil {
 		dlwatch := q.Watch()
 
 		go func() {
@@ -381,16 +391,15 @@ func fetchAndReportToChan(allpointers []*lfs.WrappedPointer, filter *filepathfil
 	return ok
 }
 
-func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, []*lfs.WrappedPointer, *tq.Meter) {
+func MissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	meter := buildProgressMeter(false, tq.Download)
+	meter := buildProgressMeter(fetchDryRunArg, tq.Download)
 	logger.Enqueue(meter)
 
 	seen := make(map[string]bool, len(allpointers))
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
-	ready := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
 		// no need to download the same object multiple times
@@ -403,7 +412,6 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
 		if cfg.LFSObjectExists(p.Oid, p.Size) {
-			ready = append(ready, p)
 			continue
 		}
 
@@ -411,7 +419,7 @@ func readyAndMissingPointers(allpointers []*lfs.WrappedPointer, filter *filepath
 		meter.Add(p.Size)
 	}
 
-	return ready, missing, meter
+	return missing, meter
 }
 
 func init() {
@@ -421,5 +429,6 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
 	})
 }

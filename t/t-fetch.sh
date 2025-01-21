@@ -63,11 +63,18 @@ begin_test "fetch"
   cd clone
   rm -rf .git/lfs/objects
 
+  git lfs fetch --dry-run 2>&1 | tee fetch.log
+  grep "fetch $contents_oid => a\.dat" fetch.log
+  refute_local_object "$contents_oid"
+
   git lfs fetch
   assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
   grep "Git LFS fsck OK" fsck.log
+
+  git lfs fetch --dry-run 2>&1 | tee fetch.log
+  ! grep "fetch .* => a\.dat" fetch.log
 )
 end_test
 
@@ -128,12 +135,21 @@ begin_test "fetch with remote and branches"
 
   rm -rf .git/lfs/objects
 
+  git lfs fetch origin main newbranch --dry-run | tee fetch.log
+  grep "fetch $contents_oid => a\.dat" fetch.log
+  grep "fetch $b_oid => b\.dat" fetch.log
+  refute_local_object "$contents_oid"
+  refute_local_object "$b_oid"
+
   git lfs fetch origin main newbranch
   assert_local_object "$contents_oid" 1
   assert_local_object "$b_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
   grep "Git LFS fsck OK" fsck.log
+
+  git lfs fetch origin main newbranch --dry-run | tee fetch.log
+  ! grep "fetch .* => [ab]\.dat" fetch.log
 )
 end_test
 
