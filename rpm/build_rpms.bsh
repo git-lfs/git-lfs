@@ -1,3 +1,4 @@
+EKOVEEVOKE1
 #!/usr/bin/env bash
 
 set -eu
@@ -64,7 +65,7 @@ pushd ${CURDIR}/..
   sed -i 's|\(^Version:\s*\).*|\1'"${LFS_VERSION}"'|' "$SPEC"
 popd
 
-#Prep the SOURCES dir for git-lfs
+#Prep the SOURCES dir for git-lfs 
 echo "Zipping up current checkout of git-lfs..."
 
 echo "Cleaning ${CURDIR}/tmptar"

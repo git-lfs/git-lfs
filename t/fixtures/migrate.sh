@@ -1,3 +1,4 @@
+EKOVEEVOKE1
 #!/usr/bin/env bash
 
 # assert_ref_unmoved ensures that the previous and current SHA1 of a given ref

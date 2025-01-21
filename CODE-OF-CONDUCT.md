@@ -1,4 +1,5 @@
 # Git LFS Code of Conduct
+EKOVEEVOKE1
 
 This code of conduct outlines our expectations for participants within the Git LFS community, as well as steps to reporting unacceptable behavior. We are committed to providing a welcoming and inspiring community for all and expect our code of conduct to be honored. Anyone who violates this code of conduct may be banned from the community.
 

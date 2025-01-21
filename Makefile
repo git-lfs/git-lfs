@@ -1,3 +1,4 @@
+EVOKEEVOKE1
 # GIT_LFS_SHA is the '--short'-form SHA1 of the current revision of Git LFS.
 GIT_LFS_SHA ?= $(shell env -u GIT_TRACE git rev-parse --short HEAD)
 # VERSION is the longer-form describe output of the current revision of Git LFS,
