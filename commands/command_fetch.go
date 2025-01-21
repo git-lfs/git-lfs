@@ -148,7 +148,7 @@ func fetchRef(ref string, filter *filepathfilter.Filter) bool {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetch(pointers, filter)
+	return fetch(pointers)
 }
 
 func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
@@ -190,7 +190,7 @@ func fetchRefs(refs []string) bool {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetch(pointers, nil)
+	return fetch(pointers)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
@@ -213,7 +213,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 		ExitWithError(err)
 	}
 
-	return fetch(pointers, filter)
+	return fetch(pointers)
 }
 
 // Fetch recent objects based on config
@@ -283,7 +283,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 func fetchAll() bool {
 	pointers := scanAll()
 	Print("fetch: %s", tr.Tr.Get("Fetching all references..."))
-	return fetch(pointers, nil)
+	return fetch(pointers)
 }
 
 func scanAll() []*lfs.WrappedPointer {
@@ -339,8 +339,8 @@ func StartProcessingFetchedPointers() chan<- *lfs.WrappedPointer {
 
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetch(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) bool {
-	pointers, meter := MissingPointers(allpointers, filter)
+func fetch(allpointers []*lfs.WrappedPointer) bool {
+	pointers, meter := MissingPointers(allpointers)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
@@ -391,7 +391,7 @@ func fetch(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) boo
 	return ok
 }
 
-func MissingPointers(allpointers []*lfs.WrappedPointer, filter *filepathfilter.Filter) ([]*lfs.WrappedPointer, *tq.Meter) {
+func MissingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
