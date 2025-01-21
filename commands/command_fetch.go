@@ -18,35 +18,28 @@ import (
 )
 
 var (
-	fetchRecentArg bool
-	fetchAllArg    bool
-	fetchPruneArg  bool
-	fetchDryRunArg bool
-	fetchJsonArg   bool
+	fetchRecentArg  bool
+	fetchAllArg     bool
+	fetchPruneArg   bool
+	fetchRefetchArg bool
+	fetchDryRunArg  bool
+	fetchJsonArg    bool
 )
 
 type fetchWatcher struct {
-	transfers        []*tq.Transfer
-	virtuallyFetched map[string]bool
-}
-
-func newfetchWatcher() *fetchWatcher {
-	ret := &fetchWatcher{}
-	if fetchJsonArg {
-		ret.transfers = make([]*tq.Transfer, 0)
-	}
-	if fetchDryRunArg {
-		ret.virtuallyFetched = make(map[string]bool)
-	}
-	return ret
+	transfers []*tq.Transfer
+	observed  map[string]bool
 }
 
 func (d *fetchWatcher) registerTransfer(t *tq.Transfer) {
-	if d.transfers != nil {
+	if fetchJsonArg {
 		d.transfers = append(d.transfers, t)
 	}
-	if d.virtuallyFetched != nil {
-		d.virtuallyFetched[t.Oid] = true
+	if fetchDryRunArg || fetchRefetchArg {
+		if d.observed == nil {
+			d.observed = make(map[string]bool)
+		}
+		d.observed[t.Oid] = true
 	}
 	if fetchDryRunArg {
 		printProgress("%s %s => %s", tr.Tr.Get("fetch"), t.Oid, t.Name)
@@ -57,6 +50,9 @@ func (d *fetchWatcher) dumpJson() {
 	data := struct {
 		Transfers []*tq.Transfer `json:"transfers"`
 	}{Transfers: d.transfers}
+	if data.Transfers == nil {
+		data.Transfers = []*tq.Transfer{}
+	}
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", " ")
 	if err := encoder.Encode(data); err != nil {
@@ -64,8 +60,8 @@ func (d *fetchWatcher) dumpJson() {
 	}
 }
 
-func (d *fetchWatcher) hasVirtuallyFetched(oid string) bool {
-	return d.virtuallyFetched[oid]
+func (d *fetchWatcher) hasObserved(oid string) bool {
+	return d.observed[oid]
 }
 
 func hasToPrintTransfers() bool {
@@ -126,7 +122,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
 
-	watcher := newfetchWatcher()
+	watcher := &fetchWatcher{}
 
 	if fetchAllArg {
 		if fetchRecentArg {
@@ -393,7 +389,7 @@ func scanAll() []*lfs.WrappedPointer {
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
-	pointers, meter := missingPointers(allpointers, watcher)
+	pointers, meter := pointers(allpointers, watcher)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
@@ -432,31 +428,33 @@ func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
 	return ok
 }
 
-func missingPointers(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) ([]*lfs.WrappedPointer, *tq.Meter) {
+func pointers(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
 	meter := buildProgressMeter(hasToPrintTransfers(), tq.Download)
 	logger.Enqueue(meter)
 
-	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	ret := make([]*lfs.WrappedPointer, 0, len(allpointers))
 
 	for _, p := range allpointers {
-		// no need to download objects that exist locally already
-		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
-		if cfg.LFSObjectExists(p.Oid, p.Size) {
+		// if running with --dry-run or --refetch, skip objects that have already been virtually or
+		// already forcefully fetched
+		if watcher != nil && watcher.hasObserved(p.Oid) {
 			continue
 		}
-		// also if running with --dry-run, skip objects that have already been virtually fetched
-		if watcher != nil && watcher.hasVirtuallyFetched(p.Oid) {
+		// no need to download objects that exist locally already, unless `--refetch` was provided
+		// empty files are special, we always skip them in upload/download operations
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if p.Size == 0 || (!fetchRefetchArg && cfg.LFSObjectExists(p.Oid, p.Size)) {
 			continue
 		}
 
-		missing = append(missing, p)
+		ret = append(ret, p)
 		meter.Add(p.Size)
 	}
 
-	return missing, meter
+	return ret, meter
 }
 
 func init() {
@@ -466,6 +464,7 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchRecentArg, "recent", "r", false, "Fetch recent refs & commits")
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
+		cmd.Flags().BoolVar(&fetchRefetchArg, "refetch", false, "Also fetch objects that are already present locally")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
 		cmd.Flags().BoolVarP(&fetchJsonArg, "json", "j", false, "Give the output in a stable JSON format for scripts")
 	})
