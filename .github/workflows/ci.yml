@@ -16,11 +16,11 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
-      # We update the current tag as the checkout step turns annotated tags
-      # into lightweight ones by accident, breaking "git describe".
-      # See https://github.com/actions/checkout/issues/882 for details.
+        ref: ${{ github.ref }}
+      # We specify the current ref because otherwise the checkout turns
+      # annotated tags into lightweight ones, breaking "git describe".
+      # See https://github.com/actions/checkout/issues/290 and
+      # https://github.com/actions/checkout/issues/882 for details.
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - uses: actions/setup-go@v5
@@ -53,8 +53,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
+        ref: ${{ github.ref }}
     - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
@@ -67,9 +66,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
-      shell: bash
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
@@ -136,11 +133,10 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
+        ref: ${{ github.ref }}
     - uses: actions/setup-go@v5
       with:
         go-version: '1.23.x'
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: |
         echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
@@ -161,11 +157,10 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
+        ref: ${{ github.ref }}
     - uses: actions/setup-go@v5
       with:
         go-version: '1.23.x'
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: |
         echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
@@ -183,8 +178,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
     - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh)
@@ -201,8 +195,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      if: ${{ github.ref_type == 'tag' }}
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: |
         echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json

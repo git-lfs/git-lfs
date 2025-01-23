@@ -17,11 +17,11 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
-      shell: bash
-      # We update the current tag as the checkout step turns annotated tags
-      # into lightweight ones by accident, breaking "git describe".
-      # See https://github.com/actions/checkout/issues/882 for details.
+        ref: ${{ github.ref }}
+      # We specify the current ref because otherwise the checkout turns
+      # annotated tags into lightweight ones, breaking "git describe".
+      # See https://github.com/actions/checkout/issues/290 and
+      # https://github.com/actions/checkout/issues/882 for details.
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - run: Rename-Item -Path C:\msys64 -NewName msys64-tmp -Force
@@ -110,7 +110,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - uses: actions/setup-go@v5
@@ -149,7 +149,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: gem install asciidoctor
     - uses: actions/setup-go@v5
@@ -181,7 +181,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
@@ -203,7 +203,7 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - run: git fetch origin "+${GITHUB_REF}:${GITHUB_REF}"
+        ref: ${{ github.ref }}
     - uses: ruby/setup-ruby@v1
     - run: gem install packagecloud-ruby
     - run: |
