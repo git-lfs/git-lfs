@@ -526,11 +526,12 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 		root=$$(pwd -P) && \
 		( \
 			$(BSDTAR) -C "$$temp" -xf "$$i" && \
+			echo "Signing git-lfs binary for $$i ..." && \
 			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/$(PREFIX)/git-lfs" && \
-			$(CODESIGN) -dvvv "$$temp/$(PREFIX)/git-lfs" && \
 			(cd "$$temp" && $(BSDTAR) --format zip -cf "$$root/$$i" "$(PREFIX)") && \
+			echo "Signing $$i ..." && \
 			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
-			$(CODESIGN) -dvvv "$$i" && \
+			echo "Notarizing $$i ..." && \
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
 			do \
@@ -559,10 +560,8 @@ release-import-certificate:
 	@echo "Importing certificate from $(CERT_FILE)"
 	@security import "$$CERT_FILE" -f pkcs12 -k $(DARWIN_KEYCHAIN_ID) -P "$$CERT_PASS" -A
 	@echo "Verifying import and setting permissions"
-	security list-keychains -s $(DARWIN_KEYCHAIN_ID)
 	security default-keychain -s $(DARWIN_KEYCHAIN_ID)
-	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default $(DARWIN_KEYCHAIN_ID)
-	security find-identity -vp codesigning $(DARWIN_KEYCHAIN_ID)
+	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default $(DARWIN_KEYCHAIN_ID) >/dev/null
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.
