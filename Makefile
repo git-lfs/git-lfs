@@ -99,9 +99,6 @@ else
 CERT_ARGS ?= -sha1 $(CERT_SHA1)
 endif
 
-# DARWIN_CERT_ID is a portion of the common name of the signing certificatee.
-DARWIN_CERT_ID ?=
-
 # DARWIN_KEYCHAIN_ID is the name of the keychain (with suffix) where the
 # certificate is located.
 DARWIN_KEYCHAIN_ID ?= lfs.keychain
@@ -517,20 +514,19 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 
 # release-darwin is a target that builds and signs Darwin (macOS) binaries.  It must
 # be run on a macOS machine with a suitable version of XCode.
-#
-# You may sign with a different certificate by specifying DARWIN_CERT_ID.
 .PHONY : release-darwin
 release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/git-lfs-darwin-arm64-$(VERSION).zip
+	@cert_id=$$(security find-identity -vp codesigning $(DARWIN_KEYCHAIN_ID) | grep '^ *1)' | awk '{print $$2}') && \
 	for i in $^; do \
 		temp=$$(mktemp -d) && \
 		root=$$(pwd -P) && \
 		( \
 			$(BSDTAR) -C "$$temp" -xf "$$i" && \
 			echo "Signing git-lfs binary for $$i ..." && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/$(PREFIX)/git-lfs" && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$temp/$(PREFIX)/git-lfs" && \
 			(cd "$$temp" && $(BSDTAR) --format zip -cf "$$root/$$i" "$(PREFIX)") && \
 			echo "Signing $$i ..." && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$i" && \
 			echo "Notarizing $$i ..." && \
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
