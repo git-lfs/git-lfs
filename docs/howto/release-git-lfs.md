@@ -211,6 +211,9 @@ to zero, we are releasing a PATCH version.
      $ git push origin vM.N.P
      ```
 
+     Validate the pending `production` environment deployment rule in the UI
+     of the GitHub management application for macOS Developer ID certificates.
+
      This will kick off the process of building the release artifacts.  This
      process will take somewhere between 45 minutes and an hour.  When it's
      done, you'll end up with a set of release assets available for download,

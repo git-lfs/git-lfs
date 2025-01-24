@@ -8,6 +8,7 @@ env:
 jobs:
   build-windows:
     name: Build Windows Assets
+    environment: production
     runs-on: windows-latest
     strategy:
       matrix:
@@ -101,6 +102,7 @@ jobs:
         path: bin/releases
   build-macos:
     name: Build macOS Assets
+    environment: production
     runs-on: macos-latest
     strategy:
       matrix:
@@ -121,10 +123,10 @@ jobs:
           FORCE_LOCALIZE: true
     - run: CERT_FILE="$HOME/cert.p12" make release-write-certificate
       env:
-        CERT_CONTENTS: ${{secrets.MACOS_CERT_BASE64}}
+        CERT_CONTENTS: ${{secrets.GATEWATCHER_DEVELOPER_ID_CERT}}
     - run: CERT_FILE="$HOME/cert.p12" make release-import-certificate
       env:
-        CERT_PASS: ${{secrets.MACOS_CERT_PASS}}
+        CERT_PASS: ${{secrets.GATEWATCHER_DEVELOPER_ID_PASSWORD}}
     - run: make release-darwin
       env:
         DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
@@ -178,6 +180,7 @@ jobs:
         path: release-assets
   build-docker:
     name: Build Linux Packages
+    environment: production
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -196,6 +199,7 @@ jobs:
         PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
   build-docker-cross:
     name: Build Cross Linux packages
+    environment: production
     runs-on: ubuntu-latest
     strategy:
       matrix:
