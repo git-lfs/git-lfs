@@ -170,9 +170,13 @@ jobs:
     - run: rm -f bin/releases/*windows* bin/releases/*darwin*
     - run: 'find windows-assets -name "*windows*" -type f | xargs -I{} mv {} bin/releases'
     - run: 'find macos-assets -name "*darwin*" -type f | xargs -I{} mv {} bin/releases'
-    - run: script/upload --skip-verify $(git describe)
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    - run: rm -f bin/releases/git-lfs-windows-assets*.tar.gz
+    - run: mkdir -p release-assets/bin
+    - run: mv bin/releases release-assets/bin
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-assets
+        path: release-assets
   build-docker:
     name: Build Linux Packages
     runs-on: ubuntu-latest

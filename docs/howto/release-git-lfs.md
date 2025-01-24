@@ -213,13 +213,26 @@ to zero, we are releasing a PATCH version.
 
      This will kick off the process of building the release artifacts.  This
      process will take somewhere between 45 minutes and an hour.  When it's
-     done, you'll end up with a draft release in the repository for the version
-     in question.
+     done, you'll end up with a set of release assets available for download,
+     and Linux RPM and Debian packages for the new release will be available
+     on Packagecloud.
 
-  6. From the command line, finalize the release process by signing the release:
+  6. Download the `release-assets` archive file from the "Artifacts" section
+     of the "Summary" page for the most recent run of the release GitHub
+     Actions
+     [workflow](https://github.com/git-lfs/git-lfs/actions/workflows/release.yml),
+     and then unpack the file at the top level of the repository:
+     ```
+     $ rm -rf bin/releases
+     $ unzip /path/to/release-assets.zip
+     ```
 
-     ```ShellSession
-     $ script/upload --finalize vM.N.P
+     The release assets should now be present in the `bin/releases` directory.
+     The `script/upload` utility will create a new draft release announcement
+     and then upload the release assets and attach them to the announcement:
+
+     ```
+     $ script/upload --skip-verify vM.N.P
      ```
 
      Note that this script requires GnuPG, with your signing key configured,
@@ -228,17 +241,25 @@ to zero, we are releasing a PATCH version.
      provide your GitHub credentials in your `~/.netrc` file or via a
      `GITHUB_TOKEN` environment variable.
 
+  7. Finalize the release process using the same `script/upload` utility but
+     with the `--finalize` option.  The script will add GPG signatures to the
+     `hashes` and `sha256sums` files and then upload the signed files:
+
+     ```ShellSession
+     $ script/upload --finalize vM.N.P
+     ```
+
      If you want to inspect the data before approving it, pass the `--inspect`
      option, which will drop you to a shell and let you look at things.  If the
      shell exits successfully, the build will be signed; otherwise, the process
      will be aborted.
 
-  7. Publish the release on GitHub, assuming it looks correct.
+  8. Publish the release on GitHub, assuming it looks correct.
 
-  8. Move any remaining items out of the milestone for the current release to a
+  9. Move any remaining items out of the milestone for the current release to a
      future release and close the milestone.
 
-  9. Update the `_config.yml` file in
+ 10. Update the `_config.yml` file in
      [`git-lfs/git-lfs.github.com`](https://github.com/git-lfs/git-lfs.github.com),
      similar to the following:
 
@@ -255,7 +276,7 @@ to zero, we are releasing a PATCH version.
       url: "https://git-lfs.com"
      ```
 
- 10. If Homebrew does not automatically update within a few hours,
+ 11. If Homebrew does not automatically update within a few hours,
      create a GitHub PR to update the Homebrew formula for Git LFS with
      the `brew bump-formula-pr` command on a macOS system.  The SHA-256 value
      should correspond with the packaged artifact containing the new
