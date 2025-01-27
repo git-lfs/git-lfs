@@ -99,12 +99,9 @@ else
 CERT_ARGS ?= -sha1 $(CERT_SHA1)
 endif
 
-# DARWIN_CERT_ID is a portion of the common name of the signing certificatee.
-DARWIN_CERT_ID ?=
-
 # DARWIN_KEYCHAIN_ID is the name of the keychain (with suffix) where the
 # certificate is located.
-DARWIN_KEYCHAIN_ID ?= CI.keychain
+DARWIN_KEYCHAIN_ID ?= lfs.keychain
 
 export DARWIN_DEV_USER DARWIN_DEV_PASS DARWIN_DEV_TEAM
 
@@ -517,20 +514,20 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 
 # release-darwin is a target that builds and signs Darwin (macOS) binaries.  It must
 # be run on a macOS machine with a suitable version of XCode.
-#
-# You may sign with a different certificate by specifying DARWIN_CERT_ID.
 .PHONY : release-darwin
 release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/git-lfs-darwin-arm64-$(VERSION).zip
+	@cert_id=$$(security find-identity -vp codesigning $(DARWIN_KEYCHAIN_ID) | grep '^ *1)' | awk '{print $$2}') && \
 	for i in $^; do \
 		temp=$$(mktemp -d) && \
 		root=$$(pwd -P) && \
 		( \
 			$(BSDTAR) -C "$$temp" -xf "$$i" && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$temp/$(PREFIX)/git-lfs" && \
-			$(CODESIGN) -dvvv "$$temp/$(PREFIX)/git-lfs" && \
+			echo "Signing git-lfs binary for $$i ..." && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$temp/$(PREFIX)/git-lfs" && \
 			(cd "$$temp" && $(BSDTAR) --format zip -cf "$$root/$$i" "$(PREFIX)") && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$(DARWIN_CERT_ID)" --force --timestamp -vvvv --options runtime "$$i" && \
-			$(CODESIGN) -dvvv "$$i" && \
+			echo "Signing $$i ..." && \
+			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$i" && \
+			echo "Notarizing $$i ..." && \
 			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
 			do \
@@ -547,22 +544,20 @@ release-write-certificate:
 	@printf 'Wrote %d bytes (SHA256 %s) to certificate file\n' $$(wc -c <"$$CERT_FILE") $$(shasum -ba 256 "$$CERT_FILE" | cut -d' ' -f1)
 
 # release-import-certificate imports the given certificate into the macOS
-# keychain "CI".  It is not generally recommended to run this on a user system,
+# keychain "lfs".  It is not generally recommended to run this on a user system,
 # since it creates a new keychain and modifies the keychain search path.
 .PHONY : release-import-certificate
 release-import-certificate:
 	@[ -n "$(CI)" ] || { echo "Don't run this target by hand." >&2; false; }
-	@echo "Creating CI keychain"
-	security create-keychain -p default CI.keychain
-	security set-keychain-settings CI.keychain
-	security unlock-keychain -p default CI.keychain
+	@echo "Creating keychain"
+	security create-keychain -p default $(DARWIN_KEYCHAIN_ID)
+	security set-keychain-settings $(DARWIN_KEYCHAIN_ID)
+	security unlock-keychain -p default $(DARWIN_KEYCHAIN_ID)
 	@echo "Importing certificate from $(CERT_FILE)"
-	@security import "$$CERT_FILE" -f pkcs12 -k CI.keychain -P "$$CERT_PASS" -A
+	@security import "$$CERT_FILE" -f pkcs12 -k $(DARWIN_KEYCHAIN_ID) -P "$$CERT_PASS" -A
 	@echo "Verifying import and setting permissions"
-	security list-keychains -s CI.keychain
-	security default-keychain -s CI.keychain
-	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default CI.keychain
-	security find-identity -vp codesigning CI.keychain
+	security default-keychain -s $(DARWIN_KEYCHAIN_ID)
+	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default $(DARWIN_KEYCHAIN_ID) >/dev/null
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.
