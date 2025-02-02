@@ -854,10 +854,12 @@ func (q *TransferQueue) handleTransferResult(
 			// same OID.
 			for _, t := range objects.All() {
 				c <- &Transfer{
-					Name: t.Name,
-					Path: t.Path,
-					Oid:  t.Oid,
-					Size: t.Size,
+					Name:    t.Name,
+					Path:    t.Path,
+					Oid:     t.Oid,
+					Size:    t.Size,
+					Actions: res.Transfer.Actions,
+					Links:   res.Transfer.Links,
 				}
 			}
 		}
