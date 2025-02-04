@@ -74,7 +74,7 @@ begin_test "fetch"
   grep "Git LFS fsck OK" fsck.log
 
   git lfs fetch --dry-run 2>&1 | tee fetch.log
-  ! grep "fetch .* => a\.dat" fetch.log
+  grep "fetch .* => a\.dat" fetch.log && exit 1 || true
 )
 end_test
 
@@ -149,7 +149,7 @@ begin_test "fetch with remote and branches"
   grep "Git LFS fsck OK" fsck.log
 
   git lfs fetch origin main newbranch --dry-run | tee fetch.log
-  ! grep "fetch .* => [ab]\.dat" fetch.log
+  grep "fetch .* => [ab]\.dat" fetch.log && exit 1 || true
 )
 end_test
 

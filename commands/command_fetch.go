@@ -324,7 +324,7 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func PrintTransfers(out <-chan *tq.Transfer) {
+func printTransfers(out <-chan *tq.Transfer) {
 	for p := range out {
 		Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
 	}
@@ -333,14 +333,14 @@ func PrintTransfers(out <-chan *tq.Transfer) {
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetch(allpointers []*lfs.WrappedPointer) bool {
-	pointers, meter := MissingPointers(allpointers)
+	pointers, meter := missingPointers(allpointers)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
 	)
 
 	if fetchDryRunArg {
-		go PrintTransfers(q.Watch())
+		go printTransfers(q.Watch())
 	}
 
 	for _, p := range pointers {
@@ -361,7 +361,7 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 	return ok
 }
 
-func MissingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
+func missingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
