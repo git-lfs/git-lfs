@@ -325,13 +325,6 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func printTransfers(wg sync.WaitGroup, out <-chan *tq.Transfer) {
-	for p := range out {
-		Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
-	}
-	wg.Done()
-}
-
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
 func fetch(allpointers []*lfs.WrappedPointer) bool {
@@ -344,7 +337,12 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 
 	if fetchDryRunArg {
 		wg.Add(1)
-		go printTransfers(wg, q.Watch())
+		go func() {
+			defer wg.Done()
+			for p := range q.Watch() {
+				Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
+			}
+		}()
 	}
 
 	for _, p := range pointers {
@@ -362,7 +360,9 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		ok = false
 		FullError(err)
 	}
-	wg.Wait()
+	if (fetchDryRunArg) {
+		wg.Wait()
+	}
 	return ok
 }
 
