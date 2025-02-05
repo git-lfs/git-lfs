@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -324,10 +325,11 @@ func scanAll() []*lfs.WrappedPointer {
 	return pointers
 }
 
-func printTransfers(out <-chan *tq.Transfer) {
+func printTransfers(wg sync.WaitGroup, out <-chan *tq.Transfer) {
 	for p := range out {
 		Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
 	}
+	wg.Done()
 }
 
 // Fetch
@@ -338,9 +340,11 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
 	)
+	var wg sync.WaitGroup
 
 	if fetchDryRunArg {
-		go printTransfers(q.Watch())
+		wg.Add(1)
+		go printTransfers(wg, q.Watch())
 	}
 
 	for _, p := range pointers {
@@ -358,6 +362,7 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		ok = false
 		FullError(err)
 	}
+	wg.Wait()
 	return ok
 }
 
