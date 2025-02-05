@@ -336,10 +336,11 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 	var wg sync.WaitGroup
 
 	if fetchDryRunArg {
+		watcher := q.Watch()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for p := range q.Watch() {
+			for p := range watcher {
 				Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
 			}
 		}()
