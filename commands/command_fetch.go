@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 	"os"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
