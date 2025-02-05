@@ -361,7 +361,7 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		ok = false
 		FullError(err)
 	}
-	if (fetchDryRunArg) {
+	if fetchDryRunArg {
 		wg.Wait()
 	}
 	return ok
