@@ -88,10 +88,12 @@ jobs:
         flavor: minimal
       # We install the SDK so as to have access to the msgfmt.exe binary
       # from the GNU gettext package.
-    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" env -u TMPDIR script/cibuild
+    - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:/usr/bin/core_perl:$PATH" env -u TMPDIR script/cibuild
       shell: bash
       # We clear the TMPDIR set for Ruby so mktemp and Go use the same
       # volume for temporary files.
+      # We include the /usr/bin/core_perl path in PATH so the Perl prove
+      # command provided by the SDK can be located.
     - run: rm -f commands/mancontent_gen.go
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" make GOARCH=386 -B
