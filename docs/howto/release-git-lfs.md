@@ -75,7 +75,7 @@ case we are releasing a MAJOR version.  Conversely, if `P` is not equal
 to zero, we are releasing a PATCH version.
 
   1. Upgrade the Go version used in the `git-lfs/build-dockers` repository
-     to the latest available patch release with the same major and minor
+     to the latest available PATCH release with the same major and minor
      version numbers as the Go version used in this repository's GitHub
      Actions workflows.
 
@@ -152,7 +152,7 @@ to zero, we are releasing a PATCH version.
        does not need to be signed (but must be annotated).  Check that the
        local version of Go is equivalent to the most recent one used by the
        GitHub Actions workflows for the release branch, which may be different
-       from that used on the `main` branch.  For a patch release in particular
+       from that used on the `main` branch.  For a PATCH release in particular
        you may need to downgrade your local Go version.  The build artifacts
        will be placed in the `bin/releases` directory and may be uploaded
        into the PR from there:
@@ -225,7 +225,8 @@ to zero, we are releasing a PATCH version.
      Actions
      [workflow](https://github.com/git-lfs/git-lfs/actions/workflows/release.yml),
      and then unpack the file at the top level of the repository:
-     ```
+
+     ```ShellSession
      $ rm -rf bin/releases
      $ unzip /path/to/release-assets.zip
      ```
@@ -234,7 +235,7 @@ to zero, we are releasing a PATCH version.
      The `script/upload` utility will create a new draft release announcement
      and then upload the release assets and attach them to the announcement:
 
-     ```
+     ```ShellSession
      $ script/upload --skip-verify vM.N.P
      ```
 
@@ -285,7 +286,7 @@ to zero, we are releasing a PATCH version.
      should correspond with the packaged artifact containing the new
      release's source files which is available at the given URL:
 
-     ```
+     ```ShellSession
      $ brew tap homebrew/core
      $ brew bump-formula-pr \
          --url https://github.com/git-lfs/git-lfs/releases/download/vM.N.P/git-lfs-vM.N.P.tar.gz \
@@ -300,7 +301,7 @@ When building a PATCH release, we cherry-pick merges from `main` to the
 and then use that branch as the base for the PATCH release.
 
   1. Upgrade or downgrade the Go version used in the `git-lfs/build-dockers`
-     repository to the latest available patch release with the same major
+     repository to the latest available PATCH release with the same major
      and minor version numbers as the Go version used to build the Git LFS
      `vM.N.(P-1)` release.
 
@@ -313,7 +314,7 @@ and then use that branch as the base for the PATCH release.
      ```
 
      If the release branch already exists because this is not the first
-     patch release for the given MINOR (or MAJOR) release, simply checkout
+     PATCH release for the given MINOR (or MAJOR) release, simply checkout
      the `release-M.N` branch, and ensure that you have the latest changes
      from the remote.
 
