@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tr"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +38,7 @@ func logsShowCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Error reading log: %s", name))
 	}
 
-	Debug(tr.Tr.Get("Reading log: %s", name))
+	tracerx.Printf("Reading log: %s", name)
 	os.Stdout.Write(by)
 }
 
@@ -51,7 +52,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 }
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
-	Debug(tr.Tr.Get("Sample debug message"))
+	tracerx.Printf("Sample trace message")
 	err := errors.Wrapf(errors.New(tr.Tr.Get("Sample wrapped error message")), tr.Tr.Get("Sample error message"))
 	Panic(err, tr.Tr.Get("Sample panic message"))
 }

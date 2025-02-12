@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -76,13 +77,13 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 		if stat.Size() != cleaned.Size && len(cleaned.Pointer.Extensions) == 0 {
 			Exit("%s\n%s\n%s", tr.Tr.Get("Files don't match:"), mediafile, tmpfile)
 		}
-		Debug("%s exists", mediafile)
+		tracerx.Printf("%s exists", mediafile)
 	} else {
 		if err := os.Rename(tmpfile, mediafile); err != nil {
 			Panic(err, tr.Tr.Get("Unable to move %s to %s", tmpfile, mediafile))
 		}
 
-		Debug(tr.Tr.Get("Writing %s", mediafile))
+		tracerx.Printf("Writing %s", mediafile)
 	}
 
 	_, err = lfs.EncodePointer(to, cleaned.Pointer)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -29,7 +28,6 @@ import (
 //go:generate go run ../docs/man/mangen.go
 
 var (
-	Debugging    = false
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = newMultiWriter(os.Stderr, ErrorBuffer)
 	OutputWriter = newMultiWriter(os.Stdout, ErrorBuffer)
@@ -237,21 +235,12 @@ func FullError(err error) {
 }
 
 func errorWith(err error, fatalErrFn func(error, string, ...interface{}), errFn func(string, ...interface{})) {
-	if Debugging || errors.IsFatalError(err) {
+	if errors.IsFatalError(err) {
 		fatalErrFn(err, "%s", err)
 		return
 	}
 
 	errFn("%s", err)
-}
-
-// Debug prints a formatted message if debugging is enabled.  The formatted
-// message also shows up in the panic log, if created.
-func Debug(format string, args ...interface{}) {
-	if !Debugging {
-		return
-	}
-	log.Printf(format, args...)
 }
 
 // LoggedError prints the given message formatted with its arguments (if any) to
