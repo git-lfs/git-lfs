@@ -422,9 +422,10 @@ for our new version so that we can share them with the other projects
 in advance of the coordinated release date.
 
   1. Open a draft security advisory, apply for a CVE identifier, and
-     create a private fork in which to develop a resolution of the
-     vulnerability, as described above in the initial steps of our
-     non-embargoed security PATCH release process.
+     create a temporary private fork from the advisory page.  Develop a
+     resolution of the vulnerability in the private fork.  These initial
+     steps are the same as those of our non-embargoed security PATCH
+     release process.
 
   2. Create one PR in the private fork to remediate the vulnerability
      in the `main` development branch of the public repository.
