@@ -391,9 +391,20 @@ following the steps below.
      `release-M.N` branch.
 
   7. After publication of the new release, update the `git-lfs.com` home
-     page with a banner message regarding the security PATCH release
-     by pushing a change to the `_includes/home/secondary.html` file
-     in the `git-lfs/git-lfs.github.com` repository.
+     page with a banner message regarding the security PATCH release.
+     Place the banner at the top of the `_includes/home/secondary.html`
+     file in the `git-lfs/git-lfs.github.com` repository.  Use the GHSA
+     identifier from the security advisory, and remove any previous
+     security message banners.
+
+     ```html
+     <div class="column">
+       <a class="dot-com-announcement" data-ga-params="banner"
+         href="https://github.com/git-lfs/git-lfs/security/advisories/GHSA-abcd-1234-wxyz">
+         Git LFS security update: <span>All users should update to M.N.P or newer</span>.</a>
+       </a>
+     </div>
+     ```
 
   8. Create a new discussion in the "Announcements" section of the GitHub
      discussion [forum](https://github.com/git-lfs/git-lfs/discussions)
@@ -468,7 +479,7 @@ in advance of the coordinated release date.
      ```
 
   8. Check out the `main` branch of the private repository and make
-     several revisions to the `.github/workflows/release.yml` file,
+     the following revisions to the `.github/workflows/release.yml` file,
      and then push these changes back to the private repository's `main`
      branch.
 
