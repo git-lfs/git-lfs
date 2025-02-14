@@ -15,6 +15,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
+	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
 
@@ -170,7 +171,7 @@ func doFsckPointers(include, exclude string) []corruptPointer {
 	var corruptPointers []corruptPointer
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if p != nil {
-			Debug(tr.Tr.Get("Examining %v (%v)", p.Oid, p.Name))
+			tracerx.Printf("Examining %v (%v)", p.Oid, p.Name)
 			if !p.Canonical {
 				cp := corruptPointer{
 					blobOid: p.Sha1,
@@ -214,7 +215,7 @@ func doFsckPointers(include, exclude string) []corruptPointer {
 func fsckPointer(name, oid string, size int64) (bool, error) {
 	path := cfg.Filesystem().ObjectPathname(oid)
 
-	Debug(tr.Tr.Get("Examining %v (%v)", name, path))
+	tracerx.Printf("Examining %v (%v)", name, path)
 
 	f, err := os.Open(path)
 	if pErr, pOk := err.(*os.PathError); pOk {
