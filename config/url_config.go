@@ -250,39 +250,6 @@ func comparePaths(rawSearchPath, rawConfigPath string) int {
 	return score
 }
 
-func (c *URLConfig) hostsAndPaths(rawurl string) (hosts, paths []string) {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return nil, nil
-	}
-
-	return c.hosts(u), c.paths(u.Path)
-}
-
-func (c *URLConfig) hosts(u *url.URL) []string {
-	hosts := make([]string, 0, 1)
-
-	if u.User != nil {
-		hosts = append(hosts, fmt.Sprintf("%s://%s@%s", u.Scheme, u.User.Username(), u.Host))
-	}
-	hosts = append(hosts, fmt.Sprintf("%s://%s", u.Scheme, u.Host))
-
-	return hosts
-}
-
-func (c *URLConfig) paths(path string) []string {
-	pLen := len(path)
-	if pLen <= 2 {
-		return nil
-	}
-
-	end := pLen
-	if strings.HasSuffix(path, slash) {
-		end--
-	}
-	return strings.Split(path[1:end], slash)
-}
-
 const (
 	gitExt   = ".git"
 	infoPart = "info"
