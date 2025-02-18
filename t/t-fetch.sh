@@ -78,6 +78,46 @@ begin_test "fetch"
 )
 end_test
 
+begin_test "fetch --json"
+(
+  set -e
+  cd clone
+  rm -rf .git/lfs/objects
+
+  git lfs fetch --dry-run --json | tee fetch-dry-run.json
+  git lfs fetch --json | tee fetch.json
+  assert_local_object "$contents_oid" 1
+  cat > expected.json <<-EOF
+{
+ "transfers": [
+  {
+   "name": "a.dat",
+   "oid": "$contents_oid",
+   "size": 1,
+   "actions": {
+    "download": {
+     "href": "$GITSERVER/storage/$contents_oid?r=$reponame",
+     "expires_at": "0001-01-01T00:00:00Z"
+    }
+   },
+   "path": "$(local_object_path "$contents_oid")"
+  }
+ ]
+}
+EOF
+  diff -u expected.json fetch-dry-run.json
+  diff -u expected.json fetch.json
+
+  git lfs fetch --json | tee fetch.json
+  cat > expected.json <<-EOF
+{
+ "transfers": []
+}
+EOF
+  diff -u expected.json fetch.json
+)
+end_test
+
 begin_test "fetch (empty file)"
 (
   set -e
@@ -150,6 +190,68 @@ begin_test "fetch with remote and branches"
 
   git lfs fetch origin main newbranch --dry-run | tee fetch.log
   grep "fetch .* => [ab]\.dat" fetch.log && exit 1 || true
+)
+end_test
+
+begin_test "fetch --json with remote and branches"
+(
+  set -e
+  cd clone
+
+  git checkout newbranch
+  git checkout main
+
+  rm -rf .git/lfs/objects
+
+  echo ONE
+  git lfs fetch origin main newbranch --json --dry-run | tee fetch-dry-run.json
+  refute_local_object "$contents_oid"
+  refute_local_object "$b_oid"
+
+  echo TWO
+  git lfs fetch origin main newbranch --json | tee fetch.json
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+
+  # Check the JSON output, without enforcing order between a.dat and b.dat
+  cat fetch-dry-run.json | jq '.transfers[] | select(.name == "a.dat")' > fetch-dry-run-a.json
+  cat fetch-dry-run.json | jq '.transfers[] | select(.name == "b.dat")' > fetch-dry-run-b.json
+  cat fetch.json | jq '.transfers[] | select(.name == "a.dat")' > fetch-a.json
+  cat fetch.json | jq '.transfers[] | select(.name == "b.dat")' > fetch-b.json
+
+  cat > expected-a.json <<-EOF
+{
+  "name": "a.dat",
+  "oid": "$contents_oid",
+  "size": 1,
+  "actions": {
+    "download": {
+      "href": "$GITSERVER/storage/$contents_oid?r=$reponame",
+      "expires_at": "0001-01-01T00:00:00Z"
+    }
+  },
+  "path": "$(local_object_path "$contents_oid")"
+}
+EOF
+  cat > expected-b.json <<-EOF
+{
+  "name": "b.dat",
+  "oid": "$b_oid",
+  "size": 1,
+  "actions": {
+    "download": {
+      "href": "$GITSERVER/storage/$b_oid?r=$reponame",
+      "expires_at": "0001-01-01T00:00:00Z"
+    }
+  },
+  "path": "$(local_object_path "$b_oid")"
+}
+EOF
+  ls -l fetch-dry-run-a.json fetch-dry-run-b.json fetch-a.json fetch-b.json
+  diff -u expected-a.json fetch-dry-run-a.json
+  diff -u expected-b.json fetch-dry-run-b.json
+  diff -u expected-a.json fetch-a.json
+  diff -u expected-b.json fetch-b.json
 )
 end_test
 
