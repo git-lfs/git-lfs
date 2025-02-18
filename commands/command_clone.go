@@ -83,7 +83,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		filter := buildFilepathFilter(cfg, includeArg, excludeArg, true)
 		if cloneFlags.NoCheckout || cloneFlags.Bare {
 			// If --no-checkout or --bare then we shouldn't check out, just fetch instead
-			fetchRef(ref.Name, filter)
+			fetchRef(ref.Name, filter, nil)
 		} else {
 			pull(filter)
 			err := postCloneSubmodules(args)

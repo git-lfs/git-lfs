@@ -367,7 +367,7 @@ func relativize(from, to string) string {
 
 func init() {
 	RegisterCommand("status", statusCommand, func(cmd *cobra.Command) {
-		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts.")
-		cmd.Flags().BoolVarP(&statusJson, "json", "j", false, "Give the output in a stable json format for scripts.")
+		cmd.Flags().BoolVarP(&porcelain, "porcelain", "p", false, "Give the output in an easy-to-parse format for scripts")
+		cmd.Flags().BoolVarP(&statusJson, "json", "j", false, "Give the output in a stable JSON format for scripts")
 	})
 }

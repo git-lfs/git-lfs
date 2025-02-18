@@ -48,6 +48,9 @@ indicates an LFS pointer.
 `-n`::
 `--name-only`::
    Show only the lfs tracked file names.
+`-j`::
+`--json`::
+   Give the output in a stable json format for scripts.
 
 == SEE ALSO
 

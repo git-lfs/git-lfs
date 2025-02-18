@@ -43,6 +43,7 @@ meanwhile.
 `-l <num>`::
 `--limit=<num>`::
    Specifies number of results to return.
+`-j`::
 `--json`::
   Writes lock info as JSON to STDOUT if the command exits successfully. Intended
   for interoperation with external tools. If the command returns with a non-zero

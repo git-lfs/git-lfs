@@ -23,12 +23,12 @@ This command must be run in a non-bare repository.
 
 == OPTIONS
 
-`--porcelain`::
 `-p`::
+`--porcelain`::
   Give the output in an easy-to-parse format for scripts.
-`--json`::
 `-j`::
-  Give the output in a stable json format for scripts.
+`--json`::
+  Give the output in a stable JSON format for scripts.
 
 == SEE ALSO
 

@@ -470,6 +470,6 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
-		cmd.Flags().BoolVar(&fetchJsonArg, "json", false, "Give the output in JSON format")
+		cmd.Flags().BoolVar(&fetchJsonArg, "json", false, "Give the output in a stable JSON format for scripts")
 	})
 }

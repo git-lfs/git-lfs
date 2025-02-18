@@ -185,6 +185,6 @@ func init() {
 		cmd.Flags().BoolVarP(&locksCmdFlags.Local, "local", "", false, "only list cached local record of own locks")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Cached, "cached", "", false, "list cached lock information from the last remote query, instead of actually querying the server")
 		cmd.Flags().BoolVarP(&locksCmdFlags.Verify, "verify", "", false, "verify lock owner on server and mark own locks by 'O'")
-		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "", false, "print output in json")
+		cmd.Flags().BoolVarP(&locksCmdFlags.JSON, "json", "j", false, "Give the output in a stable JSON format for scripts")
 	})
 }
