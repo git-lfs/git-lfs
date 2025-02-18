@@ -246,10 +246,10 @@ begin_test "fetch --json with remote and branches"
 EOF
   cat > expected-b-a.json <<-EOF
 {
-  "transfers": [
-    $expected_b,
-    $expected_a
-  ]
+ "transfers": [
+  $expected_b,
+  $expected_a
+ ]
 }
 EOF
   diff -u expected-a-b.json fetch-dry-run.json || diff -u expected-b-a.json fetch-dry-run.json || exit 1
