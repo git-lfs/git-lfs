@@ -28,7 +28,7 @@ func NewSimpleTask() *SimpleTask {
 
 // Log logs a string with no formatting verbs.
 func (s *SimpleTask) Log(str string) {
-	s.Logf(str)
+	s.Logf("%s", str)
 }
 
 // Logf logs some formatted string, which is interpreted according to the rules
