@@ -34,7 +34,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
+		return errors.New(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs

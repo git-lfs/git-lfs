@@ -129,7 +129,7 @@ func dedup(p *lfs.WrappedPointer) (success bool, err error) {
 	if ok, err := tools.CloneFileByPath(dstFile, srcFile); err != nil {
 		return false, err
 	} else if !ok {
-		return false, errors.Errorf(tr.Tr.Get("unknown clone file error"))
+		return false, errors.New(tr.Tr.Get("unknown clone file error"))
 	}
 
 	// Recover original state

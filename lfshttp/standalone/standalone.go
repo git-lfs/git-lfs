@@ -256,7 +256,7 @@ func (h *fileHandler) upload(oid string, size int64, path string) (string, strin
 func (h *fileHandler) download(oid string, size int64) (string, string, error) {
 	if !h.remoteConfig.LFSObjectExists(oid, size) {
 		tracerx.Printf("missing object in %q (%s)", h.remotePath, oid)
-		return oid, "", errors.Errorf(tr.Tr.Get("remote missing object %s", oid))
+		return oid, "", errors.New(tr.Tr.Get("remote missing object %s", oid))
 	}
 
 	src, err := h.remoteConfig.Filesystem().ObjectPath(oid)

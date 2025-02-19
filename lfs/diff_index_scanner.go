@@ -185,12 +185,12 @@ func (s *DiffIndexScanner) scan(line string) (*DiffIndexEntry, error) {
 
 	parts := strings.Split(line, "\t")
 	if len(parts) < 2 {
-		return nil, errors.Errorf(tr.Tr.Get("invalid line: %s", line))
+		return nil, errors.New(tr.Tr.Get("invalid line: %s", line))
 	}
 
 	desc := strings.Fields(parts[0])
 	if len(desc) < 5 {
-		return nil, errors.Errorf(tr.Tr.Get("invalid description: %s", parts[0]))
+		return nil, errors.New(tr.Tr.Get("invalid description: %s", parts[0]))
 	}
 
 	entry := &DiffIndexEntry{

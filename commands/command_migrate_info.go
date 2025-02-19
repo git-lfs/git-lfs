@@ -96,17 +96,17 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 		case "ignore":
 			migrateInfoPointersMode = migrateInfoPointersIgnore
 		default:
-			ExitWithError(errors.Errorf(tr.Tr.Get("Unsupported --pointers option value")))
+			ExitWithError(errors.New(tr.Tr.Get("Unsupported --pointers option value")))
 		}
 	}
 
 	if migrateFixup {
 		include, exclude := getIncludeExcludeArgs(cmd)
 		if include != nil || exclude != nil {
-			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --fixup with --include, --exclude")))
+			ExitWithError(errors.New(tr.Tr.Get("Cannot use --fixup with --include, --exclude")))
 		}
 		if pointers.Changed && migrateInfoPointersMode != migrateInfoPointersIgnore {
-			ExitWithError(errors.Errorf(tr.Tr.Get("Cannot use --fixup with --pointers=%s", pointers.Value.String())))
+			ExitWithError(errors.New(tr.Tr.Get("Cannot use --fixup with --pointers=%s", pointers.Value.String())))
 		}
 		migrateInfoPointersMode = migrateInfoPointersIgnore
 	}
