@@ -1,7 +1,6 @@
 package lfshttp
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -102,27 +101,27 @@ func (e *statusCodeError) HTTPResponse() *http.Response {
 }
 
 func defaultError(res *http.Response) error {
-	var msgFmt string
+	var msg string
 
 	defaultErrors := map[int]string{
-		400: tr.Tr.Get("Client error: %%s"),
-		401: tr.Tr.Get("Authorization error: %%s\nCheck that you have proper access to the repository"),
-		403: tr.Tr.Get("Authorization error: %%s\nCheck that you have proper access to the repository"),
-		404: tr.Tr.Get("Repository or object not found: %%s\nCheck that it exists and that you have proper access to it"),
-		422: tr.Tr.Get("Unprocessable entity: %%s"),
-		429: tr.Tr.Get("Rate limit exceeded: %%s"),
-		500: tr.Tr.Get("Server error: %%s"),
-		501: tr.Tr.Get("Not Implemented: %%s"),
-		507: tr.Tr.Get("Insufficient server storage: %%s"),
-		509: tr.Tr.Get("Bandwidth limit exceeded: %%s"),
+		400: "Client error: %s",
+		401: "Authorization error: %s\nCheck that you have proper access to the repository",
+		403: "Authorization error: %s\nCheck that you have proper access to the repository",
+		404: "Repository or object not found: %s\nCheck that it exists and that you have proper access to it",
+		422: "Unprocessable entity: %s",
+		429: "Rate limit exceeded: %s",
+		500: "Server error: %s",
+		501: "Not Implemented: %s",
+		507: "Insufficient server storage: %s",
+		509: "Bandwidth limit exceeded: %s",
 	}
 	if f, ok := defaultErrors[res.StatusCode]; ok {
-		msgFmt = f
+		msg = tr.Tr.Get(f, res.Request.URL)
 	} else if res.StatusCode < 500 {
-		msgFmt = tr.Tr.Get("Client error %%s from HTTP %d", res.StatusCode)
+		msg = tr.Tr.Get("Client error %s from HTTP %d", res.Request.URL, res.StatusCode)
 	} else {
-		msgFmt = tr.Tr.Get("Server error %%s from HTTP %d", res.StatusCode)
+		msg = tr.Tr.Get("Server error %s from HTTP %d", res.Request.URL, res.StatusCode)
 	}
 
-	return errors.Errorf(fmt.Sprintf(msgFmt), res.Request.URL)
+	return errors.New(msg)
 }
