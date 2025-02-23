@@ -316,15 +316,14 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		root, _ := r.db.Root()
 
 		updater := &refUpdater{
-			CacheFn: r.uncacheCommit,
-			Logger:  r.l,
-			Refs:    refs,
-			Root:    root,
-
-			db: r.db,
+			cacheFn: r.uncacheCommit,
+			logger:  r.l,
+			refs:    refs,
+			root:    root,
+			db:      r.db,
 		}
 
-		if err := updater.UpdateRefs(); err != nil {
+		if err := updater.updateRefs(); err != nil {
 			return nil, errors.Wrap(err, tr.Tr.Get("could not update refs"))
 		}
 	}
