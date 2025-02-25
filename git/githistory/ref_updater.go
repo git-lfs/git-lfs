@@ -40,7 +40,7 @@ type refUpdater struct {
 // It returns any error encountered, or nil if the reference update(s) was/were
 // successful.
 func (r *refUpdater) UpdateRefs() error {
-	list := r.Logger.List(fmt.Sprintf("migrate: %s", tr.Tr.Get("Updating refs")))
+	list := r.Logger.List(tr.Tr.Get("Updating refs"))
 	defer list.Complete()
 
 	var maxNameLen int

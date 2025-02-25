@@ -204,9 +204,9 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 	var perc *tasklog.PercentageTask
 	if opt.UpdateRefs {
-		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Rewriting commits")), uint64(len(commits)))
+		perc = r.l.Percentage(tr.Tr.Get("Rewriting commits"), uint64(len(commits)))
 	} else {
-		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Examining commits")), uint64(len(commits)))
+		perc = r.l.Percentage(tr.Tr.Get("Examining commits"), uint64(len(commits)))
 	}
 	defer perc.Complete()
 
@@ -481,7 +481,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 		}
 
 		if perc != nil {
-			perc.Entry(fmt.Sprintf("migrate: %s", tr.Tr.Get("commit %s: %s", hex.EncodeToString(commitOID), path)))
+			perc.Entry(tr.Tr.Get("commit %s: %s", hex.EncodeToString(commitOID), path))
 		}
 
 		return sha, nil
@@ -501,7 +501,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 //
 // If any error was encountered, it will be returned.
 func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
-	waiter := r.l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Sorting commits")))
+	waiter := r.l.Waiter(tr.Tr.Get("Sorting commits"))
 	defer waiter.Complete()
 
 	scanner, err := git.NewRevListScanner(

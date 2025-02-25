@@ -629,7 +629,7 @@ begin_test "migrate import (existing .gitattributes symlink)"
     exit 1
   fi
 
-  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+  grep "expected '.gitattributes' to be a file, got a symbolic link" migrate.log
 
   main="$(git rev-parse refs/heads/main)"
 
@@ -1030,7 +1030,7 @@ begin_test "migrate import (dirty copy, default negative answer)"
   original_main="$(git rev-parse main)"
 
   echo | git lfs migrate import --everything 2>&1 | tee migrate.log
-  grep "migrate: working copy must not be dirty" migrate.log
+  grep "working copy must not be dirty" migrate.log
 
   migrated_main="$(git rev-parse main)"
 
@@ -1047,7 +1047,7 @@ begin_test "migrate import (dirty copy, negative answer)"
   original_main="$(git rev-parse main)"
 
   echo "n" | git lfs migrate import --everything 2>&1 | tee migrate.log
-  grep "migrate: working copy must not be dirty" migrate.log
+  grep "working copy must not be dirty" migrate.log
 
   migrated_main="$(git rev-parse main)"
 
@@ -1069,7 +1069,7 @@ begin_test "migrate import (dirty copy, unknown then negative answer)"
 
   [ "2" -eq "$(grep -o "override changes in your working copy" migrate.log \
     | wc -l | awk '{ print $1 }')" ]
-  grep "migrate: working copy must not be dirty" migrate.log
+  grep "working copy must not be dirty" migrate.log
 
   migrated_main="$(git rev-parse main)"
 
@@ -1086,7 +1086,7 @@ begin_test "migrate import (dirty copy, positive answer)"
   oid="$(calc_oid "$(git cat-file -p :a.txt)")"
 
   echo "y" | git lfs migrate import --everything 2>&1 | tee migrate.log
-  grep "migrate: changes in your working copy will be overridden ..." \
+  grep "changes in your working copy will be overridden ..." \
     migrate.log
 
   assert_pointer "refs/heads/main" "a.txt" "$oid" "5"
