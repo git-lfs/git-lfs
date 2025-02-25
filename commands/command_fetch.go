@@ -154,7 +154,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			printProgress("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
+			printProgress(tr.Tr.Get("Fetching reference %s", ref.Refspec()))
 			s := fetchRef(ref.Sha, filter, watcher)
 			success = success && s
 		}
@@ -240,7 +240,7 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 		}
 
 		numObjs++
-		task.Logf("fetch: %s", tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
+		task.Log(tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 
@@ -296,7 +296,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		printProgress("fetch: %s", tr.Tr.GetN(
+		printProgress(tr.Tr.GetN(
 			"Fetching recent branches within %v day",
 			"Fetching recent branches within %v days",
 			fetchconf.FetchRecentRefsDays,
@@ -315,7 +315,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				printProgress("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
+				printProgress(tr.Tr.Get("Fetching reference %s", ref.Name))
 				k := fetchRef(ref.Sha, filter, watcher)
 				ok = ok && k
 			}
@@ -330,7 +330,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue
 			}
-			printProgress("fetch: %s", tr.Tr.GetN(
+			printProgress(tr.Tr.GetN(
 				"Fetching changes within %v day of %v",
 				"Fetching changes within %v days of %v",
 				fetchconf.FetchRecentCommitsDays,
@@ -348,7 +348,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 
 func fetchAll(watcher *fetchWatcher) bool {
 	pointers := scanAll()
-	printProgress("fetch: %s", tr.Tr.Get("Fetching all references..."))
+	printProgress(tr.Tr.Get("Fetching all references..."))
 	return fetch(pointers, watcher)
 }
 
@@ -375,7 +375,7 @@ func scanAll() []*lfs.WrappedPointer {
 		}
 
 		numObjs++
-		task.Logf("fetch: %s", tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
+		task.Log(tr.Tr.GetN("%d object found", "%d objects found", int(numObjs), numObjs))
 		pointers = append(pointers, p)
 	})
 

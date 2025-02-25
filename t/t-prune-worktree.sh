@@ -90,8 +90,8 @@ begin_test "prune worktree"
 
   # before worktree, everything except current checkout would be pruned
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 8 local objects, 1 retained, done." prune.log
-  grep "prune: 7 files would be pruned" prune.log
+  grep "8 local objects, 1 retained, done." prune.log
+  grep "7 files would be pruned" prune.log
 
   # now add worktrees on the other branches
   git worktree add "../w1_$reponame" "branch1"
@@ -112,29 +112,29 @@ begin_test "prune worktree"
 
   # now should retain all 3 heads except for paths excluded by filter plus the indexed files
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 10 local objects, 5 retained, done." prune.log
-  grep "prune: 5 files would be pruned" prune.log
+  grep "10 local objects, 5 retained, done." prune.log
+  grep "5 files would be pruned" prune.log
 
   # also check that the same result is obtained when inside worktree rather than main
   cd "../w1_$reponame"
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 10 local objects, 5 retained, done." prune.log
-  grep "prune: 5 files would be pruned" prune.log
+  grep "10 local objects, 5 retained, done." prune.log
+  grep "5 files would be pruned" prune.log
 
   # now remove a worktree and prove that frees up the object staged in the
   # worktree's index but leaves the non-excluded object in its HEAD commit
   cd "../$reponame"
   rm -rf "../w1_$reponame"
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 10 local objects, 4 retained, done." prune.log
-  grep "prune: 6 files would be pruned" prune.log
+  grep "10 local objects, 4 retained, done." prune.log
+  grep "6 files would be pruned" prune.log
 
   # now ask Git to tidy the worktree metadata and prove that frees up the
   # non-excluded object in the removed worktree's HEAD commit
   git worktree prune
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 10 local objects, 3 retained, done." prune.log
-  grep "prune: 7 files would be pruned" prune.log
+  grep "10 local objects, 3 retained, done." prune.log
+  grep "7 files would be pruned" prune.log
 )
 end_test
 
@@ -221,7 +221,7 @@ begin_test "prune worktree (bare main)"
   # should retain all objects because there are no remote branches
   # in a bare repo, so all objects are considered unpushed
   git lfs prune --dry-run 2>&1 | tee prune.log
-  grep "prune: 6 local objects, 6 retained, done." prune.log
+  grep "6 local objects, 6 retained, done." prune.log
   [ "0" -eq "$(grep -c "files would be pruned" prune.log)" ]
 )
 end_test

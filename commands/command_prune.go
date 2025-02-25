@@ -233,7 +233,7 @@ func logVerboseOutput(logger *tasklog.Logger, verboseOutput []string, numPrunabl
 	defer info.Complete()
 
 	if dryRun {
-		info.Logf("prune: %s", tr.Tr.GetN(
+		info.Log(tr.Tr.GetN(
 			"%d file would be pruned (%s)",
 			"%d files would be pruned (%s)",
 			numPrunableObjects,
@@ -307,7 +307,7 @@ func pruneTaskDisplayProgress(progressChan PruneProgressChan, waitg *sync.WaitGr
 		case PruneProgressTypeUnverified:
 			notRemoteCount += p.Count
 		}
-		msg = fmt.Sprintf("prune: %s, %s",
+		msg = fmt.Sprintf("%s, %s",
 			tr.Tr.GetN("%d local object", "%d local objects", localCount, localCount),
 			tr.Tr.GetN("%d retained", "%d retained", retainCount, retainCount))
 		if verifyCount > 0 {
@@ -342,7 +342,7 @@ func pruneTaskCollectErrors(outtaskErrors *[]error, errorChan chan error, errorw
 }
 
 func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
-	task := logger.Percentage(fmt.Sprintf("prune: %s", tr.Tr.Get("Deleting objects")), uint64(len(prunableObjects)))
+	task := logger.Percentage(tr.Tr.Get("Deleting objects"), uint64(len(prunableObjects)))
 	defer task.Complete()
 
 	var problems bytes.Buffer

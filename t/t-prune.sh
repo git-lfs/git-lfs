@@ -70,8 +70,8 @@ begin_test "prune unreferenced and old"
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
-  grep "prune: 5 local objects, 3 retained" prune.log
-  grep "prune: 2 files would be pruned" prune.log
+  grep "5 local objects, 3 retained" prune.log
+  grep "2 files would be pruned" prune.log
   grep "$oid_oldandpushed" prune.log
   grep "$oid_unreferenced" prune.log
 
@@ -88,8 +88,8 @@ begin_test "prune unreferenced and old"
   git config lfs.fetchrecentcommitsdays 0
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 3 local objects, 2 retained" prune.log
-  grep "prune: Deleting objects: 100% (1/1), done." prune.log
+  grep "3 local objects, 2 retained" prune.log
+  grep "Deleting objects: 100% (1/1), done." prune.log
   grep "$oid_retain1" prune.log
   refute_local_object "$oid_retain1"
   assert_local_object "$oid_retain2" "${#content_retain2}"
@@ -163,8 +163,8 @@ begin_test "prune all excluded paths"
 
   git lfs prune --dry-run --verbose 2>&1 | tee prune.log
 
-  grep "prune: 6 local objects, 2 retained" prune.log
-  grep "prune: 4 files would be pruned" prune.log
+  grep "6 local objects, 2 retained" prune.log
+  grep "4 files would be pruned" prune.log
   grep "$oid_oldandexcluded" prune.log
   grep "$oid_prevandexcluded" prune.log
   grep "$oid_unreferencedandexcluded" prune.log
@@ -299,8 +299,8 @@ begin_test "prune keep unpushed"
   git push origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 12 local objects, 10 retained" prune.log
-  grep "prune: Deleting objects: 100% (2/2), done." prune.log
+  grep "12 local objects, 10 retained" prune.log
+  grep "Deleting objects: 100% (2/2), done." prune.log
   grep "$oid_keepunpushedhead1" prune.log
   grep "$oid_keepunpushedhead2" prune.log
   refute_local_object "$oid_keepunpushedhead1"
@@ -317,8 +317,8 @@ begin_test "prune keep unpushed"
   # Now make sure we purged all the intermediate commits but also make sure
   # they are on the remote.
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 10 local objects, 2 retained" prune.log
-  grep "prune: Deleting objects: 100% (8/8), done." prune.log
+  grep "10 local objects, 2 retained" prune.log
+  grep "Deleting objects: 100% (8/8), done." prune.log
   grep "$oid_keepunpushedbranch1" prune.log
   grep "$oid_keepunpushedbranch2" prune.log
   grep "$oid_keepunpushedandexcludedbranch1" prune.log
@@ -468,8 +468,8 @@ begin_test "prune keep recent"
   git push origin main:main branch_old:branch_old branch1:branch1 branch2:branch2
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 11 local objects, 6 retained, done." prune.log
-  grep "prune: Deleting objects: 100% (5/5), done." prune.log
+  grep "11 local objects, 6 retained, done." prune.log
+  grep "Deleting objects: 100% (5/5), done." prune.log
   grep "$oid_prunecommitoldbranch" prune.log
   grep "$oid_prunecommitoldbranch2" prune.log
   grep "$oid_prunecommitbranch1" prune.log
@@ -492,8 +492,8 @@ begin_test "prune keep recent"
   # still retain tips of branches
   git config lfs.fetchrecentcommitsdays 0
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 6 local objects, 3 retained, done." prune.log
-  grep "prune: Deleting objects: 100% (3/3), done." prune.log
+  grep "6 local objects, 3 retained, done." prune.log
+  grep "Deleting objects: 100% (3/3), done." prune.log
   assert_local_object "$oid_keephead" "${#content_keephead}"
   assert_local_object "$oid_keeprecentbranch1tip" "${#content_keeprecentbranch1tip}"
   assert_local_object "$oid_keeprecentbranch2tip" "${#content_keeprecentbranch2tip}"
@@ -504,8 +504,8 @@ begin_test "prune keep recent"
   # now don't include any recent refs at all, only keep HEAD
   git config lfs.fetchrecentrefsdays 0
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 3 local objects, 1 retained, done." prune.log
-  grep "prune: Deleting objects: 100% (2/2), done." prune.log
+  grep "3 local objects, 1 retained, done." prune.log
+  grep "Deleting objects: 100% (2/2), done." prune.log
   assert_local_object "$oid_keephead" "${#content_keephead}"
   refute_local_object "$oid_keeprecentbranch1tip"
   refute_local_object "$oid_keeprecentbranch2tip"
@@ -554,7 +554,7 @@ begin_test "prune remote tests"
 
   # can never prune with no remote
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 4 retained, done." prune.log
+  grep "4 local objects, 4 retained, done." prune.log
 
 
   # also make sure nothing is pruned when remote is not origin
@@ -566,15 +566,15 @@ begin_test "prune remote tests"
   git push not_origin main
 
   git lfs prune --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 4 retained, done." prune.log
+  grep "4 local objects, 4 retained, done." prune.log
 
   # now set the prune remote to be not_origin, should now prune
   # do a dry run so we can also verify
   git config lfs.pruneremotetocheck not_origin
 
   git lfs prune --verbose --dry-run 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, done." prune.log
-  grep "prune: 3 files would be pruned" prune.log
+  grep "4 local objects, 1 retained, done." prune.log
+  grep "3 files would be pruned" prune.log
 )
 end_test
 
@@ -633,8 +633,8 @@ begin_test "prune verify"
 
   # confirm that it would prune with verify when no issues
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 3 verified with remote, done." prune.log
-  grep "prune: 3 files would be pruned" prune.log
+  grep "4 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "3 files would be pruned" prune.log
   grep "$oid_commit3" prune.log
   grep "$oid_commit2_failverify" prune.log
   grep "$oid_commit1" prune.log
@@ -643,7 +643,7 @@ begin_test "prune verify"
   delete_server_object "remote_$reponame" "$oid_commit2_failverify"
   # this should now fail
   git lfs prune --verify-remote 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
+  grep "4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
@@ -655,7 +655,7 @@ begin_test "prune verify"
   git config lfs.pruneverifyremotealways true
   # no verify arg but should be pulled from global
   git lfs prune 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
+  grep "4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_commit2_failverify" prune.log
   # Nothing should have been deleted
@@ -665,15 +665,15 @@ begin_test "prune verify"
 
   # --when-unverified=continue we would prune verified objects but skip unverified objects
   git lfs prune --when-unverified=continue --dry-run --verbose 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
-  grep "prune: 2 files would be pruned" prune.log
+  grep "4 local objects, 1 retained, 2 verified with remote, 1 not on remote, done." prune.log
+  grep "2 files would be pruned" prune.log
   grep "$oid_commit1" prune.log
   grep "$oid_commit3" prune.log
 
   # now try overriding the global option
   git lfs prune --no-verify-remote 2>&1 | tee prune.log
-  grep "prune: 4 local objects, 1 retained, done." prune.log
-  grep "prune: Deleting objects: 100% (3/3), done." prune.log
+  grep "4 local objects, 1 retained, done." prune.log
+  grep "Deleting objects: 100% (3/3), done." prune.log
   # should now have been deleted
   refute_local_object "$oid_commit1"
   refute_local_object "$oid_commit2_failverify"
@@ -806,8 +806,8 @@ begin_test "prune unreachable"
 
   # confirm that it would prune without --verify-unreachable
   git lfs prune --dry-run --verify-remote --verbose 2>&1 | tee prune.log
-  grep "prune: 5 local objects, 1 retained, 3 verified with remote, done." prune.log
-  grep "prune: 4 files would be pruned" prune.log
+  grep "5 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "4 files would be pruned" prune.log
   grep "$oid_commit3" prune.log
   grep "$oid_commit2" prune.log
   grep "$oid_commit1" prune.log
@@ -815,7 +815,7 @@ begin_test "prune unreachable"
 
   # this should now halt as one file cannot be verified
   git lfs prune --verify-remote --verify-unreachable 2>&1 | tee prune.log
-  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_orphan" prune.log
 
@@ -829,19 +829,19 @@ begin_test "prune unreachable"
   # test config option
   git config lfs.pruneverifyunreachablealways true
   git lfs prune --verify-remote 2>&1 | tee prune.log
-  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
   grep "missing on remote:" prune.log
   grep "$oid_orphan" prune.log
 
   # now try overriding the global option
   git lfs prune --verify-remote --no-verify-unreachable --dry-run 2>&1 | tee prune.log
-  grep "prune: 5 local objects, 1 retained, 3 verified with remote, done." prune.log
-  grep "prune: 4 files would be pruned" prune.log
+  grep "5 local objects, 1 retained, 3 verified with remote, done." prune.log
+  grep "4 files would be pruned" prune.log
 
   # now test with continue to see that it does prune verified objects
   git lfs prune --verify-remote --when-unverified=continue 2>&1 | tee prune.log
-  grep "prune: 5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
-  grep "prune: Deleting objects: 100% (3/3), done." prune.log
+  grep "5 local objects, 1 retained, 3 verified with remote, 1 not on remote, done." prune.log
+  grep "Deleting objects: 100% (3/3), done." prune.log
 
   # The orphan file should not have been deleted
   refute_local_object "$oid_commit1" "${#content_commit1}"

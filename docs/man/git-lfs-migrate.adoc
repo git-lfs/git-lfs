@@ -392,9 +392,9 @@ most space in your repository:
 
 ....
 $ git lfs migrate info
-migrate: Fetching remote refs: ..., done
-migrate: Sorting commits: ..., done
-migrate: Examining commits: 100% (1/1), done
+Fetching remote refs: ..., done
+Sorting commits: ..., done
+Examining commits: 100% (1/1), done
 *.mp3   284 MB    1/1 files(s)  100%
 *.pdf   42 MB     8/8 files(s)  100%
 *.psd   9.8 MB  15/15 files(s)  100%
@@ -407,11 +407,11 @@ LFS:
 
 ....
 $ git lfs migrate import --include="*.mp3,*.psd"
-migrate: Fetching remote refs: ..., done
-migrate: Sorting commits: ..., done
-migrate: Rewriting commits: 100% (1/1), done
+Fetching remote refs: ..., done
+Sorting commits: ..., done
+Rewriting commits: 100% (1/1), done
   main  d2b959babd099fe70da1c1512e2475e8a24de163 -> 136e706bf1ae79643915c134e17a6c933fd53c61
-migrate: Updating refs: ..., done
+Updating refs: ..., done
 ....
 
 If after conversion you find that some files in your working directory

@@ -282,7 +282,7 @@ func checkoutNonBare(l *tasklog.Logger) error {
 		return nil
 	}
 
-	t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
+	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
 	return git.Checkout("", nil, true)
@@ -322,7 +322,7 @@ func trackedFromAttrs(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*tools.Ordered
 	for _, e := range t.Entries {
 		if strings.ToLower(e.Name) == ".gitattributes" && e.Type() == gitobj.BlobObjectType {
 			if e.IsLink() {
-				return nil, errors.Errorf("migrate: %s", tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+				return nil, errors.New(tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
 			} else {
 				oid = e.Oid
 				break
@@ -438,7 +438,7 @@ func rewriteTree(gf *lfs.GitFilter, db *gitobj.ObjectDatabase, root []byte, path
 
 		subtreeEntry := tree.Entries[index]
 		if subtreeEntry.Type() != gitobj.TreeObjectType {
-			return nil, errors.Errorf("migrate: %s", tr.Tr.Get("expected %s to be a tree, got %s", head, subtreeEntry.Type()))
+			return nil, errors.New(tr.Tr.Get("expected %s to be a tree, got %s", head, subtreeEntry.Type()))
 		}
 
 		rewrittenSubtree, err := rewriteTree(gf, db, subtreeEntry.Oid, tail)
