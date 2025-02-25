@@ -55,14 +55,21 @@ refute_pointer() {
   fi
 }
 
+# local_object_path computes the path to the local storage for an oid
+# $ local_object_path "some-oid"
+local_object_path() {
+  local oid="$1"
+  local cfg=`git lfs env | grep LocalMediaDir`
+  echo "${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+}
+
 # assert_local_object confirms that an object file is stored for the given oid &
 # has the correct size
 # $ assert_local_object "some-oid" size
 assert_local_object() {
   local oid="$1"
   local size="$2"
-  local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="$(local_object_path "$oid")"
   actualsize=$(wc -c <"$f" | tr -d '[[:space:]]')
   if [ "$size" != "$actualsize" ]; then
     exit 1
@@ -78,8 +85,7 @@ assert_local_object() {
 refute_local_object() {
   local oid="$1"
   local size="$2"
-  local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="$(local_object_path "$oid")"
   if [ -e $f ]; then
     if [ -z "$size" ]; then
       exit 1
@@ -97,8 +103,7 @@ refute_local_object() {
 # $ delete_local_object "some-oid"
 delete_local_object() {
   local oid="$1"
-  local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="$(local_object_path "$oid")"
   rm "$f"
 }
 
@@ -106,8 +111,7 @@ delete_local_object() {
 # $ corrupt_local_object "some-oid"
 corrupt_local_object() {
   local oid="$1"
-  local cfg=`git lfs env | grep LocalMediaDir`
-  local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+  local f="$(local_object_path "$oid")"
   cp /dev/null "$f"
 }
 
@@ -184,8 +188,7 @@ assert_remote_object() {
   local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
 
   pushd "$destination"
-    local cfg="$(git lfs env | grep LocalMediaDir)"
-    local f="${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+    local f="$(local_object_path "$oid")"
     actualsize="$(wc -c <"$f" | tr -d '[[:space:]]')"
     [ "$size" -eq "$actualsize" ]
   popd

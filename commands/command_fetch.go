@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -21,7 +22,61 @@ var (
 	fetchAllArg    bool
 	fetchPruneArg  bool
 	fetchDryRunArg bool
+	fetchJsonArg   bool
 )
+
+type fetchWatcher struct {
+	transfers        []*tq.Transfer
+	virtuallyFetched map[string]bool
+}
+
+func newfetchWatcher() *fetchWatcher {
+	ret := &fetchWatcher{}
+	if fetchJsonArg {
+		ret.transfers = make([]*tq.Transfer, 0)
+	}
+	if fetchDryRunArg {
+		ret.virtuallyFetched = make(map[string]bool)
+	}
+	return ret
+}
+
+func (d *fetchWatcher) registerTransfer(t *tq.Transfer) {
+	if d.transfers != nil {
+		d.transfers = append(d.transfers, t)
+	}
+	if d.virtuallyFetched != nil {
+		d.virtuallyFetched[t.Oid] = true
+	}
+	if fetchDryRunArg {
+		printProgress("%s %s => %s", tr.Tr.Get("fetch"), t.Oid, t.Name)
+	}
+}
+
+func (d *fetchWatcher) dumpJson() {
+	data := struct {
+		Transfers []*tq.Transfer `json:"transfers"`
+	}{Transfers: d.transfers}
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", " ")
+	if err := encoder.Encode(data); err != nil {
+		ExitWithError(err)
+	}
+}
+
+func (d *fetchWatcher) hasVirtuallyFetched(oid string) bool {
+	return d.virtuallyFetched[oid]
+}
+
+func hasToPrintTransfers() bool {
+	return fetchJsonArg || fetchDryRunArg
+}
+
+func printProgress(format string, args ...interface{}) {
+	// TODO: Adjust all our commands to use a common function to output
+	//       progress messages to stderr, following Git's model.
+	Error(format, args...)
+}
 
 func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 	includeFlag := cmd.Flag("include")
@@ -62,9 +117,16 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		refs = []*git.Ref{ref}
 	}
 
+	if fetchJsonArg && fetchPruneArg {
+		// git lfs prune has no `--json` flag, so let's not allow that here for the moment
+		Exit(tr.Tr.Get("Cannot combine --json with --prune"))
+	}
+
 	success := true
 	include, exclude := getIncludeExcludeArgs(cmd)
 	fetchPruneCfg := lfs.NewFetchPruneConfig(cfg.Git)
+
+	watcher := newfetchWatcher()
 
 	if fetchAllArg {
 		if fetchRecentArg {
@@ -74,7 +136,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Exit(tr.Tr.Get("Cannot combine --all with --include or --exclude"))
 		}
 		if len(cfg.FetchIncludePaths()) > 0 || len(cfg.FetchExcludePaths()) > 0 {
-			Print(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
+			printProgress(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
 		}
 
 		if len(args) > 1 {
@@ -82,9 +144,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			for _, ref := range refs {
 				refShas = append(refShas, ref.Sha)
 			}
-			success = fetchRefs(refShas)
+			success = fetchRefs(refShas, watcher)
 		} else {
-			success = fetchAll()
+			success = fetchAll(watcher)
 		}
 
 	} else { // !all
@@ -92,13 +154,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {
-			Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
-			s := fetchRef(ref.Sha, filter)
+			printProgress("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Refspec()))
+			s := fetchRef(ref.Sha, filter, watcher)
 			success = success && s
 		}
 
 		if fetchRecentArg || fetchPruneCfg.FetchRecentAlways {
-			s := fetchRecent(fetchPruneCfg, refs, filter)
+			s := fetchRecent(fetchPruneCfg, refs, filter, watcher)
 			success = success && s
 		}
 	}
@@ -115,6 +177,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", cfg.Remote())
 		Exit(tr.Tr.Get("error: failed to fetch some objects from '%s'", e.Url))
+	}
+	if fetchJsonArg {
+		watcher.dumpJson()
 	}
 }
 
@@ -144,12 +209,12 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 }
 
 // Fetch all binaries for a given ref (that we don't have already)
-func fetchRef(ref string, filter *filepathfilter.Filter) bool {
+func fetchRef(ref string, filter *filepathfilter.Filter, watcher *fetchWatcher) bool {
 	pointers, err := pointersToFetchForRef(ref, filter)
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetch(pointers)
+	return fetch(pointers, watcher)
 }
 
 func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
@@ -186,17 +251,17 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 	return pointers, multiErr
 }
 
-func fetchRefs(refs []string) bool {
+func fetchRefs(refs []string, watcher *fetchWatcher) bool {
 	pointers, err := pointersToFetchForRefs(refs)
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not scan for Git LFS files"))
 	}
-	return fetch(pointers)
+	return fetch(pointers, watcher)
 }
 
 // Fetch all previous versions of objects from since to ref (not including final state at ref)
 // So this will fetch all the '-' sides of the diff from since to ref
-func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter) bool {
+func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.Filter, watcher *fetchWatcher) bool {
 	var pointers []*lfs.WrappedPointer
 
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
@@ -214,11 +279,11 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 		ExitWithError(err)
 	}
 
-	return fetch(pointers)
+	return fetch(pointers, watcher)
 }
 
 // Fetch recent objects based on config
-func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter) bool {
+func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter, watcher *fetchWatcher) bool {
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
 	}
@@ -231,7 +296,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	}
 	// First find any other recent refs
 	if fetchconf.FetchRecentRefsDays > 0 {
-		Print("fetch: %s", tr.Tr.GetN(
+		printProgress("fetch: %s", tr.Tr.GetN(
 			"Fetching recent branches within %v day",
 			"Fetching recent branches within %v days",
 			fetchconf.FetchRecentRefsDays,
@@ -250,8 +315,8 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				}
 			} else {
 				uniqueRefShas[ref.Sha] = ref.Name
-				Print("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
-				k := fetchRef(ref.Sha, filter)
+				printProgress("fetch: %s", tr.Tr.Get("Fetching reference %s", ref.Name))
+				k := fetchRef(ref.Sha, filter, watcher)
 				ok = ok && k
 			}
 		}
@@ -265,7 +330,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue
 			}
-			Print("fetch: %s", tr.Tr.GetN(
+			printProgress("fetch: %s", tr.Tr.GetN(
 				"Fetching changes within %v day of %v",
 				"Fetching changes within %v days of %v",
 				fetchconf.FetchRecentCommitsDays,
@@ -273,7 +338,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 				refName,
 			))
 			commitsSince := summ.CommitDate.AddDate(0, 0, -fetchconf.FetchRecentCommitsDays)
-			k := fetchPreviousVersions(commit, commitsSince, filter)
+			k := fetchPreviousVersions(commit, commitsSince, filter, watcher)
 			ok = ok && k
 		}
 
@@ -281,10 +346,10 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	return ok
 }
 
-func fetchAll() bool {
+func fetchAll(watcher *fetchWatcher) bool {
 	pointers := scanAll()
-	Print("fetch: %s", tr.Tr.Get("Fetching all references..."))
-	return fetch(pointers)
+	printProgress("fetch: %s", tr.Tr.Get("Fetching all references..."))
+	return fetch(pointers, watcher)
 }
 
 func scanAll() []*lfs.WrappedPointer {
@@ -327,21 +392,21 @@ func scanAll() []*lfs.WrappedPointer {
 
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetch(allpointers []*lfs.WrappedPointer) bool {
-	pointers, meter := missingPointers(allpointers)
+func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
+	pointers, meter := missingPointers(allpointers, watcher)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
 	)
 	var wg sync.WaitGroup
 
-	if fetchDryRunArg {
-		watcher := q.Watch()
+	if watcher != nil {
+		transfers := q.Watch()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for p := range watcher {
-				Print("%s %s => %s", tr.Tr.Get("fetch"), p.Oid, p.Name)
+			for t := range transfers {
+				watcher.registerTransfer(t)
 			}
 		}()
 	}
@@ -361,17 +426,17 @@ func fetch(allpointers []*lfs.WrappedPointer) bool {
 		ok = false
 		FullError(err)
 	}
-	if fetchDryRunArg {
+	if watcher != nil {
 		wg.Wait()
 	}
 	return ok
 }
 
-func missingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, *tq.Meter) {
+func missingPointers(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
-	meter := buildProgressMeter(fetchDryRunArg, tq.Download)
+	meter := buildProgressMeter(hasToPrintTransfers(), tq.Download)
 	logger.Enqueue(meter)
 
 	missing := make([]*lfs.WrappedPointer, 0, len(allpointers))
@@ -380,6 +445,10 @@ func missingPointers(allpointers []*lfs.WrappedPointer) ([]*lfs.WrappedPointer, 
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
 		if cfg.LFSObjectExists(p.Oid, p.Size) {
+			continue
+		}
+		// also if running with --dry-run, skip objects that have already been virtually fetched
+		if watcher != nil && watcher.hasVirtuallyFetched(p.Oid) {
 			continue
 		}
 
@@ -398,5 +467,6 @@ func init() {
 		cmd.Flags().BoolVarP(&fetchAllArg, "all", "a", false, "Fetch all LFS files ever referenced")
 		cmd.Flags().BoolVarP(&fetchPruneArg, "prune", "p", false, "After fetching, prune old data")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
+		cmd.Flags().BoolVarP(&fetchJsonArg, "json", "j", false, "Give the output in a stable JSON format for scripts")
 	})
 }

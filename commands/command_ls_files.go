@@ -203,6 +203,6 @@ func init() {
 		cmd.Flags().BoolVar(&lsFilesScanDeleted, "deleted", false, "")
 		cmd.Flags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
 		cmd.Flags().StringVarP(&excludeArg, "exclude", "X", "", "Exclude a list of paths")
-		cmd.Flags().BoolVarP(&lsFilesJSON, "json", "", false, "print output in JSON")
+		cmd.Flags().BoolVarP(&lsFilesJSON, "json", "j", false, "Give the output in a stable JSON format for scripts")
 	})
 }
