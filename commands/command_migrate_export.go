@@ -176,7 +176,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 }
 
 func performForceCheckout(l *tasklog.Logger) error {
-	t := l.Waiter(tr.Tr.Get("checkout"))
+	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
 	return git.Checkout("", nil, true)

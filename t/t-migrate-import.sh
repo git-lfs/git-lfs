@@ -823,7 +823,10 @@ begin_test "migrate import (--everything and --include with glob pattern)"
   md_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.md")")"
   txt_feature_oid="$(calc_oid "$(git cat-file -p "refs/heads/my-feature:a.txt")")"
 
-  git lfs migrate import --verbose --everything --include='*.[mM][dD]'
+  original_head="$(git rev-parse HEAD)"
+
+  git lfs migrate import --verbose --everything --include='*.[mM][dD]' --yes 2>&1 | tee migrate.log
+  grep -q "  commit ${original_head}: a\.md" migrate.log
 
   assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "140"
   assert_pointer "refs/heads/my-feature" "a.md" "$md_feature_oid" "30"
@@ -849,7 +852,10 @@ begin_test "migrate import (--everything with tag pointing to tag)"
   git tag -a -m abc abc refs/heads/main
   git tag -a -m def def refs/tags/abc
 
-  git lfs migrate import --verbose --everything --include='*.[mM][dD]'
+  original_head="$(git rev-parse HEAD)"
+
+  git lfs migrate import --verbose --everything --include='*.[mM][dD]' --yes 2>&1 | tee migrate.log
+  grep -q "  commit ${original_head}: a\.md" migrate.log
 
   assert_pointer "refs/heads/main" "a.md" "$md_main_oid" "140"
   assert_pointer "refs/tags/abc" "a.md" "$md_main_oid" "140"

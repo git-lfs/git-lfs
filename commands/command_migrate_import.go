@@ -282,7 +282,7 @@ func checkoutNonBare(l *tasklog.Logger) error {
 		return nil
 	}
 
-	t := l.Waiter(tr.Tr.Get("checkout"))
+	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
 	return git.Checkout("", nil, true)

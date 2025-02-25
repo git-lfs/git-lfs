@@ -481,7 +481,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 		}
 
 		if perc != nil {
-			perc.Entry(tr.Tr.Get("commit %s: %s", hex.EncodeToString(commitOID), path))
+			perc.Entry(tr.Tr.Get("  commit %s: %s", hex.EncodeToString(commitOID), path))
 		}
 
 		return sha, nil
