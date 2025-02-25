@@ -46,7 +46,6 @@ This does not update the working copy.
 `-j`::
   Give the output in a stable JSON format for scripts.
 
-
 == INCLUDE AND EXCLUDE
 
 You can configure Git LFS to only fetch objects to satisfy references in
