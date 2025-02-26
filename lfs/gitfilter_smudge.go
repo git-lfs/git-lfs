@@ -176,7 +176,7 @@ func (f *GitFilter) downloadFileFallBack(writer io.Writer, ptr *Pointer, working
 			return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
 		}
 	}
-	return 0, errors.Wrapf(errors.New("No known remotes"), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+	return 0, errors.Wrapf(errors.New(tr.Tr.Get("No known remotes")), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 }
 
 func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
