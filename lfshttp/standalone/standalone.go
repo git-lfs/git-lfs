@@ -290,13 +290,13 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 	for scanner.Scan() {
 		var msg inputMessage
 		if err := json.NewDecoder(strings.NewReader(scanner.Text())).Decode(&msg); err != nil {
-			return errors.Wrapf(err, tr.Tr.Get("error decoding JSON"))
+			return errors.Wrap(err, tr.Tr.Get("error decoding JSON"))
 		}
 		if handler == nil {
 			var err error
 			handler, err = newHandler(cfg, output, &msg)
 			if err != nil {
-				err := errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				err := errors.Wrap(err, tr.Tr.Get("error creating handler"))
 				errMsg := outputErrorMessage{
 					Error: errorMessage{
 						Message: err.Error(),
@@ -314,7 +314,7 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 		os.RemoveAll(handler.tempdir)
 	}
 	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("error reading input"))
+		return errors.Wrap(err, tr.Tr.Get("error reading input"))
 	}
 	return nil
 }

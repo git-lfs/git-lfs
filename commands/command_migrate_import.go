@@ -80,7 +80,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		for _, file := range args {
 			root, err = rewriteTree(gf, db, root, file)
 			if err != nil {
-				ExitWithError(errors.Wrapf(err, tr.Tr.Get("Could not rewrite %q", file)))
+				ExitWithError(errors.Wrap(err, tr.Tr.Get("Could not rewrite %q", file)))
 			}
 		}
 

@@ -243,7 +243,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	}
 	written, err := tools.CopyWithCallback(dlFile, hasher, res.ContentLength, ccb)
 	if err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
+		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {

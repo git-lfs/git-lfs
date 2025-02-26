@@ -142,7 +142,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, tr.Tr.Get("Invalid status for %s %s: %d",
+		return errors.New(tr.Tr.Get("Invalid status for %s %s: %d",
 			req.Method,
 			strings.SplitN(req.URL.String(), "?", 2)[0],
 			res.StatusCode,

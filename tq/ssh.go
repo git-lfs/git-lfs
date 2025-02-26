@@ -267,7 +267,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, workerNum int, f *os.File, cb Progr
 	hasher := tools.NewHashingReader(data)
 	written, err := tools.CopyWithCallback(f, hasher, t.Size, ccb)
 	if err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
+		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {
