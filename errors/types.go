@@ -205,7 +205,6 @@ func IsRetriableLaterError(err error) (time.Time, bool) {
 
 type errorWithCause interface {
 	Cause() error
-	StackTrace() errors.StackTrace
 	error
 	fmt.Formatter
 }
