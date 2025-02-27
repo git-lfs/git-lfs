@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
@@ -91,11 +92,13 @@ func locksCommand(cmd *cobra.Command, args []string) {
 
 	var maxPathLen int
 	var maxNameLen int
+	var maxLockIdLen int
 	lockPaths := make([]string, 0, len(locks))
 	locksByPath := make(map[string]locking.Lock)
 	for _, lock := range locks {
 		lockPaths = append(lockPaths, lock.Path)
 		locksByPath[lock.Path] = lock
+		maxLockIdLen = tools.MaxInt(maxLockIdLen, len(lock.Id))
 		maxPathLen = tools.MaxInt(maxPathLen, len(lock.Path))
 		if lock.Owner != nil {
 			maxNameLen = tools.MaxInt(maxNameLen, len(lock.Owner.Name))
@@ -110,6 +113,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 			ownerName = lock.Owner.Name
 		}
 
+		lockIdPadding := tools.MaxInt(maxLockIdLen-len(lock.Id), 0)
 		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
 		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
 		kind := ""
@@ -121,9 +125,11 @@ func locksCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		Print("%s%s%s\t%s%s\tID:%s", kind, lock.Path, strings.Repeat(" ", pathPadding),
+		Print("%s%s%s\t%s%s\tID:%s%s\t%s", kind,
+			lock.Path, strings.Repeat(" ", pathPadding),
 			ownerName, strings.Repeat(" ", namePadding),
-			lock.Id,
+			lock.Id, strings.Repeat(" ", lockIdPadding),
+			lock.LockedAt.Format(time.RFC3339),
 		)
 	}
 
