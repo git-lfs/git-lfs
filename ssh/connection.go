@@ -79,7 +79,7 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		r.Close()
 		w.Close()
 		cmd.Wait()
-		err = errors.Combine([]error{err, errors.New(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr))})
+		err = errors.Join(err, errors.New(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr)))
 		tracerx.Printf("pure SSH connection unsuccessful (#%d)", id)
 	} else {
 		tracerx.Printf("pure SSH connection successful (#%d)", id)

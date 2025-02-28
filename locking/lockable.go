@@ -142,15 +142,15 @@ func (c *Client) FixLockableFileWriteFlags(files []string) error {
 		return nil
 	}
 
-	var errs []error
+	var multiErr error
 	for _, f := range files {
 		err := c.fixSingleFileWriteFlags(f, c.getLockableFilter(), nil)
 		if err != nil {
-			errs = append(errs, err)
+			multiErr = errors.Join(multiErr, err)
 		}
 	}
 
-	return errors.Combine(errs)
+	return multiErr
 }
 
 // fixSingleFileWriteFlags fixes write flags on a single file
