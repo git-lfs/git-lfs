@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -139,11 +138,7 @@ func (c *uploadContext) addScannerError(err error) {
 	c.errMu.Lock()
 	defer c.errMu.Unlock()
 
-	if c.scannerErr != nil {
-		c.scannerErr = fmt.Errorf("%v\n%v", c.scannerErr, err)
-	} else {
-		c.scannerErr = err
-	}
+	c.scannerErr = errors.Join(c.scannerErr, err)
 }
 
 func (c *uploadContext) buildGitScanner() *lfs.GitScanner {

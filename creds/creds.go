@@ -500,7 +500,7 @@ var credHelperNoOp = errors.New("no-op!")
 // helpers are added to the skip list, and never attempted again for the
 // lifetime of the current Git LFS command.
 func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
-	errs := make([]string, 0, len(s.helpers))
+	var multiErr error
 	for i, h := range s.helpers {
 		if s.skipped(i) {
 			continue
@@ -511,7 +511,7 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 			if err != credHelperNoOp {
 				s.skip(i)
 				tracerx.Printf("credential fill error: %s", err)
-				errs = append(errs, err.Error())
+				multiErr = errors.Join(multiErr, err)
 			}
 			continue
 		}
@@ -521,11 +521,11 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 		}
 	}
 
-	if len(errs) > 0 {
-		return nil, errors.New(tr.Tr.Get("credential fill errors:\n%s", strings.Join(errs, "\n")))
+	if multiErr != nil {
+		multiErr = errors.Join(errors.New(tr.Tr.Get("credential fill errors:")), multiErr)
 	}
 
-	return nil, nil
+	return nil, multiErr
 }
 
 // Reject implements CredentialHelper.Reject and rejects the given Creds "what"

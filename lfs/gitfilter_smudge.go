@@ -123,16 +123,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 	q.Wait()
 
 	if errs := q.Errors(); len(errs) > 0 {
-		var multiErr error
-		for _, e := range errs {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, e)
-			} else {
-				multiErr = e
-			}
-		}
-
-		return 0, errors.Wrap(multiErr, tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+		return 0, errors.Wrap(errors.Join(errs...), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 	}
 
 	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
@@ -155,15 +146,7 @@ func (f *GitFilter) downloadFileFallBack(writer io.Writer, ptr *Pointer, working
 		q.Wait()
 
 		if errs := q.Errors(); len(errs) > 0 {
-			var multiErr error
-			for _, e := range errs {
-				if multiErr != nil {
-					multiErr = fmt.Errorf("%v\n%v", multiErr, e)
-				} else {
-					multiErr = e
-				}
-			}
-			wrappedError := errors.Wrap(multiErr, tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+			wrappedError := errors.Wrap(errors.Join(errs...), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 			if index >= len(remotes)-1 {
 				return 0, wrappedError
 			} else {
