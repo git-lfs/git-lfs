@@ -11,8 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/git-lfs/git-lfs/v3/tools"
 )
 
 type httpTransfer struct {
@@ -140,11 +138,11 @@ func (l *syncLogger) LogResponse(req *http.Request, status int, bodySize int64) 
 			fmt.Sprintf(" status=%d body=%d conntime=%d dnstime=%d tlstime=%d restime=%d time=%d",
 				status,
 				bodySize,
-				tools.MaxInt64(t.ConnEnd-t.ConnStart, 0),
-				tools.MaxInt64(t.DNSEnd-t.DNSStart, 0),
-				tools.MaxInt64(t.TLSEnd-t.TLSStart, 0),
-				tools.MaxInt64(now-t.ResponseStart, 0),
-				tools.MaxInt64(now-t.Start, 0),
+				max(t.ConnEnd-t.ConnStart, 0),
+				max(t.DNSEnd-t.DNSStart, 0),
+				max(t.TLSEnd-t.TLSStart, 0),
+				max(now-t.ResponseStart, 0),
+				max(now-t.Start, 0),
 			))
 	}
 }

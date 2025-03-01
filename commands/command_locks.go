@@ -9,7 +9,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
@@ -96,9 +95,9 @@ func locksCommand(cmd *cobra.Command, args []string) {
 	for _, lock := range locks {
 		lockPaths = append(lockPaths, lock.Path)
 		locksByPath[lock.Path] = lock
-		maxPathLen = tools.MaxInt(maxPathLen, len(lock.Path))
+		maxPathLen = max(maxPathLen, len(lock.Path))
 		if lock.Owner != nil {
-			maxNameLen = tools.MaxInt(maxNameLen, len(lock.Owner.Name))
+			maxNameLen = max(maxNameLen, len(lock.Owner.Name))
 		}
 	}
 
@@ -110,8 +109,8 @@ func locksCommand(cmd *cobra.Command, args []string) {
 			ownerName = lock.Owner.Name
 		}
 
-		pathPadding := tools.MaxInt(maxPathLen-len(lock.Path), 0)
-		namePadding := tools.MaxInt(maxNameLen-len(ownerName), 0)
+		pathPadding := max(maxPathLen-len(lock.Path), 0)
+		namePadding := max(maxNameLen-len(ownerName), 0)
 		kind := ""
 		if locksOwned != nil {
 			if locksOwned[lock] {
