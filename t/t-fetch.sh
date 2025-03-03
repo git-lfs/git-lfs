@@ -41,6 +41,11 @@ begin_test "init for fetch tests"
 
   assert_server_object "$reponame" "$contents_oid"
 
+  # Add an empty file
+  touch empty.dat
+  git add empty.dat
+  git commit -m 'empty'
+
   # Add a file in a different branch
   git checkout -b newbranch
   printf "%s" "$b" > b.dat
@@ -132,26 +137,6 @@ begin_test "fetch --refetch"
 
   git lfs fetch --refetch
   assert_local_object "$contents_oid" 1
-
-  git lfs fsck 2>&1 | tee fsck.log
-  grep "Git LFS fsck OK" fsck.log
-)
-end_test
-
-
-# NOTE: Do not reorder this test below the subsequent tests, as they depend on
-#       the empty file it creates in the shared test repository.
-begin_test "fetch (empty file)"
-(
-  set -e
-  cd clone
-  rm -rf .git/lfs/objects
-
-  touch empty.dat
-  git add empty.dat
-  git commit -m 'empty'
-
-  git lfs fetch
 
   git lfs fsck 2>&1 | tee fsck.log
   grep "Git LFS fsck OK" fsck.log
