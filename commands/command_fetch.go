@@ -388,8 +388,8 @@ func scanAll() []*lfs.WrappedPointer {
 
 // Fetch
 // Returns true if all completed with no errors, false if errors were written to stderr/log
-func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
-	pointers, meter := pointers(allpointers, watcher)
+func fetch(allPointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
+	pointersToFetch, meter := pointersToFetch(allPointers, watcher)
 	q := newDownloadQueue(
 		getTransferManifestOperationRemote("download", cfg.Remote()),
 		cfg.Remote(), tq.WithProgress(meter), tq.DryRun(fetchDryRunArg),
@@ -407,7 +407,7 @@ func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
 		}()
 	}
 
-	for _, p := range pointers {
+	for _, p := range pointersToFetch {
 		tracerx.Printf("fetch %v [%v]", p.Name, p.Oid)
 
 		q.Add(downloadTransfer(p))
@@ -428,33 +428,38 @@ func fetch(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) bool {
 	return ok
 }
 
-func pointers(allpointers []*lfs.WrappedPointer, watcher *fetchWatcher) ([]*lfs.WrappedPointer, *tq.Meter) {
+func pointersToFetch(allPointers []*lfs.WrappedPointer, watcher *fetchWatcher) ([]*lfs.WrappedPointer, *tq.Meter) {
 	logger := tasklog.NewLogger(os.Stdout,
 		tasklog.ForceProgress(cfg.ForceProgress()),
 	)
 	meter := buildProgressMeter(hasToPrintTransfers(), tq.Download)
 	logger.Enqueue(meter)
 
-	ret := make([]*lfs.WrappedPointer, 0, len(allpointers))
+	pointersToFetch := make([]*lfs.WrappedPointer, 0, len(allPointers))
 
-	for _, p := range allpointers {
+	for _, p := range allPointers {
 		// if running with --dry-run or --refetch, skip objects that have already been virtually or
 		// already forcefully fetched
 		if watcher != nil && watcher.hasObserved(p.Oid) {
 			continue
 		}
-		// no need to download objects that exist locally already, unless `--refetch` was provided
+
 		// empty files are special, we always skip them in upload/download operations
-		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
-		if p.Size == 0 || (!fetchRefetchArg && cfg.LFSObjectExists(p.Oid, p.Size)) {
+		if p.Size == 0 {
 			continue
 		}
 
-		ret = append(ret, p)
+		// no need to download objects that exist locally already, unless `--refetch` was provided
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if !fetchRefetchArg && cfg.LFSObjectExists(p.Oid, p.Size) {
+			continue
+		}
+
+		pointersToFetch = append(pointersToFetch, p)
 		meter.Add(p.Size)
 	}
 
-	return ret, meter
+	return pointersToFetch, meter
 }
 
 func init() {

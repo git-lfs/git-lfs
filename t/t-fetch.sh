@@ -139,6 +139,8 @@ begin_test "fetch --refetch"
 end_test
 
 
+# NOTE: Do not reorder this test below the subsequent tests, as they depend on
+#       the empty file it creates in the shared test repository.
 begin_test "fetch (empty file)"
 (
   set -e
@@ -302,9 +304,7 @@ begin_test "fetch --refetch with remote and branches"
   assert_local_object "$b_oid" 1
 
   # check that we did not fetch a.dat twice
-  num_of_file_fetches=`grep '"name": "a.dat"' fetch.json | wc -l`
-  [ "$num_of_file_fetches" -eq 1 ] || exit 1
-
+  [ 1 -eq $(grep -c '"name": "a.dat"' fetch.json) ]
   git lfs fsck 2>&1 | tee fsck.log
   grep "Git LFS fsck OK" fsck.log
 )
