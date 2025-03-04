@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
 )
 
@@ -42,7 +41,7 @@ func verifyUpload(c *lfsapi.Client, remote string, t *Transfer) error {
 	}
 
 	mv := c.GitEnv().Int(maxVerifiesConfigKey, defaultMaxVerifyAttempts)
-	mv = tools.MaxInt(defaultMaxVerifyAttempts, mv)
+	mv = max(defaultMaxVerifyAttempts, mv)
 	req = c.LogRequest(req, "lfs.verify")
 
 	for i := 1; i <= mv; i++ {

@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v3/tools"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/olekukonko/ts"
 )
@@ -254,7 +253,7 @@ func (l *Logger) logTask(task Task) {
 // It returns the number of bytes "n" written to the sink and the error "err",
 // if one was encountered.
 func (l *Logger) logLine(str string) (n int, err error) {
-	padding := strings.Repeat(" ", tools.MaxInt(0, l.widthFn()-len(str)))
+	padding := strings.Repeat(" ", max(0, l.widthFn()-len(str)))
 
 	return l.log(str + padding + "\r")
 }
