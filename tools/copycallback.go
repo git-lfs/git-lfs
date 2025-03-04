@@ -15,10 +15,6 @@ type BodyWithCallback struct {
 	ReadSeekCloser
 }
 
-func NewByteBodyWithCallback(by []byte, totalSize int64, cb CopyCallback) *BodyWithCallback {
-	return NewBodyWithCallback(NewByteBody(by), totalSize, cb)
-}
-
 func NewFileBodyWithCallback(f *os.File, totalSize int64, cb CopyCallback) *BodyWithCallback {
 	return NewBodyWithCallback(NewFileBody(f), totalSize, cb)
 }
@@ -93,16 +89,8 @@ type ReadSeekCloser interface {
 	io.ReadCloser
 }
 
-func NewByteBody(by []byte) ReadSeekCloser {
-	return &closingByteReader{Reader: bytes.NewReader(by)}
-}
-
 type closingByteReader struct {
 	*bytes.Reader
-}
-
-func (r *closingByteReader) Close() error {
-	return nil
 }
 
 func NewFileBody(f *os.File) ReadSeekCloser {

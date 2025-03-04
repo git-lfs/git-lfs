@@ -116,11 +116,6 @@ func (s *ObjectScanner) Size() int64 {
 	return s.object.Size
 }
 
-// Type returns the type of the object that was last scanned for.
-func (s *ObjectScanner) Type() string {
-	return s.object.Type
-}
-
 // Err returns the error (if any) that was encountered during the last Scan()
 // operation.
 func (s *ObjectScanner) Err() error { return s.err }

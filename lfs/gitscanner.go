@@ -12,12 +12,6 @@ import (
 
 var missingCallbackErr = errors.New(tr.Tr.Get("no callback given"))
 
-// IsCallbackMissing returns a boolean indicating whether the error is reporting
-// that a GitScanner is missing a required GitScannerCallback.
-func IsCallbackMissing(err error) bool {
-	return err == missingCallbackErr
-}
-
 // GitScanner scans objects in a Git repository for LFS pointers.
 type GitScanner struct {
 	Filter *filepathfilter.Filter

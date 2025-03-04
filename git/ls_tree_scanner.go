@@ -31,10 +31,6 @@ func (s *LsTreeScanner) TreeBlob() *TreeBlob {
 	return s.tree
 }
 
-func (s *LsTreeScanner) Err() error {
-	return nil
-}
-
 func (s *LsTreeScanner) Scan() bool {
 	t, hasNext := s.next()
 	s.tree = t

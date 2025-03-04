@@ -24,14 +24,6 @@ func GetContext(err error, key string) interface{} {
 	return ""
 }
 
-// ErrorDelContext removes a value from the error's context. If the error has
-// not been wrapped, it does nothing.
-func DelContext(err error, key string) {
-	if e, ok := err.(withContext); ok {
-		e.Del(key)
-	}
-}
-
 // ErrorContext returns the context map for an error if it is a wrappedError.
 // If it is not a wrappedError it will return an empty map.
 func Context(err error) map[string]interface{} {

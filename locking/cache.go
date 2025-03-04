@@ -90,14 +90,6 @@ func (c *LockCache) encodeIdKey(id string) string {
 	return id
 }
 
-func (c *LockCache) decodeIdKey(key string) string {
-	// Safety against accidents
-	if c.isIdKey(key) {
-		return key[len(idKeyPrefix):]
-	}
-	return key
-}
-
 func (c *LockCache) isIdKey(key string) bool {
 	return strings.HasPrefix(key, idKeyPrefix)
 }

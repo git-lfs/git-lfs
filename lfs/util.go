@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -79,22 +78,6 @@ func wrapProgressError(err error, event, filename string) error {
 
 var localDirSet = tools.NewStringSetFromSlice([]string{".", "./", ".\\"})
 
-func GetPlatform() Platform {
-	if currentPlatform == PlatformUndetermined {
-		switch runtime.GOOS {
-		case "windows":
-			currentPlatform = PlatformWindows
-		case "linux":
-			currentPlatform = PlatformLinux
-		case "darwin":
-			currentPlatform = PlatformOSX
-		default:
-			currentPlatform = PlatformOther
-		}
-	}
-	return currentPlatform
-}
-
 type PathConverter interface {
 	Convert(string) string
 }
@@ -133,22 +116,6 @@ func (p *repoToCurrentPathConverter) Convert(filename string) string {
 		return abs
 	}
 	return filepath.ToSlash(rel)
-}
-
-// Convert filenames expressed relative to the current directory to be
-// relative to the repo root. Useful when calling git with arguments that requires them
-// to be rooted but the user is in a subdir of their repo & expects to use relative args
-func NewCurrentToRepoPathConverter(cfg *config.Configuration) (PathConverter, error) {
-	r, c, p, err := pathConverterArgs(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &currentToRepoPathConverter{
-		repoDir:     r,
-		currDir:     c,
-		passthrough: p,
-	}, nil
 }
 
 type currentToRepoPathConverter struct {
@@ -218,11 +185,6 @@ func pathConverterArgs(cfg *config.Configuration) (string, string, bool, error) 
 	}
 	currDir = tools.ResolveSymlinks(currDir)
 	return cfg.LocalWorkingDir(), currDir, cfg.LocalWorkingDir() == currDir, nil
-}
-
-// Are we running on Windows? Need to handle some extra path shenanigans
-func IsWindows() bool {
-	return GetPlatform() == PlatformWindows
 }
 
 func CopyFileContents(cfg *config.Configuration, src string, dst string) error {

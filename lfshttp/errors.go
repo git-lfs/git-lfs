@@ -14,13 +14,6 @@ type httpError interface {
 	HTTPResponse() *http.Response
 }
 
-func IsHTTP(err error) (*http.Response, bool) {
-	if httpErr, ok := err.(httpError); ok {
-		return httpErr.HTTPResponse(), true
-	}
-	return nil, false
-}
-
 type ClientError struct {
 	Message          string `json:"message"`
 	DocumentationUrl string `json:"documentation_url,omitempty"`
