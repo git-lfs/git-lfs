@@ -57,7 +57,7 @@ func Ljust(strs []string) []string {
 	copy(dup, strs)
 
 	for i, str := range strs {
-		width := MaxInt(0, llen-len(str))
+		width := max(0, llen-len(str))
 		padding := strings.Repeat(" ", width)
 
 		dup[i] = str + padding
@@ -75,7 +75,7 @@ func Rjust(strs []string) []string {
 	copy(dup, strs)
 
 	for i, str := range strs {
-		width := MaxInt(0, llen-len(str))
+		width := max(0, llen-len(str))
 		padding := strings.Repeat(" ", width)
 
 		dup[i] = padding + str

@@ -8,7 +8,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
@@ -46,7 +45,7 @@ func (r *refUpdater) updateRefs() error {
 
 	var maxNameLen int
 	for _, ref := range r.refs {
-		maxNameLen = tools.MaxInt(maxNameLen, len(ref.Name))
+		maxNameLen = max(maxNameLen, len(ref.Name))
 	}
 
 	seen := make(map[string]struct{})
@@ -144,7 +143,7 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 		return err
 	}
 
-	namePadding := tools.MaxInt(maxNameLen-len(ref.Name), 0)
+	namePadding := max(maxNameLen-len(ref.Name), 0)
 	list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
 	return nil
 }

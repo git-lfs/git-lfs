@@ -41,6 +41,11 @@ begin_test "init for fetch tests"
 
   assert_server_object "$reponame" "$contents_oid"
 
+  # Add an empty file
+  touch empty.dat
+  git add empty.dat
+  git commit -m 'empty'
+
   # Add a file in a different branch
   git checkout -b newbranch
   printf "%s" "$b" > b.dat
@@ -118,17 +123,20 @@ EOF
 )
 end_test
 
-begin_test "fetch (empty file)"
+begin_test "fetch --refetch"
 (
   set -e
   cd clone
   rm -rf .git/lfs/objects
 
-  touch empty.dat
-  git add empty.dat
-  git commit -m 'empty'
-
   git lfs fetch
+  assert_local_object "$contents_oid" 1
+
+  corrupt_local_object "$contents_oid"
+  refute_local_object "$contents_oid" 1
+
+  git lfs fetch --refetch
+  assert_local_object "$contents_oid" 1
 
   git lfs fsck 2>&1 | tee fsck.log
   grep "Git LFS fsck OK" fsck.log
@@ -254,6 +262,36 @@ EOF
 EOF
   diff -u expected-a-b.json fetch-dry-run.json || diff -u expected-b-a.json fetch-dry-run.json || exit 1
   diff -u expected-a-b.json fetch.json || diff -u expected-b-a.json fetch-dry-run.json || exit 1
+)
+end_test
+
+begin_test "fetch --refetch with remote and branches"
+(
+  set -e
+  cd clone
+
+  git checkout newbranch
+  git checkout main
+
+  rm -rf .git/lfs/objects
+
+  git lfs fetch origin main newbranch
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+
+  corrupt_local_object "$contents_oid"
+  corrupt_local_object "$b_oid"
+  refute_local_object "$contents_oid" 1
+  refute_local_object "$b_oid" 1
+
+  git lfs fetch --refetch --json origin main newbranch | tee fetch.json
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+
+  # check that we did not fetch a.dat twice
+  [ 1 -eq $(grep -c '"name": "a.dat"' fetch.json) ]
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 

@@ -109,7 +109,7 @@ func (s *OrderedSet) Union(other *OrderedSet) *OrderedSet {
 // Intersect returns the elements that are in both this set and then given
 // "ordered" set. It is an O(min(n, m)) (in other words, O(n)) operation.
 func (s *OrderedSet) Intersect(other *OrderedSet) *OrderedSet {
-	intersection := NewOrderedSetWithCapacity(MinInt(
+	intersection := NewOrderedSetWithCapacity(min(
 		s.Cardinality(), other.Cardinality()))
 
 	if s.Cardinality() < other.Cardinality() {
@@ -163,7 +163,7 @@ func (s *OrderedSet) Remove(i string) {
 		return
 	}
 
-	rest := MinInt(idx+1, len(s.s)-1)
+	rest := min(idx+1, len(s.s)-1)
 
 	s.s = append(s.s[:idx], s.s[rest:]...)
 	for _, e := range s.s[rest:] {

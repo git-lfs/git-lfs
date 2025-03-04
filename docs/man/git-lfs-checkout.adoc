@@ -69,8 +69,8 @@ $ git merge conflicting-branch
 CONFLICT (content): Merge conflict in path/to/conflicting/file.dat
 
 # Checkout versions of the conflicting file into temp files
-$ git lfs checkout ours.dat --ours path/to/conflicting/file.dat
-$ git lfs checkout theirs.dat --theirs path/to/conflicting/file.dat
+$ git lfs checkout --to ours.dat --ours path/to/conflicting/file.dat
+$ git lfs checkout --to theirs.dat --theirs path/to/conflicting/file.dat
 
 # Compare conflicting versions in ours.dat and theirs.dat,
 # then resolve conflict (e.g., by choosing one version over
