@@ -179,7 +179,7 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 			for _, e := range t.Entries {
 				if strings.ToLower(e.Name) == ".gitattributes" && e.Type() == gitobj.BlobObjectType {
 					if e.IsLink() {
-						return errors.Errorf("migrate: %s", tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+						return errors.New(tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
 					} else {
 						break
 					}

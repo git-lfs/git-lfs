@@ -455,7 +455,7 @@ begin_test "migrate info (existing .gitattributes symlink)"
     exit 1
   fi
 
-  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+  grep "expected '.gitattributes' to be a file, got a symbolic link" migrate.log
 
   main="$(git rev-parse refs/heads/main)"
 
@@ -480,7 +480,7 @@ begin_test "migrate info (potential fixup, --fixup, .gitattributes symlink)"
     exit 1
   fi
 
-  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+  grep "expected '.gitattributes' to be a file, got a symbolic link" migrate.log
 
   main="$(git rev-parse refs/heads/main)"
 

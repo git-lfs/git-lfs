@@ -438,7 +438,7 @@ begin_test "migrate export (.gitattributes symlink)"
     exit 1
   fi
 
-  grep "migrate: expected '.gitattributes' to be a file, got a symbolic link" migrate.log
+  grep "expected '.gitattributes' to be a file, got a symbolic link" migrate.log
 
   main="$(git rev-parse refs/heads/main)"
 
@@ -475,7 +475,10 @@ begin_test "migrate export (--verbose)"
 
   setup_multiple_local_branches_tracked
 
-  git lfs migrate export --everything --include="*" --verbose 2>&1 | grep -q "migrate: commit "
+  original_head="$(git rev-parse HEAD)"
+
+  git lfs migrate export --everything --include="*" --verbose --yes 2>&1 | tee migrate.log
+  grep -q "  commit ${original_head}: a\.md" migrate.log
 )
 end_test
 
