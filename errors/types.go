@@ -94,6 +94,19 @@ func IsNotAPointerError(err error) bool {
 	return false
 }
 
+// IsPointerConflictMarkerError indicates that there are conflict markers in the LFS pointer file.
+func IsPointerConflictMarkerError(err error) bool {
+	if e, ok := err.(interface {
+		PointerConflictMarkerError() bool
+	}); ok {
+		return e.PointerConflictMarkerError()
+	}
+	if parent := parentOf(err); parent != nil {
+		return IsPointerConflictMarkerError(parent)
+	}
+	return false
+}
+
 // IsNotAPointerError indicates the parsed data is not an LFS pointer.
 func IsPointerScanError(err error) bool {
 	if e, ok := err.(interface {
@@ -348,6 +361,20 @@ func (e notAPointerError) NotAPointerError() bool {
 
 func NewNotAPointerError(err error) error {
 	return notAPointerError{newWrappedError(err, tr.Tr.Get("Pointer file error"))}
+}
+
+// Definitions for IsPointerConflictMarkerError()
+
+type pointerConflictMarkerError struct {
+	*wrappedError
+}
+
+func (e pointerConflictMarkerError) PointerConflictMarkerError() bool {
+	return true
+}
+
+func NewPointerConflictMarkerError(err error) error {
+	return pointerConflictMarkerError{newWrappedError(err, tr.Tr.Get("Pointer file conflict marker error"))}
 }
 
 // Definitions for IsPointerScanError()

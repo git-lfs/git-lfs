@@ -318,7 +318,16 @@ begin_test "pull with merge conflict"
   # This will exit nonzero because of the merge conflict.
   GIT_LFS_SKIP_SMUDGE=1 git merge def || true
   git lfs pull > pull.log 2>&1
-  [ ! -s pull.log ]
+  # LFS should have caught the confict markers in the file
+  [ -s pull.log ]
+
+  # Check that conficts are detected by git correctly
+  set +e
+  git diff --check > conficts.log 2>&1
+  res=$?
+
+  set -e
+  [ "$res" = "2" ]
 )
 end_test
 
