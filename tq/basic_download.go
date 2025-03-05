@@ -118,7 +118,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
+		return errors.New(tr.Tr.Get("Object %s not found on the server.", t.Oid))
 	}
 
 	req, err := a.newHTTPRequest("GET", rel)
@@ -243,7 +243,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	}
 	written, err := tools.CopyWithCallback(dlFile, hasher, res.ContentLength, ccb)
 	if err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
+		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {

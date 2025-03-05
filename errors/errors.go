@@ -50,7 +50,7 @@ package errors
 // docs for more info: https://godoc.org/github.com/pkg/errors
 
 import (
-	"bytes"
+	goerrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -85,36 +85,8 @@ func Wrapf(err error, format string, args ...interface{}) error {
 	return newWrappedError(err, message)
 }
 
-func StackTrace(err error) []string {
-	type stacktrace interface {
-		StackTrace() errors.StackTrace
-	}
-
-	if err, ok := err.(stacktrace); ok {
-		frames := err.StackTrace()
-		lines := make([]string, len(frames))
-		for i, f := range frames {
-			lines[i] = fmt.Sprintf("%+v", f)
-		}
-		return lines
-	}
-
-	return nil
-}
-
-func Combine(errs []error) error {
-	if len(errs) == 0 {
-		return nil
-	}
-
-	var buf bytes.Buffer
-	for i, err := range errs {
-		if i > 0 {
-			buf.WriteString("\n")
-		}
-		buf.WriteString(err.Error())
-	}
-	return fmt.Errorf(buf.String())
+func Join(errs ...error) error {
+	return goerrors.Join(errs...)
 }
 
 func Cause(err error) error {

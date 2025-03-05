@@ -84,7 +84,7 @@ func DecodeJSON(res *http.Response, obj interface{}) error {
 	res.Body.Close()
 
 	if err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL))
+		return errors.Wrap(err, tr.Tr.Get("Unable to parse HTTP response for %s %s", res.Request.Method, res.Request.URL))
 	}
 
 	return nil

@@ -181,14 +181,14 @@ func ExpandPath(path string, expand bool) (string, error) {
 	}
 
 	if err != nil {
-		return "", errors.Wrapf(err, tr.Tr.Get("could not find user %s", username))
+		return "", errors.Wrap(err, tr.Tr.Get("could not find user %s", username))
 	}
 
 	homedir := who.HomeDir
 	if expand {
 		homedir, err = filepath.EvalSymlinks(homedir)
 		if err != nil {
-			return "", errors.Wrapf(err, tr.Tr.Get("cannot eval symlinks for %s", homedir))
+			return "", errors.Wrap(err, tr.Tr.Get("cannot eval symlinks for %s", homedir))
 		}
 	}
 	return filepath.Join(homedir, path[len(username)+1:]), nil

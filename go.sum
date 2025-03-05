@@ -10,8 +10,8 @@ github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430 h1:oempk9HjNt6r
 github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430/go.mod h1:AVSs/gZKt1bOd2AhkhbS7Qh56Hv7klde22yXVbwYJhc=
 github.com/git-lfs/gitobj/v2 v2.1.1 h1:tf/VU6zL1kxa3he+nf6FO/syX+LGkm6WGDsMpfuXV7Q=
 github.com/git-lfs/gitobj/v2 v2.1.1/go.mod h1:q6aqxl6Uu3gWsip5GEKpw+7459F97er8COmU45ncAxw=
-github.com/git-lfs/go-netrc v0.0.0-20210914205454-f0c862dd687a h1:6pskVZacdMUL93pCpMAYnMDLjH1yDFhssPYGe32sjdk=
-github.com/git-lfs/go-netrc v0.0.0-20210914205454-f0c862dd687a/go.mod h1:70O4NAtvWn1jW8V8V+OKrJJYcxDLTmIozfi2fmSz5SI=
+github.com/git-lfs/go-netrc v0.0.0-20250218165306-ba0029b43d11 h1:LotqdxyBRc7u2fxoBrzW6Mn3ZBvv7FlcBPlAa10DKAg=
+github.com/git-lfs/go-netrc v0.0.0-20250218165306-ba0029b43d11/go.mod h1:GTFwpcANSAXgAw+IaUFijK1DZFT0D1x0Wh9rG+Fa814=
 github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825 h1:riQhgheTL7tMF4d5raz9t3+IzoR1i1wqxE1kZC6dY+U=
 github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825/go.mod h1:fenKRzpXDjNpsIBhuhUzvjCKlDjKam0boRAenTE0Q6A=
 github.com/git-lfs/wildmatch/v2 v2.0.1 h1:Ds+aobrV5bK0wStILUOn9irllPyf9qrFETbKzwzoER8=
@@ -80,8 +80,6 @@ golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20191027093000-83d349e8ac1a/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20201021035429-f5854403a974/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
-golang.org/x/net v0.23.0 h1:7EYJ93RZ9vYSZAIb2x3lnuvqO5zneoD6IvWjuhfxjTs=
-golang.org/x/net v0.23.0/go.mod h1:JKghWKKOSdJwpW2GEx0Ja7fmaKnMsbu+MWVZTokSYmg=
 golang.org/x/net v0.33.0 h1:74SYHlV8BIgHIFC/LrYkOGIwL19eTYXQ5wc6TBuO36I=
 golang.org/x/net v0.33.0/go.mod h1:HXLR5J+9DxmrqMwG9qjGCxZ+zKXxBru04zlTvWlWuN4=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

@@ -205,7 +205,6 @@ func IsRetriableLaterError(err error) (time.Time, bool) {
 
 type errorWithCause interface {
 	Cause() error
-	StackTrace() errors.StackTrace
 	error
 	fmt.Formatter
 }
@@ -386,7 +385,7 @@ func (e badPointerKeyError) BadPointerKeyError() bool {
 }
 
 func NewBadPointerKeyError(expected, actual string) error {
-	err := Errorf(tr.Tr.Get("Expected key %s, got %s", expected, actual))
+	err := New(tr.Tr.Get("Expected key %s, got %s", expected, actual))
 	return badPointerKeyError{expected, actual, newWrappedError(err, tr.Tr.Get("pointer parsing"))}
 }
 

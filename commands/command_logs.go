@@ -53,7 +53,7 @@ func logsClearCommand(cmd *cobra.Command, args []string) {
 
 func logsBoomtownCommand(cmd *cobra.Command, args []string) {
 	tracerx.Printf("Sample trace message")
-	err := errors.Wrapf(errors.New(tr.Tr.Get("Sample wrapped error message")), tr.Tr.Get("Sample error message"))
+	err := errors.Wrap(errors.New(tr.Tr.Get("Sample wrapped error message")), tr.Tr.Get("Sample error message"))
 	Panic(err, tr.Tr.Get("Sample panic message"))
 }
 

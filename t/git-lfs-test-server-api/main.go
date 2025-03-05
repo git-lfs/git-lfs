@@ -74,7 +74,7 @@ func testServerApi(cmd *cobra.Command, args []string) {
 
 	manifest, err := buildManifest(repo)
 	if err != nil {
-		exit("error building tq.Manifest: " + err.Error())
+		exit("error building tq.Manifest: %s", err.Error())
 	}
 
 	var oidsExist, oidsMissing []TestObject

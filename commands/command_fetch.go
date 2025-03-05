@@ -2,11 +2,11 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
@@ -184,11 +184,7 @@ func pointersToFetchForRef(ref string, filter *filepathfilter.Filter) ([]*lfs.Wr
 	var multiErr error
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
+			multiErr = errors.Join(multiErr, err)
 			return
 		}
 
@@ -227,11 +223,7 @@ func pointersToFetchForRefs(refs []string) ([]*lfs.WrappedPointer, error) {
 	var numObjs int64
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
+			multiErr = errors.Join(multiErr, err)
 			return
 		}
 
@@ -362,11 +354,7 @@ func scanAll() []*lfs.WrappedPointer {
 	var numObjs int64
 	tempgitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
+			multiErr = errors.Join(multiErr, err)
 			return
 		}
 

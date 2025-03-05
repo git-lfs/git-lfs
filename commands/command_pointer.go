@@ -129,7 +129,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		fmt.Fprintf(os.Stderr, buf.String())
+		fmt.Fprint(os.Stderr, buf.String())
 		if comparing {
 			compareOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {

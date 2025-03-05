@@ -272,7 +272,7 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 		return err
 	}
 	if rel == nil && !a.standalone {
-		return errors.Errorf(tr.Tr.Get("Object %s not found on the server.", t.Oid))
+		return errors.New(tr.Tr.Get("Object %s not found on the server.", t.Oid))
 	}
 	var req *customAdapterTransferRequest
 	if a.direction == Upload {

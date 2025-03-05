@@ -66,13 +66,13 @@ func (c Creds) buffer(protectProtocol bool) (*bytes.Buffer, error) {
 	for k, v := range c {
 		for _, item := range v {
 			if strings.Contains(item, "\n") {
-				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains newline: %q", k, item))
+				return nil, errors.New(tr.Tr.Get("credential value for %s contains newline: %q", k, item))
 			}
 			if protectProtocol && strings.Contains(item, "\r") {
-				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains carriage return: %q\nIf this is intended, set `credential.protectProtocol=false`", k, item))
+				return nil, errors.New(tr.Tr.Get("credential value for %s contains carriage return: %q\nIf this is intended, set `credential.protectProtocol=false`", k, item))
 			}
 			if strings.Contains(item, string(rune(0))) {
-				return nil, errors.Errorf(tr.Tr.Get("credential value for %s contains null byte: %q", k, item))
+				return nil, errors.New(tr.Tr.Get("credential value for %s contains null byte: %q", k, item))
 			}
 
 			buf.Write([]byte(k))
@@ -249,7 +249,7 @@ func (a *AskPassCredentialHelper) getValue(what Creds, valueType credValueType, 
 	case credValueTypePassword:
 		valueString = "password"
 	default:
-		return "", errors.Errorf(tr.Tr.Get("Invalid Credential type queried from AskPass"))
+		return "", errors.New(tr.Tr.Get("Invalid Credential type queried from AskPass"))
 	}
 
 	// Return the existing credential if it was already provided, otherwise
@@ -274,7 +274,7 @@ func (a *AskPassCredentialHelper) getFromProgram(valueType credValueType, u *url
 	case credValueTypePassword:
 		valueString = "Password"
 	default:
-		return "", errors.Errorf(tr.Tr.Get("Invalid Credential type queried from AskPass"))
+		return "", errors.New(tr.Tr.Get("Invalid Credential type queried from AskPass"))
 	}
 
 	// 'cmd' will run the GIT_ASKPASS (or core.askpass) command prompting
@@ -500,7 +500,7 @@ var credHelperNoOp = errors.New("no-op!")
 // helpers are added to the skip list, and never attempted again for the
 // lifetime of the current Git LFS command.
 func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
-	errs := make([]string, 0, len(s.helpers))
+	var multiErr error
 	for i, h := range s.helpers {
 		if s.skipped(i) {
 			continue
@@ -511,7 +511,7 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 			if err != credHelperNoOp {
 				s.skip(i)
 				tracerx.Printf("credential fill error: %s", err)
-				errs = append(errs, err.Error())
+				multiErr = errors.Join(multiErr, err)
 			}
 			continue
 		}
@@ -521,11 +521,11 @@ func (s *CredentialHelpers) Fill(what Creds) (Creds, error) {
 		}
 	}
 
-	if len(errs) > 0 {
-		return nil, errors.New(tr.Tr.Get("credential fill errors:\n%s", strings.Join(errs, "\n")))
+	if multiErr != nil {
+		multiErr = errors.Join(errors.New(tr.Tr.Get("credential fill errors:")), multiErr)
 	}
 
-	return nil, nil
+	return nil, multiErr
 }
 
 // Reject implements CredentialHelper.Reject and rejects the given Creds "what"

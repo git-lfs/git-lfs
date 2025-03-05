@@ -1,6 +1,6 @@
 package tools
 
-import "fmt"
+import "github.com/git-lfs/git-lfs/v3/errors"
 
 // Interface for all types of wrapper around a channel of results and an error channel
 // Implementors will expose a type-specific channel for results
@@ -17,18 +17,13 @@ type BaseChannelWrapper struct {
 }
 
 func (w *BaseChannelWrapper) Wait() error {
-	var err error
-	for e := range w.errorChan {
-		if err != nil {
-			// Combine in case multiple errors
-			err = fmt.Errorf("%v\n%v", err, e)
-
-		} else {
-			err = e
-		}
+	var multiErr error
+	for err := range w.errorChan {
+		// Combine in case multiple errors
+		multiErr = errors.Join(multiErr, err)
 	}
 
-	return err
+	return multiErr
 }
 
 func NewBaseChannelWrapper(errChan <-chan error) *BaseChannelWrapper {
