@@ -194,7 +194,7 @@ func (a *SSHAdapter) download(t *Transfer, workerNum int, cb ProgressCallback) e
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("No download action for object: %s", t.Oid))
+		return errors.New(tr.Tr.Get("No download action for object: %s", t.Oid))
 	}
 	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	f, err := tools.TempFile(a.tempDir(), t.Oid, a.fs)
@@ -267,7 +267,7 @@ func (a *SSHAdapter) doDownload(t *Transfer, workerNum int, f *os.File, cb Progr
 	hasher := tools.NewHashingReader(data)
 	written, err := tools.CopyWithCallback(f, hasher, t.Size, ccb)
 	if err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
+		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
 
 	if actual := hasher.Hash(); actual != t.Oid {
@@ -346,7 +346,7 @@ func (a *SSHAdapter) upload(t *Transfer, workerNum int, cb ProgressCallback) err
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
+		return errors.New(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)

@@ -648,7 +648,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// Transfer object, then we give up on the
 			// transfer by telling the progress meter to
 			// skip the number of bytes in "o".
-			q.errorc <- errors.Errorf(tr.Tr.Get("[%v] The server returned an unknown OID.", o.Oid))
+			q.errorc <- errors.New(tr.Tr.Get("[%v] The server returned an unknown OID.", o.Oid))
 
 			q.Skip(o.Size)
 			q.wait.Done()
@@ -748,7 +748,7 @@ func (q *TransferQueue) partitionTransfers(transfers []*Transfer) (present []*Tr
 		var err error
 
 		if t.Size < 0 {
-			err = errors.Errorf(tr.Tr.Get("object %q has invalid size (got: %d)", t.Oid, t.Size))
+			err = errors.New(tr.Tr.Get("object %q has invalid size (got: %d)", t.Oid, t.Size))
 		} else {
 			fd, serr := os.Stat(t.Path)
 			if serr != nil {

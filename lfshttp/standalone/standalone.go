@@ -256,7 +256,7 @@ func (h *fileHandler) upload(oid string, size int64, path string) (string, strin
 func (h *fileHandler) download(oid string, size int64) (string, string, error) {
 	if !h.remoteConfig.LFSObjectExists(oid, size) {
 		tracerx.Printf("missing object in %q (%s)", h.remotePath, oid)
-		return oid, "", errors.Errorf(tr.Tr.Get("remote missing object %s", oid))
+		return oid, "", errors.New(tr.Tr.Get("remote missing object %s", oid))
 	}
 
 	src, err := h.remoteConfig.Filesystem().ObjectPath(oid)
@@ -290,13 +290,13 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 	for scanner.Scan() {
 		var msg inputMessage
 		if err := json.NewDecoder(strings.NewReader(scanner.Text())).Decode(&msg); err != nil {
-			return errors.Wrapf(err, tr.Tr.Get("error decoding JSON"))
+			return errors.Wrap(err, tr.Tr.Get("error decoding JSON"))
 		}
 		if handler == nil {
 			var err error
 			handler, err = newHandler(cfg, output, &msg)
 			if err != nil {
-				err := errors.Wrapf(err, tr.Tr.Get("error creating handler"))
+				err := errors.Wrap(err, tr.Tr.Get("error creating handler"))
 				errMsg := outputErrorMessage{
 					Error: errorMessage{
 						Message: err.Error(),
@@ -314,7 +314,7 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 		os.RemoveAll(handler.tempdir)
 	}
 	if err := scanner.Err(); err != nil {
-		return errors.Wrapf(err, tr.Tr.Get("error reading input"))
+		return errors.Wrap(err, tr.Tr.Get("error reading input"))
 	}
 	return nil
 }

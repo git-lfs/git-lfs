@@ -34,7 +34,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 		return err
 	}
 	if rel == nil {
-		return errors.Errorf(tr.Tr.Get("No upload action for object: %s", t.Oid))
+		return errors.New(tr.Tr.Get("No upload action for object: %s", t.Oid))
 	}
 
 	// Note not supporting the Creation extension since the batch API generates URLs
@@ -142,7 +142,7 @@ func (a *tusUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressC
 	}
 
 	if res.StatusCode > 299 {
-		return errors.Wrapf(nil, tr.Tr.Get("Invalid status for %s %s: %d",
+		return errors.New(tr.Tr.Get("Invalid status for %s %s: %d",
 			req.Method,
 			strings.SplitN(req.URL.String(), "?", 2)[0],
 			res.StatusCode,

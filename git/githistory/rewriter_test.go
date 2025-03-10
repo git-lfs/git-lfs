@@ -377,7 +377,7 @@ func TestHistoryRewriterCallbacksSubtrees(t *testing.T) {
 }
 
 func TestHistoryRewriterTreePreCallbackPropagatesErrors(t *testing.T) {
-	expected := errors.Errorf("my error")
+	expected := errors.New("my error")
 
 	db := DatabaseFromFixture(t, "linear-history.git")
 	r := NewRewriter(db)

@@ -319,7 +319,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 	if current.Type == git.RefTypeOther ||
 		current.Type == git.RefTypeRemoteBranch {
 
-		return nil, errors.Errorf(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
+		return nil, errors.New(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
 	}
 	return current, nil
 }
