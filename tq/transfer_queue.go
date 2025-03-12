@@ -806,7 +806,7 @@ func (q *TransferQueue) handleTransferResult(
 			// If the object can't be retried now, but can be
 			// after a certain period of time, send it to
 			// the retry channel with a time when it's ready.
-			tracerx.Printf("tq: retrying object %s after %s seconds.", oid, time.Until(readyTime).Seconds())
+			tracerx.Printf("tq: retrying object %s after %.2fs", oid, time.Until(readyTime).Seconds())
 			q.trMutex.Lock()
 			objects, ok := q.transfers[oid]
 			q.trMutex.Unlock()
