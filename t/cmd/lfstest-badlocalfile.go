@@ -13,7 +13,16 @@ import (
 func main() {
 	pl := pktline.NewPktline(os.Stdin, os.Stdout)
 
-	// For any file Git asks us to clean, truncate it to zero bytes
+	// For any file Git asks us to clean, rename it and create a
+	// 0-byte file in its place. This allows Git to continue to
+	// read from the original file and send us its contents via
+	// packets on stdin, while our filter-process command will
+	// see the 0-byte file as soon as the first flush packet is
+	// received.
+	//
+	// If we simply truncate the file to 0 bytes in situ, Git
+	// may not be able to finish reading its full contents, and
+	// might send us fewer packets than actually needed.
 
 	var command, pathname string
 
