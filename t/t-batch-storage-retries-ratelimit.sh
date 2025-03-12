@@ -124,6 +124,11 @@ begin_test "batch storage upload causes retries (missing header)"
     exit 1
   fi
 
+  [ 1 -lt $(grep -c "tq: retrying object" push.log) ]
+  [ 1 -lt $(grep -c "tq: enqueue retry" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #1" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #2" push.log) ]
+
   assert_server_object "$reponame" "$oid"
 )
 end_test
@@ -163,6 +168,11 @@ begin_test "batch storage download causes retries (missing header)"
       echo >&2 "fatal: expected \`git lfs pull origin main\` to succeed ..."
       exit 1
     fi
+
+    [ 1 -lt $(grep -c "tq: retrying object" pull.log) ]
+    [ 1 -lt $(grep -c "tq: enqueue retry" pull.log) ]
+    [ 1 -eq $(grep -c "tq: enqueue retry #1" pull.log) ]
+    [ 1 -eq $(grep -c "tq: enqueue retry #2" pull.log) ]
 
     assert_local_object "$oid" "${#contents}"
   popd
