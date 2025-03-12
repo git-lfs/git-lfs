@@ -24,6 +24,8 @@ begin_test "batch upload causes retries"
     exit 1
   fi
 
+  [ 1 -eq $(grep -c "tq: enqueue retry" push.log) ]
+
   assert_server_object "$reponame" "$oid"
 )
 end_test
@@ -53,6 +55,9 @@ begin_test "batch upload with multiple files causes retries"
     echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
     exit 1
   fi
+
+  [ 2 -eq $(grep -c "tq: enqueue retry" push.log) ]
+  [ 2 -eq $(grep -c "tq: enqueue retry #1" push.log) ]
 
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
@@ -152,6 +157,10 @@ begin_test "batch upload causes retries (missing header)"
     echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
     exit 1
   fi
+
+  [ 1 -lt $(grep -c "tq: enqueue retry" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #1" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #2" push.log) ]
 
   assert_server_object "$reponame" "$oid"
 )
