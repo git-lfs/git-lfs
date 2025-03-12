@@ -64,7 +64,7 @@ begin_test "batch storage download causes retries"
       exit 1
     fi
 
-	assert_local_object "$oid" "${#contents}"
+    assert_local_object "$oid" "${#contents}"
   popd
 )
 end_test
@@ -91,9 +91,9 @@ begin_test "batch clone causes retries"
   pushd ..
     git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
     if [ "0" -ne "$?" ]; then
-	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
-	  exit 1
-	fi
+      echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to succeed ..."
+      exit 1
+    fi
 
     cd "$reponame-assert"
 
