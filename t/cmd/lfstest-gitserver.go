@@ -276,13 +276,18 @@ var (
 	laterRetriesMu  sync.Mutex
 )
 
+func getResourceKey(api, direction, repo, oid string) string {
+	return strings.Join([]string{api, direction, repo, oid}, ":")
+}
+
 // checkRateLimit tracks the various requests to the git-server. If it is the first
 // request of its kind, then a times is started, that when it is finished, a certain
 // number of requests become available.
 func checkRateLimit(api, direction, repo, oid string) (seconds int, isWait bool) {
 	laterRetriesMu.Lock()
 	defer laterRetriesMu.Unlock()
-	key := strings.Join([]string{direction, repo, oid}, ":")
+
+	key := getResourceKey(api, direction, repo, oid)
 	if requestsRemaining, ok := requestTokens[key]; !ok || requestsRemaining == 0 {
 		if retryStartTimes[key] == (time.Time{}) {
 			// If time is not initialized, set it to now
@@ -331,7 +336,7 @@ func incrementRetriesFor(api, direction, repo, oid string, check bool) (after ui
 	retriesMu.Lock()
 	defer retriesMu.Unlock()
 
-	retryKey := strings.Join([]string{direction, repo, oid}, ":")
+	retryKey := getResourceKey(api, direction, repo, oid)
 
 	retries[retryKey]++
 	retries := retries[retryKey]
