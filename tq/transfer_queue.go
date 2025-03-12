@@ -251,6 +251,7 @@ type objectTuple struct {
 	Size            int64
 	Missing         bool
 	ReadyTime       time.Time
+	retryLaterTime  time.Time
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
@@ -546,7 +547,10 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	enqueueRetry := func(t *objectTuple, err error, readyTime *time.Time) {
 		count := q.rc.Increment(t.Oid)
 
-		if readyTime == nil {
+		if !t.retryLaterTime.IsZero() {
+			t.ReadyTime = t.retryLaterTime
+			t.retryLaterTime = time.Time{}
+		} else if readyTime == nil {
 			t.ReadyTime = q.rc.ReadyTime(t.Oid)
 		} else {
 			t.ReadyTime = *readyTime
@@ -809,7 +813,7 @@ func (q *TransferQueue) handleTransferResult(
 
 			if ok {
 				t := objects.First()
-				t.ReadyTime = readyTime
+				t.retryLaterTime = readyTime
 				retries <- t
 			} else {
 				q.errorc <- res.Error
