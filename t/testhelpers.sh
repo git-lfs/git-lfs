@@ -194,6 +194,23 @@ assert_remote_object() {
   popd
 }
 
+# Set rate limit counts on the LFS server. HTTP log is written to http.log.
+#
+#   $ reset_server_rate_limit "api" "direction" "reponame" "oid" "num-tokens"
+set_server_rate_limit() {
+  local api="$1"
+  local direction="$2"
+  local reponame="$3"
+  local oid="$4"
+  local tokens="$5"
+
+  local query="api=$api&direction=$direction&repo=$reponame&oid=$oid&tokens=$tokens"
+
+  curl -v "$GITSERVER/limits/?$query" 2>&1 | tee http.log
+
+  grep "200 OK" http.log
+}
+
 check_server_lock_ssh() {
   local reponame="$1"
   local id="$2"

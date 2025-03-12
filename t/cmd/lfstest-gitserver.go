@@ -99,6 +99,7 @@ func main() {
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/limits/", limitsHandler)
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", time.Now().String())
 	})
@@ -312,6 +313,19 @@ func checkRateLimit(api, direction, repo, oid string) (seconds int, isWait bool)
 	}
 
 	return 0, false
+}
+
+func setRateLimit(api, direction, repo, oid string, numTokens int) {
+	laterRetriesMu.Lock()
+	defer laterRetriesMu.Unlock()
+
+	key := getResourceKey(api, direction, repo, oid)
+	requestTokens[key] = numTokens
+
+	// If the token count is reset, restart rate-limting timer.
+	if requestTokens[key] == 0 {
+		retryStartTimes[key] = time.Now()
+	}
 }
 
 var (
@@ -1060,6 +1074,31 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+func limitsHandler(w http.ResponseWriter, r *http.Request) {
+	id, ok := reqId(w)
+	if !ok {
+		return
+	}
+
+	api := r.URL.Query().Get("api")
+	direction := r.URL.Query().Get("direction")
+	repo := r.URL.Query().Get("repo")
+	oid := r.URL.Query().Get("oid")
+	tokens := r.URL.Query().Get("tokens")
+
+	numTokens, err := strconv.Atoi(tokens)
+	if err != nil {
+		if tokens == "max" {
+			numTokens = refillTokenCount
+		} else {
+			numTokens = 0
+		}
+	}
+
+	setRateLimit(api, direction, repo, oid, numTokens)
+	debug(id, "Set rate limit:", api, direction, repo, oid, numTokens)
 }
 
 type User struct {
