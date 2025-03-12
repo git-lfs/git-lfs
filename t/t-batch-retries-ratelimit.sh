@@ -81,9 +81,9 @@ begin_test "batch clone causes retries"
   pushd ..
     git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
     if [ "0" -ne "$?" ]; then
-	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
-	  exit 1
-	fi
+      echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to succeed ..."
+      exit 1
+    fi
 
     cd "$reponame-assert"
 
@@ -119,9 +119,9 @@ begin_test "batch clone with multiple files causes retries"
   pushd ..
     git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
     if [ "0" -ne "$?" ]; then
-	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
-	  exit 1
-	fi
+      echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to succeed ..."
+      exit 1
+    fi
 
     cd "$reponame-assert"
 
