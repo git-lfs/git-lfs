@@ -47,7 +47,7 @@ func main() {
 
 				if command != "" && pathname != "" {
 					if command == "clean" {
-						if err = os.Rename(pathname, pathname + ".orig"); err != nil {
+						if err = os.Rename(pathname, pathname+".orig"); err != nil {
 							panic(err)
 						}
 
