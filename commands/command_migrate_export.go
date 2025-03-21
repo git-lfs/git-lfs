@@ -35,7 +35,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	filter := rewriter.Filter()
 	if len(filter.Include()) <= 0 {
-		ExitWithError(errors.Errorf(tr.Tr.Get("One or more files must be specified with --include")))
+		ExitWithError(errors.New(tr.Tr.Get("One or more files must be specified with --include")))
 	}
 
 	tracked := trackedFromExportFilter(filter)
@@ -116,7 +116,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	}
 	remoteURL := getAPIClient().Endpoints.RemoteEndpoint("download", remote).Url
 	if remoteURL == "" && cmd.Flag("remote").Changed {
-		ExitWithError(errors.Errorf(tr.Tr.Get("Invalid remote %s provided", remote)))
+		ExitWithError(errors.New(tr.Tr.Get("Invalid remote %s provided", remote)))
 	}
 
 	// If we have a valid remote, pre-download all objects using the Transfer Queue
@@ -176,7 +176,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 }
 
 func performForceCheckout(l *tasklog.Logger) error {
-	t := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("checkout")))
+	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
 	return git.Checkout("", nil, true)

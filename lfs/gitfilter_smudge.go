@@ -123,16 +123,7 @@ func (f *GitFilter) downloadFile(writer io.Writer, ptr *Pointer, workingfile, me
 	q.Wait()
 
 	if errs := q.Errors(); len(errs) > 0 {
-		var multiErr error
-		for _, e := range errs {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, e)
-			} else {
-				multiErr = e
-			}
-		}
-
-		return 0, errors.Wrapf(multiErr, tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+		return 0, errors.Wrap(errors.Join(errs...), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 	}
 
 	return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
@@ -155,15 +146,7 @@ func (f *GitFilter) downloadFileFallBack(writer io.Writer, ptr *Pointer, working
 		q.Wait()
 
 		if errs := q.Errors(); len(errs) > 0 {
-			var multiErr error
-			for _, e := range errs {
-				if multiErr != nil {
-					multiErr = fmt.Errorf("%v\n%v", multiErr, e)
-				} else {
-					multiErr = e
-				}
-			}
-			wrappedError := errors.Wrapf(multiErr, tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+			wrappedError := errors.Wrap(errors.Join(errs...), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 			if index >= len(remotes)-1 {
 				return 0, wrappedError
 			} else {
@@ -176,13 +159,13 @@ func (f *GitFilter) downloadFileFallBack(writer io.Writer, ptr *Pointer, working
 			return f.readLocalFile(writer, ptr, mediafile, workingfile, nil)
 		}
 	}
-	return 0, errors.Wrapf(errors.New("No known remotes"), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
+	return 0, errors.Wrap(errors.New(tr.Tr.Get("No known remotes")), tr.Tr.Get("Error downloading %s (%s)", workingfile, ptr.Oid))
 }
 
 func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile string, workingfile string, cb tools.CopyCallback) (int64, error) {
 	reader, err := tools.RobustOpen(mediafile)
 	if err != nil {
-		return 0, errors.Wrapf(err, tr.Tr.Get("error opening media file"))
+		return 0, errors.Wrap(err, tr.Tr.Get("error opening media file"))
 	}
 	defer reader.Close()
 
@@ -250,14 +233,14 @@ func (f *GitFilter) readLocalFile(writer io.Writer, ptr *Pointer, mediafile stri
 		// setup reader
 		reader, err = os.Open(response.file.Name())
 		if err != nil {
-			return 0, errors.Wrapf(err, tr.Tr.Get("Error opening smudged file: %s", err))
+			return 0, errors.Wrap(err, tr.Tr.Get("Error opening smudged file: %s", err))
 		}
 		defer reader.Close()
 	}
 
 	n, err := tools.CopyWithCallback(writer, reader, ptr.Size, cb)
 	if err != nil {
-		return n, errors.Wrapf(err, tr.Tr.Get("Error reading from media file: %s", err))
+		return n, errors.Wrap(err, tr.Tr.Get("Error reading from media file: %s", err))
 	}
 
 	return n, nil

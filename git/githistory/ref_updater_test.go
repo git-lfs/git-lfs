@@ -15,21 +15,21 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 		"refs/tags/middle", HexDecode(t, "228afe30855933151f7a88e70d9d88314fd2f191"))
 
 	updater := &refUpdater{
-		CacheFn: func(old []byte) ([]byte, bool) {
+		cacheFn: func(old []byte) ([]byte, bool) {
 			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
 		},
-		Refs: []*git.Ref{
+		refs: []*git.Ref{
 			{
 				Name: "middle",
 				Sha:  "228afe30855933151f7a88e70d9d88314fd2f191",
 				Type: git.RefTypeLocalTag,
 			},
 		},
-		Root: root,
+		root: root,
 		db:   db,
 	}
 
-	err := updater.UpdateRefs()
+	err := updater.updateRefs()
 
 	assert.NoError(t, err)
 
@@ -45,21 +45,21 @@ func TestRefUpdaterMovesRefsWithAnnotatedTags(t *testing.T) {
 		"refs/tags/middle", HexDecode(t, "05797a38b05f910e6efe40dc1a5c0a046a9403e8"))
 
 	updater := &refUpdater{
-		CacheFn: func(old []byte) ([]byte, bool) {
+		cacheFn: func(old []byte) ([]byte, bool) {
 			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
 		},
-		Refs: []*git.Ref{
+		refs: []*git.Ref{
 			{
 				Name: "middle",
 				Sha:  "05797a38b05f910e6efe40dc1a5c0a046a9403e8",
 				Type: git.RefTypeLocalTag,
 			},
 		},
-		Root: root,
+		root: root,
 		db:   db,
 	}
 
-	err := updater.UpdateRefs()
+	err := updater.updateRefs()
 
 	assert.NoError(t, err)
 
@@ -75,21 +75,21 @@ func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
 		"refs/tags/middle", HexDecode(t, "228afe30855933151f7a88e70d9d88314fd2f191"))
 
 	updater := &refUpdater{
-		CacheFn: func(old []byte) ([]byte, bool) {
+		cacheFn: func(old []byte) ([]byte, bool) {
 			return nil, false
 		},
-		Refs: []*git.Ref{
+		refs: []*git.Ref{
 			{
 				Name: "middle",
 				Sha:  "228afe30855933151f7a88e70d9d88314fd2f191",
 				Type: git.RefTypeLocalTag,
 			},
 		},
-		Root: root,
+		root: root,
 		db:   db,
 	}
 
-	err := updater.UpdateRefs()
+	err := updater.updateRefs()
 
 	assert.NoError(t, err)
 

@@ -5,12 +5,12 @@ package lfs_test // to avoid import cycles
 // which avoids import cycles with testutils
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	. "github.com/git-lfs/git-lfs/v3/lfs"
 	test "github.com/git-lfs/git-lfs/v3/t/cmd/util"
 	"github.com/stretchr/testify/assert"
@@ -94,11 +94,7 @@ func scanUnpushed(remoteName string) ([]*WrappedPointer, error) {
 
 	gitscanner := NewGitScanner(config.New(), func(p *WrappedPointer, err error) {
 		if err != nil {
-			if multiErr != nil {
-				multiErr = fmt.Errorf("%v\n%v", multiErr, err)
-			} else {
-				multiErr = err
-			}
+			multiErr = errors.Join(multiErr, err)
 			return
 		}
 

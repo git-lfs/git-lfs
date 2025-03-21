@@ -290,7 +290,7 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 }
 
 func fetchRemoteRefs(l *tasklog.Logger, remotes []string) error {
-	w := l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Fetching remote refs")))
+	w := l.Waiter(tr.Tr.Get("Fetching remote refs"))
 	defer w.Complete()
 
 	return git.Fetch(remotes...)
@@ -319,7 +319,7 @@ func currentRefToMigrate() (*git.Ref, error) {
 	if current.Type == git.RefTypeOther ||
 		current.Type == git.RefTypeRemoteBranch {
 
-		return nil, errors.Errorf(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
+		return nil, errors.New(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
 	}
 	return current, nil
 }
@@ -352,7 +352,7 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 		answer := bufio.NewReader(in)
 	L:
 		for {
-			fmt.Fprintf(out, "migrate: %s", tr.Tr.Get("override changes in your working copy?  All uncommitted changes will be lost! [y/N] "))
+			fmt.Fprint(out, tr.Tr.Get("override changes in your working copy?  All uncommitted changes will be lost! [y/N] "))
 			s, err := answer.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
@@ -380,9 +380,9 @@ func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
 	}
 
 	if proceed {
-		fmt.Fprintf(out, "migrate: %s\n", tr.Tr.Get("changes in your working copy will be overridden ..."))
+		fmt.Fprintln(out, tr.Tr.Get("changes in your working copy will be overridden ..."))
 	} else {
-		Exit("migrate: %s", tr.Tr.Get("working copy must not be dirty"))
+		Exit(tr.Tr.Get("working copy must not be dirty"))
 	}
 }
 

@@ -32,10 +32,10 @@ type Rewriter struct {
 	// filter will cull out any unmodifiable subtrees and blobs.
 	filter *filepathfilter.Filter
 	// db is the *ObjectDatabase from which blobs, commits, and trees are
-	// loaded from.
+	// loaded.
 	db *gitobj.ObjectDatabase
-	// l is the *tasklog.Logger to which updates are written.
-	l *tasklog.Logger
+	// logger is the *tasklog.Logger to which updates are written.
+	logger *tasklog.Logger
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -161,7 +161,7 @@ var (
 	// be given to the provided logger, "l".
 	WithLogger = func(l *tasklog.Logger) rewriterOption {
 		return func(r *Rewriter) {
-			r.l = l
+			r.logger = l
 		}
 	}
 
@@ -204,9 +204,9 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 	var perc *tasklog.PercentageTask
 	if opt.UpdateRefs {
-		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Rewriting commits")), uint64(len(commits)))
+		perc = r.logger.Percentage(tr.Tr.Get("Rewriting commits"), uint64(len(commits)))
 	} else {
-		perc = r.l.Percentage(fmt.Sprintf("migrate: %s", tr.Tr.Get("Examining commits")), uint64(len(commits)))
+		perc = r.logger.Percentage(tr.Tr.Get("Examining commits"), uint64(len(commits)))
 	}
 	defer perc.Complete()
 
@@ -316,15 +316,14 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 		root, _ := r.db.Root()
 
 		updater := &refUpdater{
-			CacheFn: r.uncacheCommit,
-			Logger:  r.l,
-			Refs:    refs,
-			Root:    root,
-
-			db: r.db,
+			cacheFn: r.uncacheCommit,
+			logger:  r.logger,
+			refs:    refs,
+			root:    root,
+			db:      r.db,
 		}
 
-		if err := updater.UpdateRefs(); err != nil {
+		if err := updater.updateRefs(); err != nil {
 			return nil, errors.Wrap(err, tr.Tr.Get("could not update refs"))
 		}
 	}
@@ -481,7 +480,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 		}
 
 		if perc != nil {
-			perc.Entry(fmt.Sprintf("migrate: %s", tr.Tr.Get("commit %s: %s", hex.EncodeToString(commitOID), path)))
+			perc.Entry(tr.Tr.Get("  commit %s: %s", hex.EncodeToString(commitOID), path))
 		}
 
 		return sha, nil
@@ -501,7 +500,7 @@ func (r *Rewriter) rewriteBlob(commitOID, from []byte, path string, fn BlobRewri
 //
 // If any error was encountered, it will be returned.
 func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
-	waiter := r.l.Waiter(fmt.Sprintf("migrate: %s", tr.Tr.Get("Sorting commits")))
+	waiter := r.logger.Waiter(tr.Tr.Get("Sorting commits"))
 	defer waiter.Complete()
 
 	scanner, err := git.NewRevListScanner(

@@ -44,7 +44,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 		}
 
 		if n != 0 {
-			return 0, false, nil, errors.NewNotAPointerError(errors.Errorf(
+			return 0, false, nil, errors.NewNotAPointerError(errors.New(
 				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))
 		}
@@ -107,7 +107,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 		}
 
 		if n != 0 {
-			return 0, errors.NewNotAPointerError(errors.Errorf(
+			return 0, errors.NewNotAPointerError(errors.New(
 				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))
 		}
