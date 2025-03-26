@@ -38,7 +38,7 @@ begin_test "push with missing objects (lfs.allowincompletepush true)"
 
   git push origin main 2>&1 | tee push.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
+    echo >&2 "fatal: expected 'git push origin main' to succeed ..."
     exit 1
   fi
 
@@ -86,7 +86,7 @@ begin_test "push reject missing objects (lfs.allowincompletepush false)"
 
   git push origin main 2>&1 | tee push.log
   if [ "1" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
+    echo >&2 "fatal: expected 'git push origin main' to fail ..."
     exit 1
   fi
 
@@ -132,9 +132,8 @@ begin_test "push reject missing objects (lfs.allowincompletepush default)"
   assert_local_object "$present_oid" "$present_len"
 
   git push origin main 2>&1 | tee push.log
-
-  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git push origin main' to exit with non-zero code"
+  if [ "1" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git push origin main' to fail ..."
     exit 1
   fi
 
@@ -181,9 +180,8 @@ begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
   assert_local_object "$present_oid" "$present_len"
 
   git push origin main 2>&1 | tee push.log
-
-  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git push origin main' to exit with non-zero code"
+  if [ "1" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git push origin main' to fail ..."
     exit 1
   fi
 
