@@ -241,11 +241,11 @@ begin_test "pre-push 307 redirects"
 )
 end_test
 
-begin_test "pre-push with existing file"
+begin_test "pre-push with existing object"
 (
   set -e
 
-  reponame="pre-push-existing-file"
+  reponame="pre-push-existing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -270,11 +270,11 @@ begin_test "pre-push with existing file"
 )
 end_test
 
-begin_test "pre-push with existing pointer"
+begin_test "pre-push with existing object (untracked)"
 (
   set -e
 
-  reponame="pre-push-existing-pointer"
+  reponame="pre-push-existing-object-untracked"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -295,11 +295,11 @@ begin_test "pre-push with existing pointer"
 )
 end_test
 
-begin_test "pre-push with missing pointer not on server"
+begin_test "pre-push reject missing object"
 (
   set -e
 
-  reponame="pre-push-missing-pointer"
+  reponame="pre-push-reject-missing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -326,13 +326,13 @@ begin_test "pre-push with missing pointer not on server"
 )
 end_test
 
-begin_test "pre-push with missing pointer which is on server"
+begin_test "pre-push allow missing object (found on server)"
 (
   # should permit push if files missing locally but are on server, shouldn't
   # require client to have every file (prune)
   set -e
 
-  reponame="pre-push-missing-but-on-server"
+  reponame="pre-push-allow-missing-object-found-on-server"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -367,11 +367,11 @@ begin_test "pre-push with missing pointer which is on server"
 )
 end_test
 
-begin_test "pre-push with missing and present pointers (lfs.allowincompletepush true)"
+begin_test "pre-push allow missing object (lfs.allowincompletepush true)"
 (
   set -e
 
-  reponame="pre-push-missing-and-present"
+  reponame="pre-push-allow-missing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -414,11 +414,11 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
 )
 end_test
 
-begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
+begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
 (
   set -e
 
-  reponame="pre-push-reject-missing-and-present"
+  reponame="pre-push-reject-missing-object-default"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
