@@ -2,11 +2,11 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "push with missing objects (lfs.allowincompletepush true)"
+begin_test "push allow missing object (lfs.allowincompletepush true)"
 (
   set -e
 
-  reponame="push-with-missing-objects"
+  reponame="push-allow-missing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -46,11 +46,11 @@ begin_test "push with missing objects (lfs.allowincompletepush true)"
 )
 end_test
 
-begin_test "push reject missing objects (lfs.allowincompletepush false)"
+begin_test "push reject missing object (lfs.allowincompletepush false)"
 (
   set -e
 
-  reponame="push-reject-missing-objects"
+  reponame="push-reject-missing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -89,11 +89,11 @@ begin_test "push reject missing objects (lfs.allowincompletepush false)"
 )
 end_test
 
-begin_test "push reject missing objects (lfs.allowincompletepush default)"
+begin_test "push reject missing object (lfs.allowincompletepush default)"
 (
   set -e
 
-  reponame="push-missing-objects"
+  reponame="push-reject-missing-object-default"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -128,11 +128,11 @@ begin_test "push reject missing objects (lfs.allowincompletepush default)"
 )
 end_test
 
-begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
+begin_test "push reject corrupt object (lfs.allowincompletepush default)"
 (
   set -e
 
-  reponame="push-corrupt-objects"
+  reponame="push-reject-corrupt-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
