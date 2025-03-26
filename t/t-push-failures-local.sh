@@ -25,9 +25,6 @@ begin_test "push allow missing object (lfs.allowincompletepush true)"
   git add present.dat missing.dat
   git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
   delete_local_object "$missing_oid"
 
   git config lfs.allowincompletepush true
