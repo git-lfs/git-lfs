@@ -307,11 +307,14 @@ begin_test "pre-push with missing pointer not on server"
   git commit -m "add new pointer"
 
   # assert that push fails
-  set +e
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
-  set -e
+
+  if [ "2" -ne "${PIPESTATUS[1]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to fail ..."
+    exit 1
+  fi
 
   grep "  (missing) new.dat ($oid)" push.log
 )
@@ -352,9 +355,9 @@ begin_test "pre-push with missing pointer which is on server"
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
+
   # make sure there were no errors reported
   [ -z "$(grep -i 'Error' push.log)" ]
-
 )
 end_test
 
@@ -397,7 +400,7 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
     tee push.log
 
   if [ "0" -ne "${PIPESTATUS[1]}" ]; then
-    echo >&2 "fatal: expected \`git lfs pre-push origin $GITSERVER/$reponame\` to succeed..."
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to succeed ..."
     exit 1
   fi
 
@@ -446,7 +449,7 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
     tee push.log
 
   if [ "2" -ne "${PIPESTATUS[1]}" ]; then
-    echo >&2 "fatal: expected \`git lfs pre-push origin $GITSERVER/$reponame\` to fail..."
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to fail ..."
     exit 1
   fi
 
