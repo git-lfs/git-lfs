@@ -245,10 +245,10 @@ begin_test "pre-push with existing file"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-existing-file"
+  reponame="pre-push-existing-file"
   setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
 
-  clone_repo "$reponame" existing-file
   echo "existing" > existing.dat
   git add existing.dat
   git commit -m "add existing dat"
@@ -274,9 +274,9 @@ begin_test "pre-push with existing pointer"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-existing-pointer"
+  reponame="pre-push-existing-pointer"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" existing-pointer
+  clone_repo "$reponame" "$reponame"
 
   echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
   git add new.dat
@@ -299,9 +299,9 @@ begin_test "pre-push with missing pointer not on server"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-missing-pointer"
+  reponame="pre-push-missing-pointer"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" missing-pointer
+  clone_repo "$reponame" "$reponame"
 
   oid="7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
 
@@ -332,9 +332,9 @@ begin_test "pre-push with missing pointer which is on server"
   # require client to have every file (prune)
   set -e
 
-  reponame="$(basename "$0" ".sh")-missing-but-on-server"
+  reponame="pre-push-missing-but-on-server"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" missing-but-on-server
+  clone_repo "$reponame" "$reponame"
 
   contents="common data"
   contents_oid=$(calc_oid "$contents")
