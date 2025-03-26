@@ -22,7 +22,7 @@ begin_test "push with missing objects (lfs.allowincompletepush true)"
   missing_oid="$(calc_oid "$missing")"
   printf "%s" "$missing" > missing.dat
 
-  git add missing.dat present.dat
+  git add present.dat missing.dat
   git commit -m "add objects"
 
   git rm missing.dat
@@ -66,7 +66,7 @@ begin_test "push reject missing objects (lfs.allowincompletepush false)"
   missing_oid="$(calc_oid "$missing")"
   printf "%s" "$missing" > missing.dat
 
-  git add missing.dat present.dat
+  git add present.dat missing.dat
   git commit -m "add objects"
 
   git rm missing.dat
@@ -101,17 +101,16 @@ begin_test "push reject missing objects (lfs.allowincompletepush default)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  missing="missing"
-  missing_oid="$(calc_oid "$missing")"
-  printf "%s" "$missing" > missing.dat
-  git add missing.dat
-  git commit -m "add missing.dat"
-
   present="present"
   present_oid="$(calc_oid "$present")"
   printf "%s" "$present" > present.dat
-  git add present.dat
-  git commit -m "add present.dat"
+
+  missing="missing"
+  missing_oid="$(calc_oid "$missing")"
+  printf "%s" "$missing" > missing.dat
+
+  git add present.dat missing.dat
+  git commit -m "add objects"
 
   delete_local_object "$missing_oid"
 
@@ -141,17 +140,16 @@ begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
   git add .gitattributes
   git commit -m "initial commit"
 
-  corrupt="corrupt"
-  corrupt_oid="$(calc_oid "$corrupt")"
-  printf "%s" "$corrupt" > corrupt.dat
-  git add corrupt.dat
-  git commit -m "add corrupt.dat"
-
   present="present"
   present_oid="$(calc_oid "$present")"
   printf "%s" "$present" > present.dat
-  git add present.dat
-  git commit -m "add present.dat"
+
+  corrupt="corrupt"
+  corrupt_oid="$(calc_oid "$corrupt")"
+  printf "%s" "$corrupt" > corrupt.dat
+
+  git add present.dat corrupt.dat
+  git commit -m "add objects"
 
   corrupt_local_object "$corrupt_oid"
 
