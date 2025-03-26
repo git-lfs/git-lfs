@@ -124,8 +124,8 @@ begin_test "push reject missing objects (lfs.allowincompletepush default)"
   grep "LFS upload failed:" push.log
   grep "  (missing) missing.dat ($missing_oid)" push.log
 
-  refute_server_object "$reponame" "$missing_oid"
   assert_server_object "$reponame" "$present_oid"
+  refute_server_object "$reponame" "$missing_oid"
 )
 end_test
 
@@ -164,7 +164,7 @@ begin_test "push reject corrupt objects (lfs.allowincompletepush default)"
   grep "LFS upload failed:" push.log
   grep "  (corrupt) corrupt.dat ($corrupt_oid)" push.log
 
-  refute_server_object "$reponame" "$corrupt_oid"
   assert_server_object "$reponame" "$present_oid"
+  refute_server_object "$reponame" "$corrupt_oid"
 )
 end_test
