@@ -289,6 +289,9 @@ begin_test "pre-push with existing pointer"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
+
+  # now the file exists
+  assert_server_object "$reponame" 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
 )
 end_test
 
@@ -316,7 +319,10 @@ begin_test "pre-push with missing pointer not on server"
     exit 1
   fi
 
+  grep "LFS upload failed:" push.log
   grep "  (missing) new.dat ($oid)" push.log
+
+  refute_server_object "$reponame" "$oid"
 )
 end_test
 
