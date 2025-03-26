@@ -451,7 +451,7 @@ begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
     exit 1
   fi
 
-  grep 'Unable to find source' push.log
+  grep "Unable to find source for object $missing_oid" push.log
 
   refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"
