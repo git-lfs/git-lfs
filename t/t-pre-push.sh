@@ -382,7 +382,7 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
   printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
-  git commit -m "add present.dat and missing.dat"
+  git commit -m "add objects"
 
   git rm missing.dat
   git commit -m "remove missing"
@@ -429,7 +429,7 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
   printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
-  git commit -m "add present.dat and missing.dat"
+  git commit -m "add objects"
 
   git rm missing.dat
   git commit -m "remove missing"
