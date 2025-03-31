@@ -194,6 +194,21 @@ assert_remote_object() {
   popd
 }
 
+# assert_remote_object() confirms that an object file with the given OID
+# is not stored in the "remote" copy of a repository
+refute_remote_object() {
+  local reponame="$1"
+  local oid="$2"
+  local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
+
+  pushd "$destination"
+    local f="$(local_object_path "$oid")"
+    if [ -e $f ]; then
+      exit 1
+    fi
+  popd
+}
+
 check_server_lock_ssh() {
   local reponame="$1"
   local id="$2"
