@@ -440,7 +440,7 @@ begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
   delete_local_object "$missing_oid"
 
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
-    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    GIT_TRACE=1 git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
 
   if [ "2" -ne "${PIPESTATUS[1]}" ]; then
@@ -448,6 +448,7 @@ begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
     exit 1
   fi
 
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
   grep "Unable to find source for object $missing_oid" push.log
 
   refute_server_object "$reponame" "$present_oid"
