@@ -121,12 +121,13 @@ begin_test "push reject missing object (lfs.allowincompletepush false)"
 
   git config lfs.allowincompletepush false
 
-  git push origin main 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   if [ "1" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git push origin main' to fail ..."
     exit 1
   fi
 
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
   grep "Unable to find source for object $missing_oid" push.log
 
   refute_server_object "$reponame" "$present_oid"
@@ -177,6 +178,7 @@ begin_test "push reject missing object (lfs.allowincompletepush false) (git-lfs-
 
   grep "pure SSH connection successful" push.log
 
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
   grep "Unable to find source for object $missing_oid" push.log
 
   refute_remote_object "$reponame" "$present_oid"

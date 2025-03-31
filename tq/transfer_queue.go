@@ -625,6 +625,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// missing in that case, since we don't need to upload
 			// it.
 			if o.Missing && len(o.Actions) != 0 {
+				tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
 				return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
 			}
 		}
