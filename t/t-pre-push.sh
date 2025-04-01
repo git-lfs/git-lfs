@@ -434,9 +434,6 @@ begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
   git add present.dat missing.dat
   git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
   delete_local_object "$missing_oid"
 
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |

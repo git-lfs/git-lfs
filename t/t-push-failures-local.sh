@@ -114,9 +114,6 @@ begin_test "push reject missing object (lfs.allowincompletepush false)"
   git add present.dat missing.dat
   git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
   delete_local_object "$missing_oid"
 
   git config lfs.allowincompletepush false
@@ -164,9 +161,6 @@ begin_test "push reject missing object (lfs.allowincompletepush false) (git-lfs-
   git add present.dat missing.dat
   git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
   delete_local_object "$missing_oid"
 
   git config lfs.allowincompletepush false
@@ -213,16 +207,17 @@ begin_test "push reject missing object (lfs.allowincompletepush default)"
 
   delete_local_object "$missing_oid"
 
-  git push origin main 2>&1 | tee push.log
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   if [ "1" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git push origin main' to fail ..."
     exit 1
   fi
 
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
   grep "LFS upload failed:" push.log
   grep "  (missing) missing.dat ($missing_oid)" push.log
 
-  assert_server_object "$reponame" "$present_oid"
+  refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"
 )
 end_test
@@ -265,10 +260,11 @@ begin_test "push reject missing object (lfs.allowincompletepush default) (git-lf
 
   grep "pure SSH connection successful" push.log
 
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
   grep "LFS upload failed:" push.log
   grep "  (missing) missing.dat ($missing_oid)" push.log
 
-  assert_remote_object "$reponame" "$present_oid" "${#present}"
+  refute_remote_object "$reponame" "$present_oid"
   refute_remote_object "$reponame" "$missing_oid"
 )
 end_test
