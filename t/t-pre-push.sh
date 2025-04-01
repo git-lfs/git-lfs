@@ -449,7 +449,8 @@ begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
   fi
 
   grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
-  grep "Unable to find source for object $missing_oid" push.log
+  grep "LFS upload failed:" push.log
+  grep "  (missing) missing.dat ($missing_oid)" push.log
 
   refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"

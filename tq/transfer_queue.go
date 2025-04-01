@@ -634,7 +634,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				// transfer queue.
 				if ok && objects.First().Missing {
 					tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
-					return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
+					return nil, newObjectMissingError(objects.First().Name, o.Oid)
 				}
 			}
 		}

@@ -128,7 +128,8 @@ begin_test "push reject missing object (lfs.allowincompletepush false)"
   fi
 
   grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
-  grep "Unable to find source for object $missing_oid" push.log
+  grep "LFS upload failed:" push.log
+  grep "  (missing) missing.dat ($missing_oid)" push.log
 
   refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"
@@ -179,7 +180,8 @@ begin_test "push reject missing object (lfs.allowincompletepush false) (git-lfs-
   grep "pure SSH connection successful" push.log
 
   grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
-  grep "Unable to find source for object $missing_oid" push.log
+  grep "LFS upload failed:" push.log
+  grep "  (missing) missing.dat ($missing_oid)" push.log
 
   refute_remote_object "$reponame" "$present_oid"
   refute_remote_object "$reponame" "$missing_oid"
