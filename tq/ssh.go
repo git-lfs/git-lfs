@@ -49,10 +49,8 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 		return bRes, nil
 	}
 
-	missing := make(map[string]bool)
 	batchLines := make([]string, 0, len(bReq.Objects))
 	for _, obj := range bReq.Objects {
-		missing[obj.Oid] = obj.Missing
 		batchLines = append(batchLines, fmt.Sprintf("%s %d", obj.Oid, obj.Size))
 	}
 
@@ -131,7 +129,6 @@ func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchRespons
 	}
 
 	for _, obj := range bRes.Objects {
-		obj.Missing = missing[obj.Oid]
 		for _, a := range obj.Actions {
 			a.createdAt = requestedAt
 		}

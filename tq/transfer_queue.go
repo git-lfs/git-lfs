@@ -129,7 +129,7 @@ func (b batch) Concat(other batch, size int) (left, right batch, minWait time.Du
 func (b batch) ToTransfers() []*Transfer {
 	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size, Missing: t.Missing})
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
 	}
 	return transfers
 }
@@ -572,7 +572,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		// Trust the external transfer agent can do everything by itself.
 		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
-			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path, Missing: t.Missing})
+			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path})
 		}
 		bRes = &BatchResponse{
 			Objects:             objects,
@@ -624,9 +624,18 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// actions will be empty. It's fine if the file is
 			// missing in that case, since we don't need to upload
 			// it.
-			if o.Missing && len(o.Actions) != 0 {
-				tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
-				return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
+			if len(o.Actions) != 0 {
+				q.trMutex.Lock()
+				objects, ok := q.transfers[o.Oid]
+				q.trMutex.Unlock()
+				// We expect only one objectTuple in this list
+				// as the uploadContext methods deduplicate
+				// identical OIDs before adding them to the
+				// transfer queue.
+				if ok && objects.First().Missing {
+					tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
+					return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
+				}
 			}
 		}
 	}
