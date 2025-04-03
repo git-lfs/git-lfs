@@ -532,7 +532,7 @@ func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 }
 
 func requireGitVersion() {
-	minimumGit := "1.8.2"
+	minimumGit := "2.0.0"
 
 	if !git.IsGitVersionAtLeast(minimumGit) {
 		gitver, err := git.Version()
