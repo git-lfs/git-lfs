@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -235,7 +234,7 @@ func (c *uploadContext) UploadPointers(q *tq.TransferQueue, unfiltered ...*lfs.W
 	pointers := c.prepareUpload(unfiltered...)
 	for _, p := range pointers {
 		t, err := c.uploadTransfer(p)
-		if err != nil && !errors.IsCleanPointerError(err) {
+		if err != nil {
 			ExitWithError(err)
 		}
 
@@ -345,9 +344,11 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 
 	// Skip the object if its corresponding file does not exist in
 	// .git/lfs/objects/.
-	if len(filename) > 0 {
-		if missing, err = c.ensureFile(filename, localMediaPath, oid); err != nil && !errors.IsCleanPointerError(err) {
-			return nil, err
+	if _, err := os.Stat(localMediaPath); err != nil {
+		if os.IsNotExist(err) {
+			missing = !c.allowMissing
+		} else {
+			return nil, errors.Wrap(err, tr.Tr.Get("Error uploading file %s (%s)", filename, oid))
 		}
 	}
 
@@ -358,37 +359,6 @@ func (c *uploadContext) uploadTransfer(p *lfs.WrappedPointer) (*tq.Transfer, err
 		Size:    p.Size,
 		Missing: missing,
 	}, nil
-}
-
-// ensureFile makes sure that the cleanPath exists before pushing it.  If it
-// does not exist, it attempts to clean it by reading the file at smudgePath.
-func (c *uploadContext) ensureFile(smudgePath, cleanPath, oid string) (bool, error) {
-	if _, err := os.Stat(cleanPath); err == nil {
-		return false, nil
-	}
-
-	localPath := filepath.Join(cfg.LocalWorkingDir(), smudgePath)
-	file, err := os.Open(localPath)
-	if err != nil {
-		return !c.allowMissing, nil
-	}
-
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return false, err
-	}
-
-	cleaned, err := c.gitfilter.Clean(file, file.Name(), stat.Size(), nil)
-	if cleaned != nil {
-		cleaned.Teardown()
-	}
-
-	if err != nil {
-		return false, err
-	}
-	return false, nil
 }
 
 // supportsLockingAPI returns whether or not a given url is known to support
