@@ -24,6 +24,8 @@ begin_test "batch upload causes retries"
     exit 1
   fi
 
+  [ 1 -eq $(grep -c "tq: enqueue retry" push.log) ]
+
   assert_server_object "$reponame" "$oid"
 )
 end_test
@@ -54,6 +56,9 @@ begin_test "batch upload with multiple files causes retries"
     exit 1
   fi
 
+  [ 2 -eq $(grep -c "tq: enqueue retry" push.log) ]
+  [ 2 -eq $(grep -c "tq: enqueue retry #1" push.log) ]
+
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
 )
@@ -75,15 +80,28 @@ begin_test "batch clone causes retries"
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
+  # Note that the server would apply the default rate limit delay only
+  # to this push operation, not the subsequent clone whose handling of
+  # 429 responses we want to test.  To avoid this, we first set the
+  # available non-rate-limited requests for the repository to the maximum
+  # allowed, which allows the push to proceed without delay.  Then we
+  # reset the available requests to zero afterwards so the clone will
+  # receive a 429 response.
+  set_server_rate_limit "batch" "" "$reponame" "" "max"
+
   git push origin main
   assert_server_object "$reponame" "$oid"
 
+  set_server_rate_limit "batch" "" "$reponame" "" 0
+
   pushd ..
-    git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
-    if [ "0" -ne "$?" ]; then
-	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
-	  exit 1
-	fi
+    GIT_TRACE=1 git lfs clone "$GITSERVER/$reponame" "$reponame-assert" 2>&1 | tee clone.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to succeed ..."
+      exit 1
+    fi
+
+    [ 1 -eq $(grep -c "tq: enqueue retry" clone.log) ]
 
     cd "$reponame-assert"
 
@@ -112,16 +130,30 @@ begin_test "batch clone with multiple files causes retries"
   git add .gitattributes a.dat b.dat
   git commit -m "initial commit"
 
+  # Note that the server would apply the default rate limit delay only
+  # to this push operation, not the subsequent clone whose handling of
+  # 429 responses we want to test.  To avoid this, we first set the
+  # available non-rate-limited requests for the repository to the maximum
+  # allowed, which allows the push to proceed without delay.  Then we
+  # reset the available requests to zero afterwards so the clone will
+  # receive a 429 response.
+  set_server_rate_limit "batch" "" "$reponame" "" "max"
+
   git push origin main
   assert_server_object "$reponame" "$oid1"
   assert_server_object "$reponame" "$oid2"
 
+  set_server_rate_limit "batch" "" "$reponame" "" 0
+
   pushd ..
-    git lfs clone "$GITSERVER/$reponame" "$reponame-assert"
-    if [ "0" -ne "$?" ]; then
-	  echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to su``"
-	  exit 1
-	fi
+    GIT_TRACE=1 git lfs clone "$GITSERVER/$reponame" "$reponame-assert" 2>&1 | tee clone.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected \`git lfs clone \"$GITSERVER/$reponame\" \"$reponame-assert\"\` to succeed ..."
+      exit 1
+    fi
+
+    [ 2 -eq $(grep -c "tq: enqueue retry" clone.log) ]
+    [ 2 -eq $(grep -c "tq: enqueue retry #1" clone.log) ]
 
     cd "$reponame-assert"
 
@@ -152,6 +184,10 @@ begin_test "batch upload causes retries (missing header)"
     echo >&2 "fatal: expected \`git push origin main\` to succeed ..."
     exit 1
   fi
+
+  [ 1 -lt $(grep -c "tq: enqueue retry" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #1" push.log) ]
+  [ 1 -eq $(grep -c "tq: enqueue retry #2" push.log) ]
 
   assert_server_object "$reponame" "$oid"
 )

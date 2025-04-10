@@ -251,6 +251,7 @@ type objectTuple struct {
 	Size            int64
 	Missing         bool
 	ReadyTime       time.Time
+	retryLaterTime  time.Time
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
@@ -546,7 +547,10 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	enqueueRetry := func(t *objectTuple, err error, readyTime *time.Time) {
 		count := q.rc.Increment(t.Oid)
 
-		if readyTime == nil {
+		if !t.retryLaterTime.IsZero() {
+			t.ReadyTime = t.retryLaterTime
+			t.retryLaterTime = time.Time{}
+		} else if readyTime == nil {
 			t.ReadyTime = q.rc.ReadyTime(t.Oid)
 		} else {
 			t.ReadyTime = *readyTime
@@ -802,14 +806,14 @@ func (q *TransferQueue) handleTransferResult(
 			// If the object can't be retried now, but can be
 			// after a certain period of time, send it to
 			// the retry channel with a time when it's ready.
-			tracerx.Printf("tq: retrying object %s after %s seconds.", oid, time.Until(readyTime).Seconds())
+			tracerx.Printf("tq: retrying object %s after %.2fs", oid, time.Until(readyTime).Seconds())
 			q.trMutex.Lock()
 			objects, ok := q.transfers[oid]
 			q.trMutex.Unlock()
 
 			if ok {
 				t := objects.First()
-				t.ReadyTime = readyTime
+				t.retryLaterTime = readyTime
 				retries <- t
 			} else {
 				q.errorc <- res.Error
