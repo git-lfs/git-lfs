@@ -717,16 +717,28 @@ MAN_HTML_TARGETS = man/html/git-lfs-checkout.1.html \
   man/html/git-lfs-update.1.html \
   man/html/git-lfs.1.html
 
-# man generates all ROFF- and HTML-style manpage targets.
+# man generates all ROFF- and HTML-style man page targets.
 .PHONY : man
 man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 
-# man/% generates ROFF-style man pages from the corresponding .ronn file.
-man/man1/%.1 man/man5/%.5 man/man7/%.7 : docs/man/%.adoc
-	@mkdir -p man/man1 man/man5
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $^
+# Generate ROFF-style man pages from the corresponding .adoc files.
+man/man1/%.1 : docs/man/%.adoc
+	@mkdir -p man/man1
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+man/man5/%.5 : docs/man/%.adoc
+	@mkdir -p man/man5
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+man/man7/%.7 : docs/man/%.adoc
+	@mkdir -p man/man7
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
 
-# man/%.html generates HTML-style man pages from the corresponding .ronn file.
-man/html/%.1.html man/html/%.5.html man/html/%.7.html : docs/man/%.adoc
+# Generate HTML-style man pages from the corresponding .adoc files.
+man/html/%.1.html : docs/man/%.adoc
 	@mkdir -p man/html
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $^
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $<
+man/html/%.5.html : docs/man/%.adoc
+	@mkdir -p man/html
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $<
+man/html/%.7.html : docs/man/%.adoc
+	@mkdir -p man/html
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b html5 -o $@ $<
