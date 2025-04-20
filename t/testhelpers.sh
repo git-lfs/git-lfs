@@ -689,6 +689,31 @@ tap_show_plan() {
   printf "1..%i\n" "$tests"
 }
 
+skip_if_root_or_admin() {
+  local test_description="$1"
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    # The sfc.exe (System File Checker) command should be available on all
+    # modern Windows systems, and when run without arguments, returns help
+    # text, but only when the user has Administrator privileges.  By checking
+    # the help text, if any, for the /SCANNOW (i.e., "scan now") option
+    # common to all versions of the command, we can determine if the
+    # current user has Administrator privileges.
+    #
+    # Adapted from: https://stackoverflow.com/a/58846650
+    #               https://stackoverflow.com/a/21295806
+    SFC=$(sfc | tr -d '\0' | grep "SCANNOW")
+    if [ -n "$SFC" ]; then
+      printf "skip: '%s' test requires non-administrator privileges\n" \
+        "$test_description"
+      exit 0
+    fi
+  elif [ "$EUID" -eq 0 ]; then
+    printf "skip: '%s' test requires non-root user\n" "$test_description"
+    exit 0
+  fi
+}
+
 ensure_git_version_isnt() {
   local expectedComparison=$1
   local version=$2

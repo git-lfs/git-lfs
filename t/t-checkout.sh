@@ -167,6 +167,52 @@ begin_test "checkout: outside git repository"
 )
 end_test
 
+begin_test "checkout: read-only directory"
+(
+  set -e
+
+  skip_if_root_or_admin "$test_description"
+
+  reponame="checkout-read-only"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.bin"
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+  mkdir dir
+  printf "%s" "$contents" > dir/a.bin
+
+  git add .gitattributes dir/a.bin
+  git commit -m "add dir/a.bin"
+
+  rm dir/a.bin
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    icacls dir /inheritance:r
+    icacls dir /grant:r Everyone:R
+  else
+    chmod a-w dir
+  fi
+  git lfs checkout 2>&1 | tee checkout.log
+  # Note that although the checkout command should log an error, at present
+  # we still expect a zero exit code.
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs checkout' to succeed ..."
+    exit 1
+  fi
+
+  assert_local_object "$contents_oid" 1
+
+  [ ! -e dir/a.bin ]
+
+  grep 'could not check out "dir/a.bin"' checkout.log
+  grep 'could not create working directory file' checkout.log
+  grep 'permission denied' checkout.log
+)
+end_test
+
 begin_test "checkout: write-only file"
 (
   set -e
