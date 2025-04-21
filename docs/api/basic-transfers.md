@@ -27,7 +27,7 @@ response that looks like this:
           "header": {
             "Authorization": "Basic ..."
           },
-          "expires_in": 86400,
+          "expires_in": 86400
         }
       }
     }
