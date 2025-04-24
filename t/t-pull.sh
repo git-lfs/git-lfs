@@ -366,6 +366,57 @@ begin_test "pull: outside git repository"
 )
 end_test
 
+begin_test "pull: read-only directory"
+(
+  set -e
+
+  skip_if_root_or_admin "$test_description"
+
+  reponame="pull-read-only"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.bin"
+
+  contents="a"
+  contents_oid=$(calc_oid "$contents")
+  mkdir dir
+  printf "%s" "$contents" > dir/a.bin
+
+  git add .gitattributes dir/a.bin
+  git commit -m "add dir/a.bin"
+
+  git push origin main
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  rm dir/a.bin
+  delete_local_object "$contents_oid"
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    icacls dir /inheritance:r
+    icacls dir /grant:r Everyone:R
+  else
+    chmod a-w dir
+  fi
+  git lfs pull 2>&1 | tee pull.log
+  # Note that although the pull command should log an error, at present
+  # we still expect a zero exit code.
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pull' to succeed ..."
+    exit 1
+  fi
+
+  assert_local_object "$contents_oid" 1
+
+  [ ! -e dir/a.bin ]
+
+  grep 'could not check out "dir/a.bin"' pull.log
+  grep 'could not create working directory file' pull.log
+  grep 'permission denied' pull.log
+)
+end_test
+
 begin_test "pull with empty file doesn't modify mtime"
 (
   set -e
