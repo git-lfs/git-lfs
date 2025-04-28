@@ -21,7 +21,7 @@ contains placeholder pointer content with the same SHA, the real file
 content is written, provided we have it in the local store. Modified
 files are never overwritten.
 
-One or more s may be provided as arguments to restrict the set of files
+One or more `<glob-pattern>` arguments may be provided to restrict the set of files
 that are updated. Glob patterns are matched as per the format described
 in gitignore(5).
 
