@@ -39,6 +39,12 @@ passing the `--verbose`, and will log in greater detail what it is
 doing.
 +
 Disabled by default.
+`-j`::
+`--json`::
+  Writes the currently tracked patterns as JSON to STDOUT, if the command
+  exits successfully. Intended for interoperation with external tools.
+  Can not be combined with any `<pattern>` arguments. If `--no-excluded` is
+  also provided, that option will have no effect.
 `--filename`::
   Treat the arguments as literal filenames, not as patterns. Any special glob
   characters in the filename will be escaped when writing the `.gitattributes`
