@@ -145,8 +145,7 @@ export::
 `--skip-fetch`::
   Assumes that the known set of remote references is complete, and should not be
   refreshed when determining the set of "un-pushed" commits to migrate. Has no
-  effect when combined with
-`--include-ref` or `--exclude-ref`.
+  effect when combined with `--include-ref` or `--exclude-ref`.
 `--everything`::
   See <<_include_and_exclude_references>>.
 +
