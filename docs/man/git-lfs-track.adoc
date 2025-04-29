@@ -24,12 +24,12 @@ use `--filename` or escape the character with a backslash.
 
 == OPTIONS
 
-`--verbose`::
 `-v`::
+`--verbose`::
    If enabled, have `git lfs track` log files which it will touch. Disabled by
    default.
-`--dry-run`::
 `-d`::
+`--dry-run`::
    If enabled, have `git lfs track` log all actions it would normally take
    (adding entries to .gitattributes, touching files on disk, etc) without
    performing any mutative operations to the disk.
@@ -43,8 +43,8 @@ Disabled by default.
   Treat the arguments as literal filenames, not as patterns. Any special glob
   characters in the filename will be escaped when writing the `.gitattributes`
   file.
-`--lockable`::
 `-l`::
+`--lockable`::
   Make the paths 'lockable', meaning they should be locked to edit them, and
   will be made read-only in the working copy when not locked.
 `--not-lockable`::

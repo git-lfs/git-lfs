@@ -39,17 +39,17 @@ This does not update the working copy.
 `--stdin`::
   Read a list of newline-delimited refs from standard input instead of the
   command line.
-`--prune`::
 `-p`::
+`--prune`::
   Prune old and unreferenced objects after fetching, equivalent to running `git
   lfs prune` afterwards. See git-lfs-prune(1) for more details.
 `--refetch`::
   Also fetch objects that are already present locally.
-`--dry-run`::
 `-d`::
+`--dry-run`::
   Print what would be fetched, without actually fetching anything.
-`--json`::
 `-j`::
+`--json`::
   Give the output in a stable JSON format for scripts.
 
 == INCLUDE AND EXCLUDE
