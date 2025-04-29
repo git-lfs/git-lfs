@@ -192,8 +192,9 @@ that set will be shown.
   change this behavior.
 `--unit=<unit>`::
   Format the number of bytes in each entry as a quantity of the storage unit
-  provided. Valid units include: * b, kib, mib, gib, tib, pib - for IEC storage
-  units * b, kb, mb, gb, tb, pb - for SI storage units
+  provided. Valid units include:
+** b, kib, mib, gib, tib, pib - for IEC storage units
+** b, kb, mb, gb, tb, pb - for SI storage units
 +
 If a `--unit` is not specified, the largest unit that can fit the number
 of counted bytes as a whole number quantity is chosen.
