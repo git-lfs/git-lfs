@@ -18,9 +18,11 @@ repository.
 
 == OPTIONS
 
+`-l`::
 `--local`::
   Removes the "lfs" smudge and clean filters from the local repository's git
   config, instead of the global git config (~/.gitconfig).
+`-w`::
 `--worktree`::
   Removes the "lfs" smudge and clean filters from the current working tree's git
   config, instead of the global git config (~/.gitconfig) or local repository's

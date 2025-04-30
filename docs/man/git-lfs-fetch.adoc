@@ -27,9 +27,11 @@ This does not update the working copy.
 `--exclude=<paths>`::
   Specify lfs.fetchexclude just for this invocation; see
   <<_include_and_exclude>>.
+`-r`::
 `--recent`::
   Download objects referenced by recent branches & commits in addition to those
   that would otherwise be downloaded. See <<_recent_changes>>.
+`-a`::
 `--all`::
   Download all objects that are referenced by any commit reachable from the refs
   provided as arguments. If no refs are provided, then all refs are fetched.
