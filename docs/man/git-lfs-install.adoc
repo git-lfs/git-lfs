@@ -49,6 +49,9 @@ and clean filters if they are not already set.
 `--system`::
   Sets the "lfs" smudge and clean filters in the system git config, e.g.
   /etc/gitconfig instead of the global git config (~/.gitconfig).
+`--file=<file>`::
+  Sets the `lfs` smudge and clean filters in the Git configuration file
+  specified by the `<file>` argument.
 `-s`::
 `--skip-smudge`::
   Skips automatic downloading of objects on clone or pull. This requires a
