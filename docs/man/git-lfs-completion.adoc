@@ -6,9 +6,12 @@ git-lfs-completion - Shell tab-completion script generation for Git LFS
 
 == SYNOPSIS
 
-`git lfs completion bash` +
-`git lfs completion fish` +
-`git lfs completion zsh`
+[source]
+----
+git lfs completion bash
+git lfs completion fish
+git lfs completion zsh
+----
 
 == DESCRIPTION
 

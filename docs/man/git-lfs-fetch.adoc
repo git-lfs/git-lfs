@@ -6,8 +6,11 @@ git-lfs-fetch - Download all Git LFS files for a given ref
 
 == SYNOPSIS
 
-`git lfs fetch` [options] [<remote> [<ref>...]]
-`git lfs fetch` [options] <remote> --stdin
+[source]
+----
+git lfs fetch [options] [<remote> [<ref>...]]
+git lfs fetch [options] <remote> --stdin
+----
 
 == DESCRIPTION
 

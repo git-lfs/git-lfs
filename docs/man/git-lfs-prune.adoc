@@ -6,7 +6,10 @@ git-lfs-prune - Delete old LFS files from local storage
 
 == SYNOPSIS
 
-`git lfs prune` [options]
+[source]
+----
+git lfs prune [options]
+----
 
 == DESCRIPTION
 

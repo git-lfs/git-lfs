@@ -6,7 +6,10 @@ git-lfs-migrate - Migrate history to or from Git LFS
 
 == SYNOPSIS
 
-`git lfs migrate` <mode> [options] [--] [branch ...]
+[source]
+----
+git lfs migrate <mode> [options] [--] [branch ...]
+----
 
 == DESCRIPTION
 

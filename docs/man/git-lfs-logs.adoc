@@ -6,10 +6,13 @@ git-lfs-logs - Show errors from the git-lfs command
 
 == SYNOPSIS
 
-`git lfs logs` +
-`git lfs logs` <file> +
-`git lfs logs clear` +
-`git lfs logs boomtown`
+[source]
+----
+git lfs logs
+git lfs logs <file>
+git lfs logs clear
+git lfs logs boomtown
+----
 
 == DESCRIPTION
 

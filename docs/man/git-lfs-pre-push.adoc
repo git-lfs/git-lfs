@@ -6,7 +6,10 @@ git-lfs-pre-push - Git pre-push hook implementation
 
 == SYNOPSIS
 
-`git lfs pre-push` <remote> [remoteurl]
+[source]
+----
+git lfs pre-push <remote> [remoteurl]
+----
 
 == DESCRIPTION
 

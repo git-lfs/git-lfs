@@ -6,7 +6,10 @@ git-lfs-post-commit - Git post-commit hook implementation
 
 == SYNOPSIS
 
-`git lfs post-commit`
+[source]
+----
+git lfs post-commit
+----
 
 == DESCRIPTION
 

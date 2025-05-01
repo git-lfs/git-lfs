@@ -6,8 +6,11 @@ git-lfs-filter-process - Git filter process that converts between pointer and ac
 
 == SYNOPSIS
 
-`git lfs filter-process` +
-`git lfs filter-process --skip`
+[source]
+----
+git lfs filter-process
+git lfs filter-process --skip
+----
 
 == DESCRIPTION
 
