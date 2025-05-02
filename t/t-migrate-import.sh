@@ -142,6 +142,31 @@ begin_test "migrate import (given branch with filter)"
 )
 end_test
 
+begin_test "migrate import (.git objects/symlink)"
+(
+  set -e
+  mkdir other
+
+  setup_multiple_local_branches
+
+  mv .git/objects ../other/
+  ln -s ../../other/objects .git/objects
+
+  md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  md_feature_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
+
+  git lfs migrate import
+
+  assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
+
+  assert_local_object "$md_oid" "140"
+  assert_local_object "$txt_oid" "120"
+  refute_local_object "$md_feature_oid" "30"
+)
+end_test
+
 begin_test "migrate import (default branch, exclude remote refs)"
 (
   set -e
