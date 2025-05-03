@@ -63,6 +63,10 @@ var (
 	// migrateFixup is the flag indicating whether or not to infer the
 	// included and excluded filepath patterns.
 	migrateFixup bool
+
+	// migrateCacheFilePathFilterResult is the flag indicating that a file path
+	// filter result may be cached
+	migrateCacheFilePathFilterResults bool
 )
 
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
@@ -401,6 +405,7 @@ func init() {
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
+	importCmd.Flags().BoolVar(&migrateCacheFilePathFilterResults, "cache-file-path-filter-results", false, "Cache file path filter results")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")

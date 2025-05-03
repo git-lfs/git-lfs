@@ -19,6 +19,7 @@ type Filter struct {
 	include      []Pattern
 	exclude      []Pattern
 	defaultValue bool
+	cache        map[string]bool
 }
 
 type PatternType bool
@@ -37,6 +38,7 @@ func (p PatternType) String() string {
 
 type options struct {
 	defaultValue bool
+	useCache     bool
 }
 
 type option func(*options)
@@ -49,12 +51,23 @@ func DefaultValue(val bool) option {
 	}
 }
 
+func UseCache(val bool) option {
+	return func(args *options) {
+		args.useCache = val
+	}
+}
+
 func NewFromPatterns(include, exclude []Pattern, setters ...option) *Filter {
-	args := &options{defaultValue: true}
+	args := &options{defaultValue: true, useCache: false}
 	for _, setter := range setters {
 		setter(args)
 	}
-	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+	var cache map[string]bool
+	cache = nil
+	if args.useCache {
+		cache = make(map[string]bool)
+	}
+	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue, cache: cache}
 }
 
 func New(include, exclude []string, ptype PatternType, setters ...option) *Filter {
@@ -82,11 +95,7 @@ func wildmatchToString(ps ...Pattern) []string {
 	return s
 }
 
-func (f *Filter) Allows(filename string) bool {
-	if f == nil {
-		return true
-	}
-
+func (f *Filter) allowsUncached(filename string) bool {
 	var included bool
 	for _, inc := range f.include {
 		if included = inc.Match(filename); included {
@@ -118,6 +127,26 @@ func (f *Filter) Allows(filename string) bool {
 	// No patterns matched and our default value is true.
 	tracerx.Printf("filepathfilter: accepting %q", filename)
 	return true
+
+}
+
+func (f *Filter) Allows(filename string) bool {
+	if f == nil {
+		return true
+	}
+
+	if f.cache == nil {
+		return f.allowsUncached(filename)
+	}
+
+	cachedResult, cacheHit := f.cache[filename]
+	if cacheHit {
+		return cachedResult
+	}
+
+	res := f.allowsUncached(filename)
+	f.cache[filename] = res
+	return res
 }
 
 type wm struct {

@@ -149,6 +149,10 @@ export::
 `--include-ref` or `--exclude-ref`.
 `--everything`::
   See <<_include_and_exclude_references>>.
+`--cache-file-path-filter-results`::
+  Makes Git LFS cache the result of include or exclude file path pattern matching
+  while importing Git objects to LFS. This may speed up migration of a large
+  repository.
 +
 Note: Git refs are "case-sensitive" on all platforms in "packed from"
 (see `git-pack-refs(1)`). On "case-insensitive" file systems, e.g. NTFS
