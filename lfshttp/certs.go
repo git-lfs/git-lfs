@@ -115,24 +115,17 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 	return &certobj, nil
 }
 
-// getRootCAsForHost returns a certificate pool for that specific host (which may
-// be "host:port" loaded from either the gitconfig or from a platform-specific
-// source which is not included by default in the golang certificate search)
+// getRootCAsForHostFromGitconfig returns a certificate pool for that
+// specific host (which may be "host:port" or just "host") loaded from the
+// Git configuration and environment settings, if any are defined.
 // May return nil if it doesn't have anything to add, in which case the default
 // RootCAs will be used if passed to TLSClientConfig.RootCAs
-func getRootCAsForHost(c *Client, host string) *x509.CertPool {
+func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
 	// don't init pool, want to return nil not empty if none found; init only on successful add cert
 	var pool *x509.CertPool
 
-	// gitconfig first
-	pool = appendRootCAsForHostFromGitconfig(c.osEnv, c.gitEnv, pool, host)
-	// Platform specific
-	return appendRootCAsForHostFromPlatform(pool, host)
-}
-
-func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x509.CertPool, host string) *x509.CertPool {
 	url := fmt.Sprintf("https://%v/", host)
-	uc := config.NewURLConfig(gitEnv)
+	uc := config.NewURLConfig(c.gitEnv)
 
 	backend, _ := uc.Get("http", url, "sslbackend")
 	schannelUseSslCaInfoStrValue, _ := uc.Get("http", url, "schannelusesslcainfo")
@@ -145,7 +138,7 @@ func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x
 	// Accumulate certs from all these locations:
 
 	// GIT_SSL_CAINFO first
-	if cafile, _ := osEnv.Get("GIT_SSL_CAINFO"); len(cafile) > 0 {
+	if cafile, _ := c.osEnv.Get("GIT_SSL_CAINFO"); len(cafile) > 0 {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
@@ -153,11 +146,11 @@ func appendRootCAsForHostFromGitconfig(osEnv, gitEnv config.Environment, pool *x
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
-	if cadir, _ := osEnv.Get("GIT_SSL_CAPATH"); len(cadir) > 0 {
+	if cadir, _ := c.osEnv.Get("GIT_SSL_CAPATH"); len(cadir) > 0 {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 	// http.sslcapath
-	if cadir, ok := gitEnv.Get("http.sslcapath"); ok {
+	if cadir, ok := c.gitEnv.Get("http.sslcapath"); ok {
 		return appendCertsFromFilesInDir(pool, cadir)
 	}
 

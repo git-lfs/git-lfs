@@ -73,7 +73,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-			pool := getRootCAsForHost(c, matchedHostTest.hostName)
+			pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 
 			var shouldOrShouldnt string
 			if matchedHostTest.shouldMatch {
@@ -96,7 +96,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -117,7 +117,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -140,7 +140,7 @@ func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.Nil(t, pool)
 	}
 }
@@ -164,7 +164,7 @@ func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -183,7 +183,7 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -201,7 +201,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }

@@ -482,7 +482,7 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 	if isCertVerificationDisabledForHost(c, host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
+		tr.TLSClientConfig.RootCAs = getRootCAsForHostFromGitconfig(c, host)
 	}
 
 	if err := c.configureProtocols(u, tr); err != nil {
