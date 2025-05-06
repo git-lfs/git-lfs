@@ -6,7 +6,7 @@ git-lfs-update - Update Git hooks
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs update [--manual | --force]
 ----

@@ -6,7 +6,7 @@ git-lfs-checkout - Update working copy with file content if available
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs checkout [<glob-pattern>...]
 git lfs checkout --to <file> {--base|--ours|--theirs} <conflict-obj-path>

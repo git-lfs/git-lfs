@@ -6,7 +6,7 @@ git-lfs-clone - Efficiently clone a LFS-enabled repository
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs clone [git clone options] <repository> [<directory>]
 ----

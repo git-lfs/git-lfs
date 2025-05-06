@@ -6,7 +6,7 @@ git-lfs-locks - Lists currently locked files from the Git LFS server.
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs locks [options]
 ----

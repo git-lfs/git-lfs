@@ -6,7 +6,7 @@ git-lfs-post-checkout - Git post-checkout hook implementation
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs post-checkout <rev_before> <ref_after> <is_branch_checkout>
 ----

@@ -6,7 +6,7 @@ git-lfs-smudge - Git smudge filter that converts pointer in blobs to the actual 
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs smudge [<path>]
 git lfs smudge --skip [<path>]

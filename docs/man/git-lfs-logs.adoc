@@ -6,7 +6,7 @@ git-lfs-logs - Show errors from the git-lfs command
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs logs
 git lfs logs <file>

@@ -6,7 +6,7 @@ git-lfs-fsck - Check GIT LFS files for consistency
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs fsck [options] [revisions]
 ----

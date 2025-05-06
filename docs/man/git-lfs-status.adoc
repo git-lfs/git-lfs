@@ -6,7 +6,7 @@ git-lfs-status - Show the status of Git LFS files in the working tree
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs status [<options>]
 ----

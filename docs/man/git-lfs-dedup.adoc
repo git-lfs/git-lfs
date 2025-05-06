@@ -6,7 +6,7 @@ git-lfs-dedup - Deduplicate Git LFS files
 
 == SYNOPSIS
 
-[source]
+[source,role=synopsis]
 ----
 git lfs dedup
 ----
