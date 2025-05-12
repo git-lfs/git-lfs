@@ -920,6 +920,41 @@ has_test_dir() {
   fi
 }
 
+has_native_symlinks() {
+  if [ -z "$NATIVE_SYMLINKS" ]; then
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      # On Windows, we need to enable native symlink support in Cygwin or MSYS2,
+      # without falling back to default Cygwin symlink emulation.  If this mode
+      # is not available, we should skip our tests with symbolic links.
+      #
+      # https://cygwin.com/cygwin-ug-net/using.html#pathnames-symlinks
+      # https://www.msys2.org/docs/symlinks/
+      # https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+      export CYGWIN="winsymlinks:nativestrict${CYGWIN:+ $CYGWIN}"
+      export MSYS="winsymlinks:nativestrict${MSYS:+ $MSYS}"
+
+      touch testfile.tmp
+      ln -s testfile.tmp testlink.tmp
+
+      if [ $(fsutil reparsepoint query testlink.tmp | grep -c "Tag value: Symbolic Link") -eq 0 ]; then
+        NATIVE_SYMLINKS=0
+      else
+        NATIVE_SYMLINKS=1
+      fi
+
+      rm -f testfile.tmp testlink.tmp
+    else
+      NATIVE_SYMLINKS=1
+    fi
+  fi
+
+  if [ "$NATIVE_SYMLINKS" -ne 1 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 add_symlink() {
   local src=$1
   local dest=$2
