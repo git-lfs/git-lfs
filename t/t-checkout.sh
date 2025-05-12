@@ -330,20 +330,48 @@ begin_test "checkout: conflicts"
     # This will cause a conflict.
     git merge first && exit 1
 
+    abs_assert_dir="$(canonical_path "$TRASHDIR/${reponame}-assert")"
+    abs_theirs_file="$abs_assert_dir/dir1/dir2/theirs.txt"
+
+    rm -rf "$abs_assert_dir"
+
     git lfs checkout --to base.txt --base file1.dat
-    git lfs checkout --to ours.txt --ours file1.dat
-    git lfs checkout --to theirs.txt --theirs file1.dat
+    git lfs checkout --to ../ours.txt --ours file1.dat
+    git lfs checkout --to "$abs_theirs_file" --theirs file1.dat
 
     echo "file1.dat" | cmp - base.txt
-    echo "abc123" | cmp - theirs.txt
-    echo "def456" | cmp - ours.txt
+    echo "def456" | cmp - ../ours.txt
+    echo "abc123" | cmp - "$abs_theirs_file"
+
+    rm -rf base.txt ../ours.txt "$abs_assert_dir"
+    mkdir -p dir1/dir2
+
+    pushd dir1/dir2
+      git lfs checkout --to base.txt --base ../../file1.dat
+      git lfs checkout --to ../../../ours.txt --ours ../../file1.dat
+      git lfs checkout --to "$abs_theirs_file" --theirs ../../file1.dat
+    popd
+
+    echo "file1.dat" | cmp - dir1/dir2/base.txt
+    echo "def456" | cmp - ../ours.txt
+    echo "abc123" | cmp - "$abs_theirs_file"
+
+    has_native_symlinks && {
+      rm -rf "$abs_assert_dir"
+      mkdir -p "$abs_assert_dir/link1"
+      ln -s link1 "$abs_assert_dir/dir1"
+
+      git lfs checkout --to "$abs_theirs_file" --theirs file1.dat
+
+      [ -L "$abs_assert_dir/dir1" ]
+      echo "abc123" | cmp - "$abs_assert_dir/link1/dir2/theirs.txt"
+    }
 
     git lfs checkout --to base.txt --ours other.txt 2>&1 | tee output.txt
     grep 'Could not find decoder pointer for object' output.txt
   popd > /dev/null
 )
 end_test
-
 
 begin_test "checkout: GIT_WORK_TREE"
 (
