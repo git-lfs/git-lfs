@@ -178,11 +178,11 @@ begin_test "checkout: without clean filter"
   ls -al
 
   git lfs checkout | tee checkout.txt
-  grep "Git LFS is not installed" checkout.txt
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1
   fi
+  grep "Git LFS is not installed" checkout.txt
 
   contentsize=19
   contents_oid=$(calc_oid "something something")
