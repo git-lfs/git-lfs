@@ -22,25 +22,27 @@ begin_test "pull"
   contents3="dir"
   contents3_oid=$(calc_oid "$contents3")
 
-  mkdir dir
+  mkdir -p dir1 dir2/dir3/dir4
   echo "*.log" > .gitignore
   printf "%s" "$contents" > a.dat
   printf "%s" "$contents2" > á.dat
-  printf "%s" "$contents3" > dir/dir.dat
+  printf "%s" "$contents3" > dir1/dir.dat
+  printf "%s" "$contents3" > dir2/dir3/dir4/dir.dat
   git add .
   git commit -m "add files" 2>&1 | tee commit.log
   grep "main (root-commit)" commit.log
-  grep "5 files changed" commit.log
+  grep "6 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
 
   assert_pointer "main" "a.dat" "$contents_oid" 1
   assert_pointer "main" "á.dat" "$contents2_oid" 1
-  assert_pointer "main" "dir/dir.dat" "$contents3_oid" 3
+  assert_pointer "main" "dir1/dir.dat" "$contents3_oid" 3
 
   refute_server_object "$reponame" "$contents_oid"
   refute_server_object "$reponame" "$contents2_oid"
@@ -65,7 +67,8 @@ begin_test "pull"
 
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
 
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
@@ -73,12 +76,13 @@ begin_test "pull"
   assert_clean_status
 
   echo "lfs pull"
-  rm -rf a.dat á.dat dir # removing files makes the status dirty
+  rm -rf a.dat á.dat dir1 dir2 # removing files makes the status dirty
   rm -rf .git/lfs/objects
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
@@ -86,12 +90,13 @@ begin_test "pull"
   git lfs fsck
 
   echo "lfs pull with remote"
-  rm -rf a.dat á.dat dir
+  rm -rf a.dat á.dat dir1 dir2
   rm -rf .git/lfs/objects
   git lfs pull origin
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
@@ -99,10 +104,19 @@ begin_test "pull"
   git lfs fsck
 
   echo "lfs pull with local storage"
-  rm -rf a.dat á.dat dir
+  rm -rf a.dat á.dat dir1 dir2
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  assert_clean_status
+
+  echo "test pre-existing directories"
+  rm -rf dir1/dir.dat dir2/dir3/dir4
+  git lfs pull
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_clean_status
 
   echo "lfs pull with include/exclude filters in gitconfig"
@@ -139,7 +153,8 @@ begin_test "pull"
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
@@ -147,11 +162,12 @@ begin_test "pull"
 
   echo "lfs pull with -I"
   rm -rf .git/lfs/objects
-  rm -rf a.dat "á.dat" "dir/dir.dat"
-  git lfs pull -I "a.*,dir/dir.*"
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  git lfs pull -I "a.*,dir1/dir.*,dir2/**"
   [ "a" = "$(cat a.dat)" ]
   [ ! -e "á.dat" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   refute_local_object "$contents2_oid"
   assert_local_object "$contents3_oid" 3
@@ -176,13 +192,14 @@ begin_test "pull"
 
   echo "lfs pull in subdir"
   rm -rf .git/lfs/objects
-  rm -rf a.dat "á.dat" "dir/dir.dat"
-  pushd dir
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  pushd dir1
     git lfs pull
   popd
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
@@ -190,19 +207,20 @@ begin_test "pull"
 
   echo "lfs pull in subdir with -I"
   rm -rf .git/lfs/objects
-  rm -rf a.dat "á.dat" "dir/dir.dat"
-  pushd dir
-    git lfs pull -I "á.*,dir/dir.dat"
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  pushd dir1
+    git lfs pull -I "á.*,dir1/dir.dat,dir2/**"
   popd
   [ ! -e a.dat ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   refute_local_object "$contents_oid"
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
   assert_clean_worktree_with_exceptions "a\.dat"
 
-  pushd dir
+  pushd dir1
     git lfs pull -I "*.dat"
   popd
   [ "a" = "$(cat a.dat)" ]

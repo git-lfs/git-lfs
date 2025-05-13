@@ -24,10 +24,10 @@ begin_test "checkout"
   printf "%s" "$contents" > file1.dat
   printf "%s" "$contents" > file2.dat
   printf "%s" "$contents" > file3.dat
-  mkdir folder1 folder2
+  mkdir -p folder1 folder2/folder3/folder4
   printf "%s" "$contents" > folder1/nested.dat
-  printf "%s" "$contents" > folder2/nested.dat
-  git add file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  printf "%s" "$contents" > folder2/folder3/folder4/nested.dat
+  git add file1.dat file2.dat file3.dat folder1 folder2
   git add .gitattributes
   git commit -m "add files"
 
@@ -35,12 +35,12 @@ begin_test "checkout"
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
 
   assert_pointer "main" "file1.dat" "$contents_oid" $contentsize
 
   # Remove the working directory
-  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2
 
   echo "checkout should replace all"
   GIT_TRACE=1 git lfs checkout 2>&1 | tee checkout.log
@@ -48,7 +48,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   grep "Checking out LFS objects: 100% (5/5), 95 B" checkout.log
   grep 'accepting "file1.dat"' checkout.log
   grep 'rejecting "file1.dat"' checkout.log && exit 1
@@ -65,7 +65,7 @@ begin_test "checkout"
   git reset --hard
 
   # Remove the working directory
-  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2
 
   echo "checkout with filters"
   git lfs checkout file2.dat
@@ -73,7 +73,7 @@ begin_test "checkout"
   [ ! -f file1.dat ]
   [ ! -f file3.dat ]
   [ ! -f folder1/nested.dat ]
-  [ ! -f folder2/nested.dat ]
+  [ ! -e folder2 ]
   assert_clean_worktree_with_exceptions "(file[13]|nested)\.dat"
 
   echo "quotes to avoid shell globbing"
@@ -81,7 +81,7 @@ begin_test "checkout"
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ ! -f folder1/nested.dat ]
-  [ ! -f folder2/nested.dat ]
+  [ ! -e folder2 ]
   assert_clean_worktree_with_exceptions "nested\.dat"
 
   echo "test subdir context"
@@ -90,57 +90,64 @@ begin_test "checkout"
     git lfs checkout nested.dat
     [ "$contents" = "$(cat nested.dat)" ]
     [ ! -f ../file1.dat ]
-    [ ! -f ../folder2/nested.dat ]
-    assert_clean_worktree_with_exceptions "(file1|folder2/nested)\.dat"
+    [ ! -e ../folder2 ]
+    assert_clean_worktree_with_exceptions "(file1|folder4/nested)\.dat"
 
     # test '.' in current dir
     rm nested.dat
     git lfs checkout .
     [ "$contents" = "$(cat nested.dat)" ]
     [ ! -f ../file1.dat ]
-    [ ! -f ../folder2/nested.dat ]
-    assert_clean_worktree_with_exceptions "(file1|folder2/nested)\.dat"
+    [ ! -e ../folder2 ]
+    assert_clean_worktree_with_exceptions "(file1|folder4/nested)\.dat"
 
     # test '..' in current dir
     git lfs checkout ..
     [ "$contents" = "$(cat ../file1.dat)" ]
-    [ "$contents" = "$(cat ../folder2/nested.dat)" ]
+    [ "$contents" = "$(cat ../folder2/folder3/folder4/nested.dat)" ]
     assert_clean_status
 
     # test glob match with '..' in current dir
     rm -rf ../folder2
     git lfs checkout '../folder2/**'
-    [ "$contents" = "$(cat ../folder2/nested.dat)" ]
+    [ "$contents" = "$(cat ../folder2/folder3/folder4/nested.dat)" ]
     assert_clean_status
   popd
 
   echo "test folder param"
   rm -rf folder2
   git lfs checkout folder2
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   assert_clean_status
 
   echo "test folder param with pre-existing directory"
   rm -rf folder2
   mkdir folder2
   git lfs checkout folder2
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   assert_clean_status
 
   echo "test folder param with glob match"
   rm -rf folder2
   git lfs checkout 'folder2/**'
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   assert_clean_status
 
   echo "test '.' in current dir"
-  rm -rf file1.dat file2.dat file3.dat folder1/nested.dat folder2/nested.dat
+  rm -rf file1.dat file2.dat file3.dat folder1 folder2
   git lfs checkout .
   [ "$contents" = "$(cat file1.dat)" ]
   [ "$contents" = "$(cat file2.dat)" ]
   [ "$contents" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
+  assert_clean_status
+
+  echo "test pre-existing directories"
+  rm -rf folder1/nested.dat folder2/folder3/folder4
+  git lfs checkout
+  [ "$contents" = "$(cat folder1/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   assert_clean_status
 
   echo "test checkout with missing data doesn't fail"
@@ -152,7 +159,7 @@ begin_test "checkout"
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file2.dat)" ]
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
   [ "$contents" = "$(cat folder1/nested.dat)" ]
-  [ "$contents" = "$(cat folder2/nested.dat)" ]
+  [ "$contents" = "$(cat folder2/folder3/folder4/nested.dat)" ]
   assert_clean_worktree_with_exceptions "file[123]\.dat"
 )
 end_test
@@ -190,7 +197,7 @@ begin_test "checkout: without clean filter"
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file2.dat)" ]
   [ "$(pointer $contents_oid $contentsize)" = "$(cat file3.dat)" ]
   [ "$(pointer $contents_oid $contentsize)" = "$(cat folder1/nested.dat)" ]
-  [ "$(pointer $contents_oid $contentsize)" = "$(cat folder2/nested.dat)" ]
+  [ "$(pointer $contents_oid $contentsize)" = "$(cat folder2/folder3/folder4/nested.dat)" ]
 )
 end_test
 
