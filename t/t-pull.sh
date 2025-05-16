@@ -304,6 +304,64 @@ begin_test "pull: skip directory file conflicts"
 )
 end_test
 
+begin_test "pull: skip changed files"
+(
+  set -e
+
+  reponame="pull-skip-changed-files"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  contents_new="$contents +extra"
+  printf "%s" "$contents_new" >a.dat
+
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents_new" = "$(cat a.dat)" ]
+  assert_clean_index
+
+  rm a.dat
+  mkdir a.dat
+
+  rm -rf .git/lfs/objects
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ -d "a.dat" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd a.dat
+    git lfs pull
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -d "a.dat" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "pull without clean filter"
 (
   set -e

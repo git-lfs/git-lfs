@@ -224,6 +224,48 @@ begin_test "checkout: skip directory file conflicts"
 )
 end_test
 
+begin_test "checkout: skip changed files"
+(
+  set -e
+
+  reponame="checkout-skip-changed-files"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  contents_new="$contents +extra"
+  printf "%s" "$contents_new" >a.dat
+
+  git lfs checkout
+
+  [ "$contents_new" = "$(cat a.dat)" ]
+  assert_clean_index
+
+  rm a.dat
+  mkdir a.dat
+
+  git lfs checkout
+
+  [ -d "a.dat" ]
+  assert_clean_index
+
+  pushd a.dat
+    git lfs checkout
+  popd
+
+  [ -d "a.dat" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "checkout: without clean filter"
 (
   set -e
