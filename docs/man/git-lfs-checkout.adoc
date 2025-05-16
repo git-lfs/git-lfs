@@ -30,7 +30,9 @@ to a merge, this option checks out one of the three stages a conflicting
 Git LFS object into a separate file (which can be outside of the work
 tree). This can make using diff tools to inspect and resolve merges
 easier. A single Git LFS object's file path must be provided in
-`<conflict-obj-path>`.
+`<conflict-obj-path>`. If `<file>` already exists, whether as a regular
+file, symbolic link, or directory, it will be removed and replaced, unless
+it is a non-empty directory or otherwise cannot be deleted.
 
 If the installed Git version is at least 2.42.0,
 this command will by default check out Git LFS objects for files
