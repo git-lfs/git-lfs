@@ -605,6 +605,64 @@ begin_test "checkout: skip changed files"
 )
 end_test
 
+begin_test "checkout: break hard links to existing files"
+(
+  set -e
+
+  reponame="checkout-break-file-hardlinks"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1/dir2/dir3
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/dir2/dir3/a.dat
+
+  git add .gitattributes a.dat dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  git lfs fetch origin main
+
+  assert_local_object "$contents_oid" 1
+
+  rm -f a.dat dir1/dir2/dir3/a.dat ../link
+  pointer="$(git cat-file -p ":a.dat")"
+  echo "$pointer" >../link
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  git lfs checkout
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
+  assert_clean_status
+
+  rm a.dat dir1/dir2/dir3/a.dat
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  pushd dir1/dir2
+    git lfs checkout
+  popd
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
+  assert_clean_status
+)
+end_test
+
 begin_test "checkout: without clean filter"
 (
   set -e
@@ -841,6 +899,36 @@ begin_test "checkout: conflicts"
       [ -L "$abs_assert_dir/dir1" ]
       echo "abc123" | cmp - "$abs_assert_dir/link1/dir2/theirs.txt"
     }
+
+    rm -f base.txt link1 ../ours.txt ../link2
+    ln -s link1 base.txt
+    ln -s link2 ../ours.txt
+
+    git lfs checkout --to base.txt --base file1.dat
+    git lfs checkout --to ../ours.txt --ours file1.dat
+
+    [ ! -L "base.txt" ]
+    [ ! -L "../ours.txt" ]
+    [ ! -e "link1" ]
+    [ ! -e "../link2" ]
+    echo "file1.dat" | cmp - base.txt
+    echo "def456" | cmp - ../ours.txt
+
+    rm -f base.txt link1 ../ours.txt ../link2
+    printf "link1" >link1
+    printf "link2" >../link2
+    ln link1 base.txt
+    ln ../link2 ../ours.txt
+
+    git lfs checkout --to base.txt --base file1.dat
+    git lfs checkout --to ../ours.txt --ours file1.dat
+
+    [ -f "link1" ]
+    [ -f "../link2" ]
+    [ "link1" = "$(cat link1)" ]
+    [ "link2" = "$(cat ../link2)" ]
+    echo "file1.dat" | cmp - base.txt
+    echo "def456" | cmp - ../ours.txt
 
     git lfs checkout --to base.txt --ours other.txt 2>&1 | tee output.txt
     grep 'Could not find decoder pointer for object' output.txt

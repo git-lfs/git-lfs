@@ -743,6 +743,67 @@ begin_test "pull: skip changed files"
 )
 end_test
 
+begin_test "pull: break hard links to existing files"
+(
+  set -e
+
+  reponame="pull-break-file-hardlinks"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1/dir2/dir3
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/dir2/dir3/a.dat
+
+  git add .gitattributes a.dat dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -f a.dat dir1/dir2/dir3/a.dat ../link
+  pointer="$(git cat-file -p ":a.dat")"
+  echo "$pointer" >../link
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
+  assert_clean_status
+
+  rm a.dat dir1/dir2/dir3/a.dat
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  rm -rf .git/lfs/objects
+
+  pushd dir1/dir2
+    git lfs pull
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
+  assert_clean_status
+)
+end_test
+
 begin_test "pull without clean filter"
 (
   set -e
