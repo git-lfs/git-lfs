@@ -39,17 +39,17 @@ type options struct {
 	defaultValue bool
 }
 
-type option func(*options)
+type Option func(*options)
 
 // DefaultValue is an option representing the default value of a filepathfilter
 // if no patterns match.  If this option is not provided, the default is true.
-func DefaultValue(val bool) option {
+func DefaultValue(val bool) Option {
 	return func(args *options) {
 		args.defaultValue = val
 	}
 }
 
-func NewFromPatterns(include, exclude []Pattern, setters ...option) *Filter {
+func NewFromPatterns(include, exclude []Pattern, setters ...Option) *Filter {
 	args := &options{defaultValue: true}
 	for _, setter := range setters {
 		setter(args)
@@ -57,7 +57,7 @@ func NewFromPatterns(include, exclude []Pattern, setters ...option) *Filter {
 	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
 }
 
-func New(include, exclude []string, ptype PatternType, setters ...option) *Filter {
+func New(include, exclude []string, ptype PatternType, setters ...Option) *Filter {
 	return NewFromPatterns(
 		convertToWildmatch(include, ptype),
 		convertToWildmatch(exclude, ptype), setters...)
