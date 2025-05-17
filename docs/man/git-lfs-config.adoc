@@ -106,6 +106,14 @@ interpreted as the password.
 +
 Enables in-memory SSH and Git Credential caching for a single 'git lfs'
 command. Default: enabled.
+* `lfs.pathFilterCacheSize`
++
+Sets the size of the in-memory cache of results from matching file paths
+against the filter defined by the `lfs.fetchInclude` and `lfs.fetchExclude`
+options, or for commands which accept them, by the `--include` and `--exclude`
+command-line options or their `-I` and `-X` equivalents.
+Set to `0` or `none` to disable the cache, or to `unlimited` to allow
+the cache to grow without bound.  Default: 10,000 unique file paths.
 * `lfs.storage`
 +
 Allow override LFS storage directory. Non-absolute path is relativized
