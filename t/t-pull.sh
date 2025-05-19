@@ -799,6 +799,31 @@ begin_test "pull: read-only directory"
 )
 end_test
 
+begin_test "pull: read-only file"
+(
+  set -e
+
+  reponame="pull-locked"
+  filename="a.txt"
+
+  setup_remote_repo_with_file "$reponame" "$filename"
+
+  pushd "$TRASHDIR" > /dev/null
+    GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}-assert"
+
+    chmod a-w "$filename"
+
+    refute_file_writeable "$filename"
+    assert_pointer "refs/heads/main" "$filename" "$(calc_oid "$filename\n")" 6
+
+    git lfs pull
+
+    refute_file_writeable "$filename"
+    [ "$filename" = "$(cat "$filename")" ]
+  popd > /dev/null
+)
+end_test
+
 begin_test "pull with empty file doesn't modify mtime"
 (
   set -e
