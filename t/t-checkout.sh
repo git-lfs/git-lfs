@@ -539,6 +539,33 @@ begin_test "checkout: read-only file"
 )
 end_test
 
+begin_test "checkout with empty file doesn't modify mtime"
+(
+  set -e
+  git init checkout-empty-file
+  cd checkout-empty-file
+
+  git lfs track "*.bin"
+  git add .
+  git commit -m 'gitattributes'
+  printf abc > abc.bin
+  git add .
+  git commit -m 'abc'
+
+  touch foo.bin
+  lfstest-nanomtime foo.bin >foo.mtime
+
+  # This isn't necessary, but it takes a few cycles to make sure that our
+  # timestamp changes.
+  git add foo.bin
+  git commit -m 'foo'
+
+  git lfs checkout
+  lfstest-nanomtime foo.bin >foo.mtime2
+  diff -u foo.mtime foo.mtime2
+)
+end_test
+
 begin_test "checkout: conflicts"
 (
   set -e
