@@ -513,7 +513,7 @@ begin_test "checkout: read-only directory"
 )
 end_test
 
-begin_test "checkout: write-only file"
+begin_test "checkout: read-only file"
 (
   set -e
 
@@ -523,9 +523,9 @@ begin_test "checkout: write-only file"
   setup_remote_repo_with_file "$reponame" "$filename"
 
   pushd "$TRASHDIR" > /dev/null
-    GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}_checkout"
+    GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}-assert"
 
-    chmod -w "$filename"
+    chmod a-w "$filename"
 
     refute_file_writeable "$filename"
     assert_pointer "refs/heads/main" "$filename" "$(calc_oid "$filename\n")" 6
