@@ -17,6 +17,9 @@ type NetrcFinder interface {
 	FindMachine(string, string) *netrc.Machine
 }
 
+const netrcBasename = ".netrc"
+const netrcAltBasename = "_netrc"
+
 func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 	home, _ := osEnv.Get("HOME")
 	if len(home) == 0 {
@@ -27,7 +30,7 @@ func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 	if _, err := os.Stat(nrcfilename); err != nil {
 		// If on Windows, try _netrc instead
 		if runtime.GOOS == "windows" {
-			altFilename := filepath.Join(home, "_netrc")
+			altFilename := filepath.Join(home, netrcAltBasename)
 			if _, errAlt := os.Stat(altFilename); errAlt == nil {
 				nrcfilename = altFilename
 			} else {

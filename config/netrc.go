@@ -18,6 +18,10 @@ func (n *noNetrc) FindMachine(host string, loginName string) *netrc.Machine {
 	return nil
 }
 
+
+const netrcBasename = ".netrc"
+const netrcAltBasename = "_netrc"
+
 func (c *Configuration) parseNetrc() (netrcfinder, error) {
 	home, _ := c.Os.Get("HOME")
 	if len(home) == 0 {
@@ -28,7 +32,7 @@ func (c *Configuration) parseNetrc() (netrcfinder, error) {
 	if _, err := os.Stat(nrcfilename); err != nil {
 		// If on Windows, also try _netrc instead
 		if runtime.GOOS == "windows" {
-			altFilename := filepath.Join(home, "_netrc")
+			altFilename := filepath.Join(home, netrcAltBasename)
 			if _, errAlt := os.Stat(altFilename); errAlt == nil {
 				nrcfilename = altFilename
 			} else {
