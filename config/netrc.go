@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/git-lfs/go-netrc/netrc"
 )
@@ -25,7 +26,17 @@ func (c *Configuration) parseNetrc() (netrcfinder, error) {
 
 	nrcfilename := filepath.Join(home, netrcBasename)
 	if _, err := os.Stat(nrcfilename); err != nil {
-		return &noNetrc{}, nil
+		// If on Windows, also try _netrc instead
+		if runtime.GOOS == "windows" {
+			altFilename := filepath.Join(home, "_netrc")
+			if _, errAlt := os.Stat(altFilename); errAlt == nil {
+				nrcfilename = altFilename
+			} else {
+				return &noNetrc{}, nil
+			}
+		} else {
+			return &noNetrc{}, nil
+		}
 	}
 
 	return netrc.ParseFile(nrcfilename)

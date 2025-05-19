@@ -3,4 +3,4 @@
 
 package creds
 
-var netrcBasename = "_netrc"
+var netrcBasename = ".netrc"

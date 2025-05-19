@@ -3,4 +3,4 @@
 
 package config
 
-var netrcBasename = "_netrc"
+var netrcBasename = ".netrc"

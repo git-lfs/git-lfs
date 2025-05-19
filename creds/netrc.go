@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -24,7 +25,17 @@ func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 
 	nrcfilename := filepath.Join(home, netrcBasename)
 	if _, err := os.Stat(nrcfilename); err != nil {
-		return &noFinder{}, nrcfilename, nil
+		// If on Windows, try _netrc instead
+		if runtime.GOOS == "windows" {
+			altFilename := filepath.Join(home, "_netrc")
+			if _, errAlt := os.Stat(altFilename); errAlt == nil {
+				nrcfilename = altFilename
+			} else {
+				return &noFinder{}, altFilename, nil
+			}
+		} else {
+			return &noFinder{}, nrcfilename, nil
+		}
 	}
 
 	f, err := netrc.ParseFile(nrcfilename)
