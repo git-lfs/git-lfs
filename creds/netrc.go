@@ -31,11 +31,10 @@ func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 		// If on Windows, try _netrc instead
 		if runtime.GOOS == "windows" {
 			altFilename := filepath.Join(home, netrcAltBasename)
-			if _, errAlt := os.Stat(altFilename); errAlt == nil {
-				nrcfilename = altFilename
-			} else {
+			if _, errAlt := os.Stat(altFilename); errAlt != nil {
 				return &noFinder{}, altFilename, nil
 			}
+			nrcfilename = altFilename
 		} else {
 			return &noFinder{}, nrcfilename, nil
 		}
