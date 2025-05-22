@@ -241,14 +241,14 @@ begin_test "pre-push 307 redirects"
 )
 end_test
 
-begin_test "pre-push with existing file"
+begin_test "pre-push with existing object"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-existing-file"
+  reponame="pre-push-existing-object"
   setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
 
-  clone_repo "$reponame" existing-file
   echo "existing" > existing.dat
   git add existing.dat
   git commit -m "add existing dat"
@@ -270,13 +270,13 @@ begin_test "pre-push with existing file"
 )
 end_test
 
-begin_test "pre-push with existing pointer"
+begin_test "pre-push with existing object (untracked)"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-existing-pointer"
+  reponame="pre-push-existing-object-untracked"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" existing-pointer
+  clone_repo "$reponame" "$reponame"
 
   echo "$(pointer "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c" 4)" > new.dat
   git add new.dat
@@ -289,16 +289,19 @@ begin_test "pre-push with existing pointer"
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
   grep "Uploading LFS objects: 100% (1/1), 4 B" push.log
+
+  # now the file exists
+  assert_server_object "$reponame" 7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c
 )
 end_test
 
-begin_test "pre-push with missing pointer not on server"
+begin_test "pre-push reject missing object"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")-missing-pointer"
+  reponame="pre-push-reject-missing-object"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" missing-pointer
+  clone_repo "$reponame" "$reponame"
 
   oid="7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
 
@@ -307,25 +310,31 @@ begin_test "pre-push with missing pointer not on server"
   git commit -m "add new pointer"
 
   # assert that push fails
-  set +e
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
-  set -e
 
+  if [ "2" -ne "${PIPESTATUS[1]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to fail ..."
+    exit 1
+  fi
+
+  grep "LFS upload failed:" push.log
   grep "  (missing) new.dat ($oid)" push.log
+
+  refute_server_object "$reponame" "$oid"
 )
 end_test
 
-begin_test "pre-push with missing pointer which is on server"
+begin_test "pre-push allow missing object (found on server)"
 (
   # should permit push if files missing locally but are on server, shouldn't
   # require client to have every file (prune)
   set -e
 
-  reponame="$(basename "$0" ".sh")-missing-but-on-server"
+  reponame="pre-push-allow-missing-object-found-on-server"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" missing-but-on-server
+  clone_repo "$reponame" "$reponame"
 
   contents="common data"
   contents_oid=$(calc_oid "$contents")
@@ -352,17 +361,17 @@ begin_test "pre-push with missing pointer which is on server"
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
     git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
+
   # make sure there were no errors reported
   [ -z "$(grep -i 'Error' push.log)" ]
-
 )
 end_test
 
-begin_test "pre-push with missing and present pointers (lfs.allowincompletepush true)"
+begin_test "pre-push allow missing object (lfs.allowincompletepush true)"
 (
   set -e
 
-  reponame="pre-push-missing-and-present"
+  reponame="pre-push-allow-missing-object"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -379,16 +388,9 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
   printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
-  git commit -m "add present.dat and missing.dat"
+  git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
-  # :fire: the "missing" object
-  missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
-  missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
-  missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
-  rm "$missing_oid_path"
+  delete_local_object "$missing_oid"
 
   git config lfs.allowincompletepush true
 
@@ -397,7 +399,7 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
     tee push.log
 
   if [ "0" -ne "${PIPESTATUS[1]}" ]; then
-    echo >&2 "fatal: expected \`git lfs pre-push origin $GITSERVER/$reponame\` to succeed..."
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to succeed ..."
     exit 1
   fi
 
@@ -409,11 +411,11 @@ begin_test "pre-push with missing and present pointers (lfs.allowincompletepush 
 )
 end_test
 
-begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
+begin_test "pre-push reject missing object (lfs.allowincompletepush default)"
 (
   set -e
 
-  reponame="pre-push-reject-missing-and-present"
+  reponame="pre-push-reject-missing-object-default"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -430,27 +432,22 @@ begin_test "pre-push reject missing pointers (lfs.allowincompletepush default)"
   printf "%s" "$missing" > missing.dat
 
   git add present.dat missing.dat
-  git commit -m "add present.dat and missing.dat"
+  git commit -m "add objects"
 
-  git rm missing.dat
-  git commit -m "remove missing"
-
-  # :fire: the "missing" object
-  missing_oid_part_1="$(echo "$missing_oid" | cut -b 1-2)"
-  missing_oid_part_2="$(echo "$missing_oid" | cut -b 3-4)"
-  missing_oid_path=".git/lfs/objects/$missing_oid_part_1/$missing_oid_part_2/$missing_oid"
-  rm "$missing_oid_path"
+  delete_local_object "$missing_oid"
 
   echo "refs/heads/main main refs/heads/main 0000000000000000000000000000000000000000" |
-    git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
+    GIT_TRACE=1 git lfs pre-push origin "$GITSERVER/$reponame" 2>&1 |
     tee push.log
 
   if [ "2" -ne "${PIPESTATUS[1]}" ]; then
-    echo >&2 "fatal: expected \`git lfs pre-push origin $GITSERVER/$reponame\` to fail..."
+    echo >&2 "fatal: expected 'git lfs pre-push origin $GITSERVER/$reponame' to fail ..."
     exit 1
   fi
 
-  grep 'Unable to find source' push.log
+  grep "tq: stopping batched queue, object \"$missing_oid\" missing locally and on remote" push.log
+  grep "LFS upload failed:" push.log
+  grep "  (missing) missing.dat ($missing_oid)" push.log
 
   refute_server_object "$reponame" "$present_oid"
   refute_server_object "$reponame" "$missing_oid"
