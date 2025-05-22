@@ -16,6 +16,8 @@ github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825 h1:riQhgheTL7tMF4d
 github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825/go.mod h1:fenKRzpXDjNpsIBhuhUzvjCKlDjKam0boRAenTE0Q6A=
 github.com/git-lfs/wildmatch/v2 v2.0.1 h1:Ds+aobrV5bK0wStILUOn9irllPyf9qrFETbKzwzoER8=
 github.com/git-lfs/wildmatch/v2 v2.0.1/go.mod h1:EVqonpk9mXbREP3N8UkwoWdrF249uHpCUo5CPXY81gw=
+github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 h1:f+oWsMOmNPc8JmEHVZIycC7hBoQxHH9pNKQORJNozsQ=
+github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8/go.mod h1:wcDNUvekVysuuOpQKo3191zZyTpiI6se1N1ULghS0sw=
 github.com/gorilla/securecookie v1.1.1 h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyCS8BvQ=
 github.com/gorilla/securecookie v1.1.1/go.mod h1:ra0sb63/xPlUeL+yeDciTfxMRAA+MP+HVt/4epWDjd4=
 github.com/gorilla/sessions v1.2.1 h1:DHd3rPN5lE3Ts3D8rKkQ8x/0kqfeNmBAaiSi+o7FsgI=
