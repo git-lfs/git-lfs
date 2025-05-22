@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -16,6 +17,9 @@ type NetrcFinder interface {
 	FindMachine(string, string) *netrc.Machine
 }
 
+const netrcBasename = ".netrc"
+const netrcAltBasename = "_netrc"
+
 func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 	home, _ := osEnv.Get("HOME")
 	if len(home) == 0 {
@@ -24,7 +28,16 @@ func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
 
 	nrcfilename := filepath.Join(home, netrcBasename)
 	if _, err := os.Stat(nrcfilename); err != nil {
-		return &noFinder{}, nrcfilename, nil
+		// If on Windows, try _netrc instead
+		if runtime.GOOS == "windows" {
+			altFilename := filepath.Join(home, netrcAltBasename)
+			if _, errAlt := os.Stat(altFilename); errAlt != nil {
+				return &noFinder{}, altFilename, nil
+			}
+			nrcfilename = altFilename
+		} else {
+			return &noFinder{}, nrcfilename, nil
+		}
 	}
 
 	f, err := netrc.ParseFile(nrcfilename)
