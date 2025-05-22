@@ -437,61 +437,60 @@ state[]=lfstest:state2"
 )
 end_test
 
-
-if [[ $(uname) == *"MINGW"* ]]; then
-  NETRCFILE="$HOME/_netrc"
-else
-  NETRCFILE="$HOME/.netrc"
+NETRCFILES=".netrc"
+if [ "$IS_WINDOWS" -eq 1 ]; then
+  NETRCFILES+=" _netrc"
 fi
 
+for netrcfile in $NETRCFILES; do
+  begin_test "credentials from netrc ($netrcfile)"
+  (
+    set -e
 
-begin_test "credentials from netrc"
-(
-  set -e
+    printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >"$HOME/$netrcfile"
+    echo $HOME
+    echo "GITSERVER $GITSERVER"
+    cat "$HOME/$netrcfile"
 
-  printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >> "$NETRCFILE"
-  echo $HOME
-  echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+    # prevent prompts on Windows particularly
+    export SSH_ASKPASS=
 
-  # prevent prompts on Windows particularly
-  export SSH_ASKPASS=
+    reponame="netrctest-$netrcfile"
+    setup_remote_repo "$reponame"
 
-  reponame="netrctest"
-  setup_remote_repo "$reponame"
+    clone_repo "$reponame" "${reponame}-assert"
 
-  clone_repo "$reponame" repo
+    # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
+    git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+    git lfs env
 
-  # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
-  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
-  git lfs env
+    git lfs track "*.dat"
+    echo "push a" > a.dat
+    git add .gitattributes a.dat
+    git commit -m "add a.dat"
 
-  git lfs track "*.dat"
-  echo "push a" > a.dat
-  git add .gitattributes a.dat
-  git commit -m "add a.dat"
+    GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
+    grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
+    echo "any netrc credential calls:"
+    [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
 
-  GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
-  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
-  echo "any netrc credential calls:"
-  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+    echo "any netrc credential fills:"
+    [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
 
-  echo "any netrc credential fills:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
-
-  echo "any netrc credential approvals:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
-)
-end_test
+    echo "any netrc credential approvals:"
+    [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
+  )
+  end_test
+done
 
 begin_test "credentials from netrc with unknown keyword"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\nnot-a-key something\npassword netrcpass\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\nnot-a-key something\npassword netrcpass\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=
@@ -527,10 +526,10 @@ begin_test "credentials from netrc with bad password"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=
@@ -558,10 +557,10 @@ begin_test "credentials with bad netrc creds will retry"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword badpassretry\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\npassword badpassretry\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=

@@ -1,8 +1,10 @@
 package githistory
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -48,11 +50,58 @@ func (r *refUpdater) updateRefs() error {
 		maxNameLen = max(maxNameLen, len(ref.Name))
 	}
 
-	seen := make(map[string]struct{})
-	for _, ref := range r.refs {
-		if err := r.updateOneRef(list, maxNameLen, seen, ref); err != nil {
+	cmd, err := git.UpdateRefsFromStdin(r.root)
+	if err != nil {
+		return err
+	}
+
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+
+	input, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cmd != nil {
+			cmd.Wait()
+		}
+	}()
+
+	gitUpRefTransactions := git.IsGitVersionAtLeast("2.27.0")
+	if gitUpRefTransactions {
+		if _, err = io.WriteString(input, "start\x00"); err != nil {
 			return err
 		}
+	}
+
+	seen := make(map[string][]byte)
+	for _, ref := range r.refs {
+		if err := r.updateOneRef(list, maxNameLen, seen, ref, input); err != nil {
+			return err
+		}
+	}
+
+	if gitUpRefTransactions {
+		if _, err = io.WriteString(input, "prepare\x00commit\x00"); err != nil {
+			return err
+		}
+	}
+
+	if err = input.Close(); err != nil {
+		return err
+	}
+
+	err = cmd.Wait()
+	cmd = nil
+	if err != nil {
+		return fmt.Errorf("git update-ref failed: %s, output: %s", err.Error(), output.String())
 	}
 
 	return nil
@@ -74,7 +123,7 @@ func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error)
 	return newTag, nil
 }
 
-func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string]struct{}, ref *git.Ref) error {
+func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string][]byte, ref *git.Ref, gitUpRefIn io.WriteCloser) error {
 	sha1, err := hex.DecodeString(ref.Sha)
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("could not decode: %q", ref.Sha))
@@ -84,7 +133,6 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 	if _, ok := seen[refspec]; ok {
 		return nil
 	}
-	seen[refspec] = struct{}{}
 
 	to, ok := r.cacheFn(sha1)
 
@@ -99,19 +147,15 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 					return err
 				}
 
-				err = r.updateOneRef(list, maxNameLen, seen, old)
+				err = r.updateOneRef(list, maxNameLen, seen, old, gitUpRefIn)
 				if err != nil {
 					return err
 				}
 			}
 
-			updated, err := git.ResolveRef(name)
-			if err != nil {
-				return err
-			}
-			updatedSha, err := hex.DecodeString(updated.Sha)
-			if err != nil {
-				return errors.Wrap(err, tr.Tr.Get("could not decode: %q", ref.Sha))
+			updatedSha, refUpOk := seen[name]
+			if !refUpOk {
+				return nil
 			}
 
 			newTag, err := r.updateOneTag(tag, updatedSha)
@@ -139,11 +183,12 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 		return nil
 	}
 
-	if err := git.UpdateRefIn(r.root, ref, to, ""); err != nil {
+	if _, err = io.WriteString(gitUpRefIn, fmt.Sprintf("update %s\x00%s\x00\x00", ref.Refspec(), hex.EncodeToString(to))); err != nil {
 		return err
 	}
 
 	namePadding := max(maxNameLen-len(ref.Name), 0)
 	list.Entry(fmt.Sprintf("  %s%s\t%s -> %x", ref.Name, strings.Repeat(" ", namePadding), ref.Sha, to))
+	seen[refspec] = to
 	return nil
 }

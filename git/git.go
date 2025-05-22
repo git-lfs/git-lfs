@@ -545,25 +545,23 @@ func LocalRefs() ([]*Ref, error) {
 // reflog entry, if a "reason" was provided). It returns an error if any were
 // encountered.
 func UpdateRef(ref *Ref, to []byte, reason string) error {
-	return UpdateRefIn("", ref, to, reason)
-}
-
-// UpdateRef moves the given ref to a new sha with a given reason (and creates a
-// reflog entry, if a "reason" was provided). It operates within the given
-// working directory "wd". It returns an error if any were encountered.
-func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
 
-	cmd, err := gitNoLFS(args...)
-	if err != nil {
-		return errors.New(tr.Tr.Get("failed to find `git update-ref`: %v", err))
-	}
-	cmd.Dir = wd
+	_, err := gitNoLFSSimple(args...)
+	return err
+}
 
-	return cmd.Run()
+// UpdateRefsFromStdinInDir initializes a "git update-ref" command which will
+// read a series of reference update instructions from standard input and
+// execute them. The command will operate within the given working
+// directory "wd". The instructions should follow the NUL-terminated format.
+func UpdateRefsFromStdin(wd string) (*subprocess.Cmd, error) {
+	cmd, err := gitNoLFS("update-ref", "--stdin", "-z")
+	cmd.Dir = wd
+	return cmd, err
 }
 
 // ValidateRemote checks that a named remote is valid for use
