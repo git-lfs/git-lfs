@@ -558,7 +558,7 @@ func UpdateRef(ref *Ref, to []byte, reason string) error {
 // read a series of reference update instructions from standard input and
 // execute them. The command will operate within the given working
 // directory "wd". The instructions should follow the NUL-terminated format.
-func UpdateRefsFromStdinInDir(wd string) (*subprocess.Cmd, error) {
+func UpdateRefsFromStdin(wd string) (*subprocess.Cmd, error) {
 	cmd, err := gitNoLFS("update-ref", "--stdin", "-z")
 	cmd.Dir = wd
 	return cmd, err

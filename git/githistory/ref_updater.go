@@ -50,7 +50,7 @@ func (r *refUpdater) updateRefs() error {
 		maxNameLen = max(maxNameLen, len(ref.Name))
 	}
 
-	cmd, err := git.UpdateRefsFromStdinInDir(r.root)
+	cmd, err := git.UpdateRefsFromStdin(r.root)
 	if err != nil {
 		return err
 	}
