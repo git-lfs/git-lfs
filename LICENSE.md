@@ -1,5 +1,5 @@
+Osama Atef
 MIT License
-
 Copyright (c) 2014- GitHub, Inc. and Git LFS contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
