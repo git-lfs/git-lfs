@@ -1198,3 +1198,28 @@ begin_test "migrate import (filename special characters)"
   fi
 )
 end_test
+
+begin_test "migrate import (rewrite commit hashes in commit messages)"
+(
+  set -e
+
+  setup_single_remote_branch
+
+  echo test > test
+  git add test
+  git commit -m "test hash rewrite" -m "$(git log --pretty='%h')"
+
+  git show > /home/test/TEST
+
+  output_dir="$GIT_LFS_TEST_DIR/import-object-map-$(lfstest-genrandom --base64url 32)"
+  mkdir -p "$output_dir"
+
+  git lfs migrate import --include=a.md --rewrite-commit-hashes-in-commit-messages --object-map="${output_dir}/object-map"
+
+  for h in $(git log -n1 --pretty="%b"); do
+    if ( ! git rev-list HEAD^ | grep $h ); then
+      exit 1
+    fi
+  done
+)
+end_test

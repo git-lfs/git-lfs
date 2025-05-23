@@ -101,6 +101,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 		},
 
 		UpdateRefs: true,
+		RewriteCommitHashesInCommitMessages: migrateRewriteCommitHashesInCommitMessages,
 	}
 
 	setupRepository()

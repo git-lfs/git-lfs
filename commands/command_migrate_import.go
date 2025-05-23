@@ -257,6 +257,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 		},
 
 		UpdateRefs: true,
+		RewriteCommitHashesInCommitMessages: migrateRewriteCommitHashesInCommitMessages,
 	})
 
 	if err := checkoutNonBare(l); err != nil {

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"container/list"
+	"regexp"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
@@ -37,6 +39,9 @@ type Rewriter struct {
 	db *gitobj.ObjectDatabase
 	// logger is the *tasklog.Logger to which updates are written.
 	logger *tasklog.Logger
+	// shortCommitHashes maps an abbreviated commit hash to all possible
+	// full commit hashes that contain the abbreviated hash as a prefix.
+	shortCommitHashes map[string]*list.List
 }
 
 // RewriteOptions is an options type given to the Rewrite() function.
@@ -76,6 +81,9 @@ type RewriteOptions struct {
 	// been reassembled by calling the above BlobFn on all existing tree
 	// entries.
 	TreeCallbackFn TreeCallbackFn
+	// RewriteCommitHashesInCommitMessages indicates whether commit hashes
+	// in commit messages should be rewritten.
+	RewriteCommitHashesInCommitMessages bool
 }
 
 // blobFn returns a usable BlobRewriteFn, either the one that was given in the
@@ -183,8 +191,8 @@ func NewRewriter(db *gitobj.ObjectDatabase, opts ...rewriterOption) *Rewriter {
 		mu:      new(sync.Mutex),
 		entries: make(map[string]*gitobj.TreeEntry),
 		commits: make(map[string][]byte),
-
 		db: db,
+		shortCommitHashes: make(map[string]*list.List),
 	}
 
 	for _, opt := range opts {
@@ -228,6 +236,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 	// Keep track of the last commit that we rewrote. Callers often want
 	// this so that they can perform a git-update-ref(1).
 	var tip []byte
+	hash_re := regexp.MustCompile("(\\b[0-9a-f]{7,40}\\b)")
 	for _, oid := range commits {
 		// Load the original commit to access the data necessary in
 		// order to rewrite it.
@@ -268,13 +277,69 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			rewrittenParents = append(rewrittenParents, rewrittenParent)
 		}
 
+		message := original.Message
+		if opt.RewriteCommitHashesInCommitMessages {
+			message = string(hash_re.ReplaceAllFunc([]byte(original.Message),
+				func(oldHash []byte) []byte {
+					r.mu.Lock()
+					defer r.mu.Unlock()
+
+					oldHashS := string(oldHash)
+					newHash, ok := r.commits[oldHashS]
+					if ok {
+						return []byte(hex.EncodeToString(newHash))
+					}
+
+					origLen := len(oldHash)
+					hashList, ok := r.shortCommitHashes[oldHashS]
+					if ok {
+						if hashList.Len() == 1 {
+							return []byte(hex.EncodeToString(r.commits[hashList.Front().Value.(string)])[0:origLen])
+						} else {
+							panic(fmt.Sprintf("Ambiguous hash %s", oldHash))
+						}
+					} else {
+						hashList, ok = r.shortCommitHashes[oldHashS[0:7]]
+						if !ok {
+							return oldHash
+						}
+					}
+
+					matchFound := false;
+					var longHash string;
+					for possibleHash := hashList.Front(); possibleHash != nil; possibleHash = possibleHash.Next() {
+						if oldHashS == possibleHash.Value.(string)[0:origLen] {
+							if matchFound {
+								panic(fmt.Sprintf("Ambiguous commit hash %s", oldHashS))
+							}
+							matchFound = true;
+							longHash = possibleHash.Value.(string);
+						}
+					}
+
+					if !matchFound {
+						return oldHash;
+					}
+
+					hashList, ok = r.shortCommitHashes[oldHashS]
+					if !ok {
+						hashList = list.New()
+						r.shortCommitHashes[oldHashS] = hashList
+					}
+					hashList.PushFront(longHash)
+
+					return []byte(hex.EncodeToString(r.commits[longHash])[0:origLen])
+				},
+			))
+		}
+
 		// Construct a new commit using the original header information,
 		// but the rewritten set of parents as well as root tree.
 		rewrittenCommit := &gitobj.Commit{
 			Author:       original.Author,
 			Committer:    original.Committer,
 			ExtraHeaders: original.ExtraHeaders,
-			Message:      original.Message,
+			Message:      message,
 
 			ParentIDs: rewrittenParents,
 			TreeID:    rewrittenTree,
@@ -299,7 +364,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 
 		// Cache that commit so that we can reassign children of this
 		// commit.
-		r.cacheCommit(oid, newSha)
+		r.cacheCommit(oid, newSha, opt.RewriteCommitHashesInCommitMessages)
 
 		// Increment the percentage displayed in the terminal.
 		perc.Count(1)
@@ -618,11 +683,21 @@ func (r *Rewriter) entryKey(path string, e *gitobj.TreeEntry) string {
 
 // cacheEntry caches then given "from" commit so that it is always rewritten as
 // a *git/gitobj.Commit equivalent to "to".
-func (r *Rewriter) cacheCommit(from, to []byte) {
+func (r *Rewriter) cacheCommit(from, to []byte, cacheShortHash bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.commits[hex.EncodeToString(from)] = to
+	fromHash := hex.EncodeToString(from)
+	r.commits[fromHash] = to
+
+	if cacheShortHash {
+		longHashes, hasShortHash := r.shortCommitHashes[fromHash[0:7]]
+		if !hasShortHash {
+			longHashes = list.New()
+			r.shortCommitHashes[fromHash[0:7]] = longHashes
+		}
+		longHashes.PushBack(fromHash)
+	}
 }
 
 // uncacheCommit returns a *git/gitobj.Commit that is cached from the given
