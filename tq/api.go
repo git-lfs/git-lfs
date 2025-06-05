@@ -75,11 +75,6 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 		bReq.TransferAdapterNames = nil
 	}
 
-	missing := make(map[string]bool)
-	for _, obj := range bReq.Objects {
-		missing[obj.Oid] = obj.Missing
-	}
-
 	bRes.endpoint = c.Endpoints.Endpoint(bReq.Operation, remote)
 	requestedAt := time.Now()
 
@@ -110,7 +105,6 @@ func (c *tqClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, err
 	}
 
 	for _, obj := range bRes.Objects {
-		obj.Missing = missing[obj.Oid]
 		for _, a := range obj.Actions {
 			a.createdAt = requestedAt
 		}
