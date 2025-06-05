@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,10 @@ import (
 
 // Populate man pages
 //go:generate go run ../docs/man/mangen.go
+
+const (
+	defaultFilepathFilterCacheSize = 10000
+)
 
 var (
 	ErrorBuffer  = &bytes.Buffer{}
@@ -134,7 +139,7 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 
 func buildFilepathFilterWithPatternType(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool, patternType filepathfilter.PatternType) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
-	return filepathfilter.New(inc, exc, patternType)
+	return filepathfilter.New(inc, exc, patternType, determineFilepathFilterCache(config))
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
@@ -521,6 +526,29 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 		exclude = tools.CleanPaths(*excludeArg, ",")
 	}
 	return
+}
+
+func determineFilepathFilterCache(config *config.Configuration) filepathfilter.Option {
+	cacheSize := defaultFilepathFilterCacheSize
+
+	if configSize, ok := config.Git.Get("lfs.pathfiltercachesize"); ok {
+		switch configSize {
+		case "none":
+			return filepathfilter.DisableCache()
+		case "unlimited":
+			cacheSize = 0
+		default:
+			if s, err := strconv.Atoi(configSize); err == nil {
+				if s == 0 {
+					return filepathfilter.DisableCache()
+				} else if s > 0 {
+					cacheSize = s
+				}
+			}
+		}
+	}
+
+	return filepathfilter.EnableCache(cacheSize)
 }
 
 func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {

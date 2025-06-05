@@ -940,7 +940,7 @@ begin_test "migrate import (handle copies of files)"
 )
 end_test
 
-begin_test "migrate import (filter matches files only)"
+begin_test "migrate import (filter matches files only) (path cache settings)"
 (
   set -e
 
@@ -957,6 +957,27 @@ begin_test "migrate import (filter matches files only)"
   assert_local_object "$txt_foo_oid" "120"
   assert_local_object "$txt_bar_oid" "120"
   refute_local_object "$md_bar_oid"
+
+  # Also test with various path filter cache settings.
+  for cache in "none" "1" "2" "unlimited" "not valid"; do
+    cd ..
+    rm -rf "$reponame"
+    setup_single_local_branch_same_file_tree_ext
+
+    txt_root_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+    txt_foo_oid="$(calc_oid "$(git cat-file -p :foo/a.txt)")"
+    md_bar_oid="$(calc_oid "$(git cat-file -p :bar.txt/b.md)")"
+    txt_bar_oid="$(calc_oid "$(git cat-file -p :bar.txt/b.txt)")"
+
+    git config "lfs.pathFilterCacheSize" "$cache"
+
+    git lfs migrate import --include="*.txt"
+
+    assert_local_object "$txt_root_oid" "120"
+    assert_local_object "$txt_foo_oid" "120"
+    assert_local_object "$txt_bar_oid" "120"
+    refute_local_object "$md_bar_oid"
+  done
 )
 end_test
 
