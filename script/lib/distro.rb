@@ -57,21 +57,6 @@ class DistroMap
       # Debian EOL https://wiki.debian.org/LTS/
       # Ubuntu EOL https://wiki.ubuntu.com/Releases
       # Mint EOL https://linuxmint.com/download_all.php
-      "debian/10" => {
-        name: "Debian 10",
-        component: "debian/buster",
-        image: "debian_10",
-        package_type: "deb",
-        package_tag: "",
-        equivalent: [
-          "debian/buster",             # EOL June 2024
-          "linuxmint/ulyana",          # EOL April 2025
-          "linuxmint/ulyssa",          # EOL April 2025
-          "linuxmint/uma",             # EOL April 2025
-          "linuxmint/una",             # EOL April 2025
-          "ubuntu/focal",              # EOL April 2025
-        ],
-      },
       "debian/11" => {
         name: "Debian 11",
         component: "debian/bullseye",
