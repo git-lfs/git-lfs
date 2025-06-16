@@ -27,17 +27,6 @@ class DistroMap
       # SLES EOL https://www.suse.com/lifecycle/
       # opensuse https://en.opensuse.org/Lifetime
       # or https://en.wikipedia.org/wiki/OpenSUSE_version_history
-      "centos/7" => {
-        name: "RPM RHEL 7/CentOS 7",
-        component: "el/7",
-        image: "centos_7",
-        package_type: "rpm",
-        package_tag: "-1.el7",
-        equivalent: [
-          "el/7",                      # EOL June 2024
-          "sles/12.5",                 # EOL October 2024
-        ],
-      },
       "centos/8" => {
         name: "RPM RHEL 8/Rocky Linux 8",
         component: "el/8",
