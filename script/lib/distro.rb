@@ -35,8 +35,6 @@ class DistroMap
         package_tag: "-1.el8",
         equivalent: [
           "el/8",                      # EOL May 2029
-          "opensuse/15.5",             # EOL December 2024
-          "sles/15.5",                 # EOL December 2024
         ],
       },
       "rocky/9" => {
@@ -47,9 +45,8 @@ class DistroMap
         package_tag: "-1.el9",
         equivalent: [
           "el/9",                      # EOL May 2032
-          "fedora/39",                 # EOL November 2024
-          "fedora/40",                 # EOL May 2025
           "fedora/41",                 # EOL November 2025
+          "fedora/42",                 # EOL May 2026
           "opensuse/15.6",             # EOL December 2025
           "sles/15.6",                 # Current
         ],
@@ -92,8 +89,10 @@ class DistroMap
           "debian/bookworm",           # EOL June 2028
           "debian/trixie",             # Current testing (Debian 13)
           "linuxmint/wilma",           # EOL April 2029
+          "linuxmint/xia",             # EOL April 2029
           "ubuntu/noble",              # EOL June 2029
           "ubuntu/oracular",           # EOL July 2025
+          "ubuntu/plucky",             # EOL January 2026
         ]
       },
     }
