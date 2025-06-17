@@ -54,6 +54,16 @@ class DistroMap
           "sles/15.6",                 # Current
         ],
       },
+      "rocky/10" => {
+        name: "RPM RHEL 10/Rocky Linux 10",
+        component: "el/10",
+        image: "rocky_10",
+        package_type: "rpm",
+        package_tag: "-1.el10",
+        equivalent: [
+          "el/10",                     # EOL May 2035
+        ],
+      },
       # Debian EOL https://wiki.debian.org/LTS/
       # Ubuntu EOL https://wiki.ubuntu.com/Releases
       # Mint EOL https://linuxmint.com/download_all.php
