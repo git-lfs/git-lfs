@@ -28,10 +28,6 @@ mkdir -p src/github.com/git-lfs
 ln -s $(pwd) src/github.com/git-lfs/%{name}
 
 %build
-%if 0%{?rhel} == 5
-  export CGO_ENABLED=0
-%endif
-
 pushd src/github.com/git-lfs/%{name}
   %if "%{_arch}" == "i386"
     GOARCH=386 FORCE_LOCALIZE=true make
