@@ -39,8 +39,12 @@ BUILTIN_LD_FLAGS += -w
 endif
 # EXTRA_LD_FLAGS are given by the caller, and are passed to the Go linker after
 # BUILTIN_LD_FLAGS are processed. By default the system LDFLAGS are passed.
+# Note that these must be passed as a single argument to -extldflags, and
+# since our LD_FLAGS variable must in turn be passed as a single argument
+# to the "go build" command's -ldflags option, we enclose any system LDFLAGS
+# in escaped quotes.
 ifdef LDFLAGS
-EXTRA_LD_FLAGS ?= -extldflags ${LDFLAGS}
+EXTRA_LD_FLAGS ?= -extldflags \"$(LDFLAGS)\"
 endif
 # LD_FLAGS is the union of the above two BUILTIN_LD_FLAGS and EXTRA_LD_FLAGS.
 LD_FLAGS = $(BUILTIN_LD_FLAGS) $(EXTRA_LD_FLAGS)

@@ -2,12 +2,12 @@ Source: git-lfs
 Section: vcs
 Priority: optional
 Maintainer: Stephen Gelman <gelman@getbraintree.com>
-Build-Depends: debhelper (>= 9), dh-golang, golang-go:native (>= 1.12.0), git (>= 1.8.2), asciidoctor
+Build-Depends: debhelper (>= 9), dh-golang, golang-go:native (>= 1.23.0), git (>= 2.0.0), asciidoctor
 Standards-Version: 3.9.6
 
 Package: git-lfs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, git (>= 1.8.2)
+Depends: ${shlibs:Depends}, ${misc:Depends}, git (>= 2.0.0)
 Built-Using: ${misc:Built-Using}
 Description: Git Large File Support
  An open source Git extension for versioning large files
