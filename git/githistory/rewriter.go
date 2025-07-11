@@ -590,7 +590,7 @@ func (r *Rewriter) Filter() *filepathfilter.Filter {
 	return r.filter
 }
 
-// cacheEntry caches then given "from" entry so that it is always rewritten as
+// cacheEntry caches the given "from" entry so that it is always rewritten as
 // a *TreeEntry equivalent to "to".
 func (r *Rewriter) cacheEntry(path string, from, to *gitobj.TreeEntry) *gitobj.TreeEntry {
 	r.mu.Lock()
