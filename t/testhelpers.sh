@@ -376,11 +376,24 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_worktree() {
+  [ -z "$(git diff-index HEAD)" ]
+}
+
+assert_clean_worktree_with_exceptions() {
+  local exceptions="$1"
+
+  [ -z "$(git diff-index HEAD | grep -v -E "$exceptions")" ]
+}
+
 assert_clean_status() {
+  assert_clean_worktree
+
   status="$(git status)"
-  echo "$status" | grep "working tree clean" || {
+  echo "$status" | grep "working \(directory\|tree\) clean" || {
     echo $status
     git lfs status
+    exit 1
   }
 }
 

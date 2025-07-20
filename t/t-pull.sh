@@ -82,6 +82,7 @@ begin_test "pull"
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
+  assert_clean_status
   git lfs fsck
 
   echo "lfs pull with remote"
@@ -154,6 +155,7 @@ begin_test "pull"
   assert_local_object "$contents_oid" 1
   refute_local_object "$contents2_oid"
   assert_local_object "$contents3_oid" 3
+  assert_clean_worktree_with_exceptions '\\303\\241\.dat'
 
   git lfs pull -I "*.dat"
   [ "A" = "$(cat "á.dat")" ]
@@ -198,6 +200,7 @@ begin_test "pull"
   refute_local_object "$contents_oid"
   assert_local_object "$contents2_oid" 1
   assert_local_object "$contents3_oid" 3
+  assert_clean_worktree_with_exceptions "a\.dat"
 
   pushd dir
     git lfs pull -I "*.dat"
