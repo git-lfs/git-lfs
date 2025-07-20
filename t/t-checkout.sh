@@ -79,13 +79,13 @@ begin_test "checkout"
 
   echo "test subdir context"
   pushd folder1
-  git lfs checkout nested.dat
-  [ "$contents" = "$(cat nested.dat)" ]
-  [ ! -f ../folder2/nested.dat ]
-  # test '.' in current dir
-  rm nested.dat
-  git lfs checkout . 2>&1 | tee checkout.log
-  [ "$contents" = "$(cat nested.dat)" ]
+    git lfs checkout nested.dat
+    [ "$contents" = "$(cat nested.dat)" ]
+    [ ! -f ../folder2/nested.dat ]
+    # test '.' in current dir
+    rm nested.dat
+    git lfs checkout . 2>&1 | tee checkout.log
+    [ "$contents" = "$(cat nested.dat)" ]
   popd
 
   echo "test folder param"

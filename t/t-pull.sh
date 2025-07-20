@@ -34,7 +34,6 @@ begin_test "pull"
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
   [ "dir" = "$(cat "dir/dir.dat")" ]
@@ -75,7 +74,6 @@ begin_test "pull"
   rm -r a.dat á.dat dir # removing files makes the status dirty
   rm -rf .git/lfs/objects
   git lfs pull
-  ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
   assert_local_object "$contents_oid" 1
@@ -147,12 +145,15 @@ begin_test "pull"
   assert_clean_status
 
   echo "lfs pull in subdir"
-  cd dir
-  git lfs pull
+  pushd dir
+    git lfs pull
+  popd
   assert_clean_status
 
   echo "lfs pull in subdir with -I"
-  git lfs pull -I "*.dat"
+  pushd dir
+    git lfs pull -I "*.dat"
+  popd
   assert_clean_status
 )
 end_test
