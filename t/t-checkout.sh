@@ -78,18 +78,45 @@ begin_test "checkout"
   [ ! -f folder2/nested.dat ]
 
   echo "test subdir context"
+  rm file1.dat
   pushd folder1
     git lfs checkout nested.dat
     [ "$contents" = "$(cat nested.dat)" ]
+    [ ! -f ../file1.dat ]
     [ ! -f ../folder2/nested.dat ]
+
     # test '.' in current dir
     rm nested.dat
     git lfs checkout . 2>&1 | tee checkout.log
     [ "$contents" = "$(cat nested.dat)" ]
+    [ ! -f ../file1.dat ]
+    [ ! -f ../folder2/nested.dat ]
+
+    # test '..' in current dir
+    git lfs checkout ..
+    [ "$contents" = "$(cat ../file1.dat)" ]
+    [ "$contents" = "$(cat ../folder2/nested.dat)" ]
+
+    # test glob match with '..' in current dir
+    rm -rf ../folder2
+    git lfs checkout '../folder2/**'
+    [ "$contents" = "$(cat ../folder2/nested.dat)" ]
   popd
 
   echo "test folder param"
+  rm -rf folder2
   git lfs checkout folder2
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  echo "test folder param with pre-existing directory"
+  rm -rf folder2
+  mkdir folder2
+  git lfs checkout folder2
+  [ "$contents" = "$(cat folder2/nested.dat)" ]
+
+  echo "test folder param with glob match"
+  rm -rf folder2
+  git lfs checkout 'folder2/**'
   [ "$contents" = "$(cat folder2/nested.dat)" ]
 
   echo "test '.' in current dir"
