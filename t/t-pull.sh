@@ -44,7 +44,7 @@ begin_test "pull"
 
   refute_server_object "$reponame" "$contents_oid"
   refute_server_object "$reponame" "$contents2_oid"
-  refute_server_object "$reponame" "$contents33oid"
+  refute_server_object "$reponame" "$contents3_oid"
 
   echo "initial push"
   git push origin main 2>&1 | tee push.log
@@ -65,34 +65,40 @@ begin_test "pull"
 
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
 
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull"
-  rm -r a.dat á.dat dir # removing files makes the status dirty
+  rm -rf a.dat á.dat dir # removing files makes the status dirty
   rm -rf .git/lfs/objects
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   git lfs fsck
 
   echo "lfs pull with remote"
-  rm -r a.dat á.dat dir
+  rm -rf a.dat á.dat dir
   rm -rf .git/lfs/objects
   git lfs pull origin
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
   git lfs fsck
 
   echo "lfs pull with local storage"
-  rm a.dat á.dat
+  rm -rf a.dat á.dat dir
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
@@ -130,10 +136,28 @@ begin_test "pull"
 
   echo "lfs pull clean status"
   git lfs pull
+  [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull with -I"
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir/dir.dat"
+  git lfs pull -I "a.*,dir/dir.*"
+  [ "a" = "$(cat a.dat)" ]
+  [ ! -e "á.dat" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$contents2_oid"
+  assert_local_object "$contents3_oid" 3
+
   git lfs pull -I "*.dat"
+  [ "A" = "$(cat "á.dat")" ]
+  assert_local_object "$contents2_oid" 1
   assert_clean_status
 
   echo "lfs pull with empty file"
@@ -144,16 +168,42 @@ begin_test "pull"
   [ -z "$(cat empty.dat)" ]
   assert_clean_status
 
+  echo "resetting to test status"
+  git reset --hard HEAD^
+  assert_clean_status
+
   echo "lfs pull in subdir"
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir/dir.dat"
   pushd dir
     git lfs pull
   popd
+  [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull in subdir with -I"
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir/dir.dat"
+  pushd dir
+    git lfs pull -I "á.*,dir/dir.dat"
+  popd
+  [ ! -e a.dat ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir/dir.dat")" ]
+  refute_local_object "$contents_oid"
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
+
   pushd dir
     git lfs pull -I "*.dat"
   popd
+  [ "a" = "$(cat a.dat)" ]
+  assert_local_object "$contents_oid" 1
   assert_clean_status
 )
 end_test
@@ -330,6 +380,7 @@ begin_test "pull: with missing object"
   # this clone is setup in the first test in this file
   cd clone
   rm -rf .git/lfs/objects
+  rm a.dat
 
   contents_oid=$(calc_oid "a")
   reponame="$(basename "$0" ".sh")"
@@ -343,7 +394,7 @@ begin_test "pull: with missing object"
   pull_exit="${PIPESTATUS[0]}"
   [ "$pull_exit" != "0" ]
 
-  grep "$contents_oid" pull.log
+  grep "$contents_oid does not exist" pull.log
 
   contents2_oid=$(calc_oid "A")
   assert_local_object "$contents2_oid" 1
