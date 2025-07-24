@@ -376,6 +376,10 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_index() {
+  [ -z "$(git diff-index --cached HEAD)" ]
+}
+
 assert_clean_worktree() {
   [ -z "$(git diff-index HEAD)" ]
 }
