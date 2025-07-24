@@ -164,6 +164,66 @@ begin_test "checkout"
 )
 end_test
 
+begin_test "checkout: skip directory file conflicts"
+(
+  set -e
+
+  reponame="checkout-skip-dir-file-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  rm -rf dir1 dir2/dir3
+  touch dir1 dir2/dir3
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
+    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' checkout.log
+    grep 'Checkout error: stat dir2/dir3/dir4/a\.dat' checkout.log
+  fi
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+
+  pushd dir2
+    git lfs checkout 2>&1 | tee checkout.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to succeed ..."
+      exit 1
+    fi
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
+      grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+    else
+      grep 'Checkout error: stat \.\./dir1/a\.dat' checkout.log
+      grep 'Checkout error: stat dir3/dir4/a\.dat' checkout.log
+    fi
+  popd
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "checkout: without clean filter"
 (
   set -e

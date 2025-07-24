@@ -229,6 +229,81 @@ begin_test "pull"
 )
 end_test
 
+begin_test "pull: skip directory file conflicts"
+(
+  set -e
+
+  reponame="pull-skip-dir-file-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -rf dir1 dir2/dir3
+  touch dir1 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
+    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' pull.log
+    grep 'Checkout error: stat dir2/dir3/dir4/a\.dat' pull.log
+  fi
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
+      grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
+    else
+      grep 'Checkout error: stat \.\./dir1/a\.dat' pull.log
+      grep 'Checkout error: stat dir3/dir4/a\.dat' pull.log
+    fi
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "pull without clean filter"
 (
   set -e
