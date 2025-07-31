@@ -198,6 +198,24 @@ begin_test "fetch with remote and branches"
 
   git lfs fetch origin main newbranch --dry-run | tee fetch.log
   grep "fetch .* => [ab]\.dat" fetch.log && exit 1 || true
+
+  rm -rf .git/lfs/objects
+
+  printf "main\nnewbranch\n" | git lfs fetch origin --stdin --dry-run 2>&1 | tee fetch.log
+  grep "fetch $contents_oid => a\.dat" fetch.log
+  grep "fetch $b_oid => b\.dat" fetch.log
+  refute_local_object "$contents_oid"
+  refute_local_object "$b_oid"
+
+  printf "main\nnewbranch\n" | git lfs fetch origin --stdin
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$b_oid" 1
+
+  git lfs fsck 2>&1 | tee fsck.log
+  grep "Git LFS fsck OK" fsck.log
+
+  git lfs fetch origin main newbranch --dry-run | tee fetch.log
+  grep "fetch .* => [ab]\.dat" fetch.log && exit 1 || true
 )
 end_test
 
@@ -634,6 +652,18 @@ begin_test "fetch-all"
 
   rm -rf lfs/objects
 
+  echo "main" | git lfs fetch --all --stdin origin
+  for a in 0 1 3 5 7 9 10 11
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 2 4 6 8
+  do
+    refute_local_object "${oid[$a]}"
+  done
+
+  rm -rf lfs/objects
+
   # fetch all objects reachable from branch1 and tag1 only
   git lfs fetch --all origin branch1 tag1
   for a in 0 1 2 3 5 6
@@ -644,6 +674,19 @@ begin_test "fetch-all"
   do
     refute_local_object "${oid[$a]}"
   done
+
+  rm -rf lfs/objects
+
+  printf "branch1\ntag1\n\n" | git lfs fetch --all --stdin origin
+  for a in 0 1 2 3 5 6
+  do
+    assert_local_object "${oid[$a]}" "${#content[$a]}"
+  done
+  for a in 4 7 8 9 10 11
+  do
+    refute_local_object "${oid[$a]}"
+  done
+
 )
 end_test
 
