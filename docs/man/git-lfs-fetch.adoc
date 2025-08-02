@@ -7,6 +7,7 @@ git-lfs-fetch - Download all Git LFS files for a given ref
 == SYNOPSIS
 
 `git lfs fetch` [options] [<remote> [<ref>...]]
+`git lfs fetch` [options] <remote> --stdin
 
 == DESCRIPTION
 
@@ -35,6 +36,9 @@ This does not update the working copy.
   This is primarily for backup and migration purposes. Cannot be combined with
   --recent or --include/--exclude. Ignores any globally configured include and
   exclude paths to ensure that all objects are downloaded.
+`--stdin`::
+  Read a list of newline-delimited refs from standard input instead of the
+  command line.
 `--prune`::
 `-p`::
   Prune old and unreferenced objects after fetching, equivalent to running `git

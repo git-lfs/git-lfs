@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/json"
 	"os"
 	"sync"
@@ -24,6 +25,7 @@ var (
 	fetchRefetchArg bool
 	fetchDryRunArg  bool
 	fetchJsonArg    bool
+	fetchUseStdin   bool
 )
 
 type fetchWatcher struct {
@@ -99,7 +101,27 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if len(args) > 1 {
+	if fetchUseStdin {
+		if len(args) > 1 {
+			Print(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
+			os.Exit(1)
+		}
+
+		scanner := bufio.NewScanner(os.Stdin) // line-delimited
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line != "" {
+				ref, err := git.ResolveRef(line)
+				if err != nil {
+					Panic(err, tr.Tr.Get("Invalid ref argument: %v", line))
+				}
+				refs = append(refs, ref)
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			ExitWithError(errors.Wrap(err, tr.Tr.Get("Error reading from stdin:")))
+		}
+	} else if len(args) > 1 {
 		resolvedrefs, err := git.ResolveRefs(args[1:])
 		if err != nil {
 			Panic(err, tr.Tr.Get("Invalid ref argument: %v", args[1:]))
@@ -135,7 +157,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			printProgress(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
 		}
 
-		if len(args) > 1 {
+		if len(refs) > 0 {
 			refShas := make([]string, 0, len(refs))
 			for _, ref := range refs {
 				refShas = append(refShas, ref.Sha)
@@ -460,5 +482,6 @@ func init() {
 		cmd.Flags().BoolVar(&fetchRefetchArg, "refetch", false, "Also fetch objects that are already present locally")
 		cmd.Flags().BoolVarP(&fetchDryRunArg, "dry-run", "d", false, "Do not fetch, only show what would be fetched")
 		cmd.Flags().BoolVarP(&fetchJsonArg, "json", "j", false, "Give the output in a stable JSON format for scripts")
+		cmd.Flags().BoolVarP(&fetchUseStdin, "stdin", "", false, "Read refs from stdin")
 	})
 }
