@@ -565,3 +565,63 @@ begin_test "pull with partial clone and sparse checkout and index"
   refute_local_object "$contents3_oid"
 )
 end_test
+
+begin_test "pull: pointer extension"
+(
+  set -e
+
+  reponame="pull-pointer-extension"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  setup_case_inverter_extension
+
+  contents="abc"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+
+  git add .gitattributes dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$inverted_contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$inverted_contents_oid"
+
+  setup_case_inverter_extension
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  git lfs pull
+
+  assert_local_object "$inverted_contents_oid" 3
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  mkdir dir2
+
+  pushd dir2
+    git lfs pull
+  popd
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+
+  # Note that at present we expect "git lfs pull" to run the extension
+  # program in the current working directory rather than the repository root,
+  # as would occur if it was run within a smudge filter operation started
+  # by Git.
+  grep "smudge: ../dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  assert_local_object "$inverted_contents_oid" 3
+)
+end_test

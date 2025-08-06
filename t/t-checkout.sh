@@ -478,3 +478,127 @@ begin_test "checkout: sparse with partial clone and sparse index"
   [ ! -e "out-dir/c.dat" ]
 )
 end_test
+
+begin_test "checkout: pointer extension"
+(
+  set -e
+
+  reponame="checkout-pointer-extension"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  setup_case_inverter_extension
+
+  contents="abc"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+
+  git add .gitattributes dir1
+  git commit -m "initial commit"
+
+  assert_local_object "$inverted_contents_oid" 3
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  git lfs checkout
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  mkdir dir2
+
+  pushd dir2
+    git lfs checkout
+  popd
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+
+  # Note that at present we expect "git lfs checkout" to run the extension
+  # program in the current working directory rather than the repository root,
+  # as would occur if it was run within a smudge filter operation started
+  # by Git.
+  grep "smudge: ../dir1/abc.dat" "$LFSTEST_EXT_LOG"
+)
+end_test
+
+begin_test "checkout: pointer extension with conflict"
+(
+  set -e
+
+  reponame="checkout-pointer-extension-conflict"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  setup_case_inverter_extension
+
+  contents="abc"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+
+  git add .gitattributes dir1
+  git commit -m "initial commit"
+
+  assert_local_object "$inverted_contents_oid" 3
+
+  git checkout -b theirs
+  contents_theirs="Abc"
+  printf "%s" "$contents_theirs" >dir1/abc.dat
+  git add dir1
+  git commit -m "theirs"
+
+  git checkout main
+  contents_ours="aBc"
+  printf "%s" "$contents_ours" >dir1/abc.dat
+  git add dir1
+  git commit -m "ours"
+
+  git merge theirs && exit 1
+
+  rm -f "$LFSTEST_EXT_LOG"
+
+  git lfs checkout --to base.txt --base dir1/abc.dat
+
+  printf "%s" "$contents" | cmp - base.txt
+
+  # Note that at present we expect "git lfs checkout" to pass the argument
+  # from its --to option to the extension program instead of the pointer's
+  # file path.
+  grep "smudge: base.txt" "$LFSTEST_EXT_LOG"
+
+  rm -f "$LFSTEST_EXT_LOG"
+
+  pushd dir1
+    git lfs checkout --to ../ours.txt --ours abc.dat
+  popd
+
+  printf "%s" "$contents_ours" | cmp - ours.txt
+
+  # Note that at present we expect "git lfs checkout" to pass the argument
+  # from its --to option to the extension program instead of the pointer's
+  # file path.
+  grep "smudge: ../ours.txt" "$LFSTEST_EXT_LOG"
+
+  abs_assert_dir="$TRASHDIR/${reponame}-assert"
+  abs_theirs_file="$(canonical_path "$abs_assert_dir/dir1/dir2/theirs.txt")"
+
+  rm -rf "$abs_assert_dir" "$LFSTEST_EXT_LOG"
+  mkdir dir2
+
+  pushd dir2
+    git lfs checkout --to "$abs_theirs_file" --theirs ../dir1/abc.dat
+  popd
+
+  printf "%s" "$contents_theirs" | cmp - "$abs_theirs_file"
+
+  # Note that at present we expect "git lfs checkout" to pass the argument
+  # from its --to option to the extension program instead of the pointer's
+  # file path.
+  grep "smudge: $(escape_path "$abs_theirs_file")" "$LFSTEST_EXT_LOG"
+)
+end_test

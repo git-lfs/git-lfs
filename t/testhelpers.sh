@@ -966,6 +966,27 @@ add_symlink() {
   git checkout -- "$dest"
 }
 
+setup_case_inverter_extension() {
+  export LFSTEST_EXT_LOG="$TRASHDIR/caseinverterextension.log"
+
+  git config lfs.extension.caseinverter.clean \
+    "lfstest-caseinverterextension clean -- %f"
+  git config lfs.extension.caseinverter.smudge \
+    "lfstest-caseinverterextension smudge -- %f"
+  git config lfs.extension.caseinverter.priority 0
+}
+
+case_inverter_extension_pointer() {
+  local ext_oid_line="ext-0-caseinverter sha256:$1"
+  local base_pointer="$(pointer "$2" "$3")"
+
+  printf "%s" "$base_pointer" | sed "s/^oid /$ext_oid_line\noid /"
+}
+
+invert_case() {
+  printf "%s" "$1" | tr "[:lower:][:upper:]" "[:upper:][:lower:]"
+}
+
 urlify() {
   if [ "$IS_WINDOWS" -eq 1 ]
   then
