@@ -88,7 +88,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 				return
 			}
 
-			LoggedError(err, tr.Tr.Get("Checkout error: %s", err))
+			LoggedError(err, tr.Tr.Get("Checkout error for %q: %s", p.Name, err))
 			return
 		}
 	}
