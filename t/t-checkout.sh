@@ -195,8 +195,8 @@ begin_test "checkout: skip directory file conflicts"
     grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
     grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
   else
-    grep 'Checkout error: stat dir1/a\.dat' checkout.log
-    grep 'Checkout error: stat dir2/dir3/dir4/a\.dat' checkout.log
+    grep 'Checkout error for "dir1/a\.dat": stat' checkout.log
+    grep 'Checkout error for "dir2/dir3/dir4/a\.dat": stat' checkout.log
   fi
 
   [ -f "dir1" ]
@@ -213,8 +213,8 @@ begin_test "checkout: skip directory file conflicts"
       grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
       grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
     else
-      grep 'Checkout error: stat \.\./dir1/a\.dat' checkout.log
-      grep 'Checkout error: stat dir3/dir4/a\.dat' checkout.log
+      grep 'Checkout error for "dir1/a\.dat": stat' checkout.log
+      grep 'Checkout error for "dir2/dir3/dir4/a\.dat": stat' checkout.log
     fi
   popd
 
@@ -261,7 +261,7 @@ begin_test "checkout: skip directory symlink conflicts"
   if [ "$IS_WINDOWS" -eq 1 ]; then
     grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
   else
-    grep 'Checkout error: stat dir1/a\.dat' checkout.log
+    grep 'Checkout error for "dir1/a\.dat": stat' checkout.log
   fi
   grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
 
@@ -284,7 +284,7 @@ begin_test "checkout: skip directory symlink conflicts"
   if [ "$IS_WINDOWS" -eq 1 ]; then
     grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
   else
-    grep 'Checkout error: stat dir1/a\.dat' checkout.log
+    grep 'Checkout error for "dir1/a\.dat": stat' checkout.log
   fi
   grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
 
@@ -303,7 +303,7 @@ begin_test "checkout: skip directory symlink conflicts"
     if [ "$IS_WINDOWS" -eq 1 ]; then
       grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
     else
-      grep 'Checkout error: stat \.\./dir1/a\.dat' checkout.log
+      grep 'Checkout error for "dir1/a\.dat": stat' checkout.log
     fi
     grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
   popd
