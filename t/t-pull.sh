@@ -269,8 +269,8 @@ begin_test "pull: skip directory file conflicts"
     grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
     grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
   else
-    grep 'Checkout error for "dir1/a\.dat": stat' pull.log
-    grep 'Checkout error for "dir2/dir3/dir4/a\.dat": stat' pull.log
+    grep 'Checkout error for "dir1/a\.dat": lstat' pull.log
+    grep 'Checkout error for "dir2/dir3/dir4/a\.dat": lstat' pull.log
   fi
 
   assert_local_object "$contents_oid" 1
@@ -291,8 +291,8 @@ begin_test "pull: skip directory file conflicts"
       grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
       grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
     else
-      grep 'Checkout error for "dir1/a\.dat": stat' pull.log
-      grep 'Checkout error for "dir2/dir3/dir4/a\.dat": stat' pull.log
+      grep 'Checkout error for "dir1/a\.dat": lstat' pull.log
+      grep 'Checkout error for "dir2/dir3/dir4/a\.dat": lstat' pull.log
     fi
   popd
 
@@ -350,7 +350,7 @@ begin_test "pull: skip directory symlink conflicts"
   if [ "$IS_WINDOWS" -eq 1 ]; then
     grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
   else
-    grep 'Checkout error for "dir1/a\.dat": stat' pull.log
+    grep 'Checkout error for "dir1/a\.dat": lstat' pull.log
   fi
   grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
 
@@ -377,7 +377,7 @@ begin_test "pull: skip directory symlink conflicts"
   if [ "$IS_WINDOWS" -eq 1 ]; then
     grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
   else
-    grep 'Checkout error for "dir1/a\.dat": stat' pull.log
+    grep 'Checkout error for "dir1/a\.dat": lstat' pull.log
   fi
   grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
 
@@ -400,7 +400,7 @@ begin_test "pull: skip directory symlink conflicts"
     if [ "$IS_WINDOWS" -eq 1 ]; then
       grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
     else
-      grep 'Checkout error for "dir1/a\.dat": stat' pull.log
+      grep 'Checkout error for "dir1/a\.dat": lstat' pull.log
     fi
     grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
   popd
@@ -415,8 +415,6 @@ begin_test "pull: skip directory symlink conflicts"
 )
 end_test
 
-# Note that the conditions validated by this test are at present limited,
-# but will be expanded in the future.
 begin_test "pull: skip file symlink conflicts"
 (
   set -e
@@ -431,9 +429,11 @@ begin_test "pull: skip file symlink conflicts"
 
   contents="a"
   contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1/dir2/dir3
   printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/dir2/dir3/a.dat
 
-  git add .gitattributes a.dat
+  git add .gitattributes a.dat dir1
   git commit -m "initial commit"
 
   git push origin main
@@ -445,37 +445,242 @@ begin_test "pull: skip file symlink conflicts"
   cd "${reponame}-assert"
   refute_local_object "$contents_oid" 1
 
-  # test with symlink to directory
-  rm -rf a.dat ../link1
-  mkdir ../link1
+  # test with symlinks to pointer files
+  rm -rf a.dat dir1/dir2/dir3/a.dat ../link*
+  contents_pointer="$(git cat-file -p ":a.dat")"
+  printf "%s" "$contents_pointer" >../link1
+  printf "%s" "$contents_pointer" >../link2
   ln -s ../link1 a.dat
+  ln -s ../../../../link2 dir1/dir2/dir3/a.dat
 
-  # Note that we do not try to check the "git lfs pull" command's error
-  # output since it depends on both the OS and filesystem in use, as these
-  # affect how the linked directory's size is reported.
-  git lfs pull
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
 
   [ -L "a.dat" ]
-  [ -d "../link1" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "../link1" ]
+  [ "$contents_pointer" = "$(cat ../link1)" ]
+  [ -f "../link2" ]
+  [ "$contents_pointer" = "$(cat ../link2)" ]
   assert_clean_index
 
-  rm a.dat
-  mkdir link1
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat link*
+  printf "%s" "$contents_pointer" >link1
+  printf "%s" "$contents_pointer" >link2
   ln -s link1 a.dat
+  ln -s ../../../link2 dir1/dir2/dir3/a.dat
 
-  git lfs pull
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
 
   [ -L "a.dat" ]
-  [ -d "link1" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "link1" ]
+  [ "$contents_pointer" = "$(cat link1)" ]
+  [ -f "link2" ]
+  [ "$contents_pointer" = "$(cat link2)" ]
   assert_clean_index
 
-  mkdir -p dir1/dir2
+  rm -rf .git/lfs/objects
+
   pushd dir1/dir2
-    git lfs pull
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
   popd
 
+  assert_local_object "$contents_oid" 1
+
   [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "link1" ]
+  [ "$contents_pointer" = "$(cat link1)" ]
+  [ -f "link2" ]
+  [ "$contents_pointer" = "$(cat link2)" ]
+  assert_clean_index
+
+  # test with symlink to directory and dangling symlink
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat ../link*
+  mkdir ../link1
+  ln -s ../link1 a.dat
+  ln -s ../../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -d "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat link*
+  mkdir link1
+  ln -s link1 a.dat
+  ln -s ../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
   [ -d "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir1/dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -d "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+)
+end_test
+
+# This test applies to case-preserving but case-insensitive filesystems,
+# such as APFS and NTFS when in their default configurations.
+# On case-sensitive filesystems this test has no particular value and
+# should always pass.
+begin_test "pull: skip case-based symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  # Only test with Git version 2.20.0 as it introduced detection of
+  # case-insensitive filesystems to the "git clone" command, which the
+  # test depends on to determine the filesystem type.
+  ensure_git_version_isnt "$VERSION_LOWER" "2.20.0"
+
+  reponame="pull-skip-case-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  mkdir dir1
+  ln -s ../link1 A.dat
+  ln -s ../../link2 dir1/a.dat
+
+  git add A.dat dir1
+  git commit -m "initial commit"
+
+  rm A.dat dir1/a.dat
+
+  echo "*.dat filter=lfs diff=lfs merge=lfs -text" >.gitattributes
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/A.dat
+
+  git -c core.ignoreCase=false add .gitattributes a.dat dir1/A.dat
+  git commit -m "case-conflicting commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+  collision="$(grep -c "collided" clone.log)" || true
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -rf *.dat dir1 ../link*
+
+  git lfs pull
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "a.dat" ]
+  [ "$contents" = "$(cat "a.dat")" ]
+  [ -f "dir1/A.dat" ]
+  [ "$contents" = "$(cat "dir1/A.dat")" ]
+  [ ! -e "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf a.dat dir1/A.dat
+  git checkout -- A.dat dir1/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  if [ "$collision" -gt "0" ]; then
+    # case-insensitive filesystem
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/A\.dat": not a regular file' pull.log
+  fi
+
+  if [ "$collision" -eq "0" ]; then
+    # case-sensitive filesystem
+    [ -f "a.dat" ]
+    [ "$contents" = "$(cat "a.dat")" ]
+    [ -f "dir1/A.dat" ]
+    [ "$contents" = "$(cat "dir1/A.dat")" ]
+  else
+    # case-insensitive filesystem
+    [ -L "a.dat" ]
+    [ -L "dir1/A.dat" ]
+  fi
+  [ ! -e "../link1" ]
+  [ ! -e "../link2" ]
   assert_clean_index
 )
 end_test
