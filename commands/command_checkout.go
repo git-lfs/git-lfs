@@ -24,6 +24,15 @@ var (
 func checkoutCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 
+	// TODO: After suitable advance public notice, replace this block
+	// and the preceding call to setupRepository() with a single call to
+	// setupWorkingCopy(), which will perform the same check for a bare
+	// repository but will exit non-zero, as other commands already do.
+	if cfg.LocalWorkingDir() == "" {
+		Print(tr.Tr.Get("This operation must be run in a work tree."))
+		os.Exit(0)
+	}
+
 	stage, err := whichCheckout()
 	if err != nil {
 		Exit(tr.Tr.Get("Error parsing args: %v", err))

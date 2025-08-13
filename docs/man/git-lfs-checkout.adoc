@@ -50,6 +50,9 @@ the `GIT_ATTR_SOURCE` environment variable may be set to `HEAD`, which
 will cause Git to only read attributes from `.gitattributes` files in
 `HEAD` and ignore those in the index or working tree.
 
+In a bare repository, this command has no effect.  In a future version,
+this command may exit with an error if it is run in a bare repository.
+
 == OPTIONS
 
 `--base`::

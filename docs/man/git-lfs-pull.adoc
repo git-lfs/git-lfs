@@ -36,6 +36,16 @@ the `GIT_ATTR_SOURCE` environment variable may be set to `HEAD`, which
 will cause Git to only read attributes from `.gitattributes` files in
 `HEAD` and ignore those in the index or working tree.
 
+In a bare repository, if the installed Git version is at least 2.42.0,
+this command will by default fetch Git LFS objects for files only if
+they are present in the Git index and if they match a Git LFS filter
+attribute from a local `gitattributes` file such as
+`$GIT_DIR/info/attributes`. Any `.gitattributes` files in `HEAD` will
+be ignored, unless the `GIT_ATTR_SOURCE` environment variable is set
+to `HEAD`, and any `.gitattributes` files in the index or current
+working tree will always be ignored. These constraints do not apply
+with prior versions of Git.
+
 == OPTIONS
 
 `-I <paths>`::

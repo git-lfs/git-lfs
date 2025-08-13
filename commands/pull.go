@@ -33,6 +33,7 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 
 	return &singleCheckout{
 		gitIndexer:    &gitIndexer{},
+		hasWorkTree:   cfg.LocalWorkingDir() != "",
 		pathConverter: pathConverter,
 		manifest:      nil,
 		remote:        remote,
@@ -49,6 +50,7 @@ type abstractCheckout interface {
 
 type singleCheckout struct {
 	gitIndexer    *gitIndexer
+	hasWorkTree   bool
 	pathConverter lfs.PathConverter
 	manifest      tq.Manifest
 	remote        string
@@ -66,6 +68,10 @@ func (c *singleCheckout) Skip() bool {
 }
 
 func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
+	if !c.hasWorkTree {
+		return
+	}
+
 	cwdfilepath := c.pathConverter.Convert(p.Name)
 
 	// Check the content - either missing or still this pointer (not exist is ok)
