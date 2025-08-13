@@ -6,6 +6,10 @@ begin_test "pointer --file --stdin"
 (
   set -e
 
+  reponame="pointer-file-stdin"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "simple" > some-file
 
   input="version https://git-lfs.github.com/spec/v1
@@ -35,6 +39,11 @@ end_test
 begin_test "pointer --file --stdin mismatch"
 (
   set -e
+
+  reponame="pointer-file-stdin-mismatch"
+  git init "$reponame"
+  cd "$reponame"
+
 
   echo "simple" > some-file
 
@@ -74,6 +83,10 @@ end_test
 begin_test "pointer --stdin"
 (
   set -e
+
+  reponame="pointer-stdin"
+  git init "$reponame"
+  cd "$reponame"
 
   echo "version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
@@ -131,6 +144,11 @@ end_test
 begin_test "pointer --file --pointer mismatch"
 (
   set -e
+
+  reponame="pointer-file-pointer-mismatch"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "simple" > some-file
   echo "version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
@@ -168,6 +186,11 @@ end_test
 begin_test "pointer --file --pointer"
 (
   set -e
+
+  reponame="pointer-file-pointer"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "simple" > some-file
   echo "version https://git-lfs.github.com/spec/v1
 oid sha256:6c17f2007cbe934aee6e309b28b2dba3c119c5dff2ef813ed124699efe319868
@@ -251,6 +274,11 @@ end_test
 begin_test "pointer --file"
 (
   set -e
+
+  reponame="pointer-file"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "simple" > some-file
 
   expected="Git LFS pointer for some-file
@@ -277,6 +305,11 @@ end_test
 begin_test "pointer stdout/stderr"
 (
   set -e
+
+  reponame="pointer-stdout-stderr"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "pointer-stdout-test" > pointer-stdout-test.txt
   git lfs pointer --file=pointer-stdout-test.txt > stdout.txt 2> stderr.txt
   echo "stdout:"
@@ -295,6 +328,11 @@ end_test
 begin_test "pointer to console"
 (
   set -e
+
+  reponame="pointer-to-console"
+  git init "$reponame"
+  cd "$reponame"
+
   echo "pointer-stdout-test" > pointer-stdout-test.txt
   git lfs pointer --file=pointer-stdout-test.txt 2>&1 | tee pointer.txt
   grep "Git LFS pointer" pointer.txt
@@ -435,5 +473,226 @@ begin_test "pointer --check (with invalid arguments)"
 
   # Make the result of the subshell a success.
   true
+)
+end_test
+
+begin_test "pointer: with extension"
+(
+  set -e
+
+  reponame="pointer-extension"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  contents="abc"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents="$(invert_case "$contents")"
+  inverted_contents_oid="$(calc_oid "$inverted_contents")"
+  
+  printf "%s" "$contents" >file.dat
+  
+  # Test git lfs pointer --file with extension
+  rm -f "$LFSTEST_EXT_LOG"
+  pointer_output="$(git lfs pointer --file=file.dat 2>&1)"
+  
+  # Check that the warning message is present
+  echo "$pointer_output" | grep "warning: Using LFS extensions"
+  
+  # Check the pointer contains extension information
+  echo "$pointer_output" | grep "ext-0-caseinverter sha256:$contents_oid"
+  echo "$pointer_output" | grep "oid sha256:$inverted_contents_oid"
+  echo "$pointer_output" | grep "size 3"
+  
+  # Verify extension was called (check log)
+  [ -f "$LFSTEST_EXT_LOG" ]
+  grep "clean: file.dat" "$LFSTEST_EXT_LOG"
+)
+end_test
+
+begin_test "pointer: with --no-extensions flag"
+(
+  set -e
+
+  reponame="pointer-no-extensions"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  contents="abc"
+  contents_oid="$(calc_oid "$contents")"
+  
+  printf "%s" "$contents" >file.dat
+  
+  # Test git lfs pointer --file --no-extensions
+  rm -f "$LFSTEST_EXT_LOG"
+  pointer_output="$(git lfs pointer --file=file.dat --no-extensions 2>&1)"
+  
+  # Check that the warning message is NOT present
+  ! echo "$pointer_output" | grep "warning: Using LFS extensions"
+  
+  # Check the pointer does NOT contain extension information
+  ! echo "$pointer_output" | grep "ext-0-caseinverter"
+  
+  # Check the pointer contains standard information only
+  echo "$pointer_output" | grep "oid sha256:$contents_oid"
+  echo "$pointer_output" | grep "size 3"
+  
+  # Verify extension was NOT called (no log file or empty)
+  if [ -f "$LFSTEST_EXT_LOG" ]; then
+    ! grep "clean: file.dat" "$LFSTEST_EXT_LOG"
+  fi
+)
+end_test
+
+begin_test "pointer: extension vs no-extension comparison"
+(
+  set -e
+
+  reponame="pointer-extension-comparison"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  contents="abc"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents="$(invert_case "$contents")"
+  inverted_contents_oid="$(calc_oid "$inverted_contents")"
+  
+  printf "%s" "$contents" >file.dat
+  
+  # Generate pointer with extension
+  rm -f "$LFSTEST_EXT_LOG"
+  git lfs pointer --file=file.dat 2>/dev/null | grep -v "Git LFS pointer" | grep -v "warning:" > pointer-with-ext.txt
+  
+  # Generate pointer without extension
+  rm -f "$LFSTEST_EXT_LOG"
+  git lfs pointer --file=file.dat --no-extensions 2>/dev/null | grep -v "Git LFS pointer" > pointer-no-ext.txt
+  
+  # Verify the pointers are different
+  ! diff pointer-with-ext.txt pointer-no-ext.txt
+  
+  # Verify extension pointer has the ext line
+  grep "ext-0-caseinverter sha256:$contents_oid" pointer-with-ext.txt
+  grep "oid sha256:$inverted_contents_oid" pointer-with-ext.txt
+  
+  # Verify no-extension pointer has standard oid
+  ! grep "ext-0-caseinverter" pointer-no-ext.txt
+  grep "oid sha256:$contents_oid" pointer-no-ext.txt
+)
+end_test
+
+begin_test "pointer: --file --stdin with extension"
+(
+  set -e
+
+  reponame="pointer-extension-file-stdin"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  contents="abc"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents="$(invert_case "$contents")"
+  inverted_contents_oid="$(calc_oid "$inverted_contents")"
+  
+  printf "%s" "$contents" >file.dat
+  
+  # Generate the pointer with extension (this is our expected format)
+  expected_pointer="$(git lfs pointer --file=file.dat 2>/dev/null | grep -v 'Git LFS pointer' | grep -v 'warning:')"
+  
+  # Test --file --stdin comparison (should match)
+  rm -f "$LFSTEST_EXT_LOG"
+  output=$(printf "%s\n" "$expected_pointer" | git lfs pointer --file=file.dat --stdin 2>&1)
+  
+  echo "$output" | grep "Git LFS pointer for file.dat"
+  echo "$output" | grep "ext-0-caseinverter sha256:$contents_oid"
+  echo "$output" | grep "Pointer from STDIN"
+  
+  # Verify they match (exit code should be 0, no "Pointers do not match")
+  ! echo "$output" | grep "Pointers do not match"
+)
+end_test
+
+begin_test "pointer: --file --stdin with extension mismatch"
+(
+  set -e
+
+  reponame="pointer-extension-file-stdin-mismatch"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  contents="abc"
+  contents_oid="$(calc_oid "$contents")"
+  
+  printf "%s" "$contents" >file.dat
+  
+  # Create a pointer WITHOUT extension info
+  standard_pointer="version https://git-lfs.github.com/spec/v1
+oid sha256:$contents_oid
+size 3"
+  
+  # Test --file --stdin comparison (should NOT match because file.dat generates pointer with extension)
+  set +e
+  output=$(printf "%s" "$standard_pointer" | git lfs pointer --file=file.dat --stdin 2>&1)
+  status=$?
+  set -e
+  
+  [ "1" = "$status" ]
+  
+  echo "$output" | grep "Git LFS pointer for file.dat"
+  echo "$output" | grep "ext-0-caseinverter"
+  echo "$output" | grep "Pointer from STDIN"
+  echo "$output" | grep "Pointers do not match"
+  echo "$output" | grep "note: Mismatch may be due to differing LFS extensions"
+)
+end_test
+
+begin_test "pointer: extension with multiple files"
+(
+  set -e
+
+  reponame="pointer-extension-multiple-files"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  
+  setup_case_inverter_extension
+
+  printf "abc" >file1.dat
+  printf "xyz" >file2.dat
+  printf "Test123" >file3.dat
+  
+  rm -f "$LFSTEST_EXT_LOG"
+  
+  # Generate pointers for all files
+  git lfs pointer --file=file1.dat 2>&1 | grep "ext-0-caseinverter"
+  git lfs pointer --file=file2.dat 2>&1 | grep "ext-0-caseinverter"
+  git lfs pointer --file=file3.dat 2>&1 | grep "ext-0-caseinverter"
+  
+  # Verify all files were processed by extension
+  grep "clean: file1.dat" "$LFSTEST_EXT_LOG"
+  grep "clean: file2.dat" "$LFSTEST_EXT_LOG"
+  grep "clean: file3.dat" "$LFSTEST_EXT_LOG"
+  
+  # Verify we have exactly 3 clean operations
+  [ $(grep -c "clean:" "$LFSTEST_EXT_LOG") -eq 3 ]
 )
 end_test
