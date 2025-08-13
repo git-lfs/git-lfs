@@ -1117,6 +1117,137 @@ begin_test "pull with empty file doesn't modify mtime"
 )
 end_test
 
+begin_test "pull: bare repository"
+(
+  set -e
+
+  reponame="pull-bare"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  # The "git lfs pull" command should never check out files in a bare
+  # repository, either into a directory within the repository or one
+  # outside it.  To verify this, we add a Git LFS pointer file whose path
+  # inside the repository is one which, if it were instead treated as an
+  # absolute filesystem path, corresponds to a writable directory.
+  # The "git lfs pull" command should not check out files into either
+  # this external directory or the bare repository.
+  external_dir="$TRASHDIR/${reponame}-external"
+  internal_dir="$(printf "%s" "$external_dir" | sed 's/^\/*//')"
+  mkdir -p "$internal_dir"
+  printf "%s" "$contents" >"$internal_dir/a.dat"
+
+  git add .gitattributes a.dat "$internal_dir/a.dat"
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  git clone --bare "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  [ ! -e lfs ]
+  refute_local_object "$contents_oid"
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  By default a bare repository
+  # lacks an index, so we expect no Git LFS objects to be fetched when
+  # "git ls-files" is used because Git v2.42.0 or higher is available.
+  gitversion="$(git version | cut -d" " -f3)"
+  set +e
+  compare_version "$gitversion" '2.42.0'
+  result=$?
+  set -e
+  if [ "$result" -eq "$VERSION_LOWER" ]; then
+    grep "Downloading LFS objects" pull.log
+
+    assert_local_object "$contents_oid" 1
+  else
+    grep -q "Downloading LFS objects" pull.log && exit 1
+
+    refute_local_object "$contents_oid"
+  fi
+
+  [ ! -e "a.dat" ]
+  [ ! -e "$internal_dir/a.dat" ]
+  [ ! -e "$external_dir/a.dat" ]
+
+  rm -rf lfs/objects
+  refute_local_object "$contents_oid"
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  By default a bare repository
+  # lacks an index, so we expect no Git LFS objects to be fetched when
+  # "git ls-files" is used because Git v2.42.0 or higher is available.
+  #
+  # Therefore to verify that the "git lfs pull" command never checks out
+  # files in a bare repository, we first populate the index with Git LFS
+  # pointer files and then retry the command.
+  contents_git_oid="$(git ls-tree HEAD a.dat | awk '{ print $3 }')"
+  git update-index --add --cacheinfo 100644 "$contents_git_oid" a.dat
+  git update-index --add --cacheinfo 100644 "$contents_git_oid" "$internal_dir/a.dat"
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files, and does so by passing an
+  # "attr:filter=lfs" pathspec to the "git ls-files" command so it only
+  # lists files which match that filter attribute.
+  #
+  # In a bare repository, however, the "git ls-files" command will not read
+  # attributes from ".gitattributes" files in the index, so by default it
+  # will not list any Git LFS pointer files even if those files and the
+  # corresponding ".gitattributes" files have been added to the index and
+  # the pointer files would otherwise match the "attr:filter=lfs" pathspec.
+  #
+  # Therefore, instead of adding the ".gitattributes" file to the index, we
+  # copy it to "info/attributes" so that the pathspec filter will match our
+  # pointer file index entries and they will be listed by the "git ls-files"
+  # command.  This allows us to verify that with Git v2.42.0 or higher, the
+  # "git lfs pull" command will fetch the objects for these pointer files
+  # in the index when the command is run in a bare repository.
+  #
+  # Note that with older versions of Git, the "git lfs pull" command will
+  # use the "git ls-tree" command to list the files in the tree referenced
+  # by HEAD.  The Git LFS objects for any well-formed pointer files found in
+  # that list will then be fetched (unless local copies already exist),
+  # regardless of whether the pointer files actually match a "filter=lfs"
+  # attribute in any ".gitattributes" file in the index, the tree
+  # referenced by HEAD, or the current work tree.
+  if [ "$result" -ne "$VERSION_LOWER" ]; then
+    mkdir -p info
+    git show HEAD:.gitattributes >info/attributes
+  fi
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep "Downloading LFS objects" pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ ! -e "a.dat" ]
+  [ ! -e "$internal_dir/a.dat" ]
+  [ ! -e "$external_dir/a.dat" ]
+)
+end_test
+
 begin_test "pull with partial clone and sparse checkout and index"
 (
   set -e

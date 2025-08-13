@@ -961,6 +961,23 @@ begin_test "checkout: GIT_WORK_TREE"
 )
 end_test
 
+begin_test "checkout: bare repository"
+(
+  set -e
+
+  reponame="checkout-bare"
+  git init --bare "$reponame"
+  cd "$reponame"
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  [ "This operation must be run in a work tree." = "$(cat checkout.log)" ]
+)
+end_test
+
 begin_test "checkout: sparse with partial clone and sparse index"
 (
   set -e
