@@ -1386,12 +1386,7 @@ begin_test "pull: pointer extension"
   popd
 
   [ "$contents" = "$(cat "dir1/abc.dat")" ]
-
-  # Note that at present we expect "git lfs pull" to run the extension
-  # program in the current working directory rather than the repository root,
-  # as would occur if it was run within a smudge filter operation started
-  # by Git.
-  grep "smudge: ../dir1/abc.dat" "$LFSTEST_EXT_LOG"
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
 
   assert_local_object "$inverted_contents_oid" 3
 )

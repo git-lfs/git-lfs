@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
@@ -38,11 +39,13 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Error parsing args: %v", err))
 	}
 
+	rootedPaths := rootedPaths(args)
+
 	if checkoutTo != "" && stage != git.IndexStageDefault {
 		if len(args) != 1 {
 			Exit(tr.Tr.Get("--to requires exactly one Git LFS object file path"))
 		}
-		checkoutConflict(rootedPaths(args)[0], stage)
+		checkoutConflict(rootedPaths[0], stage)
 		return
 	} else if checkoutTo != "" || stage != git.IndexStageDefault {
 		Exit(tr.Tr.Get("--to and exactly one of --theirs, --ours, and --base must be used together"))
@@ -53,6 +56,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
 
+	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")
 	if singleCheckout.Skip() {
 		fmt.Println(tr.Tr.Get("Cannot checkout LFS objects, Git LFS is not installed."))
@@ -80,7 +84,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		pointers = append(pointers, p)
 	})
 
-	chgitscanner.Filter = filepathfilter.New(rootedPaths(args), nil, filepathfilter.GitIgnore)
+	chgitscanner.Filter = filepathfilter.New(rootedPaths, nil, filepathfilter.GitIgnore)
 
 	if err := chgitscanner.ScanLFSFiles(ref.Sha, nil); err != nil {
 		ExitWithError(err)
@@ -101,6 +105,12 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 }
 
 func checkoutConflict(file string, stage git.IndexStage) {
+	checkoutTo, err := filepath.Abs(checkoutTo)
+	if err != nil {
+		Exit(tr.Tr.Get("Could not convert %q to absolute path: %v", checkoutTo, err))
+	}
+
+	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")
 	if singleCheckout.Skip() {
 		fmt.Println(tr.Tr.Get("Cannot checkout LFS objects, Git LFS is not installed."))
