@@ -103,8 +103,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	if fetchUseStdin {
 		if len(args) > 1 {
-			Print(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
-			os.Exit(1)
+			Exit(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
 		}
 
 		scanner := bufio.NewScanner(os.Stdin) // line-delimited

@@ -36,8 +36,7 @@ var (
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print(tr.Tr.Get("Specify a remote and a remote branch name (`git lfs push origin main`)"))
-		os.Exit(1)
+		Exit(tr.Tr.Get("Specify a remote and a remote branch name (`git lfs push origin main`)"))
 	}
 
 	requireGitVersion()
@@ -52,8 +51,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	var argList []string
 	if useStdin {
 		if len(args) > 1 {
-			Print(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
-			os.Exit(1)
+			Exit(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
 		}
 
 		scanner := bufio.NewScanner(os.Stdin) // line-delimited
