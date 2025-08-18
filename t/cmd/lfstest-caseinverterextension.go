@@ -16,6 +16,8 @@ import (
 	"unicode"
 )
 
+var gitDir = ".git"
+
 func main() {
 	log := openLog()
 
@@ -23,12 +25,21 @@ func main() {
 		logErrorAndExit(log, "invalid arguments: %s", strings.Join(os.Args, " "))
 	}
 
+	stat, err := os.Stat(".git")
+	if os.IsNotExist(err) {
+		logErrorAndExit(log, "%q directory not found", gitDir)
+	} else if err != nil {
+		logErrorAndExit(log, "unable to check %q directory: %s", gitDir, err)
+	} else if !stat.Mode().IsDir() {
+		logErrorAndExit(log, "%q is not a directory", gitDir)
+	}
+
 	if log != nil {
 		fmt.Fprintf(log, "%s: %s\n", os.Args[1], os.Args[3])
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	var err error
+	err = nil
 	for {
 		var r rune
 		r, _, err = reader.ReadRune()
