@@ -191,13 +191,8 @@ begin_test "checkout: skip directory file conflicts"
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1
   fi
-  if [ "$IS_WINDOWS" -eq 1 ]; then
-    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
-    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
-  else
-    grep 'Checkout error for "dir1/a\.dat": lstat' checkout.log
-    grep 'Checkout error for "dir2/dir3/dir4/a\.dat": lstat' checkout.log
-  fi
+  grep '"dir1/a\.dat": not a directory' checkout.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
 
   [ -f "dir1" ]
   [ -f "dir2/dir3" ]
@@ -209,13 +204,8 @@ begin_test "checkout: skip directory file conflicts"
       echo >&2 "fatal: expected checkout to succeed ..."
       exit 1
     fi
-    if [ "$IS_WINDOWS" -eq 1 ]; then
-      grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
-      grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
-    else
-      grep 'Checkout error for "dir1/a\.dat": lstat' checkout.log
-      grep 'Checkout error for "dir2/dir3/dir4/a\.dat": lstat' checkout.log
-    fi
+    grep '"dir1/a\.dat": not a directory' checkout.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
   popd
 
   [ -f "dir1" ]
@@ -224,8 +214,6 @@ begin_test "checkout: skip directory file conflicts"
 )
 end_test
 
-# Note that the conditions validated by this test are at present limited,
-# but will be expanded in the future.
 begin_test "checkout: skip directory symlink conflicts"
 (
   set -e
@@ -247,6 +235,64 @@ begin_test "checkout: skip directory symlink conflicts"
   git add .gitattributes dir1 dir2
   git commit -m "initial commit"
 
+  # test with symlinks to directories
+  rm -rf dir1 dir2/dir3 ../link*
+  mkdir ../link1 ../link2
+  ln -s ../link1 dir1
+  ln -s ../../link2 dir2/dir3
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' checkout.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
+  [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "../link1/a.dat" ]
+  [ ! -e "../link2/dir4" ]
+  assert_clean_index
+
+  rm -rf dir1 dir2/dir3
+  mkdir link1 link2
+  ln -s link1 dir1
+  ln -s ../link2 dir2/dir3
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' checkout.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
+  [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "link1/a.dat" ]
+  [ ! -e "link2/dir4" ]
+  assert_clean_index
+
+  pushd dir2
+    git lfs checkout 2>&1 | tee checkout.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to succeed ..."
+      exit 1
+    fi
+    grep '"dir1/a\.dat": not a directory' checkout.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
+    [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+  popd
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "link1/a.dat" ]
+  [ ! -e "link2/dir4" ]
+  assert_clean_index
+
   # test with symlink to file and dangling symlink
   rm -rf dir1 dir2/dir3 ../link*
   touch ../link1
@@ -258,12 +304,8 @@ begin_test "checkout: skip directory symlink conflicts"
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1
   fi
-  if [ "$IS_WINDOWS" -eq 1 ]; then
-    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
-  else
-    grep 'Checkout error for "dir1/a\.dat": lstat' checkout.log
-  fi
-  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+  grep '"dir1/a\.dat": not a directory' checkout.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
 
   [ -L "dir1" ]
   [ -L "dir2/dir3" ]
@@ -271,7 +313,7 @@ begin_test "checkout: skip directory symlink conflicts"
   [ ! -e "../link2" ]
   assert_clean_index
 
-  rm -rf dir1 dir2/dir3
+  rm -rf dir1 dir2/dir3 link*
   touch link1
   ln -s link1 dir1
   ln -s ../link2 dir2/dir3
@@ -281,12 +323,8 @@ begin_test "checkout: skip directory symlink conflicts"
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1
   fi
-  if [ "$IS_WINDOWS" -eq 1 ]; then
-    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
-  else
-    grep 'Checkout error for "dir1/a\.dat": lstat' checkout.log
-  fi
-  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+  grep '"dir1/a\.dat": not a directory' checkout.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
 
   [ -L "dir1" ]
   [ -L "dir2/dir3" ]
@@ -300,12 +338,8 @@ begin_test "checkout: skip directory symlink conflicts"
       echo >&2 "fatal: expected checkout to succeed ..."
       exit 1
     fi
-    if [ "$IS_WINDOWS" -eq 1 ]; then
-      grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
-    else
-      grep 'Checkout error for "dir1/a\.dat": lstat' checkout.log
-    fi
-    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+    grep '"dir1/a\.dat": not a directory' checkout.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
   popd
 
   [ -L "dir1" ]
@@ -480,20 +514,26 @@ begin_test "checkout: skip case-based symlink conflicts"
   mkdir dir1
   ln -s ../link1 A.dat
   ln -s ../../link2 dir1/a.dat
+  ln -s ../link3 DIR3
+  ln -s ../../link4 dir1/dir2
 
-  git add A.dat dir1
+  git add A.dat dir1 DIR3
   git commit -m "initial commit"
 
-  rm A.dat dir1/a.dat
+  rm A.dat dir1/* DIR3
 
   echo "*.dat filter=lfs diff=lfs merge=lfs -text" >.gitattributes
 
   contents="a"
   contents_oid="$(calc_oid "$contents")"
+  mkdir dir3 dir1/DIR2
   printf "%s" "$contents" >a.dat
   printf "%s" "$contents" >dir1/A.dat
+  printf "%s" "$contents" >dir3/a.dat
+  printf "%s" "$contents" >dir1/DIR2/a.dat
 
-  git -c core.ignoreCase=false add .gitattributes a.dat dir1/A.dat
+  git -c core.ignoreCase=false add .gitattributes a.dat dir1/A.dat \
+    dir3/a.dat dir1/DIR2/a.dat
   git commit -m "case-conflicting commit"
 
   git push origin main
@@ -512,25 +552,32 @@ begin_test "checkout: skip case-based symlink conflicts"
 
   assert_local_object "$contents_oid" 1
 
-  rm -rf *.dat dir1 ../link*
+  rm -rf *.dat dir1 *3 ../link*
+  mkdir ../link3 ../link4
 
   git lfs checkout 2>&1 | tee checkout.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1
   fi
-  grep -q 'Checking out LFS objects: 100% (2/2), 2 B' checkout.log
+  grep -q 'Checking out LFS objects: 100% (4/4), 4 B' checkout.log
 
   [ -f "a.dat" ]
   [ "$contents" = "$(cat "a.dat")" ]
   [ -f "dir1/A.dat" ]
   [ "$contents" = "$(cat "dir1/A.dat")" ]
+  [ -f "dir3/a.dat" ]
+  [ "$contents" = "$(cat "dir3/a.dat")" ]
+  [ -f "dir1/DIR2/a.dat" ]
+  [ "$contents" = "$(cat "dir1/DIR2/a.dat")" ]
   [ ! -e "../link1" ]
   [ ! -e "../link2" ]
+  [ ! -e "../link3/a.dat" ]
+  [ ! -e "../link4/a.dat" ]
   assert_clean_index
 
-  rm -rf a.dat dir1/A.dat
-  git checkout -- A.dat dir1/a.dat
+  rm -rf a.dat dir1/A.dat dir3 dir1/DIR2
+  git checkout -- A.dat dir1/a.dat DIR3 dir1/dir2
 
   git lfs checkout 2>&1 | tee checkout.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
@@ -539,11 +586,14 @@ begin_test "checkout: skip case-based symlink conflicts"
   fi
   if [ "$collision" -eq "0" ]; then
     # case-sensitive filesystem
-    grep -q 'Checking out LFS objects: 100% (2/2), 2 B' checkout.log
+    grep -q 'Checking out LFS objects: 100% (4/4), 4 B' checkout.log
   else
     # case-insensitive filesystem
     grep '"a\.dat": not a regular file' checkout.log
     grep '"dir1/A\.dat": not a regular file' checkout.log
+    grep '"dir3/a\.dat": not a directory' checkout.log
+    grep '"dir1/DIR2/a\.dat": not a directory' checkout.log
+    [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
   fi
 
   if [ "$collision" -eq "0" ]; then
@@ -552,13 +602,21 @@ begin_test "checkout: skip case-based symlink conflicts"
     [ "$contents" = "$(cat "a.dat")" ]
     [ -f "dir1/A.dat" ]
     [ "$contents" = "$(cat "dir1/A.dat")" ]
+    [ -f "dir3/a.dat" ]
+    [ "$contents" = "$(cat "dir3/a.dat")" ]
+    [ -f "dir1/DIR2/a.dat" ]
+    [ "$contents" = "$(cat "dir1/DIR2/a.dat")" ]
   else
     # case-insensitive filesystem
     [ -L "a.dat" ]
     [ -L "dir1/A.dat" ]
+    [ -L "dir3" ]
+    [ -L "dir1/DIR2" ]
   fi
   [ ! -e "../link1" ]
   [ ! -e "../link2" ]
+  [ ! -e "../link3/a.dat" ]
+  [ ! -e "../link4/a.dat" ]
   assert_clean_index
 )
 end_test

@@ -12,6 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
@@ -75,8 +76,20 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		return
 	}
 
-	// Check the content - either missing or still this pointer (not exist is ok)
-	filepointer, err := lfs.DecodePointerFromFile(p.Name)
+	dirWalker := tools.NewDirWalkerForFile("", p.Name, cfg)
+	err := dirWalker.Walk()
+
+	var filepointer *lfs.Pointer
+	if err != nil {
+		if !os.IsNotExist(err) {
+			LoggedError(err, tr.Tr.Get("Checkout error trying to check path for %q: %s", p.Name, err))
+			return
+		}
+	} else {
+		// Check the content - either missing or still this pointer (not exist is ok)
+		filepointer, err = lfs.DecodePointerFromFile(p.Name)
+	}
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			output, err := git.DiffIndexWithPaths("HEAD", true, []string{p.Name})
@@ -104,6 +117,13 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		// User has probably manually reset a file to another commit
 		// while leaving it a pointer; don't mess with this
 		return
+	}
+
+	if err != nil && os.IsNotExist(err) {
+		if err := dirWalker.WalkAndCreate(); err != nil {
+			LoggedError(err, tr.Tr.Get("Checkout error trying to create path for %q: %s", p.Name, err))
+			return
+		}
 	}
 
 	if err := c.RunToPath(p, p.Name); err != nil {
