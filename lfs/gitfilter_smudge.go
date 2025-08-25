@@ -16,8 +16,6 @@ import (
 )
 
 func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest tq.Manifest, cb tools.CopyCallback) error {
-	tools.MkdirAll(filepath.Dir(filename), f.cfg)
-
 	// When no pointer file exists on disk, we should use the permissions
 	// defined for the file in Git, since the executable mode may be set.
 	// However, to conform with our legacy behaviour, we do not do this

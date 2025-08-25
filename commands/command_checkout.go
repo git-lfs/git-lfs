@@ -10,6 +10,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
+	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
@@ -108,6 +109,11 @@ func checkoutConflict(file string, stage git.IndexStage) {
 	checkoutTo, err := filepath.Abs(checkoutTo)
 	if err != nil {
 		Exit(tr.Tr.Get("Could not convert %q to absolute path: %v", checkoutTo, err))
+	}
+
+	err = tools.MkdirAll(filepath.Dir(checkoutTo), cfg)
+	if err != nil {
+		Exit(tr.Tr.Get("Could not create path %q: %v", checkoutTo, err))
 	}
 
 	// will chdir to root of working tree, if one exists
