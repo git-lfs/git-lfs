@@ -39,7 +39,7 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 
 		// This case represents a rejected request that
 		// should have been authenticated but wasn't.
-		access := c.Endpoints.AccessFor(access.URL())
+		access = c.Endpoints.AccessFor(access.URL())
 		tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
 	}
 
