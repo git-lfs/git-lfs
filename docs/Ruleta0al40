@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ruleta de Adiciones</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f7f7f7;
+    }
+    canvas {
+      margin-top: 20px;
+    }
+    #resultado {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    button {
+      font-size: 18px;
+      margin: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: none;
+      background: #4CAF50;
+      color: white;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Ruleta de Adiciones</h1>
+  <canvas id="ruleta" width="500" height="500"></canvas>
+  <div>
+    <button onclick="girar()">Girar</button>
+    <button onclick="detener()">Detener</button>
+  </div>
+  <div id="resultado"></div>
+
+  <script>
+    let adiciones = [
+      "12 + 14", "23 + 14", "11 + 12", "22 + 14", "13 + 12",
+      "24 + 13", "21 + 12", "14 + 15", "22 + 13", "12 + 11",
+      "23 + 12", "21 + 13", "24 + 11", "13 + 14", "11 + 15",
+      "12 + 13", "22 + 12", "23 + 11", "21 + 14", "24 + 12",
+      "12 + 5", "23 + 6", "14 + 4", "21 + 7", "24 + 3",
+      "13 + 6", "22 + 5", "11 + 8", "12 + 7", "23 + 4",
+      "21 + 6", "24 + 5", "13 + 7"
+    ];
+
+    let canvas = document.getElementById("ruleta");
+    let ctx = canvas.getContext("2d");
+    let startAngle = 0;
+    let arc = Math.PI * 2 / adiciones.length;
+    let spinTimeout = null;
+    let spinAngleStart = 10;
+    let spinTime = 0;
+    let spinTimeTotal = 0;
+    let spinning = false;
+    let currentSelection = null;
+    let eliminadas = [];
+
+    function dibujarRuleta() {
+      let outsideRadius = 200;
+      let textRadius = 160;
+      let insideRadius = 50;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < adiciones.length; i++) {
+        let angle = startAngle + i * arc;
+        ctx.fillStyle = i % 2 === 0 ? "#FFDDC1" : "#FFABAB";
+
+        ctx.beginPath();
+        ctx.arc(250, 250, outsideRadius, angle, angle + arc, false);
+        ctx.arc(250, 250, insideRadius, angle + arc, angle, true);
+        ctx.fill();
+
+        ctx.save();
+        ctx.fillStyle = "black";
+        ctx.translate(250 + Math.cos(angle + arc / 2) * textRadius,
+                      250 + Math.sin(angle + arc / 2) * textRadius);
+        ctx.rotate(angle + arc / 2);
+        ctx.fillText(adiciones[i], -ctx.measureText(adiciones[i]).width / 2, 0);
+        ctx.restore();
+
+        // Tachar si ya fue eliminada
+        if (eliminadas.includes(adiciones[i])) {
+          ctx.save();
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(250 + Math.cos(angle) * outsideRadius, 250 + Math.sin(angle) * outsideRadius);
+          ctx.lineTo(250 + Math.cos(angle + arc) * outsideRadius, 250 + Math.sin(angle + arc) * outsideRadius);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Dibujar flecha
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(250 - 10, 250 - (outsideRadius + 20));
+      ctx.lineTo(250 + 10, 250 - (outsideRadius + 20));
+      ctx.lineTo(250, 250 - (outsideRadius - 5));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function girar() {
+      if (spinning) return;
+      spinAngleStart = Math.random() * 10 + 10;
+      spinTime = 0;
+      spinTimeTotal = Math.random() * 3000 + 4000;
+      spinning = true;
+      rotar();
+    }
+
+    function rotar() {
+      spinTime += 30;
+      if (spinTime >= spinTimeTotal) {
+        detener();
+        return;
+      }
+      let spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+      startAngle += (spinAngle * Math.PI / 180);
+      dibujarRuleta();
+      spinTimeout = setTimeout(rotar, 30);
+    }
+
+    function detener() {
+      clearTimeout(spinTimeout);
+      spinning = false;
+      let degrees = startAngle * 180 / Math.PI + 90;
+      let arcd = arc * 180 / Math.PI;
+      let index = Math.floor((360 - (degrees % 360)) / arcd);
+      ctx.save();
+      ctx.font = "bold 24px Arial";
+      ctx.fillStyle = "black";
+      let seleccion = adiciones[index];
+      currentSelection = seleccion;
+      eliminadas.push(seleccion);
+      document.getElementById("resultado").innerText = "Resultado: " + seleccion;
+      ctx.restore();
+      dibujarRuleta();
+    }
+
+    function easeOut(t, b, c, d) {
+      let ts = (t/=d)*t;
+      let tc = ts*t;
+      return b+c*(tc + -3*ts + 3*t);
+    }
+
+    dibujarRuleta();
+  </script>
+</body>
+</html>
