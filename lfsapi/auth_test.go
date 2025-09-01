@@ -236,6 +236,50 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	assert.EqualValues(t, 1, called)
 }
 
+func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Reject", body.Test)
+
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
+	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	require.Error(t, err)
+	assert.EqualError(t, err, "too many authentication attempts")
+	require.Nil(t, res)
+
+	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
+	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.EqualValues(t, defaultMaxAuthAttempts, called)
+}
+
 func TestDoAPIRequestWithAuth(t *testing.T) {
 	var called uint32
 
