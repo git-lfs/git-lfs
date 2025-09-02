@@ -248,6 +248,7 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "Reject", body.Test)
 
+		w.Header().Set("Lfs-Authenticate", "Basic")
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer srv.Close()
