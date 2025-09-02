@@ -281,6 +281,39 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 	assert.EqualValues(t, defaultMaxAuthAttempts, called)
 }
 
+func TestDoWithAuthNoRetryOn401WhenAuthHeaderPresent(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	req.Header.Set("Authorization", basicAuth("user", "pass"))
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	require.Error(t, err)
+	assert.True(t, errors.IsAuthError(err))
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+}
+
 func TestDoAPIRequestWithAuth(t *testing.T) {
 	var called uint32
 
