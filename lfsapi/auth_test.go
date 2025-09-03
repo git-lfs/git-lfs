@@ -236,6 +236,135 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	assert.EqualValues(t, 1, called)
 }
 
+func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Reject", body.Test)
+
+		w.Header().Set("Lfs-Authenticate", "Basic")
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
+	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	require.Error(t, err)
+	assert.EqualError(t, err, "too many authentication attempts")
+	require.Nil(t, res)
+
+	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
+	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.EqualValues(t, defaultMaxAuthAttempts, called)
+}
+
+func TestDoWithAuthNoRetryOn401WhenAuthHeaderPresent(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	req.Header.Set("Authorization", basicAuth("user", "pass"))
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	require.Error(t, err)
+	assert.True(t, errors.IsAuthError(err))
+	assert.NotNil(t, res)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+}
+
+func TestDoWithAuthMultistageRetryLimitExceeded(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.Header().Set("Www-Authenticate", "Multistage type=foo")
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newNonAdvancingMultistageHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL + "/repo/lfs",
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
+	require.Nil(t, err)
+
+	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", c.Endpoints.AccessFor(srv.URL+"/repo/lfs"), req)
+	require.Error(t, err)
+	assert.EqualError(t, err, "too many authentication attempts")
+	assert.Nil(t, res)
+	assert.EqualValues(t, defaultMaxAuthAttempts, called)
+}
+
+type nonAdvancingMultistageHelper struct{}
+
+func newNonAdvancingMultistageHelper() *nonAdvancingMultistageHelper {
+	return &nonAdvancingMultistageHelper{}
+}
+
+func (nonAdvancingMultistageHelper) Fill(input creds.Creds) (creds.Creds, error) {
+	out := make(creds.Creds)
+	for k, v := range input {
+		out[k] = v
+	}
+	out["authtype"] = []string{"Multistage"}
+	out["credential"] = []string{"cred1"}
+	out["state[]"] = []string{"lfstest:state1"}
+	return out, nil
+}
+func (nonAdvancingMultistageHelper) Approve(creds.Creds) error { return nil }
+func (nonAdvancingMultistageHelper) Reject(creds.Creds) error  { return nil }
+
 func TestDoAPIRequestWithAuth(t *testing.T) {
 	var called uint32
 
