@@ -469,10 +469,39 @@ $ git lfs migrate import --no-rewrite test.zip some_specific_file.mp3 another_sp
 Migrating to Git LFS in a single new commit, with a specified commit message:
 
 ....
-$ git lfs migrate import --no-rewrite \
-  -m "Import test.zip, .mp3, .psd files in root of repo" \
-  test.zip some_specific_file.mp3 another_specific_file.psd
+$ git lfs track "*.zip" "*.mp3" "*.psd"
+$ git add .gitattributes
+$ git commit -m "add Git LFS attributes"
+$ git lfs migrate import --no-rewrite --yes \
+  -m "Import test.zip, audios/*.mp3, and images/*.psd files" \
+  test.zip audios/*.mp3 images/*.psd
 ....
+
+Note that the `*.mp3` and `*.psd` filename patterns are not quoted and
+so will be expanded by the shell, not by the `git lfs migrate import`
+command. Using quotation marks around such patterns with the
+`--no-rewrite` option is not supported, as the command expects a list
+of files (possibly as expanded by the shell) and will not search for
+all files matching a quoted filename pattern.
+Additional commands may be used to find and list all files matching a set
+of patterns, of course. In a POSIX-compliant environment such as Linux,
+macOS, or Git Bash on Windows, the example above could be combined with
+the `find(1)` and `sed(1)` commands as follows, so long as the resulting
+list of files does not cause the length of the expanded command line to
+exceed the maximum permitted by the shell:
+
+....
+$ git lfs migrate import --no-rewrite --yes \
+  $(find . -name "*.zip" -o -name "*.mp3" -o -name "*.psd" | sed "s/^\.\///")
+....
+
+Note also that the `git lfs track` command will by default change the
+modification timestamps on any existing files which match the given
+filename patterns so the files will appear "dirty" to Git and thereby
+prompt the user to convert them to Git LFS files. The subsequent
+`git lfs migrate import` command will then caution that the working tree
+contains modifications and ask the user for confirmation to proceed
+unless the `--yes` option is specified, as in the examples above.
 
 As an alternative to using `git lfs migrate import` with the `--no-rewrite`
 option to migrate files to Git LFS without modifying the existing history
