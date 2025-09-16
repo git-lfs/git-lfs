@@ -461,8 +461,16 @@ your repository.
 Migrating to Git LFS in a single new commit, without specifying a commit message:
 
 ....
-$ git lfs migrate import --no-rewrite test.zip some_specific_file.mp3 another_specific_file.psd
+$ git lfs track "*.zip" "*.mp3" "*.psd"
+$ git add .gitattributes
+$ git commit -m "add Git LFS attributes"
+
+$ git lfs migrate import --no-rewrite --yes test.zip audios/*.mp3 images/*.psd
 ....
+
+Note that the `*.mp3` and `*.psd` filename patterns are not quoted and
+so will be expanded by the shell, not by the `git lfs migrate import`
+command.  See the remarks following the next example for further details.
 
 Migrating to Git LFS in a single new commit, with a specified commit message:
 
