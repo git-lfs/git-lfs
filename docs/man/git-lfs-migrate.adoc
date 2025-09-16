@@ -460,7 +460,7 @@ your repository. Note that in the examples below, files in
 subdirectories are not included because they are not explicitly
 specified.
 
-Using lfs migrate import without a specified commit message:
+Migrating to Git LFS in a single new commit, without specifying a commit message:
 
 ....
 $ git lfs migrate import --no-rewrite test.zip some_specific_file.mp3 another_specific_file.psd
