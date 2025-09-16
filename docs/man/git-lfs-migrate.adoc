@@ -456,9 +456,7 @@ option.
 === Migrate without rewriting local history
 
 You can also migrate files without modifying the existing history of
-your repository. Note that in the examples below, files in
-subdirectories are not included because they are not explicitly
-specified.
+your repository.
 
 Migrating to Git LFS in a single new commit, without specifying a commit message:
 
@@ -502,6 +500,8 @@ prompt the user to convert them to Git LFS files. The subsequent
 `git lfs migrate import` command will then caution that the working tree
 contains modifications and ask the user for confirmation to proceed
 unless the `--yes` option is specified, as in the examples above.
+
+Alternative to using --no-rewrite:
 
 As an alternative to using `git lfs migrate import` with the `--no-rewrite`
 option to migrate files to Git LFS without modifying the existing history
