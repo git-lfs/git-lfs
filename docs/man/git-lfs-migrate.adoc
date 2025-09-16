@@ -474,12 +474,18 @@ $ git lfs migrate import --no-rewrite \
   test.zip some_specific_file.mp3 another_specific_file.psd
 ....
 
-Alternatively, you can use `git add` with the `--normalize` flag to stage *all* changes which (now) match your .gitattributes
+As an alternative to using `git lfs migrate import` with the `--no-rewrite`
+option to migrate files to Git LFS without modifying the existing history
+of your repository, if you have Git v2.16.0 or higher installed, you can
+use the `--renormalize` option of the `git add` command to achieve
+the same result.  For example:
 
 ....
+$ git lfs track "*.zip" "*.mp3" "*.psd"
+$ git add .gitattributes
 $ git add --renormalize .
+$ git commit -m "Import all *.zip, *.mp3, and *.psd files to Git LFS"
 ....
-
 
 === Migrate from Git LFS
 
