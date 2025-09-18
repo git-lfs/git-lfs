@@ -490,6 +490,7 @@ command. Using quotation marks around such patterns with the
 `--no-rewrite` option is not supported, as the command expects a list
 of files (possibly as expanded by the shell) and will not search for
 all files matching a quoted filename pattern.
+
 Additional commands may be used to find and list all files matching a set
 of patterns, of course. In a POSIX-compliant environment such as Linux,
 macOS, or Git Bash on Windows, the example above could be combined with
