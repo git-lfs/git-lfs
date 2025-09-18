@@ -453,7 +453,7 @@ the `--all` option when force-pushing may be convenient if many local refs
 were updated, e.g., after importing to Git LFS with the `--everything`
 option.
 
-=== Migrate without rewriting local history
+=== Migrate without rewriting local history (using migrate import --no-rewrite)
 
 You can also migrate files without modifying the existing history of
 your repository.
@@ -511,7 +511,7 @@ prompt the user to convert them to Git LFS files. The subsequent
 contains modifications and ask the user for confirmation to proceed
 unless the `--yes` option is specified, as in the examples above.
 
-Alternative to using --no-rewrite:
+=== Migrate without rewriting local history (using add --renormalize)
 
 As an alternative to using `git lfs migrate import` with the `--no-rewrite`
 option to migrate files to Git LFS without modifying the existing history
