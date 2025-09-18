@@ -478,6 +478,7 @@ Migrating to Git LFS in a single new commit, with a specified commit message:
 $ git lfs track "*.zip" "*.mp3" "*.psd"
 $ git add .gitattributes
 $ git commit -m "add Git LFS attributes"
+
 $ git lfs migrate import --no-rewrite --yes \
   -m "Import test.zip, audios/*.mp3, and images/*.psd files" \
   test.zip audios/*.mp3 images/*.psd
