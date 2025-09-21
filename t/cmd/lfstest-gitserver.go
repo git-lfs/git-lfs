@@ -463,6 +463,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	testingTus := testingTusUploadInBatchReq(r)
 	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
 	testingCustomTransfer := testingCustomTransfer(r)
+	testingBulkTransfer := testingBulkTransfer(r)
+	debug(id, "testingBulkTransfer: %v", testingBulkTransfer)
 	var transferChoice string
 	var searchForTransfer string
 	hashAlgo := "sha256"
@@ -470,8 +472,13 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		searchForTransfer = "tus"
 	} else if testingCustomTransfer {
 		searchForTransfer = "testcustom"
+	} else if testingBulkTransfer {
+		searchForTransfer = "testbulk"
+		// Force bulk transfer for bulk transfer test repositories
+		transferChoice = "testbulk"
+		debug(id, "Forcing bulk transfer, transferChoice: %s", transferChoice)
 	}
-	if len(searchForTransfer) > 0 {
+	if len(searchForTransfer) > 0 && transferChoice == "" {
 		for _, t := range objs.Transfers {
 			if t == searchForTransfer {
 				transferChoice = searchForTransfer
@@ -1524,6 +1531,10 @@ func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
 }
 func testingCustomTransfer(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.String(), "/test-custom-transfer")
+}
+
+func testingBulkTransfer(r *http.Request) bool {
+	return strings.HasPrefix(r.URL.String(), "/test-bulk-transfer")
 }
 
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
