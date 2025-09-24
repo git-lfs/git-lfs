@@ -959,6 +959,10 @@ has_native_symlinks() {
   fi
 }
 
+skip_if_symlinks_unsupported() {
+  has_native_symlinks || exit 0
+}
+
 add_symlink() {
   local src=$1
   local dest=$2
