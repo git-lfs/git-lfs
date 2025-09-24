@@ -224,6 +224,154 @@ begin_test "checkout: skip directory file conflicts"
 )
 end_test
 
+# Note that the conditions validated by this test are at present limited,
+# but will be expanded in the future.
+begin_test "checkout: skip directory symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="checkout-skip-dir-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  # test with symlink to file and dangling symlink
+  rm -rf dir1 dir2/dir3 ../link*
+  touch ../link1
+  ln -s ../link1 dir1
+  ln -s ../../link2 dir2/dir3
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' checkout.log
+  fi
+  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf dir1 dir2/dir3
+  touch link1
+  ln -s link1 dir1
+  ln -s ../link2 dir2/dir3
+
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' checkout.log
+  fi
+  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+
+  pushd dir2
+    git lfs checkout 2>&1 | tee checkout.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to succeed ..."
+      exit 1
+    fi
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      grep 'could not check out "dir1/a\.dat": could not create working directory file' checkout.log
+    else
+      grep 'Checkout error: stat \.\./dir1/a\.dat' checkout.log
+    fi
+    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' checkout.log
+  popd
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+)
+end_test
+
+# Note that the conditions validated by this test are at present limited,
+# but will be expanded in the future.
+begin_test "checkout: skip file symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="checkout-skip-file-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  # test with symlink to directory
+  rm -rf a.dat ../link1
+  mkdir ../link1
+  ln -s ../link1 a.dat
+
+  # Note that we do not try to check the "git lfs checkout" command's error
+  # output since it depends on both the OS and filesystem in use, as these
+  # affect how the linked directory's size is reported.
+  git lfs checkout
+
+  [ -L "a.dat" ]
+  [ -d "../link1" ]
+  assert_clean_index
+
+  rm a.dat
+  mkdir link1
+  ln -s link1 a.dat
+
+  git lfs checkout
+
+  [ -L "a.dat" ]
+  [ -d "link1" ]
+  assert_clean_index
+
+  mkdir -p dir1/dir2
+  pushd dir1/dir2
+    git lfs checkout
+  popd
+
+  [ -L "a.dat" ]
+  [ -d "link1" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "checkout: skip changed files"
 (
   set -e

@@ -304,6 +304,182 @@ begin_test "pull: skip directory file conflicts"
 )
 end_test
 
+# Note that the conditions validated by this test are at present limited,
+# but will be expanded in the future.
+begin_test "pull: skip directory symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="pull-skip-dir-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  # test with symlink to file and dangling symlink
+  rm -rf dir1 dir2/dir3 ../link*
+  touch ../link1
+  ln -s ../link1 dir1
+  ln -s ../../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' pull.log
+  fi
+  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 dir2/dir3
+  touch link1
+  ln -s link1 dir1
+  ln -s ../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
+  else
+    grep 'Checkout error: stat dir1/a\.dat' pull.log
+  fi
+  grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      grep 'could not check out "dir1/a\.dat": could not create working directory file' pull.log
+    else
+      grep 'Checkout error: stat \.\./dir1/a\.dat' pull.log
+    fi
+    grep 'could not check out "dir2/dir3/dir4/a\.dat": could not create working directory file' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+)
+end_test
+
+# Note that the conditions validated by this test are at present limited,
+# but will be expanded in the future.
+begin_test "pull: skip file symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="pull-skip-file-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  # test with symlink to directory
+  rm -rf a.dat ../link1
+  mkdir ../link1
+  ln -s ../link1 a.dat
+
+  # Note that we do not try to check the "git lfs pull" command's error
+  # output since it depends on both the OS and filesystem in use, as these
+  # affect how the linked directory's size is reported.
+  git lfs pull
+
+  [ -L "a.dat" ]
+  [ -d "../link1" ]
+  assert_clean_index
+
+  rm a.dat
+  mkdir link1
+  ln -s link1 a.dat
+
+  git lfs pull
+
+  [ -L "a.dat" ]
+  [ -d "link1" ]
+  assert_clean_index
+
+  mkdir -p dir1/dir2
+  pushd dir1/dir2
+    git lfs pull
+  popd
+
+  [ -L "a.dat" ]
+  [ -d "link1" ]
+  assert_clean_index
+)
+end_test
+
 begin_test "pull: skip changed files"
 (
   set -e
