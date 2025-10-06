@@ -855,10 +855,11 @@ begin_test "pull with partial clone and sparse checkout and index"
 (
   set -e
 
-  # Only test with Git version 2.42.0 as it introduced support for the
-  # "objecttype" format option to the "git ls-files" command, which our
-  # code requires.
-  ensure_git_version_isnt "$VERSION_LOWER" "2.42.0"
+  # Only test with Git version 2.25.0 as it introduced the
+  # "git sparse-checkout" command.  (Note that this test also requires
+  # that the "git rev-list" command support the "tree:0" filter, which
+  # was introduced with Git version 2.20.0.)
+  ensure_git_version_isnt "$VERSION_LOWER" "2.25.0"
 
   reponame="pull-sparse"
   setup_remote_repo "$reponame"
@@ -905,16 +906,37 @@ begin_test "pull with partial clone and sparse checkout and index"
   assert_local_object "$contents2_oid" 1
   refute_local_object "$contents3_oid"
 
-  # Git LFS objects associated with files outside of the sparse cone
-  # should not be pulled.
   git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected pull to succeed ..."
     exit 1
   fi
-  grep -q "Downloading LFS objects" pull.log && exit 1
 
-  refute_local_object "$contents3_oid"
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  Git v2.42.0 introduced support
+  # in the "git ls-files" command for the "objecttype" format option and
+  # so Git LFS can use this command to avoid pulling objects outside
+  # the sparse cone.  Otherwise, all Git LFS objects will be pulled.
+  gitversion="$(git version | cut -d" " -f3)"
+  set +e
+  compare_version "$gitversion" '2.42.0'
+  result=$?
+  set -e
+  if [ "$result" -eq "$VERSION_LOWER" ]; then
+    grep "Downloading LFS objects" pull.log
+
+    [ -f "out-dir/c.dat" ]
+    [ "$contents3" = "$(cat "out-dir/c.dat")" ]
+
+    assert_local_object "$contents3_oid" 1
+  else
+    grep -q "Downloading LFS objects" pull.log && exit 1
+
+    [ ! -e "out-dir" ]
+
+    refute_local_object "$contents3_oid"
+  fi
 )
 end_test
 
