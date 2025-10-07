@@ -1,5 +1,40 @@
 # Git LFS Changelog
 
+## 3.7.1 (16 October 2025)
+
+This release introduces security fixes for Linux, macOS, and Windows
+systems, which have been collectively assigned CVE-2025-26625.
+
+When populating a Git repository's working tree with the contents of
+Git LFS objects, certain Git LFS commands may write to files visible
+outside the current Git working tree if symbolic or hard links exist
+which collide with the paths of files tracked by Git LFS.
+
+Git LFS has resolved this problem by revising the `git lfs checkout` and
+`git lfs pull` commands so that they check for symbolic links in the same
+manner as performed by Git before writing to files in the working tree.
+These commands now also remove existing files in the working tree before
+writing new files in their place.
+
+As well, Git LFS has resolved a problem whereby the `git lfs checkout` and
+`git lfs pull` commands, when run in a bare repository, could write to
+files visible outside the repository.  While a specific and relatively
+unlikely set of conditions were required for this to occur, it is no
+longer possible under any circumstances.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* Apple Product Security for reporting this to us responsibly
+
+### Bugs
+
+* Detect symbolic links on checkout and pull (@chrisd8088)
+
+### Misc
+
+* Upgrade to Go 1.25 (@chrisd8088)
+
 ## 3.7.0 (26 June 2025)
 
 This release is a feature release which introduces several new options

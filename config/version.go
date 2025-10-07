@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	Version = "3.7.0"
+	Version = "3.7.1"
 )
 
 func init() {
