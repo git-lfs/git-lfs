@@ -114,18 +114,50 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) 
 // if there are relevant .gitattributes matching that path.
 func (t *Tree) Applied(to string) []*Attr {
 	var attrs []*Attr
-	for _, line := range t.Lines {
-		if l, ok := line.(PatternLine); ok {
-			if l.Pattern().Match(to) {
-				attrs = append(attrs, line.Attrs()...)
-			}
+	if !t.MP.didReadMacros {
+		if t.SystemAttributes != nil {
+			t.MP.ProcessLines(t.SystemAttributes.Lines, true)
+		}
+		if t.UserAttributes != nil {
+			t.MP.ProcessLines(t.UserAttributes.Lines, true)
+		}
+		t.MP.ProcessLines(t.Lines, true)
+
+		if t.RepoAttributes != nil {
+			t.MP.ProcessLines(t.RepoAttributes.Lines, true)
+		}
+	}
+
+	if t.SystemAttributes != nil {
+		attrs = append(attrs, t.SystemAttributes.applied(to)...)
+	}
+
+	if t.UserAttributes != nil {
+		attrs = append(attrs, t.UserAttributes.applied(to)...)
+	}
+
+	attrs = append(attrs, t.applied(to)...)
+
+	if t.RepoAttributes != nil {
+		attrs = append(attrs, t.RepoAttributes.applied(to)...)
+	}
+
+	return attrs
+}
+
+func (t *Tree) applied(to string) []*Attr {
+	var attrs []*Attr
+
+	for _, line := range t.MP.ProcessLines(t.Lines, false) {
+		if line.Pattern().Match(to) {
+			attrs = append(attrs, line.Attrs()...)
 		}
 	}
 
 	dirPath, remainingPath, found := strings.Cut(to, "/")
 	if found {
 		if child, ok := t.Children[dirPath]; ok {
-			attrs = append(attrs, child.Applied(remainingPath)...)
+			attrs = append(attrs, child.applied(remainingPath)...)
 		}
 	}
 
