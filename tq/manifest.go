@@ -226,6 +226,7 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		)
 		tusAllowed = git.Bool("lfs.tustransfers", false)
 		configureCustomAdapters(git, m)
+		configureBulkAdapters(git, m)
 	}
 
 	if m.maxRetries < 1 {
