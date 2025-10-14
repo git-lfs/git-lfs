@@ -252,3 +252,35 @@ func TestNewIgnoresChildrenAppropriately(t *testing.T) {
 
 	assert.NotContains(t, tree.Children, "child")
 }
+
+func TestNewDiscoversSimpleTreesMacro(t *testing.T) {
+	tmp := t.TempDir()
+
+	db, err := gitobj.FromFilesystem(tmp, "")
+	require.NoError(t, err)
+	defer db.Close()
+
+	blob, err := db.WriteBlob(gitobj.NewBlobFromBytes([]byte(`
+	    [attr]lfs filter=lfs diff=lfs merge=lfs -text
+		*.dat lfs
+	`)))
+	require.NoError(t, err)
+
+	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
+		{
+			Name:     ".gitattributes",
+			Oid:      blob,
+			Filemode: 0100644,
+		},
+	}})
+	require.NoError(t, err)
+
+	attrs := tree.Applied("foo.dat")
+
+	assert.Len(t, attrs, 5)
+	assert.Equal(t, &Attr{K: "filter", V: "lfs"}, attrs[0])
+	assert.Equal(t, &Attr{K: "diff", V: "lfs"}, attrs[1])
+	assert.Equal(t, &Attr{K: "merge", V: "lfs"}, attrs[2])
+	assert.Equal(t, &Attr{K: "text", V: "false"}, attrs[3])
+	assert.Equal(t, &Attr{K: "lfs", V: "true"}, attrs[4])
+}
