@@ -1,6 +1,7 @@
 package gitattr
 
 import (
+	"io"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -11,18 +12,31 @@ import (
 // Tree represents the .gitattributes file at one layer of the tree in a Git
 // repository.
 type Tree struct {
+	MP *MacroProcessor
+
+	SystemAttributes *Tree
+
+	UserAttributes *Tree
 	// Lines are the lines of the .gitattributes at this level of the tree.
 	Lines []Line
 	// Children are the named child directories in the repository.
 	Children map[string]*Tree
+
+	RepoAttributes *Tree
 }
 
 // New constructs a *Tree starting at the given tree "t" and reading objects
 // from the given ObjectDatabase. If a tree was not able to be read, an error
 // will be propagated up accordingly.
 func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
+	processor := NewMacroProcessor()
+	return newFromTree(db, t, processor)
+}
+
+func newFromTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) (*Tree, error) {
 	children := make(map[string]*Tree)
-	lines, _, err := linesInTree(db, t)
+	tree, err := linesInTree(db, t, mp)
+
 	if err != nil {
 		return nil, err
 	}
@@ -34,39 +48,48 @@ func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
 
 		// For every entry in the current tree, parse its sub-trees to
 		// see if they might contain a .gitattributes.
-		t, err := db.Tree(entry.Oid)
+		subT, err := db.Tree(entry.Oid)
 		if err != nil {
 			return nil, err
 		}
 
-		at, err := New(db, t)
+		subTree, err := newFromTree(db, subT, mp)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(at.Children) > 0 || len(at.Lines) > 0 {
+		if len(subTree.Children) > 0 || len(subTree.Lines) > 0 {
 			// Only include entries that have either (1) a
 			// .gitattributes in their tree, or (2) a .gitattributes
 			// in a sub-tree.
-			children[entry.Name] = at
+			children[entry.Name] = subTree
 		}
 	}
+	tree.Children = children
 
+	return tree, nil
+}
+
+func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
+	lines, _, err := ParseLines(rdr)
+	if err != nil {
+		return nil, err
+	}
 	return &Tree{
-		Lines:    lines,
-		Children: children,
+		MP:    mp,
+		Lines: lines,
 	}, nil
 }
 
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
 // in that .gitattributes, or an error. If no .gitattributes blob was found,
 // return nil.
-func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]Line, string, error) {
+func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) (*Tree, error) {
 	var at int = -1
 	for i, e := range t.Entries {
 		if e.Name == ".gitattributes" {
 			if e.IsLink() {
-				return nil, "", errors.New(tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
+				return nil, errors.New(tr.Tr.Get("expected '.gitattributes' to be a file, got a symbolic link"))
 			}
 			at = i
 			break
@@ -74,16 +97,16 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree) ([]Line, string, err
 	}
 
 	if at < 0 {
-		return nil, "", nil
+		return &Tree{MP: mp}, nil
 	}
 
 	blob, err := db.Blob(t.Entries[at].Oid)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer blob.Close()
 
-	return ParseLines(blob.Contents)
+	return NewFromReader(mp, blob.Contents)
 }
 
 // Applied returns a slice of attributes applied to the given path, relative to
@@ -99,11 +122,10 @@ func (t *Tree) Applied(to string) []*Attr {
 		}
 	}
 
-	splits := strings.SplitN(to, "/", 2)
-	if len(splits) == 2 {
-		car, cdr := splits[0], splits[1]
-		if child, ok := t.Children[car]; ok {
-			attrs = append(attrs, child.Applied(cdr)...)
+	dirPath, remainingPath, found := strings.Cut(to, "/")
+	if found {
+		if child, ok := t.Children[dirPath]; ok {
+			attrs = append(attrs, child.Applied(remainingPath)...)
 		}
 	}
 
