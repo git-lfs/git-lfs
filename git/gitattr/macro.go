@@ -11,9 +11,9 @@ func NewMacroProcessor() *MacroProcessor {
 
 	// This is built into Git.
 	macros["binary"] = []*Attr{
-		&Attr{K: "diff", V: "false"},
-		&Attr{K: "merge", V: "false"},
-		&Attr{K: "text", V: "false"},
+		{K: "diff", V: "false"},
+		{K: "merge", V: "false"},
+		{K: "text", V: "false"},
 	}
 
 	return &MacroProcessor{
