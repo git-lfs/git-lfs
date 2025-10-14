@@ -13,8 +13,9 @@ var (
 	dat = wildmatch.NewWildmatch("*.dat",
 		wildmatch.Basename,
 		wildmatch.SystemCase)
-
+	mp      = NewMacroProcessor()
 	example = &Tree{
+		MP: mp,
 		Lines: []Line{
 			&patternLine{
 				pattern: dat,
@@ -37,7 +38,8 @@ var (
 			},
 		},
 		Children: map[string]*Tree{
-			"subdir": &Tree{
+			"subdir": {
+				MP: mp,
 				Lines: []Line{
 					&patternLine{
 						pattern: dat,
