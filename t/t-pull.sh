@@ -22,30 +22,31 @@ begin_test "pull"
   contents3="dir"
   contents3_oid=$(calc_oid "$contents3")
 
-  mkdir dir
+  mkdir -p dir1 dir2/dir3/dir4
   echo "*.log" > .gitignore
   printf "%s" "$contents" > a.dat
   printf "%s" "$contents2" > á.dat
-  printf "%s" "$contents3" > dir/dir.dat
+  printf "%s" "$contents3" > dir1/dir.dat
+  printf "%s" "$contents3" > dir2/dir3/dir4/dir.dat
   git add .
   git commit -m "add files" 2>&1 | tee commit.log
   grep "main (root-commit)" commit.log
-  grep "5 files changed" commit.log
+  grep "6 files changed" commit.log
   grep "create mode 100644 a.dat" commit.log
   grep "create mode 100644 .gitattributes" commit.log
 
-  ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
-  [ "dir" = "$(cat "dir/dir.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
 
   assert_pointer "main" "a.dat" "$contents_oid" 1
   assert_pointer "main" "á.dat" "$contents2_oid" 1
-  assert_pointer "main" "dir/dir.dat" "$contents3_oid" 3
+  assert_pointer "main" "dir1/dir.dat" "$contents3_oid" 3
 
   refute_server_object "$reponame" "$contents_oid"
   refute_server_object "$reponame" "$contents2_oid"
-  refute_server_object "$reponame" "$contents33oid"
+  refute_server_object "$reponame" "$contents3_oid"
 
   echo "initial push"
   git push origin main 2>&1 | tee push.log
@@ -66,38 +67,56 @@ begin_test "pull"
 
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
 
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull"
-  rm -r a.dat á.dat dir # removing files makes the status dirty
+  rm -rf a.dat á.dat dir1 dir2 # removing files makes the status dirty
   rm -rf .git/lfs/objects
   git lfs pull
-  ls -al
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
+  assert_clean_status
   git lfs fsck
 
   echo "lfs pull with remote"
-  rm -r a.dat á.dat dir
+  rm -rf a.dat á.dat dir1 dir2
   rm -rf .git/lfs/objects
   git lfs pull origin
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_local_object "$contents_oid" 1
   assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
   git lfs fsck
 
   echo "lfs pull with local storage"
-  rm a.dat á.dat
+  rm -rf a.dat á.dat dir1 dir2
   git lfs pull
   [ "a" = "$(cat a.dat)" ]
   [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  assert_clean_status
+
+  echo "test pre-existing directories"
+  rm -rf dir1/dir.dat dir2/dir3/dir4
+  git lfs pull
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
   assert_clean_status
 
   echo "lfs pull with include/exclude filters in gitconfig"
@@ -132,10 +151,31 @@ begin_test "pull"
 
   echo "lfs pull clean status"
   git lfs pull
+  [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull with -I"
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  git lfs pull -I "a.*,dir1/dir.*,dir2/**"
+  [ "a" = "$(cat a.dat)" ]
+  [ ! -e "á.dat" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  refute_local_object "$contents2_oid"
+  assert_local_object "$contents3_oid" 3
+  assert_clean_worktree_with_exceptions '\\303\\241\.dat'
+
   git lfs pull -I "*.dat"
+  [ "A" = "$(cat "á.dat")" ]
+  assert_local_object "$contents2_oid" 1
   assert_clean_status
 
   echo "lfs pull with empty file"
@@ -146,13 +186,690 @@ begin_test "pull"
   [ -z "$(cat empty.dat)" ]
   assert_clean_status
 
+  echo "resetting to test status"
+  git reset --hard HEAD^
+  assert_clean_status
+
   echo "lfs pull in subdir"
-  cd dir
-  git lfs pull
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  pushd dir1
+    git lfs pull
+  popd
+  [ "a" = "$(cat a.dat)" ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  assert_local_object "$contents_oid" 1
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
   assert_clean_status
 
   echo "lfs pull in subdir with -I"
-  git lfs pull -I "*.dat"
+  rm -rf .git/lfs/objects
+  rm -rf a.dat "á.dat" "dir1/dir.dat" dir2
+  pushd dir1
+    git lfs pull -I "á.*,dir1/dir.dat,dir2/**"
+  popd
+  [ ! -e a.dat ]
+  [ "A" = "$(cat "á.dat")" ]
+  [ "dir" = "$(cat "dir1/dir.dat")" ]
+  [ "dir" = "$(cat "dir2/dir3/dir4/dir.dat")" ]
+  refute_local_object "$contents_oid"
+  assert_local_object "$contents2_oid" 1
+  assert_local_object "$contents3_oid" 3
+  assert_clean_worktree_with_exceptions "a\.dat"
+
+  pushd dir1
+    git lfs pull -I "*.dat"
+  popd
+  [ "a" = "$(cat a.dat)" ]
+  assert_local_object "$contents_oid" 1
+  assert_clean_status
+)
+end_test
+
+begin_test "pull: skip directory file conflicts"
+(
+  set -e
+
+  reponame="pull-skip-dir-file-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -rf dir1 dir2/dir3
+  touch dir1 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' pull.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"dir1/a\.dat": not a directory' pull.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "dir1" ]
+  [ -f "dir2/dir3" ]
+  assert_clean_index
+)
+end_test
+
+begin_test "pull: skip directory symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="pull-skip-dir-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1 dir2/dir3/dir4
+  printf "%s" "$contents" >dir1/a.dat
+  printf "%s" "$contents" >dir2/dir3/dir4/a.dat
+
+  git add .gitattributes dir1 dir2
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  # test with symlinks to directories
+  rm -rf dir1 dir2/dir3 ../link*
+  mkdir ../link1 ../link2
+  ln -s ../link1 dir1
+  ln -s ../../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' pull.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+  [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "../link1/a.dat" ]
+  [ ! -e "../link2/dir4" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 dir2/dir3
+  mkdir link1 link2
+  ln -s link1 dir1
+  ln -s ../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' pull.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+  [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "link1/a.dat" ]
+  [ ! -e "link2/dir4" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"dir1/a\.dat": not a directory' pull.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+    [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ ! -e "link1/a.dat" ]
+  [ ! -e "link2/dir4" ]
+  assert_clean_index
+
+  # test with symlink to file and dangling symlink
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 dir2/dir3 ../link*
+  touch ../link1
+  ln -s ../link1 dir1
+  ln -s ../../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' pull.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 dir2/dir3 link*
+  touch link1
+  ln -s link1 dir1
+  ln -s ../link2 dir2/dir3
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"dir1/a\.dat": not a directory' pull.log
+  grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"dir1/a\.dat": not a directory' pull.log
+    grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "dir1" ]
+  [ -L "dir2/dir3" ]
+  [ -f "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+)
+end_test
+
+begin_test "pull: skip file symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  reponame="pull-skip-file-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1/dir2/dir3
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/dir2/dir3/a.dat
+
+  git add .gitattributes a.dat dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  # test with symlinks to pointer files
+  rm -rf a.dat dir1/dir2/dir3/a.dat ../link*
+  contents_pointer="$(git cat-file -p ":a.dat")"
+  printf "%s" "$contents_pointer" >../link1
+  printf "%s" "$contents_pointer" >../link2
+  ln -s ../link1 a.dat
+  ln -s ../../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "../link1" ]
+  [ "$contents_pointer" = "$(cat ../link1)" ]
+  [ -f "../link2" ]
+  [ "$contents_pointer" = "$(cat ../link2)" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat link*
+  printf "%s" "$contents_pointer" >link1
+  printf "%s" "$contents_pointer" >link2
+  ln -s link1 a.dat
+  ln -s ../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "link1" ]
+  [ "$contents_pointer" = "$(cat link1)" ]
+  [ -f "link2" ]
+  [ "$contents_pointer" = "$(cat link2)" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir1/dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -f "link1" ]
+  [ "$contents_pointer" = "$(cat link1)" ]
+  [ -f "link2" ]
+  [ "$contents_pointer" = "$(cat link2)" ]
+  assert_clean_index
+
+  # test with symlink to directory and dangling symlink
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat ../link*
+  mkdir ../link1
+  ln -s ../link1 a.dat
+  ln -s ../../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -d "../link1" ]
+  [ ! -e "../link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  rm -rf a.dat dir1/dir2/dir3/a.dat link*
+  mkdir link1
+  ln -s link1 a.dat
+  ln -s ../../../link2 dir1/dir2/dir3/a.dat
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep '"a\.dat": not a regular file' pull.log
+  grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -d "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd dir1/dir2
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/dir2/dir3/a\.dat": not a regular file' pull.log
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -L "a.dat" ]
+  [ -L "dir1/dir2/dir3/a.dat" ]
+  [ -d "link1" ]
+  [ ! -e "link2" ]
+  assert_clean_index
+)
+end_test
+
+# This test applies to case-preserving but case-insensitive filesystems,
+# such as APFS and NTFS when in their default configurations.
+# On case-sensitive filesystems this test has no particular value and
+# should always pass.
+begin_test "pull: skip case-based symlink conflicts"
+(
+  set -e
+
+  skip_if_symlinks_unsupported
+
+  # Only test with Git version 2.20.0 as it introduced detection of
+  # case-insensitive filesystems to the "git clone" command, which the
+  # test depends on to determine the filesystem type.
+  ensure_git_version_isnt "$VERSION_LOWER" "2.20.0"
+
+  reponame="pull-skip-case-symlink-conflicts"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  mkdir dir1
+  ln -s ../link1 A.dat
+  ln -s ../../link2 dir1/a.dat
+  ln -s ../link3 DIR3
+  ln -s ../../link4 dir1/dir2
+
+  git add A.dat dir1 DIR3
+  git commit -m "initial commit"
+
+  rm A.dat dir1/* DIR3
+
+  echo "*.dat filter=lfs diff=lfs merge=lfs -text" >.gitattributes
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir dir3 dir1/DIR2
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/A.dat
+  printf "%s" "$contents" >dir3/a.dat
+  printf "%s" "$contents" >dir1/DIR2/a.dat
+
+  git -c core.ignoreCase=false add .gitattributes a.dat dir1/A.dat \
+    dir3/a.dat dir1/DIR2/a.dat
+  git commit -m "case-conflicting commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert" 2>&1 | tee clone.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected clone to succeed ..."
+    exit 1
+  fi
+  collision="$(grep -c "collided" clone.log)" || true
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -rf *.dat dir1 *3 ../link*
+  mkdir ../link3 ../link4
+
+  git lfs pull
+
+  assert_local_object "$contents_oid" 1
+
+  [ -f "a.dat" ]
+  [ "$contents" = "$(cat "a.dat")" ]
+  [ -f "dir1/A.dat" ]
+  [ "$contents" = "$(cat "dir1/A.dat")" ]
+  [ -f "dir3/a.dat" ]
+  [ "$contents" = "$(cat "dir3/a.dat")" ]
+  [ -f "dir1/DIR2/a.dat" ]
+  [ "$contents" = "$(cat "dir1/DIR2/a.dat")" ]
+  [ ! -e "../link1" ]
+  [ ! -e "../link2" ]
+  [ ! -e "../link3/a.dat" ]
+  [ ! -e "../link4/a.dat" ]
+  assert_clean_index
+
+  rm -rf a.dat dir1/A.dat dir3 dir1/DIR2
+  git checkout -- A.dat dir1/a.dat DIR3 dir1/dir2
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  if [ "$collision" -gt "0" ]; then
+    # case-insensitive filesystem
+    grep '"a\.dat": not a regular file' pull.log
+    grep '"dir1/A\.dat": not a regular file' pull.log
+    grep '"dir3/a\.dat": not a directory' pull.log
+    grep '"dir1/DIR2/a\.dat": not a directory' pull.log
+    [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+  fi
+
+  if [ "$collision" -eq "0" ]; then
+    # case-sensitive filesystem
+    [ -f "a.dat" ]
+    [ "$contents" = "$(cat "a.dat")" ]
+    [ -f "dir1/A.dat" ]
+    [ "$contents" = "$(cat "dir1/A.dat")" ]
+    [ -f "dir3/a.dat" ]
+    [ "$contents" = "$(cat "dir3/a.dat")" ]
+    [ -f "dir1/DIR2/a.dat" ]
+    [ "$contents" = "$(cat "dir1/DIR2/a.dat")" ]
+  else
+    # case-insensitive filesystem
+    [ -L "a.dat" ]
+    [ -L "dir1/A.dat" ]
+    [ -L "dir3" ]
+    [ -L "dir1/DIR2" ]
+  fi
+  [ ! -e "../link1" ]
+  [ ! -e "../link2" ]
+  [ ! -e "../link3/a.dat" ]
+  [ ! -e "../link4/a.dat" ]
+  assert_clean_index
+)
+end_test
+
+begin_test "pull: skip changed files"
+(
+  set -e
+
+  reponame="pull-skip-changed-files"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  contents_new="$contents +extra"
+  printf "%s" "$contents_new" >a.dat
+
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents_new" = "$(cat a.dat)" ]
+  assert_clean_index
+
+  rm a.dat
+  mkdir a.dat
+
+  rm -rf .git/lfs/objects
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ -d "a.dat" ]
+  assert_clean_index
+
+  rm -rf .git/lfs/objects
+
+  pushd a.dat
+    git lfs pull
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ -d "a.dat" ]
+  assert_clean_index
+)
+end_test
+
+begin_test "pull: break hard links to existing files"
+(
+  set -e
+
+  reponame="pull-break-file-hardlinks"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  mkdir -p dir1/dir2/dir3
+  printf "%s" "$contents" >a.dat
+  printf "%s" "$contents" >dir1/dir2/dir3/a.dat
+
+  git add .gitattributes a.dat dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$contents_oid" 1
+
+  rm -f a.dat dir1/dir2/dir3/a.dat ../link
+  pointer="$(git cat-file -p ":a.dat")"
+  echo "$pointer" >../link
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  git lfs pull
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
+  assert_clean_status
+
+  rm a.dat dir1/dir2/dir3/a.dat
+  ln ../link a.dat
+  ln ../link dir1/dir2/dir3/a.dat
+
+  rm -rf .git/lfs/objects
+
+  pushd dir1/dir2
+    git lfs pull
+  popd
+
+  assert_local_object "$contents_oid" 1
+
+  [ "$contents" = "$(cat a.dat)" ]
+  [ "$contents" = "$(cat dir1/dir2/dir3/a.dat)" ]
+  [ "$pointer" = "$(cat ../link)" ]
   assert_clean_status
 )
 end_test
@@ -329,6 +1046,7 @@ begin_test "pull: with missing object"
   # this clone is setup in the first test in this file
   cd clone
   rm -rf .git/lfs/objects
+  rm a.dat
 
   contents_oid=$(calc_oid "a")
   reponame="$(basename "$0" ".sh")"
@@ -342,7 +1060,7 @@ begin_test "pull: with missing object"
   pull_exit="${PIPESTATUS[0]}"
   [ "$pull_exit" != "0" ]
 
-  grep "$contents_oid" pull.log
+  grep "$contents_oid does not exist" pull.log
 
   contents2_oid=$(calc_oid "A")
   assert_local_object "$contents2_oid" 1
@@ -417,6 +1135,31 @@ begin_test "pull: read-only directory"
 )
 end_test
 
+begin_test "pull: read-only file"
+(
+  set -e
+
+  reponame="pull-locked"
+  filename="a.txt"
+
+  setup_remote_repo_with_file "$reponame" "$filename"
+
+  pushd "$TRASHDIR" > /dev/null
+    GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}-assert"
+
+    chmod a-w "$filename"
+
+    refute_file_writeable "$filename"
+    assert_pointer "refs/heads/main" "$filename" "$(calc_oid "$filename\n")" 6
+
+    git lfs pull
+
+    refute_file_writeable "$filename"
+    [ "$filename" = "$(cat "$filename")" ]
+  popd > /dev/null
+)
+end_test
+
 begin_test "pull with empty file doesn't modify mtime"
 (
   set -e
@@ -444,14 +1187,146 @@ begin_test "pull with empty file doesn't modify mtime"
 )
 end_test
 
+begin_test "pull: bare repository"
+(
+  set -e
+
+  reponame="pull-bare"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  # The "git lfs pull" command should never check out files in a bare
+  # repository, either into a directory within the repository or one
+  # outside it.  To verify this, we add a Git LFS pointer file whose path
+  # inside the repository is one which, if it were instead treated as an
+  # absolute filesystem path, corresponds to a writable directory.
+  # The "git lfs pull" command should not check out files into either
+  # this external directory or the bare repository.
+  external_dir="$TRASHDIR/${reponame}-external"
+  internal_dir="$(printf "%s" "$external_dir" | sed 's/^\/*//')"
+  mkdir -p "$internal_dir"
+  printf "%s" "$contents" >"$internal_dir/a.dat"
+
+  git add .gitattributes a.dat "$internal_dir/a.dat"
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$contents_oid"
+
+  cd ..
+  git clone --bare "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  [ ! -e lfs ]
+  refute_local_object "$contents_oid"
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  By default a bare repository
+  # lacks an index, so we expect no Git LFS objects to be fetched when
+  # "git ls-files" is used because Git v2.42.0 or higher is available.
+  gitversion="$(git version | cut -d" " -f3)"
+  set +e
+  compare_version "$gitversion" '2.42.0'
+  result=$?
+  set -e
+  if [ "$result" -eq "$VERSION_LOWER" ]; then
+    grep "Downloading LFS objects" pull.log
+
+    assert_local_object "$contents_oid" 1
+  else
+    grep -q "Downloading LFS objects" pull.log && exit 1
+
+    refute_local_object "$contents_oid"
+  fi
+
+  [ ! -e "a.dat" ]
+  [ ! -e "$internal_dir/a.dat" ]
+  [ ! -e "$external_dir/a.dat" ]
+
+  rm -rf lfs/objects
+  refute_local_object "$contents_oid"
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  By default a bare repository
+  # lacks an index, so we expect no Git LFS objects to be fetched when
+  # "git ls-files" is used because Git v2.42.0 or higher is available.
+  #
+  # Therefore to verify that the "git lfs pull" command never checks out
+  # files in a bare repository, we first populate the index with Git LFS
+  # pointer files and then retry the command.
+  contents_git_oid="$(git ls-tree HEAD a.dat | awk '{ print $3 }')"
+  git update-index --add --cacheinfo 100644 "$contents_git_oid" a.dat
+  git update-index --add --cacheinfo 100644 "$contents_git_oid" "$internal_dir/a.dat"
+
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files, and does so by passing an
+  # "attr:filter=lfs" pathspec to the "git ls-files" command so it only
+  # lists files which match that filter attribute.
+  #
+  # In a bare repository, however, the "git ls-files" command will not read
+  # attributes from ".gitattributes" files in the index, so by default it
+  # will not list any Git LFS pointer files even if those files and the
+  # corresponding ".gitattributes" files have been added to the index and
+  # the pointer files would otherwise match the "attr:filter=lfs" pathspec.
+  #
+  # Therefore, instead of adding the ".gitattributes" file to the index, we
+  # copy it to "info/attributes" so that the pathspec filter will match our
+  # pointer file index entries and they will be listed by the "git ls-files"
+  # command.  This allows us to verify that with Git v2.42.0 or higher, the
+  # "git lfs pull" command will fetch the objects for these pointer files
+  # in the index when the command is run in a bare repository.
+  #
+  # Note that with older versions of Git, the "git lfs pull" command will
+  # use the "git ls-tree" command to list the files in the tree referenced
+  # by HEAD.  The Git LFS objects for any well-formed pointer files found in
+  # that list will then be fetched (unless local copies already exist),
+  # regardless of whether the pointer files actually match a "filter=lfs"
+  # attribute in any ".gitattributes" file in the index, the tree
+  # referenced by HEAD, or the current work tree.
+  if [ "$result" -ne "$VERSION_LOWER" ]; then
+    mkdir -p info
+    git show HEAD:.gitattributes >info/attributes
+  fi
+
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to succeed ..."
+    exit 1
+  fi
+  grep "Downloading LFS objects" pull.log
+
+  assert_local_object "$contents_oid" 1
+
+  [ ! -e "a.dat" ]
+  [ ! -e "$internal_dir/a.dat" ]
+  [ ! -e "$external_dir/a.dat" ]
+)
+end_test
+
 begin_test "pull with partial clone and sparse checkout and index"
 (
   set -e
 
-  # Only test with Git version 2.42.0 as it introduced support for the
-  # "objecttype" format option to the "git ls-files" command, which our
-  # code requires.
-  ensure_git_version_isnt "$VERSION_LOWER" "2.42.0"
+  # Only test with Git version 2.25.0 as it introduced the
+  # "git sparse-checkout" command.  (Note that this test also requires
+  # that the "git rev-list" command support the "tree:0" filter, which
+  # was introduced with Git version 2.20.0.)
+  ensure_git_version_isnt "$VERSION_LOWER" "2.25.0"
 
   reponame="pull-sparse"
   setup_remote_repo "$reponame"
@@ -498,15 +1373,91 @@ begin_test "pull with partial clone and sparse checkout and index"
   assert_local_object "$contents2_oid" 1
   refute_local_object "$contents3_oid"
 
-  # Git LFS objects associated with files outside of the sparse cone
-  # should not be pulled.
   git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected pull to succeed ..."
     exit 1
   fi
-  grep -q "Downloading LFS objects" pull.log && exit 1
 
-  refute_local_object "$contents3_oid"
+  # When Git version 2.42.0 or higher is available, the "git lfs pull"
+  # command will use the "git ls-files" command rather than the
+  # "git ls-tree" command to list files.  Git v2.42.0 introduced support
+  # in the "git ls-files" command for the "objecttype" format option and
+  # so Git LFS can use this command to avoid pulling objects outside
+  # the sparse cone.  Otherwise, all Git LFS objects will be pulled.
+  gitversion="$(git version | cut -d" " -f3)"
+  set +e
+  compare_version "$gitversion" '2.42.0'
+  result=$?
+  set -e
+  if [ "$result" -eq "$VERSION_LOWER" ]; then
+    grep "Downloading LFS objects" pull.log
+
+    [ -f "out-dir/c.dat" ]
+    [ "$contents3" = "$(cat "out-dir/c.dat")" ]
+
+    assert_local_object "$contents3_oid" 1
+  else
+    grep -q "Downloading LFS objects" pull.log && exit 1
+
+    [ ! -e "out-dir" ]
+
+    refute_local_object "$contents3_oid"
+  fi
+)
+end_test
+
+begin_test "pull: pointer extension"
+(
+  set -e
+
+  reponame="pull-pointer-extension"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  setup_case_inverter_extension
+
+  contents="abc"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+
+  git add .gitattributes dir1
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$inverted_contents_oid"
+
+  cd ..
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$GITSERVER/$reponame" "${reponame}-assert"
+
+  cd "${reponame}-assert"
+  refute_local_object "$inverted_contents_oid"
+
+  setup_case_inverter_extension
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  git lfs pull
+
+  assert_local_object "$inverted_contents_oid" 3
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  rm -rf .git/lfs/objects
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  mkdir dir2
+
+  pushd dir2
+    git lfs pull
+  popd
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  assert_local_object "$inverted_contents_oid" 3
 )
 end_test

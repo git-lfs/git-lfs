@@ -121,6 +121,15 @@ type repositoryPermissionFetcher interface {
 	RepositoryPermissions(executable bool) os.FileMode
 }
 
+// Mkdir makes a directory with the
+// permissions specified by the core.sharedRepository setting.
+func Mkdir(path string, config repositoryPermissionFetcher) error {
+	umask := 0777 & ^config.RepositoryPermissions(true)
+	return doWithUmask(int(umask), func() error {
+		return os.Mkdir(path, config.RepositoryPermissions(true))
+	})
+}
+
 // MkdirAll makes a directory and any intervening directories with the
 // permissions specified by the core.sharedRepository setting.
 func MkdirAll(path string, config repositoryPermissionFetcher) error {
