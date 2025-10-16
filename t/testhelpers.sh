@@ -376,11 +376,28 @@ assert_hooks() {
   [ -x "$git_root/hooks/pre-push" ]
 }
 
+assert_clean_index() {
+  [ -z "$(git diff-index --cached HEAD)" ]
+}
+
+assert_clean_worktree() {
+  [ -z "$(git diff-index HEAD)" ]
+}
+
+assert_clean_worktree_with_exceptions() {
+  local exceptions="$1"
+
+  [ -z "$(git diff-index HEAD | grep -v -E "$exceptions")" ]
+}
+
 assert_clean_status() {
+  assert_clean_worktree
+
   status="$(git status)"
-  echo "$status" | grep "working tree clean" || {
+  echo "$status" | grep "working \(directory\|tree\) clean" || {
     echo $status
     git lfs status
+    exit 1
   }
 }
 
@@ -907,6 +924,45 @@ has_test_dir() {
   fi
 }
 
+has_native_symlinks() {
+  if [ -z "$NATIVE_SYMLINKS" ]; then
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      # On Windows, we need to enable native symlink support in Cygwin or MSYS2,
+      # without falling back to default Cygwin symlink emulation.  If this mode
+      # is not available, we should skip our tests with symbolic links.
+      #
+      # https://cygwin.com/cygwin-ug-net/using.html#pathnames-symlinks
+      # https://www.msys2.org/docs/symlinks/
+      # https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+      export CYGWIN="winsymlinks:nativestrict${CYGWIN:+ $CYGWIN}"
+      export MSYS="winsymlinks:nativestrict${MSYS:+ $MSYS}"
+
+      touch testfile.tmp
+      ln -s testfile.tmp testlink.tmp
+
+      if [ $(fsutil reparsepoint query testlink.tmp | grep -c "Tag value: Symbolic Link") -eq 0 ]; then
+        NATIVE_SYMLINKS=0
+      else
+        NATIVE_SYMLINKS=1
+      fi
+
+      rm -f testfile.tmp testlink.tmp
+    else
+      NATIVE_SYMLINKS=1
+    fi
+  fi
+
+  if [ "$NATIVE_SYMLINKS" -ne 1 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+skip_if_symlinks_unsupported() {
+  has_native_symlinks || exit 0
+}
+
 add_symlink() {
   local src=$1
   local dest=$2
@@ -916,6 +972,27 @@ add_symlink() {
 
   git update-index --add --cacheinfo 120000 "$hashsrc" "$prefix$dest"
   git checkout -- "$dest"
+}
+
+setup_case_inverter_extension() {
+  export LFSTEST_EXT_LOG="$TRASHDIR/caseinverterextension.log"
+
+  git config lfs.extension.caseinverter.clean \
+    "lfstest-caseinverterextension clean -- %f"
+  git config lfs.extension.caseinverter.smudge \
+    "lfstest-caseinverterextension smudge -- %f"
+  git config lfs.extension.caseinverter.priority 0
+}
+
+case_inverter_extension_pointer() {
+  local ext_oid_line="ext-0-caseinverter sha256:$1"
+  local base_pointer="$(pointer "$2" "$3")"
+
+  printf "%s" "$base_pointer" | sed "s/^oid /$ext_oid_line\noid /"
+}
+
+invert_case() {
+  printf "%s" "$1" | tr "[:lower:][:upper:]" "[:upper:][:lower:]"
 }
 
 urlify() {
