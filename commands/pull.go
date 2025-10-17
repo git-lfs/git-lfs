@@ -103,7 +103,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 				return
 			}
 		} else {
-			if errors.IsNotAPointerError(err) || errors.IsBadPointerKeyError(err) {
+			if errors.IsNotAPointerError(err) || errors.IsBadPointerKeyError(err) || errors.IsPointerConflictMarkerError(err) {
 				// File has non-pointer content, leave it alone
 				return
 			}
