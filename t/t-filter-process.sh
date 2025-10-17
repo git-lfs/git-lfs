@@ -317,3 +317,33 @@ begin_test "filter process: git archive does not invoke SSH"
   true
 )
 end_test
+
+# https://github.com/git-lfs/git-lfs/issues/4974
+begin_test "filter process: don't trust file size on disk when cleaning"
+(
+  set -e
+
+  reponame="repo-issue-4974"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  dd if=/dev/zero of=large.dat bs=65537 count=1
+  oid=$(calc_oid_file large.dat)
+
+  GIT_TRACE_PACKET=1 git \
+    -c "filter.lfs.process=lfstest-badlocalfile | git-lfs filter-process" \
+    -c "filter.lfs.clean=false"\
+    -c "filter.lfs.smudge=false" \
+    -c "filter.lfs.required=true" \
+    add large.dat
+
+  expected="$(pointer "$oid" 65537)"
+  got="$(git cat-file -p :large.dat)"
+
+  diff -u <(echo "$expected") <(echo "$got")
+)
+end_test
