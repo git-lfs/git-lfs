@@ -183,3 +183,35 @@ func TestProcessLinesIsStateful(t *testing.T) {
 	assert.Equal(t, patternLines2[0].Attrs()[3], &Attr{K: "text", V: "false"})
 	assert.Equal(t, patternLines2[0].Attrs()[4], &Attr{K: "lfs", V: "true"})
 }
+
+func TestProcessLineOverrides(t *testing.T) {
+
+	mp := NewMacroProcessor()
+	lines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
+		"[attr]lfs filter=lfs diff=lfs merge=lfs -text",
+		"*.dat lfs"}, "\n")))
+	assert.Len(t, lines, 2)
+	assert.NoError(t, err)
+
+	assert.Implements(t, (*MacroLine)(nil), lines[0])
+	assert.Implements(t, (*PatternLine)(nil), lines[1])
+
+	mp.ProcessLines(lines, true)
+
+	overrideLines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
+		"[attr]lfs filter=lfs merge=lfs"}, "\n")))
+
+	assert.NoError(t, err)
+
+	assert.Implements(t, (*MacroLine)(nil), lines[0])
+
+	mp.ProcessLines(overrideLines, true)
+
+	patternLines := mp.ProcessLines(lines, false)
+
+	assert.Equal(t, patternLines[0].Pattern().String(), "*.dat")
+	assert.Len(t, patternLines[0].Attrs(), 3)
+	assert.Equal(t, patternLines[0].Attrs()[0], &Attr{K: "filter", V: "lfs"})
+	assert.Equal(t, patternLines[0].Attrs()[1], &Attr{K: "merge", V: "lfs"})
+	assert.Equal(t, patternLines[0].Attrs()[2], &Attr{K: "lfs", V: "true"})
+}

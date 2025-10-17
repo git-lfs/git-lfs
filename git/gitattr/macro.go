@@ -1,7 +1,8 @@
 package gitattr
 
 type MacroProcessor struct {
-	macros map[string][]*Attr
+	macros        map[string][]*Attr
+	didReadMacros bool
 }
 
 // NewMacroProcessor returns a new MacroProcessor object for parsing macros.
@@ -10,13 +11,14 @@ func NewMacroProcessor() *MacroProcessor {
 
 	// This is built into Git.
 	macros["binary"] = []*Attr{
-		&Attr{K: "diff", V: "false"},
-		&Attr{K: "merge", V: "false"},
-		&Attr{K: "text", V: "false"},
+		{K: "diff", V: "false"},
+		{K: "merge", V: "false"},
+		{K: "text", V: "false"},
 	}
 
 	return &MacroProcessor{
-		macros: macros,
+		macros:        macros,
+		didReadMacros: false,
 	}
 }
 
@@ -65,5 +67,6 @@ func (mp *MacroProcessor) ProcessLines(lines []Line, readMacros bool) []PatternL
 			}
 		}
 	}
+	mp.didReadMacros = mp.didReadMacros || readMacros
 	return result
 }
