@@ -30,10 +30,10 @@ type Tree struct {
 // will be propagated up accordingly.
 func New(db *gitobj.ObjectDatabase, t *gitobj.Tree) (*Tree, error) {
 	processor := NewMacroProcessor()
-	return newFromTree(db, t, processor)
+	return newFromGitTree(db, t, processor)
 }
 
-func newFromTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) (*Tree, error) {
+func newFromGitTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) (*Tree, error) {
 	children := make(map[string]*Tree)
 	tree, err := linesInTree(db, t, mp)
 
@@ -48,12 +48,12 @@ func newFromTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) 
 
 		// For every entry in the current tree, parse its sub-trees to
 		// see if they might contain a .gitattributes.
-		subT, err := db.Tree(entry.Oid)
+		subGitTree, err := db.Tree(entry.Oid)
 		if err != nil {
 			return nil, err
 		}
 
-		subTree, err := newFromTree(db, subT, mp)
+		subTree, err := newFromGitTree(db, subGitTree, mp)
 		if err != nil {
 			return nil, err
 		}
