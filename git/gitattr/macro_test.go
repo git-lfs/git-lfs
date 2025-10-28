@@ -196,7 +196,7 @@ func TestProcessLineOverrides(t *testing.T) {
 	assert.Implements(t, (*MacroLine)(nil), lines[0])
 	assert.Implements(t, (*PatternLine)(nil), lines[1])
 
-	mp.ProcessLines(lines, true)
+	mp.ProcessMacros(lines)
 
 	overrideLines, _, err := ParseLines(strings.NewReader(strings.Join([]string{
 		"[attr]lfs filter=lfs merge=lfs"}, "\n")))
@@ -205,7 +205,7 @@ func TestProcessLineOverrides(t *testing.T) {
 
 	assert.Implements(t, (*MacroLine)(nil), lines[0])
 
-	mp.ProcessLines(overrideLines, true)
+	mp.ProcessMacros(overrideLines)
 
 	patternLines := mp.ProcessLines(lines, false)
 

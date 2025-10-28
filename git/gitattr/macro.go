@@ -70,3 +70,16 @@ func (mp *MacroProcessor) ProcessLines(lines []Line, readMacros bool) []PatternL
 	mp.didReadMacros = mp.didReadMacros || readMacros
 	return result
 }
+
+// ProcessMacros reads all the lines but only processes macro lines.
+func (mp *MacroProcessor) ProcessMacros(lines []Line) {
+	for _, line := range lines {
+		switch l := line.(type) {
+		case MacroLine:
+			mp.macros[l.Macro()] = l.Attrs()
+		default:
+			continue
+		}
+	}
+	mp.didReadMacros = true
+}

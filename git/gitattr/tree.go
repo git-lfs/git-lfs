@@ -116,15 +116,15 @@ func (t *Tree) Applied(to string) []*Attr {
 	var attrs []*Attr
 	if !t.mp.didReadMacros {
 		if t.systemAttributes != nil {
-			t.mp.ProcessLines(t.systemAttributes.lines, true)
+			t.mp.ProcessMacros(t.systemAttributes.lines)
 		}
 		if t.userAttributes != nil {
-			t.mp.ProcessLines(t.userAttributes.lines, true)
+			t.mp.ProcessMacros(t.userAttributes.lines)
 		}
-		t.mp.ProcessLines(t.lines, true)
+		t.mp.ProcessMacros(t.lines)
 
 		if t.repoAttributes != nil {
-			t.mp.ProcessLines(t.repoAttributes.lines, true)
+			t.mp.ProcessMacros(t.repoAttributes.lines)
 		}
 	}
 
