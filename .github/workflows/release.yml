@@ -12,9 +12,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.24.x']
+        go: ['1.25.x']
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -24,7 +24,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/290 and
       # https://github.com/actions/checkout/issues/882 for details.
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: mkdir -p "$HOME/go/bin"
@@ -100,15 +100,15 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.24.x']
+        go: ['1.25.x']
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: make release
@@ -137,25 +137,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.24.x']
+        go: ['1.25.x']
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: sudo gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
       env:
           DEBIAN_FRONTEND: noninteractive
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: windows-assets
         path: windows-assets
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: macos-assets
         path: macos-assets
@@ -175,7 +175,7 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -192,7 +192,7 @@ jobs:
     name: Build Linux ARM packages
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
         persist-credentials: false

@@ -13,9 +13,38 @@ git-lfs-pull - Download all Git LFS files for current ref & checkout
 Download Git LFS objects for the currently checked out ref, and update
 the working copy with the downloaded content if required.
 
-This is equivalent to running the following 2 commands:
+This is generally equivalent to running the following two commands:
 
-git lfs fetch [options] [] git lfs checkout
+....
+$ git lfs fetch [options] [<remote>]
+$ git lfs checkout
+....
+
+If the installed Git version is at least 2.42.0, in a non-bare repository
+this command will by default fetch and check out Git LFS objects for files
+only if they are present in the Git index and if they match a Git LFS
+filter attribute from a `.gitattributes` file that is present in either
+the index or the current working tree (or, as is always the case, if
+they match a Git LFS filter attribute in a local `gitattributes` file
+such as `$GIT_DIR/info/attributes`). These constraints do not apply
+with prior versions of Git.
+
+In a repository with a partial clone or sparse checkout, it is therefore
+advisable to check out all `.gitattributes` files from `HEAD` before
+using this command, if Git v2.42.0 or later is installed. Alternatively,
+the `GIT_ATTR_SOURCE` environment variable may be set to `HEAD`, which
+will cause Git to only read attributes from `.gitattributes` files in
+`HEAD` and ignore those in the index or working tree.
+
+In a bare repository, if the installed Git version is at least 2.42.0,
+this command will by default fetch Git LFS objects for files only if
+they are present in the Git index and if they match a Git LFS filter
+attribute from a local `gitattributes` file such as
+`$GIT_DIR/info/attributes`. Any `.gitattributes` files in `HEAD` will
+be ignored, unless the `GIT_ATTR_SOURCE` environment variable is set
+to `HEAD`, and any `.gitattributes` files in the index or current
+working tree will always be ignored. These constraints do not apply
+with prior versions of Git.
 
 == OPTIONS
 
@@ -52,6 +81,6 @@ you're tracking first, or origin otherwise.
 
 == SEE ALSO
 
-git-lfs-fetch(1), git-lfs-checkout(1), gitignore(5).
+git-lfs-fetch(1), git-lfs-checkout(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.
