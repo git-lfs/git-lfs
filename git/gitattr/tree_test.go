@@ -15,8 +15,8 @@ var (
 		wildmatch.SystemCase)
 	mp      = NewMacroProcessor()
 	example = &Tree{
-		MP: mp,
-		Lines: []Line{
+		mp: mp,
+		lines: []Line{
 			&patternLine{
 				pattern: dat,
 				lineAttrs: lineAttrs{
@@ -37,10 +37,10 @@ var (
 				},
 			},
 		},
-		Children: map[string]*Tree{
+		children: map[string]*Tree{
 			"subdir": {
-				MP: mp,
-				Lines: []Line{
+				mp: mp,
+				lines: []Line{
 					&patternLine{
 						pattern: dat,
 						lineAttrs: lineAttrs{
@@ -153,8 +153,8 @@ func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
-	assert.Empty(t, tree.Lines)
-	assert.Len(t, tree.Children, 1)
+	assert.Empty(t, tree.lines)
+	assert.Len(t, tree.children, 1)
 
 	attrs := tree.Applied("child/foo.dat")
 
@@ -203,8 +203,8 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
-	assert.Empty(t, tree.Lines)
-	assert.Len(t, tree.Children, 1)
+	assert.Empty(t, tree.lines)
+	assert.Len(t, tree.children, 1)
 
 	attrs := tree.Applied("child/indirect/foo.dat")
 
@@ -250,7 +250,7 @@ func TestNewIgnoresChildrenAppropriately(t *testing.T) {
 	}})
 	require.NoError(t, err)
 
-	assert.NotContains(t, tree.Children, "child")
+	assert.NotContains(t, tree.children, "child")
 }
 
 func TestNewDiscoversSimpleTreesMacro(t *testing.T) {
@@ -308,8 +308,8 @@ func TestAppliedProcessInCorrectOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	sysTree := &Tree{
-		MP: tree.MP,
-		Lines: []Line{
+		mp: tree.mp,
+		lines: []Line{
 			&patternLine{
 				pattern: wildmatch.NewWildmatch("*.bin"),
 				lineAttrs: lineAttrs{
@@ -322,8 +322,8 @@ func TestAppliedProcessInCorrectOrder(t *testing.T) {
 	}
 
 	userTree := &Tree{
-		MP: tree.MP,
-		Lines: []Line{
+		mp: tree.mp,
+		lines: []Line{
 			&patternLine{
 				pattern: wildmatch.NewWildmatch("*.png"),
 				lineAttrs: lineAttrs{
@@ -336,8 +336,8 @@ func TestAppliedProcessInCorrectOrder(t *testing.T) {
 	}
 
 	repoTree := &Tree{
-		MP: tree.MP,
-		Lines: []Line{
+		mp: tree.mp,
+		lines: []Line{
 			&patternLine{
 				pattern: wildmatch.NewWildmatch("*.dat"),
 				lineAttrs: lineAttrs{
@@ -349,9 +349,9 @@ func TestAppliedProcessInCorrectOrder(t *testing.T) {
 		},
 	}
 
-	tree.SystemAttributes = sysTree
-	tree.UserAttributes = userTree
-	tree.RepoAttributes = repoTree
+	tree.systemAttributes = sysTree
+	tree.userAttributes = userTree
+	tree.repoAttributes = repoTree
 
 	attrs := tree.Applied("foo.dat")
 

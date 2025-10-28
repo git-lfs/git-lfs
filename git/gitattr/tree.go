@@ -12,17 +12,17 @@ import (
 // Tree represents the .gitattributes file at one layer of the tree in a Git
 // repository.
 type Tree struct {
-	MP *MacroProcessor
+	mp *MacroProcessor
 
-	SystemAttributes *Tree
+	systemAttributes *Tree
 
-	UserAttributes *Tree
-	// Lines are the lines of the .gitattributes at this level of the tree.
-	Lines []Line
-	// Children are the named child directories in the repository.
-	Children map[string]*Tree
+	userAttributes *Tree
+	// lines are the lines of the .gitattributes at this level of the tree.
+	lines []Line
+	// children are the named child directories in the repository.
+	children map[string]*Tree
 
-	RepoAttributes *Tree
+	repoAttributes *Tree
 }
 
 // New constructs a *Tree starting at the given tree "t" and reading objects
@@ -58,14 +58,14 @@ func newFromGitTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcesso
 			return nil, err
 		}
 
-		if len(subTree.Children) > 0 || len(subTree.Lines) > 0 {
+		if len(subTree.children) > 0 || len(subTree.lines) > 0 {
 			// Only include entries that have either (1) a
 			// .gitattributes in their tree, or (2) a .gitattributes
 			// in a sub-tree.
 			children[entry.Name] = subTree
 		}
 	}
-	tree.Children = children
+	tree.children = children
 
 	return tree, nil
 }
@@ -76,8 +76,8 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 		return nil, err
 	}
 	return &Tree{
-		MP:    mp,
-		Lines: lines,
+		mp:    mp,
+		lines: lines,
 	}, nil
 }
 
@@ -97,7 +97,7 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) 
 	}
 
 	if at < 0 {
-		return &Tree{MP: mp}, nil
+		return &Tree{mp: mp}, nil
 	}
 
 	blob, err := db.Blob(t.Entries[at].Oid)
@@ -114,32 +114,32 @@ func linesInTree(db *gitobj.ObjectDatabase, t *gitobj.Tree, mp *MacroProcessor) 
 // if there are relevant .gitattributes matching that path.
 func (t *Tree) Applied(to string) []*Attr {
 	var attrs []*Attr
-	if !t.MP.didReadMacros {
-		if t.SystemAttributes != nil {
-			t.MP.ProcessLines(t.SystemAttributes.Lines, true)
+	if !t.mp.didReadMacros {
+		if t.systemAttributes != nil {
+			t.mp.ProcessLines(t.systemAttributes.lines, true)
 		}
-		if t.UserAttributes != nil {
-			t.MP.ProcessLines(t.UserAttributes.Lines, true)
+		if t.userAttributes != nil {
+			t.mp.ProcessLines(t.userAttributes.lines, true)
 		}
-		t.MP.ProcessLines(t.Lines, true)
+		t.mp.ProcessLines(t.lines, true)
 
-		if t.RepoAttributes != nil {
-			t.MP.ProcessLines(t.RepoAttributes.Lines, true)
+		if t.repoAttributes != nil {
+			t.mp.ProcessLines(t.repoAttributes.lines, true)
 		}
 	}
 
-	if t.SystemAttributes != nil {
-		attrs = append(attrs, t.SystemAttributes.applied(to)...)
+	if t.systemAttributes != nil {
+		attrs = append(attrs, t.systemAttributes.applied(to)...)
 	}
 
-	if t.UserAttributes != nil {
-		attrs = append(attrs, t.UserAttributes.applied(to)...)
+	if t.userAttributes != nil {
+		attrs = append(attrs, t.userAttributes.applied(to)...)
 	}
 
 	attrs = append(attrs, t.applied(to)...)
 
-	if t.RepoAttributes != nil {
-		attrs = append(attrs, t.RepoAttributes.applied(to)...)
+	if t.repoAttributes != nil {
+		attrs = append(attrs, t.repoAttributes.applied(to)...)
 	}
 
 	return attrs
@@ -148,7 +148,7 @@ func (t *Tree) Applied(to string) []*Attr {
 func (t *Tree) applied(to string) []*Attr {
 	var attrs []*Attr
 
-	for _, line := range t.MP.ProcessLines(t.Lines, false) {
+	for _, line := range t.mp.ProcessLines(t.lines, false) {
 		if line.Pattern().Match(to) {
 			attrs = append(attrs, line.Attrs()...)
 		}
@@ -156,7 +156,7 @@ func (t *Tree) applied(to string) []*Attr {
 
 	dirPath, remainingPath, found := strings.Cut(to, "/")
 	if found {
-		if child, ok := t.Children[dirPath]; ok {
+		if child, ok := t.children[dirPath]; ok {
 			attrs = append(attrs, child.applied(remainingPath)...)
 		}
 	}
