@@ -30,7 +30,28 @@ to a merge, this option checks out one of the three stages a conflicting
 Git LFS object into a separate file (which can be outside of the work
 tree). This can make using diff tools to inspect and resolve merges
 easier. A single Git LFS object's file path must be provided in
-`<conflict-obj-path>`.
+`<conflict-obj-path>`. If `<file>` already exists, whether as a regular
+file, symbolic link, or directory, it will be removed and replaced, unless
+it is a non-empty directory or otherwise cannot be deleted.
+
+If the installed Git version is at least 2.42.0,
+this command will by default check out Git LFS objects for files
+only if they are present in the Git index and if they match a Git LFS
+filter attribute from a `.gitattributes` file that is present in either
+the index or the current working tree (or, as is always the case, if
+they match a Git LFS filter attribute in a local `gitattributes` file
+such as `$GIT_DIR/info/attributes`). These constraints do not apply
+with prior versions of Git.
+
+In a repository with a partial clone or sparse checkout, it is therefore
+advisable to check out all `.gitattributes` files from `HEAD` before
+using this command, if Git v2.42.0 or later is installed. Alternatively,
+the `GIT_ATTR_SOURCE` environment variable may be set to `HEAD`, which
+will cause Git to only read attributes from `.gitattributes` files in
+`HEAD` and ignore those in the index or working tree.
+
+In a bare repository, this command has no effect.  In a future version,
+this command may exit with an error if it is run in a bare repository.
 
 == OPTIONS
 
@@ -84,6 +105,6 @@ $ git merge --continue
 
 == SEE ALSO
 
-git-lfs-fetch(1), git-lfs-pull(1), gitignore(5).
+git-lfs-fetch(1), git-lfs-pull(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.

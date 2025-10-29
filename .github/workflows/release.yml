@@ -24,7 +24,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/290 and
       # https://github.com/actions/checkout/issues/882 for details.
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: mkdir -p "$HOME/go/bin"
@@ -108,7 +108,7 @@ jobs:
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: make release
@@ -145,7 +145,7 @@ jobs:
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: sudo gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools

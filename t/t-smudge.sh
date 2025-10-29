@@ -61,6 +61,35 @@ begin_test "smudge with invalid pointer"
 )
 end_test
 
+begin_test "smudge with pointer extension"
+(
+  set -e
+
+  reponame="smudge-pointer-extension"
+  git init "$reponame"
+  cd "$reponame"
+
+  setup_case_inverter_extension
+
+  git lfs track "*.dat"
+
+  contents="$(printf "%s\n%s" "abc" "def")"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+  git add .gitattributes dir1
+
+  pointer="$(case_inverter_extension_pointer "$contents_oid" "$inverted_contents_oid" 7)"
+
+  assert_local_object "$inverted_contents_oid" 7
+
+  # smudge works even though it hasn't been pushed, by reading from .git/lfs/objects
+  [ "$contents" = "$(echo "$pointer" | git lfs smudge -- "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+)
+end_test
+
 begin_test "smudge include/exclude"
 (
   set -e
