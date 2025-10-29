@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"runtime"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -33,7 +34,20 @@ func isClientCertEnabledForHost(c *Client, host string) bool {
 	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
-	return hostSslKeyOk && hostSslCertOk
+	if hostSslKeyOk && hostSslCertOk {
+		return true;
+	}
+
+	if runtime.GOOS == "windows" {	
+		configSslBackend, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslbackend")
+		configSslCert , _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslcert")
+
+		if configSslBackend == "schannel" && configSslCert != "" {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // decryptPEMBlock decrypts an encrypted PEM block representing a private key,
@@ -69,10 +83,20 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 }
 
 // getClientCertForHost returns a client certificate for a specific host (which may
-// be "host:port" loaded from the gitconfig
-func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
+// be "host:port" loaded from the gitconfig or the platform
+func getClientCertForHost(c *Client, host string) ([]tls.Certificate, error) {
+
+	if runtime.GOOS == "windows" {
+		configSslBackend, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslbackend")
+
+		if configSslBackend == "schannel" {
+			return getClientCertsForHostFromSchannel(c,host)
+		}
+	}
+
 	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+
 
 	hostSslKey, err := tools.ExpandPath(hostSslKey, false)
 	if err != nil {
@@ -112,7 +136,7 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 		tracerx.Printf("Error reading client cert/key %v", err)
 		return nil, errors.Wrap(err, tr.Tr.Get("Error reading client cert/key"))
 	}
-	return &certobj, nil
+	return []tls.Certificate{certobj}, nil
 }
 
 // getRootCAsForHostFromGitconfig returns a certificate pool for that
