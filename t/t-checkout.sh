@@ -1224,12 +1224,7 @@ begin_test "checkout: pointer extension with conflict"
   git lfs checkout --to base.txt --base dir1/abc.dat
 
   printf "%s" "$contents" | cmp - base.txt
-
-  # Note that at present we expect "git lfs checkout" to pass the argument
-  # from its --to option to the extension program instead of the pointer's
-  # file path, after converting the argument into an absolute path.
-  abs_curr_dir="$TRASHDIR/$reponame"
-  grep "smudge: $(canonical_path_escaped "$abs_curr_dir/base.txt")" "$LFSTEST_EXT_LOG"
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
 
   rm -f "$LFSTEST_EXT_LOG"
 
@@ -1238,11 +1233,7 @@ begin_test "checkout: pointer extension with conflict"
   popd
 
   printf "%s" "$contents_ours" | cmp - ours.txt
-
-  # Note that at present we expect "git lfs checkout" to pass the argument
-  # from its --to option to the extension program instead of the pointer's
-  # file path, after converting the argument into an absolute path.
-  grep "smudge: $(canonical_path_escaped "$abs_curr_dir/ours.txt")" "$LFSTEST_EXT_LOG"
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
 
   abs_assert_dir="$TRASHDIR/${reponame}-assert"
   abs_theirs_file="$(canonical_path "$abs_assert_dir/dir1/dir2/theirs.txt")"
@@ -1255,10 +1246,6 @@ begin_test "checkout: pointer extension with conflict"
   popd
 
   printf "%s" "$contents_theirs" | cmp - "$abs_theirs_file"
-
-  # Note that at present we expect "git lfs checkout" to pass the argument
-  # from its --to option to the extension program instead of the pointer's
-  # file path, after converting the argument into an absolute path.
-  grep "smudge: $(escape_path "$abs_theirs_file")" "$LFSTEST_EXT_LOG"
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
 )
 end_test

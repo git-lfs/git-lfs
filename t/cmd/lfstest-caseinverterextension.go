@@ -2,7 +2,7 @@
 // +build testtools
 
 // A simple Git LFS pointer extension that translates lower case characters
-// to upper case characters and vise versa. This is used in the Git LFS
+// to upper case characters and vice versa. This is used in the Git LFS
 // integration tests.
 
 package main
