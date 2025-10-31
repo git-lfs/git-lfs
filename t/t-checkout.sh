@@ -956,21 +956,21 @@ begin_test "checkout: conflicts"
 
       [ -L "$abs_assert_dir/dir1" ]
       echo "abc123" | cmp - "$abs_assert_dir/link1/dir2/theirs.txt"
+
+      rm -f base.txt link1 ../ours.txt ../link2
+      ln -s link1 base.txt
+      ln -s link2 ../ours.txt
+
+      git lfs checkout --to base.txt --base file1.dat
+      git lfs checkout --to ../ours.txt --ours file1.dat
+
+      [ ! -L "base.txt" ]
+      [ ! -L "../ours.txt" ]
+      [ ! -e "link1" ]
+      [ ! -e "../link2" ]
+      echo "file1.dat" | cmp - base.txt
+      echo "def456" | cmp - ../ours.txt
     }
-
-    rm -f base.txt link1 ../ours.txt ../link2
-    ln -s link1 base.txt
-    ln -s link2 ../ours.txt
-
-    git lfs checkout --to base.txt --base file1.dat
-    git lfs checkout --to ../ours.txt --ours file1.dat
-
-    [ ! -L "base.txt" ]
-    [ ! -L "../ours.txt" ]
-    [ ! -e "link1" ]
-    [ ! -e "../link2" ]
-    echo "file1.dat" | cmp - base.txt
-    echo "def456" | cmp - ../ours.txt
 
     rm -f base.txt link1 ../ours.txt ../link2
     printf "link1" >link1
