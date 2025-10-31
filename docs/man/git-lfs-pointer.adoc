@@ -37,6 +37,8 @@ consistency between different Git LFS implementations.
   canonical; that is, it would be the one created by Git LFS. If it is not,
   exits 2. The default, for backwards compatibility, is `--no-strict`, but this
   may change in a future version.
+`--no-extensions`::
+  Don't print the extensions of the pointer.
 
 == SEE ALSO
 
