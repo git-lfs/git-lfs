@@ -40,13 +40,11 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Error parsing args: %v", err))
 	}
 
-	rootedPathPatterns := rootedPathPatterns(args)
-
 	if checkoutTo != "" && stage != git.IndexStageDefault {
 		if len(args) != 1 {
 			Exit(tr.Tr.Get("--to requires exactly one Git LFS object file path"))
 		}
-		checkoutConflict(rootedPathPatterns[0], stage)
+		checkoutConflict(args[0], stage)
 		return
 	} else if checkoutTo != "" || stage != git.IndexStageDefault {
 		Exit(tr.Tr.Get("--to and exactly one of --theirs, --ours, and --base must be used together"))
@@ -56,6 +54,8 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
+
+	rootedPathPatterns := rootedPathPatterns(args)
 
 	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")
@@ -115,6 +115,13 @@ func checkoutConflict(file string, stage git.IndexStage) {
 	if err != nil {
 		Exit(tr.Tr.Get("Could not create path %q: %v", checkoutTo, err))
 	}
+
+	pathConverter, err := lfs.NewCurrentToRepoPathConverter(cfg)
+	if err != nil {
+		Panic(err, tr.Tr.Get("Could not checkout"))
+	}
+
+	file = pathConverter.Convert(file)
 
 	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")

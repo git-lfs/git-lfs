@@ -990,6 +990,9 @@ begin_test "checkout: conflicts"
 
     git lfs checkout --to base.txt --ours other.txt 2>&1 | tee output.txt
     grep 'Could not find decoder pointer for object' output.txt
+
+    git lfs checkout --to base.txt --ours . 2>&1 | tee output.txt
+    grep "Could not checkout .*: Git can't resolve ref: \":2:\.\"" output.txt
   popd > /dev/null
 )
 end_test
