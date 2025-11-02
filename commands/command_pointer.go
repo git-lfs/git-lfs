@@ -16,17 +16,20 @@ import (
 )
 
 var (
-	pointerFile     string
-	pointerCompare  string
-	pointerStdin    bool
-	pointerCheck    bool
-	pointerStrict   bool
-	pointerNoStrict bool
+	pointerFile         string
+	pointerCompare      string
+	pointerStdin        bool
+	pointerCheck        bool
+	pointerStrict       bool
+	pointerNoStrict     bool
+	pointerNoExtensions bool
 )
 
 func pointerCommand(cmd *cobra.Command, args []string) {
+	var comparePointer *lfs.Pointer
 	comparing := false
 	something := false
+	hasExtensionsConfig := false
 	buildOid := ""
 	compareOid := ""
 
@@ -39,7 +42,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		}
 
 		if len(pointerCompare) > 0 {
-			ExitWithError(errors.New(tr.Tr.Get("Cannot combine --check with --compare")))
+			ExitWithError(errors.New(tr.Tr.Get("Cannot combine --check with --pointer")))
 		}
 
 		if len(pointerFile) > 0 {
@@ -53,7 +56,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		} else if pointerStdin {
 			r = io.NopCloser(os.Stdin)
 		} else {
-			ExitWithError(errors.New(tr.Tr.Get("Must specify either --file or --stdin with --compare")))
+			ExitWithError(errors.New(tr.Tr.Get("Must specify either --file or --stdin with --check")))
 		}
 
 		p, err := lfs.DecodePointer(r)
@@ -79,17 +82,37 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		oidHash := sha256.New()
-		size, err := io.Copy(oidHash, buildFile)
+		var ptr *lfs.Pointer
+		if pointerNoExtensions || !cfg.InRepo() {
+			oidHash := sha256.New()
+			size, err := io.Copy(oidHash, buildFile)
+			if err != nil {
+				Error(err.Error())
+				buildFile.Close()
+				os.Exit(1)
+			}
+
+			ptr = lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
+		} else {
+			gitfilter := lfs.NewGitFilter(cfg)
+			hasExtensionsConfig = len(cfg.Extensions()) > 0
+			cleaned, err := gitfilter.Clean(buildFile, pointerFile, -1, nil)
+			if err != nil {
+				Error(err.Error())
+				buildFile.Close()
+				os.Exit(1)
+			}
+
+			ptr = cleaned.Pointer
+		}
 		buildFile.Close()
 
-		if err != nil {
-			Error(err.Error())
-			os.Exit(1)
+		fmt.Fprint(os.Stderr, tr.Tr.Get("Git LFS pointer for %s", pointerFile), "\n")
+		if !pointerNoExtensions && hasExtensionsConfig {
+			fmt.Fprint(os.Stderr, tr.Tr.Get("warning: Using LFS extensions, use --no-extensions for a plain pointer."), "\n")
 		}
+		fmt.Fprint(os.Stderr, "\n")
 
-		ptr := lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
-		fmt.Fprint(os.Stderr, tr.Tr.Get("Git LFS pointer for %s", pointerFile), "\n\n")
 		buf := &bytes.Buffer{}
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
@@ -115,7 +138,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(compFile, buf)
-		_, err = lfs.DecodePointer(tee)
+		comparePointer, err = lfs.DecodePointer(tee)
 		compFile.Close()
 
 		pointerName := "STDIN"
@@ -142,6 +165,9 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 	if comparing && buildOid != compareOid {
 		fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Pointers do not match"), "\n")
+		if hasExtensionsConfig || len(comparePointer.Extensions) > 0 {
+			fmt.Fprint(os.Stderr, tr.Tr.Get("note: Mismatch may be due to differing LFS extensions."), "\n")
+		}
 		os.Exit(1)
 	}
 
@@ -173,5 +199,6 @@ func init() {
 		cmd.Flags().BoolVarP(&pointerCheck, "check", "", false, "Check whether the given file is a Git LFS pointer.")
 		cmd.Flags().BoolVarP(&pointerStrict, "strict", "", false, "Check whether the given Git LFS pointer is canonical.")
 		cmd.Flags().BoolVarP(&pointerNoStrict, "no-strict", "", false, "Don't check whether the given Git LFS pointer is canonical.")
+		cmd.Flags().BoolVarP(&pointerNoExtensions, "no-extensions", "", false, "Don't print the extensions of the pointer.")
 	})
 }
