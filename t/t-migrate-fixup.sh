@@ -174,26 +174,25 @@ begin_test "migrate import (--fixup, .gitattributes with macro)"
 )
 end_test
 
-# NOTE: We skip this test for now as the "git lfs migrate" commands do not
-#       fully process macro attribute definitions yet.
-#begin_test "migrate info (--fixup, .gitattributes with LFS macro)"
-#(
-#  set -e
-#
-#  setup_single_local_branch_tracked_corrupt lfsmacro
-#
-#  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
-#
-#  git lfs migrate import --everything --fixup --yes
-#
-#  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
-#  assert_local_object "$txt_oid" "120"
-#
-#  main="$(git rev-parse refs/heads/main)"
-#  main_attrs="$(git cat-file -p "$main:.gitattributes")"
-#  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
-#)
-#end_test
+begin_test "migrate import (--fixup, .gitattributes with LFS macro)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt lfsmacro
+
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+
+  git lfs migrate import --everything --fixup --yes
+
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
+  assert_local_object "$txt_oid" "120"
+
+  main="$(git rev-parse refs/heads/main)"
+  main_attrs="$(git cat-file -p "$main:.gitattributes")"
+  echo "$main_attrs" | grep -q "\[attr\]lfs filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*\.txt lfs"
+)
+end_test
 
 begin_test "migrate import (no potential fixup, --fixup, no .gitattributes)"
 (
