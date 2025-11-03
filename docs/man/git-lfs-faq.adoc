@@ -34,6 +34,20 @@ On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
 to pull down the LFS files.  This bypasses Git's smudging functionality
 and therefore avoids its limitations.
 
+[[faq-git-memory-use]]
+Why does cloning consume memory proportional to the largest Git LFS file?::
+  This is actually due to how Git smudges files and is not a consequence
+  of using Git LFS per se.  As of the time of writing, all currently
+  available versions of Git (v2.51.2 and earlier) read the output of a
+  long-running filter process like Git LFS into in-memory buffers, one for
+  each file processed by the filter.  As a result, when files are smudged
+  by Git LFS during a `git clone` operation, Git's memory usage scales with
+  the size of the largest Git LFS file.
++
+Setting `GIT_LFS_SKIP_SMUDGE` to `1` when cloning and then running
+`git lfs pull` to pull down the Git LFS files will bypass Git's smudging
+functionality and avoid its limitations.
+
 [[cat-working-tree-contents]]
 === Working Tree Contents
 
