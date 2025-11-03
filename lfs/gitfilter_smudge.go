@@ -29,16 +29,11 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *WrappedPointer, download 
 		mode = stat.Mode().Perm()
 	}
 
-	abs, err := filepath.Abs(filename)
-	if err != nil {
-		return errors.New(tr.Tr.Get("could not produce absolute path for %q", filename))
-	}
-
-	if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
 		return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", filename))
 	}
 
-	file, err := os.OpenFile(abs, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("could not create working directory file %q", filename))
 	}
