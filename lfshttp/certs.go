@@ -84,13 +84,13 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 
 // getClientCertForHost returns a client certificate for a specific host (which may
 // be "host:port" loaded from the gitconfig or the platform
-func getClientCertForHost(c *Client, host string) ([]tls.Certificate, error) {
+func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 
 	if runtime.GOOS == "windows" {
 		configSslBackend, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslbackend")
 
 		if configSslBackend == "schannel" {
-			return getClientCertsForHostFromSchannel(c,host)
+			return getClientCertForHostFromSchannel(c,host)
 		}
 	}
 
@@ -136,7 +136,7 @@ func getClientCertForHost(c *Client, host string) ([]tls.Certificate, error) {
 		tracerx.Printf("Error reading client cert/key %v", err)
 		return nil, errors.Wrap(err, tr.Tr.Get("Error reading client cert/key"))
 	}
-	return []tls.Certificate{certobj}, nil
+	return &certobj, nil
 }
 
 // getRootCAsForHostFromGitconfig returns a certificate pool for that
