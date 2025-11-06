@@ -474,7 +474,7 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 			return nil, err
 		}
 		if cert != nil {
-			tr.TLSClientConfig.Certificates = cert
+			tr.TLSClientConfig.Certificates = []tls.Certificate{*cert}
 			tr.TLSClientConfig.BuildNameToCertificate()
 		}
 	}
