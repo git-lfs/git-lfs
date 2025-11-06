@@ -13,9 +13,10 @@ var (
 	dat = wildmatch.NewWildmatch("*.dat",
 		wildmatch.Basename,
 		wildmatch.SystemCase)
-
+	mp      = NewMacroProcessor()
 	example = &Tree{
-		Lines: []Line{
+		mp: mp,
+		lines: []Line{
 			&patternLine{
 				pattern: dat,
 				lineAttrs: lineAttrs{
@@ -36,9 +37,10 @@ var (
 				},
 			},
 		},
-		Children: map[string]*Tree{
-			"subdir": &Tree{
-				Lines: []Line{
+		children: map[string]*Tree{
+			"subdir": {
+				mp: mp,
+				lines: []Line{
 					&patternLine{
 						pattern: dat,
 						lineAttrs: lineAttrs{
@@ -151,8 +153,8 @@ func TestNewDiscoversSimpleChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
-	assert.Empty(t, tree.Lines)
-	assert.Len(t, tree.Children, 1)
+	assert.Empty(t, tree.lines)
+	assert.Len(t, tree.children, 1)
 
 	attrs := tree.Applied("child/foo.dat")
 
@@ -201,8 +203,8 @@ func TestNewDiscoversIndirectChildrenTrees(t *testing.T) {
 		},
 	}})
 	require.NoError(t, err)
-	assert.Empty(t, tree.Lines)
-	assert.Len(t, tree.Children, 1)
+	assert.Empty(t, tree.lines)
+	assert.Len(t, tree.children, 1)
 
 	attrs := tree.Applied("child/indirect/foo.dat")
 
@@ -248,5 +250,133 @@ func TestNewIgnoresChildrenAppropriately(t *testing.T) {
 	}})
 	require.NoError(t, err)
 
-	assert.NotContains(t, tree.Children, "child")
+	assert.NotContains(t, tree.children, "child")
+}
+
+func TestNewDiscoversSimpleTreesMacro(t *testing.T) {
+	tmp := t.TempDir()
+
+	db, err := gitobj.FromFilesystem(tmp, "")
+	require.NoError(t, err)
+	defer db.Close()
+
+	blob, err := db.WriteBlob(gitobj.NewBlobFromBytes([]byte(`
+	    [attr]lfs filter=lfs diff=lfs merge=lfs -text
+		*.dat lfs
+	`)))
+	require.NoError(t, err)
+
+	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
+		{
+			Name:     ".gitattributes",
+			Oid:      blob,
+			Filemode: 0100644,
+		},
+	}})
+	require.NoError(t, err)
+
+	attrs := tree.Applied("foo.dat")
+
+	assert.Len(t, attrs, 5)
+	assert.Equal(t, &Attr{K: "filter", V: "lfs"}, attrs[0])
+	assert.Equal(t, &Attr{K: "diff", V: "lfs"}, attrs[1])
+	assert.Equal(t, &Attr{K: "merge", V: "lfs"}, attrs[2])
+	assert.Equal(t, &Attr{K: "text", V: "false"}, attrs[3])
+	assert.Equal(t, &Attr{K: "lfs", V: "true"}, attrs[4])
+}
+
+func TestAppliedProcessInCorrectOrder(t *testing.T) {
+	tmp := t.TempDir()
+
+	db, err := gitobj.FromFilesystem(tmp, "")
+	require.NoError(t, err)
+	defer db.Close()
+
+	blob, err := db.WriteBlob(gitobj.NewBlobFromBytes([]byte(`
+	    [attr]lfs filter=lfs diff=lfs merge=lfs -text
+		*.dat lfs
+	`)))
+	require.NoError(t, err)
+
+	tree, err := New(db, &gitobj.Tree{Entries: []*gitobj.TreeEntry{
+		{
+			Name:     ".gitattributes",
+			Oid:      blob,
+			Filemode: 0100644,
+		},
+	}})
+	require.NoError(t, err)
+
+	sysTree := &Tree{
+		mp: tree.mp,
+		lines: []Line{
+			&patternLine{
+				pattern: wildmatch.NewWildmatch("*.bin"),
+				lineAttrs: lineAttrs{
+					attrs: []*Attr{
+						{K: "binary", V: "true"},
+					},
+				},
+			},
+		},
+	}
+
+	userTree := &Tree{
+		mp: tree.mp,
+		lines: []Line{
+			&patternLine{
+				pattern: wildmatch.NewWildmatch("*.png"),
+				lineAttrs: lineAttrs{
+					attrs: []*Attr{
+						{K: "lfs", V: "true"},
+					},
+				},
+			},
+		},
+	}
+
+	repoTree := &Tree{
+		mp: tree.mp,
+		lines: []Line{
+			&patternLine{
+				pattern: wildmatch.NewWildmatch("*.dat"),
+				lineAttrs: lineAttrs{
+					attrs: []*Attr{
+						{K: "diff", Unspecified: true},
+					},
+				},
+			},
+		},
+	}
+
+	tree.systemAttributes = sysTree
+	tree.userAttributes = userTree
+	tree.repoAttributes = repoTree
+
+	attrs := tree.Applied("foo.dat")
+
+	assert.Len(t, attrs, 6)
+	assert.Equal(t, &Attr{K: "filter", V: "lfs"}, attrs[0])
+	assert.Equal(t, &Attr{K: "diff", V: "lfs"}, attrs[1])
+	assert.Equal(t, &Attr{K: "merge", V: "lfs"}, attrs[2])
+	assert.Equal(t, &Attr{K: "text", V: "false"}, attrs[3])
+	assert.Equal(t, &Attr{K: "lfs", V: "true"}, attrs[4])
+	assert.Equal(t, &Attr{K: "diff", Unspecified: true}, attrs[5])
+
+	attrs = tree.Applied("foo.bin")
+
+	assert.Len(t, attrs, 4)
+	assert.Equal(t, &Attr{K: "diff", V: "false"}, attrs[0])
+	assert.Equal(t, &Attr{K: "merge", V: "false"}, attrs[1])
+	assert.Equal(t, &Attr{K: "text", V: "false"}, attrs[2])
+	assert.Equal(t, &Attr{K: "binary", V: "true"}, attrs[3])
+
+	attrs = tree.Applied("foo.png")
+
+	assert.Len(t, attrs, 5)
+	assert.Equal(t, &Attr{K: "filter", V: "lfs"}, attrs[0])
+	assert.Equal(t, &Attr{K: "diff", V: "lfs"}, attrs[1])
+	assert.Equal(t, &Attr{K: "merge", V: "lfs"}, attrs[2])
+	assert.Equal(t, &Attr{K: "text", V: "false"}, attrs[3])
+	assert.Equal(t, &Attr{K: "lfs", V: "true"}, attrs[4])
 }
