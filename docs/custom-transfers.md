@@ -74,6 +74,15 @@ A custom transfer process is defined under a settings group called
   Specifies which direction the custom transfer process supports, either
   `download`, `upload`, or `both`. The default if unspecified is `both`.
 
+* `lfs.customtransfer.<name>.mode
+
+  Specifies the tranfer operation mode. This setting can be set either to
+  `basic`, `bulk` or `any` for using one of the transfer modes. Theese transfer 
+  modes are explained below. The default if unspecified is `basic`.
+  If set to `any` the tranfer should specify the mode explicitly on the initation 
+  stage, the `basic` assumed otherwise. `any` allows falling back from
+  `bulk` to `basic` in case of bulk transfer failure that cannot be retried. `
+
 ## Naming
 
 Each custom transfer must have a name which is unique to the underlying
@@ -89,6 +98,52 @@ configuration exactly, it is specific to the way NFS works, and the server will
 need to give me different URLs. Assuming I define my transfer like this, and the
 server supports it, I might start getting object action links back like
 `nfs://<host>/path/to/object`
+
+## Transfer modes
+
+Transfer mode defines the way Git Lfs schedules operations to custom tranfer process
+and the protocol version to be used for communicating between custom transfer and the
+Git Lfs client. 
+There are two modes available for custom transfers: basic and bulk.
+
+### Basic
+
+Basic mode uses single artifact as unit of work for every transfer operation.
+Git Lfs will request every process to transfer a single artifact per time 
+and expect the progress/result report for this single artifact before moving 
+to the next artifact.
+Concurrency in this mode applies per artifact - every single concurrent process
+gets a single unique atrifact to work with per time.
+
+### Bulk
+
+Bulk mode uses group (bulk) of artifacts as unit of work for every transfer operation.
+Git Lfs will request every process to transfer a bulk of artifacts per time and expect 
+the progress/result report for every atrifact in bulk before moving to next bulk.
+Concurrency in this mode applies per bulk - every concurrent process gets a bulk of
+unique artifacts to work with per time.
+
+### Transfer mode selection and behaviour
+
+The effective transfer mode is determined as follows:
+1. If `lfs.customtransfer.<name>.mode` is set to `basic` or is not specified, Git Lfs will
+   use basic mode and the basic protocol for all transfers.
+2. If `lfs.customtransfer.<name>.mode` is set to `bulk`, Git Lfs will attempt to initiate
+   the bulk transfer protocol. The custom transfer process must confirm the bulk mode support
+   on the initiation stage, otherwise the transfer will fail and no fallback will be attempted.
+3. If `lfs.customtransfer.<name>.mode` is set to `any`, Git Lfs will attempt to initiate
+   the bulk transfer protocol. If the custom process confirms the bulk mode support it will be used.
+   Otherwise Git Lfs will fallback to basic mode and continue the transfers using basic protocol.
+   Initiation stage will not be repeated.
+   This mode also allows to fallback from bulk to basic mode due to errors without losing any progress.
+   To trigger the fallback bulk transfer process should report a bulk failure with a non-retriable error
+   on the bulk transfer stages.
+
+While using bulk mode partial bulk failures are allowed. This means that bulk transfer can be reported as successful
+though some items from the bulk are failed with retriable errors. For such bulks the successfully transferred items
+will be used and the rest will be included into the next bulk transfer for retry.
+Failing the bulk with a non-retryable error will trigger the fallback to `basic` mode if allowed by mode
+configurations. Retrying the whole bulk will discard any successfully transferred items and retry the whole bulk again.
 
 ## Protocol
 
@@ -110,7 +165,9 @@ be on a single line, with a line feed at the end. The transfer process must
 respond the same way by writing a JSON structure back to stdout with a single
 line feed at the end (and flush the output).
 
-### Protocol Stages
+The exact protocol is defined via effective transfer mode.
+
+### Basic Protocol Stages
 
 The protocol consists of 3 stages:
 
@@ -123,7 +180,7 @@ the configuration.
 The message will look like this:
 
 ```json
-{ "event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3 }
+{ "event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3, "mode": "basic" }
 ```
 
 * `event`: Always `init` to identify this message
@@ -136,6 +193,8 @@ The message will look like this:
 * `concurrenttransfers`: reflects the value of `lfs.concurrenttransfers`, for if
   the transfer process wants to implement its own concurrency and wants to
   respect this setting.
+* `mode`: reflects the current effective transfer mode. For basic protocol is always
+  set to `basic` to identify this protocol.
 
 The transfer process should use the information it needs from the initiation
 structure, and also perform any one-off setup tasks it needs to do. It should
@@ -150,6 +209,8 @@ Or if there was an error:
 ```json
 { "error": { "code": 32, "message": "Some init failure message" } }
 ```
+
+In case of any error the initiation step cannot be retried.
 
 #### Stage 2: 0..N Transfers
 
@@ -192,12 +253,14 @@ then a final completion message as follows:
 Or if there was an error in the transfer:
 
 ```json
-{ "event": "complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer" } }
+{ "event": "complete", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "error": { "code": 2, "message": "Explain what happened to this transfer", "retry": false } }
 ```
 
 * `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
-* `error`: Should contain a `code` and `message` explaining the error
+* `error`: Should contain a `code` and `message` explaining the error and `retry` flag indicating whether this object should be retried
+
+In case of an error the retry flag indicates whether this transfer should be retried or abort any further transfers.
 
 ##### Downloads
 
@@ -239,12 +302,14 @@ then a final completion message as follows:
 Or, if there was a failure transferring this item:
 
 ```json
-{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer" } }
+{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer", "retry": false } }
 ```
 
 * `event`: Always `complete` to identify this message
 * `oid`: the identifier of the LFS object
-* `error`: Should contain a `code` and `message` explaining the error
+* `error`: Should contain a `code` and `message` explaining the error and `retry` flag indicating whether this object should be retried
+
+In case of an error the retry flag indicates whether this transfer should be retried or abort any further transfers.
 
 Errors for a single transfer request should not terminate the process. The error
 should be returned in the response structure instead.
@@ -283,6 +348,320 @@ to the stdin of the transfer process:
 
 On receiving this message the transfer process should clean up and terminate.
 No response is expected.
+
+### Bulk Protocol stages
+
+#### Stage 1: Initiation
+
+Immediately after invoking a bulk transfer process, git-lfs sends initiation
+data to the process over stdin. This tells the process useful information about
+the configuration.
+
+The message will look like this:
+
+```json
+{ "event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3, "mode": "bulk" }
+```
+
+* `event`: Always `init` to identify this message
+* `operation`: will be `upload` or `download` depending on transfer direction
+* `remote`: The Git remote.  It can be a remote name like `origin` or an URL
+  like `ssh://git.example.com//path/to/repo`.  A standalone transfer agent can
+  use it to determine the location of remote files.
+* `concurrent`: reflects the value of `lfs.bulk.transfer.<name>.concurrent`, in
+  case the process needs to know
+* `concurrenttransfers`: reflects the value of `lfs.concurrenttransfers`, for if
+  the transfer process wants to implement its own concurrency and wants to
+  respect this setting.
+
+The transfer process should use the information it needs from the initiation
+structure, and also perform any one-off setup tasks it needs to do. It should
+then respond on stdout with a confirmation structure, as follows:
+
+```json
+{ "mode": "bulk" }
+```
+
+* `mode`: `bulk` to confirm the bulk mode support. If this value is not
+  specified or set to `basic` - this will switch the transfer to basic mode
+  and all further communications will be performed according to basic protocol.
+
+Or if there was an error:
+
+```json
+{ "error": { "code": 32, "message": "Some init failure message" } }
+```
+
+Responding this way allows to 
+
+#### Stage 2: Bulk Transfer
+After the initiation exchange, git-lfs will send any number of bulk definitions
+to the stdin of the transfer process. Multiple bulk transfers can be processed
+concurrently when the `concurrent` setting is enabled, allowing for efficient
+parallel processing of different bulks across multiple worker processes.
+
+The bulk definition consists of a header, items, and a footer. Each bulk
+definition is sent as a series of JSON messages, each on a single line.
+
+**Important**: If the number of remaining files is less than the configured
+`bulkSize`, git-lfs will automatically flush the pending transfers after a
+100ms timeout to ensure timely processing of incomplete bulks.
+
+
+### 2.1 Bulk Transfer Header
+
+The first message in a bulk transfer is always the bulk header, which defines the
+bulk transfer general bulk data. The header defines the bulk ID and the number of items
+in following bulk transfer. 
+
+It looks like this:
+
+```json
+{ "event": "bulk-header", "oid": "bulk-12345-uuid", "size": 5 }
+```
+
+Fields:
+* `event`: Always "bulk-header" to identify this message
+* `oid`: Unique identifier for this bulk (persistent throughout the bulk transfer)
+* `size`: Number of items that will follow in this bulk
+
+### 2.2 Bulk Transfer Item
+
+Next git-lfs will send the individual items that are part of the bulk transfer.
+The number of items is defined in the bulk header, and each item is sent as a
+separate JSON message. Each item can be an upload or a download, depending on
+the operation defined in the initiation message.
+
+##### Uploads
+
+For uploads the message sent from git-lfs to the transfer process will look
+like this:
+
+```json
+{ "event": "upload", "oid": "bf3e3e2af9366a3b704ae0c31de5afa64193ebabffde2091936ad2e7510bc03a", "size": 346232, "path": "/path/to/file.png", "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+```
+
+* `event`: Always `upload` to identify this message
+* `oid`: the identifier of the LFS object
+* `size`: the size of the LFS object
+* `path`: the file which the transfer process should read the upload data from
+* `action`: the `upload` action copied from the response from the batch API.
+  This contains `href` and `header` contents, which are named per HTTP
+  conventions, but can be interpreted however the custom transfer agent wishes
+  (this is an NFS example, but it doesn't even have to be an URL). Generally,
+  `href` will give the primary connection details, with `header` containing any
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
+
+##### Downloads
+
+For downloads the message sent from git-lfs to the transfer process will look
+like this:
+
+```json
+{ "event": "download", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "size": 21245, "action": { "href": "nfs://server/path", "header": { "key": "value" } } }
+```
+
+* `event`: Always `download` to identify this message
+* `oid`: the identifier of the LFS object
+* `size`: the size of the LFS object
+* `action`: the `download` action copied from the response from the batch API.
+  This contains `href` and `header` contents, which are named per HTTP
+  conventions, but can be interpreted however the custom transfer agent wishes
+  (this is an NFS example, but it doesn't even have to be an URL). Generally,
+  `href` will give the primary connection details, with `header` containing any
+  miscellaneous information needed.  `action` is `null` for standalone transfer
+  agents.
+
+Note there is no file path included in the download request; the transfer
+process should create a file itself and return the path in the final response
+after completion (see below).
+
+### Bulk Footer Message
+
+Last git-lfs sends a bulk footer message to indicate the end of the bulk
+transfer definition. This message signals that no more items will be sent for
+this bulk, and it provides the total size of all items in the bulk.
+
+It looks like this:
+
+```json
+{ "event": "bulk-footer", "oid": "bulk-12345-uuid", "size": 3145728 }
+```
+
+Fields:
+* `event`: Always "bulk-footer" to identify this message
+* `oid`: Same bulk ID as used in bulk-header to maintain context
+* `size`: Total size in bytes of all files in the bulk
+
+### Processing Strategies
+
+Once a bulk transfer definition is complete (after receiving the bulk-footer), 
+the transfer adapter has complete freedom in how it processes the items within 
+the bulk. Common strategies include:
+
+1. **Sequential Processing**: Process items one by one in the order received
+2. **Parallel Processing**: Process multiple items simultaneously using threads/workers
+3. **Batch Operations**: Download/upload all items as a single archive or package
+4. **Hybrid Approaches**: Combine strategies based on file sizes, types, or other criteria
+
+The protocol places no restrictions on processing order - completion messages
+can be sent in any order as items finish processing. 
+
+## Response Messages
+
+### Progress Events
+
+After the bulk transfer definition is complete, the transfer process can start
+processing the items. 
+
+The transfer process should post one or more progress events to indicate the
+bulk transfer progress.
+
+It looks like this:
+
+```json
+{ "event": "progress", "oid": "bulk-12345-uuid", "bytesSoFar": 1572864, "bytesSinceLast": 524288 }
+```
+
+Fields:
+* `event`: Always "progress" to identify this message
+* `oid`: The bulk transfer ID
+* `bytesSoFar`: Total bytes transferred for this bulk so far
+* `bytesSinceLast`: Bytes transferred since the last progress event
+
+### Individual Item Completion
+
+When an individual item within a bulk transfer completes, the transfer
+process should send a completion message for that item. 
+
+```json
+{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "path": "/tmp/downloaded/file.bin" }
+```
+
+Fields:
+* `event`: Always "complete" to identify this message
+* `oid`: The individual file's OID
+* `path`: For downloads, the temporary path where the file was downloaded
+
+Or, if there was a failure transferring this item:
+
+```json
+{ "event": "complete", "oid": "22ab5f63670800cc7be06dbed816012b0dc411e774754c7579467d2536a9cf3e", "error": { "code": 2, "message": "Explain what happened to this transfer", "retry": false } }
+```
+
+* `event`: Always `complete` to identify this message
+* `oid`: the identifier of the LFS object
+* `error`: Should contain a `code` and `message` explaining the error and `retry` flag indicating whether this object should be retried
+
+These messages have to be sent for each item in the bulk transfer, and they can 
+be sent in any order. The transfer adapter has complete freedom in how it 
+processes the items within a bulk - they can be processed sequentially, in 
+parallel, or using any other strategy (e.g., downloading all files as a single 
+archive and then extracting them). Git-LFS will track completion of individual 
+items regardless of the order in which completion messages arrive.
+
+Errors for a single transfer request should not terminate the process or bulk 
+transfer. The error should be returned in the response structure instead.
+
+`retry` flag indicates whether this bulk item can be retried later and does not
+have any effect on the bulk result.
+
+The custom transfer adapter does not need to check the SHA of the file content
+it has downloaded, git-lfs will do that before moving the final content into
+the LFS store.
+
+### Bulk Completion
+
+After all the item completion messages are sent, the entire bulk transfer completion
+message follows. This message indicates that the entire bulk transfer is completed.
+
+For successful completion, it looks like this:
+
+```json
+{ "event": "bulk-complete", "oid": "bulk-12345-uuid" }
+```
+
+Fields:
+* `event`: Always "bulk-complete" to identify this message
+* `oid`: The bulk transfer ID
+
+If there was an error during the bulk transfer, it can be sent as follows:
+
+```json
+{ "event": "bulk-complete", "oid": "bulk-12345-uuid", "error": { "code": 500, "message": "Bulk transfer failed due to network error", "retry": false } }
+```
+
+Fields:
+* `event`: Always "bulk-complete" to identify this message
+* `oid`: The bulk transfer ID
+* `error`: Should contain a `code` and `message` explaining the error and `retry` flag indicating whether this bulk should be retried
+
+`retry` flag in case of bulks corresponds to retrying the whole bulk regardless of any previous 
+successfull results for individual artifacts. A bulk can be reported as sucessfull though
+some artifacts can be retried later via the retry flag in the bulk item completion messages. 
+
+The bulk transfer completion error never preceeds the item completion messages, and it
+is sent only once after all items have been processed.
+
+The bulk transfer failure is not considered a fatal error, and the process can continue 
+to handle other bulks or items.
+
+### Stage 3: Finish & Cleanup
+
+When all transfers have been processed, git-lfs will send the following message
+to the stdin of the transfer process:
+
+```json
+{ "event": "terminate" }
+```
+
+On receiving this message the transfer process should clean up and terminate.
+No response is expected.
+
+## Protocol Flow Example
+
+Here's an example flow for downloading 2 files in a bulk:
+
+### Client to Process:
+```json
+{"event": "init", "operation": "download", "remote": "origin", "concurrent": true, "concurrenttransfers": 3}
+{"event": "bulk-header", "oid": "bulk-001", "size": 2 }
+{"event": "download", "oid": "sha256:file1", "size": 1024, "path": "", "action": {"href": "https://example.com/file1"}}
+{"event": "download", "oid": "sha256:file2", "size": 2048, "path": "", "action": {"href": "https://example.com/file2"}}
+{"event": "bulk-footer", "oid": "bulk-001", "size": 3072, "path": "", "action": null}
+```
+
+### Process to Client (Sequential Processing):
+```json
+{ }
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 0, "bytesSinceLast": 0}
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 1024, "bytesSinceLast": 1024}
+{"event": "complete", "oid": "sha256:file1", "path": "/tmp/file1" }
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 3072, "bytesSinceLast": 2048}
+{"event": "complete", "oid": "sha256:file2", "path": "/tmp/file2" }
+{"event": "bulk-complete", "oid": "bulk-001" }
+```
+
+### Process to Client (Parallel Processing):
+```json
+{ }
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 0, "bytesSinceLast": 0}
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 2048, "bytesSinceLast": 2048}
+{"event": "complete", "oid": "sha256:file2", "path": "/tmp/file2" }
+{"event": "progress", "oid": "bulk-001", "bytesSoFar": 3072, "bytesSinceLast": 1024}
+{"event": "complete", "oid": "sha256:file1", "path": "/tmp/file1" }
+{"event": "bulk-complete", "oid": "bulk-001" }
+```
+
+Note: In the parallel example, file2 completes before file1, demonstrating that 
+completion order is independent of the order in which items were sent.
+
+### Cleanup:
+```json
+{"event": "terminate"}
+```
+
 
 ## Error handling
 
