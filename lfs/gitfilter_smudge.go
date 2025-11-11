@@ -15,13 +15,13 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func (f *GitFilter) SmudgeToFile(filename string, ptr *WrappedPointer, download bool, manifest tq.Manifest, cb tools.CopyCallback) error {
+func (f *GitFilter) SmudgeToFile(path string, ptr *WrappedPointer, download bool, manifest tq.Manifest, cb tools.CopyCallback) error {
 	// When no pointer file exists on disk, we should use the permissions
 	// defined for the file in Git, since the executable mode may be set.
 	// However, to conform with our legacy behaviour, we do not do this
 	// at present.
 	var mode os.FileMode = 0666
-	if stat, _ := os.Lstat(filename); stat != nil && stat.Mode().IsRegular() {
+	if stat, _ := os.Lstat(path); stat != nil && stat.Mode().IsRegular() {
 		if ptr.Size == 0 && stat.Size() == 0 {
 			return nil
 		}
@@ -29,18 +29,13 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *WrappedPointer, download 
 		mode = stat.Mode().Perm()
 	}
 
-	abs, err := filepath.Abs(filename)
-	if err != nil {
-		return errors.New(tr.Tr.Get("could not produce absolute path for %q", filename))
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", path))
 	}
 
-	if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
-		return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", filename))
-	}
-
-	file, err := os.OpenFile(abs, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
 	if err != nil {
-		return errors.Wrap(err, tr.Tr.Get("could not create working directory file %q", filename))
+		return errors.Wrap(err, tr.Tr.Get("could not create working directory file %q", path))
 	}
 	defer file.Close()
 	if _, err := f.Smudge(file, ptr.Pointer, ptr.Name, download, manifest, cb); err != nil {
