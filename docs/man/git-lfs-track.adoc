@@ -53,7 +53,7 @@ Disabled by default.
 `--no-excluded`::
   Do not list patterns that are excluded in the output; only list patterns that
   are tracked.
---no-modify-attrs:
+--no-modify-attrs::
   Makes matched entries stat-dirty so that Git can re-index files you wish to
   convert to LFS. Does not modify any `.gitattributes` file(s).
 

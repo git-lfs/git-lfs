@@ -27,8 +27,8 @@ details are saved to ".git/lfs/logs".
 
 Without any options, `git lfs logs` simply shows the list of error logs.
 
-* `<file>`: Shows the specified error log. Use "last" to show the most recent
-error.
+`<file>`::
+  Shows the specified error log. Use "last" to show the most recent error.
 
 == SEE ALSO
 

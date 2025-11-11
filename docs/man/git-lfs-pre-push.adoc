@@ -30,8 +30,8 @@ will be made.
 
 == OPTIONS
 
-* `GIT_LFS_SKIP_PUSH`: Do nothing on pre-push. For more, see:
-git-lfs-config(5).
+`GIT_LFS_SKIP_PUSH`::
+   Do nothing on pre-push. For more information, see git-lfs-config(5).
 
 == SEE ALSO
 

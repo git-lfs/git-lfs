@@ -56,11 +56,6 @@ EXTRA_GC_FLAGS =
 # GC_FLAGS are the union of the above two BUILTIN_GC_FLAGS and EXTRA_GC_FLAGS.
 GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
-# RONN is the name of the 'ronn' program used to generate man pages.
-RONN ?= ronn
-# RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
-RONN_EXTRA_ARGS ?=
-
 # ASCIIDOCTOR is the name of the 'asciidoctor' program used to generate man pages.
 ASCIIDOCTOR ?= asciidoctor
 # ASCIIDOCTOR_EXTRA_ARGS are extra arguments given to the $(ASCIIDOCTOR) program when invoked.

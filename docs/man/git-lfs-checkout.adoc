@@ -21,7 +21,7 @@ contains placeholder pointer content with the same SHA, the real file
 content is written, provided we have it in the local store. Modified
 files are never overwritten.
 
-One or more s may be provided as arguments to restrict the set of files
+One or more `<glob-pattern>` arguments may be provided to restrict the set of files
 that are updated. Glob patterns are matched as per the format described
 in gitignore(5).
 
@@ -62,7 +62,7 @@ this command may exit with an error if it is run in a bare repository.
   conflict for the specified file.
 `--theirs`::
   Check out their side (that of the other branch) of the
-conflict for the specified file.
+  conflict for the specified file.
 `--to <path>`::
   If the working tree is in a conflicted state, check out the
   portion of the conflict specified by `--base`, `--ours`, or `--theirs`
