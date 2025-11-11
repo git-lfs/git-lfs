@@ -15,7 +15,7 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, manifest tq.Manifest, cb tools.CopyCallback) error {
+func (f *GitFilter) SmudgeToFile(filename string, ptr *WrappedPointer, download bool, manifest tq.Manifest, cb tools.CopyCallback) error {
 	// When no pointer file exists on disk, we should use the permissions
 	// defined for the file in Git, since the executable mode may be set.
 	// However, to conform with our legacy behaviour, we do not do this
@@ -43,7 +43,7 @@ func (f *GitFilter) SmudgeToFile(filename string, ptr *Pointer, download bool, m
 		return errors.Wrap(err, tr.Tr.Get("could not create working directory file %q", filename))
 	}
 	defer file.Close()
-	if _, err := f.Smudge(file, ptr, filename, download, manifest, cb); err != nil {
+	if _, err := f.Smudge(file, ptr.Pointer, ptr.Name, download, manifest, cb); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
 			file.Seek(0, io.SeekStart)
