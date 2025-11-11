@@ -40,13 +40,11 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Error parsing args: %v", err))
 	}
 
-	rootedPaths := rootedPaths(args)
-
 	if checkoutTo != "" && stage != git.IndexStageDefault {
 		if len(args) != 1 {
 			Exit(tr.Tr.Get("--to requires exactly one Git LFS object file path"))
 		}
-		checkoutConflict(rootedPaths[0], stage)
+		checkoutConflict(args[0], stage)
 		return
 	} else if checkoutTo != "" || stage != git.IndexStageDefault {
 		Exit(tr.Tr.Get("--to and exactly one of --theirs, --ours, and --base must be used together"))
@@ -56,6 +54,8 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
+
+	rootedPathPatterns := rootedPathPatterns(args)
 
 	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")
@@ -85,7 +85,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		pointers = append(pointers, p)
 	})
 
-	chgitscanner.Filter = filepathfilter.New(rootedPaths, nil, filepathfilter.GitIgnore)
+	chgitscanner.Filter = filepathfilter.New(rootedPathPatterns, nil, filepathfilter.GitIgnore)
 
 	if err := chgitscanner.ScanLFSFiles(ref.Sha, nil); err != nil {
 		ExitWithError(err)
@@ -115,6 +115,13 @@ func checkoutConflict(file string, stage git.IndexStage) {
 	if err != nil {
 		Exit(tr.Tr.Get("Could not create path %q: %v", checkoutTo, err))
 	}
+
+	pathConverter, err := lfs.NewCurrentToRepoPathConverter(cfg)
+	if err != nil {
+		Panic(err, tr.Tr.Get("Could not checkout"))
+	}
+
+	file = pathConverter.Convert(file)
 
 	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, "")
@@ -176,17 +183,17 @@ func whichCheckout() (stage git.IndexStage, err error) {
 // Parameters are filters
 // firstly convert any pathspecs to patterns relative to the root of the repo,
 // in case this is being executed in a sub-folder
-func rootedPaths(args []string) []string {
-	pathConverter, err := lfs.NewCurrentToRepoPatternConverter(cfg)
+func rootedPathPatterns(args []string) []string {
+	patternConverter, err := lfs.NewCurrentToRepoPatternConverter(cfg)
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
 
-	rootedpaths := make([]string, 0, len(args))
+	rootedPathPatterns := make([]string, 0, len(args))
 	for _, arg := range args {
-		rootedpaths = append(rootedpaths, pathConverter.Convert(arg))
+		rootedPathPatterns = append(rootedPathPatterns, patternConverter.Convert(arg))
 	}
-	return rootedpaths
+	return rootedPathPatterns
 }
 
 func init() {
