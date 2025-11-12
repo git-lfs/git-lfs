@@ -76,6 +76,15 @@ assert_local_object() {
   fi
 }
 
+# is_valid_oid() confirms that an object ID is a valid SHA-256 hash, for use
+# in our refute_*_object() functions which otherwise just check that an
+# object file or record does not exist
+is_valid_oid() {
+  local oid="$1"
+
+  printf "%s" "$oid" | grep -q "^[0-9a-f]\{64\}$"
+}
+
 # refute_local_object confirms that an object file is NOT stored for an oid.
 # If "$size" is given as the second argument, assert that the file exists _and_
 # that it does _not_ the expected size
@@ -85,6 +94,9 @@ assert_local_object() {
 refute_local_object() {
   local oid="$1"
   local size="$2"
+
+  is_valid_oid "$oid"
+
   local f="$(local_object_path "$oid")"
   if [ -e $f ]; then
     if [ -z "$size" ]; then
@@ -104,6 +116,8 @@ refute_local_object() {
 delete_local_object() {
   local oid="$1"
   local f="$(local_object_path "$oid")"
+  # Note that so long as we do not use "rm -f" we do not need to first
+  # check that the object ID is valid or that file exists.
   rm "$f"
 }
 
@@ -112,6 +126,8 @@ delete_local_object() {
 corrupt_local_object() {
   local oid="$1"
   local f="$(local_object_path "$oid")"
+
+  [ -f "$f" ]
   cp /dev/null "$f"
 }
 
@@ -123,6 +139,9 @@ corrupt_local_object() {
 refute_server_object() {
   local reponame="$1"
   local oid="$2"
+
+  is_valid_oid "$oid"
+
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
     -u "user:pass" \
     -o http.json \
@@ -146,6 +165,9 @@ refute_server_object() {
 delete_server_object() {
   local reponame="$1"
   local oid="$2"
+
+  is_valid_oid "$oid"
+
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
     -X DELETE \
     -u "user:pass" \
@@ -199,6 +221,9 @@ assert_remote_object() {
 refute_remote_object() {
   local reponame="$1"
   local oid="$2"
+
+  is_valid_oid "$oid"
+
   local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
 
   pushd "$destination"
