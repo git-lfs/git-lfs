@@ -34,6 +34,12 @@ begin_test "credentials rejected with line feed"
   testreponame="test%0a$reponame"
   git config lfs.url "$gitserver/$testreponame.git/info/lfs"
 
+  # The refute_server_object() assertion below will fail unless its
+  # repository name parameter matches an extant "remote" directory.
+  pushd .
+    setup_remote_repo "$testreponame"
+  popd
+
   GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs push' to fail ..."
@@ -79,6 +85,12 @@ begin_test "credentials rejected with carriage return"
   testreponame="test%0d$reponame"
   git config lfs.url "$gitserver/$testreponame.git/info/lfs"
 
+  # The refute_server_object() assertion below will fail unless its
+  # repository name parameter matches an extant "remote" directory.
+  pushd .
+    setup_remote_repo "$testreponame"
+  popd
+
   GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected 'git lfs push' to fail ..."
@@ -122,6 +134,12 @@ begin_test "credentials rejected with null byte"
   gitserver="$(echo "$GITSERVER" | sed 's/127\.0\.0\.1/localhost/')"
   testreponame="test%00$reponame"
   git config lfs.url "$gitserver/$testreponame.git/info/lfs"
+
+  # The refute_server_object() assertion below will fail unless its
+  # repository name parameter matches an extant "remote" directory.
+  pushd .
+    setup_remote_repo "$testreponame"
+  popd
 
   GIT_TRACE=1 git lfs push origin main 2>&1 | tee push.log
   if [ "0" -eq "${PIPESTATUS[0]}" ]; then

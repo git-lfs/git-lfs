@@ -140,6 +140,7 @@ refute_server_object() {
   local reponame="$1"
   local oid="$2"
 
+  [ -d "$(canonical_path "$REMOTEDIR/$reponame.git")" ]
   is_valid_oid "$oid"
 
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/batch" \
@@ -166,6 +167,7 @@ delete_server_object() {
   local reponame="$1"
   local oid="$2"
 
+  [ -d "$(canonical_path "$REMOTEDIR/$reponame.git")" ]
   is_valid_oid "$oid"
 
   curl -v "$GITSERVER/$reponame.git/info/lfs/objects/$oid" \
