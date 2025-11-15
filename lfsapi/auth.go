@@ -24,30 +24,33 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic authentication.
 func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
-	count := 0
-	res, err := c.doWithAuth(remote, &count, access, req, nil)
-
-	if errors.IsAuthError(err) {
-		if len(req.Header.Get("Authorization")) == 0 {
-			// This case represents a rejected request that
-			// should have been authenticated but wasn't. Do
-			// not count this against our redirection
-			// maximum.
-			newAccess := c.Endpoints.AccessFor(access.URL())
-			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
-			return c.DoWithAuth(remote, newAccess, req)
+	for range defaultMaxAuthAttempts {
+		res, err := c.doWithAuth(remote, access, req, nil)
+		if err == nil || !errors.IsAuthError(err) {
+			return res, err
 		}
+
+		// We expect this condition should never occur because
+		// doWithAuth() will delete any Authorization header
+		// after a 401 status code is received.
+		if len(req.Header.Get("Authorization")) != 0 {
+			return res, err
+		}
+
+		// This case represents a rejected request that
+		// should have been authenticated but wasn't.
+		access = c.Endpoints.AccessFor(access.URL())
+		tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
 	}
 
-	return res, err
+	return nil, fmt.Errorf("too many authentication attempts")
 }
 
 // DoWithAuthNoRetry sends an HTTP request to get an HTTP response. It works in
 // the same way as DoWithAuth, but will not retry the request if it fails with
 // an authorization error.
 func (c *Client) DoWithAuthNoRetry(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
-	count := 0
-	return c.doWithAuth(remote, &count, access, req, nil)
+	return c.doWithAuth(remote, access, req, nil)
 }
 
 // DoAPIRequestWithAuth sends an HTTP request to get an HTTP response similarly
@@ -60,11 +63,7 @@ func (c *Client) DoAPIRequestWithAuth(remote string, req *http.Request) (*http.R
 	return c.DoWithAuth(remote, access, req)
 }
 
-func (c *Client) doWithAuth(remote string, count *int, access creds.Access, req *http.Request, via []*http.Request) (*http.Response, error) {
-	if *count == defaultMaxAuthAttempts {
-		return nil, fmt.Errorf("too many authentication attempts")
-	}
-
+func (c *Client) doWithAuth(remote string, access creds.Access, req *http.Request, via []*http.Request) (*http.Response, error) {
 	req.Header = c.client.ExtraHeadersFor(req)
 
 	credWrapper, err := c.getCreds(remote, access, req)
@@ -73,27 +72,23 @@ func (c *Client) doWithAuth(remote string, count *int, access creds.Access, req 
 	}
 	c.credContext.SetStateFields(credWrapper.Creds["state[]"])
 
-	res, err := c.doWithCreds(req, count, credWrapper, access, via)
-	if err != nil {
-		if errors.IsAuthError(err) {
-			multistage := credWrapper.Creds.IsMultistage()
-			newMode, newModes, headers := getAuthAccess(res, access.Mode(), c.access, multistage)
-			newAccess := access.Upgrade(newMode)
-			if newAccess.Mode() != access.Mode() {
-				c.Endpoints.SetAccess(newAccess)
-				c.access = newModes
-			}
-
-			if credWrapper.Creds != nil {
-				req.Header.Del("Authorization")
-				if multistage && *count < defaultMaxAuthAttempts && res != nil && res.StatusCode == 401 {
-					*count++
-				} else {
-					credWrapper.CredentialHelper.Reject(credWrapper.Creds)
-				}
-			}
-			c.credContext.SetWWWAuthHeaders(headers)
+	res, err := c.doWithCreds(req, credWrapper, access, via)
+	if err != nil && errors.IsAuthError(err) {
+		multistage := credWrapper.Creds.IsMultistage()
+		newMode, newModes, headers := getAuthAccess(res, access.Mode(), c.access, multistage)
+		newAccess := access.Upgrade(newMode)
+		if newAccess.Mode() != access.Mode() {
+			c.Endpoints.SetAccess(newAccess)
+			c.access = newModes
 		}
+
+		if credWrapper.Creds != nil {
+			req.Header.Del("Authorization")
+			if !multistage {
+				credWrapper.CredentialHelper.Reject(credWrapper.Creds)
+			}
+		}
+		c.credContext.SetWWWAuthHeaders(headers)
 	}
 
 	if res != nil && res.StatusCode < 300 && res.StatusCode > 199 {
@@ -103,7 +98,7 @@ func (c *Client) doWithAuth(remote string, count *int, access creds.Access, req 
 	return res, err
 }
 
-func (c *Client) doWithCreds(req *http.Request, count *int, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
+func (c *Client) doWithCreds(req *http.Request, credWrapper creds.CredentialHelperWrapper, access creds.Access, via []*http.Request) (*http.Response, error) {
 	if access.Mode() == creds.NegotiateAccess {
 		return c.doWithNegotiate(req, credWrapper)
 	}
@@ -124,7 +119,7 @@ func (c *Client) doWithCreds(req *http.Request, count *int, credWrapper creds.Cr
 		return res, errors.New(tr.Tr.Get("failed to redirect request"))
 	}
 
-	return c.doWithAuth("", count, access, redirectedReq, via)
+	return c.doWithAuth("", access, redirectedReq, via)
 }
 
 // getCreds fills the authorization header for the given request if possible,
