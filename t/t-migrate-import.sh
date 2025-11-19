@@ -106,7 +106,7 @@ begin_test "migrate import (default branch with filter)"
   [ -z "$(git cat-file -p "$feature:.gitattributes")" ]
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$main_attrs" | grep -c "*.txt filter=lfs diff=lfs merge=lfs")" ]
 )
 end_test
 
@@ -136,9 +136,9 @@ begin_test "migrate import (given branch with filter)"
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$main_attrs" | grep -c "*.txt filter=lfs diff=lfs merge=lfs")" ]
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$feature_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$feature_attrs" | grep -c "*.txt filter=lfs diff=lfs merge=lfs")" ]
 )
 end_test
 
@@ -195,7 +195,7 @@ begin_test "migrate import (default branch, exclude remote refs)"
   [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
 
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
 
@@ -237,7 +237,7 @@ begin_test "migrate import (given branch, exclude remote refs)"
   echo "$main_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
   echo "$main_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
   echo "$feature_attrs" | grep -q "*.md filter=lfs diff=lfs merge=lfs"
-  echo "$feature_attrs" | grep -vq "*.txt filter=lfs diff=lfs merge=lfs"
+  echo "$feature_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
 
@@ -429,7 +429,7 @@ begin_test "migrate import (include/exclude ref with filter)"
   [ -z "$(git cat-file -p "$remote:.gitattributes")" ]
   feature_attrs="$(git cat-file -p "$feature:.gitattributes")"
 
-  echo "$feature_attrs" | grep -vq "*.md filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$feature_attrs" | grep -c "*.md filter=lfs diff=lfs merge=lfs")" ]
   echo "$feature_attrs" | grep -q "*.txt filter=lfs diff=lfs merge=lfs"
 )
 end_test
@@ -466,7 +466,7 @@ begin_test "migrate import (above)"
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
 
   echo "$main_attrs" | grep -q "/a.md filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "/a.txt filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$main_attrs" | grep -c "/a.txt filter=lfs diff=lfs merge=lfs")" ]
   git check-attr filter -- a.txt | grep -vq lfs
 )
 end_test
@@ -492,7 +492,7 @@ begin_test "migrate import (above without extension)"
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
 
   echo "$main_attrs" | grep -q "/just-b filter=lfs diff=lfs merge=lfs"
-  echo "$main_attrs" | grep -vq "/a.txt filter=lfs diff=lfs merge=lfs"
+  [ 0 -eq "$(echo "$main_attrs" | grep -c "/a.txt filter=lfs diff=lfs merge=lfs")" ]
   git check-attr filter -- a.txt | grep -vq lfs
 )
 end_test
