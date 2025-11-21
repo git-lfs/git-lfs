@@ -49,7 +49,7 @@ func (s *AttributeSource) String() string {
 
 // GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
 // only from the global gitattributes file.
-func GetRootAttributePaths(mp *MacroProcessor, cfg Environment) []AttributePath {
+func GetRootAttributePaths(mp *MacroProcessor, cfg core.Environment) []AttributePath {
 	af, _ := cfg.Get("core.attributesfile")
 	af, err := tools.ExpandConfigPath(af, "git/attributes")
 	if err != nil {
@@ -67,7 +67,7 @@ func GetRootAttributePaths(mp *MacroProcessor, cfg Environment) []AttributePath 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(mp *MacroProcessor, env Environment) ([]AttributePath, error) {
+func GetSystemAttributePaths(mp *MacroProcessor, env core.Environment) ([]AttributePath, error) {
 	var path string
 	if core.IsGitVersionAtLeast("2.42.0") {
 		cmd, err := core.GitNoLFS("var", "GIT_ATTR_SYSTEM")

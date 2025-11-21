@@ -5,16 +5,10 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
-
-// Environment is a restricted version of config.Environment that only provides
-// a single method.
-type Environment interface {
-	// Get is shorthand for calling `e.Fetcher.Get(key)`.
-	Get(key string) (val string, ok bool)
-}
 
 // Tree represents the .gitattributes file at one layer of the tree in a Git
 // repository.
@@ -88,7 +82,7 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 	}, nil
 }
 
-func (t *Tree) FindSpecialAttributes(gitEnv, osEnv Environment) error {
+func (t *Tree) FindSpecialAttributes(gitEnv, osEnv core.Environment) error {
 
 	return nil
 }
