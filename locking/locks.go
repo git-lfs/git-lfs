@@ -12,7 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/kv"
@@ -41,7 +41,7 @@ type LockCacher interface {
 // Client is the main interface object for the locking package
 type Client struct {
 	Remote    string
-	RemoteRef *git.Ref
+	RemoteRef *core.Ref
 	client    lockClient
 	cache     LockCacher
 	cacheDir  string

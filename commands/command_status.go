@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -25,12 +26,12 @@ func statusCommand(cmd *cobra.Command, args []string) {
 	setupWorkingCopy()
 
 	// tolerate errors getting ref so this works before first commit
-	ref, _ := git.CurrentRef()
+	ref, _ := core.CurrentRef()
 
 	scanIndexAt := "HEAD"
 	var err error
 	if ref == nil {
-		scanIndexAt, err = git.EmptyTree()
+		scanIndexAt, err = core.EmptyTree()
 		if err != nil {
 			ExitWithError(err)
 		}
@@ -112,7 +113,7 @@ func formatBlobInfo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) string {
 
 func blobInfoFrom(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from string, err error) {
 	var blobSha string = entry.SrcSha
-	if git.IsZeroObjectID(blobSha) {
+	if core.IsZeroObjectID(blobSha) {
 		blobSha = entry.DstSha
 	}
 
@@ -129,7 +130,7 @@ func blobInfoTo(s *lfs.PointerScanner, entry *lfs.DiffIndexEntry) (sha, from str
 }
 
 func blobInfo(s *lfs.PointerScanner, blobSha, name string) (sha, from string, err error) {
-	if !git.IsZeroObjectID(blobSha) {
+	if !core.IsZeroObjectID(blobSha) {
 		s.Scan(blobSha)
 		if err := s.Err(); err != nil {
 			if git.IsMissingObject(err) {
@@ -225,7 +226,7 @@ func keyFromEntry(e *lfs.DiffIndexEntry) string {
 	return strings.Join([]string{e.SrcSha, e.DstSha, name}, ":")
 }
 
-func statusScanRefRange(ref *git.Ref) {
+func statusScanRefRange(ref *core.Ref) {
 	if ref == nil {
 		return
 	}

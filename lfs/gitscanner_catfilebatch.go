@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -22,7 +22,7 @@ import (
 // will be sent to pointerCh.
 // If a Git blob is not an LFS pointer, check the lockableSet to see
 // if that blob is for a locked file.  Any errors are sent to errCh.
-func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error, gitEnv, osEnv config.Environment) error {
+func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error, gitEnv, osEnv core.Environment) error {
 	scanner, err := NewPointerScanner(gitEnv, osEnv)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func runCatFileBatch(pointerCh chan *WrappedPointer, lockableCh chan string, loc
 				errCh <- err
 			} else if p := scanner.Pointer(); p != nil {
 				pointerCh <- p
-			} else if b := scanner.BlobSHA(); git.HasValidObjectIDLength(b) {
+			} else if b := scanner.BlobSHA(); core.HasValidObjectIDLength(b) {
 				if name, ok := lockableSet.Check(b); ok {
 					lockableCh <- name
 				}
@@ -75,7 +75,7 @@ type PointerScanner struct {
 	err         error
 }
 
-func NewPointerScanner(gitEnv, osEnv config.Environment) (*PointerScanner, error) {
+func NewPointerScanner(gitEnv, osEnv core.Environment) (*PointerScanner, error) {
 	scanner, err := git.NewObjectScanner(gitEnv, osEnv)
 	if err != nil {
 		return nil, err

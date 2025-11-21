@@ -12,7 +12,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/fs"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -435,7 +435,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 	// Make a list of what unique commits to keep, & search backward from
 	commits := tools.NewStringSet()
 	// Do current first
-	ref, err := git.CurrentRef()
+	ref, err := core.CurrentRef()
 	if err != nil {
 		errorChan <- err
 		return
@@ -452,7 +452,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 		tracerx.Printf("PRUNE: Retaining non-HEAD refs within %d (%d+%d) days", pruneRefDays, fetchconf.FetchRecentRefsDays, fetchconf.PruneOffsetDays)
 		refsSince := time.Now().AddDate(0, 0, -pruneRefDays)
 		// Keep all recent refs including any recent remote branches
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
+		refs, err := core.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, "")
 		if err != nil {
 			Panic(err, tr.Tr.Get("Could not scan for recent refs"))
 		}
@@ -471,7 +471,7 @@ func pruneTaskGetRetainedCurrentAndRecentRefs(gitscanner *lfs.GitScanner, fetchc
 		pruneCommitDays := fetchconf.FetchRecentCommitsDays + fetchconf.PruneOffsetDays
 		for commit := range commits.Iter() {
 			// We measure from the last commit at the ref
-			summ, err := git.GetCommitSummary(commit)
+			summ, err := core.GetCommitSummary(commit)
 			if err != nil {
 				errorChan <- errors.New(tr.Tr.Get("couldn't scan commits at %v: %v", commit, err))
 				continue
@@ -508,7 +508,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 
 	// Retain other worktree HEADs too
 	// Working copy, branch & maybe commit is different but repo is shared
-	allWorktrees, err := git.GetAllWorktrees(cfg.LocalGitStorageDir())
+	allWorktrees, err := core.GetAllWorktrees(cfg.LocalGitStorageDir())
 	if err != nil {
 		errorChan <- err
 		return
@@ -519,7 +519,7 @@ func pruneTaskGetRetainedWorktree(gitscanner *lfs.GitScanner, fetchconf lfs.Fetc
 
 	if !fetchconf.PruneForce {
 		// current HEAD is done elsewhere
-		headref, err := git.CurrentRef()
+		headref, err := core.CurrentRef()
 		if err != nil {
 			errorChan <- err
 			return

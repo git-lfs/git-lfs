@@ -9,7 +9,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tq"
@@ -92,7 +92,7 @@ func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 func fetchCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 
-	var refs []*git.Ref
+	var refs []*core.Ref
 
 	if len(args) > 0 {
 		// Remote is first arg
@@ -110,7 +110,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			if line != "" {
-				ref, err := git.ResolveRef(line)
+				ref, err := core.ResolveRef(line)
 				if err != nil {
 					Panic(err, tr.Tr.Get("Invalid ref argument: %v", line))
 				}
@@ -121,17 +121,17 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(errors.Wrap(err, tr.Tr.Get("Error reading from stdin:")))
 		}
 	} else if len(args) > 1 {
-		resolvedrefs, err := git.ResolveRefs(args[1:])
+		resolvedrefs, err := core.ResolveRefs(args[1:])
 		if err != nil {
 			Panic(err, tr.Tr.Get("Invalid ref argument: %v", args[1:]))
 		}
 		refs = resolvedrefs
 	} else if !fetchAllArg {
-		ref, err := git.CurrentRef()
+		ref, err := core.CurrentRef()
 		if err != nil {
 			Panic(err, tr.Tr.Get("Could not fetch"))
 		}
-		refs = []*git.Ref{ref}
+		refs = []*core.Ref{ref}
 	}
 
 	if fetchJsonArg && fetchPruneArg {
@@ -292,7 +292,7 @@ func fetchPreviousVersions(ref string, since time.Time, filter *filepathfilter.F
 }
 
 // Fetch recent objects based on config
-func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, filter *filepathfilter.Filter, watcher *fetchWatcher) bool {
+func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*core.Ref, filter *filepathfilter.Filter, watcher *fetchWatcher) bool {
 	if fetchconf.FetchRecentRefsDays == 0 && fetchconf.FetchRecentCommitsDays == 0 {
 		return true
 	}
@@ -312,7 +312,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 			fetchconf.FetchRecentRefsDays,
 		))
 		refsSince := time.Now().AddDate(0, 0, -fetchconf.FetchRecentRefsDays)
-		refs, err := git.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
+		refs, err := core.RecentBranches(refsSince, fetchconf.FetchRecentRefsIncludeRemotes, cfg.Remote())
 		if err != nil {
 			Panic(err, tr.Tr.Get("Could not scan for recent refs"))
 		}
@@ -334,7 +334,7 @@ func fetchRecent(fetchconf lfs.FetchPruneConfig, alreadyFetchedRefs []*git.Ref, 
 	if fetchconf.FetchRecentCommitsDays > 0 {
 		for commit, refName := range uniqueRefShas {
 			// We measure from the last commit at the ref
-			summ, err := git.GetCommitSummary(commit)
+			summ, err := core.GetCommitSummary(commit)
 			if err != nil {
 				Error(tr.Tr.Get("Couldn't scan commits at %v: %v", refName, err))
 				continue

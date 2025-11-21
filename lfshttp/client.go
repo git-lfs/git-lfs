@@ -21,6 +21,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"golang.org/x/net/http2"
@@ -57,8 +58,8 @@ type Client struct {
 
 	httpLogger *syncLogger
 
-	gitEnv config.Environment
-	osEnv  config.Environment
+	gitEnv core.Environment
+	osEnv  core.Environment
 	uc     *config.URLConfig
 
 	credHelperContext *creds.CredentialHelperContext
@@ -99,11 +100,11 @@ func NewClient(ctx Context) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) GitEnv() config.Environment {
+func (c *Client) GitEnv() core.Environment {
 	return c.gitEnv
 }
 
-func (c *Client) OSEnv() config.Environment {
+func (c *Client) OSEnv() core.Environment {
 	return c.osEnv
 }
 
@@ -623,12 +624,12 @@ func (e testEnv) GetAll(key string) []string {
 
 func (e testEnv) Int(key string, def int) int {
 	s, _ := e.Get(key)
-	return config.Int(s, def)
+	return core.Int(s, def)
 }
 
 func (e testEnv) Bool(key string, def bool) bool {
 	s, _ := e.Get(key)
-	return config.Bool(s, def)
+	return core.Bool(s, def)
 }
 
 func (e testEnv) All() map[string][]string {

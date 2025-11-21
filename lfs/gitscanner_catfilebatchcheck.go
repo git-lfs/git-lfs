@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -17,7 +17,7 @@ import (
 // over which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
 func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
-	cmd, err := git.CatFile()
+	cmd, err := core.CatFile()
 	if err != nil {
 		return err
 	}

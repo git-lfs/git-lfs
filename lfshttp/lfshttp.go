@@ -5,9 +5,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -17,15 +16,15 @@ var (
 )
 
 type Context interface {
-	GitConfig() *git.Configuration
-	OSEnv() config.Environment
-	GitEnv() config.Environment
+	GitConfig() *core.Configuration
+	OSEnv() core.Environment
+	GitEnv() core.Environment
 }
 
-func NewContext(gitConf *git.Configuration, osEnv, gitEnv map[string]string) Context {
+func NewContext(gitConf *core.Configuration, osEnv, gitEnv map[string]string) Context {
 	c := &testContext{gitConfig: gitConf}
 	if c.gitConfig == nil {
-		c.gitConfig = git.NewConfig("", "")
+		c.gitConfig = core.NewConfig("", "")
 	}
 	if osEnv != nil {
 		c.osEnv = testEnv(osEnv)
@@ -42,20 +41,20 @@ func NewContext(gitConf *git.Configuration, osEnv, gitEnv map[string]string) Con
 }
 
 type testContext struct {
-	gitConfig *git.Configuration
-	osEnv     config.Environment
-	gitEnv    config.Environment
+	gitConfig *core.Configuration
+	osEnv     core.Environment
+	gitEnv    core.Environment
 }
 
-func (c *testContext) GitConfig() *git.Configuration {
+func (c *testContext) GitConfig() *core.Configuration {
 	return c.gitConfig
 }
 
-func (c *testContext) OSEnv() config.Environment {
+func (c *testContext) OSEnv() core.Environment {
 	return c.osEnv
 }
 
-func (c *testContext) GitEnv() config.Environment {
+func (c *testContext) GitEnv() core.Environment {
 	return c.gitEnv
 }
 

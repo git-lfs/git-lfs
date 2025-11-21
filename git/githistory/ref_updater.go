@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
@@ -23,8 +23,8 @@ type refUpdater struct {
 	cacheFn func(old []byte) ([]byte, bool)
 	// logger logs the progress of reference updating.
 	logger *tasklog.Logger
-	// refs is a set of *git.Ref's to migrate.
-	refs []*git.Ref
+	// refs is a set of *core.Ref's to migrate.
+	refs []*core.Ref
 	// root is the given directory on disk in which the repository is
 	// located.
 	root string
@@ -50,7 +50,7 @@ func (r *refUpdater) updateRefs() error {
 		maxNameLen = max(maxNameLen, len(ref.Name))
 	}
 
-	cmd, err := git.UpdateRefsFromStdin(r.root)
+	cmd, err := core.UpdateRefsFromStdin(r.root)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (r *refUpdater) updateRefs() error {
 		}
 	}()
 
-	gitUpRefTransactions := git.IsGitVersionAtLeast("2.27.0")
+	gitUpRefTransactions := core.IsGitVersionAtLeast("2.27.0")
 	if gitUpRefTransactions {
 		if _, err = io.WriteString(input, "start\x00"); err != nil {
 			return err
@@ -123,7 +123,7 @@ func (r *refUpdater) updateOneTag(tag *gitobj.Tag, toObj []byte) ([]byte, error)
 	return newTag, nil
 }
 
-func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string][]byte, ref *git.Ref, gitUpRefIn io.WriteCloser) error {
+func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen map[string][]byte, ref *core.Ref, gitUpRefIn io.WriteCloser) error {
 	sha1, err := hex.DecodeString(ref.Sha)
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("could not decode: %q", ref.Sha))
@@ -136,13 +136,13 @@ func (r *refUpdater) updateOneRef(list *tasklog.ListTask, maxNameLen int, seen m
 
 	to, ok := r.cacheFn(sha1)
 
-	if ref.Type == git.RefTypeLocalTag {
+	if ref.Type == core.RefTypeLocalTag {
 		tag, _ := r.db.Tag(sha1)
 		if tag != nil && tag.ObjectType == gitobj.TagObjectType {
 			innerTag, _ := r.db.Tag(tag.Object)
 			name := fmt.Sprintf("refs/tags/%s", innerTag.Name)
 			if _, ok := seen[name]; !ok {
-				old, err := git.ResolveRef(name)
+				old, err := core.ResolveRef(name)
 				if err != nil {
 					return err
 				}

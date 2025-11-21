@@ -9,7 +9,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
@@ -117,7 +117,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		lfs.EncodePointer(io.MultiWriter(os.Stdout, buf), ptr)
 
 		if comparing {
-			buildOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
+			buildOid, err = core.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
 				os.Exit(1)
@@ -154,7 +154,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		fmt.Fprint(os.Stderr, buf.String())
 		if comparing {
-			compareOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
+			compareOid, err = core.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
 				os.Exit(1)

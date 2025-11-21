@@ -12,7 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -61,7 +61,7 @@ func scanUnpushed(cb GitScannerFoundPointer, remote string) error {
 	// Add standard search args to find lfs references
 	logArgs = append(logArgs, logLfsSearchArgs...)
 
-	cmd, err := git.Log(logArgs...)
+	cmd, err := core.Log(logArgs...)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func scanStashed(cb GitScannerFoundPointer) error {
 	// an individual diff with the first merge parent in a second step.
 	logArgs := []string{"-g", "--format=%h", "refs/stash", "--"}
 
-	cmd, err := git.Log(logArgs...)
+	cmd, err := core.Log(logArgs...)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func scanStashed(cb GitScannerFoundPointer) error {
 
 		logArgs = append(logArgs, stashMergeShas...)
 
-		cmd, err = git.Log(logArgs...)
+		cmd, err = core.Log(logArgs...)
 		if err != nil {
 			return err
 		}
@@ -175,14 +175,14 @@ func parseScannerLogOutput(cb GitScannerFoundPointer, direction LogDiffDirection
 // from 'since' up to (but not including) the final state at ref
 func logPreviousSHAs(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, since time.Time) error {
 	logArgs := []string{
-		fmt.Sprintf("--since=%v", git.FormatGitDate(since)),
+		fmt.Sprintf("--since=%v", core.FormatGitDate(since)),
 	}
 	// Add standard search args to find lfs references
 	logArgs = append(logArgs, logLfsSearchArgs...)
 	// ending at ref
 	logArgs = append(logArgs, ref)
 
-	cmd, err := git.Log(logArgs...)
+	cmd, err := core.Log(logArgs...)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func newLogScanner(dir LogDiffDirection, r io.Reader) *logScanner {
 
 		// no need to compile these regexes on every `git-lfs` call, just ones that
 		// use the scanner.
-		commitHeaderRegex:    regexp.MustCompile(fmt.Sprintf(`^lfs-commit-sha: (%s)(?: (%s))*`, git.ObjectIDRegex, git.ObjectIDRegex)),
+		commitHeaderRegex:    regexp.MustCompile(fmt.Sprintf(`^lfs-commit-sha: (%s)(?: (%s))*`, core.ObjectIDRegex, core.ObjectIDRegex)),
 		fileHeaderRegex:      regexp.MustCompile(`^diff --git "?a\/(.+?)\s+"?b\/(.+)`),
 		fileMergeHeaderRegex: regexp.MustCompile(`^diff --cc (.+)`),
 		pointerDataRegex:     regexp.MustCompile(`^([\+\- ])(version https://git-lfs|oid sha256|size|ext-).*$`),

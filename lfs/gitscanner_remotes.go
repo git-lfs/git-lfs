@@ -1,7 +1,7 @@
 package lfs
 
 import (
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 )
 
@@ -12,11 +12,11 @@ import (
 // been deleted on the server if unreferenced. If some refs are missing on the
 // remote, use a more explicit diff command.
 func calcSkippedRefs(remote string) []string {
-	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote)
+	cachedRemoteRefs, _ := core.CachedRemoteRefs(remote)
 
 	// Since CachedRemoteRefs() only returns branches, request that
 	// RemoteRefs() ignore tags and also return only branches.
-	actualRemoteRefs, _ := git.RemoteRefs(remote, false)
+	actualRemoteRefs, _ := core.RemoteRefs(remote, false)
 
 	// The list of remote refs can be very large, so convert them to
 	// a set for faster lookups in the skip calculation loop.

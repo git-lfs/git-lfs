@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
@@ -136,7 +137,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 }
 
 func unlockAbortIfFileModified(path string) error {
-	modified, err := git.IsFileModified(path)
+	modified, err := core.IsFileModified(path)
 
 	if err != nil {
 		if unlockCmdFlags.Force {

@@ -1,6 +1,6 @@
 package lfs
 
-import "github.com/git-lfs/git-lfs/v3/config"
+import "github.com/git-lfs/git-lfs/v3/git/core"
 
 // FetchPruneConfig collects together the config options that control fetching and pruning
 type FetchPruneConfig struct {
@@ -29,7 +29,7 @@ type FetchPruneConfig struct {
 	PruneForce bool
 }
 
-func NewFetchPruneConfig(git config.Environment) FetchPruneConfig {
+func NewFetchPruneConfig(git core.Environment) FetchPruneConfig {
 	pruneRemote, _ := git.Get("lfs.pruneremotetocheck")
 	if len(pruneRemote) == 0 {
 		pruneRemote = "origin"

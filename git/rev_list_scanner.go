@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
@@ -168,7 +169,7 @@ func NewRevListScanner(include, excluded []string, opt *ScanRefsOptions) (*RevLi
 		return nil, err
 	}
 
-	cmd, err := gitNoLFS(args...)
+	cmd, err := core.GitNoLFS(args...)
 	if err != nil {
 		return nil, err
 	}
@@ -272,9 +273,7 @@ func includeExcludeShas(include, exclude []string) []string {
 
 	args := make([]string, 0, len(include)+len(exclude))
 
-	for _, i := range include {
-		args = append(args, i)
-	}
+	args = append(args, include...)
 
 	for _, x := range exclude {
 		args = append(args, fmt.Sprintf("^%s", x))
@@ -287,14 +286,14 @@ func nonZeroShas(all []string) []string {
 	nz := make([]string, 0, len(all))
 
 	for _, sha := range all {
-		if len(sha) > 0 && !IsZeroObjectID(sha) {
+		if len(sha) > 0 && !core.IsZeroObjectID(sha) {
 			nz = append(nz, sha)
 		}
 	}
 	return nz
 }
 
-var startsWithObjectID = regexp.MustCompile(fmt.Sprintf(`\A%s`, ObjectIDRegex))
+var startsWithObjectID = regexp.MustCompile(fmt.Sprintf(`\A%s`, core.ObjectIDRegex))
 
 // Name is an optional field that gives the name of the object (if the object is
 // a tree, blob).
@@ -346,7 +345,7 @@ func (s *RevListScanner) scan() ([]byte, string, error) {
 	}
 
 	line := strings.TrimSpace(s.s.Text())
-	if len(line) < ObjectIDLengths[0] {
+	if len(line) < core.ObjectIDLengths[0] {
 		return nil, "", nil
 	}
 

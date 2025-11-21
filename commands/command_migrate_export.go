@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/githistory"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
@@ -157,7 +157,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// Only perform `git-checkout(1) -f` if the repository is non-bare.
-	if bare, _ := git.IsBare(); !bare {
+	if bare, _ := core.IsBare(); !bare {
 		if err := performForceCheckout(l); err != nil {
 			ExitWithError(err)
 		}
@@ -179,7 +179,7 @@ func performForceCheckout(l *tasklog.Logger) error {
 	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
-	return git.Checkout("", nil, true)
+	return core.Checkout("", nil, true)
 }
 
 // trackedFromExportFilter returns an ordered set of strings where each entry

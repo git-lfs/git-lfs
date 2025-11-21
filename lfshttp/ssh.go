@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -69,8 +69,8 @@ func (r *sshAuthResponse) IsExpiredWithin(d time.Duration) (time.Time, bool) {
 }
 
 type sshAuthClient struct {
-	os  config.Environment
-	git config.Environment
+	os  core.Environment
+	git core.Environment
 }
 
 func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, error) {

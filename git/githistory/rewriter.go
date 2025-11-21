@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
@@ -535,23 +536,23 @@ func (r *Rewriter) commitsToMigrate(opt *RewriteOptions) ([][]byte, error) {
 
 // refsToMigrate returns a list of references to migrate, or an error if loading
 // those references failed.
-func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
-	var refs []*git.Ref
+func (r *Rewriter) refsToMigrate() ([]*core.Ref, error) {
+	var refs []*core.Ref
 	var err error
 
 	if root, ok := r.gitDirectory(); ok {
-		refs, err = git.AllRefsIn(root)
+		refs, err = core.AllRefsIn(root)
 	} else {
-		refs, err = git.AllRefs()
+		refs, err = core.AllRefs()
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	var local []*git.Ref
+	var local []*core.Ref
 	for _, ref := range refs {
-		if ref.Type == git.RefTypeRemoteBranch {
+		if ref.Type == core.RefTypeRemoteBranch {
 			continue
 		}
 

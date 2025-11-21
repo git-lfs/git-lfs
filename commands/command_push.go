@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -131,7 +132,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 // Either one or more refs can be explicitly specified, or --all indicates all
 // local refs are pushed.
 func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
-	localrefs, err := git.LocalRefs()
+	localrefs, err := core.LocalRefs()
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +145,7 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 		return refs, nil
 	}
 
-	reflookup := make(map[string]*git.Ref, len(localrefs))
+	reflookup := make(map[string]*core.Ref, len(localrefs))
 	for _, ref := range localrefs {
 		reflookup[ref.Name] = ref
 	}
@@ -154,8 +155,8 @@ func lfsPushRefs(refnames []string, pushAll bool) ([]*git.RefUpdate, error) {
 		if ref, ok := reflookup[name]; ok {
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)
 		} else {
-			ref := &git.Ref{Name: name, Type: git.RefTypeOther, Sha: name}
-			if _, err := git.ResolveRef(name); err != nil {
+			ref := &core.Ref{Name: name, Type: core.RefTypeOther, Sha: name}
+			if _, err := core.ResolveRef(name); err != nil {
 				return nil, errors.New(tr.Tr.Get("Invalid ref argument: %v", name))
 			}
 			refs[i] = git.NewRefUpdate(cfg.Git, cfg.PushRemote(), ref, nil)

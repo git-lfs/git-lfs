@@ -1,9 +1,10 @@
-package config_test
+package core_test
 
 import (
 	"testing"
 
 	. "github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestEnvironmentGetDelegatesToFetcher(t *testing.T) {
 		"foo": []string{"bar", "baz"},
 	})
 
-	env := EnvironmentOf(fetcher)
+	env := core.EnvironmentOf(fetcher)
 	val, ok := env.Get("foo")
 
 	assert.True(t, ok)
@@ -24,14 +25,14 @@ func TestEnvironmentGetAllDelegatesToFetcher(t *testing.T) {
 		"foo": []string{"bar", "baz"},
 	})
 
-	env := EnvironmentOf(fetcher)
+	env := core.EnvironmentOf(fetcher)
 	vals := env.GetAll("foo")
 
 	assert.Equal(t, []string{"bar", "baz"}, vals)
 }
 
 func TestEnvironmentUnsetBoolDefault(t *testing.T) {
-	env := EnvironmentOf(MapFetcher(nil))
+	env := core.EnvironmentOf(MapFetcher(nil))
 	assert.True(t, env.Bool("unset", true))
 }
 
@@ -72,18 +73,18 @@ type EnvironmentConversionTestCase struct {
 	Val      string
 	Expected interface{}
 
-	GotFn func(env Environment, key string) interface{}
+	GotFn func(env core.Environment, key string) interface{}
 }
 
 var (
-	GetBoolDefault = func(def bool) func(e Environment, key string) interface{} {
-		return func(e Environment, key string) interface{} {
+	GetBoolDefault = func(def bool) func(e core.Environment, key string) interface{} {
+		return func(e core.Environment, key string) interface{} {
 			return e.Bool(key, def)
 		}
 	}
 
-	GetIntDefault = func(def int) func(e Environment, key string) interface{} {
-		return func(e Environment, key string) interface{} {
+	GetIntDefault = func(def int) func(e core.Environment, key string) interface{} {
+		return func(e core.Environment, key string) interface{} {
 			return e.Int(key, def)
 		}
 	}
@@ -94,7 +95,7 @@ func (c *EnvironmentConversionTestCase) Assert(t *testing.T) {
 		c.Val: []string{c.Val},
 	})
 
-	env := EnvironmentOf(fetcher)
+	env := core.EnvironmentOf(fetcher)
 	got := c.GotFn(env, c.Val)
 
 	if c.Expected != got {

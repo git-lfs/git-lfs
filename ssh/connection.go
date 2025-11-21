@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/pktline"
@@ -15,15 +15,15 @@ import (
 type SSHTransfer struct {
 	lock         *sync.RWMutex
 	conn         []*PktlineConnection
-	osEnv        config.Environment
-	gitEnv       config.Environment
+	osEnv        core.Environment
+	gitEnv       core.Environment
 	meta         *SSHMetadata
 	operation    string
 	multiplexing bool
 	controlPath  string
 }
 
-func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*SSHTransfer, error) {
+func NewSSHTransfer(osEnv core.Environment, gitEnv core.Environment, meta *SSHMetadata, operation string) (*SSHTransfer, error) {
 	conn, multiplexing, controlPath, err := startConnection(0, osEnv, gitEnv, meta, operation, "")
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 	}, nil
 }
 
-func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
+func startConnection(id int, osEnv core.Environment, gitEnv core.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
 	tracerx.Printf("spawning pure SSH connection (#%d)", id)
 	var errbuf bytes.Buffer
 	exe, args, multiplexing, controlPath := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true, multiplexControlPath)

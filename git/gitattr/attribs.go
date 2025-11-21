@@ -1,4 +1,4 @@
-package git
+package gitattr
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git/gitattr"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -49,7 +49,7 @@ func (s *AttributeSource) String() string {
 
 // GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
 // only from the global gitattributes file.
-func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Environment) []AttributePath {
+func GetRootAttributePaths(mp *MacroProcessor, cfg Environment) []AttributePath {
 	af, _ := cfg.Get("core.attributesfile")
 	af, err := tools.ExpandConfigPath(af, "git/attributes")
 	if err != nil {
@@ -67,10 +67,10 @@ func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Environment) []Attrib
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Environment) ([]AttributePath, error) {
+func GetSystemAttributePaths(mp *MacroProcessor, env Environment) ([]AttributePath, error) {
 	var path string
-	if IsGitVersionAtLeast("2.42.0") {
-		cmd, err := gitNoLFS("var", "GIT_ATTR_SYSTEM")
+	if core.IsGitVersionAtLeast("2.42.0") {
+		cmd, err := core.GitNoLFS("var", "GIT_ATTR_SYSTEM")
 		if err != nil {
 			return nil, errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
 		}
@@ -103,7 +103,7 @@ func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Environment) ([]Att
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
-func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []AttributePath {
+func GetAttributePaths(mp *MacroProcessor, workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
 	for _, file := range findAttributeFiles(workingDir, gitDir) {
@@ -113,7 +113,7 @@ func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []
 	return paths
 }
 
-func attrPathsFromFile(mp *gitattr.MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
+func attrPathsFromFile(mp *MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
 	attributes, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -122,7 +122,7 @@ func attrPathsFromFile(mp *gitattr.MacroProcessor, path, workingDir string, read
 	return AttrPathsFromReader(mp, path, workingDir, attributes, readMacros)
 }
 
-func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
+func AttrPathsFromReader(mp *MacroProcessor, fpath, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
 	var paths []AttributePath
 
 	relfile, _ := filepath.Rel(workingDir, fpath)
@@ -135,7 +135,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 	}
 	source := &AttributeSource{Path: relfile}
 
-	lines, eol, err := gitattr.ParseLines(rdr)
+	lines, eol, err := ParseLines(rdr)
 	if err != nil {
 		return nil
 	}
@@ -184,7 +184,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
-	paths := GetAttributePaths(gitattr.NewMacroProcessor(), workingDir, gitDir)
+	paths := GetAttributePaths(NewMacroProcessor(), workingDir, gitDir)
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {
@@ -204,7 +204,7 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
-	lsFiles, err := NewLsFiles(workingDir, true, true)
+	lsFiles, err := core.NewLsFiles(workingDir, true, true)
 	if err != nil {
 		tracerx.Printf("Error finding .gitattributes: %v", err)
 		return paths

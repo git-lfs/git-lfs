@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 )
 
@@ -34,11 +34,11 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 	return c.client.LogRequest(r, reqKey)
 }
 
-func (c *Client) GitEnv() config.Environment {
+func (c *Client) GitEnv() core.Environment {
 	return c.client.GitEnv()
 }
 
-func (c *Client) OSEnv() config.Environment {
+func (c *Client) OSEnv() core.Environment {
 	return c.client.OSEnv()
 }
 

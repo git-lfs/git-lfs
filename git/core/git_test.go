@@ -1,4 +1,4 @@
-package git_test // to avoid import cycles
+package core_test // to avoid import cycles
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/git-lfs/git-lfs/v3/git"
+	. "github.com/git-lfs/git-lfs/v3/git/core"
 	test "github.com/git-lfs/git-lfs/v3/t/cmd/util"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/stretchr/testify/assert"

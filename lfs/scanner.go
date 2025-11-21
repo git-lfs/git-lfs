@@ -1,8 +1,8 @@
 package lfs
 
 import (
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 )
 
@@ -52,7 +52,7 @@ func catFileBatchCheck(revs *StringChannelWrapper, lockableSet *lockableNameSet)
 // Input Git blob SHA1s should be sent over the revs channel.
 // The blob contents will be decoded as Git LFS pointers and any valid
 // pointers will be returned as pointer.Pointer structs in a new channel.
-func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet, gitEnv, osEnv config.Environment) (*PointerChannelWrapper, chan string, error) {
+func catFileBatch(revs *StringChannelWrapper, lockableSet *lockableNameSet, gitEnv, osEnv core.Environment) (*PointerChannelWrapper, chan string, error) {
 	pointerCh := make(chan *WrappedPointer, chanBufSize)
 	lockableCh := make(chan string, chanBufSize)
 	errCh := make(chan error, 5) // shared by 2 goroutines & may add more detail errors?

@@ -1,4 +1,4 @@
-package git
+package core
 
 import (
 	"bufio"
@@ -39,7 +39,7 @@ func NewLsFiles(workingDir string, standardExclude bool, untracked bool) (*LsFil
 	if untracked {
 		args = append(args, "--others")
 	}
-	cmd, err := gitNoLFS(args...)
+	cmd, err := GitNoLFS(args...)
 	if err != nil {
 		return nil, err
 	}

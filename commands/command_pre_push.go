@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -52,7 +53,7 @@ func prePushCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
 	// Remote is first arg
-	remote, _ := git.MapRemoteURL(args[0], true)
+	remote, _ := core.MapRemoteURL(args[0], true)
 	if err := cfg.SetValidPushRemote(remote); err != nil {
 		Exit(tr.Tr.Get("Invalid remote name %q: %s", args[0], err))
 	}
@@ -85,7 +86,7 @@ func prePushRefs(r io.Reader) []*git.RefUpdate {
 		tracerx.Printf("pre-push: %s", line)
 
 		localRef, remoteRef := decodeRefs(line)
-		if git.IsZeroObjectID(localRef.Sha) {
+		if core.IsZeroObjectID(localRef.Sha) {
 			continue
 		}
 
@@ -97,14 +98,14 @@ func prePushRefs(r io.Reader) []*git.RefUpdate {
 
 // decodeRefs pulls the sha1s out of the line read from the pre-push
 // hook's stdin.
-func decodeRefs(input string) (*git.Ref, *git.Ref) {
+func decodeRefs(input string) (*core.Ref, *core.Ref) {
 	refs := strings.Split(strings.TrimSpace(input), " ")
 	for len(refs) < 4 {
 		refs = append(refs, "")
 	}
 
-	localRef := git.ParseRef(refs[0], refs[1])
-	remoteRef := git.ParseRef(refs[2], refs[3])
+	localRef := core.ParseRef(refs[0], refs[1])
+	remoteRef := core.ParseRef(refs[2], refs[3])
 	return localRef, remoteRef
 }
 

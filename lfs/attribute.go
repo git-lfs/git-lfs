@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -30,7 +30,7 @@ type Attribute struct {
 
 // FilterOptions serves as an argument to Install().
 type FilterOptions struct {
-	GitConfig  *git.Configuration
+	GitConfig  *core.Configuration
 	Force      bool
 	File       string
 	Local      bool
@@ -146,7 +146,7 @@ func (a *Attribute) normalizeKey(relative string) string {
 // matching key already exists and the value is not equal to the desired value,
 // an error will be thrown if force is set to false. If force is true, the value
 // will be overridden.
-func (a *Attribute) set(gitConfig *git.Configuration, key, value string, upgradeables []string, opt *FilterOptions) error {
+func (a *Attribute) set(gitConfig *core.Configuration, key, value string, upgradeables []string, opt *FilterOptions) error {
 	var currentValue string
 	if opt.Local {
 		currentValue = gitConfig.FindLocal(key)

@@ -1,10 +1,12 @@
 package config
 
+import "github.com/git-lfs/git-lfs/v3/git/core"
+
 // mapFetcher provides an implementation of the Fetcher interface by wrapping
 // the `map[string]string` type.
 type mapFetcher map[string][]string
 
-func UniqMapFetcher(m map[string]string) Fetcher {
+func UniqMapFetcher(m map[string]string) core.Fetcher {
 	multi := make(map[string][]string, len(m))
 	for k, v := range m {
 		multi[k] = []string{v}
@@ -13,7 +15,7 @@ func UniqMapFetcher(m map[string]string) Fetcher {
 	return MapFetcher(multi)
 }
 
-func MapFetcher(m map[string][]string) Fetcher {
+func MapFetcher(m map[string][]string) core.Fetcher {
 	return mapFetcher(m)
 }
 
@@ -35,9 +37,7 @@ func (m mapFetcher) GetAll(key string) []string {
 func (m mapFetcher) All() map[string][]string {
 	newmap := make(map[string][]string)
 	for key, values := range m {
-		for _, value := range values {
-			newmap[key] = append(newmap[key], value)
-		}
+		newmap[key] = append(newmap[key], values...)
 	}
 	return newmap
 }

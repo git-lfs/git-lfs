@@ -7,16 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tr"
 
-	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/spf13/cobra"
 )
 
 var (
-	cloneFlags git.CloneFlags
+	cloneFlags core.CloneFlags
 
 	cloneSkipRepoInstall bool
 )
@@ -24,7 +24,7 @@ var (
 func cloneCommand(cmd *cobra.Command, args []string) {
 	requireGitVersion()
 
-	if git.IsGitVersionAtLeast("2.15.0") {
+	if core.IsGitVersionAtLeast("2.15.0") {
 		// TRANSLATORS: Individual lines should not exceed 80
 		// characters, and any additional lines in the first message
 		// should be indented to align with the first line's text
@@ -37,7 +37,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// We pass all args to git clone
-	err := git.CloneWithoutFilters(cloneFlags, args)
+	err := core.CloneWithoutFilters(cloneFlags, args)
 	if err != nil {
 		Exit("%s\n%v", tr.Tr.Get("Error(s) during clone:"), err)
 	}
@@ -54,9 +54,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	if err != nil || !tools.DirExists(clonedir) {
 		// Derive from clone URL instead
 		base := path.Base(args[len(args)-1])
-		if strings.HasSuffix(base, ".git") {
-			base = base[:len(base)-4]
-		}
+		base = strings.TrimSuffix(base, ".git")
 		clonedir, _ = filepath.Abs(base)
 		if !tools.DirExists(clonedir) {
 			Exit(tr.Tr.Get("Unable to find clone dir at %q", clonedir))
@@ -78,7 +76,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 		cfg.SetRemote(cloneFlags.Origin)
 	}
 
-	if ref, err := git.CurrentRef(); err == nil {
+	if ref, err := core.CurrentRef(); err == nil {
 		includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 		filter := buildFilepathFilter(cfg, includeArg, excludeArg, true)
 		if cloneFlags.NoCheckout || cloneFlags.Bare {
@@ -106,7 +104,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 func postCloneSubmodules(args []string) error {
 	// In git 2.9+ the filter option will have been passed through to submodules
 	// So we need to lfs pull inside each
-	if !git.IsGitVersionAtLeast("2.9.0") {
+	if !core.IsGitVersionAtLeast("2.9.0") {
 		// In earlier versions submodules would have used smudge filter
 		return nil
 	}

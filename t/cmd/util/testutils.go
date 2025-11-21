@@ -23,7 +23,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 )
 
@@ -136,15 +136,15 @@ func (r *Repo) Configuration() *config.Configuration {
 	return r.cfg
 }
 
-func (r *Repo) GitConfig() *git.Configuration {
+func (r *Repo) GitConfig() *core.Configuration {
 	return r.cfg.GitConfig()
 }
 
-func (r *Repo) GitEnv() config.Environment {
+func (r *Repo) GitEnv() core.Environment {
 	return r.cfg.Git
 }
 
-func (r *Repo) OSEnv() config.Environment {
+func (r *Repo) OSEnv() core.Environment {
 	return r.cfg.Os
 }
 
@@ -377,8 +377,8 @@ func commitAtDate(atDate time.Time, committerName, committerEmail, msg string) e
 		env = append(env, "GIT_COMMITTER_DATE=")
 		env = append(env, "GIT_AUTHOR_DATE=")
 	} else {
-		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", git.FormatGitDate(atDate)))
-		env = append(env, fmt.Sprintf("GIT_AUTHOR_DATE=%v", git.FormatGitDate(atDate)))
+		env = append(env, fmt.Sprintf("GIT_COMMITTER_DATE=%v", core.FormatGitDate(atDate)))
+		env = append(env, fmt.Sprintf("GIT_AUTHOR_DATE=%v", core.FormatGitDate(atDate)))
 	}
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
@@ -437,7 +437,7 @@ func (repo *Repo) AddCommits(inputs []*CommitInput) []*CommitOutput {
 			repo.callback.Fatalf("Error committing: %v", err)
 		}
 
-		commit, err := git.GetCommitSummary("HEAD")
+		commit, err := core.GetCommitSummary("HEAD")
 		if err != nil {
 			repo.callback.Fatalf("Error determining commit SHA: %v", err)
 		}
@@ -510,15 +510,15 @@ func (r *PlaceholderDataReader) Read(p []byte) (int, error) {
 	return i, err
 }
 
-// RefsByName implements sort.Interface for []*git.Ref based on name
-type RefsByName []*git.Ref
+// RefsByName implements sort.Interface for []*core.Ref based on name
+type RefsByName []*core.Ref
 
 func (a RefsByName) Len() int           { return len(a) }
 func (a RefsByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a RefsByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 // WorktreesByName implements sort.Interface for []*git.Worktree based on dir
-type WorktreesByName []*git.Worktree
+type WorktreesByName []*core.Worktree
 
 func (a WorktreesByName) Len() int           { return len(a) }
 func (a WorktreesByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }

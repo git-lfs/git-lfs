@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +36,7 @@ func init() {
 	RegisterCommand("uninstall", uninstallCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Remove the Git LFS config for the local Git repository only.")
 		cmd.Flags().StringVarP(&fileInstall, "file", "", "", "Remove the Git LFS config for the given configuration file only.")
-		if git.IsGitVersionAtLeast("2.20.0") {
+		if core.IsGitVersionAtLeast("2.20.0") {
 			cmd.Flags().BoolVarP(&worktreeInstall, "worktree", "w", false, "Remove the Git LFS config for the current Git working tree, if multiple working trees are configured; otherwise, the same as --local.")
 		}
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Remove the Git LFS config in system-wide scope.")

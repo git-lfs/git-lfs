@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -166,7 +166,7 @@ func (c *sshLockClient) Lock(remote string, lockReq *lockRequest) (*lockResponse
 	return &lock, status, err
 }
 
-func (c *sshLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
+func (c *sshLockClient) Unlock(ref *core.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
 	args := make([]string, 0, 3)
 	if ref != nil {
 		args = append(args, fmt.Sprintf("refname=%s", ref.Name))

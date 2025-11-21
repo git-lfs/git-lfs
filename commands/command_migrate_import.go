@@ -11,7 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/git/githistory"
 	"github.com/git-lfs/git-lfs/v3/lfs"
@@ -51,7 +51,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(errors.New(tr.Tr.Get("Expected one or more files with --no-rewrite")))
 		}
 
-		ref, err := git.CurrentRef()
+		ref, err := core.CurrentRef()
 		if err != nil {
 			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to find current reference")))
 		}
@@ -64,7 +64,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 
 		root := commit.TreeID
 
-		filter := git.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
+		filter := gitattr.GetAttributeFilter(cfg.LocalWorkingDir(), cfg.LocalGitDir())
 		if len(filter.Include()) == 0 {
 			ExitWithError(errors.New(tr.Tr.Get("No Git LFS filters found in '.gitattributes'")))
 		}
@@ -110,7 +110,7 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to write commit")))
 		}
 
-		if err := git.UpdateRef(ref, oid, "git lfs migrate import --no-rewrite"); err != nil {
+		if err := core.UpdateRef(ref, oid, "git lfs migrate import --no-rewrite"); err != nil {
 			ExitWithError(errors.Wrap(err, tr.Tr.Get("Unable to update ref")))
 		}
 
@@ -279,14 +279,14 @@ func generateMigrateCommitMessage(cmd *cobra.Command, patterns string) string {
 //
 // It returns nil on success, and a non-nil error on failure.
 func checkoutNonBare(l *tasklog.Logger) error {
-	if bare, _ := git.IsBare(); bare {
+	if bare, _ := core.IsBare(); bare {
 		return nil
 	}
 
 	t := l.Waiter(tr.Tr.Get("Checkout"))
 	defer t.Complete()
 
-	return git.Checkout("", nil, true)
+	return core.Checkout("", nil, true)
 }
 
 // trackedFromFilter returns an ordered set of strings where each entry is a

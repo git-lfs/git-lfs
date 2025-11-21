@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/git-lfs/git-lfs/v3/config"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
@@ -11,7 +11,7 @@ import (
 func envCommand(cmd *cobra.Command, args []string) {
 	config.ShowConfigWarnings = true
 
-	gitV, err := git.Version()
+	gitV, err := core.Version()
 	if err != nil {
 		gitV = tr.Tr.Get("Error getting Git version: %s", err.Error())
 	}
