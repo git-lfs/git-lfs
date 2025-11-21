@@ -376,12 +376,3 @@ func (m *concreteManifest) NewDownloadAdapter(name string) Adapter {
 func (m *concreteManifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
 }
-
-// Env is any object with a config.Environment interface.
-type Env interface {
-	Get(key string) (val string, ok bool)
-	GetAll(key string) []string
-	Bool(key string, def bool) (val bool)
-	Int(key string, def int) (val int)
-	All() map[string][]string
-}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 
@@ -351,7 +352,7 @@ const (
 	standaloneFileName = "lfs-standalone-file"
 )
 
-func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
+func configureDefaultCustomAdapters(git core.Environment, m *concreteManifest) {
 	newfunc := func(name string, dir Direction) Adapter {
 		standalone := m.standaloneTransferAgent != ""
 		return newCustomAdapter(m.fs, standaloneFileName, dir, "git-lfs", "standalone-file", false, standalone)
@@ -361,7 +362,7 @@ func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
 }
 
 // Initialise custom adapters based on current config
-func configureCustomAdapters(git Env, m *concreteManifest) {
+func configureCustomAdapters(git core.Environment, m *concreteManifest) {
 	configureDefaultCustomAdapters(git, m)
 
 	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
