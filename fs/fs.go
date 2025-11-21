@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -22,14 +23,6 @@ var (
 	oidRE             = regexp.MustCompile(`\A[[:alnum:]]{64}`)
 	EmptyObjectSHA256 = hex.EncodeToString(sha256.New().Sum(nil))
 )
-
-// Environment is a copy of a subset of the interface
-// github.com/git-lfs/git-lfs/config.Environment.
-//
-// For more information, see config/environment.go.
-type Environment interface {
-	Get(key string) (val string, ok bool)
-}
 
 // Object represents a locally stored LFS object.
 type Object struct {
@@ -131,7 +124,7 @@ func DecodePathBytes(path []byte) []byte {
 		base = submatches[1]
 	}
 
-	buffer.Write(path[base:len(path)])
+	buffer.Write(path[base:])
 
 	return buffer.Bytes()
 }
@@ -199,7 +192,7 @@ func (f *Filesystem) Cleanup() error {
 // path to the bare repo, workdir is the path to the repository working
 // directory, and lfsdir is the optional path to the `.git/lfs` directory.
 // repoPerms is the permissions for directories in the repository.
-func New(env Environment, gitdir, workdir, lfsdir string, repoPerms os.FileMode) *Filesystem {
+func New(env core.Environment, gitdir, workdir, lfsdir string, repoPerms os.FileMode) *Filesystem {
 	fs := &Filesystem{
 		GitStorageDir: resolveGitStorageDir(gitdir),
 	}
@@ -221,7 +214,7 @@ func New(env Environment, gitdir, workdir, lfsdir string, repoPerms os.FileMode)
 	return fs
 }
 
-func resolveReferenceDirs(env Environment, gitStorageDir string) []string {
+func resolveReferenceDirs(env core.Environment, gitStorageDir string) []string {
 	var references []string
 
 	envAlternates, ok := env.Get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
