@@ -1,8 +1,10 @@
 package git
 
 import (
+	"strconv"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,9 +17,9 @@ func TestRefUpdateDefault(t *testing.T) {
 			"branch.local.merge":  []string{"me"},
 		})
 
-		u := NewRefUpdate(env, "origin", ParseRef("refs/heads/local", ""), nil)
+		u := NewRefUpdate(env, "origin", core.ParseRef("refs/heads/local", ""), nil)
 		assert.Equal(t, "local", u.RemoteRef().Name, "pushmode=%q", pushMode)
-		assert.Equal(t, RefTypeLocalBranch, u.RemoteRef().Type, "pushmode=%q", pushMode)
+		assert.Equal(t, core.RefTypeLocalBranch, u.RemoteRef().Type, "pushmode=%q", pushMode)
 	}
 }
 
@@ -30,9 +32,9 @@ func TestRefUpdateTrackedDefault(t *testing.T) {
 			"branch.local.merge":  []string{"refs/heads/tracked"},
 		})
 
-		u := NewRefUpdate(env, "origin", ParseRef("refs/heads/local", ""), nil)
+		u := NewRefUpdate(env, "origin", core.ParseRef("refs/heads/local", ""), nil)
 		assert.Equal(t, "tracked", u.RemoteRef().Name, "pushmode=%s", pushMode)
-		assert.Equal(t, RefTypeLocalBranch, u.RemoteRef().Type, "pushmode=%q", pushMode)
+		assert.Equal(t, core.RefTypeLocalBranch, u.RemoteRef().Type, "pushmode=%q", pushMode)
 	}
 }
 
@@ -43,13 +45,13 @@ func TestRefUpdateCurrentDefault(t *testing.T) {
 		"branch.local.merge":  []string{"tracked"},
 	})
 
-	u := NewRefUpdate(env, "origin", ParseRef("refs/heads/local", ""), nil)
+	u := NewRefUpdate(env, "origin", core.ParseRef("refs/heads/local", ""), nil)
 	assert.Equal(t, "local", u.RemoteRef().Name)
-	assert.Equal(t, RefTypeLocalBranch, u.RemoteRef().Type)
+	assert.Equal(t, core.RefTypeLocalBranch, u.RemoteRef().Type)
 }
 
 func TestRefUpdateExplicitLocalAndRemoteRefs(t *testing.T) {
-	u := NewRefUpdate(nil, "", ParseRef("refs/heads/local", "abc123"), ParseRef("refs/heads/remote", "def456"))
+	u := NewRefUpdate(nil, "", core.ParseRef("refs/heads/local", "abc123"), core.ParseRef("refs/heads/remote", "def456"))
 	assert.Equal(t, "local", u.LocalRef().Name)
 	assert.Equal(t, "abc123", u.LocalRef().Sha)
 	assert.Equal(t, "abc123", u.LocalRefCommitish())
@@ -57,7 +59,7 @@ func TestRefUpdateExplicitLocalAndRemoteRefs(t *testing.T) {
 	assert.Equal(t, "def456", u.RemoteRef().Sha)
 	assert.Equal(t, "def456", u.RemoteRefCommitish())
 
-	u = NewRefUpdate(nil, "", ParseRef("refs/heads/local", ""), ParseRef("refs/heads/remote", ""))
+	u = NewRefUpdate(nil, "", core.ParseRef("refs/heads/local", ""), core.ParseRef("refs/heads/remote", ""))
 	assert.Equal(t, "local", u.LocalRef().Name)
 	assert.Equal(t, "", u.LocalRef().Sha)
 	assert.Equal(t, "local", u.LocalRefCommitish())
@@ -80,4 +82,28 @@ func (m *mapEnv) Get(key string) (string, bool) {
 		return vals[0], true
 	}
 	return "", false
+}
+
+func (m *mapEnv) GetAll(key string) (vals []string) {
+	return m.data[key]
+}
+
+func (m *mapEnv) Bool(key string, def bool) (val bool) {
+	return true
+}
+
+func (m *mapEnv) Int(key string, def int) (val int) {
+	vals, ok := m.data[key]
+	if !ok || len(vals) == 0 {
+		return def
+	}
+	conv, err := strconv.Atoi(vals[0])
+	if err != nil {
+		return def
+	}
+	return conv
+}
+
+func (m *mapEnv) All() map[string][]string {
+	return m.data
 }

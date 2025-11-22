@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"io"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/git-lfs/gitobj/v2/errors"
@@ -41,13 +42,13 @@ type ObjectScanner struct {
 // If any errors are encountered while creating the ObjectDatabase,
 // they will be returned immediately.
 // Otherwise, an `*ObjectScanner` is returned with no error.
-func NewObjectScanner(gitEnv, osEnv Environment) (*ObjectScanner, error) {
-	gitdir, err := GitCommonDir()
+func NewObjectScanner(gitEnv, osEnv core.Environment) (*ObjectScanner, error) {
+	gitdir, err := core.GitCommonDir()
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := ObjectDatabase(osEnv, gitEnv, gitdir, "")
+	db, err := core.ObjectDatabase(osEnv, gitEnv, gitdir, "")
 	if err != nil {
 		return nil, err
 	}

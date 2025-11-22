@@ -12,7 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,7 +83,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c, err := NewClient(lfshttp.NewContext(core.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
@@ -157,7 +157,7 @@ func TestDoWithAuthReject(t *testing.T) {
 
 	c, _ := NewClient(nil)
 	c.Credentials = cred
-	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(core.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL,
 		},
@@ -211,7 +211,7 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c, err := NewClient(lfshttp.NewContext(core.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
@@ -263,7 +263,7 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c, err := NewClient(lfshttp.NewContext(core.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
@@ -647,7 +647,7 @@ func TestGetCreds(t *testing.T) {
 			req.Header.Set(key, value)
 		}
 
-		ctx := lfshttp.NewContext(git.NewReadOnlyConfig("", ""), nil, test.Config)
+		ctx := lfshttp.NewContext(core.NewReadOnlyConfig("", ""), nil, test.Config)
 		client, _ := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
 		client.Endpoints = NewEndpointFinder(ctx)

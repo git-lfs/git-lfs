@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 )
 
@@ -107,7 +107,7 @@ func EndpointFromHttpUrl(u *url.URL) Endpoint {
 }
 
 func EndpointFromLocalPath(path string) Endpoint {
-	url := git.RewriteLocalPathAsURL(path)
+	url := core.RewriteLocalPathAsURL(path)
 	return Endpoint{Url: url, OriginalUrl: url}
 }
 

@@ -4,6 +4,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/jmhodges/clock"
 )
 
@@ -23,6 +24,6 @@ func (f *GitFilter) ObjectPath(oid string) (string, error) {
 	return f.fs.ObjectPath(oid)
 }
 
-func (f *GitFilter) RemoteRef() *git.Ref {
+func (f *GitFilter) RemoteRef() *core.Ref {
 	return git.NewRefUpdate(f.cfg.Git, f.cfg.PushRemote(), f.cfg.CurrentRef(), nil).RemoteRef()
 }

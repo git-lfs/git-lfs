@@ -9,6 +9,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tq"
@@ -46,7 +47,7 @@ type lockVerifier struct {
 	unownedLocks []*refLock
 }
 
-func (lv *lockVerifier) Verify(ref *git.Ref) {
+func (lv *lockVerifier) Verify(ref *core.Ref) {
 	if ref == nil {
 		panic(tr.Tr.Get("no ref specified for verification"))
 	}
@@ -86,7 +87,7 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 	lv.verifiedRefs[ref.Refspec()] = true
 }
 
-func (lv *lockVerifier) addLocks(ref *git.Ref, locks []locking.Lock, set map[string]*refLock) {
+func (lv *lockVerifier) addLocks(ref *core.Ref, locks []locking.Lock, set map[string]*refLock) {
 	for _, l := range locks {
 		if rl, ok := set[l.Path]; ok {
 			if err := rl.Add(ref, l); err != nil {
@@ -143,11 +144,11 @@ func (lv *lockVerifier) Enabled() bool {
 	return lv.verifyState == verifyStateEnabled
 }
 
-func (lv *lockVerifier) newRefLocks(ref *git.Ref, l locking.Lock) *refLock {
+func (lv *lockVerifier) newRefLocks(ref *core.Ref, l locking.Lock) *refLock {
 	return &refLock{
 		allRefs: lv.verifiedRefs,
 		path:    l.Path,
-		refs:    map[*git.Ref]locking.Lock{ref: l},
+		refs:    map[*core.Ref]locking.Lock{ref: l},
 	}
 }
 
@@ -176,7 +177,7 @@ func newLockVerifier(m tq.Manifest) *lockVerifier {
 type refLock struct {
 	path    string
 	allRefs map[string]bool
-	refs    map[*git.Ref]locking.Lock
+	refs    map[*core.Ref]locking.Lock
 }
 
 // Path returns the locked path.
@@ -219,7 +220,7 @@ func (r *refLock) Owners() string {
 	return strings.Join(owners, ", ")
 }
 
-func (r *refLock) Add(ref *git.Ref, l locking.Lock) error {
+func (r *refLock) Add(ref *core.Ref, l locking.Lock) error {
 	r.refs[ref] = l
 	return nil
 }

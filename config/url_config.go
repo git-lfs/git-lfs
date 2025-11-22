@@ -5,15 +5,17 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/git-lfs/git-lfs/v3/git/core"
 )
 
 type URLConfig struct {
-	git Environment
+	git core.Environment
 }
 
-func NewURLConfig(git Environment) *URLConfig {
+func NewURLConfig(git core.Environment) *URLConfig {
 	if git == nil {
-		git = EnvironmentOf(make(mapFetcher))
+		git = core.EnvironmentOf(make(mapFetcher))
 	}
 
 	return &URLConfig{
@@ -53,7 +55,7 @@ func (c *URLConfig) GetAll(prefix, rawurl, key string) []string {
 
 func (c *URLConfig) Bool(prefix, rawurl, key string, def bool) bool {
 	s, _ := c.Get(prefix, rawurl, key)
-	return Bool(s, def)
+	return core.Bool(s, def)
 }
 
 func (c *URLConfig) getAll(prefix, rawurl, key string) []string {

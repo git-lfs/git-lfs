@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -133,7 +133,7 @@ type DiffIndexScanner struct {
 // that error will be returned immediately. Otherwise, a `*DiffIndexScanner`
 // will be returned with a `nil` error.
 func NewDiffIndexScanner(ref string, cached bool, refresh bool, workingDir string) (*DiffIndexScanner, error) {
-	scanner, err := git.DiffIndex(ref, cached, refresh, workingDir)
+	scanner, err := core.DiffIndex(ref, cached, refresh, workingDir)
 	if err != nil {
 		return nil, err
 	}

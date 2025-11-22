@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -14,7 +14,7 @@ import (
 
 type lockClient interface {
 	Lock(remote string, lockReq *lockRequest) (*lockResponse, int, error)
-	Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error)
+	Unlock(ref *core.Ref, remote, id string, force bool) (*unlockResponse, int, error)
 	Search(remote string, searchReq *lockSearchRequest) (*lockList, int, error)
 	SearchVerifiable(remote string, vreq *lockVerifiableRequest) (*lockVerifiableList, int, error)
 }
@@ -110,7 +110,7 @@ type unlockResponse struct {
 	RequestID        string `json:"request_id,omitempty"`
 }
 
-func (c *httpLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
+func (c *httpLockClient) Unlock(ref *core.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
 	e := c.Endpoints.Endpoint("upload", remote)
 	suffix := fmt.Sprintf("locks/%s/unlock", id)
 	req, err := c.NewRequest("POST", e, suffix, &unlockRequest{
@@ -356,7 +356,7 @@ func (c *genericLockClient) Lock(remote string, lockReq *lockRequest) (*lockResp
 	return c.getClient(remote, "upload").Lock(remote, lockReq)
 }
 
-func (c *genericLockClient) Unlock(ref *git.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
+func (c *genericLockClient) Unlock(ref *core.Ref, remote, id string, force bool) (*unlockResponse, int, error) {
 	return c.getClient(remote, "upload").Unlock(ref, remote, id, force)
 }
 

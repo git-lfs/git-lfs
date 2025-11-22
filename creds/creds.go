@@ -12,6 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -96,7 +97,7 @@ type CredentialHelperContext struct {
 	state          []string
 }
 
-func NewCredentialHelperContext(gitEnv config.Environment, osEnv config.Environment) *CredentialHelperContext {
+func NewCredentialHelperContext(gitEnv core.Environment, osEnv core.Environment) *CredentialHelperContext {
 	c := &CredentialHelperContext{urlConfig: config.NewURLConfig(gitEnv)}
 
 	c.netrcCredHelper = newNetrcCredentialHelper(osEnv)

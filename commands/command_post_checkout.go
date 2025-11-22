@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -52,7 +52,7 @@ func postCheckoutRevChange(client *locking.Client, pre, post string) {
 	tracerx.Printf("post-checkout: changes between %v and %v", pre, post)
 	// We can speed things up by looking at the difference between previous HEAD
 	// and current HEAD, and only checking lockable files that are different
-	files, err := git.GetFilesChanged(pre, post)
+	files, err := core.GetFilesChanged(pre, post)
 
 	if err != nil {
 		LoggedError(err, "%s\n%s", tr.Tr.Get("Warning: post-checkout rev diff %v:%v failed: %v", pre, post, err), tr.Tr.Get("Falling back on full scan."))

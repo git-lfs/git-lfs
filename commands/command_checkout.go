@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -40,17 +41,17 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Error parsing args: %v", err))
 	}
 
-	if checkoutTo != "" && stage != git.IndexStageDefault {
+	if checkoutTo != "" && stage != core.IndexStageDefault {
 		if len(args) != 1 {
 			Exit(tr.Tr.Get("--to requires exactly one Git LFS object file path"))
 		}
 		checkoutConflict(args[0], stage)
 		return
-	} else if checkoutTo != "" || stage != git.IndexStageDefault {
+	} else if checkoutTo != "" || stage != core.IndexStageDefault {
 		Exit(tr.Tr.Get("--to and exactly one of --theirs, --ours, and --base must be used together"))
 	}
 
-	ref, err := git.CurrentRef()
+	ref, err := core.CurrentRef()
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not checkout"))
 	}
@@ -105,7 +106,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	singleCheckout.Close()
 }
 
-func checkoutConflict(file string, stage git.IndexStage) {
+func checkoutConflict(file string, stage core.IndexStage) {
 	checkoutTo, err := filepath.Abs(checkoutTo)
 	if err != nil {
 		Exit(tr.Tr.Get("Could not convert %q to absolute path: %v", checkoutTo, err))
@@ -130,7 +131,7 @@ func checkoutConflict(file string, stage git.IndexStage) {
 		return
 	}
 
-	ref, err := git.ResolveRef(fmt.Sprintf(":%d:%s", stage, file))
+	ref, err := core.ResolveRef(fmt.Sprintf(":%d:%s", stage, file))
 	if err != nil {
 		Exit(tr.Tr.Get("Could not checkout (are you not in the middle of a merge?): %v", err))
 	}
@@ -157,21 +158,21 @@ func checkoutConflict(file string, stage git.IndexStage) {
 	singleCheckout.Close()
 }
 
-func whichCheckout() (stage git.IndexStage, err error) {
+func whichCheckout() (stage core.IndexStage, err error) {
 	seen := 0
-	stage = git.IndexStageDefault
+	stage = core.IndexStageDefault
 
 	if checkoutBase {
 		seen++
-		stage = git.IndexStageBase
+		stage = core.IndexStageBase
 	}
 	if checkoutOurs {
 		seen++
-		stage = git.IndexStageOurs
+		stage = core.IndexStageOurs
 	}
 	if checkoutTheirs {
 		seen++
-		stage = git.IndexStageTheirs
+		stage = core.IndexStageTheirs
 	}
 
 	if seen > 1 {

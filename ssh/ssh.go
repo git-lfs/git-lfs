@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
@@ -38,7 +38,7 @@ func FormatArgs(cmd string, args []string, needShell bool) (string, []string) {
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool, multiplexControlPath string) (exe string, args []string, multiplexing bool, controlPath string) {
+func GetLFSExeAndArgs(osEnv core.Environment, gitEnv core.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool, multiplexControlPath string) (exe string, args []string, multiplexing bool, controlPath string) {
 	exe, args, needShell, multiplexing, controlPath := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired, multiplexControlPath)
 	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
 	exe, args = FormatArgs(exe, args, needShell)
@@ -72,7 +72,7 @@ func findVariant(variant string) (bool, sshVariant) {
 	}
 }
 
-func autodetectVariant(osEnv config.Environment, gitEnv config.Environment, basessh string) sshVariant {
+func autodetectVariant(osEnv core.Environment, gitEnv core.Environment, basessh string) sshVariant {
 	if basessh != defaultSSHCmd {
 		// Strip extension for easier comparison
 		if ext := filepath.Ext(basessh); len(ext) > 0 {
@@ -88,7 +88,7 @@ func autodetectVariant(osEnv config.Environment, gitEnv config.Environment, base
 	return "ssh"
 }
 
-func getVariant(osEnv config.Environment, gitEnv config.Environment, basessh string) sshVariant {
+func getVariant(osEnv core.Environment, gitEnv core.Environment, basessh string) sshVariant {
 	variant, ok := osEnv.Get("GIT_SSH_VARIANT")
 	if !ok {
 		variant, ok = gitEnv.Get("ssh.variant")
@@ -102,14 +102,14 @@ func getVariant(osEnv config.Environment, gitEnv config.Environment, basessh str
 
 // findRuntimeDir returns a path to the runtime directory if one exists and is
 // guaranteed to be private.
-func findRuntimeDir(osEnv config.Environment) string {
+func findRuntimeDir(osEnv core.Environment) string {
 	if dir, ok := osEnv.Get("XDG_RUNTIME_DIR"); ok {
 		return dir
 	}
 	return ""
 }
 
-func getControlDir(osEnv config.Environment) (string, error) {
+func getControlDir(osEnv core.Environment) (string, error) {
 	tmpdir, pattern := "", "sock-*"
 	if runtime.GOOS == "darwin" {
 		// On Darwin, the default temporary directory results in a socket path that's too long.
@@ -124,7 +124,7 @@ func getControlDir(osEnv config.Environment) (string, error) {
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool, multiplexControlPath string) (exe string, baseargs []string, needShell bool, multiplexing bool, controlPath string) {
+func GetExeAndArgs(osEnv core.Environment, gitEnv core.Environment, meta *SSHMetadata, multiplexDesired bool, multiplexControlPath string) (exe string, baseargs []string, needShell bool, multiplexing bool, controlPath string) {
 	var cmd string
 
 	ssh, _ := osEnv.Get("GIT_SSH")

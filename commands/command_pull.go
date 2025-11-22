@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tq"
@@ -33,7 +33,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 }
 
 func pull(filter *filepathfilter.Filter) {
-	ref, err := git.CurrentRef()
+	ref, err := core.CurrentRef()
 	if err != nil {
 		Panic(err, tr.Tr.Get("Could not pull"))
 	}

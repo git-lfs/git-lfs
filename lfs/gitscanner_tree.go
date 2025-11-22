@@ -5,16 +5,16 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
-func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
+func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv core.Environment) error {
 	// We don't use the nameMap approach here since that's imprecise when >1 file
 	// can be using the same content
 	treeShas, err := lsTreeBlobs(ref, func(t *git.TreeBlob) bool {
@@ -39,10 +39,10 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 	return nil
 }
 
-func runScanLFSFiles(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
+func runScanLFSFiles(cb GitScannerFoundPointer, ref string, filter *filepathfilter.Filter, gitEnv, osEnv core.Environment) error {
 	var treeShas *TreeBlobChannelWrapper
 	var err error
-	if git.IsGitVersionAtLeast("2.42.0") {
+	if core.IsGitVersionAtLeast("2.42.0") {
 		treeShas, err = lsFilesBlobs(func(t *git.TreeBlob) bool {
 			return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
 		})
@@ -79,7 +79,7 @@ func runScanLFSFiles(cb GitScannerFoundPointer, ref string, filter *filepathfilt
 // Input git.TreeBlob structs should be sent over the treeblobs channel.
 // The blob contents will be decoded as Git LFS pointers and any valid
 // pointers will be returned as pointer.Pointer structs in a new channel.
-func catFileBatchTree(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.Environment) (*PointerChannelWrapper, error) {
+func catFileBatchTree(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv core.Environment) (*PointerChannelWrapper, error) {
 	scanner, err := NewPointerScanner(gitEnv, osEnv)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func catFileBatchTree(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.En
 // for final check & conversion to Pointer
 func lsTreeBlobs(ref string, predicate func(*git.TreeBlob) bool) (*TreeBlobChannelWrapper, error) {
 	return lsBlobs(func() (*subprocess.BufferedCmd, error) {
-		return git.LsTree(ref)
+		return core.LsTree(ref)
 	}, predicate)
 }
 
@@ -173,11 +173,11 @@ func lsBlobs(backend func() (*subprocess.BufferedCmd, error), predicate func(*gi
 // for final check & conversion to Pointer
 func lsFilesBlobs(predicate func(*git.TreeBlob) bool) (*TreeBlobChannelWrapper, error) {
 	return lsBlobs(func() (*subprocess.BufferedCmd, error) {
-		return git.LsFilesLFS()
+		return core.LsFilesLFS()
 	}, predicate)
 }
 
-func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv config.Environment) (map[string]*WrappedPointer, *filepathfilter.Filter, error) {
+func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEnv core.Environment) (map[string]*WrappedPointer, *filepathfilter.Filter, error) {
 	pscanner, err := NewPointerScanner(gitEnv, osEnv)
 	if err != nil {
 		return nil, nil, err
@@ -189,7 +189,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 
 	pointers := make(map[string]*WrappedPointer)
 
-	paths := make([]git.AttributePath, 0)
+	paths := make([]gitattr.AttributePath, 0)
 	processor := gitattr.NewMacroProcessor()
 
 	hasNext := true
@@ -198,7 +198,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 			hasNext = oscanner.Scan(t.Oid)
 
 			if rdr := oscanner.Contents(); rdr != nil {
-				paths = append(paths, git.AttrPathsFromReader(
+				paths = append(paths, gitattr.AttrPathsFromReader(
 					processor,
 					t.Filename,
 					"",
@@ -267,7 +267,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 	return pointers, filepathfilter.NewFromPatterns(includes, excludes, filepathfilter.DefaultValue(false)), nil
 }
 
-func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv config.Environment) error {
+func runScanTreeForPointers(cb GitScannerFoundPointer, tree string, gitEnv, osEnv core.Environment) error {
 	treeShas, err := lsTreeBlobs(tree, func(t *git.TreeBlob) bool {
 		return t != nil && (t.Mode == 0100644 || t.Mode == 0100755)
 	})

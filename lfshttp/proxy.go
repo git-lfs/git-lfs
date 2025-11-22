@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"golang.org/x/net/http/httpproxy"
 )
 
@@ -51,7 +52,7 @@ func proxyFromClient(c *Client) func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv config.Environment) (httpsProxy string, httpProxy string, noProxy string) {
+func getProxyServers(u *url.URL, urlCfg *config.URLConfig, osEnv core.Environment) (httpsProxy string, httpProxy string, noProxy string) {
 	if osEnv == nil {
 		return
 	}

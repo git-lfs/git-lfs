@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
@@ -60,7 +60,7 @@ func TestRemoteLocksWithCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
-	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
+	client.RemoteRef = &core.Ref{Name: "refs/heads/master"}
 	cacheFile, err := client.prepareCacheDirectory("remote")
 	assert.Nil(t, err)
 
@@ -170,7 +170,7 @@ func TestRefreshCache(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, locks)
 
-	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
+	client.RemoteRef = &core.Ref{Name: "refs/heads/master"}
 	_, _, err = client.SearchLocksVerifiable(100, false)
 	assert.Nil(t, err)
 
@@ -243,7 +243,7 @@ func TestSearchLocksVerifiableWithCache(t *testing.T) {
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
-	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
+	client.RemoteRef = &core.Ref{Name: "refs/heads/master"}
 	cacheFile, err := client.prepareCacheDirectory("verifiable")
 	assert.Nil(t, err)
 

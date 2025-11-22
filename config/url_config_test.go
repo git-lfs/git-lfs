@@ -3,11 +3,12 @@ package config
 import (
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestURLConfig(t *testing.T) {
-	u := NewURLConfig(EnvironmentOf(MapFetcher(map[string][]string{
+	u := NewURLConfig(core.EnvironmentOf(MapFetcher(map[string][]string{
 		"http.key":                                []string{"root", "root-2"},
 		"http.https://host.com.key":               []string{"host", "host-2"},
 		"http.https://user@host.com/a.key":        []string{"user-a", "user-b"},

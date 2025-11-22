@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -188,7 +188,7 @@ type TransferQueue struct {
 	direction         Direction
 	client            *tqClient
 	remote            string
-	ref               *git.Ref
+	ref               *core.Ref
 	adapter           Adapter
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
@@ -278,7 +278,7 @@ func WithProgress(m *Meter) Option {
 	}
 }
 
-func RemoteRef(ref *git.Ref) Option {
+func RemoteRef(ref *core.Ref) Option {
 	return func(tq *TransferQueue) {
 		tq.ref = ref
 	}

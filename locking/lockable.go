@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -39,7 +39,7 @@ func (c *Client) ensureLockablesLoaded() {
 // Internal function to repopulate lockable patterns
 // You must have locked the c.lockableMutex in the caller
 func (c *Client) refreshLockablePatterns() {
-	paths := git.GetAttributePaths(gitattr.NewMacroProcessor(), c.LocalWorkingDir, c.LocalGitDir)
+	paths := gitattr.GetAttributePaths(gitattr.NewMacroProcessor(), c.LocalWorkingDir, c.LocalGitDir)
 	// Always make non-nil even if empty
 	c.lockablePatterns = make([]string, 0, len(paths))
 	for _, p := range paths {
@@ -113,7 +113,7 @@ func (c *Client) FixFileWriteFlagsInDir(dir string, lockablePatterns, unlockable
 func (c *Client) fixFileWriteFlags(absPath, workingDir string, lockable, unlockable *filepathfilter.Filter) error {
 
 	// Build a list of files
-	lsFiles, err := git.NewLsFiles(workingDir, !c.ModifyIgnoredFiles, false)
+	lsFiles, err := core.NewLsFiles(workingDir, !c.ModifyIgnoredFiles, false)
 	if err != nil {
 		return err
 	}

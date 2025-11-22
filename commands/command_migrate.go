@@ -8,7 +8,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/githistory"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -84,12 +84,12 @@ func migrate(args []string, r *githistory.Rewriter, l *tasklog.Logger, opts *git
 // getObjectDatabase creates a *git.ObjectDatabase from the filesystem pointed
 // at the .git directory of the currently checked-out repository.
 func getObjectDatabase() (*gitobj.ObjectDatabase, error) {
-	dir, err := git.GitCommonDir()
+	dir, err := core.GitCommonDir()
 	if err != nil {
 		return nil, errors.Wrap(err, tr.Tr.Get("cannot open root"))
 	}
 
-	return git.ObjectDatabase(cfg.OSEnv(), cfg.GitEnv(), dir, cfg.TempDir())
+	return core.ObjectDatabase(cfg.OSEnv(), cfg.GitEnv(), dir, cfg.TempDir())
 }
 
 // rewriteOptions returns *githistory.RewriteOptions able to be passed to a
@@ -185,7 +185,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 
 		// Then, loop through each branch given, resolve that reference,
 		// and include it.
-		ref, err := git.ResolveRef(name)
+		ref, err := core.ResolveRef(name)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -208,18 +208,18 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 		include = append(include, migrateIncludeRefs...)
 		exclude = append(exclude, migrateExcludeRefs...)
 	} else if migrateEverything {
-		refs, err := git.AllRefsIn("")
+		refs, err := core.AllRefsIn("")
 		if err != nil {
 			return nil, nil, err
 		}
 
 		for _, ref := range refs {
 			switch ref.Type {
-			case git.RefTypeLocalBranch, git.RefTypeLocalTag,
-				git.RefTypeRemoteBranch:
+			case core.RefTypeLocalBranch, core.RefTypeLocalTag,
+				core.RefTypeRemoteBranch:
 
 				include = append(include, ref.Refspec())
-			case git.RefTypeOther:
+			case core.RefTypeOther:
 				if isSpecialGitRef(ref.Refspec()) {
 					continue
 				}
@@ -227,7 +227,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 			}
 		}
 	} else {
-		bare, err := git.IsBare()
+		bare, err := core.IsBare()
 		if err != nil {
 			return nil, nil, errors.Wrap(err, tr.Tr.Get("Unable to determine bareness"))
 		}
@@ -257,10 +257,10 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 // getRemoteRefs returns a fully qualified set of references belonging to all
 // remotes known by the currently checked-out repository, or an error if those
 // references could not be determined.
-func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
-	refs := make(map[string][]*git.Ref)
+func getRemoteRefs(l *tasklog.Logger) (map[string][]*core.Ref, error) {
+	refs := make(map[string][]*core.Ref)
 
-	remotes, err := git.RemoteList()
+	remotes, err := core.RemoteList()
 	if err != nil {
 		return nil, err
 	}
@@ -272,11 +272,11 @@ func getRemoteRefs(l *tasklog.Logger) (map[string][]*git.Ref, error) {
 	}
 
 	for _, remote := range remotes {
-		var refsForRemote []*git.Ref
+		var refsForRemote []*core.Ref
 		if migrateSkipFetch {
-			refsForRemote, err = git.CachedRemoteRefs(remote)
+			refsForRemote, err = core.CachedRemoteRefs(remote)
 		} else {
-			refsForRemote, err = git.RemoteRefs(remote, true)
+			refsForRemote, err = core.RemoteRefs(remote, true)
 		}
 
 		if err != nil {
@@ -293,13 +293,13 @@ func fetchRemoteRefs(l *tasklog.Logger, remotes []string) error {
 	w := l.Waiter(tr.Tr.Get("Fetching remote refs"))
 	defer w.Complete()
 
-	return git.Fetch(remotes...)
+	return core.Fetch(remotes...)
 }
 
 // formatRefName returns the fully-qualified name for the given Git reference
 // "ref".
-func formatRefName(ref *git.Ref, remote string) string {
-	if ref.Type == git.RefTypeRemoteBranch {
+func formatRefName(ref *core.Ref, remote string) string {
+	if ref.Type == core.RefTypeRemoteBranch {
 		return strings.Join([]string{
 			"refs", "remotes", remote, ref.Name}, "/")
 	}
@@ -310,14 +310,14 @@ func formatRefName(ref *git.Ref, remote string) string {
 // currentRefToMigrate returns the fully-qualified name of the currently
 // checked-out reference, or an error if the reference's type was not a local
 // branch.
-func currentRefToMigrate() (*git.Ref, error) {
-	current, err := git.CurrentRef()
+func currentRefToMigrate() (*core.Ref, error) {
+	current, err := core.CurrentRef()
 	if err != nil {
 		return nil, err
 	}
 
-	if current.Type == git.RefTypeOther ||
-		current.Type == git.RefTypeRemoteBranch {
+	if current.Type == core.RefTypeOther ||
+		current.Type == core.RefTypeRemoteBranch {
 
 		return nil, errors.New(tr.Tr.Get("Cannot migrate non-local ref: %s", current.Name))
 	}
@@ -335,7 +335,7 @@ func getHistoryRewriter(cmd *cobra.Command, db *gitobj.ObjectDatabase, l *tasklo
 }
 
 func ensureWorkingCopyClean(in io.Reader, out io.Writer) {
-	dirty, err := git.IsWorkingCopyDirty()
+	dirty, err := core.IsWorkingCopyDirty()
 	if err != nil {
 		ExitWithError(errors.Wrap(err,
 			tr.Tr.Get("Could not determine if working copy is dirty")))

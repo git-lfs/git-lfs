@@ -11,6 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -129,7 +130,7 @@ func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
 
 	backend, _ := uc.Get("http", url, "sslbackend")
 	schannelUseSslCaInfoStrValue, _ := uc.Get("http", url, "schannelusesslcainfo")
-	schannelUseSslCaInfo := config.Bool(schannelUseSslCaInfoStrValue, false)
+	schannelUseSslCaInfo := core.Bool(schannelUseSslCaInfoStrValue, false)
 
 	if backend == "schannel" && !schannelUseSslCaInfo {
 		return pool

@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -35,7 +35,7 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 	tracerx.Printf("post-commit: checking file write flags at HEAD")
 	// We can speed things up by looking at what changed in
 	// HEAD, and only checking those lockable files
-	files, err := git.GetFilesChanged("HEAD", "")
+	files, err := core.GetFilesChanged("HEAD", "")
 
 	if err != nil {
 		LoggedError(err, tr.Tr.Get("Warning: post-commit failed: %v", err))

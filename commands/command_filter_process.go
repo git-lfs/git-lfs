@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -97,7 +98,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 
 				if cfg.AutoDetectRemoteEnabled() {
 					// update current remote with information gained by treeish
-					newRemote := git.FirstRemoteForTreeish(req.Header["treeish"])
+					newRemote := core.FirstRemoteForTreeish(req.Header["treeish"])
 					if newRemote != "" {
 						cfg.SetRemote(newRemote)
 					}
@@ -226,7 +227,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", !git.IsGitVersionAtLeast("2.34.0")) {
+	if len(malformedOnWindows) > 0 && cfg.Git.Bool("lfs.largefilewarning", !core.IsGitVersionAtLeast("2.34.0")) {
 		fmt.Fprintln(os.Stderr, tr.Tr.GetN(
 			"Encountered %d file that may not have been copied correctly on Windows:",
 			"Encountered %d files that may not have been copied correctly on Windows:",

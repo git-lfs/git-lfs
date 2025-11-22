@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
@@ -79,6 +80,11 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 		mp:    mp,
 		lines: lines,
 	}, nil
+}
+
+func (t *Tree) FindSpecialAttributes(gitEnv, osEnv core.Environment) error {
+
+	return nil
 }
 
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines

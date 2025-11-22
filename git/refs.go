@@ -3,17 +3,18 @@ package git
 import (
 	"fmt"
 
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/rubyist/tracerx"
 )
 
 type RefUpdate struct {
-	git       Env
+	git       core.Environment
 	remote    string
-	localRef  *Ref
-	remoteRef *Ref
+	localRef  *core.Ref
+	remoteRef *core.Ref
 }
 
-func NewRefUpdate(g Env, remote string, localRef, remoteRef *Ref) *RefUpdate {
+func NewRefUpdate(g core.Environment, remote string, localRef, remoteRef *core.Ref) *RefUpdate {
 	return &RefUpdate{
 		git:       g,
 		remote:    remote,
@@ -22,7 +23,7 @@ func NewRefUpdate(g Env, remote string, localRef, remoteRef *Ref) *RefUpdate {
 	}
 }
 
-func (u *RefUpdate) LocalRef() *Ref {
+func (u *RefUpdate) LocalRef() *core.Ref {
 	return u.localRef
 }
 
@@ -30,7 +31,7 @@ func (u *RefUpdate) LocalRefCommitish() string {
 	return refCommitish(u.LocalRef())
 }
 
-func (u *RefUpdate) RemoteRef() *Ref {
+func (u *RefUpdate) RemoteRef() *core.Ref {
 	if u.remoteRef == nil {
 		u.remoteRef = defaultRemoteRef(u.git, u.remote, u.LocalRef())
 	}
@@ -41,7 +42,7 @@ func (u *RefUpdate) RemoteRef() *Ref {
 // repository config and local ref being pushed.
 //
 // See push.default rules in https://git-scm.com/docs/git-config
-func defaultRemoteRef(g Env, remote string, localRef *Ref) *Ref {
+func defaultRemoteRef(g core.Environment, remote string, localRef *core.Ref) *core.Ref {
 	pushMode, _ := g.Get("push.default")
 	switch pushMode {
 	case "", "simple":
@@ -70,9 +71,9 @@ func defaultRemoteRef(g Env, remote string, localRef *Ref) *Ref {
 	}
 }
 
-func trackingRef(g Env, localRef *Ref) *Ref {
+func trackingRef(g core.Environment, localRef *core.Ref) *core.Ref {
 	if merge, ok := g.Get(fmt.Sprintf("branch.%s.merge", localRef.Name)); ok {
-		return ParseRef(merge, "")
+		return core.ParseRef(merge, "")
 	}
 	return localRef
 }
@@ -81,14 +82,9 @@ func (u *RefUpdate) RemoteRefCommitish() string {
 	return refCommitish(u.RemoteRef())
 }
 
-func refCommitish(r *Ref) string {
+func refCommitish(r *core.Ref) string {
 	if len(r.Sha) > 0 {
 		return r.Sha
 	}
 	return r.Name
-}
-
-// copy of env
-type Env interface {
-	Get(key string) (val string, ok bool)
 }

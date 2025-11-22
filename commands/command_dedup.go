@@ -7,7 +7,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -48,7 +48,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 	}
 
 	setupRepository()
-	if gitDir, err := git.GitDir(); err != nil {
+	if gitDir, err := core.GitDir(); err != nil {
 		ExitWithError(err)
 	} else if supported, err := tools.CheckCloneFileSupported(gitDir); err != nil || !supported {
 		Exit(tr.Tr.Get("This system does not support de-duplication."))
@@ -58,7 +58,7 @@ func dedupCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("This platform supports file de-duplication, however, Git LFS extensions are configured and therefore de-duplication can not be used."))
 	}
 
-	if dirty, err := git.IsWorkingCopyDirty(); err != nil {
+	if dirty, err := core.IsWorkingCopyDirty(); err != nil {
 		ExitWithError(err)
 	} else if dirty {
 		Exit(tr.Tr.Get("Working tree is dirty. Please commit or reset your change."))

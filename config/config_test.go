@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ func TestRemoteBranchConfig(t *testing.T) {
 			"branch.other.pushremote": []string{"b"},
 		},
 	})
-	cfg.ref = &git.Ref{Name: "master"}
+	cfg.ref = &core.Ref{Name: "master"}
 
 	assert.Equal(t, "a", cfg.Remote())
 	assert.Equal(t, "a", cfg.PushRemote())
@@ -41,7 +41,7 @@ func TestRemotePushDefault(t *testing.T) {
 			"branch.other.pushremote": []string{"c"},
 		},
 	})
-	cfg.ref = &git.Ref{Name: "master"}
+	cfg.ref = &core.Ref{Name: "master"}
 
 	assert.Equal(t, "a", cfg.Remote())
 	assert.Equal(t, "b", cfg.PushRemote())
@@ -55,7 +55,7 @@ func TestRemoteBranchPushDefault(t *testing.T) {
 			"branch.master.pushremote": []string{"c"},
 		},
 	})
-	cfg.ref = &git.Ref{Name: "master"}
+	cfg.ref = &core.Ref{Name: "master"}
 
 	assert.Equal(t, "a", cfg.Remote())
 	assert.Equal(t, "c", cfg.PushRemote())
@@ -95,7 +95,7 @@ func TestLFSDefaultBranch(t *testing.T) {
 			"remote.lfsdefault":      []string{"e"},
 		},
 	})
-	cfg.ref = &git.Ref{Name: "main"}
+	cfg.ref = &core.Ref{Name: "main"}
 
 	assert.Equal(t, "a", cfg.Remote())
 	assert.Equal(t, "c", cfg.PushRemote())

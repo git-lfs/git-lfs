@@ -11,7 +11,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -55,14 +55,14 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	switch len(args) {
 	case 0:
 		useIndex = true
-		ref, err := git.CurrentRef()
+		ref, err := core.CurrentRef()
 		if err != nil {
 			ExitWithError(err)
 		}
 		include = ref.Sha
 	case 1:
 		pieces := strings.SplitN(args[0], "..", 2)
-		refs, err := git.ResolveRefs(pieces)
+		refs, err := core.ResolveRefs(pieces)
 		if err != nil {
 			ExitWithError(err)
 		}

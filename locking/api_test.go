@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
@@ -109,10 +109,10 @@ func TestAPIUnlock(t *testing.T) {
 	require.Nil(t, err)
 
 	lc := &httpLockClient{Client: c}
-	unlockRes, status, err := lc.Unlock(&git.Ref{
+	unlockRes, status, err := lc.Unlock(&core.Ref{
 		Name: "master",
 		Sha:  "6161616161616161616161616161616161616161",
-		Type: git.RefTypeLocalBranch,
+		Type: core.RefTypeLocalBranch,
 	}, "", "123", true)
 	require.Nil(t, err)
 	assert.Equal(t, 200, status)

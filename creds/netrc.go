@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/go-netrc/netrc"
 	"github.com/rubyist/tracerx"
 )
@@ -20,7 +20,7 @@ type NetrcFinder interface {
 const netrcBasename = ".netrc"
 const netrcAltBasename = "_netrc"
 
-func ParseNetrc(osEnv config.Environment) (NetrcFinder, string, error) {
+func ParseNetrc(osEnv core.Environment) (NetrcFinder, string, error) {
 	home, _ := osEnv.Get("HOME")
 	if len(home) == 0 {
 		return &noFinder{}, "", nil
@@ -61,7 +61,7 @@ var defaultNetrcFinder = &noFinder{}
 
 // NewNetrcCredentialHelper creates a new netrc credential helper using a
 // .netrc file gleaned from the OS environment
-func newNetrcCredentialHelper(osEnv config.Environment) *netrcCredentialHelper {
+func newNetrcCredentialHelper(osEnv core.Environment) *netrcCredentialHelper {
 	netrcFinder, netrcfile, err := ParseNetrc(osEnv)
 	if err != nil {
 		tracerx.Printf("bad netrc file %s: %s", netrcfile, err)

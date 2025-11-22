@@ -15,7 +15,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/fs"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -31,22 +31,22 @@ type Configuration struct {
 	// Os provides a `*Environment` used to access to the system's
 	// environment through os.Getenv. It is the point of entry for all
 	// system environment configuration.
-	Os Environment
+	Os core.Environment
 
 	// Git provides a `*Environment` used to access to the various levels of
 	// `.gitconfig`'s. It is the point of entry for all Git environment
 	// configuration.
-	Git Environment
+	Git core.Environment
 
 	currentRemote *string
 	pushRemote    *string
 
 	// gitConfig can fetch or modify the current Git config and track the Git
 	// version.
-	gitConfig *git.Configuration
+	gitConfig *core.Configuration
 
-	ref        *git.Ref
-	remoteRef  *git.Ref
+	ref        *core.Ref
+	remoteRef  *core.Ref
 	fs         *fs.Filesystem
 	gitDir     *string
 	workDir    string
@@ -64,9 +64,9 @@ func New() *Configuration {
 }
 
 func NewIn(workdir, gitdir string) *Configuration {
-	gitConf := git.NewConfig(workdir, gitdir)
+	gitConf := core.NewConfig(workdir, gitdir)
 	c := &Configuration{
-		Os:        EnvironmentOf(NewOsFetcher()),
+		Os:        core.EnvironmentOf(NewOsFetcher()),
 		gitConfig: gitConf,
 		timestamp: time.Now(),
 	}
@@ -77,7 +77,7 @@ func NewIn(workdir, gitdir string) *Configuration {
 	}
 
 	c.Git = &delayedEnvironment{
-		callback: func() Environment {
+		callback: func() core.Environment {
 			sources, err := gitConf.Sources(c.LocalWorkingDir(), ".lfsconfig")
 			if err != nil {
 				fmt.Fprintln(os.Stderr, tr.Tr.Get("Error reading `git config`: %s", err))
@@ -94,7 +94,7 @@ func (c *Configuration) getMask() int {
 		val, ok := c.Git.Get("core.sharedrepository")
 		if !ok {
 			val = "umask"
-		} else if Bool(val, false) {
+		} else if core.Bool(val, false) {
 			val = "group"
 		}
 
@@ -120,7 +120,7 @@ func (c *Configuration) getMask() int {
 	return c.mask
 }
 
-func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) Environment {
+func (c *Configuration) readGitConfig(gitconfigs ...*core.ConfigurationSource) core.Environment {
 	gf, extensions, uniqRemotes := readGitConfig(gitconfigs...)
 	c.extensions = extensions
 	c.remotes = make([]string, 0, len(uniqRemotes))
@@ -128,7 +128,7 @@ func (c *Configuration) readGitConfig(gitconfigs ...*git.ConfigurationSource) En
 		c.remotes = append(c.remotes, remote)
 	}
 
-	return EnvironmentOf(gf)
+	return core.EnvironmentOf(gf)
 }
 
 // Values is a convenience type used to call the NewFromValues function. It
@@ -147,13 +147,13 @@ type Values struct {
 // This method should only be used during testing.
 func NewFrom(v Values) *Configuration {
 	c := &Configuration{
-		Os:        EnvironmentOf(mapFetcher(v.Os)),
-		gitConfig: git.NewConfig("", ""),
+		Os:        core.EnvironmentOf(mapFetcher(v.Os)),
+		gitConfig: core.NewConfig("", ""),
 		timestamp: time.Now(),
 	}
 	c.Git = &delayedEnvironment{
-		callback: func() Environment {
-			source := &git.ConfigurationSource{
+		callback: func() core.Environment {
+			source := &core.ConfigurationSource{
 				Lines: make([]string, 0, len(v.Git)),
 			}
 
@@ -205,14 +205,14 @@ func (c *Configuration) FetchExcludePaths() []string {
 	return tools.CleanPaths(patterns, ",")
 }
 
-func (c *Configuration) CurrentRef() *git.Ref {
+func (c *Configuration) CurrentRef() *core.Ref {
 	c.loading.Lock()
 	defer c.loading.Unlock()
 	if c.ref == nil {
-		r, err := git.CurrentRef()
+		r, err := core.CurrentRef()
 		if err != nil {
 			tracerx.Printf("Error loading current ref: %s", err)
-			c.ref = &git.Ref{}
+			c.ref = &core.Ref{}
 		} else {
 			c.ref = r
 		}
@@ -235,7 +235,7 @@ func (c *Configuration) SearchAllRemotesEnabled() bool {
 // Remote returns the default remote based on:
 // 1. The currently tracked remote branch, if present
 // 2. The value of remote.lfsdefault.
-// 3. Any other SINGLE remote defined in .git/config
+// 3. Any other SINGLE remote defined in .core/config
 // 4. Use "origin" as a fallback.
 // Results are cached after the first hit.
 func (c *Configuration) Remote() string {
@@ -287,9 +287,9 @@ func (c *Configuration) PushRemote() string {
 }
 
 func (c *Configuration) SetValidRemote(name string) error {
-	if err := git.ValidateRemote(name); err != nil {
-		name := git.RewriteLocalPathAsURL(name)
-		if err := git.ValidateRemote(name); err != nil {
+	if err := core.ValidateRemote(name); err != nil {
+		name := core.RewriteLocalPathAsURL(name)
+		if err := core.ValidateRemote(name); err != nil {
 			return err
 		}
 	}
@@ -298,9 +298,9 @@ func (c *Configuration) SetValidRemote(name string) error {
 }
 
 func (c *Configuration) SetValidPushRemote(name string) error {
-	if err := git.ValidateRemote(name); err != nil {
-		name := git.RewriteLocalPathAsURL(name)
-		if err := git.ValidateRemote(name); err != nil {
+	if err := core.ValidateRemote(name); err != nil {
+		name := core.RewriteLocalPathAsURL(name)
+		if err := core.ValidateRemote(name); err != nil {
 			return err
 		}
 	}
@@ -347,7 +347,7 @@ func (c *Configuration) ForceProgress() bool {
 // core.hooksPath configuration variable is supported, we prefer that and expand
 // paths appropriately.
 func (c *Configuration) HookDir() (string, error) {
-	if git.IsGitVersionAtLeast("2.9.0") {
+	if core.IsGitVersionAtLeast("2.9.0") {
 		hp, ok := c.Git.Get("core.hooksPath")
 		if ok {
 			path, err := tools.ExpandPath(hp, false)
@@ -385,7 +385,7 @@ func (c *Configuration) loadGitDirs() {
 		return
 	}
 
-	gitdir, workdir, err := git.GitAndRootDirs()
+	gitdir, workdir, err := core.GitAndRootDirs()
 	if err != nil {
 		errMsg := err.Error()
 		tracerx.Printf("Error running 'git rev-parse': %s", errMsg)
@@ -460,15 +460,15 @@ func (c *Configuration) Cleanup() error {
 	return c.fs.Cleanup()
 }
 
-func (c *Configuration) OSEnv() Environment {
+func (c *Configuration) OSEnv() core.Environment {
 	return c.Os
 }
 
-func (c *Configuration) GitEnv() Environment {
+func (c *Configuration) GitEnv() core.Environment {
 	return c.Git
 }
 
-func (c *Configuration) GitConfig() *git.Configuration {
+func (c *Configuration) GitConfig() *core.Configuration {
 	return c.gitConfig
 }
 

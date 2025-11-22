@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
@@ -97,7 +97,7 @@ func init() {
 		cmd.Flags().BoolVarP(&forceInstall, "force", "f", false, "Set the Git LFS global config, overwriting previous values.")
 		cmd.Flags().BoolVarP(&localInstall, "local", "l", false, "Set the Git LFS config for the local Git repository only.")
 		cmd.Flags().StringVarP(&fileInstall, "file", "", "", "Set the Git LFS config for the given configuration file only.")
-		if git.IsGitVersionAtLeast("2.20.0") {
+		if core.IsGitVersionAtLeast("2.20.0") {
 			cmd.Flags().BoolVarP(&worktreeInstall, "worktree", "w", false, "Set the Git LFS config for the current Git working tree, if multiple working trees are configured; otherwise, the same as --local.")
 		}
 		cmd.Flags().BoolVarP(&systemInstall, "system", "", false, "Set the Git LFS config in system-wide scope.")

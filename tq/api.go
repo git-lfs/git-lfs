@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -35,7 +35,7 @@ type BatchResponse struct {
 	endpoint            lfshttp.Endpoint
 }
 
-func Batch(m Manifest, dir Direction, remote string, remoteRef *git.Ref, objects []*Transfer) (*BatchResponse, error) {
+func Batch(m Manifest, dir Direction, remote string, remoteRef *core.Ref, objects []*Transfer) (*BatchResponse, error) {
 	if len(objects) == 0 {
 		return &BatchResponse{}, nil
 	}

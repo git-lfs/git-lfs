@@ -12,7 +12,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -34,8 +34,8 @@ type EndpointFinder interface {
 }
 
 type endpointGitFinder struct {
-	gitConfig   *git.Configuration
-	gitEnv      config.Environment
+	gitConfig   *core.Configuration
+	gitEnv      core.Environment
 	gitProtocol string
 	gitDir      string
 
@@ -58,7 +58,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 	cfg := ctx.GitConfig()
 	if cfg != nil && cfg.GitDir != "" {
 		gitDir = cfg.GitDir
-	} else if dir, err := git.GitDir(); err == nil {
+	} else if dir, err := core.GitDir(); err == nil {
 		gitDir = dir
 	}
 
@@ -72,7 +72,7 @@ func NewEndpointFinder(ctx lfshttp.Context) EndpointFinder {
 		urlAccess:   make(map[string]creds.AccessMode),
 	}
 
-	remotes, _ := git.RemoteList()
+	remotes, _ := core.RemoteList()
 	e.remoteList = remotes
 
 	e.urlConfig = config.NewURLConfig(e.gitEnv)
@@ -200,7 +200,7 @@ func (e *endpointGitFinder) GitRemoteURL(remote string, forpush bool) string {
 		}
 	}
 
-	if err := git.ValidateRemoteFromList(e.remoteList, remote); err == nil {
+	if err := core.ValidateRemoteFromList(e.remoteList, remote); err == nil {
 		return remote
 	}
 
@@ -381,7 +381,7 @@ const (
 	aliasPrefix = "url."
 )
 
-func initAliases(e *endpointGitFinder, git config.Environment) {
+func initAliases(e *endpointGitFinder, git core.Environment) {
 	suffix := ".insteadof"
 	pushSuffix := ".pushinsteadof"
 	for gitkey, gitval := range git.All() {

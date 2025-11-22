@@ -7,9 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
@@ -22,7 +21,7 @@ import (
 // Note that the current working directory will be changed to the root
 // of the working tree, unless no work tree exists (e.g., the repository
 // is bare and GIT_WORK_TREE is not defined), in which case Run() is a no-op.
-func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckout {
+func newSingleCheckout(gitEnv core.Environment, remote string) abstractCheckout {
 	clean, ok := gitEnv.Get("filter.lfs.clean")
 	if !ok || len(clean) == 0 {
 		return &noOpCheckout{remote: remote}
@@ -92,7 +91,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 
 	if err != nil {
 		if os.IsNotExist(err) {
-			output, err := git.DiffIndexWithPaths("HEAD", true, []string{p.Name})
+			output, err := core.DiffIndexWithPaths("HEAD", true, []string{p.Name})
 			if err != nil {
 				LoggedError(err, tr.Tr.Get("Checkout error trying to run diff-index: %s", err))
 				return
@@ -195,7 +194,7 @@ func (i *gitIndexer) Add(path string) error {
 
 	if i.cmd == nil {
 		// Fire up the update-index command
-		cmd, err := git.UpdateIndexFromStdin()
+		cmd, err := core.UpdateIndexFromStdin()
 		if err != nil {
 			return err
 		}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -16,7 +16,7 @@ type GitFetcher struct {
 	vals map[string][]string
 }
 
-func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
+func readGitConfig(configs ...*core.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
 	ignored := make([]string, 0)
 
@@ -145,9 +145,7 @@ func (g *GitFetcher) All() map[string][]string {
 	defer g.vmu.RUnlock()
 
 	for key, values := range g.vals {
-		for _, value := range values {
-			newmap[key] = append(newmap[key], value)
-		}
+		newmap[key] = append(newmap[key], values...)
 	}
 
 	return newmap

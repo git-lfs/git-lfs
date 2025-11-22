@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 )
 
 // The nameMap structure provides a goroutine-safe mapping of Git object IDs
@@ -65,7 +65,7 @@ func noopFoundLockable(name string) {}
 // provided callback for each pointer file, valid or invalid, that it finds.
 // Reports unique OIDs once only, not multiple times if more than one file
 // has the same content.
-func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment) error {
+func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv core.Environment) error {
 	revs, nameMap, err := revListShas(scanner, include, exclude)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func scanRefsToChan(scanner *GitScanner, pointerCb GitScannerFoundPointer, inclu
 // that it finds.
 // Reports unique OIDs once only, not multiple times if more than one file
 // has the same content.
-func scanRefsToChanSingleIncludeExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude string, gitEnv, osEnv config.Environment) error {
+func scanRefsToChanSingleIncludeExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude string, gitEnv, osEnv core.Environment) error {
 	return scanRefsToChan(scanner, pointerCb, []string{include}, []string{exclude}, gitEnv, osEnv)
 }
 
@@ -132,7 +132,7 @@ func scanRefsToChanSingleIncludeExclude(scanner *GitScanner, pointerCb GitScanne
 // that it finds.
 // Reports unique OIDs once only, not multiple times if more than one file
 // has the same content.
-func scanRefsToChanSingleIncludeMultiExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include string, exclude []string, gitEnv, osEnv config.Environment) error {
+func scanRefsToChanSingleIncludeMultiExclude(scanner *GitScanner, pointerCb GitScannerFoundPointer, include string, exclude []string, gitEnv, osEnv core.Environment) error {
 	return scanRefsToChan(scanner, pointerCb, []string{include}, exclude, gitEnv, osEnv)
 }
 
@@ -140,7 +140,7 @@ func scanRefsToChanSingleIncludeMultiExclude(scanner *GitScanner, pointerCb GitS
 // and not reachable from any "exclude" refs and invokes the provided callback
 // for each pointer file, valid or invalid, that it finds.
 // Objects which appear in multiple trees will be visited once per tree.
-func scanRefsByTree(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv config.Environment) error {
+func scanRefsByTree(scanner *GitScanner, pointerCb GitScannerFoundPointer, include, exclude []string, gitEnv, osEnv core.Environment) error {
 	revs, _, err := revListShas(scanner, include, exclude)
 	if err != nil {
 		return err

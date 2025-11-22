@@ -16,6 +16,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/locking"
@@ -129,7 +130,7 @@ func newDownloadQueue(manifest tq.Manifest, remote string, options ...tq.Option)
 	)...)
 }
 
-func currentRemoteRef() *git.Ref {
+func currentRemoteRef() *core.Ref {
 	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).RemoteRef()
 }
 
@@ -313,7 +314,7 @@ func requireWorkingCopy() {
 
 func setupRepository() {
 	requireInRepo()
-	bare, err := git.IsBare()
+	bare, err := core.IsBare()
 	if err != nil {
 		ExitWithError(errors.Wrap(
 			err, tr.Tr.Get("Could not determine bareness")))
@@ -463,7 +464,7 @@ func ipAddresses() []string {
 
 func logPanicToWriter(w io.Writer, loggedError error, le string) {
 	// log the version
-	gitV, err := git.Version()
+	gitV, err := core.Version()
 	if err != nil {
 		gitV = tr.Tr.Get("Error getting Git version: %s", err.Error())
 	}
@@ -562,8 +563,8 @@ func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 func requireGitVersion() {
 	minimumGit := "2.0.0"
 
-	if !git.IsGitVersionAtLeast(minimumGit) {
-		gitver, err := git.Version()
+	if !core.IsGitVersionAtLeast(minimumGit) {
+		gitver, err := core.Version()
 		if err != nil {
 			Exit(tr.Tr.Get("Error getting Git version: %s", err))
 		}

@@ -1,4 +1,4 @@
-package git
+package core
 
 import (
 	"errors"
@@ -15,13 +15,6 @@ import (
 var (
 	ErrReadOnly = errors.New(tr.Tr.Get("configuration is read-only"))
 )
-
-// Environment is a restricted version of config.Environment that only provides
-// a single method.
-type Environment interface {
-	// Get is shorthand for calling `e.Fetcher.Get(key)`.
-	Get(key string) (val string, ok bool)
-}
 
 // Configuration can fetch or modify the current Git config and track the Git
 // version.

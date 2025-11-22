@@ -2,6 +2,8 @@ package config
 
 import (
 	"sync"
+
+	"github.com/git-lfs/git-lfs/v3/git/core"
 )
 
 // delayedEnvironment is an implementation of the Environment which wraps the legacy
@@ -10,9 +12,9 @@ import (
 // It is functionally equivalent to call `cfg.loadGitConfig()` before calling
 // methods on the Environment type.
 type delayedEnvironment struct {
-	env      Environment
+	env      core.Environment
 	loading  sync.Mutex
-	callback func() Environment
+	callback func() core.Environment
 }
 
 // Get is shorthand for calling the e.Load(), and then returning

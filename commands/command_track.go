@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -59,9 +59,9 @@ func trackCommand(cmd *cobra.Command, args []string) {
 
 	// Intentionally do _not_ consider global- and system-level
 	// .gitattributes here.  Parse them still to expand any macros.
-	git.GetSystemAttributePaths(mp, cfg.Os)
-	git.GetRootAttributePaths(mp, cfg.Git)
-	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	gitattr.GetSystemAttributePaths(mp, cfg.Os)
+	gitattr.GetRootAttributePaths(mp, cfg.Git)
+	knownPatterns := gitattr.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
 		lineEnd = gitLineEnding(cfg.Git)
@@ -104,7 +104,7 @@ ArgsLoop:
 
 		lockableArg := ""
 		if trackLockableFlag { // no need to test trackNotLockableFlag, if we got here we're disabling
-			lockableArg = " " + git.LockableAttrib
+			lockableArg = " " + gitattr.LockableAttrib
 		}
 
 		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
@@ -185,7 +185,7 @@ ArgsLoop:
 			Print(tr.Tr.Get("Searching for files matching pattern: %s", pattern))
 		}
 
-		gittracked, err := git.GetTrackedFiles(pattern)
+		gittracked, err := core.GetTrackedFiles(pattern)
 		if err != nil {
 			Exit(tr.Tr.Get("Error getting tracked files for %q: %s", pattern, err))
 		}
@@ -308,25 +308,25 @@ func listPatterns() {
 	}
 }
 
-func getAllKnownPatterns() ([]git.AttributePath, error) {
+func getAllKnownPatterns() ([]gitattr.AttributePath, error) {
 	mp := gitattr.NewMacroProcessor()
 
 	// Parse these in this order so that macros in one file are properly
 	// expanded when referred to in a later file, then order them in the
 	// order we want.
-	systemPatterns, err := git.GetSystemAttributePaths(mp, cfg.Os)
+	systemPatterns, err := gitattr.GetSystemAttributePaths(mp, cfg.Os)
 	if err != nil {
 		return nil, err
 	}
-	globalPatterns := git.GetRootAttributePaths(mp, cfg.Git)
-	knownPatterns := git.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
+	globalPatterns := gitattr.GetRootAttributePaths(mp, cfg.Git)
+	knownPatterns := gitattr.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	knownPatterns = append(knownPatterns, globalPatterns...)
 	knownPatterns = append(knownPatterns, systemPatterns...)
 
 	return knownPatterns, nil
 }
 
-func getAttributeLineEnding(attribs []git.AttributePath) string {
+func getAttributeLineEnding(attribs []gitattr.AttributePath) string {
 	for _, a := range attribs {
 		if a.Source.Path == ".gitattributes" {
 			return a.Source.LineEnding

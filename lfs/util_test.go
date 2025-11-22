@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/jmhodges/clock"
@@ -80,8 +81,8 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 	fc := clock.NewFake()
 	gf := GitFilter{
 		cfg: &config.Configuration{
-			Os:  config.EnvironmentOf(osMf),
-			Git: config.EnvironmentOf(gitMf),
+			Os:  core.EnvironmentOf(osMf),
+			Git: core.EnvironmentOf(gitMf),
 		},
 		clk: fc,
 	}

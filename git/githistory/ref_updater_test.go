@@ -3,7 +3,7 @@ package githistory
 import (
 	"testing"
 
-	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +18,11 @@ func TestRefUpdaterMovesRefs(t *testing.T) {
 		cacheFn: func(old []byte) ([]byte, bool) {
 			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
 		},
-		refs: []*git.Ref{
+		refs: []*core.Ref{
 			{
 				Name: "middle",
 				Sha:  "228afe30855933151f7a88e70d9d88314fd2f191",
-				Type: git.RefTypeLocalTag,
+				Type: core.RefTypeLocalTag,
 			},
 		},
 		root: root,
@@ -48,11 +48,11 @@ func TestRefUpdaterMovesRefsWithAnnotatedTags(t *testing.T) {
 		cacheFn: func(old []byte) ([]byte, bool) {
 			return HexDecode(t, "d941e4756add6b06f5bee766fcf669f55419f13f"), true
 		},
-		refs: []*git.Ref{
+		refs: []*core.Ref{
 			{
 				Name: "middle",
 				Sha:  "05797a38b05f910e6efe40dc1a5c0a046a9403e8",
-				Type: git.RefTypeLocalTag,
+				Type: core.RefTypeLocalTag,
 			},
 		},
 		root: root,
@@ -78,11 +78,11 @@ func TestRefUpdaterIgnoresUnovedRefs(t *testing.T) {
 		cacheFn: func(old []byte) ([]byte, bool) {
 			return nil, false
 		},
-		refs: []*git.Ref{
+		refs: []*core.Ref{
 			{
 				Name: "middle",
 				Sha:  "228afe30855933151f7a88e70d9d88314fd2f191",
-				Type: git.RefTypeLocalTag,
+				Type: core.RefTypeLocalTag,
 			},
 		},
 		root: root,

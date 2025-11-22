@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
+	"github.com/git-lfs/git-lfs/v3/git/core"
 )
 
 // ScanIndex returns a slice of WrappedPointer objects for all Git LFS pointers
@@ -13,7 +13,7 @@ import (
 //
 // Ref is the ref at which to scan, which may be "HEAD" if there is at least one
 // commit.
-func scanIndex(cb GitScannerFoundPointer, ref string, workingDir string, f *filepathfilter.Filter, gitEnv, osEnv config.Environment) error {
+func scanIndex(cb GitScannerFoundPointer, ref string, workingDir string, f *filepathfilter.Filter, gitEnv, osEnv core.Environment) error {
 	indexMap := &indexFileMap{
 		nameMap:      make(map[string][]*indexFile),
 		nameShaPairs: make(map[string]bool),

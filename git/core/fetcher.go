@@ -1,4 +1,4 @@
-package config
+package core
 
 // Fetcher provides an interface to get typed information out of a configuration
 // "source". These sources could be the OS environment, a .gitconfig, or even
