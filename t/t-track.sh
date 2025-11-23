@@ -220,9 +220,9 @@ begin_test "track with autocrlf=input"
   git lfs track "*.gif"
   if [ $IS_WINDOWS -eq 1 ]
   then
-      cat -e .gitattributes | grep '\^M\$'
+    [ 2 -eq "$(cat -e .gitattributes | grep -c '\^M\$')" ]
   else
-      cat -e .gitattributes | grep -v '\^M'
+    [ 0 -eq "$(cat -e .gitattributes | grep -c '\^M')" ]
   fi
 )
 end_test
