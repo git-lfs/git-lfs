@@ -248,7 +248,7 @@ begin_test "checkout: skip directory symlink conflicts"
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
   grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
-  [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+  [ 0 -eq "$(grep -c "is beyond a symbolic link" checkout.log)" ]
 
   [ -L "dir1" ]
   [ -L "dir2/dir3" ]
@@ -268,7 +268,7 @@ begin_test "checkout: skip directory symlink conflicts"
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
   grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
-  [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+  [ 0 -eq "$(grep -c "is beyond a symbolic link" checkout.log)" ]
 
   [ -L "dir1" ]
   [ -L "dir2/dir3" ]
@@ -284,7 +284,7 @@ begin_test "checkout: skip directory symlink conflicts"
     fi
     grep '"dir1/a\.dat": not a directory' checkout.log
     grep '"dir2/dir3/dir4/a\.dat": not a directory' checkout.log
-    [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+    [ 0 -eq "$(grep -c "is beyond a symbolic link" checkout.log)" ]
   popd
 
   [ -L "dir1" ]
@@ -593,7 +593,7 @@ begin_test "checkout: skip case-based symlink conflicts"
     grep '"dir1/A\.dat": not a regular file' checkout.log
     grep '"dir3/a\.dat": not a directory' checkout.log
     grep '"dir1/DIR2/a\.dat": not a directory' checkout.log
-    [ -z "$(grep "is beyond a symbolic link" checkout.log)" ]
+    [ 0 -eq "$(grep -c "is beyond a symbolic link" checkout.log)" ]
   fi
 
   if [ "$collision" -eq "0" ]; then

@@ -414,7 +414,7 @@ assert_clean_worktree() {
 assert_clean_worktree_with_exceptions() {
   local exceptions="$1"
 
-  [ -z "$(git diff-index HEAD | grep -v -E "$exceptions")" ]
+  [ 0 -eq "$(git diff-index HEAD | grep -c -v -E "$exceptions")" ]
 }
 
 assert_clean_status() {
