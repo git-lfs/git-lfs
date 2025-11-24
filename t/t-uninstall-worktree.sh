@@ -65,7 +65,7 @@ begin_test "uninstall --worktree with single working tree"
     echo >&2 "fatal: expected 'git lfs uninstall --worktree' to succeed"
     exit 1
   fi
-  grep -v "Global Git LFS configuration has been removed." uninstall.log
+  [ 0 -eq "$(grep -c "Global Git LFS configuration has been removed." uninstall.log)" ]
 
   # global configs
   [ "global smudge" = "$(git config filter.lfs.smudge)" ]
@@ -138,7 +138,7 @@ begin_test "uninstall --worktree with multiple working trees"
     echo >&2 "fatal: expected 'git lfs uninstall --worktree' to succeed"
     exit 1
   fi
-  grep -v "Global Git LFS configuration has been removed." uninstall.log
+  [ 0 -eq "$(grep -c "Global Git LFS configuration has been removed." uninstall.log)" ]
 
   # global configs
   [ "global smudge" = "$(git config --global filter.lfs.smudge)" ]

@@ -26,7 +26,7 @@ begin_test "uninstall outside repository"
   do
     git lfs install
     git lfs uninstall $opt | tee uninstall.log
-    grep "configuration has been removed" uninstall.log
+    grep "Global Git LFS configuration has been removed." uninstall.log
 
     [ "" = "$(git config --global filter.lfs.smudge)" ]
     [ "" = "$(git config --global filter.lfs.clean)" ]
@@ -247,7 +247,7 @@ begin_test "uninstall --local"
     echo >&2 "fatal: expected 'git lfs uninstall --local' to succeed"
     exit 1
   fi
-  grep -v "Global Git LFS configuration has been removed." uninstall.log
+  [ 0 -eq "$(grep -c "Global Git LFS configuration has been removed." uninstall.log)" ]
 
   # global configs
   [ "global smudge" = "$(git config filter.lfs.smudge)" ]
@@ -294,7 +294,11 @@ begin_test "uninstall --file"
     echo >&2 "fatal: expected 'git lfs uninstall --file=test-file' to succeed"
     exit 1
   fi
-  grep -v "Global Git LFS configuration has been removed." uninstall.log
+  # At present, we expect this message to always be output because the --file
+  # option was intended for use with alternative global configuration files
+  # like $XDG_CONFIG_HOME/git/config, although users may in practice use the
+  # the --file option on arbitrary files.
+  grep "Global Git LFS configuration has been removed." uninstall.log
 
   # global configs
   [ "global smudge" = "$(git config filter.lfs.smudge)" ]
