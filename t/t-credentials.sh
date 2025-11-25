@@ -28,7 +28,7 @@ begin_test "credentials with url-specific helper skips askpass"
   # askpass is skipped
   GIT_ASKPASS="lfs-bad-cmd" GIT_TRACE=1 git push origin main 2>&1 | tee push.log
 
-  [ "0" -eq "$(grep "filling with GIT_ASKPASS" push.log | wc -l)" ]
+  [ 0 -eq "$(grep -c "filling with GIT_ASKPASS" push.log)" ]
 )
 end_test
 
@@ -57,15 +57,15 @@ begin_test "credentials without useHttpPath, with bad path password"
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   echo "credential calls have no path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep "no-httppath-bad-password" | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c "no-httppath-bad-password")" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep '", "")' | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c '", "")')" ]
 )
 end_test
 
@@ -95,9 +95,9 @@ begin_test "credentials with url-specific useHttpPath, with bad path password"
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -127,9 +127,9 @@ begin_test "credentials with useHttpPath, with wrong password"
   GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
   [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
   echo "approvals:"
-  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -161,14 +161,14 @@ begin_test "credentials with useHttpPath, with correct password"
   GIT_TRACE=1 git push origin with-path-correct-pass 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -202,14 +202,14 @@ begin_test "credentials send wwwauth[] by default"
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -242,9 +242,9 @@ begin_test "credentials sends wwwauth[] and fails with finicky helper"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   echo "approvals:"
-  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -279,14 +279,14 @@ begin_test "credentials skips wwwauth[] with option"
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -315,15 +315,15 @@ begin_test "credentials can authenticate with Bearer auth"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
 begin_test "credentials can authenticate with multistage auth"
 (
   set -e
-  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
 
   reponame="auth-multistage-token"
   setup_remote_repo "$reponame"
@@ -345,8 +345,8 @@ begin_test "credentials can authenticate with multistage auth"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -399,7 +399,7 @@ password=server"
 
   [ "$expected" = "$(cat cred.log)" ]
 
-  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
 
   echo "capability[]=authtype
 capability[]=state
@@ -472,13 +472,13 @@ for netrcfile in $NETRCFILES; do
     GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
     grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
     echo "any netrc credential calls:"
-    [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+    [ 4 -eq "$(grep -c "netrc: git credential" push.log)" ]
 
     echo "any netrc credential fills:"
-    [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+    [ 2 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
     echo "any netrc credential approvals:"
-    [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
+    [ 2 -eq "$(grep -c "netrc: git credential approve" push.log)" ]
   )
   end_test
 done
@@ -512,13 +512,13 @@ begin_test "credentials from netrc with unknown keyword"
   GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
   echo "any netrc credential calls:"
-  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+  [ 4 -eq "$(grep -c "netrc: git credential" push.log)" ]
 
   echo "any netrc credential fills:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+  [ 2 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
   echo "any netrc credential approvals:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
+  [ 2 -eq "$(grep -c "netrc: git credential approve" push.log)" ]
 )
 end_test
 
@@ -589,22 +589,22 @@ begin_test "credentials with bad netrc creds will retry"
 
   # netrc credentials should be attempted then rejected for the lock request
   echo "netrc credentials attempted:"
-  [ "1" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
   echo "netrc credentials rejected:"
-  [ "1" -eq "$(cat push.log | grep "netrc: git credential reject" | wc -l)" ]
+  [ 1 -eq "$(grep -c "netrc: git credential reject" push.log)" ]
 
   # credhelper should then use askpass to find the proper credentials, which
   # should be successful
   echo "askpass credentials attempted:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   echo "askpass credentials approved:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
 
   # askpass creds should be cached and used for the batch request
   echo "cached credentials used:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential cache" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential cache" push.log)" ]
 )
 end_test
 
