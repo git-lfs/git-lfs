@@ -364,8 +364,8 @@ assert_attributes_count() {
   local count="$3"
 
   pattern="\(*.\)\?$fileext\(.*\)$attrib"
-  actual=$(grep -e "$pattern" .gitattributes | wc -l)
-  if [ "$(printf "%d" "$actual")" != "$count" ]; then
+  actual="$(grep -c -e "$pattern" .gitattributes || true)"
+  if [ "$(printf "%d" "$actual")" -ne "$count" ]; then
     echo "wrong number of $attrib entries for $fileext"
     echo "expected: $count actual: $actual"
     cat .gitattributes
