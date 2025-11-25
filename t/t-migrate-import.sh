@@ -467,7 +467,7 @@ begin_test "migrate import (above)"
 
   echo "$main_attrs" | grep -q "/a.md filter=lfs diff=lfs merge=lfs"
   [ 0 -eq "$(echo "$main_attrs" | grep -c "/a.txt filter=lfs diff=lfs merge=lfs")" ]
-  git check-attr filter -- a.txt | grep -vq lfs
+  git check-attr filter -- a.txt | grep "filter: unspecified"
 )
 end_test
 
@@ -493,7 +493,7 @@ begin_test "migrate import (above without extension)"
 
   echo "$main_attrs" | grep -q "/just-b filter=lfs diff=lfs merge=lfs"
   [ 0 -eq "$(echo "$main_attrs" | grep -c "/a.txt filter=lfs diff=lfs merge=lfs")" ]
-  git check-attr filter -- a.txt | grep -vq lfs
+  git check-attr filter -- a.txt | grep "filter: unspecified"
 )
 end_test
 
@@ -519,7 +519,7 @@ begin_test "migrate import (above with multiple files)"
   main_attrs="$(git cat-file -p "$main:.gitattributes")"
 
   echo "$main_attrs" | grep -q "/b.txt filter=lfs diff=lfs merge=lfs"
-  git check-attr filter -- a.txt | grep -vq lfs
+  git check-attr filter -- a.txt | grep "filter: unspecified"
 )
 end_test
 
@@ -1213,9 +1213,9 @@ begin_test "migrate import (filename special characters)"
   git lfs migrate import --above=1b
   # Windows does not allow creation of files with '*', so expect 2 files, not 3
   if [ "$IS_WINDOWS" -eq "1" ] ; then
-    test "$(git check-attr filter -- *.bin |grep lfs | wc -l)" -eq 2 || exit 1
+    [ 2 -eq "$(git check-attr filter -- *.bin | grep -c "filter: lfs")" ]
   else
-    test "$(git check-attr filter -- *.bin |grep lfs | wc -l)" -eq 3 || exit 1
+    [ 3 -eq "$(git check-attr filter -- *.bin | grep -c "filter: lfs")" ]
   fi
 )
 end_test
