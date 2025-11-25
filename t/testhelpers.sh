@@ -153,7 +153,7 @@ refute_server_object() {
     -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
 
-  [ "0" = "$(grep -c "download" http.json)" ] || {
+  [ 0 -eq "$(grep -c "download" http.json)" ] || {
     cat http.json
     exit 1
   }

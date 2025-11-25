@@ -942,7 +942,7 @@ begin_test "pull with raw remote url"
 
   # LFS object downloaded and in working directory
   assert_local_object "$contents_oid" 1
-  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ 0 -eq "$(grep -c "$contents_oid" a.dat)" ]
   [ "a" = "$(cat a.dat)" ]
 )
 end_test
@@ -972,7 +972,7 @@ begin_test "pull with multiple remotes"
 
   # LFS object downloaded and in working directory
   assert_local_object "$contents_oid" 1
-  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ 0 -eq "$(grep -c "$contents_oid" a.dat)" ]
   [ "a" = "$(cat a.dat)" ]
 )
 end_test

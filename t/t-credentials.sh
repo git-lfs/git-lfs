@@ -125,7 +125,7 @@ begin_test "credentials with useHttpPath, with wrong password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
-  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
   echo "approvals:"
   [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
   echo "fills:"
@@ -549,7 +549,7 @@ begin_test "credentials from netrc with bad password"
   git commit -m "add a.dat"
 
   git push netrc main 2>&1 | tee push.log
-  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
 )
 end_test
 

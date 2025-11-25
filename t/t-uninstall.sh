@@ -33,7 +33,7 @@ begin_test "uninstall outside repository"
     [ "" = "$(git config --global filter.lfs.process)" ]
 
     cat $HOME/.gitconfig
-    [ "$(grep 'filter "lfs"' $HOME/.gitconfig -c)" = "0" ]
+    [ 0 -eq "$(grep -c 'filter "lfs"' $HOME/.gitconfig)" ]
   done
 )
 end_test
