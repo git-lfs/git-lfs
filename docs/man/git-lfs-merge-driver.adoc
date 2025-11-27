@@ -29,6 +29,8 @@ required for that.
   Specify the conflict marker size as an integer.
 `--other <path>`::
   Specify the file containing the other revision.
+`--output`::
+  Specify the file into which the merged output will be written.
 `--program <program>`::
   Specify a command, which is passed to the shell after substitution, that
   performs the actual merge. If this is not specified, `git merge-file` is
@@ -66,7 +68,7 @@ percent-encoded escapes:
 
 * `%A`: the current version
 * `%B`: the other version
-* `%D`: the destination version
+* `%D`: the destination (i.e., output) version
 * `%O`: the ancestor version
 * `%L`: the conflict marker size
 
