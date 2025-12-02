@@ -18,8 +18,10 @@ consistency between different Git LFS implementations.
 
 == OPTIONS
 
+`-f`::
 `--file`::
   A local file to build the pointer from.
+`-p`::
 `--pointer`::
   A local file including the contents of a pointer generated from another
   implementation. This is compared to the pointer generated from `--file`.

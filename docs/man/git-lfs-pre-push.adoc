@@ -30,6 +30,9 @@ will be made.
 
 == OPTIONS
 
+`-d`::
+`--dry-run`::
+  Print the files that would be pushed, without actually pushing them.
 `GIT_LFS_SKIP_PUSH`::
    Do nothing on pre-push. For more information, see git-lfs-config(5).
 

@@ -23,6 +23,13 @@ contents before they are written to the Git LFS storage directory, and
 therefore the working tree files should not be copy-on-write clones of
 the LFS object files.
 
+== OPTIONS
+
+`-t`::
+`--test`::
+  Checks whether the current operating system and file system support
+  copy-on-write file creation, without actually cloning any Git LFS files.
+
 == SEE ALSO
 
 Part of the git-lfs(1) suite.
