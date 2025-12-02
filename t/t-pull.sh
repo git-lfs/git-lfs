@@ -337,7 +337,7 @@ begin_test "pull: skip directory symlink conflicts"
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
   grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
-  [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+  [ 0 -eq "$(grep -c "is beyond a symbolic link" pull.log)" ]
 
   assert_local_object "$contents_oid" 1
 
@@ -361,7 +361,7 @@ begin_test "pull: skip directory symlink conflicts"
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
   grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
-  [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+  [ 0 -eq "$(grep -c "is beyond a symbolic link" pull.log)" ]
 
   assert_local_object "$contents_oid" 1
 
@@ -381,7 +381,7 @@ begin_test "pull: skip directory symlink conflicts"
     fi
     grep '"dir1/a\.dat": not a directory' pull.log
     grep '"dir2/dir3/dir4/a\.dat": not a directory' pull.log
-    [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+    [ 0 -eq "$(grep -c "is beyond a symbolic link" pull.log)" ]
   popd
 
   assert_local_object "$contents_oid" 1
@@ -727,7 +727,7 @@ begin_test "pull: skip case-based symlink conflicts"
     grep '"dir1/A\.dat": not a regular file' pull.log
     grep '"dir3/a\.dat": not a directory' pull.log
     grep '"dir1/DIR2/a\.dat": not a directory' pull.log
-    [ -z "$(grep "is beyond a symbolic link" pull.log)" ]
+    [ 0 -eq "$(grep -c "is beyond a symbolic link" pull.log)" ]
   fi
 
   if [ "$collision" -eq "0" ]; then
@@ -942,7 +942,7 @@ begin_test "pull with raw remote url"
 
   # LFS object downloaded and in working directory
   assert_local_object "$contents_oid" 1
-  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ 0 -eq "$(grep -c "$contents_oid" a.dat)" ]
   [ "a" = "$(cat a.dat)" ]
 )
 end_test
@@ -972,7 +972,7 @@ begin_test "pull with multiple remotes"
 
   # LFS object downloaded and in working directory
   assert_local_object "$contents_oid" 1
-  [ "0" = "$(grep -c "$contents_oid" a.dat)" ]
+  [ 0 -eq "$(grep -c "$contents_oid" a.dat)" ]
   [ "a" = "$(cat a.dat)" ]
 )
 end_test

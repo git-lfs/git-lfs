@@ -153,7 +153,7 @@ refute_server_object() {
     -H "X-Ignore-Retries: true" 2>&1 |
     tee http.log
 
-  [ "0" = "$(grep -c "download" http.json)" ] || {
+  [ 0 -eq "$(grep -c "download" http.json)" ] || {
     cat http.json
     exit 1
   }
@@ -364,8 +364,8 @@ assert_attributes_count() {
   local count="$3"
 
   pattern="\(*.\)\?$fileext\(.*\)$attrib"
-  actual=$(grep -e "$pattern" .gitattributes | wc -l)
-  if [ "$(printf "%d" "$actual")" != "$count" ]; then
+  actual="$(grep -c -e "$pattern" .gitattributes || true)"
+  if [ "$(printf "%d" "$actual")" -ne "$count" ]; then
     echo "wrong number of $attrib entries for $fileext"
     echo "expected: $count actual: $actual"
     cat .gitattributes
@@ -414,7 +414,7 @@ assert_clean_worktree() {
 assert_clean_worktree_with_exceptions() {
   local exceptions="$1"
 
-  [ -z "$(git diff-index HEAD | grep -v -E "$exceptions")" ]
+  [ 0 -eq "$(git diff-index HEAD | grep -c -v -E "$exceptions")" ]
 }
 
 assert_clean_status() {
