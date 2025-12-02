@@ -36,6 +36,9 @@ using wildcard matching as per gitignore(5).
 `--pointers`::
   Check that each pointer is canonical and that each file
   which should be stored as a Git LFS file is so stored.
+`-d`::
+`--dry-run`::
+  Perform checks, but do not move any corrupted files to `.git/lfs/bad`.
 
 == SEE ALSO
 

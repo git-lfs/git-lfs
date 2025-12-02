@@ -43,18 +43,18 @@ gitignore(5).
 
 == OPTIONS
 
-`--dry-run`::
 `-d`::
+`--dry-run`::
   Don't actually delete anything, just report on what would have been done
-`--force`::
 `-f`::
+`--force`::
   Prune all objects except unpushed objects, including objects required for
   currently checked out refs. Implies `--recent`.
 `--recent`::
   Prune even objects that would normally be preserved by the
   configuration options specified below in <<_recent_files>>.
-`--verify-remote`::
 `-c`::
+`--verify-remote`::
   Contact the remote and check that copies of reachable files we would delete
   definitely exist before deleting. See <<_verify_remote>>.
 `--no-verify-remote`::
@@ -71,8 +71,8 @@ gitignore(5).
   When `--verify-remote` cannot verify an object on the remote, either halt
   the execution or continue the deletion of verified objects. See
   <<_verify_remote>>.
-`--verbose`::
 `-v`::
+`--verbose`::
   Report the full detail of what is/would be deleted.
 
 == RECENT FILES

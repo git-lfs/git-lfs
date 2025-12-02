@@ -413,6 +413,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackNoModifyAttrsFlag, "no-modify-attrs", "", false, "skip modifying .gitattributes file")
 		cmd.Flags().BoolVarP(&trackNoExcludedFlag, "no-excluded", "", false, "skip listing excluded paths")
 		cmd.Flags().BoolVarP(&trackFilenameFlag, "filename", "", false, "treat this pattern as a literal filename")
-		cmd.Flags().BoolVarP(&trackJSONFlag, "json", "", false, "print output in JSON")
+		cmd.Flags().BoolVarP(&trackJSONFlag, "json", "j", false, "print output in JSON")
 	})
 }

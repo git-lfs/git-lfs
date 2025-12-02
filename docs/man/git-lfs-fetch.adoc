@@ -27,9 +27,11 @@ This does not update the working copy.
 `--exclude=<paths>`::
   Specify lfs.fetchexclude just for this invocation; see
   <<_include_and_exclude>>.
+`-r`::
 `--recent`::
   Download objects referenced by recent branches & commits in addition to those
   that would otherwise be downloaded. See <<_recent_changes>>.
+`-a`::
 `--all`::
   Download all objects that are referenced by any commit reachable from the refs
   provided as arguments. If no refs are provided, then all refs are fetched.
@@ -39,18 +41,21 @@ This does not update the working copy.
 `--stdin`::
   Read a list of newline-delimited refs from standard input instead of the
   command line.
-`--prune`::
 `-p`::
+`--prune`::
   Prune old and unreferenced objects after fetching, equivalent to running `git
   lfs prune` afterwards. See git-lfs-prune(1) for more details.
 `--refetch`::
   Also fetch objects that are already present locally.
-`--dry-run`::
 `-d`::
+`--dry-run`::
   Print what would be fetched, without actually fetching anything.
-`--json`::
 `-j`::
-  Give the output in a stable JSON format for scripts.
+`--json`::
+  Writes the details of all object transfer requests as JSON to STDOUT,
+  if the command exits successfully. Intended for interoperation with
+  external tools. When `--dry-run` is also specified, writes the details
+  of the transfers that would occur if the objects were fetched.
 
 == INCLUDE AND EXCLUDE
 
