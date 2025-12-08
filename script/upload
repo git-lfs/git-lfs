@@ -70,6 +70,8 @@ categorize_asset () {
   local arch=$(echo "$file" | ruby -pe '$_.gsub!(/\Agit-lfs-[^-]+-([^-]+)[-.].*/, "\\1")')
 
   case "$file" in
+    git-lfs-vendor-v*.*.*.tar.gz)
+      echo "Source with Vendored Modules";;
     git-lfs-v*.*.*.tar.gz)
       echo "Source";;
     git-lfs-windows-v*.*.*.exe)
