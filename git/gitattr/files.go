@@ -196,6 +196,8 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	return filepathfilter.NewFromPatterns(patterns, nil)
 }
 
+// findAttributeFiles finds all attributes files in the repository, starting with the repository-wide attributes
+// file, and then any .gitattributes files in the working tree
 func findAttributeFiles(workingDir, gitDir string) []attrFile {
 	var paths []attrFile
 
