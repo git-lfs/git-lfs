@@ -47,44 +47,86 @@ func (s *AttributeSource) String() string {
 	return s.Path
 }
 
-// GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
-// only from the global gitattributes file.
-func GetRootAttributePaths(mp *MacroProcessor, cfg Environment) []AttributePath {
-	af, _ := cfg.Get("core.attributesfile")
-	af, err := tools.ExpandConfigPath(af, "git/attributes")
+// GetRepoAttributePaths behaves as GetAttributePaths, and loads information
+// only from the repo attributes file.
+func GetUserAttributePaths(mp *MacroProcessor, gitEnv Environment) ([]AttributePath, error) {
+	reader, path, err := GetUserAttributesFile(gitEnv)
 	if err != nil {
-		return nil
+		return nil, err
+	}
+	if reader == nil {
+		return nil, nil
+	}
+	defer reader.Close()
+	// The working directory for the user gitattributes file is blank.
+	return AttrPathsFromReader(mp, path, "", reader, true), nil
+}
+
+func GetUserAttributesFile(gitEnv Environment) (io.ReadCloser, string, error) {
+	path, _ := gitEnv.Get("core.attributesfile")
+	path, err := tools.ExpandConfigPath(path, "git/attributes")
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, "", nil
 	}
 
-	if _, err := os.Stat(af); os.IsNotExist(err) {
-		return nil
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, "", err
+	}
+	return reader, path, nil
+}
+
+func GetRepoAttributeFile(gitDir string) (io.ReadCloser, string, error) {
+	path := filepath.Join(gitDir, "info", "attributes")
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, "", nil
 	}
 
-	// The working directory for the root gitattributes file is blank.
-	return attrPathsFromFile(mp, af, "", true)
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, "", err
+	}
+	return reader, path, nil
 }
 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
 func GetSystemAttributePaths(mp *MacroProcessor, env Environment) ([]AttributePath, error) {
+	reader, path, err := GetSystemAttributesFile(env)
+	if err != nil {
+		return nil, err
+	}
+	if reader == nil {
+		return nil, nil
+	}
+	defer reader.Close()
+	// The working directory for the system gitattributes file is blank.
+	return AttrPathsFromReader(mp, path, "", reader, true), nil
+}
+
+func GetSystemAttributesFile(osEnv Environment) (io.ReadCloser, string, error) {
 	var path string
 	if git.IsGitVersionAtLeast("2.42.0") {
 		cmd, err := git.Var("GIT_ATTR_SYSTEM")
 		if err != nil {
-			return nil, errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
+			return nil, "", errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
 		}
 		out, err := cmd.Output()
 		if err != nil {
-			return nil, errors.New(tr.Tr.Get("failed to call `git var GIT_ATTR_SYSTEM`: %v", err))
+			return nil, "", errors.New(tr.Tr.Get("failed to call `git var GIT_ATTR_SYSTEM`: %v", err))
 		}
 		paths := strings.Split(string(out), "\n")
 		if len(paths) == 0 {
-			return nil, nil
+			return nil, "", nil
 		}
 		path = paths[0]
 	} else {
-		prefix, _ := env.Get("PREFIX")
+		prefix, _ := osEnv.Get("PREFIX")
 		if len(prefix) == 0 {
 			prefix = string(filepath.Separator)
 		}
@@ -93,10 +135,14 @@ func GetSystemAttributePaths(mp *MacroProcessor, env Environment) ([]AttributePa
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, nil
+		return nil, "", nil
 	}
 
-	return attrPathsFromFile(mp, path, "", true), nil
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, "", err
+	}
+	return reader, path, nil
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
