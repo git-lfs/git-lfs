@@ -37,6 +37,8 @@ If you are using the [mise-en-place](https://mise.jdx.dev/) tool manager, Git LF
 $ mise use --global git-lfs@latest
 ```
 
+The `mise` utility supports Linux, macOS, and Windows, and provides various configuration options including system-wide settings for all users. See the project [documentation](https://mise.jdx.dev) for details on how to use this tool that can manage your tool versions, but also your environment variables and some tasks.
+
 #### From binary
 
 [Binary packages](https://github.com/git-lfs/git-lfs/releases) are
