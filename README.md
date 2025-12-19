@@ -29,6 +29,14 @@ Debian and RPM packages are available from packagecloud, see the [Linux installa
 Git LFS is included in the distribution of [Git for Windows](https://gitforwindows.org/).
 Alternatively, you can install a recent version of Git LFS from the [Chocolatey](https://chocolatey.org/) package manager.
 
+#### Using mise
+
+If you are an enthusiast user of [mise](https://github.com), the polyglot tool versions manager, you can use a command like this to install git-lfs and make it available globally:
+
+```shell
+mise use -g git-lfs@latest
+```
+
 #### From binary
 
 [Binary packages](https://github.com/git-lfs/git-lfs/releases) are
