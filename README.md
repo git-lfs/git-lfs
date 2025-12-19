@@ -31,7 +31,7 @@ Alternatively, you can install a recent version of Git LFS from the [Chocolatey]
 
 #### Using mise-en-place
 
-If you are using the [mise-en-place](https://mise.jdx.dev/) tool manager, Git LFS can be installed and made available in all of your project directories by running:
+If you are using the [mise-en-place](https://github.com/jdx/mise) tool manager, Git LFS can be installed and made available in all of your project directories by running:
 
 ```ShellSession
 $ mise use --global git-lfs@latest
