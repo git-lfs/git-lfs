@@ -8,7 +8,7 @@ git-lfs-post-merge - Git post-merge hook implementation
 
 [source,role=synopsis]
 ----
-git lfs post-merge <is_squash>
+git lfs post-merge <is-squash>
 ----
 
 == DESCRIPTION
