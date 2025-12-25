@@ -6,9 +6,9 @@ git-lfs-ext - View extension details
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs ext list [<name>...]
+*git lfs ext list* [_<name>_...]
 ----
 
 == DESCRIPTION

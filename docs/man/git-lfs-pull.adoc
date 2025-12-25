@@ -6,9 +6,9 @@ git-lfs-pull - Download all Git LFS files for current ref & checkout
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs pull [options] [<remote>]
+*git lfs pull* [_options_] [_<remote>_]
 ----
 
 == DESCRIPTION

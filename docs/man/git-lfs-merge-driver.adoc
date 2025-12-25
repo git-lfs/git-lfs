@@ -6,9 +6,9 @@ git-lfs-merge-driver - Merge text-based LFS files
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs merge-driver [options]
+*git lfs merge-driver* [_options_]
 ----
 
 == DESCRIPTION

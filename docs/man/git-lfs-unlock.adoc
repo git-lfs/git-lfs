@@ -6,9 +6,9 @@ git-lfs-unlock - Remove "locked" setting for a file on the Git LFS server
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs unlock [<options>] <path>
+*git lfs unlock* [_<options>_] _<path>_
 ----
 
 == DESCRIPTION

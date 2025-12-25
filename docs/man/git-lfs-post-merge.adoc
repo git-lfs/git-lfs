@@ -6,9 +6,9 @@ git-lfs-post-merge - Git post-merge hook implementation
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs post-merge <is-squash>
+*git lfs post-merge* _<is-squash>_
 ----
 
 == DESCRIPTION

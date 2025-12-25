@@ -6,13 +6,13 @@ git-lfs-push - Push queued large files to the Git LFS endpoint
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs push [options] <remote> [<ref>...]
-git lfs push <remote> [<ref>...]
-git lfs push [options] <remote> --stdin
-git lfs push --object-id <remote> [<oid>...]
-git lfs push --object-id <remote> --stdin
+*git lfs push* [_options_] _<remote>_ [_<ref>_...]
+*git lfs push* _<remote>_ [_<ref>_...]
+*git lfs push* [_options_] _<remote>_ *--stdin*
+*git lfs push --object-id* _<remote>_ [_<oid>_...]
+*git lfs push --object-id* _<remote>_ *--stdin*
 ----
 
 == DESCRIPTION

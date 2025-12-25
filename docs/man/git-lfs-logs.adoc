@@ -6,12 +6,12 @@ git-lfs-logs - Show errors from the git-lfs command
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs logs
-git lfs logs <file>
-git lfs logs clear
-git lfs logs boomtown
+*git lfs logs*
+*git lfs logs* _<file>_
+*git lfs logs clear*
+*git lfs logs boomtown*
 ----
 
 == DESCRIPTION

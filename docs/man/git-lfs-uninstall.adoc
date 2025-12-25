@@ -6,9 +6,9 @@ git-lfs-uninstall - Remove Git LFS configuration
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs uninstall
+*git lfs uninstall*
 ----
 
 == DESCRIPTION

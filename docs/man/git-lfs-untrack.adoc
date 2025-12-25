@@ -6,9 +6,9 @@ git-lfs-untrack - Remove Git LFS paths from Git Attributes
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs untrack <path>...
+*git lfs untrack* _<path>_...
 ----
 
 == DESCRIPTION

@@ -6,9 +6,9 @@ git-lfs-lock - Set a file as "locked" on the Git LFS server
 
 == SYNOPSIS
 
-[source,role=synopsis]
+[source,role=synopsis,subs="verbatim,quotes"]
 ----
-git lfs lock [options] <path>
+*git lfs lock* [_options_] _<path>_
 ----
 
 == DESCRIPTION
