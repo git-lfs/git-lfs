@@ -53,10 +53,7 @@ func cloneCommand(cmd *cobra.Command, args []string) {
 	clonedir, err := filepath.Abs(args[len(args)-1])
 	if err != nil || !tools.DirExists(clonedir) {
 		// Derive from clone URL instead
-		base := path.Base(args[len(args)-1])
-		if strings.HasSuffix(base, ".git") {
-			base = base[:len(base)-4]
-		}
+		base := strings.TrimSuffix(path.Base(args[len(args)-1]), ".git")
 		clonedir, _ = filepath.Abs(base)
 		if !tools.DirExists(clonedir) {
 			Exit(tr.Tr.Get("Unable to find clone dir at %q", clonedir))
