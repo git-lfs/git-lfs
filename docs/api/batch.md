@@ -41,6 +41,12 @@ be assumed by the server.
   * `size` - Integer byte size of the LFS object. Must be at least zero.
 * `hash_algo` - The hash algorithm used to name Git LFS objects.  Optional;
   defaults to `sha256` if not specified.
+* `supported_transfer_concurrency_modes` - Optional Array of String identifiers for 
+  transfer concurrency modes that the client supports. If omitted, the server MUST
+  assume that only the `basic` transfer concurrency mode is supported.
+* `preferred_transfer_concurrency_mode` - Optional String identifier for the transfer
+  concurrency mode that the client prefers. If omitted, the server MUST assume the
+  `basic` transfer concurrency mode is preferred.
 
 Note: Git LFS currently only supports the `basic` transfer adapter. This
 property was added for future compatibility with some experimental transfer
@@ -62,7 +68,9 @@ transfer adapters.
       "size": 123
     }
   ],
-  "hash_algo": "sha256"
+  "hash_algo": "sha256",
+  "supported_transfer_concurrency_modes": [ "batch", "basic" ],
+  "preferred_transfer_concurrency_mode": "basic"
 }
 ```
 
@@ -188,7 +196,8 @@ completely. The client will then assume the server already has it.
       }
     }
   ],
-  "hash_algo": "sha256"
+  "hash_algo": "sha256",
+  "transfer_concurrency_mode": "basic"
 }
 ```
 
@@ -217,7 +226,7 @@ return a 200 status code, and provide per-object errors. Here is an example:
 LFS object error codes should match HTTP status codes where possible:
 
 * 404 - The object does not exist on the server.
-* 409 - The specified hash algorithm disagrees with the server's acceptable options.
+* 409 - The specified hash algorithm disagrees with the server's acceptable options or no transfer concurrency mode is supported.
 * 410 - The object was removed by the owner.
 * 422 - Validation error.
 
