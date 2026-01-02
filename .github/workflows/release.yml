@@ -58,7 +58,7 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - uses: azure/trusted-signing-action@v0.5.10
+    - uses: azure/trusted-signing-action@v0.5.11
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
@@ -73,7 +73,7 @@ jobs:
         timestamp-digest: SHA256
     - run: make release-windows-stage-2
       shell: bash
-    - uses: azure/trusted-signing-action@v0.5.10
+    - uses: azure/trusted-signing-action@v0.5.11
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
