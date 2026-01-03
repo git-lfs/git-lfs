@@ -193,8 +193,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 				var err error
 
 				fixups, err = gitattr.New(db, t)
-				fixups.FindSpecialAttributes(cfg.GitEnv(), cfg.OSEnv(), cfg.LocalGitDir())
 				if err != nil {
+					return err
+				}
+				if err = fixups.FindSpecialAttributes(cfg.GitEnv(), cfg.OSEnv(), cfg.LocalGitDir()); err != nil {
 					return err
 				}
 			}
