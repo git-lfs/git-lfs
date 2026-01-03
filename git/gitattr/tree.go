@@ -9,6 +9,13 @@ import (
 	"github.com/git-lfs/gitobj/v2"
 )
 
+// Environment is a restricted version of config.Environment that only provides
+// a single method.
+type Environment interface {
+	// Get is shorthand for calling `e.Fetcher.Get(key)`.
+	Get(key string) (val string, ok bool)
+}
+
 // Tree represents the .gitattributes file at one layer of the tree in a Git
 // repository.
 type Tree struct {
@@ -79,6 +86,40 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 		mp:    mp,
 		lines: lines,
 	}, nil
+}
+
+func (t *Tree) FindSpecialAttributes(gitEnv, osEnv Environment, gitDir string) error {
+	systemReader, _, err := GetSystemAttributesFile(osEnv)
+	if err != nil {
+		return err
+	}
+	if systemReader != nil {
+		t.systemAttributes, err = NewFromReader(t.mp, systemReader)
+	}
+	if err != nil {
+		return err
+	}
+
+	userReader, _, err := GetUserAttributesFile(gitEnv)
+	if err != nil {
+		return err
+	}
+	if userReader != nil {
+		t.userAttributes, err = NewFromReader(t.mp, userReader)
+	}
+	if err != nil {
+		return err
+	}
+
+	repoReader, _, err := GetRepoAttributeFile(gitDir)
+	if err != nil {
+		return err
+	}
+	if repoReader != nil {
+		t.repoAttributes, err = NewFromReader(t.mp, repoReader)
+	}
+
+	return err
 }
 
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
