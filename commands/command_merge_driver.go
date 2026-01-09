@@ -132,7 +132,7 @@ func mergeProcessInput(gf *lfs.GitFilter, filename string, fileSpecifiers map[st
 		Exit(tr.Tr.Get("could not create callback: %s", err))
 	}
 	defer fp.Close()
-	_, err = gf.Smudge(file, pointer, file.Name(), true, getTransferManifestOperationRemote("download", cfg.Remote()), cb)
+	_, _ = gf.Smudge(file, pointer, file.Name(), true, getTransferManifestOperationRemote("download", cfg.Remote()), cb)
 }
 
 func init() {
