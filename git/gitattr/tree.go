@@ -88,6 +88,40 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 	}, nil
 }
 
+func (t *Tree) FindSpecialAttributes(gitEnv, osEnv Environment, gitDir string) error {
+	systemReader, _, err := GetSystemAttributesFile(osEnv)
+	if err != nil {
+		return err
+	}
+	if systemReader != nil {
+		t.systemAttributes, err = NewFromReader(t.mp, systemReader)
+	}
+	if err != nil {
+		return err
+	}
+
+	userReader, _, err := GetUserAttributesFile(gitEnv)
+	if err != nil {
+		return err
+	}
+	if userReader != nil {
+		t.userAttributes, err = NewFromReader(t.mp, userReader)
+	}
+	if err != nil {
+		return err
+	}
+
+	repoReader, _, err := GetRepoAttributeFile(gitDir)
+	if err != nil {
+		return err
+	}
+	if repoReader != nil {
+		t.repoAttributes, err = NewFromReader(t.mp, repoReader)
+	}
+
+	return err
+}
+
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
 // in that .gitattributes, or an error. If no .gitattributes blob was found,
 // return nil.
