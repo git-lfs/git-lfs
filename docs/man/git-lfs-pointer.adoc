@@ -6,10 +6,13 @@ git-lfs-pointer - Build, compare, and check pointers
 
 == SYNOPSIS
 
-`git lfs pointer --file=path/to/file` +
-`git lfs pointer --file=path/to/file --pointer=path/to/pointer` +
-`git lfs pointer --file=path/to/file --stdin` +
-`git lfs pointer --check --file=path/to/file`
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs pointer* **--file=**__path/to/file__
+*git lfs pointer* **--file=**__path/to/file__ **--pointer=**__path/to/pointer__
+*git lfs pointer* **--file=**__path/to/file__ *--stdin*
+*git lfs pointer --check* **--file=**__path/to/file__
+----
 
 == Description
 
