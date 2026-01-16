@@ -137,6 +137,28 @@ patterns are possible: run `git help gitattributes` for more information on
 valid patterns.  Note that if you're specifying directories, using slashes is
 mandatory: backslashes are not allowed as path separators.
 
+[[faq-case-sensitive-patterns]]
+Why do my LFS-tracked files show as pointers on Linux CI but work locally?::
+  The `.gitattributes` patterns used by Git LFS are case-sensitive.  If files
+  are committed with uppercase extensions (e.g., `file.PNG`) on a
+  case-insensitive filesystem like macOS HFS+ or Windows NTFS, but the tracking
+  pattern uses lowercase (e.g., `*.png`), the pattern will not match on
+  case-sensitive filesystems like Linux ext4.  This can cause LFS pointer files
+  to appear in your working tree instead of the actual content.
++
+To ensure patterns match regardless of case, use bracket-glob syntax to cover
+both uppercase and lowercase variants:
++
+[source,shell-session]
+----
+$ git lfs track '*.[pP][nN][gG]'
+$ git lfs track '*.[jJ][pP][gG]'
+----
++
+This makes the patterns match `file.png`, `file.PNG`, `file.Png`, and any other
+case combination.  After updating `.gitattributes`, run `git add --renormalize .`
+and commit to ensure existing files are properly tracked.
+
 [[cat-configuration]]
 === Configuration
 
