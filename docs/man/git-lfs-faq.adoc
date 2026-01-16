@@ -137,27 +137,34 @@ patterns are possible: run `git help gitattributes` for more information on
 valid patterns.  Note that if you're specifying directories, using slashes is
 mandatory: backslashes are not allowed as path separators.
 
-[[faq-case-sensitive-patterns]]
-Why do my LFS-tracked files show as pointers on Linux CI but work locally?::
-  The `.gitattributes` patterns used by Git LFS are case-sensitive.  If files
-  are committed with uppercase extensions (e.g., `file.PNG`) on a
-  case-insensitive filesystem like macOS HFS+ or Windows NTFS, but the tracking
-  pattern uses lowercase (e.g., `*.png`), the pattern will not match on
-  case-sensitive filesystems like Linux ext4.  This can cause LFS pointer files
-  to appear in your working tree instead of the actual content.
+[[faq-case-sensitivity-patterns]]
+Does Git LFS pattern matching in `.gitattributes` respect case sensitivity on different operating systems?::
+  Git's `.gitattributes` pattern matching is case-sensitive (consistent with Git's index).
+  On case-insensitive filesystems (default on macOS and Windows), files are often committed
+  with uppercase extensions (e.g., `.PNG`). On case-sensitive filesystems (e.g., Linux CI servers),
+  a pattern like `*.png` won't match `.PNG`, and Git LFS may leave pointer files instead of content.
 +
-To ensure patterns match regardless of case, use bracket-glob syntax to cover
-both uppercase and lowercase variants:
+For repositories shared across platforms, use bracket-glob patterns to match extensions
+case-insensitively:
 +
-[source,shell-session]
+[cols="1,1,1,1",options="header"]
+|===
+| Original pattern | Recommended pattern     | Matches on macOS/Windows | Matches on Linux/CI
+| `*.png`          | `*.[pP][nN][gG]`       | Yes                      | Yes
+| `*.tga`          | `*.[tT][gG][aA]`       | Yes                      | Yes
+| `*.jpg`          | `*.[jJ][pP][gG]`       | Yes                      | Yes
+| `*.jpeg`         | `*.[jJ][pP][eE][gG]`   | Yes                      | Yes
+|===
++
+Example `.gitattributes` entries:
++
+[source]
 ----
-$ git lfs track '*.[pP][nN][gG]'
-$ git lfs track '*.[jJ][pP][gG]'
+*.[pP][nN][gG] filter=lfs diff=lfs merge=lfs -text
+*.[tT][gG][aA] filter=lfs diff=lfs merge=lfs -text
 ----
 +
-This makes the patterns match `file.png`, `file.PNG`, `file.Png`, and any other
-case combination.  After updating `.gitattributes`, run `git add --renormalize .`
-and commit to ensure existing files are properly tracked.
+This uses standard Git pattern syntax with no runtime overhead.
 
 [[cat-configuration]]
 === Configuration
