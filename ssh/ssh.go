@@ -3,11 +3,11 @@ package ssh
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
@@ -30,7 +30,7 @@ type SSHMetadata struct {
 	Path        string
 }
 
-func FormatArgs(cmd string, args []string, needShell bool, multiplex bool) (string, []string) {
+func FormatArgs(cmd string, args []string, needShell bool, multiplex bool, controlPath string) (string, []string) {
 	if !needShell {
 		return cmd, args
 	}
@@ -38,12 +38,12 @@ func FormatArgs(cmd string, args []string, needShell bool, multiplex bool) (stri
 	return subprocess.FormatForShellQuotedArgs(cmd, args)
 }
 
-func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool) (string, []string, bool) {
-	exe, args, needShell, multiplexing := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired)
+func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, command, operation string, multiplexDesired bool, multiplexControlPath string) (exe string, args []string, multiplexing bool, controlPath string) {
+	exe, args, needShell, multiplexing, controlPath := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired, multiplexControlPath)
 	args = append(args, fmt.Sprintf("%s %s %s", command, meta.Path, operation))
-	exe, args = FormatArgs(exe, args, needShell, multiplexing)
+	exe, args = FormatArgs(exe, args, needShell, multiplexing, controlPath)
 	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
-	return exe, args, multiplexing
+	return exe, args, multiplexing, controlPath
 }
 
 // Parse command, and if it looks like a valid command, return the ssh binary
@@ -119,22 +119,12 @@ func getControlDir(osEnv config.Environment) (string, error) {
 	if dir == "" {
 		return os.MkdirTemp(tmpdir, pattern)
 	}
-	dir = filepath.Join(dir, "git-lfs")
-	err := os.Mkdir(dir, 0700)
-	if err != nil {
-		// Ideally we would use errors.Is here to check against
-		// os.ErrExist, but that's not available on Go 1.11.
-		perr, ok := err.(*os.PathError)
-		if !ok || perr.Err != syscall.EEXIST {
-			return os.MkdirTemp(tmpdir, pattern)
-		}
-	}
-	return dir, nil
+	return os.MkdirTemp(dir, pattern)
 }
 
 // Return the executable name for ssh on this machine and the base args
 // Base args includes port settings, user/host, everything pre the command to execute
-func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool) (exe string, baseargs []string, needShell bool, multiplexing bool) {
+func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, multiplexDesired bool, multiplexControlPath string) (exe string, baseargs []string, needShell bool, multiplexing bool, controlPath string) {
 	var cmd string
 
 	ssh, _ := osEnv.Get("GIT_SSH")
@@ -161,13 +151,20 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 	}
 
 	multiplexing = false
-	multiplexEnabled := gitEnv.Bool("lfs.ssh.automultiplex", true)
+	multiplexEnabled := gitEnv.Bool("lfs.ssh.automultiplex", runtime.GOOS != "windows")
 	if variant == variantSSH && multiplexDesired && multiplexEnabled {
-		controlPath, err := getControlDir(osEnv)
-		if err == nil {
+		controlMasterArg := "-oControlMaster=no"
+		controlPath = multiplexControlPath
+		if multiplexControlPath == "" {
+			controlMasterArg = "-oControlMaster=yes"
+			controlDir, err := getControlDir(osEnv)
+			if err == nil {
+				controlPath = path.Join(controlDir, "lfs.sock")
+			}
+		}
+		if controlPath != "" {
 			multiplexing = true
-			controlPath = filepath.Join(controlPath, "sock-%C")
-			args = append(args, "-oControlMaster=auto", fmt.Sprintf("-oControlPath=%s", controlPath))
+			args = append(args, controlMasterArg, fmt.Sprintf("-oControlPath=%s", controlPath))
 		}
 	}
 
@@ -198,7 +195,7 @@ func GetExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta *SS
 		args = append(args, meta.UserAndHost)
 	}
 
-	return cmd, args, needShell, multiplexing
+	return cmd, args, needShell, multiplexing, controlPath
 }
 
 const defaultSSHCmd = "ssh"

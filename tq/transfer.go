@@ -109,6 +109,8 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 			Header:    action.Header,
 			ExpiresAt: action.ExpiresAt,
 			ExpiresIn: action.ExpiresIn,
+			Id:        action.Id,
+			Token:     action.Token,
 			createdAt: action.createdAt,
 		}
 	}
@@ -122,6 +124,8 @@ func newTransfer(tr *Transfer, name string, path string) *Transfer {
 				Header:    link.Header,
 				ExpiresAt: link.ExpiresAt,
 				ExpiresIn: link.ExpiresIn,
+				Id:        link.Id,
+				Token:     link.Token,
 				createdAt: link.createdAt,
 			}
 		}
