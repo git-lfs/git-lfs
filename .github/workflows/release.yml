@@ -58,7 +58,7 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - uses: azure/trusted-signing-action@v0.5.10
+    - uses: azure/trusted-signing-action@v0.5.11
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
@@ -73,7 +73,7 @@ jobs:
         timestamp-digest: SHA256
     - run: make release-windows-stage-2
       shell: bash
-    - uses: azure/trusted-signing-action@v0.5.10
+    - uses: azure/trusted-signing-action@v0.5.11
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
@@ -90,7 +90,7 @@ jobs:
       shell: bash
     - run: make release-windows-rebuild
       shell: bash
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v6
       with:
         name: windows-assets
         path: bin/releases
@@ -125,7 +125,7 @@ jobs:
         DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
         DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
         DARWIN_DEV_TEAM: ${{secrets.MACOS_DEV_TEAM}}
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v6
       with:
         name: macos-assets
         path: bin/releases
@@ -151,11 +151,11 @@ jobs:
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
       env:
           DEBIAN_FRONTEND: noninteractive
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v7
       with:
         name: windows-assets
         path: windows-assets
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v7
       with:
         name: macos-assets
         path: macos-assets
@@ -166,7 +166,7 @@ jobs:
     - run: rm -f bin/releases/git-lfs-windows-assets*.tar.gz
     - run: mkdir -p release-assets/bin
     - run: mv bin/releases release-assets/bin
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v6
       with:
         name: release-assets
         path: release-assets
