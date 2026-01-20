@@ -6,8 +6,11 @@ git-lfs-checkout - Update working copy with file content if available
 
 == SYNOPSIS
 
-`git lfs checkout` [<glob-pattern>...] +
-`git lfs checkout` --to <file> {--base|--ours|--theirs} <conflict-obj-path>
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs checkout* [_<glob-pattern>_...]
+*git lfs checkout --to* _<file>_ {*--base*|*--ours*|*--theirs*} _<conflict-obj-path>_
+----
 
 == DESCRIPTION
 
