@@ -18,7 +18,7 @@ func (c *Client) traceRequest(req *http.Request) (*tracedRequest, error) {
 	tracerx.Printf("HTTP: %s", traceReq(req))
 
 	if c.Verbose {
-		if dump, err := httputil.DumpRequest(req, false); err == nil {
+		if dump, err := httputil.DumpRequestOut(req, false); err == nil {
 			c.traceHTTPDump(">", dump)
 		}
 	}
