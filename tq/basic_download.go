@@ -9,10 +9,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
+	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
+	"github.com/klauspost/compress/zstd"
 	"github.com/rubyist/tracerx"
 )
 
@@ -131,6 +134,22 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
 	}
 
+	// Set Accept-Encoding header if configured to zstd
+	// (Go's http client handles gzip automatically when no Accept-Encoding is set)
+	uc := config.NewURLConfig(a.apiClient.GitEnv())
+	httpDownloadEncoding, _ := uc.Get("lfs", rel.Href, "httpdownloadencoding")
+	if httpDownloadEncoding != "" {
+		httpDownloadEncoding = strings.TrimSpace(httpDownloadEncoding)
+		switch httpDownloadEncoding {
+		case "gzip":
+			// Don't set header, let Go's http client handle gzip automatically
+		case "zstd":
+			req.Header.Set("Accept-Encoding", "zstd")
+		default:
+			return errors.New(tr.Tr.Get("unsupported lfs.httpDownloadEncoding value %q: must be \"gzip\" or \"zstd\"", httpDownloadEncoding))
+		}
+	}
+
 	req = a.apiClient.LogRequest(req, "lfs.data.download")
 	res, err := a.makeRequest(t, req)
 	if err != nil {
@@ -223,8 +242,20 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		authOkFunc()
 	}
 
+	// Handle Content-Encoding decompression for zstd
+	// (gzip is handled automatically by Go's http client when we don't set Accept-Encoding)
+	var bodyReader io.Reader = res.Body
+	if res.Header.Get("Content-Encoding") == "zstd" {
+		zstdReader, err := zstd.NewReader(res.Body)
+		if err != nil {
+			return errors.Wrap(err, tr.Tr.Get("failed to create zstd decompressor"))
+		}
+		defer zstdReader.Close()
+		bodyReader = zstdReader
+	}
+
 	var hasher *tools.HashingReader
-	httpReader := tools.NewRetriableReader(res.Body)
+	httpReader := tools.NewRetriableReader(bodyReader)
 
 	if fromByte > 0 && hash != nil {
 		// pre-load hashing reader with previous content
