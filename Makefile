@@ -741,13 +741,13 @@ man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 # Generate ROFF-style man pages from the corresponding .adoc files.
 man/man1/%.1 : docs/man/%.adoc
 	@mkdir -p man/man1
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 man/man5/%.5 : docs/man/%.adoc
 	@mkdir -p man/man5
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 man/man7/%.7 : docs/man/%.adoc
 	@mkdir -p man/man7
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 
 # Generate HTML-style man pages from the corresponding .adoc files.
 man/html/%.1.html : docs/man/%.adoc

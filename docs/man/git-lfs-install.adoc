@@ -6,7 +6,10 @@ git-lfs-install - Install Git LFS configuration.
 
 == SYNOPSIS
 
-`git lfs install` [options]
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs install* [_options_]
+----
 
 == DESCRIPTION
 
