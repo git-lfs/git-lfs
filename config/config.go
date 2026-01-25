@@ -225,7 +225,7 @@ func (c *Configuration) IsDefaultRemote() bool {
 }
 
 func (c *Configuration) AutoDetectRemoteEnabled() bool {
-	return c.Git.Bool("lfs.remote.autodetect", false)
+	return c.Git.Bool("lfs.remote.autodetect", true)
 }
 
 func (c *Configuration) SearchAllRemotesEnabled() bool {
