@@ -1728,7 +1728,12 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 		}
 	}
 
-	w.WriteHeader(403)
+	repo, _ := repoFromLfsUrl(r.URL.Path)
+	if strings.HasSuffix(repo, "-401-unauth") {
+		w.WriteHeader(401)
+	} else {
+		w.WriteHeader(403)
+	}
 	debug(id, "Bad auth: %q", auth)
 	return true
 }

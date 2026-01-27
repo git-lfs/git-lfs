@@ -138,6 +138,43 @@ begin_test "credentials with useHttpPath, with wrong password"
 )
 end_test
 
+begin_test "credentials with useHttpPath, with wrong password and 401 response"
+(
+  set -e
+
+  reponame="httppath-bad-password-401-unauth"
+  setup_remote_repo "$reponame"
+
+  printf ":path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" with-path-wrong-pass-401-unauth
+  git checkout -b with-path-wrong-pass-401-unauth
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin with-path-wrong-pass-401-unauth 2>&1 | tee push.log
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 1 B" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 401s
+  # until the maximum number of authentication attempts is reached for both.
+  [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
+
+  # Note that the first request to the Locking API is made without an
+  # Authorization header, so no credentials are retrieved for that request.
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 5 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
 begin_test "credentials with useHttpPath, with correct password"
 (
   set -e
