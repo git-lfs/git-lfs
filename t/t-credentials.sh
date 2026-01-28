@@ -370,6 +370,9 @@ begin_test "credentials can authenticate with multistage auth"
   reponame="auth-multistage-token"
   setup_remote_repo "$reponame"
 
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
   printf 'Multistage::cred2:state1:state2:\nMultistage::cred1::state1:true' > "$CREDSDIR/127.0.0.1--$reponame"
 
   clone_repo "$reponame" "$reponame"
@@ -387,8 +390,56 @@ begin_test "credentials can authenticate with multistage auth"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
+
   [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+)
+end_test
+
+begin_test "credentials with multistage auth loop fails"
+(
+  set -e
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
+
+  reponame="auth-multistage-loop"
+  setup_remote_repo "$reponame"
+
+  # Note that we define an endless transition from "state1" to "state1"
+  # so our git-credential-lfstest utility will simulate an invalid
+  # credential helper.
+  printf 'Multistage::cred1:state1:state1:true\n' >"$CREDSDIR/127.0.0.1--$reponame"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
+  printf 'Multistage::cred1::state1:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat"
+
+  contents="b"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >b.dat
+
+  git add .gitattributes b.dat
+  git commit -m "initial commit"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1)" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 401s
+  # until the maximum number of authentication attempts is reached for both.
+  [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
+
+  # Note that the first request to the Locking API is made without an
+  # Authorization header, so no credentials are retrieved for that request.
+  [ 5 -eq "$(grep -c "Authorization: Multistage cred1" push.log)" ]
+
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 5 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -398,6 +449,9 @@ begin_test "git credential"
 
   printf ":git:server" > "$CREDSDIR/credential-test.com"
   printf ":git:path" > "$CREDSDIR/credential-test.com--some-path"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
   printf 'Multistage::bazquux:state1:state2:\nMultistage::foobar::state1:true' > "$CREDSDIR/example.com"
 
   mkdir empty
