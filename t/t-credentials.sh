@@ -125,11 +125,16 @@ begin_test "credentials with useHttpPath, with wrong password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
-  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
-  echo "approvals:"
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1)" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 403s.
+  [ 1 -eq "$(grep -c "Authorization error: $GITSERVER/$reponame.*/locks/verify" push.log)" ]
+  [ 1 -eq "$(grep -c "batch response: Authorization error: $GITSERVER/$reponame" push.log)" ]
+
   [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
-  echo "fills:"
   [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
