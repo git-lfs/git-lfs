@@ -302,6 +302,14 @@ func TestDoWithAuthNoRetryOn401WhenAuthHeaderPresent(t *testing.T) {
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
 
+	// We set the Authorization header explicitly so as to exercise the
+	// check for an extant Authorization header in DoWithAuth().
+	//
+	// Otherwise an Authorization header will be added automatically for
+	// each request attempt subsequent to the first, since the server
+	// always returns 401, but the header will then be removed by
+	// doWithAuth() when it receives another 401, so DoWithAuth() will
+	// never find an extant Authorization header in any requests.
 	req.Header.Set("Authorization", basicAuth("user", "pass"))
 	err = MarshalToRequest(req, &authRequest{Test: "Reject"})
 	require.Nil(t, err)

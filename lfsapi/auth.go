@@ -30,9 +30,11 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 			return res, err
 		}
 
-		// We expect this condition should never occur because
-		// doWithAuth() will delete any Authorization header
-		// after a 401 status code is received.
+		// We expect this condition should occur only when an
+		// Authorization header was already set for the request
+		// and the request was rejected.  Otherwise, after a 401
+		// status code is received, doWithAuth() will remove any
+		// Authorization header that it added to the request.
 		if len(req.Header.Get("Authorization")) != 0 {
 			return res, err
 		}
