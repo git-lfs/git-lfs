@@ -2,12 +2,20 @@ package gitattr
 
 import (
 	"io"
+	"os"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/gitobj/v2"
 )
+
+// Environment is a restricted version of config.Environment that only provides
+// a single method.
+type Environment interface {
+	// Get is shorthand for calling `e.Fetcher.Get(key)`.
+	Get(key string) (val string, ok bool)
+}
 
 // Tree represents the .gitattributes file at one layer of the tree in a Git
 // repository.
@@ -79,6 +87,58 @@ func NewFromReader(mp *MacroProcessor, rdr io.Reader) (*Tree, error) {
 		mp:    mp,
 		lines: lines,
 	}, nil
+}
+
+func (t *Tree) FindSpecialAttributes(gitEnv, osEnv Environment, gitDir string) error {
+	systemPath, err := GetSystemAttributeFilePath(osEnv)
+	if err != nil {
+		return err
+	}
+
+	if len(systemPath) != 0 {
+		systemReader, err := os.Open(systemPath)
+		if err != nil {
+			return err
+		}
+		defer systemReader.Close()
+		t.systemAttributes, err = NewFromReader(t.mp, systemReader)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	userPath, err := GetUserAttributeFilePath(gitEnv)
+	if err != nil {
+		return err
+	}
+
+	if len(userPath) != 0 {
+		userReader, err := os.Open(userPath)
+		if err != nil {
+			return err
+		}
+		defer userReader.Close()
+		if t.userAttributes, err = NewFromReader(t.mp, userReader); err != nil {
+			return err
+		}
+	}
+
+	repoPath, err := GetRepoAttributeFilePath(gitDir)
+	if err != nil {
+		return err
+	}
+
+	if len(repoPath) != 0 {
+		repoReader, err := os.Open(repoPath)
+		if err != nil {
+			return err
+		}
+		defer repoReader.Close()
+		t.repoAttributes, err = NewFromReader(t.mp, repoReader)
+	}
+
+	return err
 }
 
 // linesInTree parses a given tree's .gitattributes and returns a slice of lines
