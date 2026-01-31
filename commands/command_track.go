@@ -60,7 +60,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	// Intentionally do _not_ consider global- and system-level
 	// .gitattributes here.  Parse them still to expand any macros.
 	gitattr.GetSystemAttributePaths(mp, cfg.Os)
-	gitattr.GetRootAttributePaths(mp, cfg.Git)
+	gitattr.GetUserAttributePaths(mp, cfg.Git)
 	knownPatterns := gitattr.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
 	lineEnd := getAttributeLineEnding(knownPatterns)
 	if len(lineEnd) == 0 {
@@ -318,9 +318,12 @@ func getAllKnownPatterns() ([]gitattr.AttributePath, error) {
 	if err != nil {
 		return nil, err
 	}
-	globalPatterns := gitattr.GetRootAttributePaths(mp, cfg.Git)
+	userPatterns, err := gitattr.GetUserAttributePaths(mp, cfg.Git)
+	if err != nil {
+		return nil, err
+	}
 	knownPatterns := gitattr.GetAttributePaths(mp, cfg.LocalWorkingDir(), cfg.LocalGitDir())
-	knownPatterns = append(knownPatterns, globalPatterns...)
+	knownPatterns = append(knownPatterns, userPatterns...)
 	knownPatterns = append(knownPatterns, systemPatterns...)
 
 	return knownPatterns, nil
