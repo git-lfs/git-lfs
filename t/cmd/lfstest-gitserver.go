@@ -66,6 +66,7 @@ var (
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
 	dekInfoRE        = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
+	multiStageCredRE = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
 )
 
 func main() {
@@ -1717,14 +1718,16 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 			return false
 		}
 	case "Multistage":
-		if cred == "cred1" {
-			wantedAuth = "Multistage type=bar"
-			w.Header().Add(authHeader, wantedAuth)
-			w.WriteHeader(401)
-			debug(id, "auth stage 1 succeeded: %q", auth)
-			return true
-		} else if cred == "cred2" {
-			return false
+		if matches := multiStageCredRE.FindStringSubmatch(cred); len(matches) == 3 {
+			if matches[1] == matches[2] {
+				return false
+			} else {
+				wantedAuth = "Multistage type=bar"
+				w.Header().Add(authHeader, wantedAuth)
+				w.WriteHeader(401)
+				debug(id, "auth stage %d of %d succeeded: %q", matches[1], matches[2], auth)
+				return true
+			}
 		}
 	}
 

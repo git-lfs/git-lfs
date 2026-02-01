@@ -45,6 +45,8 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 		tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
 	}
 
+	c.credContext.SetStateFields(nil)
+
 	tracerx.Printf("api: too many authentication attempts")
 	return nil, fmt.Errorf("too many authentication attempts")
 }
