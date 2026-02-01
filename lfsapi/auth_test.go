@@ -92,7 +92,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+	assert.Equal(t, creds.NoneAccess, access.Mode())
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -111,7 +111,7 @@ func TestDoWithAuthApprove(t *testing.T) {
 		"host":     []string{srv.Listener.Addr().String()},
 	})))
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.EqualValues(t, 2, called)
 }
 
@@ -220,7 +220,7 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+	assert.Equal(t, creds.NoneAccess, access.Mode())
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -232,7 +232,7 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
 	assert.True(t, errors.IsAuthError(err))
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.EqualValues(t, 1, called)
 }
 
@@ -263,7 +263,7 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+	assert.Equal(t, creds.NoneAccess, access.Mode())
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -277,7 +277,7 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 	require.Nil(t, res)
 
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.EqualValues(t, defaultMaxAuthAttempts, called)
 }
 
@@ -351,6 +351,9 @@ func TestDoWithAuthMultistageRetryLimitExceeded(t *testing.T) {
 	require.Error(t, err)
 	assert.EqualError(t, err, "too many authentication attempts")
 	assert.Nil(t, res)
+
+	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
+	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.EqualValues(t, defaultMaxAuthAttempts, called)
 }
 
@@ -409,7 +412,7 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.NoneAccess, (&access).Mode())
+	assert.Equal(t, creds.NoneAccess, access.Mode())
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
 	require.Nil(t, err)
@@ -428,7 +431,7 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 		"host":     []string{srv.Listener.Addr().String()},
 	})))
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
-	assert.Equal(t, creds.BasicAccess, (&access).Mode())
+	assert.Equal(t, creds.BasicAccess, access.Mode())
 	assert.EqualValues(t, 2, called)
 }
 
