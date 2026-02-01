@@ -164,6 +164,7 @@ begin_test "credentials with useHttpPath, with wrong password and 401 response"
 
   # Requests to both the Locking API and the Batch API should receive 401s
   # until the maximum number of authentication attempts is reached for both.
+  [ 2 -eq "$(grep -c "api: too many authentication attempts" push.log)" ]
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
@@ -430,6 +431,7 @@ begin_test "credentials with multistage auth loop fails"
 
   # Requests to both the Locking API and the Batch API should receive 401s
   # until the maximum number of authentication attempts is reached for both.
+  [ 2 -eq "$(grep -c "api: too many authentication attempts" push.log)" ]
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
