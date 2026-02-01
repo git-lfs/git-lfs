@@ -125,10 +125,11 @@ begin_test "askpass: push with core.askPass and wrong password and 401 response"
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
-  # Authorization header, so no credentials are retrieved for that request.
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
   GITSERVER_USER="$(printf $GITSERVER | sed -e 's/http:\/\//http:\/\/user@/')"
-  [ 5 -eq "$(grep -c "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log)" ]
-  [ 5 -eq "$(grep -c "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log)" ]
+  [ 6 -eq "$(grep -c "filling with GIT_ASKPASS: lfs-askpass Username for \"$GITSERVER/$reponame\"" push.log)" ]
+  [ 6 -eq "$(grep -c "filling with GIT_ASKPASS: lfs-askpass Password for \"$GITSERVER_USER/$reponame\"" push.log)" ]
 
   refute_server_object "$reponame" "$contents_oid"
 )

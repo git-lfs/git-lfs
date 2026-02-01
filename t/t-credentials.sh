@@ -168,9 +168,10 @@ begin_test "credentials with useHttpPath, with wrong password and 401 response"
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
-  # Authorization header, so no credentials are retrieved for that request.
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
   [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
-  [ 5 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   refute_server_object "$reponame" "$contents_oid"
 )
@@ -436,11 +437,12 @@ begin_test "credentials with multistage auth loop fails"
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
-  # Authorization header, so no credentials are retrieved for that request.
-  [ 5 -eq "$(grep -c "Authorization: Multistage cred1" push.log)" ]
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
+  [ 6 -eq "$(grep -c "Authorization: Multistage cred1" push.log)" ]
 
   [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
-  [ 5 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   refute_server_object "$reponame" "$contents_oid"
 )
@@ -483,14 +485,15 @@ begin_test "credentials with multistage auth above limit fails and resets"
   [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
 
   # Note that the first request to the Locking API is made without an
-  # Authorization header, so no credentials are retrieved for that request.
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
   [ 2 -eq "$(grep -c "Authorization: Multistage cred1of4" push.log)" ]
   [ 2 -eq "$(grep -c "Authorization: Multistage cred2of4" push.log)" ]
-  [ 1 -eq "$(grep -c "Authorization: Multistage cred3of4" push.log)" ]
+  [ 2 -eq "$(grep -c "Authorization: Multistage cred3of4" push.log)" ]
   [ 0 -eq "$(grep -c "Authorization: Multistage cred4of4" push.log)" ]
 
   [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
-  [ 5 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   refute_server_object "$reponame" "$contents_oid"
 )

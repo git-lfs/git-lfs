@@ -278,7 +278,7 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 
 	access = c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
 	assert.Equal(t, creds.BasicAccess, access.Mode())
-	assert.EqualValues(t, defaultMaxAuthAttempts, called)
+	assert.EqualValues(t, defaultMaxAuthAttempts+1, called)
 }
 
 func TestDoWithAuthNoRetryOn401WhenAuthHeaderPresent(t *testing.T) {
@@ -354,7 +354,7 @@ func TestDoWithAuthMultistageRetryLimitExceeded(t *testing.T) {
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
 	assert.Equal(t, creds.BasicAccess, access.Mode())
-	assert.EqualValues(t, defaultMaxAuthAttempts, called)
+	assert.EqualValues(t, defaultMaxAuthAttempts+1, called)
 }
 
 type nonAdvancingMultistageHelper struct{}

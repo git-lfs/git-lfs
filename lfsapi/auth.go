@@ -24,7 +24,12 @@ var (
 // authentication from netrc or git's credential helpers if necessary,
 // supporting basic authentication.
 func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
-	for range defaultMaxAuthAttempts {
+	maxAuthAttempts := defaultMaxAuthAttempts
+	if access.Mode() == creds.NoneAccess {
+		maxAuthAttempts++
+	}
+
+	for range maxAuthAttempts {
 		res, err := c.doWithAuth(remote, access, req, nil)
 		if err == nil || !errors.IsAuthError(err) {
 			return res, err
