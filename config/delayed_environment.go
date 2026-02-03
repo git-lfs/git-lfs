@@ -43,6 +43,13 @@ func (e *delayedEnvironment) Int(key string, def int) int {
 	return e.env.Int(key, def)
 }
 
+// Int64 is shorthand for calling the e.Load(), and then returning
+// `e.env.Int64(key, def)`.
+func (e *delayedEnvironment) Int64(key string, def int64) int64 {
+	e.Load()
+	return e.env.Int64(key, def)
+}
+
 // All returns a copy of all the key/value pairs for the current git config.
 func (e *delayedEnvironment) All() map[string][]string {
 	e.Load()

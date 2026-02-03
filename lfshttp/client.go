@@ -626,6 +626,11 @@ func (e testEnv) Int(key string, def int) int {
 	return config.Int(s, def)
 }
 
+func (e testEnv) Int64(key string, def int64) int64 {
+	s, _ := e.Get(key)
+	return config.Int64(s, def)
+}
+
 func (e testEnv) Bool(key string, def bool) bool {
 	s, _ := e.Get(key)
 	return config.Bool(s, def)
