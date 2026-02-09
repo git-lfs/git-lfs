@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -408,4 +410,46 @@ func TestHttpVersion(t *testing.T) {
 			assert.EqualValues(t, 0, calledSrv)
 		}
 	}
+}
+
+func TestExtraHeadersForDuplication(t *testing.T) {
+	targetURL := "https://example.com/repo.git"
+	extraHeaderKey := "Authorization"
+	extraHeaderValue := "Bearer mytoken"
+	extraHeader2Key := "Cache-Control"
+	extraHeader2Value1 := "no-cache"
+	extraHeader2Value2 := "no-store"
+
+	context := &testContext{
+		gitConfig: git.NewConfig("", ""),
+		osEnv:     make(testEnv),
+		gitEnv: config.EnvironmentOf(config.MapFetcher(map[string][]string{
+			"http.extraheader": []string{
+				fmt.Sprintf("%s: %s", extraHeaderKey, extraHeaderValue),
+				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value1),
+				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value2),
+			},
+		})),
+	}
+
+	c, err := NewClient(context)
+	require.Nil(t, err)
+
+	t.Logf("Configured extraHeader: %v", c.GitEnv().GetAll("http.extraHeader"))
+
+	req, err := http.NewRequest("GET", targetURL, nil)
+	require.Nil(t, err)
+
+	req.Header = c.ExtraHeadersFor(req)
+	t.Logf("Headers after 1st call: %v", req.Header)
+
+	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should be present once after first call")
+	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should be present twice after first call")
+
+	// Simulate retry with same request object
+	req.Header = c.ExtraHeadersFor(req)
+
+	// Ensure headers are not duplicated on retry (regression test for #6202)
+	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should still be present only once after second call")
+	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should still be present only twice after first call")
 }
