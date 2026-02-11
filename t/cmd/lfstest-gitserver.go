@@ -819,7 +819,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					if match != nil && len(match) > 1 {
 						statusCode = 206
 						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by)-1, len(by)))
 					}
 				} else {
 					byteLimit = 10
@@ -865,7 +865,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					if match != nil && len(match) > 1 {
 						statusCode = 206
 						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
+						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by)-1, len(by)))
 					}
 				}
 			case "storage-download-encoding-gzip":
