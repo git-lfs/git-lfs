@@ -788,7 +788,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		oid := parts[len(parts)-1]
 		statusCode := 200
 		byteLimit := 0
-		resumeAt := int64(0)
 		compress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
@@ -813,17 +812,10 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			case "storage-download-retry-range":
 				// Resume if header includes range, otherwise deliberately interrupt
-				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
-					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
-					match := regex.FindStringSubmatch(rangeHdr)
-					if match != nil && len(match) > 1 {
-						statusCode = 206
-						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by)-1, len(by)))
-					}
-				} else {
-					byteLimit = 10
+				if handleRangeRequest(w, r, by) {
+					return
 				}
+				byteLimit = 10
 			case "storage-download-retry-range-rejected":
 				// Fail any Range: request even though we said we supported it
 				// To make sure client can fall back
@@ -838,37 +830,9 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					batchResumeFailFallbackStorageAttempts++
 				}
 			case "storage-download-retry-no-invalid-range":
-				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
-					regex := regexp.MustCompile(`bytes=(\d+)\-(.*)`)
-					match := regex.FindStringSubmatch(rangeHdr)
-					// We have a Range header with two
-					// non-empty values.
-					if match != nil && len(match) > 2 && len(match[2]) != 0 {
-						first, _ := strconv.ParseInt(match[1], 10, 32)
-						second, _ := strconv.ParseInt(match[2], 10, 32)
-						// The second part of the range
-						// is smaller than the first
-						// part (or the latter part of
-						// the range is non-integral).
-						// This is invalid; reject it.
-						// Note that this condition should never occur unless
-						// we introduce a regression into the client.
-						if second < first {
-							w.WriteHeader(400)
-							return
-						}
-						// The range is valid; we'll
-						// take the branch below.
-					}
-					// We got a valid range header, so
-					// provide a 206 Partial Content. We
-					// ignore the upper bound if one was
-					// provided.
-					if match != nil && len(match) > 1 {
-						statusCode = 206
-						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by)-1, len(by)))
-					}
+				// Resume if header includes range
+				if handleRangeRequest(w, r, by) {
+					return
 				}
 			case "storage-download-encoding-gzip":
 				if r.Header.Get("Accept-Encoding") != "gzip" {
@@ -897,8 +861,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(statusCode)
 			if byteLimit > 0 {
 				wrtr.Write(by[0:byteLimit])
-			} else if resumeAt > 0 {
-				wrtr.Write(by[resumeAt:])
 			} else {
 				wrtr.Write(by)
 			}
@@ -999,6 +961,54 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(405)
 	}
+}
+
+// We expect the client to never send a header of the form "bytes=-<n>".
+var rangeHeaderRE = regexp.MustCompile(`bytes=(\d+)-(.*)`)
+
+func handleRangeRequest(w http.ResponseWriter, r *http.Request, data []byte) bool {
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader == "" {
+		return false
+	}
+
+	if r.Header.Get("Accept-Encoding") != "" {
+		// While Range and Accept-Encoding headers are not mutually
+		// exclusive, the Git LFS client should never send them both.
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	match := rangeHeaderRE.FindStringSubmatch(rangeHeader)
+
+	if match == nil || len(match) != 3 {
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	// We have a Range header with at least one non-empty value.
+	startIndex, _ := strconv.ParseInt(match[1], 10, 32)
+	endIndex, err := strconv.ParseInt(match[2], 10, 32)
+
+	if len(match[2]) > 0 && (err != nil || endIndex < startIndex) {
+		// The second part of the range is smaller than the
+		// first part (or the latter part of the range is
+		// non-integral).  This is invalid; reject it.
+		//
+		// Note that this condition should never occur unless
+		// we introduce a regression into the client.
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	// The range is valid, so provide a Content-Range response header.
+	// We ignore the upper bound if one was provided.
+	contentRange := fmt.Sprintf("bytes %d-%d/%d", startIndex, len(data)-1, len(data))
+	w.Header().Set("Content-Range", contentRange)
+
+	w.WriteHeader(http.StatusPartialContent)
+	w.Write(data[startIndex:])
+	return true
 }
 
 func validateTusHeaders(r *http.Request, id string) bool {
