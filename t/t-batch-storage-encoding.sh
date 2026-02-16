@@ -120,6 +120,7 @@ begin_test "batch storage HTTP download with zstd encoding"
   [ 1 -eq "$(grep -c "Accept-Encoding: zstd" pull.log)" ]
 
   [ 1 -eq "$(grep -c "Content-Encoding: zstd" pull.log)" ]
+  [ 1 -eq "$(grep -c "decompressing zstd-encoded response" pull.log)" ]
 
   assert_local_object "$contents_oid" "${#contents}"
 
@@ -141,6 +142,7 @@ begin_test "batch storage HTTP download with zstd encoding"
   [ 1 -eq "$(grep -c "Accept-Encoding: zstd" pull.log)" ]
 
   [ 1 -eq "$(grep -c "Content-Encoding: zstd" pull.log)" ]
+  [ 1 -eq "$(grep -c "decompressing zstd-encoded response" pull.log)" ]
 
   assert_local_object "$contents_oid" "${#contents}"
 )
