@@ -254,6 +254,13 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		bodyReader = zstdReader
 
 		tracerx.Printf("http: decompressing zstd-encoded response")
+
+		// Set ContentLength to -1 to match Go's default behaviour
+		// when decompressing gzipped responses; see:
+		//
+		// https://github.com/golang/go/blob/go1.25.7/src/net/http/response.go#L90-L92
+		// https://github.com/golang/go/blob/go1.25.7/src/net/http/transport.go#L2385
+		res.ContentLength = -1
 	}
 
 	var hasher *tools.HashingReader
