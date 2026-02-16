@@ -137,7 +137,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	// Set Accept-Encoding header if configured to zstd
 	// (Go's http client handles gzip automatically when no Accept-Encoding is set)
 	uc := config.NewURLConfig(a.apiClient.GitEnv())
-	httpDownloadEncoding, _ := uc.Get("lfs", rel.Href, "httpdownloadencoding")
+	httpDownloadEncoding, _ := uc.Get("lfs.transfer", rel.Href, "httpdownloadencoding")
 	if httpDownloadEncoding != "" {
 		httpDownloadEncoding = strings.TrimSpace(httpDownloadEncoding)
 		switch httpDownloadEncoding {
@@ -146,7 +146,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 		case "zstd":
 			req.Header.Set("Accept-Encoding", "zstd")
 		default:
-			return errors.New(tr.Tr.Get("unsupported lfs.httpDownloadEncoding value %q: must be \"gzip\" or \"zstd\"", httpDownloadEncoding))
+			return errors.New(tr.Tr.Get("unsupported lfs.transfer.httpDownloadEncoding value %q: must be \"gzip\" or \"zstd\"", httpDownloadEncoding))
 		}
 	}
 
