@@ -250,7 +250,10 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 			return errors.Wrap(err, tr.Tr.Get("failed to create zstd decompressor"))
 		}
 		defer zstdReader.Close()
+
 		bodyReader = zstdReader
+
+		tracerx.Printf("http: decompressing zstd-encoded response")
 	}
 
 	var hasher *tools.HashingReader
