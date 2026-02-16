@@ -44,7 +44,7 @@ begin_test "batch storage HTTP download with gzip encoding"
   # Test again with an explicit configuration.
   rm -rf .git/lfs/objects
 
-  git config lfs.httpDownloadEncoding gzip
+  git config lfs.transfer.httpDownloadEncoding gzip
 
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
@@ -63,8 +63,8 @@ begin_test "batch storage HTTP download with gzip encoding"
   # Test again with a URL-specific configuration.
   rm -rf .git/lfs/objects
 
-  git config --unset lfs.httpDownloadEncoding
-  git config "lfs.$GITSERVER.httpDownloadEncoding" gzip
+  git config --unset lfs.transfer.httpDownloadEncoding
+  git config "lfs.transfer.$GITSERVER.httpDownloadEncoding" gzip
 
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
@@ -106,7 +106,7 @@ begin_test "batch storage HTTP download with zstd encoding"
   # Test object transfer download with an "Accept-Encoding: zstd" header.
   rm -rf .git/lfs/objects
 
-  git config lfs.httpDownloadEncoding zstd
+  git config lfs.transfer.httpDownloadEncoding zstd
 
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
@@ -126,8 +126,8 @@ begin_test "batch storage HTTP download with zstd encoding"
   # Test again with a URL-specific configuration.
   rm -rf .git/lfs/objects
 
-  git config --unset lfs.httpDownloadEncoding
-  git config "lfs.$GITSERVER.httpDownloadEncoding" zstd
+  git config --unset lfs.transfer.httpDownloadEncoding
+  git config "lfs.transfer.$GITSERVER.httpDownloadEncoding" zstd
 
   GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
@@ -164,7 +164,7 @@ begin_test "batch storage HTTP download with invalid encoding"
   # Now test download with invalid Accept-Encoding value
   rm -rf .git/lfs/objects
 
-  git config lfs.httpDownloadEncoding "br"
+  git config lfs.transfer.httpDownloadEncoding "br"
 
   # Should fail with an error
   git lfs pull 2>&1 | tee pull.log
@@ -173,6 +173,6 @@ begin_test "batch storage HTTP download with invalid encoding"
     exit 1
   fi
 
-  grep "unsupported.*httpDownloadEncoding" pull.log
+  grep "unsupported lfs\.transfer\.httpDownloadEncoding" pull.log
 )
 end_test
