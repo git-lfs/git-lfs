@@ -65,6 +65,7 @@ var (
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip", "storage-download-encoding-zstd",
+		"storage-download-encoding-zstd-1", "storage-download-encoding-zstd-2", "storage-download-encoding-zstd-3",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
@@ -846,7 +847,10 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					compress = true
 				}
-			case "storage-download-encoding-zstd":
+			case "storage-download-encoding-zstd",
+				"storage-download-encoding-zstd-1",
+				"storage-download-encoding-zstd-2",
+				"storage-download-encoding-zstd-3":
 				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
 					zstdCompress = true
 				} else {
