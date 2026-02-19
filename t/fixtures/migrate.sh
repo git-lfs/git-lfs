@@ -217,6 +217,9 @@ setup_single_local_branch_complex_tracked() {
 #   added to the .gitattributes file.
 #   If "link" is passed as an argument, the .gitattributes file is created
 #   as a symlink to a gitattrs file.
+#   If "special" is passed as an argument, user-level (i.e., global) and
+#   repository-specific attribute files are created, and corresponding files
+#   named "a.out", "a.bin", "a.bat", and "a.dat" are added to the commit.
 setup_single_local_branch_tracked_corrupt() {
   set -e
 
@@ -240,6 +243,25 @@ setup_single_local_branch_tracked_corrupt() {
       mv .gitattributes gitattrs
 
       add_symlink gitattrs .gitattributes
+    elif [[ $1 == "special" ]]; then
+      echo "*.dat filter=lfs" > .git/info/attributes
+      echo "*.bin filter=lfs diff=lfs merge=lfs -text" >> .git/info/attributes
+      echo "*.dat filter=overridden diff=lfs merge=lfs -text" >> .gitattributes
+      mkdir -p "$HOME/.config/git"
+      echo "*.bat filter=overridden diff=lfs merge=lfs -text" > "$HOME/.config/git/attributes"
+      echo "*.out filter=lfs" >> "$HOME/.config/git/attributes"
+      echo "*.bat filter=lfs" >> .gitattributes
+      echo "*.out diff=lfs merge=lfs -text" >> .gitattributes
+
+      lfstest-genrandom --base64 120 > a.dat
+
+      lfstest-genrandom --base64 120 > a.bat
+
+      lfstest-genrandom --base64 120 > a.out
+
+      lfstest-genrandom --base64 120 > a.bin
+
+      git add a.dat a.bat a.out a.bin
     fi
   fi
 

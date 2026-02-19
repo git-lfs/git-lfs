@@ -22,6 +22,36 @@ begin_test "migrate import (--fixup)"
 )
 end_test
 
+begin_test "migrate import (--fixup, special attributes)"
+(
+  set -e
+  setup_single_local_branch_tracked_corrupt special
+
+  txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
+  dat_oid="$(calc_oid "$(git cat-file -p :a.dat)")"
+  bat_oid="$(calc_oid "$(git cat-file -p :a.bat)")"
+  out_oid="$(calc_oid "$(git cat-file -p :a.out)")"
+  bin_oid="$(calc_oid "$(git cat-file -p :a.bin)")"
+
+  git lfs migrate import --everything --fixup --yes
+
+  assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"
+  assert_local_object "$txt_oid" "120"
+
+  assert_pointer "refs/heads/main" "a.bat" "$bat_oid" "120"
+  assert_local_object "$bat_oid" "120"
+
+  assert_pointer "refs/heads/main" "a.bin" "$bin_oid" "120"
+  assert_local_object "$bin_oid" "120"
+
+  assert_pointer "refs/heads/main" "a.dat" "$dat_oid" "120"
+  assert_local_object "$dat_oid" "120"
+
+  assert_pointer "refs/heads/main" "a.out" "$out_oid" "120"
+  assert_local_object "$out_oid" "120"
+)
+end_test
+
 begin_test "migrate import (--fixup, complex nested)"
 (
   set -e

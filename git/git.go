@@ -237,6 +237,10 @@ func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
 }
 
+func Var(name string) (*subprocess.Cmd, error) {
+	return gitNoLFS("var", name)
+}
+
 func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio.Scanner, error) {
 	if refresh {
 		_, err := gitSimple("update-index", "-q", "--refresh")
