@@ -59,7 +59,9 @@ var (
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
+		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
+		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
+		"status-batch-retry",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
@@ -795,32 +797,33 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		compress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			if len(by) == len("storage-download-retry-later") && string(by) == "storage-download-retry-later" {
+			switch oidHandlers[oid] {
+			case "storage-download-retry-later":
 				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
 					w.Header().Set("Retry-After", strconv.Itoa(secsToWait))
 					by = []byte("rate limit reached")
 					fmt.Println("Setting header to: ", strconv.Itoa(secsToWait))
 				}
-			} else if len(by) == len("storage-download-retry-later-no-header") && string(by) == "storage-download-retry-later-no-header" {
+			case "storage-download-retry-later-no-header":
 				if _, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
 					by = []byte("rate limit reached")
 					fmt.Println("Not setting Retry-After header")
 				}
-			} else if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
+			case "storage-download-retry":
 				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
 					statusCode = 500
 					by = []byte("malformed content")
 				}
-			} else if len(by) == len("storage-compress") && string(by) == "storage-compress" {
+			case "storage-compress":
 				if r.Header.Get("Accept-Encoding") != "gzip" {
 					statusCode = 500
 					by = []byte("not encoded")
 				} else {
 					compress = true
 				}
-			} else if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+			case "status-batch-resume-206":
 				// Resume if header includes range, otherwise deliberately interrupt
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
@@ -833,7 +836,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					byteLimit = 10
 				}
-			} else if len(by) == len("batch-resume-fail-fallback") && string(by) == "batch-resume-fail-fallback" {
+			case "batch-resume-fail-fallback":
 				// Fail any Range: request even though we said we supported it
 				// To make sure client can fall back
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
@@ -846,7 +849,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					byteLimit = 8
 					batchResumeFailFallbackStorageAttempts++
 				}
-			} else if string(by) == "status-batch-retry" {
+			case "status-batch-retry":
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-(.*)`)
 					match := regex.FindStringSubmatch(rangeHdr)
