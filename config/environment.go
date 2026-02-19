@@ -41,6 +41,17 @@ type Environment interface {
 	// then it will be returned wholesale.
 	Int(key string, def int) (val int)
 
+	// Int64 returns the int64 value associated with a given key, or the value
+	// "def", if no value was associated.
+	//
+	// To convert from the string value attached to a given key,
+	// `strconv.ParseInt(val, 10, 64)` is called. If `ParseInt` returned a
+	// non-nil error, then the value "def" will be returned instead.
+	//
+	// Otherwise, if the value was converted `string -> int64` successfully,
+	// then it will be returned wholesale.
+	Int64(key string, def int64) (val int64)
+
 	// All returns a copy of all the key/value pairs for the current
 	// environment.
 	All() map[string][]string
@@ -75,6 +86,11 @@ func (e *environment) Int(key string, def int) int {
 	return Int(s, def)
 }
 
+func (e *environment) Int64(key string, def int64) int64 {
+	s, _ := e.Fetcher.Get(key)
+	return Int64(s, def)
+}
+
 func (e *environment) All() map[string][]string {
 	return e.Fetcher.All()
 }
@@ -94,6 +110,28 @@ func Int(value string, def int) int {
 	}
 
 	i, err := strconv.Atoi(value)
+	if err != nil {
+		return def
+	}
+
+	return i
+}
+
+// Int64 returns the int64 value associated with the given value, or the value
+// "def", if the value is blank.
+//
+// To convert from the string value attached to a given key,
+// `strconv.ParseInt(val, 10, 64)` is called. If `ParseInt` returned a
+// non-nil error, then the value "def" will be returned instead.
+//
+// Otherwise, if the value was converted `string -> int64` successfully,
+// then it will be returned wholesale.
+func Int64(value string, def int64) int64 {
+	if len(value) == 0 {
+		return def
+	}
+
+	i, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return def
 	}
