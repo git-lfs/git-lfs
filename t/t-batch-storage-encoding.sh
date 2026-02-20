@@ -2,15 +2,15 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "storage upload with compression"
+begin_test "batch storage HTTP download with gzip encoding"
 (
   set -e
 
-  reponame="storage-compress"
+  reponame="batch-storage-download-encoding-gzip"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  contents="storage-compress"
+  contents="storage-download-encoding-gzip"
   oid="$(calc_oid "$contents")"
   printf "%s" "$contents" > a.dat
 

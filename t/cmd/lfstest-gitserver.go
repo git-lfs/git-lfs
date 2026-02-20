@@ -62,7 +62,8 @@ var (
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"status-batch-retry",
-		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
+		"storage-download-encoding-gzip",
+		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
 
@@ -755,12 +756,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Not setting Retry-After header")
 				return
 			}
-		case "storage-compress":
-			if r.Header.Get("Accept-Encoding") != "gzip" {
-				w.WriteHeader(500)
-				w.Write([]byte("not encoded"))
-				return
-			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -816,7 +811,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					statusCode = 500
 					by = []byte("malformed content")
 				}
-			case "storage-compress":
+			case "storage-download-encoding-gzip":
 				if r.Header.Get("Accept-Encoding") != "gzip" {
 					statusCode = 500
 					by = []byte("not encoded")
