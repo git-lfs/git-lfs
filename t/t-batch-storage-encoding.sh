@@ -10,36 +10,35 @@ begin_test "batch storage HTTP download with gzip encoding"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
-  contents="storage-download-encoding-gzip"
-  oid="$(calc_oid "$contents")"
-  printf "%s" "$contents" > a.dat
-
   git lfs track "*.dat"
+
+  # This content announces to the server that it should expect an
+  # "Accept-Encoding: gzip" header and send a gzip-compressed response.
+  contents="storage-download-encoding-gzip"
+  contents_oid=$(calc_oid "$contents")
+  printf "%s" "$contents" >a.dat
+
   git add .gitattributes a.dat
   git commit -m "initial commit"
 
-  GIT_CURL_VERBOSE=1 git push origin main | tee push.log
-  assert_server_object "$reponame" "$oid"
+  git push origin main
 
-  pushd ..
-    git \
-      -c "filter.lfs.process=" \
-      -c "filter.lfs.smudge=cat" \
-      -c "filter.lfs.required=false" \
-      clone "$GITSERVER/$reponame" "$reponame-assert"
+  # Test object transfer download with an "Accept-Encoding: gzip" header
+  # that should be generated automatically without explicit configuration.
+  rm -rf .git/lfs/objects
 
-    cd "$reponame-assert"
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pull' to succeed ..."
+    exit 1
+  fi
 
-    git config credential.helper lfstest
+  # We expect one "Accept-Encoding: gzip" header from the Batch API request,
+  # prior to the object transfer download request.
+  [ 2 -eq "$(grep -c "Accept-Encoding: gzip" pull.log)" ]
 
-    GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected \`git lfs pull origin main\` to succeed ..."
-      exit 1
-    fi
+  [ 1 -eq "$(grep -c "decompressed gzipped response" pull.log)" ]
 
-    grep "decompressed gzipped response" pull.log
-    assert_local_object "$oid" "${#contents}"
-  popd
+  assert_local_object "$contents_oid" "${#contents}"
 )
 end_test
