@@ -2,7 +2,7 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "tus-upload-uninterrupted"
+begin_test "batch storage HTTP upload with tus protocol"
 (
   set -e
 
@@ -31,7 +31,7 @@ begin_test "tus-upload-uninterrupted"
 )
 end_test
 
-begin_test "tus-upload-interrupted-resume"
+begin_test "batch storage HTTP upload retries with tus protocol"
 (
   set -e
 
