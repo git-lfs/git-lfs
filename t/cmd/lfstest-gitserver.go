@@ -851,6 +851,8 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 						// part (or the latter part of
 						// the range is non-integral).
 						// This is invalid; reject it.
+						// Note that this condition should never occur unless
+						// we introduce a regression into the client.
 						if second < first {
 							w.WriteHeader(400)
 							return

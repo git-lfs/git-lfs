@@ -188,32 +188,79 @@ begin_test "batch storage HTTP download retries without invalid Range header"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
 
-  # This string announces to server that we want a test that strictly handles
-  # Range headers, rejecting any where the latter part of the range is smaller
-  # than the former part.
+  # This content announces to the server that it should strictly validate
+  # Range headers, rejecting any where the ending index of the byte range is
+  # smaller than the starting index.
   contents="storage-download-retry-no-invalid-range"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
+  git commit -m "add a.dat"
   git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
-  # Delete local copy then fetch it back.
+  # Test object transfer download by simulating an interrupted and corrupt
+  # initial response, after which the client should fetch the remaining bytes
+  # using a request with a Range header, then detect that the assembled
+  # object data is invalid and report an error.
+  #
+  # Next, test object transfer download again by simulating a complete but
+  # corrupt initial response, after which the client should detect that
+  # the object data is invalid and re-request the entire object.
+  #
+  # Note that the principal purpose of the first check is simply to verify
+  # that the client reads the simulated temporary download files this test
+  # creates.  If the client's handling of these files changes in the future,
+  # this portion of the test should fail, alerting us to the need to
+  # rewrite this test.
+  #
+  # The purpose of the second check is to verify that the client does not
+  # send invalid Range headers when a temporary download file equals or
+  # exceeds the size of the corresponding object.  Since this results in
+  # single normal object transfer download, the test would trivially pass
+  # even if the temporary file was simulated incorrectly, so the preceding
+  # check exists to ensure we are simulating these files correctly.
   rm -rf .git/lfs/objects
+
+  # Create a corrupt partial download file smaller than the actual object.
+  mkdir -p .git/lfs/incomplete
+  printf "%s" "aa" >".git/lfs/incomplete/$contents_oid.part"
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to fail ..."
+    exit 1
+  fi
+
+  grep "Attempting to resume download of \"$contents_oid\"" fetch.log
+  grep "Range: bytes=2-$((${#contents} - 1))" fetch.log
+
+  grep "206 Partial Content" fetch.log
+  grep "Content-Range: bytes 2-$((${#contents} - 1))/${#contents}" fetch.log
+  grep "xfer: server accepted resume .*$contents_oid" fetch.log
+
+  grep "expected OID $contents_oid, got" fetch.log
+  grep "error: failed to fetch some objects" fetch.log
+
   refute_local_object "$contents_oid"
 
-  # Create a partial corrupt object.
-  mkdir .git/lfs/incomplete
-  printf "%s" "${contents/st/aa}" >".git/lfs/incomplete/$contents_oid.tmp"
+  # Create a corrupt partial download file equal in size to the actual object.
+  printf "%s" "${contents/st/aa}" >".git/lfs/incomplete/$contents_oid.part"
 
-  # The first download may fail with an error; run a second time to make sure
-  # that we detect the corrupt file and retry.
-  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
-  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to succeed ..."
+    exit 1
+  fi
+
+  [ 0 -eq "$(grep -c "Attempting to resume download of \"$contents_oid\"" fetch.log)" ]
+  [ 0 -eq "$(grep -c "tq: retrying object $contents_oid" fetch.log)" ]
+  [ 0 -eq "$(grep -c "Range: bytes=" fetch.log)" ]
+  [ 0 -eq "$(grep -c "400 Bad Request" fetch.log)" ]
+
   assert_local_object "$contents_oid" "${#contents}"
 )
 end_test
