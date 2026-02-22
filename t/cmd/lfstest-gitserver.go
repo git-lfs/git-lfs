@@ -811,13 +811,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					statusCode = 500
 					by = []byte("malformed content")
 				}
-			case "storage-download-encoding-gzip":
-				if r.Header.Get("Accept-Encoding") != "gzip" {
-					statusCode = 500
-					by = []byte("not encoded")
-				} else {
-					compress = true
-				}
 			case "storage-download-retry-range":
 				// Resume if header includes range, otherwise deliberately interrupt
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
@@ -874,6 +867,13 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
 						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
 					}
+				}
+			case "storage-download-encoding-gzip":
+				if r.Header.Get("Accept-Encoding") != "gzip" {
+					statusCode = 500
+					by = []byte("not encoded")
+				} else {
+					compress = true
 				}
 			}
 			var wrtr io.Writer = w
