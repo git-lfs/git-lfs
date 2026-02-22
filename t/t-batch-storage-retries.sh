@@ -2,7 +2,7 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "batch storage upload causes retries"
+begin_test "batch storage HTTP upload causes retries"
 (
   set -e
 
@@ -33,7 +33,7 @@ begin_test "batch storage upload causes retries"
 )
 end_test
 
-begin_test "batch storage download causes retries"
+begin_test "batch storage HTTP download causes retries"
 (
   set -e
 
@@ -78,11 +78,11 @@ begin_test "batch storage download causes retries"
 )
 end_test
 
-begin_test "resume-http-range"
+begin_test "batch storage HTTP download retries with Range header"
 (
   set -e
 
-  reponame="$(basename "$0" ".sh")"
+  reponame="batch-storage-download-retry-range"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
@@ -92,7 +92,7 @@ begin_test "resume-http-range"
 
   # this string announces to server that we want a test that
   # interrupts the transfer when started from 0 to cause resume
-  contents="status-batch-resume-206"
+  contents="storage-download-retry-range"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat
@@ -119,11 +119,11 @@ begin_test "resume-http-range"
 )
 end_test
 
-begin_test "resume-http-range-fallback"
+begin_test "batch storage HTTP download retries after Range header rejected"
 (
   set -e
 
-  reponame="resume-http-range-fallback"
+  reponame="batch-storage-download-retry-range-rejected"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
@@ -133,7 +133,7 @@ begin_test "resume-http-range-fallback"
 
   # this string announces to server that we want it to abort the download part
   # way, but reject the Range: header and fall back on re-downloading instead
-  contents="batch-resume-fail-fallback"
+  contents="storage-download-retry-range-rejected"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat
@@ -161,11 +161,11 @@ begin_test "resume-http-range-fallback"
 )
 end_test
 
-begin_test "resume-http-range-retry"
+begin_test "batch storage HTTP download retries without invalid Range header"
 (
   set -e
 
-  reponame="resume-http-range-retry"
+  reponame="batch-storage-download-retry-no-invalid-range"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
@@ -176,7 +176,7 @@ begin_test "resume-http-range-retry"
   # This string announces to server that we want a test that strictly handles
   # Range headers, rejecting any where the latter part of the range is smaller
   # than the former part.
-  contents="status-batch-retry"
+  contents="storage-download-retry-no-invalid-range"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat

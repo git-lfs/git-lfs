@@ -58,10 +58,10 @@ var (
 	contentHandlers = []string{
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
-		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
+		"return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
-		"status-batch-retry",
+		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
@@ -818,7 +818,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					compress = true
 				}
-			case "status-batch-resume-206":
+			case "storage-download-retry-range":
 				// Resume if header includes range, otherwise deliberately interrupt
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
@@ -831,7 +831,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					byteLimit = 10
 				}
-			case "batch-resume-fail-fallback":
+			case "storage-download-retry-range-rejected":
 				// Fail any Range: request even though we said we supported it
 				// To make sure client can fall back
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
@@ -844,7 +844,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					byteLimit = 8
 					batchResumeFailFallbackStorageAttempts++
 				}
-			case "status-batch-retry":
+			case "storage-download-retry-no-invalid-range":
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					regex := regexp.MustCompile(`bytes=(\d+)\-(.*)`)
 					match := regex.FindStringSubmatch(rangeHdr)
