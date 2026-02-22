@@ -884,6 +884,14 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 				wrtr = gz
 			}
+
+			if byteLimit > 0 {
+				// Force Content-Length header to report the
+				// full object size rather than the truncated
+				// length, to simulate an interrupted response.
+				w.Header().Set("Content-Length", strconv.Itoa(len(by)))
+			}
+
 			w.WriteHeader(statusCode)
 			if byteLimit > 0 {
 				wrtr.Write(by[0:byteLimit])

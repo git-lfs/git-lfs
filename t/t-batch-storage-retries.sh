@@ -90,30 +90,38 @@ begin_test "batch storage HTTP download retries with Range header"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
 
-  # this string announces to server that we want a test that
-  # interrupts the transfer when started from 0 to cause resume
+ # This content announces to the server that it should interrupt the
+ # object download unless a Range header with a positive offset was sent.
   contents="storage-download-retry-range"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
+  git commit -m "add a.dat"
   git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
-  # delete local copy then fetch it back
-  # server will abort the transfer mid way (so will error) when not resuming
-  # then we can restart it
+  # Test object transfer download with an interrupted initial response,
+  # after which the client should fetch the remaining bytes using a request
+  # with a Range header.
   rm -rf .git/lfs/objects
-  git lfs fetch 2>&1 | tee fetchinterrupted.log
-  refute_local_object "$contents_oid"
 
-  # now fetch again, this should try to resume and server should send remainder
-  # this time (it does not cut short when Range is requested)
-  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresume.log
-  grep "xfer: server accepted resume" fetchresume.log
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to succeed ..."
+    exit 1
+  fi
+
+  grep "Attempting to resume download of \"$contents_oid\"" fetch.log
+  grep "tq: retrying object $contents_oid" fetch.log
+  grep "Range: bytes=10-$((${#contents} - 1))" fetch.log
+
+  grep "206 Partial Content" fetch.log
+  grep "Content-Range: bytes 10-$((${#contents} - 1))/${#contents}" fetch.log
+  grep "xfer: server accepted resume .*$contents_oid" fetch.log
+
   assert_local_object "$contents_oid" "${#contents}"
 
 )
@@ -131,33 +139,40 @@ begin_test "batch storage HTTP download retries after Range header rejected"
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
 
-  # this string announces to server that we want it to abort the download part
-  # way, but reject the Range: header and fall back on re-downloading instead
+  # This content announces to the server that it should interrupt the first
+  # object download, then reject the client's Range header request,
+  # forcing the client to fall back on re-downloading instead.
   contents="storage-download-retry-range-rejected"
   contents_oid=$(calc_oid "$contents")
 
   printf "%s" "$contents" > a.dat
   git add a.dat
   git add .gitattributes
-  git commit -m "add a.dat" 2>&1 | tee commit.log
+  git commit -m "add a.dat"
   git push origin main
 
   assert_server_object "$reponame" "$contents_oid"
 
-  # delete local copy then fetch it back
-  # server will abort the transfer mid way (so will error) when not resuming
-  # then we can restart it
+  # Test object transfer download with an interrupted initial response,
+  # after which the client should attempt to fetch the remaining bytes using
+  # a request with a Range header.  When the server rejects that request,
+  # the client should then re-request the entire object.
   rm -rf .git/lfs/objects
-  git lfs fetch 2>&1 | tee fetchinterrupted.log
-  refute_local_object "$contents_oid"
 
-  # now fetch again, this should try to resume but server should reject the Range
-  # header, which should cause client to re-download
-  GIT_TRACE=1 git lfs fetch 2>&1 | tee fetchresumefallback.log
-  grep "xfer: server rejected resume" fetchresumefallback.log
-  # re-download should still have worked
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to succeed ..."
+    exit 1
+  fi
+
+  grep "Attempting to resume download of \"$contents_oid\"" fetch.log
+  grep "tq: retrying object $contents_oid" fetch.log
+  grep "Range: bytes=8-$((${#contents} - 1))" fetch.log
+
+  grep "416 Requested Range Not Satisfiable" fetch.log
+  grep "xfer: server rejected resume .*$contents_oid.* re-downloading from start" fetch.log
+
   assert_local_object "$contents_oid" "${#contents}"
-
 )
 end_test
 
