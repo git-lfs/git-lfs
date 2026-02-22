@@ -2,7 +2,7 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "batch upload causes retries"
+begin_test "batch API HTTP upload causes delayed retries"
 (
   set -e
 
@@ -30,7 +30,7 @@ begin_test "batch upload causes retries"
 )
 end_test
 
-begin_test "batch upload with multiple files causes retries"
+begin_test "batch API HTTP upload with multiple files causes delayed retries"
 (
   set -e
 
@@ -64,7 +64,7 @@ begin_test "batch upload with multiple files causes retries"
 )
 end_test
 
-begin_test "batch clone causes retries"
+begin_test "batch API HTTP download causes delayed retries"
 (
   set -e
 
@@ -110,7 +110,7 @@ begin_test "batch clone causes retries"
 )
 end_test
 
-begin_test "batch clone with multiple files causes retries"
+begin_test "batch API HTTP download with multiple files causes delayed retries"
 (
   set -e
 
@@ -163,7 +163,7 @@ begin_test "batch clone with multiple files causes retries"
 )
 end_test
 
-begin_test "batch upload causes retries (missing header)"
+begin_test "batch API HTTP upload causes retries (missing header)"
 (
   set -e
 
