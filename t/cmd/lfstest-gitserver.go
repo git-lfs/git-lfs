@@ -36,6 +36,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -62,7 +64,7 @@ var (
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
-		"storage-download-encoding-gzip",
+		"storage-download-encoding-gzip", "storage-download-encoding-zstd",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
@@ -691,6 +693,8 @@ func verifyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var zstdHeaderRE = regexp.MustCompile(`(?:\A|, *)(?i:zstd)(?:, *|\z)`)
+
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	id, ok := reqId(w)
@@ -789,6 +793,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		statusCode := 200
 		byteLimit := 0
 		compress := false
+		zstdCompress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
 			switch oidHandlers[oid] {
@@ -841,7 +846,15 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					compress = true
 				}
+			case "storage-download-encoding-zstd":
+				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
+					zstdCompress = true
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+				}
 			}
+
 			var wrtr io.Writer = w
 			if compress {
 				w.Header().Set("Content-Encoding", "gzip")
@@ -849,6 +862,17 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				defer gz.Close()
 
 				wrtr = gz
+			} else if zstdCompress {
+				w.Header().Set("Content-Encoding", "zstd")
+				enc, err := zstd.NewWriter(w)
+				if err == nil {
+					defer enc.Close()
+
+					wrtr = enc
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+				}
 			}
 
 			if byteLimit > 0 {
