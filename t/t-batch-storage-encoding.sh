@@ -40,5 +40,44 @@ begin_test "batch storage HTTP download with gzip encoding"
   [ 1 -eq "$(grep -c "decompressed gzipped response" pull.log)" ]
 
   assert_local_object "$contents_oid" "${#contents}"
+
+  # Test again with an explicit configuration.
+  rm -rf .git/lfs/objects
+
+  git config lfs.httpDownloadEncoding gzip
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pull' to succeed ..."
+    exit 1
+  fi
+
+  # We expect one "Accept-Encoding: gzip" header from the Batch API request,
+  # prior to the object transfer download request.
+  [ 2 -eq "$(grep -c "Accept-Encoding: gzip" pull.log)" ]
+
+  [ 1 -eq "$(grep -c "decompressed gzipped response" pull.log)" ]
+
+  assert_local_object "$contents_oid" "${#contents}"
+
+  # Test again with a URL-specific configuration.
+  rm -rf .git/lfs/objects
+
+  git config --unset lfs.httpDownloadEncoding
+  git config "lfs.$GITSERVER.httpDownloadEncoding" gzip
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs pull 2>&1 | tee pull.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pull' to succeed ..."
+    exit 1
+  fi
+
+  # We expect one "Accept-Encoding: gzip" header from the Batch API request,
+  # prior to the object transfer download request.
+  [ 2 -eq "$(grep -c "Accept-Encoding: gzip" pull.log)" ]
+
+  [ 1 -eq "$(grep -c "decompressed gzipped response" pull.log)" ]
+
+  assert_local_object "$contents_oid" "${#contents}"
 )
 end_test
