@@ -2,7 +2,7 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-begin_test "batch storage upload causes retries"
+begin_test "batch storage HTTP upload causes delayed retries"
 (
   set -e
 
@@ -31,7 +31,7 @@ begin_test "batch storage upload causes retries"
 )
 end_test
 
-begin_test "batch storage download causes retries"
+begin_test "batch storage HTTP download causes delayed retries"
 (
   set -e
 
@@ -75,7 +75,7 @@ begin_test "batch storage download causes retries"
 )
 end_test
 
-begin_test "batch clone causes retries"
+begin_test "batch storage HTTP download causes delayed retries during clone"
 (
   set -e
 
@@ -111,7 +111,7 @@ begin_test "batch clone causes retries"
 )
 end_test
 
-begin_test "batch storage upload causes retries (missing header)"
+begin_test "batch storage HTTP upload causes retries (missing header)"
 (
   set -e
 
@@ -142,7 +142,7 @@ begin_test "batch storage upload causes retries (missing header)"
 )
 end_test
 
-begin_test "batch storage download causes retries (missing header)"
+begin_test "batch storage HTTP download causes retries (missing header)"
 (
   set -e
 
