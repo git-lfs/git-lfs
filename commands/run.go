@@ -181,7 +181,8 @@ func usageCommand(cmd *cobra.Command) error {
 }
 
 func printHelp(commandName string) {
-	if commandName == "--help" {
+	switch commandName {
+	case "--help", "-h":
 		commandName = "git-lfs"
 	}
 	if txt, ok := ManPages[commandName]; ok {
