@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -128,12 +129,7 @@ func (r *Ref) Refspec() string {
 // HasValidObjectIDLength returns true if `s` has a length that is a valid
 // hexadecimal Git object ID length.
 func HasValidObjectIDLength(s string) bool {
-	for _, length := range ObjectIDLengths {
-		if len(s) == length {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ObjectIDLengths, len(s))
 }
 
 // IsZeroObjectID returns true if the string is a valid hexadecimal Git object
@@ -582,10 +578,8 @@ func ValidateRemote(remote string) error {
 // RemoteList.  This is completely identical to ValidateRemote, except that it
 // allows caching the remote list.
 func ValidateRemoteFromList(remotes []string, remote string) error {
-	for _, r := range remotes {
-		if r == remote {
-			return nil
-		}
+	if slices.Contains(remotes, remote) {
+		return nil
 	}
 
 	if err := ValidateRemoteURL(remote); err == nil {
