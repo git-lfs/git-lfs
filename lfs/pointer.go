@@ -276,6 +276,16 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 			continue
 		}
 
+		if strings.HasPrefix(text, "<") {
+			err = verifyVersion(kvps["version"])
+			if err == nil {
+				err = errors.NewPointerConflictMarkerError(errors.New(tr.Tr.Get("found potential conflict marker on line %d: %s", line, text)))
+				return
+			}
+			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
+			return
+		}
+
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) < 2 {
 			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
