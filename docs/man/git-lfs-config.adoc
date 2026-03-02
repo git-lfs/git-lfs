@@ -135,6 +135,22 @@ the version is less than 2.34.0, false otherwise.
 These settings control how the upload and download of LFS content
 occurs.
 
+* `lfs.httpDownloadEncoding` / `lfs.<url>.httpDownloadEncoding`
++
+Specifies the compression encoding to use when downloading LFS objects.
+Valid values are `gzip` or `zstd`.
++
+When set to `gzip`, no explicit header is added and Go's HTTP client
+handles gzip compression automatically. When set to `zstd`, the
+`Accept-Encoding: zstd` header is sent and Git LFS will decompress
+the response.
++
+Supports URL config lookup as described in:
+https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt.
++
+Example: `git config lfs.httpDownloadEncoding "zstd"`
++
+Example (URL-specific): `git config lfs.https://example.com/.httpDownloadEncoding "zstd"`
 * `lfs.concurrenttransfers`
 +
 The number of concurrent uploads/downloads. Default 8.
