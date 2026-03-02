@@ -1364,15 +1364,14 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 func parseShowRefLine(refPrefix, line string) (sha, name string, ok bool) {
 	// line format: <sha> <space> <ref>
-	space := strings.IndexByte(line, ' ')
-	if space < 0 {
+	sha, ref, found := strings.Cut(line, " ")
+	if !found {
 		return "", "", false
 	}
-	ref := line[space+1:]
 	if !strings.HasPrefix(ref, refPrefix) {
 		return "", "", false
 	}
-	return line[:space], strings.TrimSpace(ref[len(refPrefix):]), true
+	return sha, strings.TrimSpace(ref[len(refPrefix):]), true
 }
 
 // Fetch performs a fetch with no arguments against the given remotes.
@@ -1438,11 +1437,10 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	const tagPrefix = "refs/tags/"
 
 	// line format: <sha> <tab> <ref>
-	tab := strings.IndexByte(line, '\t')
-	if tab < 0 {
+	sha, ref, found := strings.Cut(line, "\t")
+	if !found {
 		return "", "", "", false
 	}
-	ref := line[tab+1:]
 	switch {
 	case strings.HasPrefix(ref, headPrefix):
 		ns = "heads"
@@ -1453,7 +1451,7 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	default:
 		return "", "", "", false
 	}
-	return line[:tab], ns, strings.TrimSpace(name), true
+	return sha, ns, strings.TrimSpace(name), true
 }
 
 // AllRefs returns a slice of all references in a Git repository in the current
