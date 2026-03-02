@@ -29,6 +29,7 @@ var (
 // For more information, see config/environment.go.
 type Environment interface {
 	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
 }
 
 // Object represents a locally stored LFS object.
