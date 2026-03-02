@@ -56,6 +56,10 @@ type RewriteOptions struct {
 	// Verbose mode prints migrated objects.
 	Verbose bool
 
+	// AppendOldShaToMessages specifies whether Rewriter should append the
+	// old commit SHA to rewritten commit messages.
+	AppendOldShaToMessages bool
+
 	// ObjectMapFilePath is the path to the map of old sha1 to new sha1
 	// commits
 	ObjectMapFilePath string
@@ -286,6 +290,9 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			newSha = make([]byte, len(oid))
 			copy(newSha, oid)
 		} else {
+			if opt.AppendOldShaToMessages {
+				rewrittenCommit.Message = rewrittenCommit.Message + "\n\nold-SHA=" + fmt.Sprintf("%x", oid) + "\n"
+			}
 			newSha, err = r.db.WriteCommit(rewrittenCommit)
 			if err != nil {
 				return nil, err
