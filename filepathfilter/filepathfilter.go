@@ -235,3 +235,16 @@ func convertToWildmatch(rawpatterns []string, ptype PatternType) []Pattern {
 	}
 	return patterns
 }
+
+type Environment interface {
+	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
+}
+
+func caseFromConfig(gitEnv Environment) func(w *wildmatch.Wildmatch) {
+	if gitEnv != nil && gitEnv.Bool("core.ignorecase", false) {
+		return wildmatch.CaseFold
+	} else {
+		return func(w *wildmatch.Wildmatch) {}
+	}
+}
