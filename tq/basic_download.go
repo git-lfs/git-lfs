@@ -245,7 +245,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	// Handle Content-Encoding decompression for zstd
 	// (gzip is handled automatically by Go's http client when we don't set Accept-Encoding)
 	var bodyReader io.Reader = res.Body
-	if res.Header.Get("Content-Encoding") == "zstd" {
+	if strings.ToLower(res.Header.Get("Content-Encoding")) == "zstd" {
 		zstdReader, err := zstd.NewReader(res.Body)
 		if err != nil {
 			return errors.Wrap(err, tr.Tr.Get("failed to create zstd decompressor"))
