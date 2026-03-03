@@ -137,13 +137,8 @@ occurs.
 
 * `lfs.httpDownloadEncoding` / `lfs.<url>.httpDownloadEncoding`
 +
-Specifies the compression encoding to use when downloading LFS objects.
-Valid values are `gzip` or `zstd`.
-+
-When set to `gzip`, no explicit header is added and Go's HTTP client
-handles gzip compression automatically. When set to `zstd`, the
-`Accept-Encoding: zstd` header is sent and Git LFS will decompress
-the response.
+Specifies the compression encoding to use when downloading LFS objects
+over HTTP. Valid values are `gzip` or `zstd`. Default is `gzip`.
 +
 Supports URL config lookup as described in:
 https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt.
