@@ -441,6 +441,7 @@ func (c *Configuration) Filesystem() *fs.Filesystem {
 		lfsdir, _ := c.Git.Get("lfs.storage")
 		c.fs = fs.New(
 			c.Os,
+			c.Git,
 			c.LocalGitDir(),
 			c.LocalWorkingDir(),
 			lfsdir,

@@ -107,28 +107,28 @@ func TestPatternMatch(t *testing.T) {
 }
 
 func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern, GitAttributes)
+	p := NewPattern(pattern, GitAttributes, NewFakeEnvironment())
 	for _, filename := range filenames {
 		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
 	}
 }
 
 func assertPatternMatchIgnore(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern, GitIgnore)
+	p := NewPattern(pattern, GitIgnore, NewFakeEnvironment())
 	for _, filename := range filenames {
 		assert.True(t, p.Match(filename), "%q should match pattern %q", filename, pattern)
 	}
 }
 
 func refutePatternMatch(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern, GitAttributes)
+	p := NewPattern(pattern, GitAttributes, NewFakeEnvironment())
 	for _, filename := range filenames {
 		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
 	}
 }
 
 func refutePatternMatchIgnore(t *testing.T, pattern string, filenames ...string) {
-	p := NewPattern(pattern, GitIgnore)
+	p := NewPattern(pattern, GitIgnore, NewFakeEnvironment())
 	for _, filename := range filenames {
 		assert.False(t, p.Match(filename), "%q should not match pattern %q", filename, pattern)
 	}
@@ -142,13 +142,13 @@ type filterTest struct {
 }
 
 func TestFilterReportsIncludePatterns(t *testing.T) {
-	filter := New([]string{"*.foo", "*.bar"}, nil, GitAttributes)
+	filter := New([]string{"*.foo", "*.bar"}, nil, GitAttributes, NewFakeEnvironment())
 
 	assert.Equal(t, []string{"*.foo", "*.bar"}, filter.Include())
 }
 
 func TestFilterReportsExcludePatterns(t *testing.T) {
-	filter := New(nil, []string{"*.baz", "*.quux"}, GitAttributes)
+	filter := New(nil, []string{"*.baz", "*.quux"}, GitAttributes, NewFakeEnvironment())
 
 	assert.Equal(t, []string{"*.baz", "*.quux"}, filter.Exclude())
 }

@@ -256,8 +256,8 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 //   - Automatically ignores any .git directories
 //
 // rootDir - Absolute path to the top of the repository working directory
-func FastWalkDir(rootDir string, cb FastWalkCallback) {
-	fastWalkCallback(fastWalkWithExcludeFiles(rootDir), cb)
+func FastWalkDir(rootDir string, cfg filepathfilter.Environment, cb FastWalkCallback) {
+	fastWalkCallback(fastWalkWithExcludeFiles(rootDir, cfg), cb)
 }
 
 // fastWalkCallback calls the FastWalkCallback "cb" for all files found by the
@@ -289,10 +289,10 @@ type fastWalker struct {
 // include/exclude patterns.
 //
 // rootDir - Absolute path to the top of the repository working directory
-func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
+func fastWalkWithExcludeFiles(rootDir string, cfg filepathfilter.Environment) *fastWalker {
 	excludePaths := []filepathfilter.Pattern{
-		filepathfilter.NewPattern(".git", filepathfilter.GitIgnore),
-		filepathfilter.NewPattern("**/.git", filepathfilter.GitIgnore),
+		filepathfilter.NewPattern(".git", filepathfilter.GitIgnore, cfg),
+		filepathfilter.NewPattern("**/.git", filepathfilter.GitIgnore, cfg),
 	}
 
 	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))

@@ -291,6 +291,36 @@ begin_test "ls-files: --size"
 )
 end_test
 
+begin_test "ls-files: correctly reflects case sensitivity"
+(
+  set -e
+
+  reponame="ls-files-case-sensitive"
+  git init "$reponame"
+  cd "$reponame"
+  ignorecase="$(git config core.ignorecase || true)"
+  ignorecase="${ignorecase:-false}"
+
+  git lfs track '*.DAT'
+  git add .gitattributes
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  git add a.dat
+
+  if [ "$ignorecase" = true ]
+  then
+    [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+  else
+    [ "" = "$(git lfs ls-files)" ]
+  fi
+)
+end_test
+
 begin_test "ls-files: indexed files without tree"
 (
   set -e

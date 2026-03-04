@@ -25,7 +25,7 @@ func (f *Filesystem) cleanupTmp() error {
 	traversedDirectories := &sync.Map{}
 
 	var walkErr error
-	tools.FastWalkDir(tmpdir, func(parentDir string, info os.FileInfo, err error) {
+	tools.FastWalkDir(tmpdir, f.GitConfig, func(parentDir string, info os.FileInfo, err error) {
 		if err != nil {
 			walkErr = err
 		}
