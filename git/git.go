@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -128,12 +129,7 @@ func (r *Ref) Refspec() string {
 // HasValidObjectIDLength returns true if `s` has a length that is a valid
 // hexadecimal Git object ID length.
 func HasValidObjectIDLength(s string) bool {
-	for _, length := range ObjectIDLengths {
-		if len(s) == length {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ObjectIDLengths, len(s))
 }
 
 // IsZeroObjectID returns true if the string is a valid hexadecimal Git object
@@ -235,6 +231,10 @@ func gitBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
 
 func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
+}
+
+func Var(name string) (*subprocess.Cmd, error) {
+	return gitNoLFS("var", name)
 }
 
 func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio.Scanner, error) {
@@ -578,10 +578,8 @@ func ValidateRemote(remote string) error {
 // RemoteList.  This is completely identical to ValidateRemote, except that it
 // allows caching the remote list.
 func ValidateRemoteFromList(remotes []string, remote string) error {
-	for _, r := range remotes {
-		if r == remote {
-			return nil
-		}
+	if slices.Contains(remotes, remote) {
+		return nil
 	}
 
 	if err := ValidateRemoteURL(remote); err == nil {
@@ -1366,15 +1364,14 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 func parseShowRefLine(refPrefix, line string) (sha, name string, ok bool) {
 	// line format: <sha> <space> <ref>
-	space := strings.IndexByte(line, ' ')
-	if space < 0 {
+	sha, ref, found := strings.Cut(line, " ")
+	if !found {
 		return "", "", false
 	}
-	ref := line[space+1:]
 	if !strings.HasPrefix(ref, refPrefix) {
 		return "", "", false
 	}
-	return line[:space], strings.TrimSpace(ref[len(refPrefix):]), true
+	return sha, strings.TrimSpace(ref[len(refPrefix):]), true
 }
 
 // Fetch performs a fetch with no arguments against the given remotes.
@@ -1440,11 +1437,10 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	const tagPrefix = "refs/tags/"
 
 	// line format: <sha> <tab> <ref>
-	tab := strings.IndexByte(line, '\t')
-	if tab < 0 {
+	sha, ref, found := strings.Cut(line, "\t")
+	if !found {
 		return "", "", "", false
 	}
-	ref := line[tab+1:]
 	switch {
 	case strings.HasPrefix(ref, headPrefix):
 		ns = "heads"
@@ -1455,7 +1451,7 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	default:
 		return "", "", "", false
 	}
-	return line[:tab], ns, strings.TrimSpace(name), true
+	return sha, ns, strings.TrimSpace(name), true
 }
 
 // AllRefs returns a slice of all references in a Git repository in the current

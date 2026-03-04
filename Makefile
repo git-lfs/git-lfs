@@ -56,11 +56,6 @@ EXTRA_GC_FLAGS =
 # GC_FLAGS are the union of the above two BUILTIN_GC_FLAGS and EXTRA_GC_FLAGS.
 GC_FLAGS = $(BUILTIN_GC_FLAGS) $(EXTRA_GC_FLAGS)
 
-# RONN is the name of the 'ronn' program used to generate man pages.
-RONN ?= ronn
-# RONN_EXTRA_ARGS are extra arguments given to the $(RONN) program when invoked.
-RONN_EXTRA_ARGS ?=
-
 # ASCIIDOCTOR is the name of the 'asciidoctor' program used to generate man pages.
 ASCIIDOCTOR ?= asciidoctor
 # ASCIIDOCTOR_EXTRA_ARGS are extra arguments given to the $(ASCIIDOCTOR) program when invoked.
@@ -84,6 +79,9 @@ TAR ?= tar
 
 TAR_XFORM_ARG ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo '--xform' || echo '-s')
 TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
+
+# GZIP is the "gzip" command.
+GZIP ?= gzip
 
 # CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
 # actual signature is made with SHA-256.
@@ -375,6 +373,7 @@ RELEASE_TARGETS = \
 	bin/releases/git-lfs-windows-amd64-$(VERSION).zip \
 	bin/releases/git-lfs-windows-386-$(VERSION).zip \
 	bin/releases/git-lfs-windows-arm64-$(VERSION).zip \
+	bin/releases/git-lfs-vendor-$(VERSION).tar.gz \
 	bin/releases/git-lfs-$(VERSION).tar.gz
 
 # RELEASE_INCLUDES are the names of additional files that are added to each
@@ -433,6 +432,20 @@ bin/releases/git-lfs-windows-%-$(VERSION).zip : $(RELEASE_INCLUDES) bin/git-lfs-
 	cp -r $^ "$$temp/$(PREFIX)" && \
 	(cd "$$temp" && $(BSDTAR) --format zip -cf "$$file" $(PREFIX)) && \
 	$(RM) -r "$$temp"
+
+# bin/releases/git-lfs-vender-$(VERSION).tar.gz generates a tarball of the
+# source code with an included "vendor" directory.
+#
+# This is useful for third parties who wish to have a source archive from
+# which they can build directly without fetching any Go dependencies.
+bin/releases/git-lfs-vendor-$(VERSION).tar.gz : vendor
+	@mkdir -p bin/releases && \
+	git archive -o tmp.tar --prefix=$(PREFIX)/ $(VERSION) && \
+	chmod -R g+w vendor && \
+	$(TAR) $(TAR_XFORM_ARG) '$(TAR_XFORM_CMD)!vendor!$(PREFIX)/vendor!' \
+		-rf tmp.tar vendor && \
+	$(GZIP) <tmp.tar >$@ && \
+	$(RM) tmp.tar
 
 # bin/releases/git-lfs-$(VERSION).tar.gz generates a tarball of the source code.
 #
@@ -728,13 +741,13 @@ man : $(MAN_ROFF_TARGETS) $(MAN_HTML_TARGETS)
 # Generate ROFF-style man pages from the corresponding .adoc files.
 man/man1/%.1 : docs/man/%.adoc
 	@mkdir -p man/man1
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 man/man5/%.5 : docs/man/%.adoc
 	@mkdir -p man/man5
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 man/man7/%.7 : docs/man/%.adoc
 	@mkdir -p man/man7
-	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -o $@ $<
+	$(ASCIIDOCTOR) $(ASCIIDOCTOR_EXTRA_ARGS) -b manpage -I docs/man/asciidoctor-extensions -r manpage-extension -o $@ $<
 
 # Generate HTML-style man pages from the corresponding .adoc files.
 man/html/%.1.html : docs/man/%.adoc

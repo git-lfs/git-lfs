@@ -22,7 +22,7 @@ perms_for () {
 
 assert_dir_perms () {
   local perms="$1"
-  [ "$(find .git/lfs -type d -ls | grep -vE "$perms")" = "" ]
+  [ 0 -eq "$(find .git/lfs -type d -ls | grep -c -vE "$perms")" ]
 }
 
 begin_test "honors umask"

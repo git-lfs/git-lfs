@@ -38,7 +38,7 @@ begin_test "install with old (non-upgradeable) settings"
   [ "${PIPESTATUS[0]}" = 2 ]
 
   grep -E "(clean|smudge)\" attribute should be" install.log
-  [ `grep -c "(MISSING)" install.log` = "0" ]
+  [ 0 -eq "$(grep -c "(MISSING)" install.log)" ]
 
   [ "git-lfs smudge --something %f" = "$(git config --global filter.lfs.smudge)" ]
   [ "git-lfs clean --something %f" = "$(git config --global filter.lfs.clean)" ]
@@ -174,8 +174,8 @@ begin_test "install outside repository directory"
   cat check.log
 
   # doesn't print this because being in a git repo is not necessary for install
-  [ "$(grep -c "Not in a Git repository" check.log)" = "0" ]
-  [ "$(grep -c "Error" check.log)" = "0" ]
+  [ 0 -eq "$(grep -c "Not in a Git repository" check.log)" ]
+  [ 0 -eq "$(grep -c "Error" check.log)" ]
 )
 end_test
 

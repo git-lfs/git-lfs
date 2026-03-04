@@ -6,14 +6,17 @@ git-lfs-smudge - Git smudge filter that converts pointer in blobs to the actual 
 
 == SYNOPSIS
 
-`git lfs smudge` [<path>] +
-`git lfs smudge` --skip [<path>]
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs smudge* [_<path>_]
+*git lfs smudge --skip* [_<path>_]
+----
 
 == DESCRIPTION
 
 Read a Git LFS pointer file from standard input and write the contents
 of the corresponding large file to standard output. If needed, download
-the file's contents from the Git LFS endpoint. The argument, if
+the file's contents from the Git LFS endpoint. The `<path>` argument, if
 provided, is only used for a progress bar.
 
 Smudge is typically run by Git's smudge filter, configured by the
@@ -36,6 +39,7 @@ simply copied to standard output without change.
 Without any options, `git lfs smudge` outputs the raw Git LFS content to
 standard output.
 
+`-s`::
 `--skip`::
   Skip automatic downloading of objects on clone or pull.
 `GIT_LFS_SKIP_SMUDGE`::

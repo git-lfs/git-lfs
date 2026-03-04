@@ -34,7 +34,7 @@ begin_test "push zero len file"
   emptyblob="$(git cat-file -p "$tree" | cut -f 3 -d " " | grep "empty.dat" | cut -f 1 -d$'\t')"
 
   # look for lfs pointer in git blob
-  [ "0" = "$(git cat-file -p "$emptyblob" | grep "lfs" -c)" ]
+  [ 0 -eq "$(git cat-file -p "$emptyblob" | grep -c "lfs")" ]
 
   assert_pointer "main" "full.dat" "$contents_oid" 4
 

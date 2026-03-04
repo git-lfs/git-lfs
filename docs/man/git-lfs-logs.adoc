@@ -6,10 +6,13 @@ git-lfs-logs - Show errors from the git-lfs command
 
 == SYNOPSIS
 
-`git lfs logs` +
-`git lfs logs` <file> +
-`git lfs logs clear` +
-`git lfs logs boomtown`
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs logs*
+*git lfs logs* _<file>_
+*git lfs logs clear*
+*git lfs logs boomtown*
+----
 
 == DESCRIPTION
 
@@ -27,8 +30,8 @@ details are saved to ".git/lfs/logs".
 
 Without any options, `git lfs logs` simply shows the list of error logs.
 
-* `<file>`: Shows the specified error log. Use "last" to show the most recent
-error.
+`<file>`::
+  Shows the specified error log. Use "last" to show the most recent error.
 
 == SEE ALSO
 

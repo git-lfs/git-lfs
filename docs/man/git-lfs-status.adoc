@@ -6,7 +6,10 @@ git-lfs-status - Show the status of Git LFS files in the working tree
 
 == SYNOPSIS
 
-`git lfs status` [<options>]
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs status* [_<options>_]
+----
 
 == DESCRIPTION
 
@@ -28,7 +31,9 @@ This command must be run in a non-bare repository.
   Give the output in an easy-to-parse format for scripts.
 `-j`::
 `--json`::
-  Give the output in a stable JSON format for scripts.
+  Writes Git LFS file status information as JSON to STDOUT, if the command
+  exits successfully. Intended for interoperation with external tools.
+  If `--porcelain` is also provided, that option takes precedence.
 
 == SEE ALSO
 

@@ -26,8 +26,7 @@ begin_test "fetch lfs-tracked file despite no remote"
   git archive $rev -o archive.out
 
   # Verify archive contains our file
-  grep "test_file.dat" archive.out
-
+  [ 1 -eq "$(tar -tvf archive.out test_file.dat | wc -l)" ]
 )
 end_test
 
@@ -60,8 +59,8 @@ begin_test "fallback ignored when remote present"
   git archive $rev -o archive.out
 
   # Verify archive contains file from second repo, but not first repo
-  grep "test_file_A.dat" archive.out
-  grep -v "test_file_B.dat" archive.out
+  [ 1 -eq "$(tar -tvf archive.out test_file_A.dat | wc -l)" ]
+  [ 0 -eq "$(tar -tvf archive.out test_file_B.dat | wc -l)" ]
 )
 end_test
 

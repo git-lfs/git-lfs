@@ -363,7 +363,7 @@ begin_test "pre-push allow missing object (found on server)"
     tee push.log
 
   # make sure there were no errors reported
-  [ -z "$(grep -i 'Error' push.log)" ]
+  [ 0 -eq "$(grep -c -i 'Error' push.log)" ]
 )
 end_test
 

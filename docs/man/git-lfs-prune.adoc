@@ -6,7 +6,10 @@ git-lfs-prune - Delete old LFS files from local storage
 
 == SYNOPSIS
 
-`git lfs prune` [options]
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs prune* [_options_]
+----
 
 == DESCRIPTION
 
@@ -43,18 +46,18 @@ gitignore(5).
 
 == OPTIONS
 
-`--dry-run`::
 `-d`::
+`--dry-run`::
   Don't actually delete anything, just report on what would have been done
-`--force`::
 `-f`::
+`--force`::
   Prune all objects except unpushed objects, including objects required for
   currently checked out refs. Implies `--recent`.
 `--recent`::
   Prune even objects that would normally be preserved by the
   configuration options specified below in <<_recent_files>>.
-`--verify-remote`::
 `-c`::
+`--verify-remote`::
   Contact the remote and check that copies of reachable files we would delete
   definitely exist before deleting. See <<_verify_remote>>.
 `--no-verify-remote`::
@@ -71,8 +74,8 @@ gitignore(5).
   When `--verify-remote` cannot verify an object on the remote, either halt
   the execution or continue the deletion of verified objects. See
   <<_verify_remote>>.
-`--verbose`::
 `-v`::
+`--verbose`::
   Report the full detail of what is/would be deleted.
 
 == RECENT FILES
@@ -86,18 +89,21 @@ few days.
 
 Here are the git-config(1) settings that control this behaviour:
 
-* `lfs.pruneoffsetdays` The number of extra days added to the fetch
-recent settings when using them to decide when to prune. So for a
-reference to be considered old enough to prune, it has to be this many
-days older than the oldest reference that would be downloaded via
-`git lfs fetch --recent`. Only used if the relevant fetch recent 'days'
-setting is non-zero. Default 3 days.
-* `lfs.fetchrecentrefsdays` `lfs.fetchrecentremoterefs`
-`lfs.fetchrecentcommitsdays` These have the same meaning as
-git-lfs-fetch(1) with the `--recent` option, they are used as a base for
-the offset above. Anything which falls outside of this offsetted window
-is considered old enough to prune. If a day value is zero, that
-condition is not used at all to retain objects and they will be pruned.
+`lfs.pruneoffsetdays`::
+  The number of extra days added to the fetch recent settings when using
+  them to decide when to prune. So for a reference to be considered old
+  enough to prune, it has to be this many days older than the oldest
+  reference that would be downloaded via `git lfs fetch --recent`.
+  Only used if the relevant fetch recent 'days' setting is non-zero.
+  Default 3 days.
+`lfs.fetchrecentrefsdays`::
+`lfs.fetchrecentremoterefs`::
+`lfs.fetchrecentcommitsdays`::
+  These have the same meaning as git-lfs-fetch(1) with the `--recent`
+  option, they are used as a base for the offset above. Anything which
+  falls outside of this offsetted window is considered old enough to
+  prune. If a day value is zero, that condition is not used at all to
+  retain objects and they will be pruned.
 
 == UNPUSHED LFS FILES
 

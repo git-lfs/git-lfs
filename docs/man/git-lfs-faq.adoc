@@ -34,6 +34,20 @@ On older versions, set `GIT_LFS_SKIP_SMUDGE` to `1` and run `git lfs pull`
 to pull down the LFS files.  This bypasses Git's smudging functionality
 and therefore avoids its limitations.
 
+[[faq-git-memory-use]]
+Why does cloning consume memory proportional to the largest Git LFS file?::
+  This is actually due to how Git smudges files and is not a consequence
+  of using Git LFS per se.  As of the time of writing, all currently
+  available versions of Git (v2.51.2 and earlier) read the output of a
+  long-running filter process like Git LFS into in-memory buffers, one for
+  each file processed by the filter.  As a result, when files are smudged
+  by Git LFS during a `git clone` operation, Git's memory usage scales with
+  the size of the largest Git LFS file.
++
+Setting `GIT_LFS_SKIP_SMUDGE` to `1` when cloning and then running
+`git lfs pull` to pull down the Git LFS files will bypass Git's smudging
+functionality and avoid its limitations.
+
 [[cat-working-tree-contents]]
 === Working Tree Contents
 
@@ -122,6 +136,35 @@ appropriate `--include` argument.  For example, if you wanted to move your
 patterns are possible: run `git help gitattributes` for more information on
 valid patterns.  Note that if you're specifying directories, using slashes is
 mandatory: backslashes are not allowed as path separators.
+
+[[faq-case-sensitivity-patterns]]
+Does Git LFS pattern matching in `.gitattributes` respect case sensitivity on different operating systems?::
+  Git's `.gitattributes` pattern matching is case-sensitive (consistent with Git's index).
+  On case-insensitive filesystems (default on macOS and Windows), files are often committed
+  with uppercase extensions (e.g., `.PNG`). On case-sensitive filesystems (e.g., Linux CI servers),
+  a pattern like `*.png` won't match `.PNG`, and Git LFS may leave pointer files instead of content.
++
+For repositories shared across platforms, use bracket-glob patterns to match extensions
+case-insensitively:
++
+[cols="1,1,1,1",options="header"]
+|===
+| Original pattern | Recommended pattern     | Matches on macOS/Windows | Matches on Linux/CI
+| `*.png`          | `*.[pP][nN][gG]`       | Yes                      | Yes
+| `*.tga`          | `*.[tT][gG][aA]`       | Yes                      | Yes
+| `*.jpg`          | `*.[jJ][pP][gG]`       | Yes                      | Yes
+| `*.jpeg`         | `*.[jJ][pP][eE][gG]`   | Yes                      | Yes
+|===
++
+Example `.gitattributes` entries:
++
+[source]
+----
+*.[pP][nN][gG] filter=lfs diff=lfs merge=lfs -text
+*.[tT][gG][aA] filter=lfs diff=lfs merge=lfs -text
+----
++
+This uses standard Git pattern syntax with no runtime overhead.
 
 [[cat-configuration]]
 === Configuration

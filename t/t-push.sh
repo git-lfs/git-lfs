@@ -867,7 +867,7 @@ begin_test 'push with multiple refs and data the server already has'
 
   # We should not find a batch request for the object which is in the earlier
   # version of main, since we know the remote side has it.
-  [ "$(grep -c "$contents_oid" push.log)" = 0 ]
+  [ 0 -eq "$(grep -c "$contents_oid" push.log)" ]
 
   # Yet we should have pushed the new object successfully.
   assert_server_object "$reponame" "$contents2_oid"
