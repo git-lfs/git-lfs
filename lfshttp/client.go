@@ -247,7 +247,16 @@ func (c *Client) ExtraHeadersFor(req *http.Request) http.Header {
 
 	for k, vs := range extraHeaders {
 		for _, v := range vs {
-			copy[k] = append(copy[k], v)
+			exists := false
+			for _, existing := range copy[k] {
+				if existing == v {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				copy[k] = append(copy[k], v)
+			}
 		}
 	}
 	return copy
