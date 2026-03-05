@@ -12,7 +12,7 @@ import (
 // been deleted on the server if unreferenced. If some refs are missing on the
 // remote, use a more explicit diff command.
 func calcSkippedRefs(remote string) []string {
-	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote)
+	cachedRemoteRefs, _ := git.CachedRemoteRefs(remote, false)
 
 	// Since CachedRemoteRefs() only returns branches, request that
 	// RemoteRefs() ignore tags and also return only branches.
