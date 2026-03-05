@@ -58,7 +58,7 @@ type sshAuthResponse struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header"`
 	ExpiresAt time.Time         `json:"expires_at"`
-	ExpiresIn int               `json:"expires_in"`
+	ExpiresIn time.Duration     `json:"expires_in"`
 
 	createdAt time.Time
 }
@@ -104,11 +104,11 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
 		if res.ExpiresIn == 0 && res.ExpiresAt.IsZero() {
-			ttl := c.git.Int("lfs.defaulttokenttl", 0)
+			ttl := c.git.Int64("lfs.defaulttokenttl", 0)
 			if ttl < 0 {
 				ttl = 0
 			}
-			res.ExpiresIn = ttl
+			res.ExpiresIn = time.Duration(ttl)
 		}
 		res.createdAt = now
 	}

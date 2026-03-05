@@ -24,6 +24,10 @@ type basicDownloadAdapter struct {
 	*adapterBase
 }
 
+type basicDownloadAdapterWorkerContext struct {
+	zstdDecoder *zstd.Decoder
+}
+
 func (a *basicDownloadAdapter) tempDir() string {
 	// Shared with the SSH adapter.
 	d := filepath.Join(a.fs.LFSStorageDir, "incomplete")
@@ -34,13 +38,28 @@ func (a *basicDownloadAdapter) tempDir() string {
 }
 
 func (a *basicDownloadAdapter) WorkerStarting(workerNum int) (interface{}, error) {
-	return nil, nil
+	return &basicDownloadAdapterWorkerContext{}, nil
 }
 
 func (a *basicDownloadAdapter) WorkerEnding(workerNum int, ctx interface{}) {
+	context, ok := ctx.(*basicDownloadAdapterWorkerContext)
+	if !ok {
+		tracerx.Printf("context object for basic download transfer adapter was of the wrong type")
+		return
+	}
+
+	if context.zstdDecoder != nil {
+		context.zstdDecoder.Close()
+		tracerx.Printf("http: closed zstd decoder")
+	}
 }
 
 func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCallback, authOkFunc func()) error {
+	context, ok := ctx.(*basicDownloadAdapterWorkerContext)
+	if !ok {
+		return errors.New(tr.Tr.Get("context object for basic download transfer adapter was of the wrong type"))
+	}
+
 	// Reserve a temporary filename. We need to make sure nobody operates on the file simultaneously with us.
 	f, err := tools.TempFile(a.tempDir(), t.Oid, a.fs)
 	if err != nil {
@@ -97,7 +116,7 @@ func (a *basicDownloadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progr
 		}
 	}
 
-	err = a.download(t, cb, authOkFunc, f, fromByte, hash)
+	err = a.download(context, t, cb, authOkFunc, f, fromByte, hash)
 
 	if err != nil {
 		f.Close()
@@ -115,7 +134,7 @@ func (a *basicDownloadAdapter) downloadFilename(t *Transfer) string {
 }
 
 // download starts or resumes and download. dlFile is expected to be an existing file open in RW mode
-func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
+func (a *basicDownloadAdapter) download(context *basicDownloadAdapterWorkerContext, t *Transfer, cb ProgressCallback, authOkFunc func(), dlFile *os.File, fromByte int64, hash hash.Hash) error {
 	rel, err := t.Rel("download")
 	if err != nil {
 		return err
@@ -132,21 +151,20 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	if fromByte > 0 {
 		// We could just use a start byte, but since we know the length be specific
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", fromByte, t.Size-1))
-	}
-
-	// Set Accept-Encoding header if configured to zstd
-	// (Go's http client handles gzip automatically when no Accept-Encoding is set)
-	uc := config.NewURLConfig(a.apiClient.GitEnv())
-	httpDownloadEncoding, _ := uc.Get("lfs", rel.Href, "httpdownloadencoding")
-	if httpDownloadEncoding != "" {
-		httpDownloadEncoding = strings.TrimSpace(httpDownloadEncoding)
-		switch httpDownloadEncoding {
-		case "gzip":
-			// Don't set header, let Go's http client handle gzip automatically
-		case "zstd":
-			req.Header.Set("Accept-Encoding", "zstd")
-		default:
-			return errors.New(tr.Tr.Get("unsupported lfs.httpDownloadEncoding value %q: must be \"gzip\" or \"zstd\"", httpDownloadEncoding))
+	} else {
+		// Set Accept-Encoding header if configured to zstd
+		// (Go's http client handles gzip automatically when no Accept-Encoding is set)
+		uc := config.NewURLConfig(a.apiClient.GitEnv())
+		httpDownloadEncoding, _ := uc.Get("lfs.transfer", rel.Href, "httpdownloadencoding")
+		if httpDownloadEncoding != "" {
+			switch httpDownloadEncoding {
+			case "gzip":
+				// Don't set header, let Go's http client handle gzip automatically
+			case "zstd":
+				req.Header.Set("Accept-Encoding", "zstd")
+			default:
+				return errors.New(tr.Tr.Get("unsupported lfs.transfer.httpDownloadEncoding value %q: must be \"gzip\" or \"zstd\"", httpDownloadEncoding))
+			}
 		}
 	}
 
@@ -168,7 +186,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 			if err := dlFile.Truncate(0); err != nil {
 				return err
 			}
-			return a.download(t, cb, authOkFunc, dlFile, 0, nil)
+			return a.download(context, t, cb, authOkFunc, dlFile, 0, nil)
 		}
 
 		// Special-cae status code 429 - retry after certain time
@@ -231,7 +249,7 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 				// sent everything. Don't re-request, use this one from byte 0
 			} else {
 				// re-request needed
-				return a.download(t, cb, authOkFunc, dlFile, fromByte, hash)
+				return a.download(context, t, cb, authOkFunc, dlFile, fromByte, hash)
 			}
 		}
 	}
@@ -246,12 +264,27 @@ func (a *basicDownloadAdapter) download(t *Transfer, cb ProgressCallback, authOk
 	// (gzip is handled automatically by Go's http client when we don't set Accept-Encoding)
 	var bodyReader io.Reader = res.Body
 	if strings.ToLower(res.Header.Get("Content-Encoding")) == "zstd" {
-		zstdReader, err := zstd.NewReader(res.Body)
-		if err != nil {
-			return errors.Wrap(err, tr.Tr.Get("failed to create zstd decompressor"))
+		zstdDecoder := context.zstdDecoder
+		if zstdDecoder == nil {
+			zstdDecoder, err := zstd.NewReader(res.Body, zstd.WithDecoderConcurrency(1))
+			if err != nil {
+				return errors.Wrap(err, tr.Tr.Get("failed to create zstd decompressor"))
+			}
+			context.zstdDecoder = zstdDecoder
+			tracerx.Printf("http: initialized zstd decoder")
+		} else {
+			zstdDecoder.Reset(res.Body)
 		}
-		defer zstdReader.Close()
-		bodyReader = zstdReader
+		bodyReader = context.zstdDecoder
+
+		tracerx.Printf("http: decompressing zstd-encoded response")
+
+		// Set ContentLength to -1 to match Go's default behaviour
+		// when decompressing gzipped responses; see:
+		//
+		// https://github.com/golang/go/blob/go1.25.7/src/net/http/response.go#L90-L92
+		// https://github.com/golang/go/blob/go1.25.7/src/net/http/transport.go#L2385
+		res.ContentLength = -1
 	}
 
 	var hasher *tools.HashingReader

@@ -172,6 +172,9 @@ func migrateInfoCommand(cmd *cobra.Command, args []string) {
 					if err != nil {
 						return err
 					}
+					if err = fixups.FindSpecialAttributes(cfg.GitEnv(), cfg.OSEnv(), cfg.LocalGitDir()); err != nil {
+						return err
+					}
 				}
 				return nil
 			}

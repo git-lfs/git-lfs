@@ -6,7 +6,10 @@ git-lfs-track - View or add Git LFS paths to Git attributes
 
 == SYNOPSIS
 
-`git lfs track` [options] [<pattern>...]
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs track* [_options_] [_<pattern>_...]
+----
 
 == DESCRIPTION
 

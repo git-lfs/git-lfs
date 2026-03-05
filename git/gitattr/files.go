@@ -1,4 +1,4 @@
-package git
+package gitattr
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
-	"github.com/git-lfs/git-lfs/v3/git/gitattr"
+	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -47,44 +47,80 @@ func (s *AttributeSource) String() string {
 	return s.Path
 }
 
-// GetRootAttributePaths beahves as GetRootAttributePaths, and loads information
-// only from the global gitattributes file.
-func GetRootAttributePaths(mp *gitattr.MacroProcessor, cfg Env) []AttributePath {
-	af, _ := cfg.Get("core.attributesfile")
-	af, err := tools.ExpandConfigPath(af, "git/attributes")
+// GetUserAttributePaths behaves as GetAttributePaths, and loads information
+// only from the user's global attributes file.
+func GetUserAttributePaths(mp *MacroProcessor, gitEnv Environment) ([]AttributePath, error) {
+	path, err := GetUserAttributeFilePath(gitEnv)
+	if err != nil || len(path) == 0 {
+		return nil, err
+	}
+
+	reader, err := os.Open(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
+	defer reader.Close()
+	// The working directory for the user gitattributes file is blank.
+	return AttrPathsFromReader(mp, path, "", reader, true), nil
+}
 
-	if _, err := os.Stat(af); os.IsNotExist(err) {
-		return nil
+func GetUserAttributeFilePath(gitEnv Environment) (string, error) {
+	path, _ := gitEnv.Get("core.attributesfile")
+	path, err := tools.ExpandConfigPath(path, "git/attributes")
+	if err != nil {
+		return "", err
 	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return "", nil
+	}
+	return path, nil
+}
 
-	// The working directory for the root gitattributes file is blank.
-	return attrPathsFromFile(mp, af, "", true)
+func GetRepoAttributeFilePath(gitDir string) (string, error) {
+	path := filepath.Join(gitDir, "info", "attributes")
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return "", nil
+	}
+	return path, nil
 }
 
 // GetSystemAttributePaths behaves as GetAttributePaths, and loads information
 // only from the system gitattributes file, respecting the $PREFIX environment
 // variable.
-func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) ([]AttributePath, error) {
+func GetSystemAttributePaths(mp *MacroProcessor, env Environment) ([]AttributePath, error) {
+	path, err := GetSystemAttributeFilePath(env)
+	if err != nil || len(path) == 0 {
+		return nil, err
+	}
+
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	// The working directory for the system gitattributes file is blank.
+	return AttrPathsFromReader(mp, path, "", reader, true), nil
+}
+
+func GetSystemAttributeFilePath(osEnv Environment) (string, error) {
 	var path string
-	if IsGitVersionAtLeast("2.42.0") {
-		cmd, err := gitNoLFS("var", "GIT_ATTR_SYSTEM")
+	if git.IsGitVersionAtLeast("2.42.0") {
+		cmd, err := git.Var("GIT_ATTR_SYSTEM")
 		if err != nil {
-			return nil, errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
+			return "", errors.New(tr.Tr.Get("failed to find `git var GIT_ATTR_SYSTEM`: %v", err))
 		}
 		out, err := cmd.Output()
 		if err != nil {
-			return nil, errors.New(tr.Tr.Get("failed to call `git var GIT_ATTR_SYSTEM`: %v", err))
+			return "", errors.New(tr.Tr.Get("failed to call `git var GIT_ATTR_SYSTEM`: %v", err))
 		}
 		paths := strings.Split(string(out), "\n")
 		if len(paths) == 0 {
-			return nil, nil
+			return "", nil
 		}
 		path = paths[0]
 	} else {
-		prefix, _ := env.Get("PREFIX")
+		prefix, _ := osEnv.Get("PREFIX")
 		if len(prefix) == 0 {
 			prefix = string(filepath.Separator)
 		}
@@ -93,17 +129,17 @@ func GetSystemAttributePaths(mp *gitattr.MacroProcessor, env Env) ([]AttributePa
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, nil
+		return "", nil
 	}
 
-	return attrPathsFromFile(mp, path, "", true), nil
+	return path, nil
 }
 
 // GetAttributePaths returns a list of entries in .gitattributes which are
 // configured with the filter=lfs attribute
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
-func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []AttributePath {
+func GetAttributePaths(mp *MacroProcessor, workingDir, gitDir string) []AttributePath {
 	paths := make([]AttributePath, 0)
 
 	for _, file := range findAttributeFiles(workingDir, gitDir) {
@@ -113,7 +149,7 @@ func GetAttributePaths(mp *gitattr.MacroProcessor, workingDir, gitDir string) []
 	return paths
 }
 
-func attrPathsFromFile(mp *gitattr.MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
+func attrPathsFromFile(mp *MacroProcessor, path, workingDir string, readMacros bool) []AttributePath {
 	attributes, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -122,7 +158,7 @@ func attrPathsFromFile(mp *gitattr.MacroProcessor, path, workingDir string, read
 	return AttrPathsFromReader(mp, path, workingDir, attributes, readMacros)
 }
 
-func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
+func AttrPathsFromReader(mp *MacroProcessor, fpath, workingDir string, rdr io.Reader, readMacros bool) []AttributePath {
 	var paths []AttributePath
 
 	relfile, _ := filepath.Rel(workingDir, fpath)
@@ -135,7 +171,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 	}
 	source := &AttributeSource{Path: relfile}
 
-	lines, eol, err := gitattr.ParseLines(rdr)
+	lines, eol, err := ParseLines(rdr)
 	if err != nil {
 		return nil
 	}
@@ -184,7 +220,7 @@ func AttrPathsFromReader(mp *gitattr.MacroProcessor, fpath, workingDir string, r
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
 func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
-	paths := GetAttributePaths(gitattr.NewMacroProcessor(), workingDir, gitDir)
+	paths := GetAttributePaths(NewMacroProcessor(), workingDir, gitDir)
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {
@@ -196,6 +232,8 @@ func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
 	return filepathfilter.NewFromPatterns(patterns, nil)
 }
 
+// findAttributeFiles finds all attributes files in the repository, starting with the repository-wide attributes
+// file, and then any .gitattributes files in the working tree
 func findAttributeFiles(workingDir, gitDir string) []attrFile {
 	var paths []attrFile
 
@@ -204,7 +242,7 @@ func findAttributeFiles(workingDir, gitDir string) []attrFile {
 		paths = append(paths, attrFile{path: repoAttributes, readMacros: true})
 	}
 
-	lsFiles, err := NewLsFiles(workingDir, true, true)
+	lsFiles, err := git.NewLsFiles(workingDir, true, true)
 	if err != nil {
 		tracerx.Printf("Error finding .gitattributes: %v", err)
 		return paths
