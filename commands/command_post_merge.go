@@ -3,6 +3,8 @@ package commands
 import (
 	"os"
 
+	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -17,6 +19,8 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 		Print(tr.Tr.Get("This should be run through Git's post-merge hook.  Run `git lfs update` to install it."))
 		os.Exit(1)
 	}
+
+	fetchMissingLfsObjects("ORIG_HEAD", "HEAD")
 
 	// Skip entire hook if lockable read only feature is disabled
 	if !cfg.SetLockableFilesReadOnly() {
@@ -43,6 +47,41 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 	err := lockClient.FixAllLockableFileWriteFlags()
 	if err != nil {
 		LoggedError(err, tr.Tr.Get("Warning: post-merge locked file check failed: %v", err))
+	}
+}
+
+func fetchMissingLfsObjects(pre, post string) {
+	remote := cfg.Remote()
+	if r := git.FirstRemoteForTreeish(post); r != "" {
+		remote = r
+	}
+
+	q := newDownloadQueue(
+		getTransferManifestOperationRemote("download", remote),
+		remote,
+	)
+
+	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
+		if err != nil {
+			LoggedError(err, tr.Tr.Get("Scanner error: %s", err))
+			return
+		}
+		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
+		if cfg.LFSObjectExists(p.Oid, p.Size) {
+			return
+		}
+
+		tracerx.Printf("post-merge: found LFS object %s (%s)", p.Oid, p.Name)
+		q.Add(downloadTransfer(p))
+	})
+
+	if err := gitscanner.ScanRefRange(post, pre, nil); err != nil {
+		LoggedError(err, tr.Tr.Get("Scanner error: %s", err))
+	}
+
+	q.Wait()
+	for _, err := range q.Errors() {
+		LoggedError(err, tr.Tr.Get("Download error: %s", err))
 	}
 }
 
