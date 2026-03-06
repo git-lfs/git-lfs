@@ -135,17 +135,23 @@ the version is less than 2.34.0, false otherwise.
 These settings control how the upload and download of LFS content
 occurs.
 
-* `lfs.httpDownloadEncoding` / `lfs.<url>.httpDownloadEncoding`
+* `lfs.transfer.httpDownloadEncoding` / `lfs.transfer.<url>.httpDownloadEncoding`
 +
 Specifies the compression encoding to use when downloading LFS objects
 over HTTP. Valid values are `gzip` or `zstd`. Default is `gzip`.
 +
-Supports URL config lookup as described in:
-https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt.
+URL configuration lookup follows the logic described in the Git
+documentation for
+link:https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt[`http.<url>.*`]
+settings.
 +
-Example: `git config lfs.httpDownloadEncoding "zstd"`
+Example: `git config lfs.transfer.httpDownloadEncoding "zstd"`
 +
-Example (URL-specific): `git config lfs.https://example.com/.httpDownloadEncoding "zstd"`
+Example (URL-specific):
++
+....
+git config lfs.transfer.https://example.com/.httpDownloadEncoding zstd
+....
 * `lfs.concurrenttransfers`
 +
 The number of concurrent uploads/downloads. Default 8.
