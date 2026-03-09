@@ -17,9 +17,9 @@ import (
 )
 
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
-// has been disabled for the given host, or globally
-func isCertVerificationDisabledForHost(c *Client, host string) bool {
-	hostSslVerify, _ := c.uc.Get("http", fmt.Sprintf("https://%v", host), "sslverify")
+// has been disabled for the given URL, or globally
+func isCertVerificationDisabledForHost(c *Client, u *url.URL) bool {
+	hostSslVerify, _ := c.uc.Get("http", fmt.Sprintf("%s://%s", u.Scheme, u.Host), "sslverify")
 	if hostSslVerify == "false" {
 		return true
 	}
@@ -28,10 +28,10 @@ func isCertVerificationDisabledForHost(c *Client, host string) bool {
 }
 
 // isClientCertEnabledForHost returns whether client certificate
-// are configured for the given host
-func isClientCertEnabledForHost(c *Client, host string) bool {
-	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
-	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+// are configured for the given URL
+func isClientCertEnabledForHost(c *Client, u *url.URL) bool {
+	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("%s://%s/", u.Scheme, u.Host), "sslKey")
+	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("%s://%s/", u.Scheme, u.Host), "sslCert")
 
 	return hostSslKeyOk && hostSslCertOk
 }
@@ -68,11 +68,11 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	return buf, nil
 }
 
-// getClientCertForHost returns a client certificate for a specific host (which may
-// be "host:port" loaded from the gitconfig
-func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
-	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
-	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+// getClientCertForHost returns a client certificate for a specific URL loaded
+// from the gitconfig
+func getClientCertForHost(c *Client, u *url.URL) (*tls.Certificate, error) {
+	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("%s://%s/", u.Scheme, u.Host), "sslKey")
+	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("%s://%s/", u.Scheme, u.Host), "sslCert")
 
 	hostSslKey, err := tools.ExpandPath(hostSslKey, false)
 	if err != nil {
@@ -120,15 +120,15 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 // Git configuration and environment settings, if any are defined.
 // May return nil if it doesn't have anything to add, in which case the default
 // RootCAs will be used if passed to TLSClientConfig.RootCAs
-func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
+func getRootCAsForHostFromGitconfig(c *Client, u *url.URL) *x509.CertPool {
 	// don't init pool, want to return nil not empty if none found; init only on successful add cert
 	var pool *x509.CertPool
 
-	url := fmt.Sprintf("https://%v/", host)
+	rawurl := fmt.Sprintf("%s://%s/", u.Scheme, u.Host)
 	uc := config.NewURLConfig(c.gitEnv)
 
-	backend, _ := uc.Get("http", url, "sslbackend")
-	schannelUseSslCaInfoStrValue, _ := uc.Get("http", url, "schannelusesslcainfo")
+	backend, _ := uc.Get("http", rawurl, "sslbackend")
+	schannelUseSslCaInfoStrValue, _ := uc.Get("http", rawurl, "schannelusesslcainfo")
 	schannelUseSslCaInfo := config.Bool(schannelUseSslCaInfoStrValue, false)
 
 	if backend == "schannel" && !schannelUseSslCaInfo {
@@ -142,7 +142,7 @@ func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
-	if cafile, ok := uc.Get("http", url, "sslcainfo"); ok {
+	if cafile, ok := uc.Get("http", rawurl, "sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
