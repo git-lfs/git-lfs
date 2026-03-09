@@ -29,24 +29,65 @@ func (f *GitFilter) SmudgeToFile(path string, ptr *WrappedPointer, download bool
 		mode = stat.Mode().Perm()
 	}
 
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", path))
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return errors.New(tr.Tr.Get("could not produce absolute path for %q", path))
 	}
 
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	// Write to a temp file in the same directory, then rename atomically.
+	// This avoids the Windows Server 2019 race where os.Remove() leaves
+	// a pending-deletion entry that blocks os.OpenFile(O_EXCL).
+	tmp, err := os.CreateTemp(filepath.Dir(abs), ".lfs-*")
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("could not create working directory file %q", path))
 	}
-	defer file.Close()
-	if _, err := f.Smudge(file, ptr.Pointer, ptr.Name, download, manifest, cb); err != nil {
+	tmpName := tmp.Name()
+	defer func() {
+		tmp.Close()
+		os.Remove(tmpName) // no-op if rename succeeded
+	}()
+
+	if err := tmp.Chmod(mode); err != nil {
+		return errors.Wrap(err, tr.Tr.Get("could not set permissions on temporary file"))
+	}
+
+	if _, err := f.Smudge(tmp, ptr.Pointer, ptr.Name, download, manifest, cb); err != nil {
 		if errors.IsDownloadDeclinedError(err) {
 			// write placeholder data instead
-			file.Seek(0, io.SeekStart)
-			ptr.Encode(file)
+			tmp.Seek(0, io.SeekStart)
+			ptr.Encode(tmp)
+			if closeErr := tmp.Close(); closeErr == nil {
+				os.Rename(tmpName, abs)
+			}
 			return err
-		} else {
-			return errors.New(tr.Tr.Get("could not write working directory file: %v", err))
 		}
+		return errors.New(tr.Tr.Get("could not write working directory file: %v", err))
+	}
+
+	if err := tmp.Close(); err != nil {
+		return errors.Wrap(err, tr.Tr.Get("could not close temporary file"))
+	}
+
+	// Remove symlinks/irregular entries before rename; regular files are
+	// replaced atomically by os.Rename without needing a prior Remove.
+	if lstat, _ := os.Lstat(abs); lstat != nil {
+		if lstat.Mode().IsRegular() {
+			// MoveFileExW(MOVEFILE_REPLACE_EXISTING) fails on Windows if the
+			// destination is read-only, as may be the case for locked LFS files.
+			if lstat.Mode().Perm()&0200 == 0 {
+				if err := os.Chmod(abs, lstat.Mode().Perm()|0200); err != nil {
+					return errors.Wrap(err, tr.Tr.Get("could not make working directory file writable %q", path))
+				}
+			}
+		} else {
+			if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
+				return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", path))
+			}
+		}
+	}
+
+	if err := os.Rename(tmpName, abs); err != nil {
+		return errors.Wrap(err, tr.Tr.Get("could not replace working directory file %q", path))
 	}
 	return nil
 }
