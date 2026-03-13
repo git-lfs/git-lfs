@@ -253,9 +253,9 @@ type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 //     there are no other guarantees. Use parentDir argument in the callback to
 //     determine absolute path rather than tracking it yourself
 //
-// rootDir - Absolute path to the directory
-func FastWalkDir(rootDir string, cb FastWalkCallback) {
-	fastWalkCallback(fastWalkDir(rootDir), cb)
+// dir - Absolute path to the directory
+func FastWalkDir(dir string, cb FastWalkCallback) {
+	fastWalkCallback(fastWalkDir(dir), cb)
 }
 
 // fastWalkCallback calls the FastWalkCallback "cb" for all files found by the
@@ -276,17 +276,17 @@ type fastWalkInfo struct {
 }
 
 type fastWalker struct {
-	rootDir string
-	ch      chan fastWalkInfo
-	limit   int32
-	cur     *int32
-	wg      *sync.WaitGroup
+	dir   string
+	ch    chan fastWalkInfo
+	limit int32
+	cur   *int32
+	wg    *sync.WaitGroup
 }
 
 // fastWalkDir walks the contents of a dir
 //
-// rootDir - Absolute path to the directory
-func fastWalkDir(rootDir string) *fastWalker {
+// dir - Absolute path to the directory
+func fastWalkDir(dir string) *fastWalker {
 	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))
 	if limit < 1 {
 		limit = runtime.GOMAXPROCS(-1) * 20
@@ -294,17 +294,17 @@ func fastWalkDir(rootDir string) *fastWalker {
 
 	c := int32(0)
 	w := &fastWalker{
-		rootDir: rootDir,
-		limit:   int32(limit),
-		cur:     &c,
-		ch:      make(chan fastWalkInfo, 256),
-		wg:      &sync.WaitGroup{},
+		dir:   dir,
+		limit: int32(limit),
+		cur:   &c,
+		ch:    make(chan fastWalkInfo, 256),
+		wg:    &sync.WaitGroup{},
 	}
 
 	go func() {
 		defer w.Wait()
 
-		dirFi, err := os.Stat(w.rootDir)
+		dirFi, err := os.Stat(w.dir)
 		if err != nil {
 			w.ch <- fastWalkInfo{Err: err}
 			return
@@ -319,28 +319,28 @@ func fastWalkDir(rootDir string) *fastWalker {
 // and any contents to the channel.  Increments waitg.Add(1) for each new
 // goroutine launched internally
 //
-// workDir - Relative path inside the directory being walked
-func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo) {
+// dir - Relative path inside the directory being walked
+func (w *fastWalker) Walk(isInitialDir bool, dir string, itemFi os.FileInfo) {
 
-	var fullPath string      // Absolute path to the current file or dir
-	var parentWorkDir string // Absolute path to the parent of the current item
-	if isRoot {
-		fullPath = w.rootDir
+	var fullPath string  // Absolute path to the current file or dir
+	var parentDir string // Absolute path to the parent of the current item
+	if isInitialDir {
+		fullPath = w.dir
 	} else {
-		parentWorkDir = join(w.rootDir, workDir)
-		fullPath = join(parentWorkDir, itemFi.Name())
+		parentDir = join(w.dir, dir)
+		fullPath = join(parentDir, itemFi.Name())
 	}
 
-	w.ch <- fastWalkInfo{ParentDir: parentWorkDir, Info: itemFi}
+	w.ch <- fastWalkInfo{ParentDir: parentDir, Info: itemFi}
 
 	if !itemFi.IsDir() {
 		// Nothing more to do if this is not a dir
 		return
 	}
 
-	var childWorkDir string
-	if !isRoot {
-		childWorkDir = join(workDir, itemFi.Name())
+	var childDir string
+	if !isInitialDir {
+		childDir = join(dir, itemFi.Name())
 	}
 
 	// The absolute optimal way to scan would be File.Readdirnames but we
@@ -359,7 +359,7 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo) {
 		// Parallelise all dirs, and chop large dirs into batches
 		w.walk(children, func(subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				w.Walk(false, childWorkDir, childFi)
+				w.Walk(false, childDir, childFi)
 			}
 		})
 	}
