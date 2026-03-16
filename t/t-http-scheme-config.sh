@@ -36,9 +36,11 @@ EOF
 
   # git lfs fetch should fail with a connection error (non-routable IP),
   # NOT with "Error reading client cert file"
-  set +e
   git lfs fetch 2>&1 | tee fetch.log
-  set -e
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to fail with a connection error"
+    exit 1
+  fi
 
   if grep -q "Error reading client cert file" fetch.log; then
     echo "FAIL: git-lfs tried to load client cert for http:// URL from https-scoped config"
@@ -79,9 +81,11 @@ EOF
   git config "http.https://192.0.2.1:9999/.sslkey" "/nonexistent/key.pem"
 
   # git lfs fetch should fail trying to load the cert (files don't exist)
-  set +e
   git lfs fetch 2>&1 | tee fetch.log
-  set -e
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to fail with a cert error"
+    exit 1
+  fi
 
   grep -q "Error reading client cert file" fetch.log
 )
