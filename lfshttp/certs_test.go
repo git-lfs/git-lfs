@@ -49,9 +49,13 @@ var sslCAInfoMatchedHostTests = []struct {
 	{"wronghost.com", false},
 }
 
-func clientForHost(c *Client, host string) *http.Client {
+func httpsURLForHost(host string) *url.URL {
 	u, _ := url.Parse(fmt.Sprintf("https://%v", host))
-	client, _ := c.HttpClient(u, creds.BasicAccess)
+	return u
+}
+
+func clientForHost(c *Client, host string) *http.Client {
+	client, _ := c.HttpClient(httpsURLForHost(host), creds.BasicAccess)
 	return client
 }
 
@@ -73,7 +77,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 		assert.Nil(t, err)
 
 		for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-			pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+			pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 
 			var shouldOrShouldnt string
 			if matchedHostTest.shouldMatch {
@@ -96,7 +100,7 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.NotNil(t, pool)
 	}
 }
@@ -117,7 +121,7 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.NotNil(t, pool)
 	}
 }
@@ -140,7 +144,7 @@ func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.Nil(t, pool)
 	}
 }
@@ -164,7 +168,7 @@ func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.NotNil(t, pool)
 	}
 }
@@ -183,7 +187,7 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.NotNil(t, pool)
 	}
 }
@@ -201,7 +205,7 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, httpsURLForHost(matchedHostTest.hostName))
 		assert.NotNil(t, pool)
 	}
 }
@@ -277,4 +281,92 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
+}
+
+func TestCertVerifyDisabledRespectsScheme(t *testing.T) {
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://example.com.sslverify": "false",
+	}))
+	assert.Nil(t, err)
+
+	// HTTPS URL should match HTTPS-scoped sslverify config
+	httpsURL, _ := url.Parse("https://example.com/repo")
+	httpsClient, _ := c.HttpClient(httpsURL, creds.BasicAccess)
+	tr, ok := httpsClient.Transport.(*http.Transport)
+	if assert.True(t, ok) {
+		assert.True(t, tr.TLSClientConfig.InsecureSkipVerify,
+			"HTTPS URL should have InsecureSkipVerify from HTTPS-scoped config")
+	}
+
+	// HTTP URL should NOT match HTTPS-scoped sslverify config
+	httpURL, _ := url.Parse("http://example.com/repo")
+	httpClient, _ := c.HttpClient(httpURL, creds.BasicAccess)
+	tr, ok = httpClient.Transport.(*http.Transport)
+	if assert.True(t, ok) {
+		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify,
+			"HTTP URL should not have InsecureSkipVerify from HTTPS-scoped config")
+	}
+}
+
+func TestClientCertRespectsScheme(t *testing.T) {
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://example.com/.sslkey":  "/path/to/key.pem",
+		"http.https://example.com/.sslcert": "/path/to/cert.pem",
+	}))
+	assert.Nil(t, err)
+
+	// HTTPS URL should find cert config
+	httpsURL, _ := url.Parse("https://example.com/repo")
+	assert.True(t, isClientCertEnabledForHost(c, httpsURL),
+		"client cert should be enabled for HTTPS URL with HTTPS-scoped config")
+
+	// HTTP URL should NOT find cert config scoped to HTTPS
+	httpURL, _ := url.Parse("http://example.com/repo")
+	assert.False(t, isClientCertEnabledForHost(c, httpURL),
+		"client cert should not be enabled for HTTP URL with HTTPS-scoped config")
+}
+
+func TestTransportRespectsSchemeForCerts(t *testing.T) {
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://git.example.com/.sslkey":  "/nonexistent/key.pem",
+		"http.https://git.example.com/.sslcert": "/nonexistent/cert.pem",
+	}))
+	assert.Nil(t, err)
+
+	// HTTP URL should not try to load certs from HTTPS-scoped config
+	httpURL, _ := url.Parse("http://git.example.com/repo.git/info/lfs")
+	_, err = c.Transport(httpURL, creds.BasicAccess)
+	assert.Nil(t, err,
+		"HTTP URL should not try to load certs from HTTPS-scoped config")
+
+	// HTTPS URL should try to load certs and fail (files don't exist)
+	httpsURL, _ := url.Parse("https://git.example.com/repo.git/info/lfs")
+	_, err = c.Transport(httpsURL, creds.BasicAccess)
+	assert.NotNil(t, err,
+		"HTTPS URL should try to load certs from HTTPS-scoped config")
+}
+
+func TestRootCAsRespectsScheme(t *testing.T) {
+	tempfile, err := os.CreateTemp("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://example.com.sslcainfo": tempfile.Name(),
+	}))
+	assert.Nil(t, err)
+
+	// HTTPS URL should find the CA cert
+	httpsURL, _ := url.Parse("https://example.com/repo")
+	pool := getRootCAsForHostFromGitconfig(c, httpsURL)
+	assert.NotNil(t, pool, "HTTPS URL should find CA cert from HTTPS-scoped config")
+
+	// HTTP URL should NOT find the CA cert scoped to HTTPS
+	httpURL, _ := url.Parse("http://example.com/repo")
+	pool = getRootCAsForHostFromGitconfig(c, httpURL)
+	assert.Nil(t, pool, "HTTP URL should not find CA cert from HTTPS-scoped config")
 }
