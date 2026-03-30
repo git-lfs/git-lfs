@@ -63,6 +63,9 @@ jobs:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
         azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
+        # Note that the endpoint URI must match the Azure region where our
+        # Signing Account and Certificate Profile were created:
+        # https://github.com/Azure/artifact-signing-action/blob/v1.1.0/README.md?plain=1#L138-L139
         endpoint: https://wus3.codesigning.azure.net/
         signing-account-name: GitHubInc
         certificate-profile-name: GitHubInc
@@ -78,6 +81,9 @@ jobs:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
         azure-client-secret: ${{ secrets.SPN_GIT_LFS_SIGNING }}
+        # Note that the endpoint URI must match the Azure region where our
+        # Signing Account and Certificate Profile were created:
+        # https://github.com/Azure/artifact-signing-action/blob/v1.1.0/README.md?plain=1#L138-L139
         endpoint: https://wus3.codesigning.azure.net/
         signing-account-name: GitHubInc
         certificate-profile-name: GitHubInc
