@@ -16,7 +16,6 @@ import (
 	"sync/atomic"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
 
@@ -245,19 +244,18 @@ func VerifyFileHash(oid, path string) error {
 // FastWalkCallback is the signature for the callback given to FastWalkGitRepo()
 type FastWalkCallback func(parentDir string, info os.FileInfo, err error)
 
-// FastWalkDir is a more optimal implementation of filepath.Walk for a Git
-// repo. The callback guaranteed to be called sequentially. The function returns
+// FastWalkDir is a more optimal implementation of filepath.Walk.
+// The callback guaranteed to be called sequentially. The function returns
 // once all files and errors have triggered callbacks.
 // It differs in the following ways:
 //   - Uses goroutines to parallelise large dirs and descent into subdirs
 //   - Does not provide sorted output; parents will always be before children but
 //     there are no other guarantees. Use parentDir argument in the callback to
 //     determine absolute path rather than tracking it yourself
-//   - Automatically ignores any .git directories
 //
-// rootDir - Absolute path to the top of the repository working directory
-func FastWalkDir(rootDir string, cb FastWalkCallback) {
-	fastWalkCallback(fastWalkWithExcludeFiles(rootDir), cb)
+// dir - Absolute path to the directory
+func FastWalkDir(dir string, cb FastWalkCallback) {
+	fastWalkCallback(fastWalkDir(dir), cb)
 }
 
 // fastWalkCallback calls the FastWalkCallback "cb" for all files found by the
@@ -278,23 +276,17 @@ type fastWalkInfo struct {
 }
 
 type fastWalker struct {
-	rootDir string
-	ch      chan fastWalkInfo
-	limit   int32
-	cur     *int32
-	wg      *sync.WaitGroup
+	dir   string
+	ch    chan fastWalkInfo
+	limit int32
+	cur   *int32
+	wg    *sync.WaitGroup
 }
 
-// fastWalkWithExcludeFiles walks the contents of a dir, respecting
-// include/exclude patterns.
+// fastWalkDir walks the contents of a dir
 //
-// rootDir - Absolute path to the top of the repository working directory
-func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
-	excludePaths := []filepathfilter.Pattern{
-		filepathfilter.NewPattern(".git", filepathfilter.GitIgnore),
-		filepathfilter.NewPattern("**/.git", filepathfilter.GitIgnore),
-	}
-
+// dir - Absolute path to the directory
+func fastWalkDir(dir string) *fastWalker {
 	limit, _ := strconv.Atoi(os.Getenv("LFS_FASTWALK_LIMIT"))
 	if limit < 1 {
 		limit = runtime.GOMAXPROCS(-1) * 20
@@ -302,68 +294,53 @@ func fastWalkWithExcludeFiles(rootDir string) *fastWalker {
 
 	c := int32(0)
 	w := &fastWalker{
-		rootDir: rootDir,
-		limit:   int32(limit),
-		cur:     &c,
-		ch:      make(chan fastWalkInfo, 256),
-		wg:      &sync.WaitGroup{},
+		dir:   dir,
+		limit: int32(limit),
+		cur:   &c,
+		ch:    make(chan fastWalkInfo, 256),
+		wg:    &sync.WaitGroup{},
 	}
 
 	go func() {
 		defer w.Wait()
 
-		dirFi, err := os.Stat(w.rootDir)
+		dirFi, err := os.Stat(w.dir)
 		if err != nil {
 			w.ch <- fastWalkInfo{Err: err}
 			return
 		}
 
-		w.Walk(true, "", dirFi, excludePaths)
+		w.Walk(true, "", dirFi)
 	}()
 	return w
 }
 
 // Walk is the main recursive implementation of fast walk.  Sends the file/dir
-// and any contents to the channel so long as it passes the include/exclude
-// filter.  Increments waitg.Add(1) for each new goroutine launched internally
+// and any contents to the channel.  Increments waitg.Add(1) for each new
+// goroutine launched internally
 //
-// workDir - Relative path inside the repository
-func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
-	excludePaths []filepathfilter.Pattern) {
+// dir - Relative path inside the directory being walked
+func (w *fastWalker) Walk(isInitialDir bool, dir string, itemFi os.FileInfo) {
 
-	var fullPath string      // Absolute path to the current file or dir
-	var parentWorkDir string // Absolute path to the workDir inside the repository
-	if isRoot {
-		fullPath = w.rootDir
+	var fullPath string  // Absolute path to the current file or dir
+	var parentDir string // Absolute path to the parent of the current item
+	if isInitialDir {
+		fullPath = w.dir
 	} else {
-		parentWorkDir = join(w.rootDir, workDir)
-		fullPath = join(parentWorkDir, itemFi.Name())
+		parentDir = join(w.dir, dir)
+		fullPath = join(parentDir, itemFi.Name())
 	}
 
-	if !isRoot && itemFi.IsDir() {
-		// If this directory has a .git directory or file in it, then
-		// this is a submodule, and we should not recurse into it.
-		_, err := os.Stat(filepath.Join(fullPath, ".git"))
-		if err == nil {
-			return
-		}
-	}
-
-	workPath := join(workDir, itemFi.Name())
-	if !filepathfilter.NewFromPatterns(nil, excludePaths).Allows(workPath) {
-		return
-	}
-
-	w.ch <- fastWalkInfo{ParentDir: parentWorkDir, Info: itemFi}
+	w.ch <- fastWalkInfo{ParentDir: parentDir, Info: itemFi}
 
 	if !itemFi.IsDir() {
 		// Nothing more to do if this is not a dir
 		return
 	}
 
-	var childWorkDir string
-	if !isRoot {
-		childWorkDir = join(workDir, itemFi.Name())
+	var childDir string
+	if !isInitialDir {
+		childDir = join(dir, itemFi.Name())
 	}
 
 	// The absolute optimal way to scan would be File.Readdirnames but we
@@ -382,7 +359,7 @@ func (w *fastWalker) Walk(isRoot bool, workDir string, itemFi os.FileInfo,
 		// Parallelise all dirs, and chop large dirs into batches
 		w.walk(children, func(subitems []os.FileInfo) {
 			for _, childFi := range subitems {
-				w.Walk(false, childWorkDir, childFi, excludePaths)
+				w.Walk(false, childDir, childFi)
 			}
 		})
 	}
