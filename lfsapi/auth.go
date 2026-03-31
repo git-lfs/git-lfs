@@ -25,21 +25,31 @@ var (
 // supporting basic authentication.
 func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Request) (*http.Response, error) {
 	count := 0
-	res, err := c.doWithAuth(remote, &count, access, req, nil)
+	for {
+		oldCount := count
+		res, err := c.doWithAuth(remote, &count, access, req, nil)
 
-	if errors.IsAuthError(err) {
-		if len(req.Header.Get("Authorization")) == 0 {
-			// This case represents a rejected request that
-			// should have been authenticated but wasn't. Do
-			// not count this against our redirection
-			// maximum.
-			newAccess := c.Endpoints.AccessFor(access.URL())
-			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", newAccess.Mode())
-			return c.DoWithAuth(remote, newAccess, req)
+		if errors.IsAuthError(err) {
+			if len(req.Header.Get("Authorization")) == 0 {
+				// This case represents a rejected request that
+				// should have been authenticated but wasn't. Do
+				// not count this against our redirection
+				// maximum.
+				newAccess := c.Endpoints.AccessFor(access.URL())
+				if count == oldCount && newAccess.Mode() == access.Mode() {
+					count++
+				}
+
+				if count < defaultMaxAuthAttempts {
+					access = newAccess
+					tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
+					continue
+				}
+			}
 		}
-	}
 
-	return res, err
+		return res, err
+	}
 }
 
 // DoWithAuthNoRetry sends an HTTP request to get an HTTP response. It works in

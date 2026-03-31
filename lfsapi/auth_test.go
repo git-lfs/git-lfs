@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -768,4 +769,50 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	// called1 is 2 since LFS tries an unauthenticated request first
 	assert.EqualValues(t, 2, called1)
 	assert.EqualValues(t, 1, called2)
+}
+
+func TestDoWithAuthInfiniteLoop(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		w.Header().Set("Lfs-Authenticate", "Basic")
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cred := newMockCredentialHelper()
+	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": srv.URL,
+		},
+	))
+	require.Nil(t, err)
+	c.Credentials = cred
+
+	req, err := http.NewRequest("POST", srv.URL, nil)
+	require.Nil(t, err)
+
+	// Use a channel to timeout the test if it loops
+	done := make(chan bool)
+	go func() {
+		_, _ = c.DoAPIRequestWithAuth("", req)
+		done <- true
+	}()
+
+	select {
+	case <-done:
+	// Success: it didn't loop forever
+	case <-time.After(2 * time.Second):
+		t.Errorf("Test timed out, likely infinite loop. Called %d times", atomic.LoadUint32(&called))
+	}
+
+	// We expect:
+	// 1. Unauthenticated request (returns 401)
+	// 2. Authenticated request with "user:pass" (returns 401)
+	// 3. (Optional) Retry again if first auth attempt failed.
+	// 4. (Limit) Stop after defaultMaxAuthAttempts.
+	//
+	// Without the bug, it should stop after a few attempts, not loop thousands of times.
+	assert.LessOrEqual(t, atomic.LoadUint32(&called), uint32(4))
 }
