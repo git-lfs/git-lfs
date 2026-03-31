@@ -648,7 +648,7 @@ func canServeExpired(repo string) bool {
 }
 
 // Persistent state across requests
-var batchResumeFailFallbackStorageAttempts = 0
+var storageDownloadRetryRangeRejectedAttempts = 0
 var tusStorageAttempts = 0
 
 var (
@@ -823,11 +823,11 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(416)
 					return
 				}
-				if batchResumeFailFallbackStorageAttempts == 0 {
+				if storageDownloadRetryRangeRejectedAttempts == 0 {
 					// Truncate output on FIRST attempt to cause resume
 					// Second attempt (without range header) is fallback, complete successfully
 					byteLimit = 8
-					batchResumeFailFallbackStorageAttempts++
+					storageDownloadRetryRangeRejectedAttempts++
 				}
 			case "storage-download-retry-no-invalid-range":
 				// Resume if header includes range
