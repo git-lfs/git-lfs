@@ -85,13 +85,13 @@ begin_test "batch storage HTTP download retries with Range header"
   reponame="batch-storage-download-retry-range"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" $reponame
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
 
- # This content announces to the server that it should interrupt the
- # object download unless a Range header with a positive offset was sent.
+  # This content announces to the server that it should interrupt the
+  # object download unless a Range header with a positive offset was sent.
   contents="storage-download-retry-range"
   contents_oid=$(calc_oid "$contents")
 
@@ -134,7 +134,7 @@ begin_test "batch storage HTTP download retries after Range header rejected"
   reponame="batch-storage-download-retry-range-rejected"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" $reponame
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log
@@ -183,7 +183,7 @@ begin_test "batch storage HTTP download retries without invalid Range header"
   reponame="batch-storage-download-retry-no-invalid-range"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" $reponame
+  clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat" 2>&1 | tee track.log
   grep "Tracking \"\*.dat\"" track.log

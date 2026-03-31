@@ -11,7 +11,7 @@ begin_test "batch storage HTTP upload with tus protocol"
   reponame="test-tus-upload"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" $reponame
+  clone_repo "$reponame" "$reponame"
   git config lfs.tusTransfers true
 
   git lfs track "*.dat"
@@ -68,7 +68,7 @@ begin_test "batch storage HTTP upload retries with tus protocol"
   reponame="test-tus-upload-interrupt"
   setup_remote_repo "$reponame"
 
-  clone_repo "$reponame" $reponame
+  clone_repo "$reponame" "$reponame"
   git config lfs.tusTransfers true
 
   git lfs track "*.dat"
