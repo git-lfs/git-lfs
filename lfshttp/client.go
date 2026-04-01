@@ -468,9 +468,9 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 		Renegotiation: tls.RenegotiateFreelyAsClient,
 	}
 
-	if isClientCertEnabledForHost(c, u) {
+	if isClientCertEnabledForURL(c, u) {
 		tracerx.Printf("http: client cert for %s", host)
-		cert, err := getClientCertForHost(c, u)
+		cert, err := getClientCertForURL(c, u)
 		if err != nil {
 			return nil, err
 		}
@@ -480,10 +480,10 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 		}
 	}
 
-	if isCertVerificationDisabledForHost(c, u) {
+	if isCertVerificationDisabledForURL(c, u) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHostFromGitconfig(c, u)
+		tr.TLSClientConfig.RootCAs = getRootCAsForURLFromGitconfig(c, u)
 	}
 
 	if err := c.configureProtocols(u, tr); err != nil {
