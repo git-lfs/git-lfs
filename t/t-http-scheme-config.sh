@@ -6,44 +6,35 @@ begin_test "http URL does not use https-scoped sslcert config"
 (
   set -e
 
-  reponame="scheme-scoped-cert"
-  mkdir "$reponame"
-  cd "$reponame"
-  git init
-  git lfs install --local
+  reponame="scheme-scoped-cert-http"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
 
-  git lfs track "*.bin"
-  git add .gitattributes
+  git lfs track "*.dat"
+  echo "content" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add lfs file"
 
-  # Create an LFS pointer file directly
-  cat > file.bin <<EOF
-version https://git-lfs.github.com/spec/v1
-oid sha256:45942f670e64f1a015f3ca66ac758d2b2f1eaa42c086f15662e36e6485ea4977
-size 49042944
-EOF
-  git add file.bin
-  git commit -m "initial commit"
+  # Extract host:port from $GITSERVER (e.g. "127.0.0.1:PORT") so we can
+  # build a config key that is scoped to the https:// scheme for that host.
+  gitserver_hostport="${GITSERVER#*://}"
 
-  # Configure an http:// LFS endpoint
-  git remote add origin "http://192.0.2.1:9999/repo.git"
-  git config lfs.url "http://192.0.2.1:9999/repo/info/lfs"
-  git config lfs.locksverify false
-  git config lfs.transfer.maxretries 1
+  # Set client cert config scoped to https:// — should NOT apply to http://
+  git config "http.https://$gitserver_hostport/.sslCert" "/nonexistent/cert.pem"
+  git config "http.https://$gitserver_hostport/.sslKey" "/nonexistent/key.pem"
 
-  # Set client cert config scoped to https:// only — should NOT apply to http://
-  git config "http.https://192.0.2.1:9999/.sslcert" "/nonexistent/cert.pem"
-  git config "http.https://192.0.2.1:9999/.sslkey" "/nonexistent/key.pem"
-
-  # git lfs fetch should fail with a connection error (non-routable IP),
-  # NOT with "Error reading client cert file"
-  git lfs fetch 2>&1 | tee fetch.log
-  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs fetch' to fail with a connection error"
+  # Push to the http:// server. If the bug is present (https-scoped cert config
+  # is applied to the http:// connection), this fails with "Error reading client
+  # cert file". Post-fix, the cert config is correctly ignored and push succeeds.
+  git lfs push origin main 2>&1 | tee push.log
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    echo >&2 "FAIL: git-lfs tried to load client cert for http:// URL from https-scoped config"
+    cat push.log >&2
     exit 1
   fi
 
-  if grep -q "Error reading client cert file" fetch.log; then
-    echo "FAIL: git-lfs tried to load client cert for http:// URL from https-scoped config"
+  if grep -q "Error reading client cert file" push.log; then
+    echo >&2 "FAIL: git-lfs tried to load client cert for http:// URL from https-scoped config"
     exit 1
   fi
 )
@@ -54,39 +45,29 @@ begin_test "https URL uses https-scoped sslcert config"
   set -e
 
   reponame="scheme-scoped-cert-https"
-  mkdir "$reponame"
-  cd "$reponame"
-  git init
-  git lfs install --local
+  setup_remote_repo "$reponame"
+  clone_repo_ssl "$reponame" "$reponame"
 
-  git lfs track "*.bin"
-  git add .gitattributes
+  git lfs track "*.dat"
+  echo "content" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add lfs file"
 
-  cat > file.bin <<EOF
-version https://git-lfs.github.com/spec/v1
-oid sha256:45942f670e64f1a015f3ca66ac758d2b2f1eaa42c086f15662e36e6485ea4977
-size 49042944
-EOF
-  git add file.bin
-  git commit -m "initial commit"
+  # Extract host:port from $SSLGITSERVER (e.g. "127.0.0.1:PORT").
+  sslserver_hostport="${SSLGITSERVER#*://}"
 
-  # Configure an https:// LFS endpoint
-  git remote add origin "https://192.0.2.1:9999/repo.git"
-  git config lfs.url "https://192.0.2.1:9999/repo/info/lfs"
-  git config lfs.locksverify false
-  git config lfs.transfer.maxretries 1
+  # Set client cert config scoped to https:// — should apply to https:// connection.
+  git config "http.https://$sslserver_hostport/.sslCert" "/nonexistent/cert.pem"
+  git config "http.https://$sslserver_hostport/.sslKey" "/nonexistent/key.pem"
 
-  # Set client cert config scoped to https:// — should apply to https:// URL
-  git config "http.https://192.0.2.1:9999/.sslcert" "/nonexistent/cert.pem"
-  git config "http.https://192.0.2.1:9999/.sslkey" "/nonexistent/key.pem"
-
-  # git lfs fetch should fail trying to load the cert (files don't exist)
-  git lfs fetch 2>&1 | tee fetch.log
-  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs fetch' to fail with a cert error"
+  # Push should fail trying to load the client cert (files don't exist), confirming
+  # that the https-scoped config is applied to the https:// connection.
+  git lfs push origin main 2>&1 | tee push.log
+  if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+    echo >&2 "FAIL: expected 'git lfs push' to fail with a cert error"
     exit 1
   fi
 
-  grep -q "Error reading client cert file" fetch.log
+  grep -q "Error reading client cert file" push.log
 )
 end_test
