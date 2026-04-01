@@ -815,7 +815,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				if handleRangeRequest(w, r, by) {
 					return
 				}
-				byteLimit = 10
+				byteLimit = len(oidHandlers[oid]) / 2
 			case "storage-download-retry-range-rejected":
 				// Fail any Range: request even though we said we supported it
 				// To make sure client can fall back
@@ -826,7 +826,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				if storageDownloadRetryRangeRejectedAttempts == 0 {
 					// Truncate output on FIRST attempt to cause resume
 					// Second attempt (without range header) is fallback, complete successfully
-					byteLimit = 8
+					byteLimit = len(oidHandlers[oid]) / 2
 					storageDownloadRetryRangeRejectedAttempts++
 				}
 			case "storage-download-retry-no-invalid-range":

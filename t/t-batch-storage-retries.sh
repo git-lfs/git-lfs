@@ -91,7 +91,8 @@ begin_test "batch storage HTTP download retries with Range header"
   grep "Tracking \"\*.dat\"" track.log
 
   # This content announces to the server that it should interrupt the
-  # object download unless a Range header with a positive offset was sent.
+  # object download halfway, unless a Range header with a positive offset
+  # was sent.
   contents="storage-download-retry-range"
   contents_oid=$(calc_oid "$contents")
 
@@ -116,10 +117,10 @@ begin_test "batch storage HTTP download retries with Range header"
 
   grep "Attempting to resume download of \"$contents_oid\"" fetch.log
   grep "tq: retrying object $contents_oid" fetch.log
-  grep "Range: bytes=10-$((${#contents} - 1))" fetch.log
+  grep "Range: bytes=$((${#contents} / 2))-$((${#contents} - 1))" fetch.log
 
   grep "206 Partial Content" fetch.log
-  grep "Content-Range: bytes 10-$((${#contents} - 1))/${#contents}" fetch.log
+  grep "Content-Range: bytes $((${#contents} / 2))-$((${#contents} - 1))/${#contents}" fetch.log
   grep "xfer: server accepted resume .*$contents_oid" fetch.log
 
   assert_local_object "$contents_oid" "${#contents}"
@@ -140,7 +141,7 @@ begin_test "batch storage HTTP download retries after Range header rejected"
   grep "Tracking \"\*.dat\"" track.log
 
   # This content announces to the server that it should interrupt the first
-  # object download, then reject the client's Range header request,
+  # object download halfway, then reject the client's Range header request,
   # forcing the client to fall back on re-downloading instead.
   contents="storage-download-retry-range-rejected"
   contents_oid=$(calc_oid "$contents")
@@ -167,7 +168,7 @@ begin_test "batch storage HTTP download retries after Range header rejected"
 
   grep "Attempting to resume download of \"$contents_oid\"" fetch.log
   grep "tq: retrying object $contents_oid" fetch.log
-  grep "Range: bytes=8-$((${#contents} - 1))" fetch.log
+  grep "Range: bytes=$((${#contents} / 2))-$((${#contents} - 1))" fetch.log
 
   grep "416 Requested Range Not Satisfiable" fetch.log
   grep "xfer: server rejected resume .*$contents_oid.* re-downloading from start" fetch.log
