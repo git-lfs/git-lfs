@@ -346,6 +346,32 @@ func TestTransportRespectsSchemeForCerts(t *testing.T) {
 		"HTTPS URL should try to load certs from HTTPS-scoped config")
 }
 
+func TestRootCAsPathScoped(t *testing.T) {
+	tempfile, err := os.CreateTemp("", "testcert")
+	assert.Nil(t, err, "Error creating temp cert file")
+	defer os.Remove(tempfile.Name())
+
+	_, err = tempfile.WriteString(testCert)
+	assert.Nil(t, err, "Error writing temp cert file")
+	tempfile.Close()
+
+	// Config is scoped to a specific path prefix
+	c, err := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://example.com/repo.sslcainfo": tempfile.Name(),
+	}))
+	assert.Nil(t, err)
+
+	// URL whose path starts with /repo — should match
+	matchURL, _ := url.Parse("https://example.com/repo/info/lfs")
+	pool := getRootCAsForURLFromGitconfig(c, matchURL)
+	assert.NotNil(t, pool, "URL with matching path prefix should find path-scoped CA cert")
+
+	// URL with a different path — should NOT match
+	noMatchURL, _ := url.Parse("https://example.com/other/info/lfs")
+	pool = getRootCAsForURLFromGitconfig(c, noMatchURL)
+	assert.Nil(t, pool, "URL with non-matching path should not find path-scoped CA cert")
+}
+
 func TestRootCAsRespectsScheme(t *testing.T) {
 	tempfile, err := os.CreateTemp("", "testcert")
 	assert.Nil(t, err, "Error creating temp cert file")
