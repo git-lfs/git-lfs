@@ -1725,7 +1725,7 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 				wantedAuth = "Multistage type=bar"
 				w.Header().Add(authHeader, wantedAuth)
 				w.WriteHeader(401)
-				debug(id, "auth stage %d of %d succeeded: %q", matches[1], matches[2], auth)
+				debug(id, "auth stage %s of %s succeeded: %q", matches[1], matches[2], auth)
 				return true
 			}
 		}
