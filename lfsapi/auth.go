@@ -47,6 +47,10 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 		// This case represents a rejected request that
 		// should have been authenticated but wasn't, possibly because
 		// it is part of a multi-stage authentication sequence.
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+
 		// If at least one more attempt is still permitted, we update
 		// the access mode and retry the request.
 		if i < maxAuthAttempts-1 {
