@@ -29,7 +29,7 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 		maxAuthAttempts++
 	}
 
-	for range maxAuthAttempts {
+	for i := range maxAuthAttempts {
 		res, err := c.doWithAuth(remote, access, req, nil)
 		if err == nil || !errors.IsAuthError(err) {
 			return res, err
@@ -45,9 +45,18 @@ func (c *Client) DoWithAuth(remote string, access creds.Access, req *http.Reques
 		}
 
 		// This case represents a rejected request that
-		// should have been authenticated but wasn't.
-		access = c.Endpoints.AccessFor(access.URL())
-		tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
+		// should have been authenticated but wasn't, possibly because
+		// it is part of a multi-stage authentication sequence.
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+
+		// If at least one more attempt is still permitted, we update
+		// the access mode and retry the request.
+		if i < maxAuthAttempts-1 {
+			access = c.Endpoints.AccessFor(access.URL())
+			tracerx.Printf("api: http response indicates %q authentication. Resubmitting...", access.Mode())
+		}
 	}
 
 	c.credContext.SetStateFields(nil)
