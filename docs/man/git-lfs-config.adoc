@@ -139,6 +139,12 @@ occurs.
 +
 The number of concurrent uploads/downloads. Default is 3x the number of
 logical CPUs, with a minimum of 8.
+* `lfs.concurrentbatchrequests`
++
+The number of concurrent batch API requests to make when fetching download
+URLs from the server. Higher values keep download workers saturated when
+there are many objects to transfer. Default scales with `lfs.concurrenttransfers`
+(1 per 12 concurrent transfers, minimum 4).
 * `lfs.basictransfersonly`
 +
 If set to true, only basic HTTP upload/download transfers will be used,

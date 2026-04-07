@@ -1,6 +1,8 @@
 package tq
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -139,4 +141,122 @@ func TestUseAdapterSwitchesWhenNameDiffers(t *testing.T) {
 	assert.NotNil(t, q.adapter)
 	assert.NotSame(t, first, q.adapter, "expected a new adapter when name differs")
 	assert.Equal(t, "ssh", q.adapter.Name())
+}
+
+// TestPipelineBatchDoneNotStarved verifies that the collectBatches loop
+// drains batchDone signals while still accepting new work. Without this,
+// batch workers block sending to batchDone (which was only drained
+// during shutdown), preventing them from reading the next batch and
+// deadlocking the collector's send to batchCh.
+func TestPipelineBatchDoneNotStarved(t *testing.T) {
+	const (
+		numObjects      = 300
+		concurrentXfers = 4
+		batchWorkers    = 4
+		batchSize       = 20
+	)
+
+	adapter := &fakeSlowAdapter{jobs: make(chan *job, 100)}
+
+	m := &concreteManifest{
+		maxRetries:              1,
+		maxRetryDelay:           1,
+		concurrentTransfers:     concurrentXfers,
+		concurrentBatchRequests: batchWorkers,
+		standaloneTransferAgent: "fake",
+		downloadAdapterFuncs:    map[string]NewAdapterFunc{},
+		uploadAdapterFuncs:      map[string]NewAdapterFunc{},
+	}
+	m.RegisterNewAdapterFunc("fake", Download, func(string, Direction) Adapter {
+		return adapter
+	})
+
+	q := NewTransferQueue(Download, m, "origin", WithBatchSize(batchSize))
+	watch := q.Watch()
+
+	var received int
+	watchDone := make(chan struct{})
+	go func() {
+		for range watch {
+			received++
+		}
+		close(watchDone)
+	}()
+
+	addDone := make(chan struct{})
+	go func() {
+		for i := 0; i < numObjects; i++ {
+			q.Add(fmt.Sprintf("file-%d", i), "", fmt.Sprintf("%064x", i), int64(i+1), false, nil)
+		}
+		close(addDone)
+	}()
+
+	select {
+	case <-addDone:
+	case <-time.After(time.Second):
+		t.Fatal("deadlock: Add() blocked")
+	}
+
+	waitDone := make(chan struct{})
+	go func() {
+		q.Wait()
+		close(waitDone)
+	}()
+
+	select {
+	case <-waitDone:
+	case <-time.After(time.Second):
+		t.Fatal("deadlock: queue did not finish")
+	}
+
+	<-watchDone
+	assert.Equal(t, numObjects, received)
+	assert.Empty(t, q.Errors())
+}
+
+// fakeSlowAdapter is a minimal Adapter for testing the transfer pipeline.
+type fakeSlowAdapter struct {
+	jobs    chan *job
+	workers sync.WaitGroup
+	jobWait sync.WaitGroup
+}
+
+func (a *fakeSlowAdapter) Name() string         { return "fake" }
+func (a *fakeSlowAdapter) Direction() Direction { return Download }
+
+func (a *fakeSlowAdapter) Begin(cfg AdapterConfig, cb ProgressCallback) error {
+	n := cfg.ConcurrentTransfers()
+	a.workers.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer a.workers.Done()
+			for j := range a.jobs {
+				j.results <- TransferResult{Transfer: j.T}
+				j.wg.Done()
+				j.done.Done()
+			}
+		}()
+	}
+	return nil
+}
+
+func (a *fakeSlowAdapter) Add(transfers ...*Transfer) <-chan TransferResult {
+	results := make(chan TransferResult, len(transfers))
+	var done sync.WaitGroup
+	done.Add(len(transfers))
+	a.jobWait.Add(len(transfers))
+	go func() {
+		for _, t := range transfers {
+			a.jobs <- &job{T: t, results: results, wg: &a.jobWait, done: &done}
+		}
+		done.Wait()
+		close(results)
+	}()
+	return results
+}
+
+func (a *fakeSlowAdapter) End() {
+	a.jobWait.Wait()
+	close(a.jobs)
+	a.workers.Wait()
 }
