@@ -1044,6 +1044,59 @@ begin_test "pull with merge conflict"
 
   set -e
   [ "$res" = "2" ]
+
+  # Ensure that git lfs does not treat the file as a valid pointer file
+  git lfs pointer --check --file abc.bin && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test
+
+begin_test "pull with partially fixed merge conflict"
+(
+  set -e
+  cd pull-merge-conflict
+
+  cp abc.bin abc.bin_bak
+
+  # Define conflict marker removal patterns for us to try
+  patterns=(
+  '^[<]'
+  '^[=]'
+  '^[>]'
+  '^[<=]'
+  '^[<>]'
+  '^[=>]'
+  '^[<=>]'
+  )
+
+  i=1
+  for pattern in "${patterns[@]}"; do
+      echo "Partially removing conflict markers with: $pattern"
+      sed -i "/$pattern/d" abc.bin
+      if [ $i -lt 7 ]; then
+        # Check that the remaining confict markers are still detected by git
+        set +e
+        git diff --check > conficts.log 2>&1
+        res=$?
+
+        set -e
+        [ "$res" = "2" ]
+      else
+        # All conflict markers should have been removed so check that none are detected
+        set +e
+        git diff --check > conficts.log 2>&1
+        res=$?
+
+        set -e
+        [ "$res" = "0" ]
+
+        # Ensure that git lfs does not treat the file as a valid pointer file
+        git lfs pointer --check --file abc.bin && exit 1
+      fi
+      cp abc.bin_bak abc.bin
+      ((i++))
+  done
 )
 end_test
 

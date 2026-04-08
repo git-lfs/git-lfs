@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -268,24 +269,35 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 	}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(data))
-	line := 0
-	numKeys := len(pointerKeys)
+	foundConflictMarker := false
+
+	var text_lines []string
 	for scanner.Scan() {
 		text := scanner.Text()
 		if len(text) == 0 {
 			continue
 		}
 
-		if strings.HasPrefix(text, "<") {
-			err = verifyVersion(kvps["version"])
-			if err == nil {
-				err = errors.NewPointerConflictMarkerError(errors.New(tr.Tr.Get("found potential conflict marker on line %d: %s", line, text)))
-				return
-			}
-			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
-			return
+		// Check for any potential confilct markers. ('|' marker can appear if changing merge.conflictStyle to "diff3").
+		// We only check the first character as the length of the conflict markers can be changed.
+		// We do not return early to make sure that the file actually seems to be a pointer file first.
+		switch text[0] {
+		case '<', '>', '=', '|':
+			foundConflictMarker = true
+			continue
 		}
 
+		text_lines = append(text_lines, text)
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		return
+	}
+
+	line := 0
+	numKeys := len(pointerKeys)
+	for _, text := range text_lines {
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) < 2 {
 			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("error reading line %d: %s", line, text)))
@@ -294,6 +306,15 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 
 		key := parts[0]
 		value := parts[1]
+
+		if foundConflictMarker {
+			if slices.Contains(pointerKeys, key) {
+				kvps[key] = value
+				continue
+			}
+			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("not a git-lfs pointer key on line %d: %s", line, text)))
+			return
+		}
 
 		if numKeys <= line {
 			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("extra line: %s", text)))
@@ -316,6 +337,15 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		kvps[key] = value
 	}
 
-	err = scanner.Err()
+	if foundConflictMarker {
+		if len(kvps) != numKeys {
+			// Not all pointer keys were present, not a pointer file.
+			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("Not all required pointer keys were present.")))
+			return
+		}
+		err = errors.NewPointerConflictMarkerError(errors.New(tr.Tr.Get("found potential conflict markers in pointer file.")))
+		return
+	}
+
 	return
 }

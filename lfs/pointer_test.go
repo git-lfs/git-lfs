@@ -344,6 +344,149 @@ size 177735`,
 	}
 }
 
+func TestDecodeConflictMarkers(t *testing.T) {
+	// NOTE: The conflict markers examples are mostly single character examples here because of the configurable length.
+	examples := []string{
+		// Real work example
+		`version https://git-lfs.github.com/spec/v1
+<<<<<<< Updated upstream
+oid sha256:7d865e959b2466918c9863afca942d0fb89d7c9ac0c99bafc3749504ded97730
+=======
+oid sha256:bf07a7fbb825fc0aae7bf4a1177b2b31fcf8a3feeaf7092761e18c859ee52a9c
+>>>>>>> Stashed changes
+size 4`,
+
+		// very short conflict markers
+		`version https://git-lfs.github.com/spec/v1
+< Updated upstream
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+> Stashed changes
+size 4`,
+
+		// No conflict comments/hint strings
+		`version https://git-lfs.github.com/spec/v1
+<
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+size 4`,
+
+		// Partially removed conflict markers
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+size 4`,
+
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+size 4`,
+
+		`version https://git-lfs.github.com/spec/v1
+<
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+size 4`,
+
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+size 4`,
+
+		// Test that multiple conflict markers and git-lfs entries can exist
+		// (For compounding merge conflicts)
+		`<
+version https://git-lfs.github.com/spec/v1
+=
+version https://git-lfs.github.com/spec/v2
+<
+>
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+<
+size 10
+=
+size 4
+<`,
+
+		// Test "diff3" style conflict markers
+		`version https://git-lfs.github.com/spec/v1
+<
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+|
+oid sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+size 4`,
+
+		`version https://git-lfs.github.com/spec/v1
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+|
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+size 4`,
+	}
+
+	for _, ex := range examples {
+		_, err := DecodePointer(bytes.NewBufferString(ex))
+		if err == nil || !errors.IsPointerConflictMarkerError(err) {
+			t.Errorf("No conflict marker detected. From:\n%s", strings.TrimSpace(ex))
+		}
+	}
+}
+
+func TestDecodeConflictMarkersInvalid(t *testing.T) {
+	// NOTE: The conflict markers examples are mostly single character examples here because of the configurable length.
+	examples := []string{
+		// No git-lfs version string
+		`<
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>
+size 4`,
+
+		// No size
+		`version https://git-lfs.github.com/spec/v1
+<
+oid sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=
+oid sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+>`,
+
+		// No oid
+		`version https://git-lfs.github.com/spec/v1
+<
+=
+>
+size 4`,
+
+		// Only markers
+		`<
+|
+=
+>`,
+	}
+
+	for _, ex := range examples {
+		_, err := DecodePointer(bytes.NewBufferString(ex))
+		if err == nil {
+			t.Errorf("No error detected from:\n%s", strings.TrimSpace(ex))
+		} else if errors.IsPointerConflictMarkerError(err) {
+			t.Errorf("Erroneous conflict marker error was detected from:\n%s", strings.TrimSpace(ex))
+		}
+	}
+}
+
 func assertEqualWithExample(t *testing.T, example string, expected, actual interface{}) {
 	assert.Equal(t, expected, actual, "Example:\n%s", strings.TrimSpace(example))
 }
