@@ -1073,7 +1073,7 @@ begin_test "pull with partially fixed merge conflict"
   i=1
   for pattern in "${patterns[@]}"; do
       echo "Partially removing conflict markers with: $pattern"
-      sed -i "/$pattern/d" abc.bin
+      sed -e "/$pattern/d" abc.bin_bak > abc.bin
       if [ $i -lt 7 ]; then
         # Check that the remaining confict markers are still detected by git
         set +e
@@ -1094,7 +1094,6 @@ begin_test "pull with partially fixed merge conflict"
         # Ensure that git lfs does not treat the file as a valid pointer file
         git lfs pointer --check --file abc.bin && exit 1
       fi
-      cp abc.bin_bak abc.bin
       ((i++))
   done
 )
