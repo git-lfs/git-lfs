@@ -38,4 +38,8 @@ pushd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null
 popd > /dev/null
 
 PATH+=:"$prefix/bin"
-git lfs install
+if [ -n "${SUDO_USER:-}" ]; then
+  sudo -u "$SUDO_USER" git lfs install
+else
+  git lfs install
+fi
