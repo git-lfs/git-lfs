@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -247,7 +248,9 @@ func (c *Client) ExtraHeadersFor(req *http.Request) http.Header {
 
 	for k, vs := range extraHeaders {
 		for _, v := range vs {
-			copy[k] = append(copy[k], v)
+			if !slices.Contains(copy[k], v) {
+				copy[k] = append(copy[k], v)
+			}
 		}
 	}
 	return copy

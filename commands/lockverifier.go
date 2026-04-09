@@ -90,7 +90,7 @@ func (lv *lockVerifier) addLocks(ref *git.Ref, locks []locking.Lock, set map[str
 	for _, l := range locks {
 		if rl, ok := set[l.Path]; ok {
 			if err := rl.Add(ref, l); err != nil {
-				Error(tr.Tr.Get("warning: error adding %q lock for ref %q: %+v", l.Path, ref, err))
+				Error(tr.Tr.Get("warning: error adding %q lock for ref %q: %+v", l.Path, ref.Refspec(), err))
 			}
 		} else {
 			set[l.Path] = lv.newRefLocks(ref, l)

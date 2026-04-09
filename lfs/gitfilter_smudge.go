@@ -29,7 +29,7 @@ func (f *GitFilter) SmudgeToFile(path string, ptr *WrappedPointer, download bool
 		mode = stat.Mode().Perm()
 	}
 
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+	if err := tools.RobustRemove(path); err != nil && !os.IsNotExist(err) {
 		return errors.Wrap(err, tr.Tr.Get("could not remove working directory file %q", path))
 	}
 
