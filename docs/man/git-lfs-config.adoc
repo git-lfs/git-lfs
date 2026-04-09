@@ -135,22 +135,6 @@ the version is less than 2.34.0, false otherwise.
 These settings control how the upload and download of LFS content
 occurs.
 
-* `lfs.httpDownloadEncoding` / `lfs.<url>.httpDownloadEncoding`
-+
-Specifies the compression encoding to use when downloading LFS objects.
-Valid values are `gzip` or `zstd`.
-+
-When set to `gzip`, no explicit header is added and Go's HTTP client
-handles gzip compression automatically. When set to `zstd`, the
-`Accept-Encoding: zstd` header is sent and Git LFS will decompress
-the response.
-+
-Supports URL config lookup as described in:
-https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt.
-+
-Example: `git config lfs.httpDownloadEncoding "zstd"`
-+
-Example (URL-specific): `git config lfs.https://example.com/.httpDownloadEncoding "zstd"`
 * `lfs.concurrenttransfers`
 +
 The number of concurrent uploads/downloads. Default 8.
@@ -205,6 +189,19 @@ splitting the transfer workload between the processes.
 +
 Specifies which direction the custom transfer process supports, either
 "download", "upload", or "both". The default if unspecified is "both".
+* `lfs.transfer.httpDownloadEncoding` / `lfs.transfer.<url>.httpDownloadEncoding`
++
+Specifies the compression encoding to use when downloading LFS objects
+over HTTP. Valid values are `gzip` or `zstd`. Default is `gzip`.
++
+This option may be applied selectively to some URLs, following the same
+matching rules as those defined for Git's `http.<url>.*`
+link:https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt[options].
+For example, to set this option only for a specific host, use:
++
+....
+git config lfs.transfer.https://example.com/.httpDownloadEncoding zstd
+....
 * `lfs.transfer.maxretries`
 +
 Specifies how many retries LFS will attempt per OID before marking the
