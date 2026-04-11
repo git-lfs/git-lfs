@@ -83,10 +83,10 @@ func NewFromPatterns(include, exclude []Pattern, setters ...Option) *Filter {
 	return f
 }
 
-func New(include, exclude []string, ptype PatternType, setters ...Option) *Filter {
+func New(include, exclude []string, ptype PatternType, gitEnv Environment, setters ...Option) *Filter {
 	return NewFromPatterns(
-		convertToWildmatch(include, ptype),
-		convertToWildmatch(exclude, ptype), setters...)
+		convertToWildmatch(include, ptype, gitEnv),
+		convertToWildmatch(exclude, ptype, gitEnv), setters...)
 }
 
 // Include returns the result of calling String() on each Pattern in the
@@ -184,7 +184,7 @@ const (
 	sep byte = '/'
 )
 
-func NewPattern(p string, ptype PatternType) Pattern {
+func NewPattern(p string, ptype PatternType, gitEnv Environment) Pattern {
 	tracerx.Printf("filepathfilter: creating pattern %q of type %v", p, ptype)
 
 	switch ptype {
@@ -193,7 +193,7 @@ func NewPattern(p string, ptype PatternType) Pattern {
 			p: p,
 			w: wildmatch.NewWildmatch(
 				p,
-				wildmatch.SystemCase,
+				caseFromConfig(gitEnv),
 				wildmatch.Contents,
 			),
 		}
@@ -202,7 +202,7 @@ func NewPattern(p string, ptype PatternType) Pattern {
 			p: p,
 			w: wildmatch.NewWildmatch(
 				p,
-				wildmatch.SystemCase,
+				caseFromConfig(gitEnv),
 				wildmatch.Basename,
 				wildmatch.GitAttributes,
 			),
@@ -228,10 +228,23 @@ func join(paths ...string) string {
 	return joined
 }
 
-func convertToWildmatch(rawpatterns []string, ptype PatternType) []Pattern {
+func convertToWildmatch(rawpatterns []string, ptype PatternType, gitEnv Environment) []Pattern {
 	patterns := make([]Pattern, len(rawpatterns))
 	for i, raw := range rawpatterns {
-		patterns[i] = NewPattern(raw, ptype)
+		patterns[i] = NewPattern(raw, ptype, gitEnv)
 	}
 	return patterns
+}
+
+type Environment interface {
+	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
+}
+
+func caseFromConfig(gitEnv Environment) func(w *wildmatch.Wildmatch) {
+	if gitEnv != nil && gitEnv.Bool("core.ignorecase", false) {
+		return wildmatch.CaseFold
+	} else {
+		return func(w *wildmatch.Wildmatch) {}
+	}
 }

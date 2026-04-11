@@ -139,7 +139,7 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 
 func buildFilepathFilterWithPatternType(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool, patternType filepathfilter.PatternType) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
-	return filepathfilter.New(inc, exc, patternType, determineFilepathFilterCache(config))
+	return filepathfilter.New(inc, exc, patternType, config.Git, determineFilepathFilterCache(config))
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {

@@ -219,14 +219,14 @@ func AttrPathsFromReader(mp *MacroProcessor, fpath, workingDir string, rdr io.Re
 // file paths can be matched against
 // workingDir is the root of the working copy
 // gitDir is the root of the git repo
-func GetAttributeFilter(workingDir, gitDir string) *filepathfilter.Filter {
+func GetAttributeFilter(gitEnv filepathfilter.Environment, workingDir, gitDir string) *filepathfilter.Filter {
 	paths := GetAttributePaths(NewMacroProcessor(), workingDir, gitDir)
 	patterns := make([]filepathfilter.Pattern, 0, len(paths))
 
 	for _, path := range paths {
 		// Convert all separators to `/` before creating a pattern to
 		// avoid characters being escaped in situations like `subtree\*.md`
-		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes))
+		patterns = append(patterns, filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes, gitEnv))
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)
