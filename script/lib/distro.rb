@@ -90,8 +90,11 @@ class DistroMap
         package_tag: "",
         equivalent: [
           "debian/bookworm",           # EOL June 2028
+          "linuxmint/faye",            # LMDE LTS release based on Debian 12
           "linuxmint/wilma",           # EOL April 2029
           "linuxmint/xia",             # EOL April 2029
+          "linuxmint/zara",            # EOL April 2029
+          "linuxmint/zena",            # EOL April 2029
           "ubuntu/noble",              # EOL June 2029
         ]
       },
@@ -104,6 +107,7 @@ class DistroMap
         equivalent: [
           "debian/trixie",             # EOL June 2030
           "debian/forky",              # Current testing (Debian 14)
+          "linuxmint/gigi",            # LMDE LTS release based on Debian 13
           "ubuntu/questing",           # EOL July 2026
           "ubuntu/resolute",           # EOL July 2031
         ]
