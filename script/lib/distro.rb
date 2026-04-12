@@ -45,8 +45,8 @@ class DistroMap
         package_tag: "-1.el9",
         equivalent: [
           "el/9",                      # EOL May 2032
-          "opensuse/15.6",             # EOL December 2025
-          "sles/15.6",                 # Current
+          "opensuse/15.6",             # EOL April 2026
+          "sles/15.7",                 # EOL July 2031
         ],
       },
       "rocky/10" => {
@@ -60,6 +60,8 @@ class DistroMap
           "fedora/42",                 # EOL May 2026
           "fedora/43",                 # EOL December 2026
           "fedora/44",                 # EOL May 2027
+          "opensuse/16.0",             # EOL October 2027
+          "sles/16.0",                 # EOL November 2027
         ],
       },
       # Debian EOL https://wiki.debian.org/LTS/
