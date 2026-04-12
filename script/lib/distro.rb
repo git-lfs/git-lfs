@@ -93,8 +93,6 @@ class DistroMap
           "linuxmint/wilma",           # EOL April 2029
           "linuxmint/xia",             # EOL April 2029
           "ubuntu/noble",              # EOL June 2029
-          "ubuntu/oracular",           # EOL July 2025
-          "ubuntu/plucky",             # EOL January 2026
         ]
       },
       "debian/13" => {
@@ -106,6 +104,8 @@ class DistroMap
         equivalent: [
           "debian/trixie",             # EOL June 2030
           "debian/forky",              # Current testing (Debian 14)
+          "ubuntu/questing",           # EOL July 2026
+          "ubuntu/resolute",           # EOL July 2031
         ]
       },
     }
