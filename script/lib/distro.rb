@@ -90,12 +90,22 @@ class DistroMap
         package_tag: "",
         equivalent: [
           "debian/bookworm",           # EOL June 2028
-          "debian/trixie",             # Current testing (Debian 13)
           "linuxmint/wilma",           # EOL April 2029
           "linuxmint/xia",             # EOL April 2029
           "ubuntu/noble",              # EOL June 2029
           "ubuntu/oracular",           # EOL July 2025
           "ubuntu/plucky",             # EOL January 2026
+        ]
+      },
+      "debian/13" => {
+        name: "Debian 13",
+        component: "debian/trixie",
+        image: "debian_13",
+        package_type: "deb",
+        package_tag: "",
+        equivalent: [
+          "debian/trixie",             # EOL June 2030
+          "debian/forky",              # Current testing (Debian 14)
         ]
       },
     }
