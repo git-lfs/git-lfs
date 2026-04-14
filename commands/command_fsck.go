@@ -145,7 +145,7 @@ func doFsckObjects(include, exclude string, useIndex bool) []string {
 	// objects), the "missing" ones will fail the fsck.
 	//
 	// Attach a filepathfilter to avoid _only_ the excluded paths.
-	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitIgnore, cfg.Git)
 
 	if exclude == "" {
 		if err := gitscanner.ScanRef(include, nil); err != nil {
