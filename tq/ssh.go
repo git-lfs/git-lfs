@@ -158,6 +158,9 @@ type SSHAdapter struct {
 // WorkerStarting is called when a worker goroutine starts to process jobs
 // Implementations can run some startup logic here & return some context if needed
 func (a *SSHAdapter) WorkerStarting(workerNum int) (interface{}, error) {
+	if a.transfer == nil {
+		return nil, errors.New(tr.Tr.Get("missing SSH transfer connection for SSH transfer adapter"))
+	}
 	a.transfer.SetConnectionCountAtLeast(workerNum + 1)
 	return workerNum, nil
 }
