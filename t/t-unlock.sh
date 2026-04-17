@@ -378,6 +378,39 @@ begin_test "unlocking a lock (--json)"
 )
 end_test
 
+begin_test "unlocking a missing lockable file (--json)"
+(
+  set -e
+
+  reponame="unlock_missing_lockable_path_json"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" seed
+
+  cd "$TRASHDIR/seed"
+  git lfs track --lockable "*.dat"
+  git add .gitattributes
+  git commit -m "Add lockable pattern"
+  git push origin main
+
+  cd "$TRASHDIR"
+  clone_repo "$reponame" cloneA
+  clone_repo "$reponame" cloneB
+
+  cd "$TRASHDIR/cloneA"
+  echo "file1.dat" > file1.dat
+  git lfs lock --json "file1.dat" | tee lock.log
+
+  id=$(assert_lock lock.log file1.dat)
+  assert_server_lock "$reponame" "$id"
+
+  cd "$TRASHDIR/cloneB"
+  git lfs unlock --json "file1.dat" 2>&1 | tee unlock.log
+  grep -F '[{"path":"file1.dat","unlocked":true}]' unlock.log
+
+  refute_server_lock "$reponame" "$id"
+)
+end_test
+
 begin_test "unlocking a lock by id"
 (
   set -e

@@ -185,7 +185,7 @@ func (c *Client) UnlockFileById(id string, force bool) error {
 		}
 
 		// Make non-writeable if required
-		if c.SetLockableFilesReadOnly && c.IsFileLockable(unlockRes.Lock.Path) {
+		if c.SetLockableFilesReadOnly && c.IsFileLockable(unlockRes.Lock.Path) && tools.FileExists(abs) {
 			return tools.SetFileWriteFlag(abs, false)
 		}
 	}
