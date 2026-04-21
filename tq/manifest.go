@@ -271,6 +271,22 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		configureTusAdapter(m)
 	}
 	configureSSHAdapter(m)
+
+	if m.IsStandaloneTransfer() {
+		var dir Direction
+		switch operation {
+		case "download":
+			dir = Download
+		case "upload":
+			dir = Upload
+		}
+
+		if !m.isCustomAdapter(m.standaloneTransferAgent, dir) {
+			tracerx.Printf("standalone agent %q is not a registered custom transfer adapter; ignoring", m.standaloneTransferAgent)
+			m.standaloneTransferAgent = ""
+		}
+	}
+
 	return m
 }
 
