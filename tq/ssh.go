@@ -19,6 +19,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	SSHAdapterName = "ssh"
+)
+
 type SSHBatchClient struct {
 	maxRetries int
 	transfer   *ssh.SSHTransfer
@@ -44,7 +48,7 @@ func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int,
 }
 
 func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, error) {
-	bRes := &BatchResponse{TransferAdapterName: "ssh"}
+	bRes := &BatchResponse{TransferAdapterName: SSHAdapterName}
 	if len(bReq.Objects) == 0 {
 		return bRes, nil
 	}
@@ -413,12 +417,12 @@ func (a *SSHAdapter) Trace(format string, args ...interface{}) {
 }
 
 func configureSSHAdapter(m *concreteManifest) {
-	m.RegisterNewAdapterFunc("ssh", Upload, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Upload, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a
 	})
-	m.RegisterNewAdapterFunc("ssh", Download, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Download, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a
