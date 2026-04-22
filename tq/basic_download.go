@@ -327,7 +327,7 @@ func (a *basicDownloadAdapter) download(context *basicDownloadAdapterWorkerConte
 }
 
 func configureBasicDownloadAdapter(m *concreteManifest) {
-	m.RegisterNewAdapterFunc(BasicAdapterName, Download, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Download, false, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Download:
 			bd := &basicDownloadAdapter{newAdapterBase(m.fs, name, dir, nil)}

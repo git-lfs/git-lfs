@@ -28,11 +28,12 @@ type Manifest interface {
 	GetDownloadAdapterNames() []string
 	GetUploadAdapterNames() []string
 	getAdapterNames(adapters map[string]NewAdapterFunc) []string
-	RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc)
+	RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc)
 	NewAdapterOrDefault(name string, dir Direction) Adapter
 	NewAdapter(name string, dir Direction) Adapter
 	NewDownloadAdapter(name string) Adapter
 	NewUploadAdapter(name string) Adapter
+	isCustomAdapter(name string, dir Direction) bool
 	Upgrade() *concreteManifest
 	Upgraded() bool
 }
@@ -96,8 +97,8 @@ func (m *lazyManifest) getAdapterNames(adapters map[string]NewAdapterFunc) []str
 	return m.Upgrade().getAdapterNames(adapters)
 }
 
-func (m *lazyManifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
-	m.Upgrade().RegisterNewAdapterFunc(name, dir, f)
+func (m *lazyManifest) RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc) {
+	m.Upgrade().RegisterNewAdapterFunc(name, dir, custom, f)
 }
 
 func (m *lazyManifest) NewAdapterOrDefault(name string, dir Direction) Adapter {
@@ -114,6 +115,10 @@ func (m *lazyManifest) NewDownloadAdapter(name string) Adapter {
 
 func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 	return m.Upgrade().NewUploadAdapter(name)
+}
+
+func (m *lazyManifest) isCustomAdapter(name string, dir Direction) bool {
+	return m.Upgrade().isCustomAdapter(name, dir)
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
@@ -143,6 +148,8 @@ type concreteManifest struct {
 	tusTransfersAllowed     bool
 	downloadAdapterFuncs    map[string]NewAdapterFunc
 	uploadAdapterFuncs      map[string]NewAdapterFunc
+	customDownloadAdapters  map[string]bool
+	customUploadAdapters    map[string]bool
 	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
 	sshTransfer             *ssh.SSHTransfer
@@ -206,12 +213,14 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	m := &concreteManifest{
-		fs:                   f,
-		apiClient:            apiClient,
-		batchClientAdapter:   &tqClient{Client: apiClient},
-		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
-		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
-		sshTransfer:          sshTransfer,
+		fs:                     f,
+		apiClient:              apiClient,
+		batchClientAdapter:     &tqClient{Client: apiClient},
+		downloadAdapterFuncs:   make(map[string]NewAdapterFunc),
+		uploadAdapterFuncs:     make(map[string]NewAdapterFunc),
+		customDownloadAdapters: make(map[string]bool),
+		customUploadAdapters:   make(map[string]bool),
+		sshTransfer:            sshTransfer,
 	}
 
 	var tusAllowed bool
@@ -328,15 +337,17 @@ func (m *concreteManifest) getAdapterNames(adapters map[string]NewAdapterFunc) [
 // RegisterNewTransferAdapterFunc registers a new function for creating upload
 // or download adapters. If a function with that name & direction is already
 // registered, it is overridden
-func (m *concreteManifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
+func (m *concreteManifest) RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	switch dir {
 	case Upload:
 		m.uploadAdapterFuncs[name] = f
+		m.customUploadAdapters[name] = custom
 	case Download:
 		m.downloadAdapterFuncs[name] = f
+		m.customDownloadAdapters[name] = custom
 	}
 }
 
@@ -380,6 +391,16 @@ func (m *concreteManifest) NewDownloadAdapter(name string) Adapter {
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func (m *concreteManifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
+}
+
+func (m *concreteManifest) isCustomAdapter(name string, dir Direction) bool {
+	switch dir {
+	case Upload:
+		return m.customUploadAdapters[name]
+	case Download:
+		return m.customDownloadAdapters[name]
+	}
+	return false
 }
 
 // Env is any object with a config.Environment interface.

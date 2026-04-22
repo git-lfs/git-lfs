@@ -420,12 +420,12 @@ func (a *SSHAdapter) Trace(format string, args ...interface{}) {
 }
 
 func configureSSHAdapter(m *concreteManifest) {
-	m.RegisterNewAdapterFunc(SSHAdapterName, Upload, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Upload, false, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a
 	})
-	m.RegisterNewAdapterFunc(SSHAdapterName, Download, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Download, false, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a

@@ -87,7 +87,10 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
-	m.RegisterNewAdapterFunc("test", Upload, newTestAdapter)
+	assert.False(m.isCustomAdapter("test", Download))
+	assert.False(m.isCustomAdapter("test", Upload))
+
+	m.RegisterNewAdapterFunc("test", Upload, true, newTestAdapter)
 	assert.Nil(m.NewAdapter("test", Download))
 	assert.NotNil(m.NewAdapter("test", Upload))
 
@@ -103,7 +106,10 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
-	m.RegisterNewAdapterFunc("test", Download, newTestAdapter)
+	assert.False(m.isCustomAdapter("test", Download))
+	assert.True(m.isCustomAdapter("test", Upload))
+
+	m.RegisterNewAdapterFunc("test", Download, true, newTestAdapter)
 	assert.NotNil(m.NewAdapter("test", Download))
 	assert.NotNil(m.NewAdapter("test", Upload))
 
@@ -119,8 +125,11 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
+	assert.True(m.isCustomAdapter("test", Download))
+	assert.True(m.isCustomAdapter("test", Upload))
+
 	// Test override
-	m.RegisterNewAdapterFunc("test", Upload, newRenamedTestAdapter)
+	m.RegisterNewAdapterFunc("test", Upload, false, newRenamedTestAdapter)
 	ua = m.NewUploadAdapter("test")
 	if assert.NotNil(ua) {
 		assert.Equal("RENAMED", ua.Name())
@@ -133,12 +142,17 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Download, da.Direction())
 	}
 
-	m.RegisterNewAdapterFunc("test", Download, newRenamedTestAdapter)
+	assert.True(m.isCustomAdapter("test", Download))
+	assert.False(m.isCustomAdapter("test", Upload))
+
+	m.RegisterNewAdapterFunc("test", Download, false, newRenamedTestAdapter)
 	da = m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
 		assert.Equal("RENAMED", da.Name())
 		assert.Equal(Download, da.Direction())
 	}
+
+	assert.False(m.isCustomAdapter("test", Download))
 }
 
 func TestAdapterRegButBasicOnly(t *testing.T) {
@@ -151,8 +165,8 @@ func TestAdapterRegButBasicOnly(t *testing.T) {
 
 	assert := assert.New(t)
 
-	m.RegisterNewAdapterFunc("test", Upload, newTestAdapter)
-	m.RegisterNewAdapterFunc("test", Download, newTestAdapter)
+	m.RegisterNewAdapterFunc("test", Upload, false, newTestAdapter)
+	m.RegisterNewAdapterFunc("test", Download, false, newTestAdapter)
 	// Will still be created if we ask for them
 	da := m.NewDownloadAdapter("test")
 	if assert.NotNil(da) {
