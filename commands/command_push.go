@@ -121,7 +121,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
+	q := ctx.NewQueue(tq.RemoteRef(pushRemoteRef()))
 	ctx.UploadPointers(q, pointers...)
 	ctx.CollectErrors(q)
 	ctx.ReportErrors()
