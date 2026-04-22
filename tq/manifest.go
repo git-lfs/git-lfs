@@ -7,14 +7,14 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	defaultMaxRetries          = 8
-	defaultMaxRetryDelay       = 10
-	defaultConcurrentTransfers = 8
+	defaultMaxRetries    = 8
+	defaultMaxRetryDelay = 10
 )
 
 type Manifest interface {
@@ -236,7 +236,7 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	if m.concurrentTransfers < 1 {
-		m.concurrentTransfers = defaultConcurrentTransfers
+		m.concurrentTransfers = lfshttp.DefaultConcurrentTransfers()
 	}
 
 	if sshTransfer != nil {

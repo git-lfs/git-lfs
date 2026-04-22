@@ -15,6 +15,8 @@ fi
 # despite the "GIT_" strings in its name and value.
 export TEST_GIT_EXAMPLE="GIT_EXAMPLE"
 
+setup_expected_concurrent_transfers
+
 begin_test "git worktree"
 (
     set -e
@@ -35,7 +37,7 @@ LocalGitStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git")
 LocalMediaDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDirs=
 TempDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -54,7 +56,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 $(escape_path "$(env | grep "^GIT_")")
 %s
-" "$(git lfs version)" "$(git version)" "$envInitConfig")
+" "$(git lfs version)" "$(git version)" "$expectedConcurrentTransfers" "$envInitConfig")
     actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 
@@ -72,7 +74,7 @@ LocalGitStorageDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git")
 LocalMediaDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/objects")
 LocalReferenceDirs=
 TempDir=$(canonical_path_escaped "$TRASHDIR/$reponame/.git/lfs/tmp")
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -91,7 +93,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 $(escape_path "$(env | grep "^GIT_")")
 %s
-" "$(git lfs version)" "$(git version)" "$envInitConfig")
+" "$(git lfs version)" "$(git version)" "$expectedConcurrentTransfers" "$envInitConfig")
     actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
     contains_same_elements "$expected" "$actual"
 )
