@@ -21,6 +21,7 @@ var (
 func lockCommand(cmd *cobra.Command, args []string) {
 	if len(lockRemote) > 0 {
 		cfg.SetRemote(lockRemote)
+		cfg.SetPushRemote(lockRemote)
 	}
 
 	lockData, err := computeLockData()

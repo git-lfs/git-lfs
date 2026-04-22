@@ -14,6 +14,8 @@ fi
 # despite the "GIT_" strings in its name and value.
 export TEST_GIT_EXAMPLE="GIT_EXAMPLE"
 
+setup_expected_concurrent_transfers
+
 begin_test "env with no remote"
 (
   set -e
@@ -39,7 +41,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -58,7 +60,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
 
   contains_same_elements "$expected" "$actual"
@@ -92,7 +94,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -111,7 +113,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -152,7 +154,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -171,7 +173,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -210,7 +212,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -229,7 +231,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -269,7 +271,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -288,7 +290,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -330,7 +332,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -349,7 +351,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -459,7 +461,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -478,7 +480,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -515,7 +517,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -534,7 +536,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
 
   actual=$(GIT_DIR=$gitDir GIT_WORK_TREE=$workTree git lfs env \
             | grep -v "^GIT_EXEC_PATH=")
@@ -570,7 +572,7 @@ LocalGitStorageDir=
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -591,7 +593,7 @@ UploadTransfers=basic,lfs-standalone-file,ssh
 git config filter.lfs.process = ""
 git config filter.lfs.smudge = ""
 git config filter.lfs.clean = ""
-' "$(git lfs version)" "$(git version)" "$mediaDir5" "$tempDir5" "$envVars")
+' "$(git lfs version)" "$(git version)" "$mediaDir5" "$tempDir5" "$expectedConcurrentTransfers" "$envVars")
   actual5=$(GIT_DIR=$gitDir GIT_WORK_TREE=a/b git lfs env \
             | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected5" "$actual5"
@@ -607,7 +609,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -626,7 +628,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual7=$(GIT_DIR=$gitDir git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected7" "$actual7"
 
@@ -641,7 +643,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -660,7 +662,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual8=$(GIT_WORK_TREE=$workTree git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected8" "$actual8"
 )
@@ -687,7 +689,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -706,7 +708,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+" "$(git lfs version)" "$(git version)" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 
@@ -767,7 +769,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=true
@@ -786,7 +788,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled" "$actual"
 
@@ -801,7 +803,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -820,7 +822,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expecteddisabled" "$actual"
 
@@ -835,7 +837,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=true
@@ -854,7 +856,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVarsEnabled" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVarsEnabled" "$envInitConfig")
   actual=$(GIT_LFS_SKIP_DOWNLOAD_ERRORS=1 git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled2" "$actual"
 
@@ -898,7 +900,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=true
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -917,7 +919,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh,supertransfer
 UploadTransfers=basic,lfs-standalone-file,ssh,supertransfer,tus
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expectedenabled" "$actual"
 
@@ -958,7 +960,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -977,7 +979,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 )
@@ -1023,7 +1025,7 @@ LocalGitStorageDir=%s
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -1042,7 +1044,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$endpoint" "$endpoint2" "$localwd" "$localgit" "$localgitstore" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   actual=$(git lfs env | grep -v "^GIT_EXEC_PATH=")
   contains_same_elements "$expected" "$actual"
 )
@@ -1069,7 +1071,7 @@ LocalGitStorageDir=
 LocalMediaDir=%s
 LocalReferenceDirs=
 TempDir=%s
-ConcurrentTransfers=8
+ConcurrentTransfers=%d
 TusTransfers=false
 BasicTransfersOnly=false
 SkipDownloadErrors=false
@@ -1088,7 +1090,7 @@ DownloadTransfers=basic,lfs-standalone-file,ssh
 UploadTransfers=basic,lfs-standalone-file,ssh
 %s
 %s
-' "$(git lfs version)" "$(git version)" "$localmedia" "$tempdir" "$lfsstorage" "$envVars" "$envInitConfig")
+' "$(git lfs version)" "$(git version)" "$localmedia" "$tempdir" "$expectedConcurrentTransfers" "$lfsstorage" "$envVars" "$envInitConfig")
   # We redirect the standard error here because we should not get any error
   # messages, and if we do, we want to fail.
   actual=$(git lfs env 2>&1 | grep -v "^GIT_EXEC_PATH=")

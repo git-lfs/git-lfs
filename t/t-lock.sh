@@ -50,6 +50,61 @@ begin_test "lock with good tracked ref"
 )
 end_test
 
+begin_test "lock with good ref (--remote overrides push default)"
+(
+  set -e
+
+  reponame="lock-remote"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  # Check invalid "remote.pushDefault" configuration causes error.
+  git remote add bad-remote "invalid-url"
+  git config remote.pushDefault bad-remote
+
+  git lfs lock "a.dat" 2>&1 | tee lock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "remote.pushDefault" configuration.
+  git lfs lock --remote origin --json "a.dat" | tee lock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock' to succeed ..."
+    exit 1
+  fi
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Remove "remote.pushDefault" configuration and unlock.
+  git config --unset remote.pushDefault
+
+  git lfs unlock "a.dat"
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "branch.<name>.pushRemote" configuration causes error.
+  git config branch.main.pushRemote bad-remote
+
+  git lfs lock "a.dat" 2>&1 | tee lock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "branch.<name>.pushRemote" configuration.
+  git lfs lock --remote origin --json "a.dat" | tee lock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs lock' to succeed ..."
+    exit 1
+  fi
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+)
+end_test
+
 begin_test "lock with bad ref"
 (
   set -e
