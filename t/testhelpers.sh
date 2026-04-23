@@ -1084,3 +1084,14 @@ pktize_delim() {
 pktize_flush() {
   printf '0000'
 }
+
+# Compute the expected default ConcurrentTransfers value (3 × NCPU,
+# min 8) so tests stay correct on any machine.  We use a small Go
+# helper to get runtime.NumCPU() so the value always matches what the
+# git-lfs binary sees, even inside containers with cgroup limits.
+setup_expected_concurrent_transfers() {
+  _ncpu=$(lfstest-getnumcpu)
+  _ct=$(( _ncpu * 3 ))
+  [ "$_ct" -lt 8 ] && _ct=8
+  expectedConcurrentTransfers=$_ct
+}

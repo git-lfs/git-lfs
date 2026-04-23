@@ -117,6 +117,130 @@ begin_test "unlocking a lock by id with tracked ref"
 )
 end_test
 
+begin_test "unlock by id with good ref (--remote overrides push default)"
+(
+  set -e
+
+  reponame="unlock-by-id-remote"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "remote.pushDefault" configuration causes error.
+  git remote add bad-remote "invalid-url"
+  git config remote.pushDefault bad-remote
+
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "remote.pushDefault" configuration.
+  git lfs unlock --remote origin --json --id="$id" | tee unlock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to succeed ..."
+    exit 1
+  fi
+
+  grep -F '[{"id":"'"$id"'","unlocked":true}]' unlock.log
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Remove "remote.pushDefault" configuration and lock again.
+  git config --unset remote.pushDefault
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "branch.<name>.pushRemote" configuration causes error.
+  git config branch.main.pushRemote bad-remote
+
+  git lfs unlock --id="$id" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "branch.<name>.pushRemote" configuration.
+  git lfs unlock --remote origin --json --id="$id" | tee unlock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to succeed ..."
+    exit 1
+  fi
+
+  grep -F '[{"id":"'"$id"'","unlocked":true}]' unlock.log
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+)
+end_test
+
+begin_test "unlock by path with good ref (--remote overrides push default)"
+(
+  set -e
+
+  reponame="unlock-by-path-remote"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "remote.pushDefault" configuration causes error.
+  git remote add bad-remote "invalid-url"
+  git config remote.pushDefault bad-remote
+
+  git lfs unlock "a.dat" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "remote.pushDefault" configuration.
+  git lfs unlock --remote origin --json "a.dat" | tee unlock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to succeed ..."
+    exit 1
+  fi
+
+  grep -F '[{"path":"a.dat","unlocked":true}]' unlock.log
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Remove "remote.pushDefault" configuration and lock again.
+  git config --unset remote.pushDefault
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "branch.<name>.pushRemote" configuration causes error.
+  git config branch.main.pushRemote bad-remote
+
+  git lfs unlock "a.dat" 2>&1 | tee unlock.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "branch.<name>.pushRemote" configuration.
+  git lfs unlock --remote origin --json "a.dat" | tee unlock.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs unlock' to succeed ..."
+    exit 1
+  fi
+
+  grep -F '[{"path":"a.dat","unlocked":true}]' unlock.log
+  refute_server_lock "$reponame" "$id" "refs/heads/main"
+)
+end_test
+
 begin_test "unlocking a lock by path with bad ref without a ref required"
 (
   set -e

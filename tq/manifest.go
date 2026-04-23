@@ -7,14 +7,14 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	defaultMaxRetries          = 8
-	defaultMaxRetryDelay       = 10
-	defaultConcurrentTransfers = 8
+	defaultMaxRetries    = 8
+	defaultMaxRetryDelay = 10
 )
 
 type Manifest interface {
@@ -42,6 +42,7 @@ type lazyManifest struct {
 	apiClient *lfsapi.Client
 	operation string
 	remote    string
+	mu        sync.Mutex
 	m         *concreteManifest
 }
 
@@ -116,6 +117,8 @@ func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.m == nil {
 		m.m = newConcreteManifest(m.f, m.apiClient, m.operation, m.remote)
 	}
@@ -123,6 +126,8 @@ func (m *lazyManifest) Upgrade() *concreteManifest {
 }
 
 func (m *lazyManifest) Upgraded() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.m != nil
 }
 
@@ -236,7 +241,7 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	if m.concurrentTransfers < 1 {
-		m.concurrentTransfers = defaultConcurrentTransfers
+		m.concurrentTransfers = lfshttp.DefaultConcurrentTransfers()
 	}
 
 	if sshTransfer != nil {

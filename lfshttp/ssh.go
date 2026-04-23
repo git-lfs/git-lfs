@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -18,14 +19,11 @@ type SSHResolver interface {
 }
 
 func withSSHCache(ssh SSHResolver) SSHResolver {
-	return &sshCache{
-		endpoints: make(map[string]*sshAuthResponse),
-		ssh:       ssh,
-	}
+	return &sshCache{ssh: ssh}
 }
 
 type sshCache struct {
-	endpoints map[string]*sshAuthResponse
+	endpoints sync.Map // map[string]*sshAuthResponse
 	ssh       SSHResolver
 }
 
@@ -35,7 +33,8 @@ func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 	}
 
 	key := strings.Join([]string{e.SSHMetadata.UserAndHost, e.SSHMetadata.Port, e.SSHMetadata.Path, method}, "//")
-	if res, ok := c.endpoints[key]; ok {
+	if val, ok := c.endpoints.Load(key); ok {
+		res := val.(*sshAuthResponse)
 		if _, expired := res.IsExpiredWithin(5 * time.Second); !expired {
 			tracerx.Printf("ssh cache: %s git-lfs-authenticate %s %s",
 				e.SSHMetadata.UserAndHost, e.SSHMetadata.Path, endpointOperation(e, method))
@@ -48,7 +47,7 @@ func (c *sshCache) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
 
 	res, err := c.ssh.Resolve(e, method)
 	if err == nil {
-		c.endpoints[key] = &res
+		c.endpoints.Store(key, &res)
 	}
 	return res, err
 }

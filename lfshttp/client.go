@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -29,6 +30,21 @@ import (
 
 const MediaType = "application/vnd.git-lfs+json"
 const RequestContentType = MediaType + "; charset=utf-8"
+
+const (
+	MinConcurrentTransfers = 8
+)
+
+// DefaultConcurrentTransfers scales with CPU count. Downloads are
+// I/O-bound (network + disk) so we use 3× NCPU to keep many connections
+// saturated while a few are stalled on TLS handshakes or server latency.
+func DefaultConcurrentTransfers() int {
+	n := runtime.NumCPU() * 3
+	if n < MinConcurrentTransfers {
+		return MinConcurrentTransfers
+	}
+	return n
+}
 
 var (
 	UserAgent = "git-lfs"
@@ -86,7 +102,7 @@ func NewClient(ctx Context) (*Client, error) {
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
-		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 8),
+		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", DefaultConcurrentTransfers()),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
@@ -411,7 +427,7 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 
 	concurrentTransfers := c.ConcurrentTransfers
 	if concurrentTransfers < 1 {
-		concurrentTransfers = 8
+		concurrentTransfers = DefaultConcurrentTransfers()
 	}
 
 	dialtime := c.DialTimeout

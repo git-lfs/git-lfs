@@ -50,6 +50,65 @@ begin_test "list a single lock"
 )
 end_test
 
+begin_test "list a single lock (--remote overrides push default)"
+(
+  set -e
+
+  reponame="locks-list-remote"
+  setup_remote_repo_with_file "$reponame" "a.dat"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs lock --json "a.dat" | tee lock.log
+
+  id=$(assert_lock lock.log "a.dat")
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  # Check invalid "remote.pushDefault" configuration causes error.
+  git remote add bad-remote "invalid-url"
+  git config remote.pushDefault bad-remote
+
+  git lfs locks 2>&1 | tee locks.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs locks' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "remote.pushDefault" configuration.
+  git lfs locks --remote origin --path "a.dat" | tee locks.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs locks' to succeed ..."
+    exit 1
+  fi
+
+  [ 1 -eq "$(wc -l <locks.log)" ]
+  grep -F "a.dat" locks.log
+  grep -F "ID:$id" locks.log
+
+  # Remove "remote.pushDefault" configuration.
+  git config --unset remote.pushDefault
+
+  # Check invalid "branch.<name>.pushRemote" configuration causes error.
+  git config branch.main.pushRemote bad-remote
+
+  git lfs locks 2>&1 | tee locks.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs locks' to fail ..."
+    exit 1
+  fi
+
+  # Check --remote option overrides "branch.<name>.pushRemote" configuration.
+  git lfs locks --remote origin --path "a.dat" | tee locks.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs locks' to succeed ..."
+    exit 1
+  fi
+
+  [ 1 -eq "$(wc -l <locks.log)" ]
+  grep -F "a.dat" locks.log
+  grep -F "ID:$id" locks.log
+)
+end_test
+
 begin_test "list a single lock (SSH; git-lfs-authenticate)"
 (
   set -e

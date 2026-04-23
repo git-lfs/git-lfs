@@ -124,12 +124,19 @@ func newDownloadCheckQueue(manifest tq.Manifest, remote string, options ...tq.Op
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
 func newDownloadQueue(manifest tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
 	return tq.NewTransferQueue(tq.Download, manifest, remote, append(options,
-		tq.RemoteRef(currentRemoteRef()),
+		tq.RemoteRef(fetchRemoteRef()),
 		tq.WithBatchSize(cfg.TransferBatchSize()),
 	)...)
 }
 
-func currentRemoteRef() *git.Ref {
+// fetchRemoteRef returns the remote ref for download operations by looking up
+// the upstream tracking branch for the current local ref. Unlike pushRemoteRef,
+// this does not use push.default logic, which is not meaningful for fetches.
+func fetchRemoteRef() *git.Ref {
+	return git.TrackingRef(cfg.Git, cfg.CurrentRef())
+}
+
+func pushRemoteRef() *git.Ref {
 	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).RemoteRef()
 }
 
