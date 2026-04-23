@@ -80,3 +80,63 @@ func TestBatchSizeReturnsBatchSize(t *testing.T) {
 
 	assert.Equal(t, 3, q.BatchSize())
 }
+
+func TestUseAdapterReusesWhenNameMatches(t *testing.T) {
+	q := NewTransferQueue(
+		Download, NewManifest(nil, nil, "", ""), "origin")
+
+	// Set an initial adapter.
+	q.useAdapter("basic")
+	first := q.adapter
+	assert.NotNil(t, first)
+	assert.Equal(t, "basic", first.Name())
+
+	// Calling with the same name should reuse the adapter instance.
+	q.useAdapter("basic")
+	assert.Same(t, first, q.adapter, "expected adapter to be reused when name matches")
+}
+
+func TestUseAdapterReusesWhenNameIsEmpty(t *testing.T) {
+	q := NewTransferQueue(
+		Download, NewManifest(nil, nil, "", ""), "origin")
+
+	q.useAdapter("basic")
+	first := q.adapter
+	assert.NotNil(t, first)
+
+	// An empty name means "use basic" per the spec. Since the current
+	// adapter is already basic, it should be reused.
+	q.useAdapter("")
+	assert.Same(t, first, q.adapter, "expected basic adapter to be reused when name is empty")
+}
+
+func TestUseAdapterSwitchesFromNonDefaultWhenNameIsEmpty(t *testing.T) {
+	q := NewTransferQueue(
+		Download, NewManifest(nil, nil, "", ""), "origin")
+
+	q.useAdapter("ssh")
+	first := q.adapter
+	assert.NotNil(t, first)
+	assert.Equal(t, "ssh", first.Name())
+
+	// An empty name means "use basic" per the spec, so it should
+	// switch away from the SSH adapter.
+	q.useAdapter("")
+	assert.NotSame(t, first, q.adapter, "expected adapter to switch from ssh to basic")
+	assert.Equal(t, "basic", q.adapter.Name())
+}
+
+func TestUseAdapterSwitchesWhenNameDiffers(t *testing.T) {
+	q := NewTransferQueue(
+		Download, NewManifest(nil, nil, "", ""), "origin")
+
+	q.useAdapter("basic")
+	first := q.adapter
+	assert.NotNil(t, first)
+
+	// A different, non-empty name should cause the adapter to switch.
+	q.useAdapter("ssh")
+	assert.NotNil(t, q.adapter)
+	assert.NotSame(t, first, q.adapter, "expected a new adapter when name differs")
+	assert.Equal(t, "ssh", q.adapter.Name())
+}

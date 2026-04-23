@@ -889,6 +889,13 @@ func (q *TransferQueue) useAdapter(name string) {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
 
+	// The spec says clients MUST use the basic transfer adapter when
+	// the response omits the transfer property (docs/api/batch.md).
+	// Normalize here to match NewAdapterOrDefault.
+	if name == "" {
+		name = BasicAdapterName
+	}
+
 	if q.adapter != nil {
 		if q.adapter.Name() == name {
 			// re-use, this is the normal path
