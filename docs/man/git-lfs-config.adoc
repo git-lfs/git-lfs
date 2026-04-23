@@ -190,6 +190,19 @@ splitting the transfer workload between the processes.
 +
 Specifies which direction the custom transfer process supports, either
 "download", "upload", or "both". The default if unspecified is "both".
+* `lfs.transfer.httpDownloadEncoding` / `lfs.transfer.<url>.httpDownloadEncoding`
++
+Specifies the compression encoding to use when downloading LFS objects
+over HTTP. Valid values are `gzip` or `zstd`. Default is `gzip`.
++
+This option may be applied selectively to some URLs, following the same
+matching rules as those defined for Git's `http.<url>.*`
+link:https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt[options].
+For example, to set this option only for a specific host, use:
++
+....
+git config lfs.transfer.https://example.com/.httpDownloadEncoding zstd
+....
 * `lfs.transfer.maxretries`
 +
 Specifies how many retries LFS will attempt per OID before marking the

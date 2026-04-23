@@ -205,8 +205,8 @@ jobs:
         ref: ${{ github.ref }}
     - run: sudo gem install packagecloud-ruby
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
-    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=arm64 debian_11 debian_12)
-    - run: ./docker/run_dockers.bsh --prune --arch=arm64 debian_11 debian_12
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=arm64 debian_11 debian_12 debian_13)
+    - run: ./docker/run_dockers.bsh --prune --arch=arm64 debian_11 debian_12 debian_13
     # If this is a pre-release tag, don't upload anything to packagecloud.
     - run: '[ -z "${GITHUB_REF%%refs/tags/*-pre*}" ] || ./script/packagecloud.rb'
       env:

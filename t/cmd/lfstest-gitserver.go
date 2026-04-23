@@ -36,6 +36,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -62,7 +64,8 @@ var (
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
-		"storage-download-encoding-gzip",
+		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
+		"storage-download-encoding-zstd-1", "storage-download-encoding-zstd-2", "storage-download-encoding-zstd-3",
 		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
@@ -692,6 +695,8 @@ func verifyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var zstdHeaderRE = regexp.MustCompile(`(?:\A|, *)(?i:zstd)(?:, *|\z)`)
+
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	id, ok := reqId(w)
@@ -790,6 +795,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		statusCode := 200
 		byteLimit := 0
 		compress := false
+		zstdCompress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
 			switch oidHandlers[oid] {
@@ -842,7 +848,38 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				} else {
 					compress = true
 				}
+			case "storage-download-encoding-zstd",
+				"storage-download-encoding-zstd-1",
+				"storage-download-encoding-zstd-2",
+				"storage-download-encoding-zstd-3":
+				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
+					zstdCompress = true
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+				}
+			case "storage-download-encoding-zstd-retry-range":
+				// Resume if header includes range, otherwise deliberately interrupt
+				if handleRangeRequest(w, r, by) {
+					return
+				}
+
+				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
+					zstdCompress = true
+
+					// Note that this value is an offset
+					// into the second encoded frame, so
+					// we interrupt the response after a
+					// complete first frame.  This ensures
+					// the client will write the decoded
+					// first frame to a temporary file.
+					byteLimit = 6
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+				}
 			}
+
 			var wrtr io.Writer = w
 			if compress {
 				w.Header().Set("Content-Encoding", "gzip")
@@ -850,6 +887,38 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				defer gz.Close()
 
 				wrtr = gz
+			} else if zstdCompress {
+				w.Header().Set("Content-Encoding", "zstd")
+				enc, err := zstd.NewWriter(w)
+				if err == nil {
+					defer enc.Close()
+
+					// We need the encoded data's length to
+					// set the Content-Length header when
+					// byteLimit > 0, so we encode the data
+					// here rather than set wrtr = enc,
+					// which would use the stream encoder.
+					// This results in a less-compact
+					// encoding, with a different length.
+					//
+					// We create two encoded frames so we
+					// can interrupt the second one when
+					// byteLimit > 0, allowing the client
+					// to fully decode the first frame and
+					// write it to a temporary file.
+					mid := len(by) / 2
+					frame1 := enc.EncodeAll(by[0:mid], make([]byte, 0, mid*2))
+					frame2 := enc.EncodeAll(by[mid:], make([]byte, 0, mid*2))
+					by = append(frame1, frame2...)
+
+					if byteLimit > 0 {
+						byteLimit += len(frame1)
+					}
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+					byteLimit = 0
+				}
 			}
 
 			if byteLimit > 0 {

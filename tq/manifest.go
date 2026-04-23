@@ -42,6 +42,7 @@ type lazyManifest struct {
 	apiClient *lfsapi.Client
 	operation string
 	remote    string
+	mu        sync.Mutex
 	m         *concreteManifest
 }
 
@@ -116,6 +117,8 @@ func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.m == nil {
 		m.m = newConcreteManifest(m.f, m.apiClient, m.operation, m.remote)
 	}
@@ -123,6 +126,8 @@ func (m *lazyManifest) Upgrade() *concreteManifest {
 }
 
 func (m *lazyManifest) Upgraded() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.m != nil
 }
 

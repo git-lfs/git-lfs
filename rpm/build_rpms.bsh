@@ -73,6 +73,9 @@ echo "Build git-lfs RPMs..."
 
 #--no-deps added for now so you can compile without official rpms installed
 "${RPMBUILD[@]}" --nodeps -ba "$SPEC"
-"${RPMBUILD[@]}" --nodeps --target=i686 -bb "$SPEC"
+
+if [ "$#" -eq 1 ] && [ "$1" = "--add-i386" ]; then
+  "${RPMBUILD[@]}" --nodeps --target=i686 -bb "$SPEC"
+fi
 
 echo "All Done!"
