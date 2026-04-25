@@ -185,18 +185,20 @@ func (m *concreteManifest) Upgraded() bool {
 	return true
 }
 
+func (m *concreteManifest) Shutdown() error {
+	if m.sshTransfer != nil {
+		return m.sshTransfer.Shutdown()
+	}
+	return nil
+}
+
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) Manifest {
 	return newLazyManifest(f, apiClient, operation, remote)
 }
 
 func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *concreteManifest {
 	if apiClient == nil {
-		cli, err := lfsapi.NewClient(nil)
-		if err != nil {
-			tracerx.Printf("unable to init tq.Manifest: %s", err)
-			return nil
-		}
-		apiClient = cli
+		apiClient = lfsapi.NewClient(nil)
 	}
 
 	sshTransfer := apiClient.SSHTransfer(operation, remote)

@@ -14,7 +14,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type LocksById []Lock
@@ -49,12 +48,11 @@ func TestRemoteLocksWithCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
@@ -154,12 +152,11 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, err)
@@ -233,12 +230,11 @@ func TestSearchLocksVerifiableWithCache(t *testing.T) {
 
 	defer srv.Close()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
 	client, err := NewClient("", lfsclient, config.New())
 	assert.Nil(t, client.SetupFileCache(tempDir))

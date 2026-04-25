@@ -77,11 +77,7 @@ func getAPIClient() *lfsapi.Client {
 	defer global.Unlock()
 
 	if apiClient == nil {
-		c, err := lfsapi.NewClient(cfg)
-		if err != nil {
-			ExitWithError(err)
-		}
-		apiClient = c
+		apiClient = lfsapi.NewClient(cfg)
 	}
 	return apiClient
 }

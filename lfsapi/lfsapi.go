@@ -19,7 +19,7 @@ type Client struct {
 	access  []creds.AccessMode
 }
 
-func NewClient(ctx lfshttp.Context) (*Client, error) {
+func NewClient(ctx lfshttp.Context) *Client {
 	if ctx == nil {
 		ctx = lfshttp.NewContext(nil, nil, nil)
 	}
@@ -27,16 +27,13 @@ func NewClient(ctx lfshttp.Context) (*Client, error) {
 	gitEnv := ctx.GitEnv()
 	osEnv := ctx.OSEnv()
 
-
-	c := &Client{
+	return &Client{
 		Endpoints:   NewEndpointFinder(ctx),
 		client:      lfshttp.NewClient(ctx),
 		context:     ctx,
 		credContext: creds.NewCredentialHelperContext(gitEnv, osEnv),
 		access:      creds.AllAccessModes(),
 	}
-
-	return c, nil
 }
 
 func (c *Client) Context() lfshttp.Context {
