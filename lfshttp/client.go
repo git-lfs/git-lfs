@@ -83,7 +83,7 @@ type Client struct {
 	sshTries int
 }
 
-func NewClient(ctx Context) (*Client, error) {
+func NewClient(ctx Context) *Client {
 	if ctx == nil {
 		ctx = NewContext(nil, nil, nil)
 	}
@@ -97,7 +97,7 @@ func NewClient(ctx Context) (*Client, error) {
 		sshResolver = withSSHCache(sshResolver)
 	}
 
-	c := &Client{
+	return &Client{
 		SSH:                 sshResolver,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
@@ -112,8 +112,6 @@ func NewClient(ctx Context) (*Client, error) {
 		sshTries:            gitEnv.Int("lfs.ssh.retries", 5),
 		credHelperContext:   creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
-
-	return c, nil
 }
 
 func (c *Client) GitEnv() config.Environment {

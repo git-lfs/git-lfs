@@ -114,14 +114,13 @@ func TestClientRedirect(t *testing.T) {
 	srv3Https = srv3.URL
 	srv3Http = fmt.Sprintf("http://%s", srv3InsecureListener.Addr().String())
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		fmt.Sprintf("http.%s.sslverify", srv3Https):  "false",
 		fmt.Sprintf("http.%s/.sslverify", srv3Https): "false",
 		fmt.Sprintf("http.%s.sslverify", srv3Http):   "false",
 		fmt.Sprintf("http.%s/.sslverify", srv3Http):  "false",
 		fmt.Sprintf("http.sslverify"):                "false",
 	}))
-	require.Nil(t, err)
 
 	// local redirect
 	req, err := http.NewRequest("POST", srv1.URL+"/local", nil)
@@ -179,14 +178,13 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.dialtimeout":         "151",
 		"lfs.keepalive":           "152",
 		"lfs.tlstimeout":          "153",
 		"lfs.concurrenttransfers": "154",
 	}))
 
-	require.Nil(t, err)
 	assert.Equal(t, 151, c.DialTimeout)
 	assert.Equal(t, 152, c.KeepaliveTimeout)
 	assert.Equal(t, 153, c.TLSTimeout)
@@ -194,49 +192,43 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClientWithGitSSLVerify(t *testing.T) {
-	c, err := NewClient(nil)
-	assert.Nil(t, err)
+	c := NewClient(nil)
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(nil, nil, map[string]string{
+		c = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
-		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(nil, nil, map[string]string{
+		c = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
-		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
 	}
 }
 
 func TestNewClientWithOSSSLVerify(t *testing.T) {
-	c, err := NewClient(nil)
-	assert.Nil(t, err)
+	c := NewClient(nil)
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
-		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
-		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
 	}
 }
@@ -250,8 +242,7 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := NewClient(NewContext(nil, nil, nil))
-		require.Nil(t, err)
+		c := NewClient(NewContext(nil, nil, nil))
 
 		req, err := c.NewRequest("POST", Endpoint{Url: test[0]}, test[1], nil)
 		require.Nil(t, err)
@@ -261,8 +252,7 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequestWithBody(t *testing.T) {
-	c, err := NewClient(NewContext(nil, nil, nil))
-	require.Nil(t, err)
+	c := NewClient(NewContext(nil, nil, nil))
 
 	body := struct {
 		Test string
@@ -316,10 +306,9 @@ func TestHttp2(t *testing.T) {
 	defer srvTLS.Close()
 	defer srv.Close()
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		fmt.Sprintf("http.sslverify"): "false",
 	}))
-	require.Nil(t, err)
 
 	req, err := http.NewRequest("GET", srvTLS.URL, nil)
 	require.Nil(t, err)
@@ -374,11 +363,10 @@ func TestHttpVersion(t *testing.T) {
 		defer srvTLS.Close()
 		defer srv.Close()
 
-		c, err := NewClient(NewContext(nil, nil, map[string]string{
+		c := NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": "false",
 			"http.version":   test.Setting,
 		}))
-		require.Nil(t, err)
 
 		req, err := http.NewRequest("GET", srvTLS.URL, nil)
 		require.Nil(t, err)
@@ -432,8 +420,7 @@ func TestExtraHeadersForDuplication(t *testing.T) {
 		})),
 	}
 
-	c, err := NewClient(context)
-	require.Nil(t, err)
+	c := NewClient(context)
 
 	t.Logf("Configured extraHeader: %v", c.GitEnv().GetAll("http.extraHeader"))
 

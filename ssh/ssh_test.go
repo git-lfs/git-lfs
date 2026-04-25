@@ -13,8 +13,7 @@ import (
 )
 
 func TestSSHGetLFSExeAndArgs(t *testing.T) {
-	cli, err := lfshttp.NewClient(nil)
-	require.Nil(t, err)
+	cli := lfshttp.NewClient(nil)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -36,11 +35,10 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -52,11 +50,10 @@ func TestSSHGetExeAndArgsSsh(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -69,13 +66,12 @@ func TestSSHGetExeAndArgsSshCustomPort(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshNoMultiplexing(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}, map[string]string{
 		"lfs.ssh.automultiplex": "false",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -89,13 +85,12 @@ func TestSSHGetExeAndArgsSshNoMultiplexing(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshMultiplexingMaster(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}, map[string]string{
 		"lfs.ssh.automultiplex": "true",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -112,13 +107,12 @@ func TestSSHGetExeAndArgsSshMultiplexingMaster(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshMultiplexingExtra(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         "",
 	}, map[string]string{
 		"lfs.ssh.automultiplex": "true",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -134,11 +128,10 @@ func TestSSHGetExeAndArgsSshMultiplexingExtra(t *testing.T) {
 func TestSSHGetExeAndArgsPlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -152,11 +145,10 @@ func TestSSHGetExeAndArgsPlink(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -171,12 +163,11 @@ func TestSSHGetExeAndArgsPlinkCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironment(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 		"GIT_SSH_VARIANT": "plink",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -191,12 +182,11 @@ func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironment(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentPutty(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 		"GIT_SSH_VARIANT": "putty",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -211,12 +201,11 @@ func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentPutty(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentSsh(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 		"GIT_SSH_VARIANT": "ssh",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -231,11 +220,10 @@ func TestSSHGetExeAndArgsPlinkCustomPortExplicitEnvironmentSsh(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -249,11 +237,10 @@ func TestSSHGetExeAndArgsTortoisePlink(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -268,12 +255,11 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitEnvironment(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 		"GIT_SSH_VARIANT": "tortoiseplink",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -288,14 +274,13 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitEnvironment(t *testing.T
 func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitConfig(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 		"GIT_SSH_VARIANT": "tortoiseplink",
 	}, map[string]string{
 		"ssh.variant": "tortoiseplink",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -310,13 +295,12 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitConfig(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitConfigOverride(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "ssh")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "",
 		"GIT_SSH":         plink,
 	}, map[string]string{
 		"ssh.variant": "putty",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -329,12 +313,11 @@ func TestSSHGetExeAndArgsTortoisePlinkCustomPortExplicitConfigOverride(t *testin
 }
 
 func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd",
 		"GIT_SSH":         "bad",
 		"GIT_SSH_VARIANT": "simple",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -346,11 +329,10 @@ func TestSSHGetExeAndArgsSshCommandPrecedence(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd --args 1",
 		"GIT_SSH_VARIANT": "simple",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -362,11 +344,10 @@ func TestSSHGetExeAndArgsSshCommandArgs(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd foo 'bar \"baz\"'",
 		"GIT_SSH_VARIANT": "simple",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -378,10 +359,9 @@ func TestSSHGetExeAndArgsSshCommandArgsWithMixedQuotes(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd",
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -394,12 +374,11 @@ func TestSSHGetExeAndArgsSshCommandCustomPort(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": "sshcmd --args 2",
 	}, map[string]string{
 		"core.sshcommand": "sshcmd --args 1",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -411,10 +390,9 @@ func TestSSHGetExeAndArgsCoreSshCommand(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"core.sshcommand": "sshcmd foo 'bar \"baz\"'",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -426,10 +404,9 @@ func TestSSHGetExeAndArgsCoreSshCommandArgsWithMixedQuotes(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"core.sshcommand": "sshcmd --args 1",
 	}))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -443,10 +420,9 @@ func TestSSHGetExeAndArgsConfigVersusEnv(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink.exe")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -460,10 +436,9 @@ func TestSSHGetExeAndArgsPlinkCommand(t *testing.T) {
 func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "plink")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -478,10 +453,9 @@ func TestSSHGetExeAndArgsPlinkCommandCustomPort(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink.exe")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -495,10 +469,9 @@ func TestSSHGetExeAndArgsTortoisePlinkCommand(t *testing.T) {
 func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 	plink := filepath.Join("Users", "joebloggs", "bin", "tortoiseplink")
 
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH_COMMAND": plink,
 	}, nil))
-	require.Nil(t, err)
 
 	meta := ssh.SSHMetadata{}
 	meta.UserAndHost = "user@foo.com"
@@ -511,11 +484,10 @@ func TestSSHGetExeAndArgsTortoisePlinkCommandCustomPort(t *testing.T) {
 }
 
 func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH":         "not-ssh",
 		"GIT_SSH_VARIANT": "simple",
 	}, nil))
-	require.Nil(t, err)
 
 	u, err := url.Parse("ssh://git@host.com:12345/repo")
 	require.Nil(t, err)
@@ -532,8 +504,7 @@ func TestSSHGetLFSExeAndArgsWithCustomSSH(t *testing.T) {
 }
 
 func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
-	cli, err := lfshttp.NewClient(nil)
-	require.Nil(t, err)
+	cli := lfshttp.NewClient(nil)
 
 	u, err := url.Parse("ssh://-oProxyCommand=gnome-calculator/repo")
 	require.Nil(t, err)
@@ -550,11 +521,10 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 }
 
 func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
-	cli, err := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
+	cli := lfshttp.NewClient(lfshttp.NewContext(nil, map[string]string{
 		"GIT_SSH":         "not-ssh",
 		"GIT_SSH_VARIANT": "simple",
 	}, nil))
-	require.Nil(t, err)
 
 	u, err := url.Parse("ssh://--oProxyCommand=gnome-calculator/repo")
 	require.Nil(t, err)
@@ -571,8 +541,7 @@ func TestSSHGetLFSExeAndArgsInvalidOptionsAsHostWithCustomSSH(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
-	cli, err := lfshttp.NewClient(nil)
-	require.Nil(t, err)
+	cli := lfshttp.NewClient(nil)
 
 	u, err := url.Parse("ssh://-oProxyCommand=gnome-calculator")
 	require.Nil(t, err)
@@ -590,8 +559,7 @@ func TestSSHGetExeAndArgsInvalidOptionsAsHost(t *testing.T) {
 }
 
 func TestSSHGetExeAndArgsInvalidOptionsAsPath(t *testing.T) {
-	cli, err := lfshttp.NewClient(nil)
-	require.Nil(t, err)
+	cli := lfshttp.NewClient(nil)
 
 	u, err := url.Parse("ssh://git@git-host.com/-oProxyCommand=gnome-calculator")
 	require.Nil(t, err)
