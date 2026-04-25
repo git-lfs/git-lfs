@@ -60,7 +60,7 @@ type Client struct {
 // NewClient creates a new locking client with the given configuration
 // You must call the returned object's `Close` method when you are finished with
 // it
-func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) (*Client, error) {
+func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuration) *Client {
 	return &Client{
 		Remote:             remote,
 		client:             newGenericLockClient(lfsClient),
@@ -69,7 +69,7 @@ func NewClient(remote string, lfsClient *lfsapi.Client, cfg *config.Configuratio
 		ModifyIgnoredFiles: lfsClient.GitEnv().Bool("lfs.lockignoredfiles", false),
 		LocalWorkingDir:    cfg.LocalWorkingDir(),
 		LocalGitDir:        cfg.LocalGitDir(),
-	}, nil
+	}
 }
 
 func (c *Client) SetupFileCache(path string) error {

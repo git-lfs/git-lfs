@@ -54,8 +54,9 @@ func TestRemoteLocksWithCache(t *testing.T) {
 		"user.email": "fred@bloggs.com",
 	}))
 
-	client, err := NewClient("", lfsclient, config.New())
-	assert.Nil(t, err)
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
@@ -158,8 +159,9 @@ func TestRefreshCache(t *testing.T) {
 		"user.email": "fred@bloggs.com",
 	}))
 
-	client, err := NewClient("", lfsclient, config.New())
-	assert.Nil(t, err)
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	// Should start with no cached items
@@ -236,7 +238,9 @@ func TestSearchLocksVerifiableWithCache(t *testing.T) {
 		"user.email": "fred@bloggs.com",
 	}))
 
-	client, err := NewClient("", lfsclient, config.New())
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
