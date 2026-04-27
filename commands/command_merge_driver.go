@@ -43,7 +43,7 @@ func mergeDriverCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		ExitWithError(err)
 	}
-	os.Exit(status)
+	ExitWithCode(status)
 }
 
 func processFiles(fileSpecifiers map[string]string, program string, outputFile string) (int, error) {

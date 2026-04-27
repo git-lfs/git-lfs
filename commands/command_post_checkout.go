@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -23,7 +21,7 @@ import (
 func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	if len(args) != 3 {
 		Print(tr.Tr.Get("This should be run through Git's post-checkout hook.  Run `git lfs update` to install it."))
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	// Skip entire hook if lockable read only feature is disabled
@@ -45,7 +43,6 @@ func postCheckoutCommand(cmd *cobra.Command, args []string) {
 	} else {
 		postCheckoutFileChange(lockClient)
 	}
-
 }
 
 func postCheckoutRevChange(client *locking.Client, pre, post string) {

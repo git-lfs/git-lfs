@@ -237,7 +237,7 @@ ArgsLoop:
 	}
 
 	if sawError {
-		os.Exit(2)
+		ExitWithCode(2)
 	}
 	// If we didn't modify things, but that's because the patterns
 	// were already supported, don't return an error, since what the
@@ -245,7 +245,7 @@ ArgsLoop:
 	// Otherwise, if we didn't modify things but only because the
 	// patterns were disallowed, return an error.
 	if !modified && len(changedAttribLines) > 0 {
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 }
 

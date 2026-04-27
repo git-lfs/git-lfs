@@ -132,7 +132,7 @@ func unlockCommand(cmd *cobra.Command, args []string) {
 	}
 	if !success {
 		lockClient.Close()
-		os.Exit(2)
+		ExitWithCode(2)
 	}
 }
 

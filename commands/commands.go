@@ -208,6 +208,11 @@ func uninstallHooks() error {
 	return nil
 }
 
+// ExitWithCode exits immediately with the given code.
+func ExitWithCode(code int) {
+	os.Exit(code)
+}
+
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
@@ -297,14 +302,14 @@ func requireStdin(msg string) {
 
 	if len(out) > 0 {
 		Error(out)
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 }
 
 func requireInRepo() {
 	if !cfg.InRepo() {
 		Print(tr.Tr.Get("Not in a Git repository."))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 
@@ -314,7 +319,7 @@ func requireInRepo() {
 func requireWorkingCopy() {
 	if cfg.LocalWorkingDir() == "" {
 		Print(tr.Tr.Get("This operation must be run in a work tree."))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 
@@ -339,7 +344,7 @@ func verifyRepositoryVersion() {
 		cfg.SetGitLocalKey(key, "0")
 	} else if val != "0" {
 		Print(tr.Tr.Get("Unknown repository format version: %s", val))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 

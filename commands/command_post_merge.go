@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -15,7 +13,7 @@ import (
 func postMergeCommand(cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		Print(tr.Tr.Get("This should be run through Git's post-merge hook.  Run `git lfs update` to install it."))
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	// Skip entire hook if lockable read only feature is disabled

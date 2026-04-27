@@ -97,7 +97,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if fsckDryRun || len(corruptOids) == 0 {
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
@@ -120,7 +120,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(err)
 		}
 	}
-	os.Exit(1)
+	ExitWithCode(1)
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
