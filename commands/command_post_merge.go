@@ -20,7 +20,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 
 	// Skip entire hook if lockable read only feature is disabled
 	if !cfg.SetLockableFilesReadOnly() {
-		os.Exit(0)
+		return
 	}
 
 	requireGitVersion()
@@ -29,7 +29,7 @@ func postMergeCommand(cmd *cobra.Command, args []string) {
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {
-		os.Exit(0)
+		return
 	}
 
 	// The only argument this hook receives is a flag indicating whether the
