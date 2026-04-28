@@ -240,11 +240,12 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	if sshTransfer != nil {
+		// Multiple concurrent transfers are not supported
+		// when SSH multiplexing is disabled.
 		if !useSSHMultiplexing {
 			m.concurrentTransfers = 1
 		}
 
-		// Multiple concurrent transfers are not yet supported.
 		m.batchClientAdapter = &SSHBatchClient{
 			maxRetries: m.maxRetries,
 			transfer:   sshTransfer,
