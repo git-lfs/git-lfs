@@ -92,6 +92,10 @@ func NewClient(ctx Context) *Client {
 	osEnv := ctx.OSEnv()
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+
+	// SSHResolver resolves LFS endpoint authentication by running
+	// git-lfs-authenticate over SSH. The returned credentials (URL
+	// and headers) are then used for subsequent HTTPS API requests.
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
