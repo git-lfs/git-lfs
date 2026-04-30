@@ -185,13 +185,6 @@ func (m *concreteManifest) Upgraded() bool {
 	return true
 }
 
-func (m *concreteManifest) Shutdown() error {
-	if m.sshTransfer != nil {
-		return m.sshTransfer.Shutdown()
-	}
-	return nil
-}
-
 func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) Manifest {
 	return newLazyManifest(f, apiClient, operation, remote)
 }
