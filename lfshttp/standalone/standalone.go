@@ -207,7 +207,7 @@ func newHandler(cfg *config.Configuration, output *os.File, msg *inputMessage) (
 }
 
 // dispatch dispatches the event depending on the message type.
-func (h *fileHandler) dispatch(msg *inputMessage) bool {
+func (h *fileHandler) dispatch(msg *inputMessage) (bool, error) {
 	switch msg.Event {
 	case "init":
 		fmt.Fprintln(h.output, "{}")
@@ -216,11 +216,11 @@ func (h *fileHandler) dispatch(msg *inputMessage) bool {
 	case "download":
 		h.respond(h.download(msg.Oid, msg.Size))
 	case "terminate":
-		return false
+		return false, nil
 	default:
-		standaloneFailure(tr.Tr.Get("unknown event %q", msg.Event), nil)
+		return false, errors.New(tr.Tr.Get("unknown event %q", msg.Event))
 	}
-	return true
+	return true, nil
 }
 
 // respond sends a response to an upload or download command, using the return
@@ -274,18 +274,13 @@ func (h *fileHandler) download(oid string, size int64) (string, string, error) {
 	return oid, path, lfs.LinkOrCopy(h.config, src, path)
 }
 
-// standaloneFailure reports a fatal error.
-func standaloneFailure(msg string, err error) {
-	fmt.Fprintf(os.Stderr, "%s: %s\n", msg, err)
-	os.Exit(2)
-}
-
 // ProcessStandaloneData is the primary endpoint for processing data with a
 // standalone transfer agent. It reads input from the specified input file and
 // produces output to the specified output file.
 func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os.File) error {
 	var handler *fileHandler
 
+	var eventErr error
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		var msg inputMessage
@@ -306,15 +301,17 @@ func ProcessStandaloneData(cfg *config.Configuration, input *os.File, output *os
 				return err
 			}
 		}
-		if !handler.dispatch(&msg) {
+		if cont, err := handler.dispatch(&msg); !cont || err != nil {
+			eventErr = err
 			break
 		}
 	}
 	if handler != nil {
 		os.RemoveAll(handler.tempdir)
 	}
-	if err := scanner.Err(); err != nil {
-		return errors.Wrap(err, tr.Tr.Get("error reading input"))
+	err := scanner.Err()
+	if err != nil {
+		err = errors.Wrap(err, tr.Tr.Get("error reading input"))
 	}
-	return nil
+	return errors.Join(eventErr, err)
 }

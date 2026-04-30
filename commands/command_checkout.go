@@ -32,7 +32,7 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	// repository but will exit non-zero, as other commands already do.
 	if cfg.LocalWorkingDir() == "" {
 		Print(tr.Tr.Get("This operation must be run in a work tree."))
-		os.Exit(0)
+		return
 	}
 
 	stage, err := whichCheckout()

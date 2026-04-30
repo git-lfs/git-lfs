@@ -24,7 +24,7 @@ func installCommand(cmd *cobra.Command, args []string) {
 	if err := cmdInstallOptions().Install(); err != nil {
 		Print(tr.Tr.Get("warning: %s", err.Error()))
 		Print(tr.Tr.Get("Run `git lfs install --force` to reset Git configuration."))
-		os.Exit(2)
+		ExitWithCode(2)
 	}
 
 	if !skipRepoInstall && (localInstall || worktreeInstall || cfg.InRepo()) {
