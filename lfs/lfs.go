@@ -19,11 +19,7 @@ func Environ(cfg *config.Configuration, manifest tq.Manifest, envOverrides map[s
 	osEnviron := os.Environ()
 	env := make([]string, 0, len(osEnviron)+7)
 
-	api, err := lfsapi.NewClient(cfg)
-	if err != nil {
-		// TODO(@ttaylorr): don't panic
-		panic(err.Error())
-	}
+	api := lfsapi.NewClient(cfg)
 
 	if envOverrides == nil {
 		envOverrides = make(map[string]string, 0)

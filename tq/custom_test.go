@@ -6,15 +6,13 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCustomTransferBasicConfig(t *testing.T) {
 	path := "/path/to/binary"
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.customtransfer.testsimple.path": path,
 	}))
-	require.Nil(t, err)
 
 	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testsimple")
@@ -37,13 +35,12 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 func TestCustomTransferDownloadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.customtransfer.testdownload.path":       path,
 		"lfs.customtransfer.testdownload.args":       args,
 		"lfs.customtransfer.testdownload.concurrent": "false",
 		"lfs.customtransfer.testdownload.direction":  "download",
 	}))
-	require.Nil(t, err)
 
 	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testdownload")
@@ -63,13 +60,12 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 func TestCustomTransferUploadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.customtransfer.testupload.path":       path,
 		"lfs.customtransfer.testupload.args":       args,
 		"lfs.customtransfer.testupload.concurrent": "false",
 		"lfs.customtransfer.testupload.direction":  "upload",
 	}))
-	require.Nil(t, err)
 
 	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testupload")
@@ -89,13 +85,12 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 func TestCustomTransferBothConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever --yeah"
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.customtransfer.testboth.path":       path,
 		"lfs.customtransfer.testboth.args":       args,
 		"lfs.customtransfer.testboth.concurrent": "yes",
 		"lfs.customtransfer.testboth.direction":  "both",
 	}))
-	require.Nil(t, err)
 
 	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testboth")

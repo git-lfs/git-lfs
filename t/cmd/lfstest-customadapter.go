@@ -29,11 +29,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(os.Stdout)
 	errWriter := bufio.NewWriter(os.Stderr)
-	apiClient, err := lfsapi.NewClient(cfg)
-	if err != nil {
-		writeToStderr("Error creating api client: "+err.Error(), errWriter)
-		os.Exit(1)
-	}
+	apiClient := lfsapi.NewClient(cfg)
 
 	for scanner.Scan() {
 		line := scanner.Text()

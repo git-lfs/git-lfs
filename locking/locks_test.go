@@ -14,7 +14,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type LocksById []Lock
@@ -49,15 +48,15 @@ func TestRemoteLocksWithCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient, config.New())
-	assert.Nil(t, err)
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}
@@ -154,15 +153,15 @@ func TestRefreshCache(t *testing.T) {
 		srv.Close()
 	}()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient, config.New())
-	assert.Nil(t, err)
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	// Should start with no cached items
@@ -233,14 +232,15 @@ func TestSearchLocksVerifiableWithCache(t *testing.T) {
 
 	defer srv.Close()
 
-	lfsclient, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	lfsclient := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url":    srv.URL + "/api",
 		"user.name":  "Fred",
 		"user.email": "fred@bloggs.com",
 	}))
-	require.Nil(t, err)
 
-	client, err := NewClient("", lfsclient, config.New())
+	client := NewClient("", lfsclient, config.New())
+	defer client.Close()
+
 	assert.Nil(t, client.SetupFileCache(tempDir))
 
 	client.RemoteRef = &git.Ref{Name: "refs/heads/master"}

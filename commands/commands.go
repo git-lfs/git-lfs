@@ -77,11 +77,7 @@ func getAPIClient() *lfsapi.Client {
 	defer global.Unlock()
 
 	if apiClient == nil {
-		c, err := lfsapi.NewClient(cfg)
-		if err != nil {
-			ExitWithError(err)
-		}
-		apiClient = c
+		apiClient = lfsapi.NewClient(cfg)
 	}
 	return apiClient
 }
@@ -96,11 +92,10 @@ func closeAPIClient() error {
 }
 
 func newLockClient() *locking.Client {
-	lockClient, err := locking.NewClient(cfg.PushRemote(), getAPIClient(), cfg)
-	if err == nil {
-		tools.MkdirAll(cfg.LFSStorageDir(), cfg)
-		err = lockClient.SetupFileCache(cfg.LFSStorageDir())
-	}
+	lockClient := locking.NewClient(cfg.PushRemote(), getAPIClient(), cfg)
+
+	tools.MkdirAll(cfg.LFSStorageDir(), cfg)
+	err := lockClient.SetupFileCache(cfg.LFSStorageDir())
 
 	if err != nil {
 		Exit(tr.Tr.Get("Unable to create lock system: %v", err.Error()))

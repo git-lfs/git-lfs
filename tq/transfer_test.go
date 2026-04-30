@@ -6,7 +6,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testAdapter struct {
@@ -142,10 +141,9 @@ func TestAdapterRegAndOverride(t *testing.T) {
 }
 
 func TestAdapterRegButBasicOnly(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.basictransfersonly": "yes",
 	}))
-	require.Nil(t, err)
 
 	m := NewManifest(nil, cli, "", "")
 

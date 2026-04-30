@@ -149,10 +149,7 @@ func buildManifest(r *t.Repo) (tq.Manifest, error) {
 		endp = finder.NewEndpoint("upload", apiUrl)
 	}
 
-	apiClient, err := lfsapi.NewClient(r)
-	if err != nil {
-		return nil, err
-	}
+	apiClient := lfsapi.NewClient(r)
 	apiClient.Endpoints = &constantEndpoint{
 		e:              endp,
 		EndpointFinder: apiClient.Endpoints,
