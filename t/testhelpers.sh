@@ -1085,13 +1085,16 @@ pktize_flush() {
   printf '0000'
 }
 
-# Compute the expected default ConcurrentTransfers value (3 × NCPU,
-# min 8) so tests stay correct on any machine.  We use a small Go
-# helper to get runtime.NumCPU() so the value always matches what the
-# git-lfs binary sees, even inside containers with cgroup limits.
+# At present, we expect a fixed default value of 8 concurrent transfers,
+# which is less than ideal for HTTP-based transfers when many objects
+# are transferred by a single "git lfs filter-process" command.
+#
+# However, the "lfs.concurrentTransfers" setting also controls the number
+# of processes we spawn for SSH-based or custom transfers, and we want
+# to avoid spawning large numbers of separate processes.
+#
+# In the future, we may allow this default value to be scaled by the
+# number of CPUs, as returned by our lfstest-getnumcpu utility.
 setup_expected_concurrent_transfers() {
-  _ncpu=$(lfstest-getnumcpu)
-  _ct=$(( _ncpu * 3 ))
-  [ "$_ct" -lt 8 ] && _ct=8
-  expectedConcurrentTransfers=$_ct
+  expectedConcurrentTransfers=8
 }
