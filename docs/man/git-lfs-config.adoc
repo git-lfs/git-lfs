@@ -159,8 +159,13 @@ removed, and tus.io uploads will be available for all clients.
 +
 Allows the specified custom transfer agent to be used directly for
 transferring files, without asking the server how the transfers should
-be made. The custom transfer agent has to be defined in a
-`lfs.customtransfer.<name>` settings group.
+be made. The custom transfer agent must be defined in a
+`lfs.customtransfer.<name>` settings group, or else must be the internal
+`lfs-standalone-file` transfer adapter. Other values will be ignored.
++
+See git-lfs-standalone-file(1) for details of the internal
+`lfs-standalone-file` custom transfer adapter, which is intended for
+use with local `file:///` URLs.
 * `lfs.customtransfer.<name>.path`
 +
 `lfs.customtransfer.<name>` is a settings group which defines a custom
@@ -170,7 +175,10 @@ should point to the process you wish to invoke. The protocol between the
 git-lfs client and the custom transfer process is documented at
 https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md
 +
-The `<name>` must be a unique identifier that the LFS server understands. When
+The `<name>` must be a unique identifier that the LFS server understands
+and which does not conflict with the name of any pre-defined internal
+transfer adapter in the client such as "basic" or "ssh", as these will
+always override a custom transfer adapter with the same name. When
 calling the LFS API the client will include a list of supported transfer
 types. If the server also supports this named transfer type, it will
 select it and actions returned from the API will be in relation to that
@@ -470,6 +478,6 @@ The set of keys allowed in this file is restricted for security reasons.
 
 == SEE ALSO
 
-git-config(1), git-lfs-install(1), gitattributes(5), gitignore(5).
+git-config(1), git-lfs-install(1), git-lfs-standalone-file(1), gitattributes(5), gitignore(5).
 
 Part of the git-lfs(1) suite.

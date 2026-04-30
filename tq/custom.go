@@ -356,8 +356,8 @@ func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
 		standalone := m.standaloneTransferAgent != ""
 		return newCustomAdapter(m.fs, standaloneFileName, dir, "git-lfs", "standalone-file", false, standalone)
 	}
-	m.RegisterNewAdapterFunc(standaloneFileName, Download, newfunc)
-	m.RegisterNewAdapterFunc(standaloneFileName, Upload, newfunc)
+	m.RegisterNewAdapterFunc(standaloneFileName, Download, true, newfunc)
+	m.RegisterNewAdapterFunc(standaloneFileName, Upload, true, newfunc)
 }
 
 // Initialise custom adapters based on current config
@@ -390,10 +390,10 @@ func configureCustomAdapters(git Env, m *concreteManifest) {
 		}
 
 		if direction == "download" || direction == "both" {
-			m.RegisterNewAdapterFunc(name, Download, newfunc)
+			m.RegisterNewAdapterFunc(name, Download, true, newfunc)
 		}
 		if direction == "upload" || direction == "both" {
-			m.RegisterNewAdapterFunc(name, Upload, newfunc)
+			m.RegisterNewAdapterFunc(name, Upload, true, newfunc)
 		}
 	}
 }
