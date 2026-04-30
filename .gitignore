@@ -42,3 +42,4 @@ lfstest-*
 !lfstest-*.go
 
 vendor/
+.idea/

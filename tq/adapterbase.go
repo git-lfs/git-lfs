@@ -104,24 +104,29 @@ type job struct {
 
 	results chan<- TransferResult
 	wg      *sync.WaitGroup
+	done    *sync.WaitGroup
 }
 
 func (j *job) Done(err error) {
 	j.results <- TransferResult{j.T, err}
 	j.wg.Done()
+	j.done.Done()
 }
 
 func (a *adapterBase) Add(transfers ...*Transfer) <-chan TransferResult {
 	results := make(chan TransferResult, len(transfers))
 
+	// done tracks when this batch's jobs complete, independent of
+	// other batches. jobWait tracks all jobs globally for End().
+	var done sync.WaitGroup
+	done.Add(len(transfers))
 	a.jobWait.Add(len(transfers))
 
 	go func() {
 		for _, t := range transfers {
-			a.jobChan <- &job{t, results, a.jobWait}
+			a.jobChan <- &job{T: t, results: results, wg: a.jobWait, done: &done}
 		}
-		a.jobWait.Wait()
-
+		done.Wait()
 		close(results)
 	}()
 

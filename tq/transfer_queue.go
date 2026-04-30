@@ -252,6 +252,7 @@ type objectTuple struct {
 	Missing         bool
 	ReadyTime       time.Time
 	retryLaterTime  time.Time
+	lastErr         error
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
@@ -413,35 +414,116 @@ func (q *TransferQueue) remember(t *objectTuple) objects {
 	return *q.transfers[t.Oid]
 }
 
-// collectBatches collects batches in a loop, prioritizing failed items from the
-// previous before adding new items. The process works as follows:
+// collectBatches collects batches in a loop and dispatches them to parallel
+// batch API workers. It prioritizes retries from previous batches before
+// accepting new items. The process works as follows:
 //
-//  1. Create a new batch, of size `q.batchSize`, and containing no items
-//  2. While the batch contains less items than `q.batchSize` AND the channel
-//     is open, read one item from the `q.incoming` channel.
-//     a. If the read was a channel close, go to step 4.
-//     b. If the read was a transferable item, go to step 3.
-//  3. Append the item to the batch.
-//  4. Sort the batch by descending object size, make a batch API call, send
-//     the items to the `*adapterBase`.
-//  5. In a separate goroutine, process the worker results, incrementing and
-//     appending retries if possible. On the main goroutine, accept new items
-//     into "pending".
-//  6. Concat() the "next" and "pending" batches such that no more items than
-//     the maximum allowed per batch are in next, and the rest are in pending.
-//  7. If the `q.incoming` channel is open, go to step 2.
-//  8. If the next batch is empty AND the `q.incoming` channel is closed,
-//     terminate immediately.
+//  1. Block until the first item arrives on q.incoming, then lazily
+//     initialize channels and spin up parallel batch API workers. This
+//     avoids creating SSH connections when no transfers are needed.
+//  2. Drain any retries from retryCh into the next batch.
+//  3. Read items from q.incoming until the batch is full or the channel
+//     closes.
+//  4. Use Concat() to separate rate-limited items (whose ReadyTime has
+//     not passed) into a pending batch. If all items are rate-limited,
+//     sleep until the earliest ReadyTime.
+//  5. Sort the ready batch by descending size and send it to batchCh,
+//     where a parallel worker makes the batch API call and submits
+//     objects to the transfer adapter. Retries flow back via retryCh.
+//  6. If q.incoming is still open, go to step 2.
+//  7. Once q.incoming closes, wait for all in-flight batches to finish,
+//     drain final retries, and loop back to step 4 if any remain.
+//  8. When no retries remain, close batchCh and wait for workers to exit.
 //
 // collectBatches runs in its own goroutine.
 func (q *TransferQueue) collectBatches() {
 	defer q.collectorWait.Done()
 
+	first, ok := <-q.incoming
+	if !ok {
+		return
+	}
+
+	batchCh := make(chan batch, q.manifest.ConcurrentTransfers())
+	retryCh := make(chan *objectTuple, q.batchSize)
+	var retryWg sync.WaitGroup
+
+	maxBatchWorkers := q.manifest.ConcurrentBatchRequests()
+	batchDone := make(chan struct{}, maxBatchWorkers)
+
+	collectRetriesFrom := func(ch <-chan *objectTuple) {
+		if ch == nil {
+			return
+		}
+		retryWg.Add(1)
+		go func() {
+			defer retryWg.Done()
+			for t := range ch {
+				retryCh <- t
+			}
+		}()
+	}
+
+	var batchWg sync.WaitGroup
+	batchWg.Add(maxBatchWorkers)
+	for i := 0; i < maxBatchWorkers; i++ {
+		go func() {
+			defer batchWg.Done()
+			for b := range batchCh {
+				retries, newRetries, err := q.enqueueAndCollectRetriesFor(b)
+				if err != nil {
+					q.errorc <- err
+					if !errors.IsRetriableError(err) {
+						q.wait.Abort()
+						batchDone <- struct{}{}
+						return
+					}
+				}
+				collectRetriesFrom(newRetries)
+				for _, t := range retries {
+					retryCh <- t
+				}
+				batchDone <- struct{}{}
+			}
+		}()
+	}
+
+	enqueueRetryItem := func(t *objectTuple) {
+		count := q.rc.Increment(t.Oid)
+		if t.retryLaterTime.IsZero() {
+			t.ReadyTime = q.rc.ReadyTime(t.Oid)
+		} else {
+			t.ReadyTime = t.retryLaterTime
+			t.retryLaterTime = time.Time{}
+		}
+		delay := time.Until(t.ReadyTime).Seconds()
+		var errMsg string
+		if t.lastErr != nil {
+			errMsg = fmt.Sprintf(": %s", t.lastErr)
+			t.lastErr = nil
+		}
+		tracerx.Printf("tq: enqueue retry #%d after %.2fs for %q (size: %d)%s", count, delay, t.Oid, t.Size, errMsg)
+	}
+
 	var closing bool
+	var inFlight int
 	next := q.makeBatch()
-	pending := q.makeBatch()
+	next = append(next, first)
 
 	for {
+	drainRetries:
+		for {
+			select {
+			case t := <-retryCh:
+				enqueueRetryItem(t)
+				next = append(next, t)
+			case <-batchDone:
+				inFlight--
+			default:
+				break drainRetries
+			}
+		}
+
 		for !closing && (len(next) < q.batchSize) {
 			t, ok := <-q.incoming
 			if !ok {
@@ -452,116 +534,92 @@ func (q *TransferQueue) collectBatches() {
 			next = append(next, t)
 		}
 
-		// Before enqueuing the next batch, sort by descending object
-		// size.
-		sort.Sort(sort.Reverse(next))
+		if len(next) > 0 {
+			var pending batch
+			var minWait time.Duration
+			next, pending, minWait = next.Concat(nil, q.batchSize)
 
-		done := make(chan struct{})
-
-		var retries batch
-		var err error
-
-		go func() {
-			defer close(done)
-
-			if len(next) == 0 {
-				return
+			if len(next) > 0 {
+				sort.Sort(sort.Reverse(next))
+				inFlight++
+				batchCh <- next
+				next = pending
+			} else if len(pending) > 0 {
+				// All items are rate-limited; wait for
+				// the earliest Retry-After to elapse.
+				time.Sleep(minWait)
+				next = pending
+				continue
 			}
-
-			retries, err = q.enqueueAndCollectRetriesFor(next)
-			if err != nil {
-				q.errorc <- err
-			}
-		}()
-
-		var collected batch
-		collected, closing = q.collectPendingUntil(done)
-
-		// If we've encountered a serious error here, abort immediately;
-		// don't process further batches.  Abort the wait queue so that
-		// we don't deadlock waiting for objects to complete when they
-		// never will.
-		if err != nil && !errors.IsRetriableError(err) {
-			q.wait.Abort()
-			break
 		}
 
-		// Ensure the next batch is filled with, in order:
-		//
-		// - retries from the previous batch,
-		// - new additions that were enqueued behind retries, &
-		// - items collected while the batch was processing.
-		var minWaitTime time.Duration
-		next, pending, minWaitTime = retries.Concat(append(pending, collected...), q.batchSize)
-		if len(next) == 0 && len(pending) != 0 {
-			// There are some pending that could not be queued.
-			// Wait the requested time before resuming loop.
-			time.Sleep(minWaitTime)
-		} else if len(next) == 0 && len(pending) == 0 && closing {
-			// There are no items remaining, it is safe to break
+		if !closing {
+			continue
+		}
+
+		// q.incoming is closed. Wait for in-flight batches to
+		// complete, then collect any retries they produced.
+		for inFlight > 0 {
+			select {
+			case <-batchDone:
+				inFlight--
+			case t := <-retryCh:
+				// Keep draining retries while waiting, to
+				// prevent deadlock on retryCh sends.
+				enqueueRetryItem(t)
+				next = append(next, t)
+			}
+		}
+
+		// All batches complete. Wait for retry collector goroutines
+		// to finish forwarding, then do a final non-blocking drain.
+		retryWg.Wait()
+	drainFinal:
+		for {
+			select {
+			case t := <-retryCh:
+				enqueueRetryItem(t)
+				next = append(next, t)
+			default:
+				break drainFinal
+			}
+		}
+
+		// If retries were collected, loop to send them as a new
+		// batch through the parallel workers. Otherwise we're done.
+		if len(next) == 0 {
 			break
 		}
 	}
+
+	close(batchCh)
+	batchWg.Wait()
 }
 
-// collectPendingUntil collects items from q.incoming into a "pending" batch
-// until the given "done" channel is written to, or is closed.
+// enqueueAndCollectRetriesFor makes a Batch API call, submits objects to the
+// transfer adapter, and returns:
+//   - a batch of objects that failed the batch API call and can be retried
+//   - a channel that yields retries from individual transfer failures
+//   - any non-retriable error
 //
-// A "pending" batch is returned, along with whether or not "q.incoming" is
-// closed.
-func (q *TransferQueue) collectPendingUntil(done <-chan struct{}) (pending batch, closing bool) {
-	q.Upgrade()
-
-	for {
-		select {
-		case t, ok := <-q.incoming:
-			if !ok {
-				closing = true
-				<-done
-				return
-			}
-
-			pending = append(pending, t)
-		case <-done:
-			return
-		}
-	}
-}
-
-// enqueueAndCollectRetriesFor makes a Batch API call and returns a "next" batch
-// containing all of the objects that failed from the previous batch and had
-// retries available to them.
-//
-// If an error was encountered while making the API request, _all_ of the items
-// from the previous batch (that have retries available to them) will be
-// returned immediately, along with the error that was encountered.
-//
-// enqueueAndCollectRetriesFor blocks until the entire Batch "batch" has been
-// processed.
-func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) {
+// It does NOT block on download completion; the returned retries channel
+// is read asynchronously by the caller, allowing the next batch API call
+// to proceed while downloads from this batch are still in flight.
+func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, <-chan *objectTuple, error) {
 	q.Upgrade()
 
 	next := q.makeBatch()
 	tracerx.Printf("tq: sending batch of size %d", len(batch))
 
+	// enqueueRetry marks an object for retry by the collectBatches loop.
+	// It does NOT increment the retry counter or log; that is handled
+	// by enqueueRetryItem in collectBatches when the object is dequeued
+	// from retryCh.
 	enqueueRetry := func(t *objectTuple, err error, readyTime *time.Time) {
-		count := q.rc.Increment(t.Oid)
-
-		if !t.retryLaterTime.IsZero() {
-			t.ReadyTime = t.retryLaterTime
-			t.retryLaterTime = time.Time{}
-		} else if readyTime == nil {
-			t.ReadyTime = q.rc.ReadyTime(t.Oid)
-		} else {
-			t.ReadyTime = *readyTime
+		if readyTime != nil {
+			t.retryLaterTime = *readyTime
 		}
-		delay := time.Until(t.ReadyTime).Seconds()
-
-		var errMsg string
-		if err != nil {
-			errMsg = fmt.Sprintf(": %s", err)
-		}
-		tracerx.Printf("tq: enqueue retry #%d after %.2fs for %q (size: %d)%s", count, delay, t.Oid, t.Size, errMsg)
+		t.lastErr = err
 		next = append(next, t)
 	}
 
@@ -603,15 +661,15 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// was not enqueued for retrial at a later point.
 			// Make sure to return an error which causes all other objects to be retried.
 			if hasNonRetriableObjects {
-				return next, errors.NewRetriableError(err)
+				return next, nil, errors.NewRetriableError(err)
 			} else {
-				return next, nil
+				return next, nil, nil
 			}
 		}
 	}
 
 	if len(bRes.Objects) == 0 {
-		return next, nil
+		return next, nil, nil
 	}
 
 	// We check first that all of the objects we want to upload are present,
@@ -634,7 +692,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 				// transfer queue.
 				if ok && objects.First().Missing {
 					tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
-					return nil, newObjectMissingError(objects.First().Name, o.Oid)
+					return nil, nil, newObjectMissingError(objects.First().Name, o.Oid)
 				}
 			}
 		}
@@ -690,12 +748,11 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		}
 	}
 
+	// Submit transfers to the adapter without blocking. The returned
+	// channel will yield retries as individual transfers complete or fail.
 	retries := q.addToAdapter(bRes.endpoint, toTransfer)
-	for t := range retries {
-		enqueueRetry(t, nil, nil)
-	}
 
-	return next, nil
+	return next, retries, nil
 }
 
 // makeBatch returns a new, empty batch, with a capacity equal to the maximum
@@ -824,6 +881,7 @@ func (q *TransferQueue) handleTransferResult(
 			if ok {
 				t := objects.First()
 				t.retryLaterTime = readyTime
+				t.lastErr = res.Error
 				retries <- t
 			} else {
 				q.errorc <- res.Error
@@ -839,7 +897,9 @@ func (q *TransferQueue) handleTransferResult(
 			q.trMutex.Unlock()
 
 			if ok {
-				retries <- objects.First()
+				t := objects.First()
+				t.lastErr = res.Error
+				retries <- t
 			} else {
 				q.errorc <- res.Error
 			}

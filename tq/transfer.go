@@ -244,7 +244,7 @@ type Adapter interface {
 	// or more Add calls. The passed in callback will receive updates on progress.
 	Begin(cfg AdapterConfig, cb ProgressCallback) error
 	// Add queues a download/upload, which will complete asynchronously and
-	// notify the callbacks given to Begin()
+	// whose results will be sent on the returned channel.
 	Add(transfers ...*Transfer) (results <-chan TransferResult)
 	// Indicate that all transfers have been scheduled and resources can be released
 	// once the queued items have completed.

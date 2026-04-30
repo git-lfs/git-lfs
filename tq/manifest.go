@@ -22,6 +22,7 @@ type Manifest interface {
 	MaxRetries() int
 	MaxRetryDelay() int
 	ConcurrentTransfers() int
+	ConcurrentBatchRequests() int
 	IsStandaloneTransfer() bool
 	batchClient() BatchClient
 	GetAdapterNames(dir Direction) []string
@@ -70,6 +71,10 @@ func (m *lazyManifest) MaxRetryDelay() int {
 
 func (m *lazyManifest) ConcurrentTransfers() int {
 	return m.Upgrade().ConcurrentTransfers()
+}
+
+func (m *lazyManifest) ConcurrentBatchRequests() int {
+	return m.Upgrade().ConcurrentBatchRequests()
 }
 
 func (m *lazyManifest) IsStandaloneTransfer() bool {
@@ -138,6 +143,7 @@ type concreteManifest struct {
 	maxRetries              int
 	maxRetryDelay           int
 	concurrentTransfers     int
+	concurrentBatchRequests int
 	basicTransfersOnly      bool
 	standaloneTransferAgent string
 	tusTransfersAllowed     bool
@@ -164,6 +170,10 @@ func (m *concreteManifest) MaxRetryDelay() int {
 
 func (m *concreteManifest) ConcurrentTransfers() int {
 	return m.concurrentTransfers
+}
+
+func (m *concreteManifest) ConcurrentBatchRequests() int {
+	return m.concurrentBatchRequests
 }
 
 func (m *concreteManifest) IsStandaloneTransfer() bool {
@@ -220,6 +230,9 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
 			m.concurrentTransfers = v
 		}
+		if v := git.Int("lfs.concurrentbatchrequests", 0); v > 0 {
+			m.concurrentBatchRequests = v
+		}
 		m.basicTransfersOnly = git.Bool("lfs.basictransfersonly", false)
 		m.standaloneTransferAgent = findStandaloneTransfer(
 			apiClient, operation, remote,
@@ -238,7 +251,6 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	if m.concurrentTransfers < 1 {
 		m.concurrentTransfers = lfshttp.DefaultConcurrentTransfers()
 	}
-
 	if sshTransfer != nil {
 		if !useSSHMultiplexing {
 			m.concurrentTransfers = 1
@@ -248,6 +260,22 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		m.batchClientAdapter = &SSHBatchClient{
 			maxRetries: m.maxRetries,
 			transfer:   sshTransfer,
+		}
+		// SSH batch requests are serialized through a single
+		// connection, so parallel batch API workers don't help.
+		m.concurrentBatchRequests = 1
+	}
+
+	if m.concurrentBatchRequests < 1 {
+		// Scale batch API workers with transfer concurrency so the
+		// download pipeline stays saturated. This ratio was benchmarked
+		// across large cloud workers and local laptops.
+		m.concurrentBatchRequests = (m.concurrentTransfers + 11) / 12
+		if m.concurrentBatchRequests < 4 && m.concurrentTransfers >= 4 {
+			m.concurrentBatchRequests = 4
+		}
+		if m.concurrentBatchRequests < 1 {
+			m.concurrentBatchRequests = 1
 		}
 	}
 
