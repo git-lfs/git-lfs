@@ -23,6 +23,7 @@ TEST_CMDS += ../bin/git-credential-lfstest$X
 TEST_CMDS += ../bin/lfs-askpass$X
 TEST_CMDS += ../bin/lfs-ssh-echo$X
 TEST_CMDS += ../bin/lfs-ssh-proxy-test$X
+TEST_CMDS += ../bin/lfstest-badlocalfile$X
 TEST_CMDS += ../bin/lfstest-badpathcheck$X
 TEST_CMDS += ../bin/lfstest-caseinverterextension$X
 TEST_CMDS += ../bin/lfstest-count-tests$X
