@@ -39,9 +39,10 @@ var (
 	ManPages     = make(map[string]string, 20)
 	tqManifest   = make(map[string]tq.Manifest)
 
-	cfg       *config.Configuration
-	apiClient *lfsapi.Client
-	global    sync.Mutex
+	cfg         *config.Configuration
+	apiClient   *lfsapi.Client
+	global      sync.Mutex
+	cleanupOnce sync.Once
 
 	oldEnv = make(map[string]string)
 
@@ -280,6 +281,10 @@ func Panic(err error, format string, args ...interface{}) {
 }
 
 func Cleanup() {
+	cleanupOnce.Do(doCleanup)
+}
+
+func doCleanup() {
 	if err := cfg.Cleanup(); err != nil {
 		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error clearing old temporary files: %s", err))
 	}
