@@ -206,6 +206,7 @@ func uninstallHooks() error {
 
 // ExitWithCode exits immediately with the given code.
 func ExitWithCode(code int) {
+	Cleanup()
 	os.Exit(code)
 }
 
@@ -232,6 +233,7 @@ func Print(format string, args ...interface{}) {
 // Exit prints a formatted message and exits.
 func Exit(format string, args ...interface{}) {
 	Error(format, args...)
+	Cleanup()
 	os.Exit(2)
 }
 
@@ -277,6 +279,7 @@ func LoggedError(err error, format string, args ...interface{}) {
 // a log file before exiting.
 func Panic(err error, format string, args ...interface{}) {
 	LoggedError(err, format, args...)
+	Cleanup()
 	os.Exit(2)
 }
 
