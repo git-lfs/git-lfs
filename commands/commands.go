@@ -288,6 +288,10 @@ func Cleanup() {
 }
 
 func doCleanup() {
+	if err := closeAPIClient(); err != nil {
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error closing API client: %s", err))
+	}
+
 	if err := cfg.Cleanup(); err != nil {
 		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error clearing old temporary files: %s", err))
 	}
