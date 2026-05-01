@@ -35,7 +35,7 @@ jobs:
     - run: choco install -y jq
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+    - uses: git-for-windows/setup-git-for-windows-sdk@v2
       with:
         flavor: minimal
       # We install the SDK so as to have access to the msgfmt.exe binary
