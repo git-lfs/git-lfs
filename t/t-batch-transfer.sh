@@ -190,15 +190,6 @@ assert_ssh_transfer_sessions() {
 
   local expected_ctrl=1
 
-  # On upload we currently spawn one extra control socket SSH connection
-  # to run locking commands and never shut it down cleanly, so our expected
-  # start counts are higher than our expected termination counts.
-  if [ "upload" = "$direction" ]; then
-    (( ++expected_ctrl ))
-    (( ++min_expected_start ))
-    (( ++max_expected_start ))
-  fi
-
   # Versions of Git prior to 2.11.0 invoke Git LFS via the "smudge" filter
   # rather than the "process" filter, so a separate Git LFS process runs for
   # each downloaded object and spawns its own control socket SSH connection.
