@@ -193,7 +193,8 @@ assert_ssh_transfer_sessions() {
   # Versions of Git prior to 2.11.0 invoke Git LFS via the "smudge" filter
   # rather than the "process" filter, so a separate Git LFS process runs for
   # each downloaded object and spawns its own control socket SSH connection.
-  if [ "download" = "$direction" ]; then
+  smudge_count="$(grep -c "exec: .*git-lfs smudge --" "$log")" || true
+  if [ 0 -lt "$smudge_count" ]; then
     gitversion="$(git version | cut -d" " -f3)"
     set +e
     compare_version "$gitversion" '2.11.0'
@@ -356,6 +357,55 @@ begin_test "batch transfers with ssh endpoint and multiple objects exceeding wor
   assert_ssh_transfer_sessions 'clone.log' 'download' 3 2
 
   cd "$reponame-2"
+  git lfs fsck
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint and multiple branches (git-lfs-transfer)"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="batch-ssh-transfer-multiple-branches"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents1="test1"
+  printf "%s" "$contents1" >test1.dat
+  git add .gitattributes test1.dat
+  git commit -m "initial commit"
+
+  git checkout -b second main
+
+  contents2="test2"
+  printf "%s" "$contents2" >test2.dat
+  git add test2.dat
+  git commit -m "second"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  # On Windows we do not multiplex SSH connections by default, so we
+  # enforce their use in order to match other platforms' connection counts.
+  git config --global lfs.ssh.autoMultiplex true
+
+  GIT_TRACE=1 git push --all origin 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'push.log' 'upload' 2 "$expectedConcurrentTransfers"
+  assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
+
+  rm -rf .git/lfs/objects
+
+  GIT_TRACE=1 git lfs fetch --all 2>&1 | tee fetch.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'fetch.log' 'download' 2 "$expectedConcurrentTransfers"
+
   git lfs fsck
 )
 end_test

@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/rubyist/tracerx"
@@ -95,4 +96,20 @@ func (c *Client) initSSHTransfer(operation, remote string) *ssh.SSHTransfer {
 	}
 
 	return sshTransfer
+}
+
+func (c *Client) closeSSHTransfers() error {
+	c.sshTransfersMutex.Lock()
+	defer c.sshTransfersMutex.Unlock()
+
+	var multiErr error
+	for _, sshTransfer := range c.sshTransfers {
+		if sshTransfer != nil {
+			multiErr = errors.Join(multiErr, sshTransfer.Shutdown())
+		}
+	}
+
+	clear(c.sshTransfers)
+
+	return multiErr
 }
