@@ -255,12 +255,16 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'push.log' 'upload' 1 8
   assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'clone.log' 'download' 1 8
 
   cd "$reponame-2"
@@ -295,7 +299,9 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'push.log' 'upload' 3 8
   assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
   assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
@@ -303,6 +309,8 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'clone.log' 'download' 3 8
 
   cd "$reponame-2"
@@ -340,7 +348,9 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
   # Allow no more than two objects to be transferred in each batch.
   git config --global lfs.concurrentTransfers 2
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'push.log' 'upload' 3 2
   assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
   assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
@@ -348,6 +358,8 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'clone.log' 'download' 3 2
 
   cd "$reponame-2"
