@@ -2,6 +2,8 @@
 
 . "$(dirname "$0")/testlib.sh"
 
+setup_expected_concurrent_transfers
+
 begin_test "batch transfer"
 (
   set -e
@@ -179,10 +181,10 @@ assert_ssh_transfer_sessions() {
   local log="$1"
   local direction="$2"
   local num_objs="$3"
-  local objs_per_batch="$4"
+  local max_concurrency="$4"
 
   local min_expected_start=1
-  local max_expected_start=$(( num_objs > objs_per_batch ? objs_per_batch : num_objs ))
+  local max_expected_start=$(( num_objs > max_concurrency ? max_concurrency : num_objs ))
   local min_expected_end=1
   local max_expected_end="$max_expected_start"
 
@@ -258,14 +260,14 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  assert_ssh_transfer_sessions 'push.log' 'upload' 1 8
+  assert_ssh_transfer_sessions 'push.log' 'upload' 1 "$expectedConcurrentTransfers"
   assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  assert_ssh_transfer_sessions 'clone.log' 'download' 1 8
+  assert_ssh_transfer_sessions 'clone.log' 'download' 1 "$expectedConcurrentTransfers"
 
   cd "$reponame-2"
   git lfs fsck
@@ -302,7 +304,7 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  assert_ssh_transfer_sessions 'push.log' 'upload' 3 8
+  assert_ssh_transfer_sessions 'push.log' 'upload' 3 "$expectedConcurrentTransfers"
   assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
   assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
   assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
@@ -311,7 +313,7 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  assert_ssh_transfer_sessions 'clone.log' 'download' 3 8
+  assert_ssh_transfer_sessions 'clone.log' 'download' 3 "$expectedConcurrentTransfers"
 
   cd "$reponame-2"
   git lfs fsck
