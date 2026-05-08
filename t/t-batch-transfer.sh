@@ -318,13 +318,13 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
 )
 end_test
 
-begin_test "batch transfers with ssh endpoint and multiple objects and batches (git-lfs-transfer)"
+begin_test "batch transfers with ssh endpoint and multiple objects exceeding workers (git-lfs-transfer)"
 (
   set -e
 
   setup_pure_ssh
 
-  reponame="batch-ssh-transfer-multiple-batch"
+  reponame="batch-ssh-transfer-multiple-exceeding-workers"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -345,7 +345,7 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  # Allow no more than two objects to be transferred in each batch.
+  # Allow no more than two concurrent workers to transfer objects at once.
   git config --global lfs.concurrentTransfers 2
 
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
