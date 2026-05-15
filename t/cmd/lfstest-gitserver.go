@@ -63,6 +63,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
+		"storage-download-corrupt",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
@@ -795,6 +796,11 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
 			switch oidHandlers[oid] {
+			case "storage-download-corrupt":
+				// Since the object contents are entirely
+				// lowercase we can "invert" the case of each
+				// character just by converting to uppercase.
+				by = bytes.ToUpper(by)
 			case "storage-download-retry-later":
 				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
