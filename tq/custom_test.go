@@ -13,6 +13,7 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.customtransfer.testsimple.path": path,
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testsimple")
@@ -41,6 +42,7 @@ func TestCustomTransferDownloadConfig(t *testing.T) {
 		"lfs.customtransfer.testdownload.concurrent": "false",
 		"lfs.customtransfer.testdownload.direction":  "download",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	u := m.NewUploadAdapter("testdownload")
@@ -66,6 +68,7 @@ func TestCustomTransferUploadConfig(t *testing.T) {
 		"lfs.customtransfer.testupload.concurrent": "false",
 		"lfs.customtransfer.testupload.direction":  "upload",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testupload")
@@ -91,6 +94,7 @@ func TestCustomTransferBothConfig(t *testing.T) {
 		"lfs.customtransfer.testboth.concurrent": "yes",
 		"lfs.customtransfer.testboth.direction":  "both",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	d := m.NewDownloadAdapter("testboth")
