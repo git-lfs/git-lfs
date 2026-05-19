@@ -89,7 +89,11 @@ func closeAPIClient() error {
 	if apiClient == nil {
 		return nil
 	}
-	return apiClient.Close()
+
+	err := apiClient.Close()
+	apiClient = nil
+
+	return err
 }
 
 func newLockClient() *locking.Client {
