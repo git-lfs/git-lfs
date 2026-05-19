@@ -65,8 +65,11 @@ func (c *Client) SSHTransfer(operation, remote string) *ssh.SSHTransfer {
 
 	sshTransfer, ok := c.sshTransfers[k]
 	if !ok {
-		sshTransfer = c.initSSHTransfer(operation, remote)
-		c.sshTransfers[k] = sshTransfer
+		var err error
+		sshTransfer, err = c.initSSHTransfer(operation, remote)
+		if err == nil {
+			c.sshTransfers[k] = sshTransfer
+		}
 	}
 
 	return sshTransfer
@@ -75,16 +78,16 @@ func (c *Client) SSHTransfer(operation, remote string) *ssh.SSHTransfer {
 // initSSHTransfer returns either an suitable transfer object or nil if the
 // server is not using an SSH remote or the git-lfs-transfer style of SSH
 // remote.
-func (c *Client) initSSHTransfer(operation, remote string) *ssh.SSHTransfer {
+func (c *Client) initSSHTransfer(operation, remote string) (*ssh.SSHTransfer, error) {
 	endpoint := c.Endpoints.Endpoint(operation, remote)
 	if len(endpoint.SSHMetadata.UserAndHost) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	uc := config.NewURLConfig(c.context.GitEnv())
 	if val, ok := uc.Get("lfs", endpoint.OriginalUrl, "sshtransfer"); ok && val != "negotiate" && val != "always" {
 		tracerx.Printf("skipping pure SSH protocol connection by request (%s, %s)", operation, remote)
-		return nil
+		return nil, nil
 	}
 
 	ctx := c.Context()
@@ -92,10 +95,10 @@ func (c *Client) initSSHTransfer(operation, remote string) *ssh.SSHTransfer {
 	sshTransfer, err := ssh.NewSSHTransfer(ctx.OSEnv(), ctx.GitEnv(), &endpoint.SSHMetadata, operation)
 	if err != nil {
 		tracerx.Printf("pure SSH protocol connection failed (%s, %s): %s", operation, remote, err)
-		return nil
+		return nil, err
 	}
 
-	return sshTransfer
+	return sshTransfer, nil
 }
 
 func (c *Client) closeSSHTransfers() error {
