@@ -72,6 +72,7 @@ func fileUrlFromRemote(cfg *config.Configuration, name string, direction string)
 	}
 
 	apiClient := lfsapi.NewClient(cfg)
+	defer apiClient.Close()
 
 	for _, remote := range cfg.Remotes() {
 		if remote != name {

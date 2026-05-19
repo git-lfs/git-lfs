@@ -4,15 +4,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestManifestDefaultsToFixedRetries(t *testing.T) {
-	assert.Equal(t, 8, NewManifest(nil, nil, "", "").MaxRetries())
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	assert.Equal(t, 8, NewManifest(nil, cli, "", "").MaxRetries())
 }
 
 func TestManifestDefaultsToFixedRetryDelay(t *testing.T) {
-	assert.Equal(t, 10, NewManifest(nil, nil, "", "").MaxRetryDelay())
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	assert.Equal(t, 10, NewManifest(nil, cli, "", "").MaxRetryDelay())
 }
 
 func TestRetryCounterDefaultsToFixedRetries(t *testing.T) {
@@ -75,15 +82,21 @@ func TestRetryCounterLimitsDelay(t *testing.T) {
 }
 
 func TestBatchSizeReturnsBatchSize(t *testing.T) {
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
 	q := NewTransferQueue(
-		Upload, NewManifest(nil, nil, "", ""), "origin", WithBatchSize(3))
+		Upload, NewManifest(nil, cli, "", ""), "origin", WithBatchSize(3))
 
 	assert.Equal(t, 3, q.BatchSize())
 }
 
 func TestUseAdapterReusesWhenNameMatches(t *testing.T) {
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
 	q := NewTransferQueue(
-		Download, NewManifest(nil, nil, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin")
 
 	// Set an initial adapter.
 	q.useAdapter("basic")
@@ -97,8 +110,11 @@ func TestUseAdapterReusesWhenNameMatches(t *testing.T) {
 }
 
 func TestUseAdapterReusesWhenNameIsEmpty(t *testing.T) {
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
 	q := NewTransferQueue(
-		Download, NewManifest(nil, nil, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin")
 
 	q.useAdapter("basic")
 	first := q.adapter
@@ -111,8 +127,11 @@ func TestUseAdapterReusesWhenNameIsEmpty(t *testing.T) {
 }
 
 func TestUseAdapterSwitchesFromNonDefaultWhenNameIsEmpty(t *testing.T) {
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
 	q := NewTransferQueue(
-		Download, NewManifest(nil, nil, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin")
 
 	q.useAdapter("ssh")
 	first := q.adapter
@@ -127,8 +146,11 @@ func TestUseAdapterSwitchesFromNonDefaultWhenNameIsEmpty(t *testing.T) {
 }
 
 func TestUseAdapterSwitchesWhenNameDiffers(t *testing.T) {
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
 	q := NewTransferQueue(
-		Download, NewManifest(nil, nil, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin")
 
 	q.useAdapter("basic")
 	first := q.adapter

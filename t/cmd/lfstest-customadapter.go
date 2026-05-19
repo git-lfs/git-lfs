@@ -30,6 +30,7 @@ func main() {
 	writer := bufio.NewWriter(os.Stdout)
 	errWriter := bufio.NewWriter(os.Stderr)
 	apiClient := lfsapi.NewClient(cfg)
+	defer apiClient.Close()
 
 	for scanner.Scan() {
 		line := scanner.Text()

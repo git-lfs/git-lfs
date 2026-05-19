@@ -152,7 +152,6 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 	}
 
 	err := root.Execute()
-	closeAPIClient()
 
 	if err != nil {
 		return 127

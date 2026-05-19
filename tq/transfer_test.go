@@ -41,7 +41,10 @@ func newRenamedTestAdapter(name string, dir Direction) Adapter {
 }
 
 func TestBasicAdapterExists(t *testing.T) {
-	m := NewManifest(nil, nil, "", "")
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	m := NewManifest(nil, cli, "", "")
 
 	assert := assert.New(t)
 
@@ -68,7 +71,10 @@ func TestBasicAdapterExists(t *testing.T) {
 }
 
 func TestAdapterRegAndOverride(t *testing.T) {
-	m := NewManifest(nil, nil, "", "")
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	m := NewManifest(nil, cli, "", "")
 	assert := assert.New(t)
 
 	assert.Nil(m.NewAdapter("test", Download))
@@ -144,6 +150,7 @@ func TestAdapterRegButBasicOnly(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.basictransfersonly": "yes",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 

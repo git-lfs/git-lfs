@@ -190,10 +190,6 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 }
 
 func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *concreteManifest {
-	if apiClient == nil {
-		apiClient = lfsapi.NewClient(nil)
-	}
-
 	sshTransfer := apiClient.SSHTransfer(operation, remote)
 	useSSHMultiplexing := false
 	if sshTransfer != nil {

@@ -167,7 +167,7 @@ func (st *SSHTransfer) setConnectionCount(n int) error {
 		}
 		for i, item := range st.conn[tn:count] {
 			if item == nil {
-				tracerx.Printf("skipping uninitialized lazy pure SSH connection (#%d) (resetting total from %d to %d)", i, count, n)
+				tracerx.Printf("skipping uninitialized lazy pure SSH connection (#%d) (resetting total from %d to %d)", tn+i, count, n)
 				continue
 			}
 			tracerx.Printf("terminating pure SSH connection (#%d) (resetting total from %d to %d)", tn+i, count, n)
