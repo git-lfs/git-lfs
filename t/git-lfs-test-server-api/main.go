@@ -72,10 +72,8 @@ func testServerApi(cmd *cobra.Command, args []string) {
 	repo.Pushd()
 	defer repo.Popd()
 
-	manifest, err := buildManifest(repo)
-	if err != nil {
-		exit("error building tq.Manifest: %s", err.Error())
-	}
+	apiClient, manifest := buildManifest(repo)
+	defer apiClient.Close()
 
 	var oidsExist, oidsMissing []TestObject
 	if len(args) >= 2 {
@@ -138,7 +136,7 @@ func (*testDataCallback) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 
-func buildManifest(r *t.Repo) (tq.Manifest, error) {
+func buildManifest(r *t.Repo) (*lfsapi.Client, tq.Manifest) {
 	// Configure the endpoint manually
 	finder := lfsapi.NewEndpointFinder(r)
 
@@ -154,7 +152,7 @@ func buildManifest(r *t.Repo) (tq.Manifest, error) {
 		e:              endp,
 		EndpointFinder: apiClient.Endpoints,
 	}
-	return tq.NewManifest(r.Filesystem(), apiClient, "", ""), nil
+	return apiClient, tq.NewManifest(r.Filesystem(), apiClient, "", "")
 }
 
 type constantEndpoint struct {

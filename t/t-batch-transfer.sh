@@ -2,6 +2,8 @@
 
 . "$(dirname "$0")/testlib.sh"
 
+setup_expected_concurrent_transfers
+
 begin_test "batch transfer"
 (
   set -e
@@ -179,28 +181,20 @@ assert_ssh_transfer_sessions() {
   local log="$1"
   local direction="$2"
   local num_objs="$3"
-  local objs_per_batch="$4"
+  local max_concurrency="$4"
 
   local min_expected_start=1
-  local max_expected_start=$(( num_objs > objs_per_batch ? objs_per_batch : num_objs ))
+  local max_expected_start=$(( num_objs > max_concurrency ? max_concurrency : num_objs ))
   local min_expected_end=1
   local max_expected_end="$max_expected_start"
 
   local expected_ctrl=1
 
-  # On upload we currently spawn one extra control socket SSH connection
-  # to run locking commands and never shut it down cleanly, so our expected
-  # start counts are higher than our expected termination counts.
-  if [ "upload" = "$direction" ]; then
-    (( ++expected_ctrl ))
-    (( ++min_expected_start ))
-    (( ++max_expected_start ))
-  fi
-
   # Versions of Git prior to 2.11.0 invoke Git LFS via the "smudge" filter
   # rather than the "process" filter, so a separate Git LFS process runs for
   # each downloaded object and spawns its own control socket SSH connection.
-  if [ "download" = "$direction" ]; then
+  smudge_count="$(grep -c "exec: .*git-lfs smudge --" "$log")" || true
+  if [ 0 -lt "$smudge_count" ]; then
     gitversion="$(git version | cut -d" " -f3)"
     set +e
     compare_version "$gitversion" '2.11.0'
@@ -255,13 +249,17 @@ begin_test "batch transfers with ssh endpoint (git-lfs-transfer)"
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
-  assert_ssh_transfer_sessions 'push.log' 'upload' 1 8
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'push.log' 'upload' 1 "$expectedConcurrentTransfers"
   assert_remote_object "$reponame" "$(calc_oid "$contents")" "${#contents}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
-  assert_ssh_transfer_sessions 'clone.log' 'download' 1 8
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'clone.log' 'download' 1 "$expectedConcurrentTransfers"
 
   cd "$reponame-2"
   git lfs fsck
@@ -295,28 +293,32 @@ begin_test "batch transfers with ssh endpoint and multiple objects (git-lfs-tran
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
-  assert_ssh_transfer_sessions 'push.log' 'upload' 3 8
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'push.log' 'upload' 3 "$expectedConcurrentTransfers"
   assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
   assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
   assert_remote_object "$reponame" "$(calc_oid "$contents3")" "${#contents3}"
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
-  assert_ssh_transfer_sessions 'clone.log' 'download' 3 8
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'clone.log' 'download' 3 "$expectedConcurrentTransfers"
 
   cd "$reponame-2"
   git lfs fsck
 )
 end_test
 
-begin_test "batch transfers with ssh endpoint and multiple objects and batches (git-lfs-transfer)"
+begin_test "batch transfers with ssh endpoint and multiple objects exceeding workers (git-lfs-transfer)"
 (
   set -e
 
   setup_pure_ssh
 
-  reponame="batch-ssh-transfer-multiple-batch"
+  reponame="batch-ssh-transfer-multiple-exceeding-workers"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -337,10 +339,12 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
   # enforce their use in order to match other platforms' connection counts.
   git config --global lfs.ssh.autoMultiplex true
 
-  # Allow no more than two objects to be transferred in each batch.
+  # Allow no more than two concurrent workers to transfer objects at once.
   git config --global lfs.concurrentTransfers 2
 
-  GIT_TRACE=1 git push origin main >push.log 2>&1
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'push.log' 'upload' 3 2
   assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
   assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
@@ -348,9 +352,60 @@ begin_test "batch transfers with ssh endpoint and multiple objects and batches (
 
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee clone.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
   assert_ssh_transfer_sessions 'clone.log' 'download' 3 2
 
   cd "$reponame-2"
+  git lfs fsck
+)
+end_test
+
+begin_test "batch transfers with ssh endpoint and multiple branches (git-lfs-transfer)"
+(
+  set -e
+
+  setup_pure_ssh
+
+  reponame="batch-ssh-transfer-multiple-branches"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents1="test1"
+  printf "%s" "$contents1" >test1.dat
+  git add .gitattributes test1.dat
+  git commit -m "initial commit"
+
+  git checkout -b second main
+
+  contents2="test2"
+  printf "%s" "$contents2" >test2.dat
+  git add test2.dat
+  git commit -m "second"
+
+  sshurl=$(ssh_remote "$reponame")
+  git config lfs.url "$sshurl"
+
+  # On Windows we do not multiplex SSH connections by default, so we
+  # enforce their use in order to match other platforms' connection counts.
+  git config --global lfs.ssh.autoMultiplex true
+
+  GIT_TRACE=1 git push --all origin 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'push.log' 'upload' 2 "$expectedConcurrentTransfers"
+  assert_remote_object "$reponame" "$(calc_oid "$contents1")" "${#contents1}"
+  assert_remote_object "$reponame" "$(calc_oid "$contents2")" "${#contents2}"
+
+  rm -rf .git/lfs/objects
+
+  GIT_TRACE=1 git lfs fetch --all 2>&1 | tee fetch.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_ssh_transfer_sessions 'fetch.log' 'download' 2 "$expectedConcurrentTransfers"
+
   git lfs fsck
 )
 end_test

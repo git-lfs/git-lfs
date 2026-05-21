@@ -991,14 +991,6 @@ func (q *TransferQueue) Wait() {
 	q.meter.Flush()
 	q.errorwait.Wait()
 
-	if q.manifest.Upgraded() {
-		manifest := q.manifest.Upgrade()
-		if manifest.sshTransfer != nil {
-			manifest.sshTransfer.Shutdown()
-			manifest.sshTransfer = nil
-		}
-	}
-
 	if q.unsupportedContentType {
 		fmt.Fprintln(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).
 info: Consider disabling Content-Type detection with:
