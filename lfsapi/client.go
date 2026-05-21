@@ -6,6 +6,7 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/creds"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 )
 
@@ -51,5 +52,5 @@ func (c *Client) LogHTTPStats(w io.WriteCloser) {
 }
 
 func (c *Client) Close() error {
-	return c.client.Close()
+	return errors.Join(c.closeSSHTransfers(), c.client.Close())
 }
