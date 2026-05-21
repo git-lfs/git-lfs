@@ -10,11 +10,10 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyWithoutAction(t *testing.T) {
-	c, _ := lfsapi.NewClient(nil)
+	c := lfsapi.NewClient(nil)
 	tr := &Transfer{
 		Oid:  "abc",
 		Size: 123,
@@ -48,12 +47,12 @@ func TestVerifySuccess(t *testing.T) {
 	// Set auth on the server URL but not on the /verify endpoint. Since auth
 	// will cause the request to fail, this will test that the correct access
 	// mode is being passed to `DoWithAuth()`
-	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	c := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxverifies":          "1",
 		"lfs." + srv.URL + ".access":        "Basic",
 		"lfs." + srv.URL + "/verify.access": "None",
 	}))
-	require.Nil(t, err)
+
 	tr := &Transfer{
 		Oid:  "abcd1234",
 		Size: 123,

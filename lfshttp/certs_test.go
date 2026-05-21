@@ -67,13 +67,12 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	// Test http.<url>.sslcainfo
 	for _, hostName := range sslCAInfoConfigHostNames {
 		hostKey := fmt.Sprintf("http.https://%v.sslcainfo", hostName)
-		c, err := NewClient(NewContext(nil, nil, map[string]string{
+		c := NewClient(NewContext(nil, nil, map[string]string{
 			hostKey: tempfile.Name(),
 		}))
-		assert.Nil(t, err)
 
 		for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-			pool := getRootCAsForHost(c, matchedHostTest.hostName)
+			pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 
 			var shouldOrShouldnt string
 			if matchedHostTest.shouldMatch {
@@ -89,14 +88,13 @@ func TestCertFromSSLCAInfoConfig(t *testing.T) {
 	}
 
 	// Test http.sslcainfo
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslcainfo": tempfile.Name(),
 	}))
-	assert.Nil(t, err)
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -110,14 +108,13 @@ func TestCertFromSSLCAInfoEnv(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAINFO": tempfile.Name(),
 	}, nil))
-	assert.Nil(t, err)
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -131,16 +128,15 @@ func TestCertFromSSLCAInfoEnvIsIgnoredForSchannelBackend(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAINFO": tempfile.Name(),
 	}, map[string]string{
 		"http.sslbackend": "schannel",
 	}))
-	assert.Nil(t, err)
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.Nil(t, pool)
 	}
 }
@@ -154,17 +150,16 @@ func TestCertFromSSLCAInfoEnvWithSchannelBackend(t *testing.T) {
 	assert.Nil(t, err, "Error writing temp cert file")
 	tempfile.Close()
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAINFO": tempfile.Name(),
 	}, map[string]string{
 		"http.sslbackend":           "schannel",
 		"http.schannelusesslcainfo": "1",
 	}))
-	assert.Nil(t, err)
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -175,15 +170,13 @@ func TestCertFromSSLCAPathConfig(t *testing.T) {
 	err := os.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslcapath": tempdir,
 	}))
 
-	assert.Nil(t, err)
-
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
@@ -194,31 +187,28 @@ func TestCertFromSSLCAPathEnv(t *testing.T) {
 	err := os.WriteFile(filepath.Join(tempdir, "cert1.pem"), []byte(testCert), 0644)
 	assert.Nil(t, err, "Error creating cert file")
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_CAPATH": tempdir,
 	}, nil))
-	assert.Nil(t, err)
 
 	// Should match any host at all
 	for _, matchedHostTest := range sslCAInfoMatchedHostTests {
-		pool := getRootCAsForHost(c, matchedHostTest.hostName)
+		pool := getRootCAsForHostFromGitconfig(c, matchedHostTest.hostName)
 		assert.NotNil(t, pool)
 	}
 }
 
 func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
-	empty, _ := NewClient(nil)
+	empty := NewClient(nil)
 	httpClient := clientForHost(empty, "anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(nil, map[string]string{
+	c := NewClient(NewContext(nil, map[string]string{
 		"GIT_SSL_NO_VERIFY": "1",
 	}, nil))
-
-	assert.Nil(t, err)
 
 	httpClient = clientForHost(c, "anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
@@ -228,17 +218,16 @@ func TestCertVerifyDisabledGlobalEnv(t *testing.T) {
 }
 
 func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
-	def, _ := NewClient(nil)
+	def := NewClient(nil)
 	httpClient := clientForHost(def, "anyhost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"http.sslverify": "false",
 	}))
-	assert.Nil(t, err)
 
 	httpClient = clientForHost(c, "anyhost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)
@@ -248,7 +237,7 @@ func TestCertVerifyDisabledGlobalConfig(t *testing.T) {
 }
 
 func TestCertVerifyDisabledHostConfig(t *testing.T) {
-	def, _ := NewClient(nil)
+	def := NewClient(nil)
 	httpClient := clientForHost(def, "specifichost.com")
 	tr, ok := httpClient.Transport.(*http.Transport)
 	if assert.True(t, ok) {
@@ -261,10 +250,9 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"http.https://specifichost.com/.sslverify": "false",
 	}))
-	assert.Nil(t, err)
 
 	httpClient = clientForHost(c, "specifichost.com")
 	tr, ok = httpClient.Transport.(*http.Transport)

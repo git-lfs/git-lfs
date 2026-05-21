@@ -29,6 +29,7 @@ func locksCommand(cmd *cobra.Command, args []string) {
 
 	if len(lockRemote) > 0 {
 		cfg.SetRemote(lockRemote)
+		cfg.SetPushRemote(lockRemote)
 	}
 
 	refUpdate := git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil)

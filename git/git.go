@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -128,12 +129,7 @@ func (r *Ref) Refspec() string {
 // HasValidObjectIDLength returns true if `s` has a length that is a valid
 // hexadecimal Git object ID length.
 func HasValidObjectIDLength(s string) bool {
-	for _, length := range ObjectIDLengths {
-		if len(s) == length {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ObjectIDLengths, len(s))
 }
 
 // IsZeroObjectID returns true if the string is a valid hexadecimal Git object
@@ -235,6 +231,10 @@ func gitBufferedStdout(args ...string) (*subprocess.BufferedCmd, error) {
 
 func CatFile() (*subprocess.BufferedCmd, error) {
 	return gitNoLFSBuffered("cat-file", "--batch-check")
+}
+
+func Var(name string) (*subprocess.Cmd, error) {
+	return gitNoLFS("var", name)
 }
 
 func DiffIndex(ref string, cached bool, refresh bool, workingDir string) (*bufio.Scanner, error) {
@@ -545,25 +545,23 @@ func LocalRefs() ([]*Ref, error) {
 // reflog entry, if a "reason" was provided). It returns an error if any were
 // encountered.
 func UpdateRef(ref *Ref, to []byte, reason string) error {
-	return UpdateRefIn("", ref, to, reason)
-}
-
-// UpdateRef moves the given ref to a new sha with a given reason (and creates a
-// reflog entry, if a "reason" was provided). It operates within the given
-// working directory "wd". It returns an error if any were encountered.
-func UpdateRefIn(wd string, ref *Ref, to []byte, reason string) error {
 	args := []string{"update-ref", ref.Refspec(), hex.EncodeToString(to)}
 	if len(reason) > 0 {
 		args = append(args, "-m", reason)
 	}
 
-	cmd, err := gitNoLFS(args...)
-	if err != nil {
-		return errors.New(tr.Tr.Get("failed to find `git update-ref`: %v", err))
-	}
-	cmd.Dir = wd
+	_, err := gitNoLFSSimple(args...)
+	return err
+}
 
-	return cmd.Run()
+// UpdateRefsFromStdinInDir initializes a "git update-ref" command which will
+// read a series of reference update instructions from standard input and
+// execute them. The command will operate within the given working
+// directory "wd". The instructions should follow the NUL-terminated format.
+func UpdateRefsFromStdin(wd string) (*subprocess.Cmd, error) {
+	cmd, err := gitNoLFS("update-ref", "--stdin", "-z")
+	cmd.Dir = wd
+	return cmd, err
 }
 
 // ValidateRemote checks that a named remote is valid for use
@@ -580,10 +578,8 @@ func ValidateRemote(remote string) error {
 // RemoteList.  This is completely identical to ValidateRemote, except that it
 // allows caching the remote list.
 func ValidateRemoteFromList(remotes []string, remote string) error {
-	for _, r := range remotes {
-		if r == remote {
-			return nil
-		}
+	if slices.Contains(remotes, remote) {
+		return nil
 	}
 
 	if err := ValidateRemoteURL(remote); err == nil {
@@ -1368,15 +1364,14 @@ func CachedRemoteRefs(remoteName string) ([]*Ref, error) {
 
 func parseShowRefLine(refPrefix, line string) (sha, name string, ok bool) {
 	// line format: <sha> <space> <ref>
-	space := strings.IndexByte(line, ' ')
-	if space < 0 {
+	sha, ref, found := strings.Cut(line, " ")
+	if !found {
 		return "", "", false
 	}
-	ref := line[space+1:]
 	if !strings.HasPrefix(ref, refPrefix) {
 		return "", "", false
 	}
-	return line[:space], strings.TrimSpace(ref[len(refPrefix):]), true
+	return sha, strings.TrimSpace(ref[len(refPrefix):]), true
 }
 
 // Fetch performs a fetch with no arguments against the given remotes.
@@ -1442,11 +1437,10 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	const tagPrefix = "refs/tags/"
 
 	// line format: <sha> <tab> <ref>
-	tab := strings.IndexByte(line, '\t')
-	if tab < 0 {
+	sha, ref, found := strings.Cut(line, "\t")
+	if !found {
 		return "", "", "", false
 	}
-	ref := line[tab+1:]
 	switch {
 	case strings.HasPrefix(ref, headPrefix):
 		ns = "heads"
@@ -1457,7 +1451,7 @@ func parseLsRemoteLine(line string) (sha, ns, name string, ok bool) {
 	default:
 		return "", "", "", false
 	}
-	return line[:tab], ns, strings.TrimSpace(name), true
+	return sha, ns, strings.TrimSpace(name), true
 }
 
 // AllRefs returns a slice of all references in a Git repository in the current

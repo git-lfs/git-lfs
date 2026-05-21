@@ -7,14 +7,14 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/fs"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/rubyist/tracerx"
 )
 
 const (
-	defaultMaxRetries          = 8
-	defaultMaxRetryDelay       = 10
-	defaultConcurrentTransfers = 8
+	defaultMaxRetries    = 8
+	defaultMaxRetryDelay = 10
 )
 
 type Manifest interface {
@@ -42,6 +42,7 @@ type lazyManifest struct {
 	apiClient *lfsapi.Client
 	operation string
 	remote    string
+	mu        sync.Mutex
 	m         *concreteManifest
 }
 
@@ -116,6 +117,8 @@ func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.m == nil {
 		m.m = newConcreteManifest(m.f, m.apiClient, m.operation, m.remote)
 	}
@@ -123,6 +126,8 @@ func (m *lazyManifest) Upgrade() *concreteManifest {
 }
 
 func (m *lazyManifest) Upgraded() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.m != nil
 }
 
@@ -185,15 +190,6 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 }
 
 func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *concreteManifest {
-	if apiClient == nil {
-		cli, err := lfsapi.NewClient(nil)
-		if err != nil {
-			tracerx.Printf("unable to init tq.Manifest: %s", err)
-			return nil
-		}
-		apiClient = cli
-	}
-
 	sshTransfer := apiClient.SSHTransfer(operation, remote)
 	useSSHMultiplexing := false
 	if sshTransfer != nil {
@@ -236,15 +232,16 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	if m.concurrentTransfers < 1 {
-		m.concurrentTransfers = defaultConcurrentTransfers
+		m.concurrentTransfers = lfshttp.DefaultConcurrentTransfers()
 	}
 
 	if sshTransfer != nil {
+		// Multiple concurrent transfers are not supported
+		// when SSH multiplexing is disabled.
 		if !useSSHMultiplexing {
 			m.concurrentTransfers = 1
 		}
 
-		// Multiple concurrent transfers are not yet supported.
 		m.batchClientAdapter = &SSHBatchClient{
 			maxRetries: m.maxRetries,
 			transfer:   sshTransfer,

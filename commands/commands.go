@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,10 @@ import (
 // Populate man pages
 //go:generate go run ../docs/man/mangen.go
 
+const (
+	defaultFilepathFilterCacheSize = 10000
+)
+
 var (
 	ErrorBuffer  = &bytes.Buffer{}
 	ErrorWriter  = newMultiWriter(os.Stderr, ErrorBuffer)
@@ -34,9 +39,10 @@ var (
 	ManPages     = make(map[string]string, 20)
 	tqManifest   = make(map[string]tq.Manifest)
 
-	cfg       *config.Configuration
-	apiClient *lfsapi.Client
-	global    sync.Mutex
+	cfg         *config.Configuration
+	apiClient   *lfsapi.Client
+	global      sync.Mutex
+	cleanupOnce sync.Once
 
 	oldEnv = make(map[string]string)
 
@@ -72,11 +78,7 @@ func getAPIClient() *lfsapi.Client {
 	defer global.Unlock()
 
 	if apiClient == nil {
-		c, err := lfsapi.NewClient(cfg)
-		if err != nil {
-			ExitWithError(err)
-		}
-		apiClient = c
+		apiClient = lfsapi.NewClient(cfg)
 	}
 	return apiClient
 }
@@ -87,15 +89,18 @@ func closeAPIClient() error {
 	if apiClient == nil {
 		return nil
 	}
-	return apiClient.Close()
+
+	err := apiClient.Close()
+	apiClient = nil
+
+	return err
 }
 
 func newLockClient() *locking.Client {
-	lockClient, err := locking.NewClient(cfg.PushRemote(), getAPIClient(), cfg)
-	if err == nil {
-		tools.MkdirAll(cfg.LFSStorageDir(), cfg)
-		err = lockClient.SetupFileCache(cfg.LFSStorageDir())
-	}
+	lockClient := locking.NewClient(cfg.PushRemote(), getAPIClient(), cfg)
+
+	tools.MkdirAll(cfg.LFSStorageDir(), cfg)
+	err := lockClient.SetupFileCache(cfg.LFSStorageDir())
 
 	if err != nil {
 		Exit(tr.Tr.Get("Unable to create lock system: %v", err.Error()))
@@ -119,12 +124,19 @@ func newDownloadCheckQueue(manifest tq.Manifest, remote string, options ...tq.Op
 // newDownloadQueue builds a DownloadQueue, allowing concurrent downloads.
 func newDownloadQueue(manifest tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
 	return tq.NewTransferQueue(tq.Download, manifest, remote, append(options,
-		tq.RemoteRef(currentRemoteRef()),
+		tq.RemoteRef(fetchRemoteRef()),
 		tq.WithBatchSize(cfg.TransferBatchSize()),
 	)...)
 }
 
-func currentRemoteRef() *git.Ref {
+// fetchRemoteRef returns the remote ref for download operations by looking up
+// the upstream tracking branch for the current local ref. Unlike pushRemoteRef,
+// this does not use push.default logic, which is not meaningful for fetches.
+func fetchRemoteRef() *git.Ref {
+	return git.TrackingRef(cfg.Git, cfg.CurrentRef())
+}
+
+func pushRemoteRef() *git.Ref {
 	return git.NewRefUpdate(cfg.Git, cfg.PushRemote(), cfg.CurrentRef(), nil).RemoteRef()
 }
 
@@ -134,7 +146,7 @@ func buildFilepathFilter(config *config.Configuration, includeArg, excludeArg *s
 
 func buildFilepathFilterWithPatternType(config *config.Configuration, includeArg, excludeArg *string, useFetchOptions bool, patternType filepathfilter.PatternType) *filepathfilter.Filter {
 	inc, exc := determineIncludeExcludePaths(config, includeArg, excludeArg, useFetchOptions)
-	return filepathfilter.New(inc, exc, patternType)
+	return filepathfilter.New(inc, exc, patternType, config.Git, determineFilepathFilterCache(config))
 }
 
 func downloadTransfer(p *lfs.WrappedPointer) (name, path, oid string, size int64, missing bool, err error) {
@@ -196,6 +208,12 @@ func uninstallHooks() error {
 	return nil
 }
 
+// ExitWithCode exits immediately with the given code.
+func ExitWithCode(code int) {
+	Cleanup()
+	os.Exit(code)
+}
+
 // Error prints a formatted message to Stderr.  It also gets printed to the
 // panic log if one is created for this command.
 func Error(format string, args ...interface{}) {
@@ -219,6 +237,7 @@ func Print(format string, args ...interface{}) {
 // Exit prints a formatted message and exits.
 func Exit(format string, args ...interface{}) {
 	Error(format, args...)
+	Cleanup()
 	os.Exit(2)
 }
 
@@ -264,10 +283,19 @@ func LoggedError(err error, format string, args ...interface{}) {
 // a log file before exiting.
 func Panic(err error, format string, args ...interface{}) {
 	LoggedError(err, format, args...)
+	Cleanup()
 	os.Exit(2)
 }
 
 func Cleanup() {
+	cleanupOnce.Do(doCleanup)
+}
+
+func doCleanup() {
+	if err := closeAPIClient(); err != nil {
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error closing API client: %s", err))
+	}
+
 	if err := cfg.Cleanup(); err != nil {
 		fmt.Fprintln(os.Stderr, tr.Tr.Get("Error clearing old temporary files: %s", err))
 	}
@@ -285,14 +313,14 @@ func requireStdin(msg string) {
 
 	if len(out) > 0 {
 		Error(out)
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 }
 
 func requireInRepo() {
 	if !cfg.InRepo() {
 		Print(tr.Tr.Get("Not in a Git repository."))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 
@@ -302,7 +330,7 @@ func requireInRepo() {
 func requireWorkingCopy() {
 	if cfg.LocalWorkingDir() == "" {
 		Print(tr.Tr.Get("This operation must be run in a work tree."))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 
@@ -327,7 +355,7 @@ func verifyRepositoryVersion() {
 		cfg.SetGitLocalKey(key, "0")
 	} else if val != "0" {
 		Print(tr.Tr.Get("Unknown repository format version: %s", val))
-		os.Exit(128)
+		ExitWithCode(128)
 	}
 }
 
@@ -523,6 +551,29 @@ func determineIncludeExcludePaths(config *config.Configuration, includeArg, excl
 	return
 }
 
+func determineFilepathFilterCache(config *config.Configuration) filepathfilter.Option {
+	cacheSize := defaultFilepathFilterCacheSize
+
+	if configSize, ok := config.Git.Get("lfs.pathfiltercachesize"); ok {
+		switch configSize {
+		case "none":
+			return filepathfilter.DisableCache()
+		case "unlimited":
+			cacheSize = 0
+		default:
+			if s, err := strconv.Atoi(configSize); err == nil {
+				if s == 0 {
+					return filepathfilter.DisableCache()
+				} else if s > 0 {
+					cacheSize = s
+				}
+			}
+		}
+	}
+
+	return filepathfilter.EnableCache(cacheSize)
+}
+
 func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 	m := tq.NewMeter(cfg)
 	m.Logger = m.LoggerFromEnv(cfg.Os)
@@ -532,7 +583,7 @@ func buildProgressMeter(dryRun bool, d tq.Direction) *tq.Meter {
 }
 
 func requireGitVersion() {
-	minimumGit := "1.8.2"
+	minimumGit := "2.0.0"
 
 	if !git.IsGitVersionAtLeast(minimumGit) {
 		gitver, err := git.Version()

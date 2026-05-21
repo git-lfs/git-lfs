@@ -99,42 +99,6 @@ type PathConverter interface {
 	Convert(string) string
 }
 
-// Convert filenames expressed relative to the root of the repo relative to the
-// current working dir. Useful when needing to calling git with results from a rooted command,
-// but the user is in a subdir of their repo
-func NewRepoToCurrentPathConverter(cfg *config.Configuration) (PathConverter, error) {
-	r, c, p, err := pathConverterArgs(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &repoToCurrentPathConverter{
-		repoDir:     r,
-		currDir:     c,
-		passthrough: p,
-	}, nil
-}
-
-type repoToCurrentPathConverter struct {
-	repoDir     string
-	currDir     string
-	passthrough bool
-}
-
-func (p *repoToCurrentPathConverter) Convert(filename string) string {
-	if p.passthrough {
-		return filename
-	}
-
-	abs := join(p.repoDir, filename)
-	rel, err := filepath.Rel(p.currDir, abs)
-	if err != nil {
-		// Use absolute file instead
-		return abs
-	}
-	return filepath.ToSlash(rel)
-}
-
 // Convert filenames expressed relative to the current directory to be
 // relative to the repo root. Useful when calling git with arguments that requires them
 // to be rooted but the user is in a subdir of their repo & expects to use relative args

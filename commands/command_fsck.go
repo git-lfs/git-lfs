@@ -97,7 +97,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if fsckDryRun || len(corruptOids) == 0 {
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	badDir := filepath.Join(cfg.LFSStorageDir(), "bad")
@@ -120,7 +120,7 @@ func fsckCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(err)
 		}
 	}
-	os.Exit(1)
+	ExitWithCode(1)
 }
 
 // doFsckObjects checks that the objects in the given ref are correct and exist.
@@ -145,7 +145,7 @@ func doFsckObjects(include, exclude string, useIndex bool) []string {
 	// objects), the "missing" ones will fail the fsck.
 	//
 	// Attach a filepathfilter to avoid _only_ the excluded paths.
-	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
+	gitscanner.Filter = filepathfilter.New(nil, cfg.FetchExcludePaths(), filepathfilter.GitIgnore, cfg.Git)
 
 	if exclude == "" {
 		if err := gitscanner.ScanRef(include, nil); err != nil {

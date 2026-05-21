@@ -160,7 +160,7 @@ func IsDownloadDeclinedError(err error) bool {
 	return false
 }
 
-// IsDownloadDeclinedError indicates that the upload operation failed because of
+// IsUnprocessableEntityError indicates that the upload operation failed because of
 // an HTTP 422 response code.
 func IsUnprocessableEntityError(err error) bool {
 	if e, ok := err.(interface {

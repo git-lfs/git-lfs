@@ -28,7 +28,7 @@ begin_test "credentials with url-specific helper skips askpass"
   # askpass is skipped
   GIT_ASKPASS="lfs-bad-cmd" GIT_TRACE=1 git push origin main 2>&1 | tee push.log
 
-  [ "0" -eq "$(grep "filling with GIT_ASKPASS" push.log | wc -l)" ]
+  [ 0 -eq "$(grep -c "filling with GIT_ASKPASS" push.log)" ]
 )
 end_test
 
@@ -57,15 +57,15 @@ begin_test "credentials without useHttpPath, with bad path password"
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   echo "credential calls have no path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep "no-httppath-bad-password" | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c "no-httppath-bad-password")" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep '", "")' | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c '", "")')" ]
 )
 end_test
 
@@ -95,9 +95,9 @@ begin_test "credentials with url-specific useHttpPath, with bad path password"
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
 
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -125,11 +125,55 @@ begin_test "credentials with useHttpPath, with wrong password"
   git commit -m "add a.dat"
 
   GIT_TRACE=1 git push origin with-path-wrong-pass 2>&1 | tee push.log
-  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 0 B" push.log)" ]
-  echo "approvals:"
-  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
-  echo "fills:"
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1)" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 403s.
+  [ 1 -eq "$(grep -c "Authorization error: $GITSERVER/$reponame.*/locks/verify" push.log)" ]
+  [ 1 -eq "$(grep -c "batch response: Authorization error: $GITSERVER/$reponame" push.log)" ]
+
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "credentials with useHttpPath, with wrong password and 401 response"
+(
+  set -e
+
+  reponame="httppath-bad-password-401-unauth"
+  setup_remote_repo "$reponame"
+
+  printf ":path:wrong" > "$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" with-path-wrong-pass-401-unauth
+  git checkout -b with-path-wrong-pass-401-unauth
+
+  git lfs track "*.dat"
+
+  contents="a"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin with-path-wrong-pass-401-unauth 2>&1 | tee push.log
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 1 B" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 401s
+  # until the maximum number of authentication attempts is reached for both.
+  [ 2 -eq "$(grep -c "api: too many authentication attempts" push.log)" ]
+  [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
+
+  # Note that the first request to the Locking API is made without an
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -161,14 +205,14 @@ begin_test "credentials with useHttpPath, with correct password"
   GIT_TRACE=1 git push origin with-path-correct-pass 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -202,14 +246,14 @@ begin_test "credentials send wwwauth[] by default"
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -242,9 +286,9 @@ begin_test "credentials sends wwwauth[] and fails with finicky helper"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   echo "approvals:"
-  [ "0" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
@@ -279,14 +323,14 @@ begin_test "credentials skips wwwauth[] with option"
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
   echo "approvals:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
   echo "fills:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
   echo "credential calls have path:"
   credcalls="$(grep "creds: git credential" push.log)"
-  [ "0" -eq "$(echo "$credcalls" | grep '", "")' | wc -l)" ]
+  [ 0 -eq "$(echo "$credcalls" | grep -c '", "")')" ]
   expected="$(echo "$credcalls" | wc -l)"
-  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep "t-credentials" | wc -l)" ]
+  [ "$expected" -eq "$(printf "%s" "$credcalls" | grep -c "t-credentials")" ]
 )
 end_test
 
@@ -315,20 +359,24 @@ begin_test "credentials can authenticate with Bearer auth"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 )
 end_test
 
 begin_test "credentials can authenticate with multistage auth"
 (
   set -e
-  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
 
   reponame="auth-multistage-token"
   setup_remote_repo "$reponame"
 
-  printf 'Multistage::cred2:state1:state2:\nMultistage::cred1::state1:true' > "$CREDSDIR/127.0.0.1--$reponame"
+  printf 'Multistage::cred2of2:state1:state2:\n' >"$CREDSDIR/127.0.0.1--$reponame"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
+  printf 'Multistage::cred1of2::state1:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
 
   clone_repo "$reponame" "$reponame"
   git checkout -b new-branch
@@ -345,8 +393,109 @@ begin_test "credentials can authenticate with multistage auth"
 
   GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 1 B" push.log
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
-  [ "2" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 2 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+)
+end_test
+
+begin_test "credentials with multistage auth loop fails"
+(
+  set -e
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
+
+  reponame="auth-multistage-loop"
+  setup_remote_repo "$reponame"
+
+  # Note that we define an endless transition from "state1" to "state1"
+  # so our git-credential-lfstest utility will simulate an invalid
+  # credential helper.
+  printf 'Multistage::cred1of2:state1:state1:true\n' >"$CREDSDIR/127.0.0.1--$reponame"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
+  printf 'Multistage::cred1of2::state1:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat"
+
+  contents="b"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >b.dat
+
+  git add .gitattributes b.dat
+  git commit -m "initial commit"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1)" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 401s
+  # until the maximum number of authentication attempts is reached for both.
+  [ 2 -eq "$(grep -c "api: too many authentication attempts" push.log)" ]
+  [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
+
+  # Note that the first request to the Locking API is made without an
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
+  [ 6 -eq "$(grep -c "Authorization: Multistage cred1" push.log)" ]
+
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "credentials with multistage auth above limit fails and resets"
+(
+  set -e
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
+
+  reponame="auth-multistage-limit-reset"
+  setup_remote_repo "$reponame"
+
+  printf 'Multistage::cred4of4:state3:state4:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+  printf 'Multistage::cred3of4:state2:state3:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+  printf 'Multistage::cred2of4:state1:state2:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
+  printf 'Multistage::cred1of4::state1:true\n' >>"$CREDSDIR/127.0.0.1--$reponame"
+
+  clone_repo "$reponame" "$reponame"
+  git checkout -b new-branch
+
+  git lfs track "*.dat"
+
+  contents="b"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >b.dat
+
+  git add .gitattributes b.dat
+  git commit -m "initial commit"
+
+  GIT_TERMINAL_PROMPT=0 GIT_TRACE=1 GIT_TRANSFER_TRACE=1 GIT_CURL_VERBOSE=1 git push origin new-branch 2>&1 | tee push.log
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1)" push.log)" ]
+
+  # Requests to both the Locking API and the Batch API should receive 401s
+  # until the maximum number of authentication attempts is reached for both.
+  [ 2 -eq "$(grep -c "api: too many authentication attempts" push.log)" ]
+  [ 1 -eq "$(grep -c "batch response: too many authentication attempts" push.log)" ]
+
+  # Note that the first request to the Locking API is made without an
+  # Authorization header, so no credentials are retrieved for that request
+  # and it is not counted toward the authentication attempt limit.
+  [ 2 -eq "$(grep -c "Authorization: Multistage cred1of4" push.log)" ]
+  [ 2 -eq "$(grep -c "Authorization: Multistage cred2of4" push.log)" ]
+  [ 2 -eq "$(grep -c "Authorization: Multistage cred3of4" push.log)" ]
+  [ 0 -eq "$(grep -c "Authorization: Multistage cred4of4" push.log)" ]
+
+  [ 0 -eq "$(grep -c "creds: git credential approve" push.log)" ]
+  [ 6 -eq "$(grep -c "creds: git credential fill" push.log)" ]
+
+  refute_server_object "$reponame" "$contents_oid"
 )
 end_test
 
@@ -356,6 +505,9 @@ begin_test "git credential"
 
   printf ":git:server" > "$CREDSDIR/credential-test.com"
   printf ":git:path" > "$CREDSDIR/credential-test.com--some-path"
+  # Note that the entry with the empty, generic "match state" value in the
+  # fourth field must be ordered after all other entries so that it does not
+  # always match the current request.
   printf 'Multistage::bazquux:state1:state2:\nMultistage::foobar::state1:true' > "$CREDSDIR/example.com"
 
   mkdir empty
@@ -399,7 +551,7 @@ password=server"
 
   [ "$expected" = "$(cat cred.log)" ]
 
-  [ $(git credential capability </dev/null | grep -E "capability (authtype|state)" | wc -l) -eq 2 ] || exit 0
+  [ $(git credential capability </dev/null | grep -c -E "capability (authtype|state)") -eq 2 ] || exit 0
 
   echo "capability[]=authtype
 capability[]=state
@@ -437,61 +589,60 @@ state[]=lfstest:state2"
 )
 end_test
 
-
-if [[ $(uname) == *"MINGW"* ]]; then
-  NETRCFILE="$HOME/_netrc"
-else
-  NETRCFILE="$HOME/.netrc"
+NETRCFILES=".netrc"
+if [ "$IS_WINDOWS" -eq 1 ]; then
+  NETRCFILES+=" _netrc"
 fi
 
+for netrcfile in $NETRCFILES; do
+  begin_test "credentials from netrc ($netrcfile)"
+  (
+    set -e
 
-begin_test "credentials from netrc"
-(
-  set -e
+    printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >"$HOME/$netrcfile"
+    echo $HOME
+    echo "GITSERVER $GITSERVER"
+    cat "$HOME/$netrcfile"
 
-  printf "machine localhost\nlogin netrcuser\npassword netrcpass\n" >> "$NETRCFILE"
-  echo $HOME
-  echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+    # prevent prompts on Windows particularly
+    export SSH_ASKPASS=
 
-  # prevent prompts on Windows particularly
-  export SSH_ASKPASS=
+    reponame="netrctest-$netrcfile"
+    setup_remote_repo "$reponame"
 
-  reponame="netrctest"
-  setup_remote_repo "$reponame"
+    clone_repo "$reponame" "${reponame}-assert"
 
-  clone_repo "$reponame" repo
+    # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
+    git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
+    git lfs env
 
-  # Need a remote named "localhost" or 127.0.0.1 in netrc will interfere with the other auth
-  git remote add "netrc" "$(echo $GITSERVER | sed s/127.0.0.1/localhost/)/netrctest"
-  git lfs env
+    git lfs track "*.dat"
+    echo "push a" > a.dat
+    git add .gitattributes a.dat
+    git commit -m "add a.dat"
 
-  git lfs track "*.dat"
-  echo "push a" > a.dat
-  git add .gitattributes a.dat
-  git commit -m "add a.dat"
+    GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
+    grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
+    echo "any netrc credential calls:"
+    [ 4 -eq "$(grep -c "netrc: git credential" push.log)" ]
 
-  GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
-  grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
-  echo "any netrc credential calls:"
-  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+    echo "any netrc credential fills:"
+    [ 2 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
-  echo "any netrc credential fills:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
-
-  echo "any netrc credential approvals:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
-)
-end_test
+    echo "any netrc credential approvals:"
+    [ 2 -eq "$(grep -c "netrc: git credential approve" push.log)" ]
+  )
+  end_test
+done
 
 begin_test "credentials from netrc with unknown keyword"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\nnot-a-key something\npassword netrcpass\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\nnot-a-key something\npassword netrcpass\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=
@@ -513,13 +664,13 @@ begin_test "credentials from netrc with unknown keyword"
   GIT_TRACE=1 git lfs push netrc main 2>&1 | tee push.log
   grep "Uploading LFS objects: 100% (1/1), 7 B" push.log
   echo "any netrc credential calls:"
-  [ "4" -eq "$(cat push.log | grep "netrc: git credential" | wc -l)" ]
+  [ 4 -eq "$(grep -c "netrc: git credential" push.log)" ]
 
   echo "any netrc credential fills:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+  [ 2 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
   echo "any netrc credential approvals:"
-  [ "2" -eq "$(cat push.log | grep "netrc: git credential approve" | wc -l)" ]
+  [ 2 -eq "$(grep -c "netrc: git credential approve" push.log)" ]
 )
 end_test
 
@@ -527,10 +678,10 @@ begin_test "credentials from netrc with bad password"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\npassword badpass\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=
@@ -550,7 +701,7 @@ begin_test "credentials from netrc with bad password"
   git commit -m "add a.dat"
 
   git push netrc main 2>&1 | tee push.log
-  [ "0" = "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
+  [ 0 -eq "$(grep -c "Uploading LFS objects: 100% (1/1), 7 B" push.log)" ]
 )
 end_test
 
@@ -558,10 +709,10 @@ begin_test "credentials with bad netrc creds will retry"
 (
   set -e
 
-  printf "machine localhost\nlogin netrcuser\npassword badpassretry\n" >> "$NETRCFILE"
+  printf "machine localhost\nlogin netrcuser\npassword badpassretry\n" >"$HOME/.netrc"
   echo $HOME
   echo "GITSERVER $GITSERVER"
-  cat $NETRCFILE
+  cat "$HOME/.netrc"
 
   # prevent prompts on Windows particularly
   export SSH_ASKPASS=
@@ -590,22 +741,22 @@ begin_test "credentials with bad netrc creds will retry"
 
   # netrc credentials should be attempted then rejected for the lock request
   echo "netrc credentials attempted:"
-  [ "1" -eq "$(cat push.log | grep "netrc: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "netrc: git credential fill" push.log)" ]
 
   echo "netrc credentials rejected:"
-  [ "1" -eq "$(cat push.log | grep "netrc: git credential reject" | wc -l)" ]
+  [ 1 -eq "$(grep -c "netrc: git credential reject" push.log)" ]
 
   # credhelper should then use askpass to find the proper credentials, which
   # should be successful
   echo "askpass credentials attempted:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential fill" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential fill" push.log)" ]
 
   echo "askpass credentials approved:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential approve" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential approve" push.log)" ]
 
   # askpass creds should be cached and used for the batch request
   echo "cached credentials used:"
-  [ "1" -eq "$(cat push.log | grep "creds: git credential cache" | wc -l)" ]
+  [ 1 -eq "$(grep -c "creds: git credential cache" push.log)" ]
 )
 end_test
 

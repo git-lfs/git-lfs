@@ -6,7 +6,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testAdapter struct {
@@ -42,7 +41,10 @@ func newRenamedTestAdapter(name string, dir Direction) Adapter {
 }
 
 func TestBasicAdapterExists(t *testing.T) {
-	m := NewManifest(nil, nil, "", "")
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	m := NewManifest(nil, cli, "", "")
 
 	assert := assert.New(t)
 
@@ -69,7 +71,10 @@ func TestBasicAdapterExists(t *testing.T) {
 }
 
 func TestAdapterRegAndOverride(t *testing.T) {
-	m := NewManifest(nil, nil, "", "")
+	cli := lfsapi.NewClient(nil)
+	defer cli.Close()
+
+	m := NewManifest(nil, cli, "", "")
 	assert := assert.New(t)
 
 	assert.Nil(m.NewAdapter("test", Download))
@@ -142,10 +147,10 @@ func TestAdapterRegAndOverride(t *testing.T) {
 }
 
 func TestAdapterRegButBasicOnly(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.basictransfersonly": "yes",
 	}))
-	require.Nil(t, err)
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 

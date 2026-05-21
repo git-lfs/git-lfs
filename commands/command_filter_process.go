@@ -61,7 +61,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 	}
 
 	skip := filterSmudgeSkip || cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false)
-	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitIgnore, cfg.Git)
 
 	ptrs := make(map[string]*lfs.Pointer)
 
@@ -107,7 +107,7 @@ func filterCommand(cmd *cobra.Command, args []string) {
 					tq.Download,
 					getTransferManifestOperationRemote("download", cfg.Remote()),
 					cfg.Remote(),
-					tq.RemoteRef(currentRemoteRef()),
+					tq.RemoteRef(fetchRemoteRef()),
 					tq.WithBatchSize(cfg.TransferBatchSize()),
 				)
 				go infiniteTransferBuffer(q, available)

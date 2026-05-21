@@ -2,9 +2,11 @@ package filepathfilter
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/git-lfs/wildmatch/v2"
+	"github.com/golang/groupcache/lru"
 	"github.com/rubyist/tracerx"
 )
 
@@ -19,6 +21,8 @@ type Filter struct {
 	include      []Pattern
 	exclude      []Pattern
 	defaultValue bool
+	cache        *lru.Cache
+	cacheLock    sync.Mutex
 }
 
 type PatternType bool
@@ -37,30 +41,52 @@ func (p PatternType) String() string {
 
 type options struct {
 	defaultValue bool
+	useCache     bool
+	cacheSize    int
 }
 
-type option func(*options)
+type Option func(*options)
 
 // DefaultValue is an option representing the default value of a filepathfilter
 // if no patterns match.  If this option is not provided, the default is true.
-func DefaultValue(val bool) option {
+func DefaultValue(val bool) Option {
 	return func(args *options) {
 		args.defaultValue = val
 	}
 }
 
-func NewFromPatterns(include, exclude []Pattern, setters ...option) *Filter {
-	args := &options{defaultValue: true}
+func EnableCache(size int) Option {
+	return func(args *options) {
+		args.useCache = true
+		args.cacheSize = size
+	}
+}
+
+func DisableCache() Option {
+	return func(args *options) {
+		args.useCache = false
+	}
+}
+
+func NewFromPatterns(include, exclude []Pattern, setters ...Option) *Filter {
+	args := &options{defaultValue: true, useCache: false}
 	for _, setter := range setters {
 		setter(args)
 	}
-	return &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+
+	f := &Filter{include: include, exclude: exclude, defaultValue: args.defaultValue}
+
+	if args.useCache && args.cacheSize >= 0 {
+		f.cache = lru.New(args.cacheSize)
+	}
+
+	return f
 }
 
-func New(include, exclude []string, ptype PatternType, setters ...option) *Filter {
+func New(include, exclude []string, ptype PatternType, gitEnv Environment, setters ...Option) *Filter {
 	return NewFromPatterns(
-		convertToWildmatch(include, ptype),
-		convertToWildmatch(exclude, ptype), setters...)
+		convertToWildmatch(include, ptype, gitEnv),
+		convertToWildmatch(exclude, ptype, gitEnv), setters...)
 }
 
 // Include returns the result of calling String() on each Pattern in the
@@ -82,11 +108,7 @@ func wildmatchToString(ps ...Pattern) []string {
 	return s
 }
 
-func (f *Filter) Allows(filename string) bool {
-	if f == nil {
-		return true
-	}
-
+func (f *Filter) allows(filename string) bool {
 	var included bool
 	for _, inc := range f.include {
 		if included = inc.Match(filename); included {
@@ -120,6 +142,31 @@ func (f *Filter) Allows(filename string) bool {
 	return true
 }
 
+func (f *Filter) Allows(filename string) bool {
+	if f == nil {
+		return true
+	}
+
+	if f.cache != nil {
+		f.cacheLock.Lock()
+		res, ok := f.cache.Get(filename)
+		f.cacheLock.Unlock()
+		if ok {
+			return res.(bool)
+		}
+	}
+
+	res := f.allows(filename)
+
+	if f.cache != nil {
+		f.cacheLock.Lock()
+		f.cache.Add(filename, res)
+		f.cacheLock.Unlock()
+	}
+
+	return res
+}
+
 type wm struct {
 	w *wildmatch.Wildmatch
 	p string
@@ -137,7 +184,7 @@ const (
 	sep byte = '/'
 )
 
-func NewPattern(p string, ptype PatternType) Pattern {
+func NewPattern(p string, ptype PatternType, gitEnv Environment) Pattern {
 	tracerx.Printf("filepathfilter: creating pattern %q of type %v", p, ptype)
 
 	switch ptype {
@@ -146,7 +193,7 @@ func NewPattern(p string, ptype PatternType) Pattern {
 			p: p,
 			w: wildmatch.NewWildmatch(
 				p,
-				wildmatch.SystemCase,
+				caseFromConfig(gitEnv),
 				wildmatch.Contents,
 			),
 		}
@@ -155,7 +202,7 @@ func NewPattern(p string, ptype PatternType) Pattern {
 			p: p,
 			w: wildmatch.NewWildmatch(
 				p,
-				wildmatch.SystemCase,
+				caseFromConfig(gitEnv),
 				wildmatch.Basename,
 				wildmatch.GitAttributes,
 			),
@@ -181,10 +228,23 @@ func join(paths ...string) string {
 	return joined
 }
 
-func convertToWildmatch(rawpatterns []string, ptype PatternType) []Pattern {
+func convertToWildmatch(rawpatterns []string, ptype PatternType, gitEnv Environment) []Pattern {
 	patterns := make([]Pattern, len(rawpatterns))
 	for i, raw := range rawpatterns {
-		patterns[i] = NewPattern(raw, ptype)
+		patterns[i] = NewPattern(raw, ptype, gitEnv)
 	}
 	return patterns
+}
+
+type Environment interface {
+	Get(key string) (val string, ok bool)
+	Bool(key string, def bool) (val bool)
+}
+
+func caseFromConfig(gitEnv Environment) func(w *wildmatch.Wildmatch) {
+	if gitEnv != nil && gitEnv.Bool("core.ignorecase", false) {
+		return wildmatch.CaseFold
+	} else {
+		return func(w *wildmatch.Wildmatch) {}
+	}
 }

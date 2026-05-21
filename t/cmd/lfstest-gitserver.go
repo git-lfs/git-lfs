@@ -36,6 +36,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -58,14 +60,19 @@ var (
 	contentHandlers = []string{
 		"status-batch-403", "status-batch-404", "status-batch-410", "status-batch-422", "status-batch-500",
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
-		"status-batch-resume-206", "batch-resume-fail-fallback", "return-expired-action", "return-expired-action-forever", "return-invalid-size",
-		"object-authenticated", "storage-download-retry", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
-		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "storage-compress", "batch-hash-algo-empty", "batch-hash-algo-invalid",
+		"return-expired-action", "return-expired-action-forever", "return-invalid-size",
+		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
+		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
+		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
+		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
+		"storage-download-encoding-zstd-1", "storage-download-encoding-zstd-2", "storage-download-encoding-zstd-3",
+		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
 
 	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
 	dekInfoRE        = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
+	multiStageCredRE = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
 )
 
 func main() {
@@ -99,6 +106,7 @@ func main() {
 	mux.HandleFunc("/storage/", storageHandler)
 	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
+	mux.HandleFunc("/limits/", limitsHandler)
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s\n", time.Now().String())
 	})
@@ -276,13 +284,18 @@ var (
 	laterRetriesMu  sync.Mutex
 )
 
+func getResourceKey(api, direction, repo, oid string) string {
+	return strings.Join([]string{api, direction, repo, oid}, ":")
+}
+
 // checkRateLimit tracks the various requests to the git-server. If it is the first
 // request of its kind, then a times is started, that when it is finished, a certain
 // number of requests become available.
 func checkRateLimit(api, direction, repo, oid string) (seconds int, isWait bool) {
 	laterRetriesMu.Lock()
 	defer laterRetriesMu.Unlock()
-	key := strings.Join([]string{direction, repo, oid}, ":")
+
+	key := getResourceKey(api, direction, repo, oid)
 	if requestsRemaining, ok := requestTokens[key]; !ok || requestsRemaining == 0 {
 		if retryStartTimes[key] == (time.Time{}) {
 			// If time is not initialized, set it to now
@@ -309,6 +322,19 @@ func checkRateLimit(api, direction, repo, oid string) (seconds int, isWait bool)
 	return 0, false
 }
 
+func setRateLimit(api, direction, repo, oid string, numTokens int) {
+	laterRetriesMu.Lock()
+	defer laterRetriesMu.Unlock()
+
+	key := getResourceKey(api, direction, repo, oid)
+	requestTokens[key] = numTokens
+
+	// If the token count is reset, restart rate-limting timer.
+	if requestTokens[key] == 0 {
+		retryStartTimes[key] = time.Now()
+	}
+}
+
 var (
 	retries   = make(map[string]uint32)
 	retriesMu sync.Mutex
@@ -331,7 +357,7 @@ func incrementRetriesFor(api, direction, repo, oid string, check bool) (after ui
 	retriesMu.Lock()
 	defer retriesMu.Unlock()
 
-	retryKey := strings.Join([]string{direction, repo, oid}, ":")
+	retryKey := getResourceKey(api, direction, repo, oid)
 
 	retries[retryKey]++
 	retries := retries[retryKey]
@@ -626,7 +652,7 @@ func canServeExpired(repo string) bool {
 }
 
 // Persistent state across requests
-var batchResumeFailFallbackStorageAttempts = 0
+var storageDownloadRetryRangeRejectedAttempts = 0
 var tusStorageAttempts = 0
 
 var (
@@ -668,6 +694,8 @@ func verifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+var zstdHeaderRE = regexp.MustCompile(`(?:\A|, *)(?i:zstd)(?:, *|\z)`)
 
 // handles any /storage/{oid} requests
 func storageHandler(w http.ResponseWriter, r *http.Request) {
@@ -734,12 +762,6 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Not setting Retry-After header")
 				return
 			}
-		case "storage-compress":
-			if r.Header.Get("Accept-Encoding") != "gzip" {
-				w.WriteHeader(500)
-				w.Write([]byte("not encoded"))
-				return
-			}
 		}
 
 		if testingChunkedTransferEncoding(r) {
@@ -772,93 +794,92 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		oid := parts[len(parts)-1]
 		statusCode := 200
 		byteLimit := 0
-		resumeAt := int64(0)
 		compress := false
+		zstdCompress := false
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
-			if len(by) == len("storage-download-retry-later") && string(by) == "storage-download-retry-later" {
+			switch oidHandlers[oid] {
+			case "storage-download-retry-later":
 				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
 					w.Header().Set("Retry-After", strconv.Itoa(secsToWait))
 					by = []byte("rate limit reached")
 					fmt.Println("Setting header to: ", strconv.Itoa(secsToWait))
 				}
-			} else if len(by) == len("storage-download-retry-later-no-header") && string(by) == "storage-download-retry-later-no-header" {
+			case "storage-download-retry-later-no-header":
 				if _, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
 					by = []byte("rate limit reached")
 					fmt.Println("Not setting Retry-After header")
 				}
-			} else if len(by) == len("storage-download-retry") && string(by) == "storage-download-retry" {
+			case "storage-download-retry":
 				if retries, ok := incrementRetriesFor("storage", "download", repo, oid, false); ok && retries < 3 {
 					statusCode = 500
 					by = []byte("malformed content")
 				}
-			} else if len(by) == len("storage-compress") && string(by) == "storage-compress" {
-				if r.Header.Get("Accept-Encoding") != "gzip" {
-					statusCode = 500
-					by = []byte("not encoded")
-				} else {
-					compress = true
-				}
-			} else if len(by) == len("status-batch-resume-206") && string(by) == "status-batch-resume-206" {
+			case "storage-download-retry-range":
 				// Resume if header includes range, otherwise deliberately interrupt
-				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
-					regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
-					match := regex.FindStringSubmatch(rangeHdr)
-					if match != nil && len(match) > 1 {
-						statusCode = 206
-						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
-					}
-				} else {
-					byteLimit = 10
+				if handleRangeRequest(w, r, by) {
+					return
 				}
-			} else if len(by) == len("batch-resume-fail-fallback") && string(by) == "batch-resume-fail-fallback" {
+				byteLimit = len(oidHandlers[oid]) / 2
+			case "storage-download-retry-range-rejected":
 				// Fail any Range: request even though we said we supported it
 				// To make sure client can fall back
 				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
 					w.WriteHeader(416)
 					return
 				}
-				if batchResumeFailFallbackStorageAttempts == 0 {
+				if storageDownloadRetryRangeRejectedAttempts == 0 {
 					// Truncate output on FIRST attempt to cause resume
 					// Second attempt (without range header) is fallback, complete successfully
-					byteLimit = 8
-					batchResumeFailFallbackStorageAttempts++
+					byteLimit = len(oidHandlers[oid]) / 2
+					storageDownloadRetryRangeRejectedAttempts++
 				}
-			} else if string(by) == "status-batch-retry" {
-				if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
-					regex := regexp.MustCompile(`bytes=(\d+)\-(.*)`)
-					match := regex.FindStringSubmatch(rangeHdr)
-					// We have a Range header with two
-					// non-empty values.
-					if match != nil && len(match) > 2 && len(match[2]) != 0 {
-						first, _ := strconv.ParseInt(match[1], 10, 32)
-						second, _ := strconv.ParseInt(match[2], 10, 32)
-						// The second part of the range
-						// is smaller than the first
-						// part (or the latter part of
-						// the range is non-integral).
-						// This is invalid; reject it.
-						if second < first {
-							w.WriteHeader(400)
-							return
-						}
-						// The range is valid; we'll
-						// take the branch below.
-					}
-					// We got a valid range header, so
-					// provide a 206 Partial Content. We
-					// ignore the upper bound if one was
-					// provided.
-					if match != nil && len(match) > 1 {
-						statusCode = 206
-						resumeAt, _ = strconv.ParseInt(match[1], 10, 32)
-						w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", resumeAt, len(by), resumeAt-int64(len(by))))
-					}
+			case "storage-download-retry-no-invalid-range":
+				// Resume if header includes range
+				if handleRangeRequest(w, r, by) {
+					return
+				}
+			case "storage-download-encoding-gzip":
+				if r.Header.Get("Accept-Encoding") != "gzip" {
+					statusCode = 500
+					by = []byte("not encoded")
+				} else {
+					compress = true
+				}
+			case "storage-download-encoding-zstd",
+				"storage-download-encoding-zstd-1",
+				"storage-download-encoding-zstd-2",
+				"storage-download-encoding-zstd-3":
+				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
+					zstdCompress = true
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+				}
+			case "storage-download-encoding-zstd-retry-range":
+				// Resume if header includes range, otherwise deliberately interrupt
+				if handleRangeRequest(w, r, by) {
+					return
+				}
+
+				if zstdHeaderRE.MatchString(r.Header.Get("Accept-Encoding")) {
+					zstdCompress = true
+
+					// Note that this value is an offset
+					// into the second encoded frame, so
+					// we interrupt the response after a
+					// complete first frame.  This ensures
+					// the client will write the decoded
+					// first frame to a temporary file.
+					byteLimit = 6
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
 				}
 			}
+
 			var wrtr io.Writer = w
 			if compress {
 				w.Header().Set("Content-Encoding", "gzip")
@@ -866,12 +887,50 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				defer gz.Close()
 
 				wrtr = gz
+			} else if zstdCompress {
+				w.Header().Set("Content-Encoding", "zstd")
+				enc, err := zstd.NewWriter(w)
+				if err == nil {
+					defer enc.Close()
+
+					// We need the encoded data's length to
+					// set the Content-Length header when
+					// byteLimit > 0, so we encode the data
+					// here rather than set wrtr = enc,
+					// which would use the stream encoder.
+					// This results in a less-compact
+					// encoding, with a different length.
+					//
+					// We create two encoded frames so we
+					// can interrupt the second one when
+					// byteLimit > 0, allowing the client
+					// to fully decode the first frame and
+					// write it to a temporary file.
+					mid := len(by) / 2
+					frame1 := enc.EncodeAll(by[0:mid], make([]byte, 0, mid*2))
+					frame2 := enc.EncodeAll(by[mid:], make([]byte, 0, mid*2))
+					by = append(frame1, frame2...)
+
+					if byteLimit > 0 {
+						byteLimit += len(frame1)
+					}
+				} else {
+					statusCode = http.StatusInternalServerError
+					by = []byte("not encoded")
+					byteLimit = 0
+				}
 			}
+
+			if byteLimit > 0 {
+				// Force Content-Length header to report the
+				// full object size rather than the truncated
+				// length, to simulate an interrupted response.
+				w.Header().Set("Content-Length", strconv.Itoa(len(by)))
+			}
+
 			w.WriteHeader(statusCode)
 			if byteLimit > 0 {
 				wrtr.Write(by[0:byteLimit])
-			} else if resumeAt > 0 {
-				wrtr.Write(by[resumeAt:])
 			} else {
 				wrtr.Write(by)
 			}
@@ -974,6 +1033,54 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// We expect the client to never send a header of the form "bytes=-<n>".
+var rangeHeaderRE = regexp.MustCompile(`bytes=(\d+)-(.*)`)
+
+func handleRangeRequest(w http.ResponseWriter, r *http.Request, data []byte) bool {
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader == "" {
+		return false
+	}
+
+	if r.Header.Get("Accept-Encoding") != "" {
+		// While Range and Accept-Encoding headers are not mutually
+		// exclusive, the Git LFS client should never send them both.
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	match := rangeHeaderRE.FindStringSubmatch(rangeHeader)
+
+	if match == nil || len(match) != 3 {
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	// We have a Range header with at least one non-empty value.
+	startIndex, _ := strconv.ParseInt(match[1], 10, 32)
+	endIndex, err := strconv.ParseInt(match[2], 10, 32)
+
+	if len(match[2]) > 0 && (err != nil || endIndex < startIndex) {
+		// The second part of the range is smaller than the
+		// first part (or the latter part of the range is
+		// non-integral).  This is invalid; reject it.
+		//
+		// Note that this condition should never occur unless
+		// we introduce a regression into the client.
+		w.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+
+	// The range is valid, so provide a Content-Range response header.
+	// We ignore the upper bound if one was provided.
+	contentRange := fmt.Sprintf("bytes %d-%d/%d", startIndex, len(data)-1, len(data))
+	w.Header().Set("Content-Range", contentRange)
+
+	w.WriteHeader(http.StatusPartialContent)
+	w.Write(data[startIndex:])
+	return true
+}
+
 func validateTusHeaders(r *http.Request, id string) bool {
 	if len(r.Header.Get("Tus-Resumable")) == 0 {
 		debug(id, "Missing Tus-Resumable header in request")
@@ -1055,6 +1162,31 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+func limitsHandler(w http.ResponseWriter, r *http.Request) {
+	id, ok := reqId(w)
+	if !ok {
+		return
+	}
+
+	api := r.URL.Query().Get("api")
+	direction := r.URL.Query().Get("direction")
+	repo := r.URL.Query().Get("repo")
+	oid := r.URL.Query().Get("oid")
+	tokens := r.URL.Query().Get("tokens")
+
+	numTokens, err := strconv.Atoi(tokens)
+	if err != nil {
+		if tokens == "max" {
+			numTokens = refillTokenCount
+		} else {
+			numTokens = 0
+		}
+	}
+
+	setRateLimit(api, direction, repo, oid, numTokens)
+	debug(id, "Set rate limit:", api, direction, repo, oid, numTokens)
 }
 
 type User struct {
@@ -1673,18 +1805,25 @@ func skipIfBadAuth(w http.ResponseWriter, r *http.Request, id string) bool {
 			return false
 		}
 	case "Multistage":
-		if cred == "cred1" {
-			wantedAuth = "Multistage type=bar"
-			w.Header().Add(authHeader, wantedAuth)
-			w.WriteHeader(401)
-			debug(id, "auth stage 1 succeeded: %q", auth)
-			return true
-		} else if cred == "cred2" {
-			return false
+		if matches := multiStageCredRE.FindStringSubmatch(cred); len(matches) == 3 {
+			if matches[1] == matches[2] {
+				return false
+			} else {
+				wantedAuth = "Multistage type=bar"
+				w.Header().Add(authHeader, wantedAuth)
+				w.WriteHeader(401)
+				debug(id, "auth stage %s of %s succeeded: %q", matches[1], matches[2], auth)
+				return true
+			}
 		}
 	}
 
-	w.WriteHeader(403)
+	repo, _ := repoFromLfsUrl(r.URL.Path)
+	if strings.HasSuffix(repo, "-401-unauth") {
+		w.WriteHeader(401)
+	} else {
+		w.WriteHeader(403)
+	}
 	debug(id, "Bad auth: %q", auth)
 	return true
 }

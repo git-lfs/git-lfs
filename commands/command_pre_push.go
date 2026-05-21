@@ -42,7 +42,7 @@ var (
 func prePushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		Print(tr.Tr.Get("This should be run through Git's pre-push hook.  Run `git lfs update` to install it."))
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	if cfg.Os.Bool("GIT_LFS_SKIP_PUSH", false) {

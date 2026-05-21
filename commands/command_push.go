@@ -36,8 +36,7 @@ var (
 // of commits between the local and remote git servers.
 func pushCommand(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
-		Print(tr.Tr.Get("Specify a remote and a remote branch name (`git lfs push origin main`)"))
-		os.Exit(1)
+		Exit(tr.Tr.Get("Specify a remote and a remote branch name (`git lfs push origin main`)"))
 	}
 
 	requireGitVersion()
@@ -52,8 +51,7 @@ func pushCommand(cmd *cobra.Command, args []string) {
 	var argList []string
 	if useStdin {
 		if len(args) > 1 {
-			Print(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
-			os.Exit(1)
+			Exit(tr.Tr.Get("Further command line arguments are ignored with --stdin"))
 		}
 
 		scanner := bufio.NewScanner(os.Stdin) // line-delimited
@@ -75,13 +73,13 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		// easier and avoid having to special-case this in scripts.
 		if !useStdin && len(argList) < 1 {
 			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 		uploadsWithObjectIDs(ctx, argList)
 	} else {
 		if !useStdin && !pushAll && len(argList) < 1 {
 			Print(tr.Tr.Get("At least one ref must be supplied without --all"))
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 		uploadsBetweenRefAndRemote(ctx, argList)
 	}
@@ -123,7 +121,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
+	q := ctx.NewQueue(tq.RemoteRef(pushRemoteRef()))
 	ctx.UploadPointers(q, pointers...)
 	ctx.CollectErrors(q)
 	ctx.ReportErrors()

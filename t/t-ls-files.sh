@@ -291,6 +291,36 @@ begin_test "ls-files: --size"
 )
 end_test
 
+begin_test "ls-files: correctly reflects case sensitivity"
+(
+  set -e
+
+  reponame="ls-files-case-sensitive"
+  git init "$reponame"
+  cd "$reponame"
+  ignorecase="$(git config core.ignorecase || true)"
+  ignorecase="${ignorecase:-false}"
+
+  git lfs track '*.DAT'
+  git add .gitattributes
+
+  contents="a"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  [ "" = "$(git lfs ls-files)" ]
+
+  git add a.dat
+
+  if [ "$ignorecase" = true ]
+  then
+    [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+  else
+    [ "" = "$(git lfs ls-files)" ]
+  fi
+)
+end_test
+
 begin_test "ls-files: indexed files without tree"
 (
   set -e
@@ -458,6 +488,43 @@ begin_test "ls-files: --exclude"
 
   [ "0" -eq "$(grep -c "dir" ls-files.log)" ]
   [ "2" -eq "$(grep -c "\.dat" ls-files.log)" ]
+)
+end_test
+
+begin_test "ls-files: --include/--exclude with path cache settings"
+(
+  set -e
+
+  git init ls-files-include-exclude
+  cd ls-files-include-exclude
+
+  mkdir -p dir
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  echo "b" > dir/b.dat
+  echo "c" > dir/c.dat
+  echo "d" > dir/d.dat
+
+  git add *.gitattributes a.dat dir
+  git commit -m "initial commit"
+
+  git lfs ls-files --include="dir/" --exclude="c.dat" 2>&1 | tee ls-files.log
+
+  [ 1 -eq $(grep -c "dir/b.dat" "ls-files.log") ]
+  [ 1 -eq $(grep -c "dir/d.dat" "ls-files.log") ]
+  [ 2 -eq $(cat "ls-files.log" | wc -l) ]
+
+  # Also test with various path filter cache settings.
+  for cache in "none" "0" "1" "unlimited" "" "-1" "invalid"; do
+    git config "lfs.pathFilterCacheSize" "$cache"
+
+    git lfs ls-files --include="dir/" --exclude="c.dat" 2>&1 | tee ls-files.log
+
+    [ 1 -eq $(grep -c "dir/b.dat" "ls-files.log") ]
+    [ 1 -eq $(grep -c "dir/d.dat" "ls-files.log") ]
+    [ 2 -eq $(cat "ls-files.log" | wc -l) ]
+  done
 )
 end_test
 

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -313,7 +314,7 @@ func (r *Rewriter) Rewrite(opt *RewriteOptions) ([]byte, error) {
 			return nil, errors.Wrap(err, tr.Tr.Get("could not find refs to update"))
 		}
 
-		root, _ := r.db.Root()
+		root, _ := r.gitDirectory()
 
 		updater := &refUpdater{
 			cacheFn: r.uncacheCommit,
@@ -436,6 +437,15 @@ func copyEntryMode(e *gitobj.TreeEntry, mode int32) *gitobj.TreeEntry {
 	return copied
 }
 
+// gitDirectory returns a path to the .git directory on success.
+func (r *Rewriter) gitDirectory() (string, bool) {
+	root, ok := r.db.Root()
+	if ok {
+		root = filepath.Join(root, "..")
+	}
+	return root, ok
+}
+
 func (r *Rewriter) allows(typ gitobj.ObjectType, abs string) bool {
 	switch typ {
 	case gitobj.BlobObjectType:
@@ -529,7 +539,7 @@ func (r *Rewriter) refsToMigrate() ([]*git.Ref, error) {
 	var refs []*git.Ref
 	var err error
 
-	if root, ok := r.db.Root(); ok {
+	if root, ok := r.gitDirectory(); ok {
 		refs, err = git.AllRefsIn(root)
 	} else {
 		refs, err = git.AllRefs()
@@ -568,7 +578,7 @@ func (r *Rewriter) scannerOpts() *git.ScanRefsOptions {
 		Names:       make(map[string]string),
 	}
 
-	if root, ok := r.db.Root(); ok {
+	if root, ok := r.gitDirectory(); ok {
 		opts.WorkingDir = root
 	}
 	return opts

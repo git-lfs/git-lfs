@@ -57,6 +57,27 @@ This is my test pointer.  There are many like it, but this one is mine.\n" | git
 )
 end_test
 
+begin_test "clean with pointer extension"
+(
+  set -e
+  clean_setup "pointer-extension"
+
+  setup_case_inverter_extension
+
+  contents="$(printf "%s\n%s" "abc" "def")"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  printf "%s" "$contents" | git lfs clean -- "dir1/abc.dat" | tee clean.log
+
+  pointer="$(case_inverter_extension_pointer "$contents_oid" "$inverted_contents_oid" 7)"
+
+  assert_local_object "$inverted_contents_oid" 7
+
+  [ "$pointer" = "$(cat clean.log)" ]
+  grep "clean: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+)
+end_test
+
 begin_test "clean stdin"
 (
   set -e

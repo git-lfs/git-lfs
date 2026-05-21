@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/lfshttp/standalone"
@@ -11,8 +10,7 @@ import (
 func standaloneFileCommand(cmd *cobra.Command, args []string) {
 	err := standalone.ProcessStandaloneData(cfg, os.Stdin, os.Stdout)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(2)
+		ExitWithError(err)
 	}
 }
 

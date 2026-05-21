@@ -1,5 +1,98 @@
 # Git LFS Changelog
 
+## 3.7.0 (26 June 2025)
+
+This release is a feature release which introduces several new options
+for fetching Git LFS objects, such as the ability to force objects to
+be re-downloaded and the capacity to output object URLs and HTTP
+metadata in JSON for external tools to consume.  This release also adds
+a configurable in-memory cache of file path pattern matches, which along
+with other changes can help reduce the time required to migrate large
+repositories to Git LFS.
+
+Git LFS now supports the same `.netrc` files on Windows as Git and
+curl, retries appropriately after all 429 status code HTTP responses,
+permits the use of symbolic links to Git's object storage during
+Git LFS migrations, and avoids spurious TLS verification errors when
+custom CA certificates are configured on macOS.
+
+Note that the v3.7.x series of Git LFS releases are the first for which
+we provide packages and support for versions of Linux distributions
+based on Red Hat Enterprise Linux (RHEL) 10, such as Rocky Linux 10.
+
+Note also that beginning with this release, we no longer provide packages
+or support for versions of any Linux distribution based on Debian 10
+("buster"), RHEL/CentOS 7, or SUSE Linux Enterprise Server (SLES) 12.
+
+This release is built using Go v1.24 and therefore on Linux systems
+now requires Linux kernel version 3.2 or later.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @alexkad0 for improving the performance of our `migrate` command
+* @alingse for making our code simpler and more readable
+* @DarkDefender for refining the documentation of our `checkout` command
+* @fedirz for tidying up the documentation of our `migrate` command
+* @gergelyfabian for helping update our Go dependencies
+* @johanvdw for enhancing our `.netrc` file support on Windows
+* @Juneezee for updating our code to use new Go built-in functions
+* @LucasDondo for revising our Linux installation instructions
+* @m3ka24 for amending the documentation of our `prune` command
+* @philip-peterson for correcting our HTTP error reporting
+* @redsun82 for adding multiple new options to our `fetch` command
+* @slonopotamus for fixing JSON examples in our API documentation
+* @stanhu for addressing conflicts between custom CA certificates on macOS
+
+### Features
+
+* Cache a file path filter match result #6047 (@alexkad0)
+* Add `--refetch` option to `fetch` #5975 (@redsun82)
+* Add `--json` option to `fetch` #5974 (@redsun82)
+* Add `--dry-run` option to `fetch` #5973 (@redsun82)
+
+### Bugs
+
+* Verify TLS/SSL certificates using default Go support for macOS system root CAs #6049 (@chrisd8088)
+* Prefer .netrc on windows if present #6055 (@johanvdw)
+* Fix migrations where `.git/objects` is a symlink #6042 (@bk2204)
+* Honour 429 object transfer response `Retry-After` headers #6014 (@chrisd8088)
+
+### Misc
+
+* Update Linux distribution package list for v3.7.0 release (@chrisd8088)
+* Report missing objects consistently when pushing #6027 (@chrisd8088)
+* Use a git-update-ref script to update references #6048 (@alexkad0)
+* Drop unused generic stub function for cloning files #6050 (@chrisd8088)
+* Prevent conflicting curl macros in early Git version CI jobs #6040 (@chrisd8088)
+* pull: improve error message on failing checkout #5629 (@bk2204)
+* Fix language in code snippets in API docs #6035 (@slonopotamus)
+* build(deps): bump golang.org/x/net from 0.36.0 to 0.38.0 #6034 (@dependabot[bot])
+* Use single-target `Makefile` patterns for manual pages #6032 (@chrisd8088)
+* use direct value nil for error #6024 (@alingse)
+* Update minimum required Git version checks #6028 (@chrisd8088)
+* build(deps): bump golang.org/x/net from 0.33.0 to 0.36.0 #6012 (@dependabot[bot])
+* Upgrading x/crypto to v0.35.0 to solve CVE-2025-22869 #5997 (@gergelyfabian)
+* Upgrade to Go 1.24 #6013 (@chrisd8088)
+* Use constant format strings and fix HTTP error messages #5998 (@chrisd8088)
+* Remove command name prefixes from progress messages #5995 (@chrisd8088)
+* doc: Add missing "--to" argument in git-lfs-checkout example #6005 (@DarkDefender)
+* Replace min/max helpers with built-in min/max #5999 (@Juneezee)
+* Add security patch release process documentation #5987 (@chrisd8088)
+* Replace unused debug mode with trace logging #5989 (@chrisd8088)
+* Use default Ruby provided by Actions runners #5984 (@chrisd8088)
+* build(deps): bump azure/trusted-signing-action from 0.5.0 to 0.5.1 #5981 (@dependabot[bot])
+* Update workflows to use ARM runners and new Apple signing certificate #5977 (@chrisd8088)
+* docs/man/git-lfs-prune.adoc: fix --(no-)verify-unreachable description #5959 (@m3ka24)
+* docs/man/git-lfs-migrate.adoc: remove duplicate flag #5944 (@fedirz)
+* Upgrade `golang.org/x/net` from 0.23.0 to 0.33.0 #5940 (@gergelyfabian)
+* build(deps): bump golang.org/x/crypto from 0.21.0 to 0.31.0 #5935 (@dependabot[bot])
+* Simplify macOS CI jobs and specify Go toolchain version #5931 (@chrisd8088)
+* Tighten security of Actions workflows #5930 (@bk2204)
+* Corrected Pop!\_OS naming #5929 (@LucasDondo)
+* Update release process documentation and scripts #5920 (@chrisd8088)
+* Update license copyright dates and minimum supported Git version #5921 (@chrisd8088)
+
 ## 3.6.0 (20 November 2024)
 
 This release is a feature release which includes support for multi-stage

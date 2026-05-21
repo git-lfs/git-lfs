@@ -9,7 +9,7 @@ packagecloud provides scripts to automate the process of configuring the package
 * apt/deb repositories: https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh
 * yum/rpm repositories: https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh
 
-The scripts check your Linux distribution and version, and use those parameters to create the best repository URL.  If you are running one of the distributions listed for the latest version of Git LFS listed at [packagecloud](https://packagecloud.io/github/git-lfs) e.g `debian/jessie`, `el/7`, you can run the script without parameters:
+The scripts check your Linux distribution and version, and use those parameters to create the best repository URL.  If you are running one of the distributions listed for the latest version of Git LFS listed at [packagecloud](https://packagecloud.io/github/git-lfs) e.g., `debian/bookworm`, `el/9`, you can run the script without parameters:
 
 apt/deb repos:
 `curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash`
@@ -19,9 +19,9 @@ yum/rpm repos:
 
 If you are running a distribution which does not match exactly a repository uploaded for Git LFS, but for which there is a repository for a compatible upstream distribution, you can either run the script with some additional parameters, or run it and then manually-correct the resulting repository URLs.  See [#1074](https://github.com/git-lfs/git-lfs/issues/1074) for details.
 
-If you are running LinuxMint 17.1 Rebecca, which is downstream of Ubuntu Trusty and Debian Jessie, you can run:
+If you are running Linux Mint 22.1 Xia, which is downstream of Ubuntu Noble and Debian Bookworm, you can run:
 
-`curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | os=debian dist=jessie sudo -E bash`
+`curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | os=debian dist=xia sudo -E bash`
 
 The `os` and `dist` variables passed-in will override what would be detected for your system and force the selection of the upstream distribution's repository.
 

@@ -4,6 +4,7 @@ package git
 
 import (
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
@@ -83,7 +84,7 @@ func (o *FilterProcessScanner) Init() error {
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("reading filter-process versions"))
 	}
-	if !isStringInSlice(supVers, reqVer) {
+	if !slices.Contains(supVers, reqVer) {
 		return errors.New(tr.Tr.Get("filter '%s' not supported (your Git supports: %s)", reqVer, supVers))
 	}
 
@@ -107,15 +108,12 @@ func (o *FilterProcessScanner) NegotiateCapabilities() ([]string, error) {
 		return nil, errors.New(tr.Tr.Get("reading filter-process capabilities failed with %s", err))
 	}
 
-	for _, sup := range supCaps {
-		if sup == "capability=delay" {
-			reqCaps = append(reqCaps, "capability=delay")
-			break
-		}
+	if slices.Contains(supCaps, "capability=delay") {
+		reqCaps = append(reqCaps, "capability=delay")
 	}
 
 	for _, reqCap := range reqCaps {
-		if !isStringInSlice(supCaps, reqCap) {
+		if !slices.Contains(supCaps, reqCap) {
 			return nil, errors.New(tr.Tr.Get("filter '%s' not supported (your Git supports: %s)", reqCap, supCaps))
 		}
 	}
@@ -201,17 +199,4 @@ func (o *FilterProcessScanner) WriteList(list []string) error {
 
 func (o *FilterProcessScanner) WriteStatus(status FilterProcessStatus) error {
 	return o.pl.WritePacketList([]string{"status=" + status.String()})
-}
-
-// isStringInSlice returns whether a given string "what" is contained in a
-// slice, "s".
-//
-// isStringInSlice is copied from "github.com/xeipuuv/gojsonschema/utils.go"
-func isStringInSlice(s []string, what string) bool {
-	for i := range s {
-		if s[i] == what {
-			return true
-		}
-	}
-	return false
 }

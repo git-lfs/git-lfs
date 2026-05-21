@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/git-lfs/git-lfs/v3/commands"
@@ -15,12 +14,10 @@ func main() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill)
 
-	var once sync.Once
-
 	go func() {
 		for {
 			sig := <-c
-			once.Do(commands.Cleanup)
+			commands.Cleanup()
 			fmt.Fprintf(os.Stderr, "\n%s\n", tr.Tr.Get("Exiting because of %q signal.", sig))
 
 			exitCode := 1
@@ -32,6 +29,6 @@ func main() {
 	}()
 
 	code := commands.Run()
-	once.Do(commands.Cleanup)
+	commands.Cleanup()
 	os.Exit(code)
 }

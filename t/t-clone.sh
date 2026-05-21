@@ -4,13 +4,6 @@
 
 ensure_git_version_isnt $VERSION_LOWER "2.2.0"
 
-# Check for a libnss3 dependency in Git until we drop support for CentOS 7.
-GIT_LIBNSS=0
-if [ "$IS_WINDOWS" -eq 0 -a "$IS_MAC" -eq 0 ]; then
-  GIT_LIBNSS="$(ldd "$(git --exec-path)"/git-remote-https | grep -c '^\s*libnss3\.' || true)"
-fi
-export GIT_LIBNSS
-
 export CREDSDIR="$REMOTEDIR/creds-clone"
 setup_creds
 
@@ -121,11 +114,6 @@ begin_test "cloneSSL"
 (
   set -e
 
-  if [ "$GIT_LIBNSS" -eq 1 ]; then
-    echo "skip: libnss does not support the Go httptest server certificate"
-    exit 0
-  fi
-
   if [ "$IS_WINDOWS" -eq 1 ]; then
     git config --global "http.sslBackend" "openssl"
   fi
@@ -204,11 +192,6 @@ end_test
 begin_test "clone ClientCert"
 (
   set -e
-
-  if [ "$GIT_LIBNSS" -eq 1 ]; then
-    echo "skip: libnss does not support the Go httptest server certificate"
-    exit 0
-  fi
 
   if [ "$IS_WINDOWS" -eq 1 ]; then
     git config --global "http.sslBackend" "openssl"
@@ -329,11 +312,6 @@ end_test
 begin_test "clone ClientCert with homedir certs"
 (
   set -e
-
-  if [ "$GIT_LIBNSS" -eq 1 ]; then
-    echo "skip: libnss does not support the Go httptest server certificate"
-    exit 0
-  fi
 
   if [ "$IS_WINDOWS" -eq 1 ]; then
     git config --global "http.sslBackend" "openssl"

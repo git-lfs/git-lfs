@@ -867,7 +867,7 @@ begin_test 'push with multiple refs and data the server already has'
 
   # We should not find a batch request for the object which is in the earlier
   # version of main, since we know the remote side has it.
-  [ "$(grep -c "$contents_oid" push.log)" = 0 ]
+  [ 0 -eq "$(grep -c "$contents_oid" push.log)" ]
 
   # Yet we should have pushed the new object successfully.
   assert_server_object "$reponame" "$contents2_oid"
@@ -952,47 +952,5 @@ begin_test "push --object-id (invalid value)"
   git lfs push --object-id origin "${oid1:0:3}" 2>&1 | tee -a push.log
 
   [ "$(grep -c 'too short object ID' push.log)" -eq 2 ]
-)
-end_test
-
-begin_test "storage upload with compression"
-(
-  set -e
-
-  reponame="storage-compress"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" storage-compress
-
-  contents="storage-compress"
-  oid="$(calc_oid "$contents")"
-  printf "%s" "$contents" > a.dat
-
-  git lfs track "*.dat"
-  git add .gitattributes a.dat
-  git commit -m "initial commit"
-
-  GIT_CURL_VERBOSE=1 git push origin main | tee push.log
-  assert_server_object "$reponame" "$oid"
-
-  pushd ..
-    git \
-      -c "filter.lfs.process=" \
-      -c "filter.lfs.smudge=cat" \
-      -c "filter.lfs.required=false" \
-      clone "$GITSERVER/$reponame" "$reponame-assert"
-
-    cd "$reponame-assert"
-
-    git config credential.helper lfstest
-
-    GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected \`git lfs pull origin main\` to succeed ..."
-      exit 1
-    fi
-
-    grep "decompressed gzipped response" pull.log
-    assert_local_object "$oid" "${#contents}"
-  popd
 )
 end_test

@@ -106,6 +106,14 @@ interpreted as the password.
 +
 Enables in-memory SSH and Git Credential caching for a single 'git lfs'
 command. Default: enabled.
+* `lfs.pathFilterCacheSize`
++
+Sets the size of the in-memory cache of results from matching file paths
+against the filter defined by the `lfs.fetchInclude` and `lfs.fetchExclude`
+options, or for commands which accept them, by the `--include` and `--exclude`
+command-line options or their `-I` and `-X` equivalents.
+Set to `0` or `none` to disable the cache, or to `unlimited` to allow
+the cache to grow without bound.  Default: 10,000 unique file paths.
 * `lfs.storage`
 +
 Allow override LFS storage directory. Non-absolute path is relativized
@@ -129,7 +137,7 @@ occurs.
 
 * `lfs.concurrenttransfers`
 +
-The number of concurrent uploads/downloads. Default 8.
+The number of concurrent uploads/downloads. Default is 8.
 * `lfs.basictransfersonly`
 +
 If set to true, only basic HTTP upload/download transfers will be used,
@@ -161,7 +169,7 @@ should point to the process you wish to invoke. The protocol between the
 git-lfs client and the custom transfer process is documented at
 https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md
 +
-must be a unique identifier that the LFS server understands. When
+The `<name>` must be a unique identifier that the LFS server understands. When
 calling the LFS API the client will include a list of supported transfer
 types. If the server also supports this named transfer type, it will
 select it and actions returned from the API will be in relation to that
@@ -181,6 +189,19 @@ splitting the transfer workload between the processes.
 +
 Specifies which direction the custom transfer process supports, either
 "download", "upload", or "both". The default if unspecified is "both".
+* `lfs.transfer.httpDownloadEncoding` / `lfs.transfer.<url>.httpDownloadEncoding`
++
+Specifies the compression encoding to use when downloading LFS objects
+over HTTP. Valid values are `gzip` or `zstd`. Default is `gzip`.
++
+This option may be applied selectively to some URLs, following the same
+matching rules as those defined for Git's `http.<url>.*`
+link:https://git-scm.com/docs/git-config#Documentation/git-config.txt-httplturlgt[options].
+For example, to set this option only for a specific host, use:
++
+....
+git config lfs.transfer.https://example.com/.httpDownloadEncoding zstd
+....
 * `lfs.transfer.maxretries`
 +
 Specifies how many retries LFS will attempt per OID before marking the

@@ -142,6 +142,54 @@ begin_test "filter process: adding a file"
 )
 end_test
 
+begin_test "filter-process: pointer extension"
+(
+  set -e
+
+  reponame="filter-process-pointer-extension"
+  git init "$reponame"
+  cd "$reponame"
+
+  # Git will choose "filter.lfs.process" over "filter.lfs.clean" and
+  # "filter.lfs.smudge".
+  git config --global --unset filter.lfs.clean
+  git config --global --unset filter.lfs.smudge
+
+  setup_case_inverter_extension
+
+  git lfs track "*.dat"
+
+  contents="$(printf "%s\n%s" "abc" "def")"
+  contents_oid="$(calc_oid "$contents")"
+  inverted_contents_oid="$(calc_oid "$(invert_case "$contents")")"
+  mkdir dir1
+  printf "%s" "$contents" >dir1/abc.dat
+  git add .gitattributes dir1
+  git commit -m "initial commit"
+
+  pointer="$(case_inverter_extension_pointer "$contents_oid" "$inverted_contents_oid" 7)"
+  [ "$pointer" = "$(git cat-file -p ":dir1/abc.dat")" ]
+  grep "clean: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  assert_local_object "$inverted_contents_oid" 7
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  git checkout -- .
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+
+  rm -rf dir1 "$LFSTEST_EXT_LOG"
+  mkdir dir2
+
+  pushd dir2
+    git checkout -- ..
+  popd
+
+  [ "$contents" = "$(cat "dir1/abc.dat")" ]
+  grep "smudge: dir1/abc.dat" "$LFSTEST_EXT_LOG"
+)
+end_test
+
 # https://github.com/git-lfs/git-lfs/issues/1697
 begin_test "filter process: add a file with 1024 bytes"
 (

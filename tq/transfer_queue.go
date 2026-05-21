@@ -129,7 +129,7 @@ func (b batch) Concat(other batch, size int) (left, right batch, minWait time.Du
 func (b batch) ToTransfers() []*Transfer {
 	transfers := make([]*Transfer, 0, len(b))
 	for _, t := range b {
-		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size, Missing: t.Missing})
+		transfers = append(transfers, &Transfer{Oid: t.Oid, Size: t.Size})
 	}
 	return transfers
 }
@@ -251,6 +251,7 @@ type objectTuple struct {
 	Size            int64
 	Missing         bool
 	ReadyTime       time.Time
+	retryLaterTime  time.Time
 }
 
 func (o *objectTuple) ToTransfer() *Transfer {
@@ -546,7 +547,10 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	enqueueRetry := func(t *objectTuple, err error, readyTime *time.Time) {
 		count := q.rc.Increment(t.Oid)
 
-		if readyTime == nil {
+		if !t.retryLaterTime.IsZero() {
+			t.ReadyTime = t.retryLaterTime
+			t.retryLaterTime = time.Time{}
+		} else if readyTime == nil {
 			t.ReadyTime = q.rc.ReadyTime(t.Oid)
 		} else {
 			t.ReadyTime = *readyTime
@@ -568,7 +572,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		// Trust the external transfer agent can do everything by itself.
 		objects := make([]*Transfer, 0, len(batch))
 		for _, t := range batch {
-			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path, Missing: t.Missing})
+			objects = append(objects, &Transfer{Oid: t.Oid, Size: t.Size, Path: t.Path})
 		}
 		bRes = &BatchResponse{
 			Objects:             objects,
@@ -620,8 +624,18 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// actions will be empty. It's fine if the file is
 			// missing in that case, since we don't need to upload
 			// it.
-			if o.Missing && len(o.Actions) != 0 {
-				return nil, errors.New(tr.Tr.Get("Unable to find source for object %v (try running `git lfs fetch --all`)", o.Oid))
+			if len(o.Actions) != 0 {
+				q.trMutex.Lock()
+				objects, ok := q.transfers[o.Oid]
+				q.trMutex.Unlock()
+				// We expect only one objectTuple in this list
+				// as the uploadContext methods deduplicate
+				// identical OIDs before adding them to the
+				// transfer queue.
+				if ok && objects.First().Missing {
+					tracerx.Printf("tq: stopping batched queue, object %q missing locally and on remote", o.Oid)
+					return nil, newObjectMissingError(objects.First().Name, o.Oid)
+				}
 			}
 		}
 	}
@@ -802,14 +816,14 @@ func (q *TransferQueue) handleTransferResult(
 			// If the object can't be retried now, but can be
 			// after a certain period of time, send it to
 			// the retry channel with a time when it's ready.
-			tracerx.Printf("tq: retrying object %s after %s seconds.", oid, time.Until(readyTime).Seconds())
+			tracerx.Printf("tq: retrying object %s after %.2fs", oid, time.Until(readyTime).Seconds())
 			q.trMutex.Lock()
 			objects, ok := q.transfers[oid]
 			q.trMutex.Unlock()
 
 			if ok {
 				t := objects.First()
-				t.ReadyTime = readyTime
+				t.retryLaterTime = readyTime
 				retries <- t
 			} else {
 				q.errorc <- res.Error
@@ -874,6 +888,13 @@ func (q *TransferQueue) handleTransferResult(
 func (q *TransferQueue) useAdapter(name string) {
 	q.adapterInitMutex.Lock()
 	defer q.adapterInitMutex.Unlock()
+
+	// The spec says clients MUST use the basic transfer adapter when
+	// the response omits the transfer property (docs/api/batch.md).
+	// Normalize here to match NewAdapterOrDefault.
+	if name == "" {
+		name = BasicAdapterName
+	}
 
 	if q.adapter != nil {
 		if q.adapter.Name() == name {
@@ -969,14 +990,6 @@ func (q *TransferQueue) Wait() {
 
 	q.meter.Flush()
 	q.errorwait.Wait()
-
-	if q.manifest.Upgraded() {
-		manifest := q.manifest.Upgrade()
-		if manifest.sshTransfer != nil {
-			manifest.sshTransfer.Shutdown()
-			manifest.sshTransfer = nil
-		}
-	}
 
 	if q.unsupportedContentType {
 		fmt.Fprintln(os.Stderr, tr.Tr.Get(`info: Uploading failed due to unsupported Content-Type header(s).

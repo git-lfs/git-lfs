@@ -152,7 +152,7 @@ func TestLogScannerAdditionsNoFiltering(t *testing.T) {
 func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
-	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New([]string{"wave*"}, nil, filepathfilter.GitAttributes, nil)
 
 	// addition, + side
 	assertNextScan(t, scanner)
@@ -169,7 +169,7 @@ func TestLogScannerAdditionsFilterInclude(t *testing.T) {
 func TestLogScannerAdditionsFilterIncludeOctals(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
-	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes, nil)
 
 	// modification, + side with extensions
 	assertNextScan(t, scanner)
@@ -186,7 +186,7 @@ func TestLogScannerAdditionsFilterIncludeOctals(t *testing.T) {
 func TestLogScannerAdditionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffAdditions, r)
-	scanner.Filter = filepathfilter.New(nil, []string{"wave*"}, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New(nil, []string{"wave*"}, filepathfilter.GitAttributes, nil)
 
 	// modification, + side
 	assertNextScan(t, scanner)
@@ -274,7 +274,7 @@ func TestLogScannerDeletionsNoFiltering(t *testing.T) {
 func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffDeletions, r)
-	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New([]string{"flare*"}, nil, filepathfilter.GitAttributes, nil)
 
 	// deletion, - side with extensions
 	assertNextScan(t, scanner)
@@ -291,7 +291,7 @@ func TestLogScannerDeletionsFilterInclude(t *testing.T) {
 func TestLogScannerDeletionsFilterIncludeOctals(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffDeletions, r)
-	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New([]string{"*ç*"}, nil, filepathfilter.GitAttributes, nil)
 
 	// modification, - side with extensions
 	assertNextScan(t, scanner)
@@ -308,7 +308,7 @@ func TestLogScannerDeletionsFilterIncludeOctals(t *testing.T) {
 func TestLogScannerDeletionsFilterExclude(t *testing.T) {
 	r := strings.NewReader(pointerParseLogOutput)
 	scanner := newLogScanner(LogDiffDeletions, r)
-	scanner.Filter = filepathfilter.New(nil, []string{"flare*"}, filepathfilter.GitAttributes)
+	scanner.Filter = filepathfilter.New(nil, []string{"flare*"}, filepathfilter.GitAttributes, nil)
 
 	// deletion, - side
 	assertNextScan(t, scanner)

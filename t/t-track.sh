@@ -220,9 +220,9 @@ begin_test "track with autocrlf=input"
   git lfs track "*.gif"
   if [ $IS_WINDOWS -eq 1 ]
   then
-      cat -e .gitattributes | grep '\^M\$'
+    [ 2 -eq "$(cat -e .gitattributes | grep -c '\^M\$')" ]
   else
-      cat -e .gitattributes | grep -v '\^M'
+    [ 0 -eq "$(cat -e .gitattributes | grep -c '\^M')" ]
   fi
 )
 end_test
@@ -379,7 +379,7 @@ begin_test "track blocklisted files by name"
 
   git lfs track .gitattributes 2>&1 > track.log && exit 1
   grep "Pattern '.gitattributes' matches forbidden file '.gitattributes'" track.log
-  [ -z "$(git status --porcelain | grep -v '^??')" ]
+  [ 0 -eq "$(git status --porcelain | grep -c -v '^??')" ]
 )
 end_test
 
@@ -398,11 +398,11 @@ begin_test "track blocklisted files with glob"
 
   git lfs track ".git*" 2>&1 > track.log && exit 1
   grep "Pattern '.git\*' matches forbidden file" track.log
-  [ -z "$(git status --porcelain | grep -v '^??')" ]
+  [ 0 -eq "$(git status --porcelain | grep -c -v '^??')" ]
 
   git lfs track "*" 2>&1 > track.log && exit 1
   grep "Pattern '\*' matches forbidden file" track.log
-  [ -z "$(git status --porcelain | grep -v '^??')" ]
+  [ 0 -eq "$(git status --porcelain | grep -c -v '^??')" ]
 )
 end_test
 

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,6 +29,21 @@ import (
 
 const MediaType = "application/vnd.git-lfs+json"
 const RequestContentType = MediaType + "; charset=utf-8"
+
+const (
+	defaultConcurrentTransfers = 8
+)
+
+// At present, we return a fixed default value of 8 concurrent transfers,
+// which is less than ideal for HTTP-based transfers when many objects
+// are transferred by a single "git lfs filter-process" command.
+//
+// However, the "lfs.concurrentTransfers" setting also controls the number
+// of processes we spawn for SSH-based or custom transfers, and we want
+// to avoid spawning large numbers of separate processes.
+func DefaultConcurrentTransfers() int {
+	return defaultConcurrentTransfers
+}
 
 var (
 	UserAgent = "git-lfs"
@@ -66,7 +82,7 @@ type Client struct {
 	sshTries int
 }
 
-func NewClient(ctx Context) (*Client, error) {
+func NewClient(ctx Context) *Client {
 	if ctx == nil {
 		ctx = NewContext(nil, nil, nil)
 	}
@@ -75,17 +91,21 @@ func NewClient(ctx Context) (*Client, error) {
 	osEnv := ctx.OSEnv()
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+
+	// SSHResolver resolves LFS endpoint authentication by running
+	// git-lfs-authenticate over SSH. The returned credentials (URL
+	// and headers) are then used for subsequent HTTPS API requests.
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
 
-	c := &Client{
+	return &Client{
 		SSH:                 sshResolver,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
-		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", 8),
+		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", DefaultConcurrentTransfers()),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
 		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
@@ -95,8 +115,6 @@ func NewClient(ctx Context) (*Client, error) {
 		sshTries:            gitEnv.Int("lfs.ssh.retries", 5),
 		credHelperContext:   creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
-
-	return c, nil
 }
 
 func (c *Client) GitEnv() config.Environment {
@@ -247,7 +265,9 @@ func (c *Client) ExtraHeadersFor(req *http.Request) http.Header {
 
 	for k, vs := range extraHeaders {
 		for _, v := range vs {
-			copy[k] = append(copy[k], v)
+			if !slices.Contains(copy[k], v) {
+				copy[k] = append(copy[k], v)
+			}
 		}
 	}
 	return copy
@@ -408,7 +428,7 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 
 	concurrentTransfers := c.ConcurrentTransfers
 	if concurrentTransfers < 1 {
-		concurrentTransfers = 8
+		concurrentTransfers = DefaultConcurrentTransfers()
 	}
 
 	dialtime := c.DialTimeout
@@ -482,7 +502,7 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 	if isCertVerificationDisabledForHost(c, host) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHost(c, host)
+		tr.TLSClientConfig.RootCAs = getRootCAsForHostFromGitconfig(c, host)
 	}
 
 	if err := c.configureProtocols(u, tr); err != nil {
@@ -624,6 +644,11 @@ func (e testEnv) GetAll(key string) []string {
 func (e testEnv) Int(key string, def int) int {
 	s, _ := e.Get(key)
 	return config.Int(s, def)
+}
+
+func (e testEnv) Int64(key string, def int64) int64 {
+	s, _ := e.Get(key)
+	return config.Int64(s, def)
 }
 
 func (e testEnv) Bool(key string, def bool) bool {

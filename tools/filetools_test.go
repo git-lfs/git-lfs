@@ -197,7 +197,7 @@ func TestFastWalkBasic(t *testing.T) {
 
 	expectedEntries := createFastWalkInputData(10, 160)
 
-	walker := fastWalkWithExcludeFiles(expectedEntries[0])
+	walker := fastWalkDir(expectedEntries[0])
 	gotEntries, gotErrors := collectFastWalkResults(walker.ch)
 
 	assert.Empty(t, gotErrors)

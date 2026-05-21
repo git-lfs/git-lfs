@@ -6,8 +6,11 @@ git-lfs-ls-files - Show information about Git LFS files in the index and working
 
 == SYNOPSIS
 
-`git lfs ls-files` [<ref>] +
-`git lfs ls-files` <ref> <ref>
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs ls-files* [_<ref>_]
+*git lfs ls-files* _<ref> <ref>_
+----
 
 == DESCRIPTION
 
@@ -50,7 +53,11 @@ indicates an LFS pointer.
    Show only the lfs tracked file names.
 `-j`::
 `--json`::
-   Give the output in a stable json format for scripts.
+   Writes Git LFS file information as JSON to STDOUT, if the command exits
+   successfully. Intended for interoperation with external tools.
+   If `--debug` is also provided, that option takes precedence. If any
+   of `--long`, `--size`, or `--name-only` are provided, those options will
+   have no effect.
 
 == SEE ALSO
 

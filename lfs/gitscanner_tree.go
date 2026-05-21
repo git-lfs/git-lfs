@@ -189,7 +189,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 
 	pointers := make(map[string]*WrappedPointer)
 
-	paths := make([]git.AttributePath, 0)
+	paths := make([]gitattr.AttributePath, 0)
 	processor := gitattr.NewMacroProcessor()
 
 	hasNext := true
@@ -198,7 +198,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 			hasNext = oscanner.Scan(t.Oid)
 
 			if rdr := oscanner.Contents(); rdr != nil {
-				paths = append(paths, git.AttrPathsFromReader(
+				paths = append(paths, gitattr.AttrPathsFromReader(
 					processor,
 					t.Filename,
 					"",
@@ -256,7 +256,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 	for _, path := range paths {
 		// Convert all separators to `/` before creating a pattern to
 		// avoid characters being escaped in situations like `subtree\*.md`
-		pattern := filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes)
+		pattern := filepathfilter.NewPattern(filepath.ToSlash(path.Path), filepathfilter.GitAttributes, gitEnv)
 		if path.Tracked {
 			includes = append(includes, pattern)
 		} else {

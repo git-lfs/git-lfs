@@ -9,10 +9,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.24.x']
+        go: ['1.26.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -22,7 +22,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/290 and
       # https://github.com/actions/checkout/issues/882 for details.
     - run: sudo gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
@@ -37,7 +37,7 @@ jobs:
           FORCE_LOCALIZE: true
     - run: mkdir -p bin/assets
     - run: find bin/releases -name "*$(uname -s | tr A-Z a-z)*" | xargs -I{} cp {} bin/assets
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.os }}
         path: bin/assets
@@ -45,15 +45,15 @@ jobs:
     name: Build with specific Go
     strategy:
       matrix:
-        go: ['1.23.x']
+        go: ['1.25.x']
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
@@ -61,15 +61,15 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
-        go-version: '1.24.x'
+        go-version: '1.26.x'
     - run: mkdir -p "$HOME/go/bin"
       shell: bash
     - run: set GOPATH=%HOME%\go
@@ -111,7 +111,7 @@ jobs:
       shell: bash
     - run: mv *.exe bin/assets
       shell: bash
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: windows-latest
         path: bin/assets
@@ -122,14 +122,14 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
-        go-version: '1.24.x'
+        go-version: '1.26.x'
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
     - run: |
         echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
@@ -146,14 +146,14 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6
       with:
-        go-version: '1.24.x'
+        go-version: '1.26.x'
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
     - run: |
         echo "GIT_INSTALL_DIR=$HOME/git" >> "$GITHUB_ENV"
@@ -167,7 +167,7 @@ jobs:
     name: Build Linux packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -179,11 +179,11 @@ jobs:
     name: Build Linux ARM packages
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: git clone https://github.com/git-lfs/build-dockers.git "$HOME/build-dockers"
-    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=arm64 debian_11 debian_12)
-    - run: ./docker/run_dockers.bsh --prune --arch=arm64 debian_11 debian_12
+    - run: (cd "$HOME/build-dockers" && ./build_dockers.bsh --arch=arm64 debian_11 debian_12 debian_13)
+    - run: ./docker/run_dockers.bsh --prune --arch=arm64 debian_11 debian_12 debian_13

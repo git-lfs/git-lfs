@@ -99,11 +99,13 @@ func DecodePointerFromBlob(b *gitobj.Blob) (*Pointer, error) {
 
 func DecodePointerFromFile(file string) (*Pointer, error) {
 	// Check size before reading
-	stat, err := os.Stat(file)
+	stat, err := os.Lstat(file)
 	if err != nil {
 		return nil, err
 	}
-	if stat.Size() >= blobSizeCutoff {
+	if !stat.Mode().IsRegular() {
+		return nil, errors.New(tr.Tr.Get("not a regular file: %q", file))
+	} else if stat.Size() >= blobSizeCutoff {
 		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("file size exceeds Git LFS pointer size cutoff")))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)

@@ -47,7 +47,7 @@ property was added for future compatibility with some experimental transfer
 adapters. See the [API README](./README.md) for a list of the documented
 transfer adapters.
 
-```js
+```json5
 // POST https://lfs-server.com/objects/batch
 // Accept: application/vnd.git-lfs+json
 // Content-Type: application/vnd.git-lfs+json
@@ -76,7 +76,7 @@ Some examples will illustrate how the `ref` property can be used.
 * User `owner` has full access to the repository.
 * User `contrib` has readonly access to the repository, and write access to `refs/heads/contrib`.
 
-```js
+```json5
 {
   "operation": "download",
   "transfers": [ "basic" ],
@@ -91,7 +91,7 @@ Some examples will illustrate how the `ref` property can be used.
 
 With this payload, both `owner` and `contrib` can download the requested object, since they both have read access.
 
-```js
+```json5
 {
   "operation": "upload",
   "transfers": [ "basic" ],
@@ -106,7 +106,7 @@ With this payload, both `owner` and `contrib` can download the requested object,
 
 With this payload, only `owner` can upload the requested object.
 
-```js
+```json5
 {
   "operation": "upload",
   "transfers": [ "basic" ],
@@ -167,7 +167,7 @@ for extra verification, if needed. If a client requests to upload an object that
 the server already has, the server should omit the `actions` property
 completely. The client will then assume the server already has it.
 
-```js
+```json5
 // HTTP/1.1 200 Ok
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -195,7 +195,7 @@ completely. The client will then assume the server already has it.
 If there are problems accessing individual objects, servers should continue to
 return a 200 status code, and provide per-object errors. Here is an example:
 
-```js
+```json5
 // HTTP/1.1 200 Ok
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -242,7 +242,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 404 Not Found
 // Content-Type: application/vnd.git-lfs+json
 
@@ -258,7 +258,7 @@ client what form of authentication it requires. If omitted, Git LFS will assume
 Basic Authentication. This mirrors the standard `WWW-Authenticate` header with
 a custom header key so it does not trigger password prompts in browsers.
 
-```js
+```json5
 // HTTP/1.1 401 Unauthorized
 // Content-Type: application/vnd.git-lfs+json
 // LFS-Authenticate: Basic realm="Git LFS"

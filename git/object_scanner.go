@@ -47,12 +47,12 @@ func NewObjectScanner(gitEnv, osEnv Environment) (*ObjectScanner, error) {
 		return nil, err
 	}
 
-	gitobj, err := ObjectDatabase(osEnv, gitEnv, gitdir, "")
+	db, err := ObjectDatabase(osEnv, gitEnv, gitdir, "")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewObjectScannerFrom(gitobj), nil
+	return NewObjectScannerFrom(db), nil
 }
 
 // NewObjectScannerFrom returns a new `*ObjectScanner` populated with data from

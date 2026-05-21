@@ -43,7 +43,7 @@ relative to the root of the repository working directory.
 * `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
   * `name` - Fully-qualified server refspec.
 
-```js
+```json5
 // POST https://lfs-server.com/locks
 // Accept: application/vnd.git-lfs+json
 // Content-Type: application/vnd.git-lfs+json
@@ -69,7 +69,7 @@ RFC 3339-formatted string with second precision.
 * `owner` - Optional name of the user that created the Lock. This should be set from
 the user credentials posted when creating the lock.
 
-```js
+```json5
 // HTTP/1.1 201 Created
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -96,7 +96,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 409 Conflict
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -120,7 +120,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 403 Forbidden
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -138,7 +138,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -165,7 +165,7 @@ should have its own upper and lower bounds on the supported limits.
 * `refspec` - Optional fully qualified server refspec
 from which to search for locks.
 
-```js
+```json5
 // GET https://lfs-server.com/locks?path=&id=&cursor=&limit=&refspec=
 // Accept: application/vnd.git-lfs+json
 // Authorization: Basic ... (if needed)
@@ -183,7 +183,7 @@ setting the `?cursor` query value with this `next_cursor` value.
 
 Note: If the server has no locks, it must return an empty `locks` array.
 
-```js
+```json5
 // HTTP/1.1 200 Ok
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -212,7 +212,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 403 Forbidden
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -230,7 +230,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -262,7 +262,7 @@ to `/locks/verify` (appended to the LFS server url, as described above):
 * `limit` - Optional limit to how many locks to
 return.
 
-```js
+```json5
 // POST https://lfs-server.com/locks/verify
 // Accept: application/vnd.git-lfs+json
 // Content-Type: application/vnd.git-lfs+json
@@ -299,7 +299,7 @@ their team.
 Note: If the server has no locks, it must return an empty array in the `ours` or
 `theirs` properties.
 
-```js
+```json5
 // HTTP/1.1 200 Ok
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -332,7 +332,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 404 Not found
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -353,7 +353,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 403 Forbidden
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -371,7 +371,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -396,7 +396,7 @@ lock.
 * `ref` - Optional object describing the server ref that the locks belong to. Note: Added in v2.4.
   * `name` - Fully-qualified server refspec.
 
-```js
+```json5
 // POST https://lfs-server.com/locks/:id/unlock
 // Accept: application/vnd.git-lfs+json
 // Content-Type: application/vnd.git-lfs+json
@@ -415,7 +415,7 @@ lock.
 Successful deletions return the deleted lock. See the "Create Lock" successful
 response section to see what Lock properties are possible.
 
-```js
+```json5
 // HTTP/1.1 200 Ok
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -442,7 +442,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 403 Forbidden
 // Content-Type: application/vnd.git-lfs+json
 {
@@ -460,7 +460,7 @@ debugging.
 * `documentation_url` - Optional String to give the user a place to report
 errors.
 
-```js
+```json5
 // HTTP/1.1 500 Internal server error
 // Content-Type: application/vnd.git-lfs+json
 {

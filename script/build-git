@@ -22,6 +22,29 @@ esac
 GIT_INSTALL_PATH="${GIT_INSTALL_DIR:-"/usr/local"}"
 
 cd "$DIR"
+
+# Hide macros defined in Git v2.33.x and earlier which now conflict with
+# macros defined by curl since v8.13.0.
+if grep -q "CURLOPT_USE_SSL" http.h; then
+  cat <<EOF | patch -p1
+--- a/http.h
++++ b/http.h
+@@ -45,10 +45,12 @@
+  * CURLOPT_USE_SSL was known as CURLOPT_FTP_SSL up to 7.16.4,
+  * and the constants were known as CURLFTPSSL_*
+ */
++/*
+ #if !defined(CURLOPT_USE_SSL) && defined(CURLOPT_FTP_SSL)
+ #define CURLOPT_USE_SSL CURLOPT_FTP_SSL
+ #define CURLUSESSL_TRY CURLFTPSSL_TRY
+ #endif
++*/
+
+ struct slot_results {
+	CURLcode curl_result;
+EOF
+fi
+
 printf "%s\n" \
   "NO_GETTEXT=YesPlease" \
   "NO_OPENSSL=YesPlease" \

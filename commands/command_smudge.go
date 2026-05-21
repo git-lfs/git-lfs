@@ -60,7 +60,7 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 
 	if !skip && filter.Allows(filename) {
 		if _, statErr := os.Stat(path); statErr != nil && ptr.Size != 0 {
-			q.Add(filename, path, ptr.Oid, ptr.Size, false, err)
+			q.Add(filename, path, ptr.Oid, ptr.Size, false, nil)
 			return 0, true, ptr, nil
 		}
 
@@ -139,7 +139,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 
 		LoggedError(err, tr.Tr.Get("Error downloading object: %s (%s): %s", filename, oid, err))
 		if !cfg.SkipDownloadErrors() {
-			os.Exit(2)
+			ExitWithCode(2)
 		}
 	}
 
@@ -154,7 +154,7 @@ func smudgeCommand(cmd *cobra.Command, args []string) {
 	if !smudgeSkip && cfg.Os.Bool("GIT_LFS_SKIP_SMUDGE", false) {
 		smudgeSkip = true
 	}
-	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitIgnore)
+	filter := filepathfilter.New(cfg.FetchIncludePaths(), cfg.FetchExcludePaths(), filepathfilter.GitIgnore, cfg.Git)
 	gitfilter := lfs.NewGitFilter(cfg)
 
 	if n, err := smudge(gitfilter, os.Stdout, os.Stdin, smudgeFilename(args), smudgeSkip, filter); err != nil {

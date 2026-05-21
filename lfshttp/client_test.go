@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -112,14 +114,13 @@ func TestClientRedirect(t *testing.T) {
 	srv3Https = srv3.URL
 	srv3Http = fmt.Sprintf("http://%s", srv3InsecureListener.Addr().String())
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		fmt.Sprintf("http.%s.sslverify", srv3Https):  "false",
 		fmt.Sprintf("http.%s/.sslverify", srv3Https): "false",
 		fmt.Sprintf("http.%s.sslverify", srv3Http):   "false",
 		fmt.Sprintf("http.%s/.sslverify", srv3Http):  "false",
 		fmt.Sprintf("http.sslverify"):                "false",
 	}))
-	require.Nil(t, err)
 
 	// local redirect
 	req, err := http.NewRequest("POST", srv1.URL+"/local", nil)
@@ -177,14 +178,13 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.dialtimeout":         "151",
 		"lfs.keepalive":           "152",
 		"lfs.tlstimeout":          "153",
 		"lfs.concurrenttransfers": "154",
 	}))
 
-	require.Nil(t, err)
 	assert.Equal(t, 151, c.DialTimeout)
 	assert.Equal(t, 152, c.KeepaliveTimeout)
 	assert.Equal(t, 153, c.TLSTimeout)
@@ -192,49 +192,43 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClientWithGitSSLVerify(t *testing.T) {
-	c, err := NewClient(nil)
-	assert.Nil(t, err)
+	c := NewClient(nil)
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(nil, nil, map[string]string{
+		c = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
-		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(nil, nil, map[string]string{
+		c = NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": value,
 		}))
 		t.Logf("http.sslverify: %q", value)
-		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
 	}
 }
 
 func TestNewClientWithOSSSLVerify(t *testing.T) {
-	c, err := NewClient(nil)
-	assert.Nil(t, err)
+	c := NewClient(nil)
 	assert.False(t, c.SkipSSLVerify)
 
 	for _, value := range []string{"false", "0", "f"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
-		assert.Nil(t, err)
 		assert.False(t, c.SkipSSLVerify)
 	}
 
 	for _, value := range []string{"true", "1", "t"} {
-		c, err = NewClient(NewContext(nil, map[string]string{
+		c = NewClient(NewContext(nil, map[string]string{
 			"GIT_SSL_NO_VERIFY": value,
 		}, nil))
 		t.Logf("GIT_SSL_NO_VERIFY: %q", value)
-		assert.Nil(t, err)
 		assert.True(t, c.SkipSSLVerify)
 	}
 }
@@ -248,8 +242,7 @@ func TestNewRequest(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := NewClient(NewContext(nil, nil, nil))
-		require.Nil(t, err)
+		c := NewClient(NewContext(nil, nil, nil))
 
 		req, err := c.NewRequest("POST", Endpoint{Url: test[0]}, test[1], nil)
 		require.Nil(t, err)
@@ -259,8 +252,7 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequestWithBody(t *testing.T) {
-	c, err := NewClient(NewContext(nil, nil, nil))
-	require.Nil(t, err)
+	c := NewClient(NewContext(nil, nil, nil))
 
 	body := struct {
 		Test string
@@ -314,10 +306,9 @@ func TestHttp2(t *testing.T) {
 	defer srvTLS.Close()
 	defer srv.Close()
 
-	c, err := NewClient(NewContext(nil, nil, map[string]string{
+	c := NewClient(NewContext(nil, nil, map[string]string{
 		fmt.Sprintf("http.sslverify"): "false",
 	}))
-	require.Nil(t, err)
 
 	req, err := http.NewRequest("GET", srvTLS.URL, nil)
 	require.Nil(t, err)
@@ -372,11 +363,10 @@ func TestHttpVersion(t *testing.T) {
 		defer srvTLS.Close()
 		defer srv.Close()
 
-		c, err := NewClient(NewContext(nil, nil, map[string]string{
+		c := NewClient(NewContext(nil, nil, map[string]string{
 			"http.sslverify": "false",
 			"http.version":   test.Setting,
 		}))
-		require.Nil(t, err)
 
 		req, err := http.NewRequest("GET", srvTLS.URL, nil)
 		require.Nil(t, err)
@@ -408,4 +398,45 @@ func TestHttpVersion(t *testing.T) {
 			assert.EqualValues(t, 0, calledSrv)
 		}
 	}
+}
+
+func TestExtraHeadersForDuplication(t *testing.T) {
+	targetURL := "https://example.com/repo.git"
+	extraHeaderKey := "Authorization"
+	extraHeaderValue := "Bearer mytoken"
+	extraHeader2Key := "Cache-Control"
+	extraHeader2Value1 := "no-cache"
+	extraHeader2Value2 := "no-store"
+
+	context := &testContext{
+		gitConfig: git.NewConfig("", ""),
+		osEnv:     make(testEnv),
+		gitEnv: config.EnvironmentOf(config.MapFetcher(map[string][]string{
+			"http.extraheader": []string{
+				fmt.Sprintf("%s: %s", extraHeaderKey, extraHeaderValue),
+				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value1),
+				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value2),
+			},
+		})),
+	}
+
+	c := NewClient(context)
+
+	t.Logf("Configured extraHeader: %v", c.GitEnv().GetAll("http.extraHeader"))
+
+	req, err := http.NewRequest("GET", targetURL, nil)
+	require.Nil(t, err)
+
+	req.Header = c.ExtraHeadersFor(req)
+	t.Logf("Headers after 1st call: %v", req.Header)
+
+	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should be present once after first call")
+	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should be present twice after first call")
+
+	// Simulate retry with same request object
+	req.Header = c.ExtraHeadersFor(req)
+
+	// Ensure headers are not duplicated on retry (regression test for #6202)
+	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should still be present only once after second call")
+	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should still be present only twice after first call")
 }

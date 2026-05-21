@@ -152,7 +152,6 @@ Simply type ` + root.Name() + ` help [path to command] for full details.`,
 	}
 
 	err := root.Execute()
-	closeAPIClient()
 
 	if err != nil {
 		return 127
@@ -181,7 +180,8 @@ func usageCommand(cmd *cobra.Command) error {
 }
 
 func printHelp(commandName string) {
-	if commandName == "--help" {
+	switch commandName {
+	case "--help", "-h":
 		commandName = "git-lfs"
 	}
 	if txt, ok := ManPages[commandName]; ok {

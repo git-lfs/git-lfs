@@ -6,7 +6,10 @@ git-lfs-standalone-file - Standalone transfer adapter for file URLs
 
 == SYNOPSIS
 
-`git lfs standalone-file`
+[source,role=synopsis,subs="verbatim,quotes"]
+----
+*git lfs standalone-file*
+----
 
 == DESCRIPTION
 

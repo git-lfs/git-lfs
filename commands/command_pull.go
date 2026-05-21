@@ -46,6 +46,8 @@ func pull(filter *filepathfilter.Filter) {
 	meter.Logger = meter.LoggerFromEnv(cfg.Os)
 	logger.Enqueue(meter)
 	remote := cfg.Remote()
+
+	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, remote)
 	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
