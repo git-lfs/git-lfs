@@ -185,6 +185,13 @@ select it and actions returned from the API will be in relation to that
 transfer type (may not be traditional URLs for example). Only if the
 server accepts as a transfer it supports will this custom transfer
 process be invoked.
++
+If multiple `lfs.customtransfer.<name>` settings are defined, they
+must all be contained within the same configuration sub-section,
+meaning that the sub-section portion of their names must be identical.
+For instance, if `lfs.customTransfer.myAdapter.path` is defined,
+then `lfs.customTransfer.myAdapter.args` will be accepted, while
+`lfs.customtransfer.myadapter.args` will not.
 * `lfs.customtransfer.<name>.args`
 +
 If the custom transfer process requires any arguments, these can be

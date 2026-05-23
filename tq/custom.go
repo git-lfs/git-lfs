@@ -364,19 +364,20 @@ func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
 func configureCustomAdapters(git Env, m *concreteManifest) {
 	configureDefaultCustomAdapters(git, m)
 
-	pathRegex := regexp.MustCompile(`lfs.customtransfer.([^.]+).path`)
+	pathRegex := regexp.MustCompile(`lfs\.((?i)customtransfer\.([^.]+))\.path`)
 	for k, _ := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {
 			continue
 		}
 
-		name := match[1]
+		subSection := match[1]
+		name := match[2]
 		path, _ := git.Get(k)
 		// retrieve other values
-		args, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.args", name))
-		concurrent := git.Bool(fmt.Sprintf("lfs.customtransfer.%s.concurrent", name), true)
-		direction, _ := git.Get(fmt.Sprintf("lfs.customtransfer.%s.direction", name))
+		args, _ := git.Get(fmt.Sprintf("lfs.%s.args", subSection))
+		concurrent := git.Bool(fmt.Sprintf("lfs.%s.concurrent", subSection), true)
+		direction, _ := git.Get(fmt.Sprintf("lfs.%s.direction", subSection))
 		if len(direction) == 0 {
 			direction = "both"
 		} else {
