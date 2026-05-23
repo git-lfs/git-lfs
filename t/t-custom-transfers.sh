@@ -418,6 +418,8 @@ begin_test "standalone agent without custom group ignored (basic transfers)"
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"basic\" is not a registered custom transfer adapter; ignoring" push.log
+  grep "custom upload transfer adapter \"basic\" ignored due to conflict with standard adapter" push.log
+  grep "custom download transfer adapter \"basic\" ignored due to conflict with standard adapter" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -427,6 +429,8 @@ begin_test "standalone agent without custom group ignored (basic transfers)"
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"basic\" is not a registered custom transfer adapter; ignoring" pull.log
+  grep "custom upload transfer adapter \"basic\" ignored due to conflict with standard adapter" pull.log
+  grep "custom download transfer adapter \"basic\" ignored due to conflict with standard adapter" pull.log
 
   assert_local_object "$contents_oid" "${#contents}"
 )
@@ -486,6 +490,8 @@ begin_test "standalone agent without custom group ignored (basic transfers not s
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"ssh\" is not a registered custom transfer adapter; ignoring" push.log
+  grep "custom upload transfer adapter \"ssh\" ignored due to conflict with standard adapter" push.log
+  grep "custom download transfer adapter \"ssh\" ignored due to conflict with standard adapter" push.log
 
   assert_server_object "$reponame" "$contents_oid"
 
@@ -495,6 +501,8 @@ begin_test "standalone agent without custom group ignored (basic transfers not s
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"ssh\" is not a registered custom transfer adapter; ignoring" pull.log
+  grep "custom upload transfer adapter \"ssh\" ignored due to conflict with standard adapter" pull.log
+  grep "custom download transfer adapter \"ssh\" ignored due to conflict with standard adapter" pull.log
 
   assert_local_object "$contents_oid" "${#contents}"
 )
@@ -559,6 +567,8 @@ begin_test "standalone agent without custom group ignored (ssh transfers)"
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"ssh\" is not a registered custom transfer adapter; ignoring" push.log
+  grep "custom upload transfer adapter \"ssh\" ignored due to conflict with standard adapter" push.log
+  grep "custom download transfer adapter \"ssh\" ignored due to conflict with standard adapter" push.log
 
   assert_remote_object "$reponame" "$contents_oid" "${#contents}"
 
@@ -568,6 +578,8 @@ begin_test "standalone agent without custom group ignored (ssh transfers)"
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
   grep "standalone agent \"ssh\" is not a registered custom transfer adapter; ignoring" pull.log
+  grep "custom upload transfer adapter \"ssh\" ignored due to conflict with standard adapter" pull.log
+  grep "custom download transfer adapter \"ssh\" ignored due to conflict with standard adapter" pull.log
 
   assert_local_object "$contents_oid" "${#contents}"
 )

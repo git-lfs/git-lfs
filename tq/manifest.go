@@ -1,6 +1,8 @@
 package tq
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -357,13 +360,22 @@ func (m *concreteManifest) RegisterNewAdapterFunc(name string, dir Direction, cu
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	var wasCustom bool
 	switch dir {
 	case Upload:
+		wasCustom = m.customUploadAdapters[name]
+
 		m.uploadAdapterFuncs[name] = f
 		m.customUploadAdapters[name] = custom
 	case Download:
+		wasCustom = m.customDownloadAdapters[name]
+
 		m.downloadAdapterFuncs[name] = f
 		m.customDownloadAdapters[name] = custom
+	}
+
+	if wasCustom && !custom {
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: custom %s transfer adapter %q ignored due to conflict with standard adapter", dir, name))
 	}
 }
 
