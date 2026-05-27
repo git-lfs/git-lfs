@@ -87,8 +87,9 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
-	assert.False(m.isCustomAdapter("test", Download))
-	assert.False(m.isCustomAdapter("test", Upload))
+	assert.False(m.isCustomAdapter("test", "download"))
+	assert.False(m.isCustomAdapter("test", "upload"))
+	assert.False(m.isCustomAdapter("test", ""))
 
 	m.RegisterNewAdapterFunc("test", Upload, true, newTestAdapter)
 	assert.Nil(m.NewAdapter("test", Download))
@@ -106,8 +107,8 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
-	assert.False(m.isCustomAdapter("test", Download))
-	assert.True(m.isCustomAdapter("test", Upload))
+	assert.False(m.isCustomAdapter("test", "download"))
+	assert.True(m.isCustomAdapter("test", "upload"))
 
 	m.RegisterNewAdapterFunc("test", Download, true, newTestAdapter)
 	assert.NotNil(m.NewAdapter("test", Download))
@@ -125,8 +126,9 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Upload, ua.Direction())
 	}
 
-	assert.True(m.isCustomAdapter("test", Download))
-	assert.True(m.isCustomAdapter("test", Upload))
+	assert.True(m.isCustomAdapter("test", "download"))
+	assert.True(m.isCustomAdapter("test", "upload"))
+	assert.False(m.isCustomAdapter("test", ""))
 
 	// Test override
 	m.RegisterNewAdapterFunc("test", Upload, false, newRenamedTestAdapter)
@@ -142,8 +144,8 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Download, da.Direction())
 	}
 
-	assert.True(m.isCustomAdapter("test", Download))
-	assert.False(m.isCustomAdapter("test", Upload))
+	assert.True(m.isCustomAdapter("test", "download"))
+	assert.False(m.isCustomAdapter("test", "upload"))
 
 	m.RegisterNewAdapterFunc("test", Download, false, newRenamedTestAdapter)
 	da = m.NewDownloadAdapter("test")
@@ -152,7 +154,7 @@ func TestAdapterRegAndOverride(t *testing.T) {
 		assert.Equal(Download, da.Direction())
 	}
 
-	assert.False(m.isCustomAdapter("test", Download))
+	assert.False(m.isCustomAdapter("test", "download"))
 }
 
 func TestAdapterRegButBasicOnly(t *testing.T) {

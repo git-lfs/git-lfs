@@ -36,7 +36,7 @@ type Manifest interface {
 	NewAdapter(name string, dir Direction) Adapter
 	NewDownloadAdapter(name string) Adapter
 	NewUploadAdapter(name string) Adapter
-	isCustomAdapter(name string, dir Direction) bool
+	isCustomAdapter(name, operation string) bool
 	Upgrade() *concreteManifest
 	Upgraded() bool
 }
@@ -120,8 +120,8 @@ func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 	return m.Upgrade().NewUploadAdapter(name)
 }
 
-func (m *lazyManifest) isCustomAdapter(name string, dir Direction) bool {
-	return m.Upgrade().isCustomAdapter(name, dir)
+func (m *lazyManifest) isCustomAdapter(name, operation string) bool {
+	return m.Upgrade().isCustomAdapter(name, operation)
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
@@ -276,15 +276,7 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	configureSSHAdapter(m)
 
 	if m.IsStandaloneTransfer() {
-		var dir Direction
-		switch operation {
-		case "download":
-			dir = Download
-		case "upload":
-			dir = Upload
-		}
-
-		if !m.isCustomAdapter(m.standaloneTransferAgent, dir) {
+		if !m.isCustomAdapter(m.standaloneTransferAgent, operation) {
 			tracerx.Printf("standalone agent %q is not a registered custom transfer adapter; ignoring", m.standaloneTransferAgent)
 			m.standaloneTransferAgent = ""
 		}
@@ -421,11 +413,11 @@ func (m *concreteManifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
 }
 
-func (m *concreteManifest) isCustomAdapter(name string, dir Direction) bool {
-	switch dir {
-	case Upload:
+func (m *concreteManifest) isCustomAdapter(name, operation string) bool {
+	switch operation {
+	case "upload":
 		return m.customUploadAdapters[name]
-	case Download:
+	case "download":
 		return m.customDownloadAdapters[name]
 	}
 	return false
