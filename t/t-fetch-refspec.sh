@@ -56,6 +56,39 @@ begin_test "fetch with tracked ref"
 )
 end_test
 
+begin_test "fetch with pushRemote configured"
+(
+  set -e
+
+  reponame="fetch-tracked-with-push-remote-tracked-branch-required"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  echo "a" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add a.dat"
+
+  git push origin main:tracked
+
+  # $ echo "a" | shasum -a 256
+  oid="87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+  assert_local_object "$oid" 2
+  assert_server_object "$reponame" "$oid" "refs/heads/tracked"
+
+  # Configure tracking to "tracked" and set a separate push remote.
+  # The fetch should send refs/heads/tracked (the tracking ref) to the server,
+  # not a ref derived from push.default logic using the push remote.
+  git remote add push-only "$GITSERVER/$reponame"
+  git config remote.pushDefault push-only
+  git config branch.main.merge refs/heads/tracked
+
+  rm -rf .git/lfs/objects
+  git lfs fetch origin --all
+  assert_local_object "$oid" 2
+)
+end_test
+
 begin_test "fetch with bad ref"
 (
   set -e

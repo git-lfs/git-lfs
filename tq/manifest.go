@@ -200,15 +200,6 @@ func NewManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote s
 }
 
 func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, remote string) *concreteManifest {
-	if apiClient == nil {
-		cli, err := lfsapi.NewClient(nil)
-		if err != nil {
-			tracerx.Printf("unable to init tq.Manifest: %s", err)
-			return nil
-		}
-		apiClient = cli
-	}
-
 	sshTransfer := apiClient.SSHTransfer(operation, remote)
 	useSSHMultiplexing := false
 	if sshTransfer != nil {
@@ -257,11 +248,12 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	if sshTransfer != nil {
+		// Multiple concurrent transfers are not supported
+		// when SSH multiplexing is disabled.
 		if !useSSHMultiplexing {
 			m.concurrentTransfers = 1
 		}
 
-		// Multiple concurrent transfers are not yet supported.
 		m.batchClientAdapter = &SSHBatchClient{
 			maxRetries: m.maxRetries,
 			transfer:   sshTransfer,

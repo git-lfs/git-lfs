@@ -55,10 +55,9 @@ func TestAPILock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	c := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
-	require.Nil(t, err)
 
 	lc := &httpLockClient{Client: c}
 	lockRes, status, err := lc.Lock("", &lockRequest{Path: "request", Ref: &lockRef{Name: "refs/heads/master"}})
@@ -103,10 +102,9 @@ func TestAPIUnlock(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	c := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
-	require.Nil(t, err)
 
 	lc := &httpLockClient{Client: c}
 	unlockRes, status, err := lc.Unlock(&git.Ref{
@@ -151,10 +149,9 @@ func TestAPISearch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	c := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
-	require.Nil(t, err)
 
 	lc := &httpLockClient{Client: c}
 	locks, status, err := lc.Search("", &lockSearchRequest{
@@ -206,10 +203,9 @@ func TestAPISearchVerifiable(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	c := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.url": srv.URL + "/api",
 	}))
-	require.Nil(t, err)
 
 	lc := &httpLockClient{Client: c}
 	locks, status, err := lc.SearchVerifiable("", &lockVerifiableRequest{

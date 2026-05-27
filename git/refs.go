@@ -50,7 +50,7 @@ func defaultRemoteRef(g Env, remote string, localRef *Ref) *Ref {
 			// in centralized workflow, work like 'upstream' with an added safety to
 			// refuse to push if the upstream branch’s name is different from the
 			// local one.
-			return trackingRef(g, localRef)
+			return TrackingRef(g, localRef)
 		}
 
 		// When pushing to a remote that is different from the remote you normally
@@ -59,7 +59,7 @@ func defaultRemoteRef(g Env, remote string, localRef *Ref) *Ref {
 	case "upstream", "tracking":
 		// push the current branch back to the branch whose changes are usually
 		// integrated into the current branch
-		return trackingRef(g, localRef)
+		return TrackingRef(g, localRef)
 	case "current":
 		// push the current branch to update a branch with the same name on the
 		// receiving end.
@@ -70,7 +70,9 @@ func defaultRemoteRef(g Env, remote string, localRef *Ref) *Ref {
 	}
 }
 
-func trackingRef(g Env, localRef *Ref) *Ref {
+// TrackingRef returns the upstream tracking ref for the given local ref, or the
+// local ref itself if no tracking is configured.
+func TrackingRef(g Env, localRef *Ref) *Ref {
 	if merge, ok := g.Get(fmt.Sprintf("branch.%s.merge", localRef.Name)); ok {
 		return ParseRef(merge, "")
 	}

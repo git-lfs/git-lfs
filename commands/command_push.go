@@ -73,13 +73,13 @@ func pushCommand(cmd *cobra.Command, args []string) {
 		// easier and avoid having to special-case this in scripts.
 		if !useStdin && len(argList) < 1 {
 			Print(tr.Tr.Get("At least one object ID must be supplied with --object-id"))
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 		uploadsWithObjectIDs(ctx, argList)
 	} else {
 		if !useStdin && !pushAll && len(argList) < 1 {
 			Print(tr.Tr.Get("At least one ref must be supplied without --all"))
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 		uploadsBetweenRefAndRemote(ctx, argList)
 	}
@@ -121,7 +121,7 @@ func uploadsWithObjectIDs(ctx *uploadContext, oids []string) {
 		}
 	}
 
-	q := ctx.NewQueue(tq.RemoteRef(currentRemoteRef()))
+	q := ctx.NewQueue(tq.RemoteRef(pushRemoteRef()))
 	ctx.UploadPointers(q, pointers...)
 	ctx.CollectErrors(q)
 	ctx.ReportErrors()

@@ -139,7 +139,7 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 
 		LoggedError(err, tr.Tr.Get("Error downloading object: %s (%s): %s", filename, oid, err))
 		if !cfg.SkipDownloadErrors() {
-			os.Exit(2)
+			ExitWithCode(2)
 		}
 	}
 

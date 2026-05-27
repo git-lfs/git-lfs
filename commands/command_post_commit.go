@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"os"
-
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
@@ -20,7 +18,7 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 
 	// Skip entire hook if lockable read only feature is disabled
 	if !cfg.SetLockableFilesReadOnly() {
-		os.Exit(0)
+		return
 	}
 
 	requireGitVersion()
@@ -29,7 +27,7 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 
 	// Skip this hook if no lockable patterns have been configured
 	if len(lockClient.GetLockablePatterns()) == 0 {
-		os.Exit(0)
+		return
 	}
 
 	tracerx.Printf("post-commit: checking file write flags at HEAD")
@@ -39,14 +37,13 @@ func postCommitCommand(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		LoggedError(err, tr.Tr.Get("Warning: post-commit failed: %v", err))
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 	tracerx.Printf("post-commit: checking write flags on %v", files)
 	err = lockClient.FixLockableFileWriteFlags(files)
 	if err != nil {
 		LoggedError(err, tr.Tr.Get("Warning: post-commit locked file check failed: %v", err))
 	}
-
 }
 
 func init() {

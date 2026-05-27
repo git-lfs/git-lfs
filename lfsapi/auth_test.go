@@ -83,12 +83,11 @@ func TestDoWithAuthApprove(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
@@ -155,7 +154,7 @@ func TestDoWithAuthReject(t *testing.T) {
 	cred.Approve(invalidCreds)
 	assert.True(t, cred.IsApproved(invalidCreds))
 
-	c, _ := NewClient(nil)
+	c := NewClient(nil)
 	c.Credentials = cred
 	c.Endpoints = NewEndpointFinder(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
@@ -211,12 +210,11 @@ func TestDoWithAuthNoRetry(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
@@ -254,12 +252,11 @@ func TestDoWithAuthRetryLimitExceeded(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
@@ -291,12 +288,11 @@ func TestDoWithAuthNoRetryOn401WhenAuthHeaderPresent(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
@@ -333,12 +329,11 @@ func TestDoWithAuthMultistageRetryLimitExceeded(t *testing.T) {
 	defer srv.Close()
 
 	cred := newNonAdvancingMultistageHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	req, err := http.NewRequest("POST", srv.URL+"/repo/lfs/foo", nil)
@@ -403,12 +398,11 @@ func TestDoAPIRequestWithAuth(t *testing.T) {
 	defer srv.Close()
 
 	cred := newMockCredentialHelper()
-	c, err := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
 		nil, map[string]string{
 			"lfs.url": srv.URL + "/repo/lfs",
 		},
 	))
-	require.Nil(t, err)
 	c.Credentials = cred
 
 	access := c.Endpoints.AccessFor(srv.URL + "/repo/lfs")
@@ -788,7 +782,7 @@ func TestGetCreds(t *testing.T) {
 		}
 
 		ctx := lfshttp.NewContext(git.NewReadOnlyConfig("", ""), nil, test.Config)
-		client, _ := NewClient(ctx)
+		client := NewClient(ctx)
 		client.Credentials = &fakeCredentialFiller{}
 		client.Endpoints = NewEndpointFinder(ctx)
 		credWrapper, err := client.getCreds(test.Remote, client.Endpoints.AccessFor(test.Endpoint), req)
@@ -893,7 +887,7 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	defer srv1.Close()
 	defer srv2.Close()
 
-	c, err := NewClient(lfshttp.NewContext(nil, nil, nil))
+	c := NewClient(lfshttp.NewContext(nil, nil, nil))
 	cred := creds.NewCredentialCacher()
 	cred.Approve(creds1)
 	cred.Approve(creds2)

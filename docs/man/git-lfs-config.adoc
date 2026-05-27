@@ -137,8 +137,7 @@ occurs.
 
 * `lfs.concurrenttransfers`
 +
-The number of concurrent uploads/downloads. Default is 3x the number of
-logical CPUs, with a minimum of 8.
+The number of concurrent uploads/downloads. Default is 8.
 * `lfs.basictransfersonly`
 +
 If set to true, only basic HTTP upload/download transfers will be used,

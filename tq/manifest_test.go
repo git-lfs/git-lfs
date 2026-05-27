@@ -7,32 +7,31 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestManifestIsConfigurable(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "3",
 	}))
-	require.Nil(t, err)
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 3, m.MaxRetries())
 }
 
 func TestManifestClampsValidValues(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "-1",
 	}))
-	require.Nil(t, err)
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
 }
 
 func TestLazyManifestConcurrentUpgrade(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, nil))
-	require.Nil(t, err)
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, nil))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 
@@ -56,10 +55,10 @@ func TestLazyManifestConcurrentUpgrade(t *testing.T) {
 }
 
 func TestManifestIgnoresNonInts(t *testing.T) {
-	cli, err := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "not_an_int",
 	}))
-	require.Nil(t, err)
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())

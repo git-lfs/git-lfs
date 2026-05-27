@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,18 +31,18 @@ const MediaType = "application/vnd.git-lfs+json"
 const RequestContentType = MediaType + "; charset=utf-8"
 
 const (
-	MinConcurrentTransfers = 8
+	defaultConcurrentTransfers = 8
 )
 
-// DefaultConcurrentTransfers scales with CPU count. Downloads are
-// I/O-bound (network + disk) so we use 3× NCPU to keep many connections
-// saturated while a few are stalled on TLS handshakes or server latency.
+// At present, we return a fixed default value of 8 concurrent transfers,
+// which is less than ideal for HTTP-based transfers when many objects
+// are transferred by a single "git lfs filter-process" command.
+//
+// However, the "lfs.concurrentTransfers" setting also controls the number
+// of processes we spawn for SSH-based or custom transfers, and we want
+// to avoid spawning large numbers of separate processes.
 func DefaultConcurrentTransfers() int {
-	n := runtime.NumCPU() * 3
-	if n < MinConcurrentTransfers {
-		return MinConcurrentTransfers
-	}
-	return n
+	return defaultConcurrentTransfers
 }
 
 var (
@@ -83,7 +82,7 @@ type Client struct {
 	sshTries int
 }
 
-func NewClient(ctx Context) (*Client, error) {
+func NewClient(ctx Context) *Client {
 	if ctx == nil {
 		ctx = NewContext(nil, nil, nil)
 	}
@@ -92,12 +91,16 @@ func NewClient(ctx Context) (*Client, error) {
 	osEnv := ctx.OSEnv()
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+
+	// SSHResolver resolves LFS endpoint authentication by running
+	// git-lfs-authenticate over SSH. The returned credentials (URL
+	// and headers) are then used for subsequent HTTPS API requests.
 	var sshResolver SSHResolver = &sshAuthClient{os: osEnv, git: gitEnv}
 	if cacheCreds {
 		sshResolver = withSSHCache(sshResolver)
 	}
 
-	c := &Client{
+	return &Client{
 		SSH:                 sshResolver,
 		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
 		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
@@ -112,8 +115,6 @@ func NewClient(ctx Context) (*Client, error) {
 		sshTries:            gitEnv.Int("lfs.ssh.retries", 5),
 		credHelperContext:   creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
-
-	return c, nil
 }
 
 func (c *Client) GitEnv() config.Environment {

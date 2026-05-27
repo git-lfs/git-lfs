@@ -61,10 +61,10 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		p, err := lfs.DecodePointer(r)
 		if err != nil {
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 		if pointerStrict && !p.Canonical {
-			os.Exit(2)
+			ExitWithCode(2)
 		}
 		r.Close()
 		return
@@ -79,7 +79,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		buildFile, err := os.Open(pointerFile)
 		if err != nil {
 			Error(err.Error())
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 
 		var ptr *lfs.Pointer
@@ -89,7 +89,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			if err != nil {
 				Error(err.Error())
 				buildFile.Close()
-				os.Exit(1)
+				ExitWithCode(1)
 			}
 
 			ptr = lfs.NewPointer(hex.EncodeToString(oidHash.Sum(nil)), size, nil)
@@ -100,7 +100,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			if err != nil {
 				Error(err.Error())
 				buildFile.Close()
-				os.Exit(1)
+				ExitWithCode(1)
 			}
 
 			ptr = cleaned.Pointer
@@ -120,7 +120,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			buildOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
-				os.Exit(1)
+				ExitWithCode(1)
 			}
 			fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Git blob OID: %s", buildOid), "\n\n")
 		}
@@ -133,7 +133,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		compFile, err := pointerReader()
 		if err != nil {
 			Error(err.Error())
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 
 		buf := &bytes.Buffer{}
@@ -149,7 +149,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 
 		if err != nil {
 			Error(err.Error())
-			os.Exit(1)
+			ExitWithCode(1)
 		}
 
 		fmt.Fprint(os.Stderr, buf.String())
@@ -157,7 +157,7 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 			compareOid, err = git.HashObject(bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				Error(err.Error())
-				os.Exit(1)
+				ExitWithCode(1)
 			}
 			fmt.Fprint(os.Stderr, "\n", tr.Tr.Get("Git blob OID: %s", compareOid), "\n")
 		}
@@ -168,12 +168,12 @@ func pointerCommand(cmd *cobra.Command, args []string) {
 		if hasExtensionsConfig || len(comparePointer.Extensions) > 0 {
 			fmt.Fprint(os.Stderr, tr.Tr.Get("note: Mismatch may be due to differing LFS extensions."), "\n")
 		}
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 
 	if !something {
 		Error(tr.Tr.Get("Nothing to do!"))
-		os.Exit(1)
+		ExitWithCode(1)
 	}
 }
 

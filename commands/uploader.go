@@ -290,12 +290,12 @@ func (c *uploadContext) ReportErrors() {
 				tr.Tr.Get("hint: You can disable this check with: `git config lfs.allowincompletepush true`"),
 			}
 			Print(strings.Join(pushMissingHint, "\n"))
-			os.Exit(2)
+			ExitWithCode(2)
 		}
 	}
 
 	if len(c.otherErrs) > 0 {
-		os.Exit(2)
+		ExitWithCode(2)
 	}
 
 	if c.lockVerifier.HasUnownedLocks() {

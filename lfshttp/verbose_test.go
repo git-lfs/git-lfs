@@ -36,7 +36,7 @@ func TestVerboseEnabled(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c, _ := NewClient(nil)
+	c := NewClient(nil)
 	c.Verbose = true
 	c.VerboseOut = out
 
@@ -93,7 +93,7 @@ func TestVerboseWithBinaryBody(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c, _ := NewClient(nil)
+	c := NewClient(nil)
 	c.Verbose = true
 	c.VerboseOut = out
 
@@ -151,7 +151,7 @@ func TestVerboseEnabledWithDebugging(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c, _ := NewClient(nil)
+	c := NewClient(nil)
 	c.Verbose = true
 	c.VerboseOut = out
 	c.DebuggingVerbose = true
@@ -210,7 +210,7 @@ func TestVerboseDisabled(t *testing.T) {
 	defer srv.Close()
 
 	out := &bytes.Buffer{}
-	c, _ := NewClient(nil)
+	c := NewClient(nil)
 	c.Verbose = false
 	c.VerboseOut = out
 	c.DebuggingVerbose = true
