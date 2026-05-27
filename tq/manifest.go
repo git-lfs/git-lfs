@@ -1,6 +1,8 @@
 package tq
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
 	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/ssh"
+	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 )
 
@@ -28,11 +31,12 @@ type Manifest interface {
 	GetDownloadAdapterNames() []string
 	GetUploadAdapterNames() []string
 	getAdapterNames(adapters map[string]NewAdapterFunc) []string
-	RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc)
+	RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc)
 	NewAdapterOrDefault(name string, dir Direction) Adapter
 	NewAdapter(name string, dir Direction) Adapter
 	NewDownloadAdapter(name string) Adapter
 	NewUploadAdapter(name string) Adapter
+	isCustomAdapter(name, operation string) bool
 	Upgrade() *concreteManifest
 	Upgraded() bool
 }
@@ -96,8 +100,8 @@ func (m *lazyManifest) getAdapterNames(adapters map[string]NewAdapterFunc) []str
 	return m.Upgrade().getAdapterNames(adapters)
 }
 
-func (m *lazyManifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
-	m.Upgrade().RegisterNewAdapterFunc(name, dir, f)
+func (m *lazyManifest) RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc) {
+	m.Upgrade().RegisterNewAdapterFunc(name, dir, custom, f)
 }
 
 func (m *lazyManifest) NewAdapterOrDefault(name string, dir Direction) Adapter {
@@ -114,6 +118,10 @@ func (m *lazyManifest) NewDownloadAdapter(name string) Adapter {
 
 func (m *lazyManifest) NewUploadAdapter(name string) Adapter {
 	return m.Upgrade().NewUploadAdapter(name)
+}
+
+func (m *lazyManifest) isCustomAdapter(name, operation string) bool {
+	return m.Upgrade().isCustomAdapter(name, operation)
 }
 
 func (m *lazyManifest) Upgrade() *concreteManifest {
@@ -143,6 +151,8 @@ type concreteManifest struct {
 	tusTransfersAllowed     bool
 	downloadAdapterFuncs    map[string]NewAdapterFunc
 	uploadAdapterFuncs      map[string]NewAdapterFunc
+	customDownloadAdapters  map[string]bool
+	customUploadAdapters    map[string]bool
 	fs                      *fs.Filesystem
 	apiClient               *lfsapi.Client
 	sshTransfer             *ssh.SSHTransfer
@@ -197,12 +207,14 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	}
 
 	m := &concreteManifest{
-		fs:                   f,
-		apiClient:            apiClient,
-		batchClientAdapter:   &tqClient{Client: apiClient},
-		downloadAdapterFuncs: make(map[string]NewAdapterFunc),
-		uploadAdapterFuncs:   make(map[string]NewAdapterFunc),
-		sshTransfer:          sshTransfer,
+		fs:                     f,
+		apiClient:              apiClient,
+		batchClientAdapter:     &tqClient{Client: apiClient},
+		downloadAdapterFuncs:   make(map[string]NewAdapterFunc),
+		uploadAdapterFuncs:     make(map[string]NewAdapterFunc),
+		customDownloadAdapters: make(map[string]bool),
+		customUploadAdapters:   make(map[string]bool),
+		sshTransfer:            sshTransfer,
 	}
 
 	var tusAllowed bool
@@ -254,6 +266,14 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		configureTusAdapter(m)
 	}
 	configureSSHAdapter(m)
+
+	if m.IsStandaloneTransfer() {
+		if !m.isCustomAdapter(m.standaloneTransferAgent, operation) {
+			tracerx.Printf("standalone agent %q is not a registered custom transfer adapter; ignoring", m.standaloneTransferAgent)
+			m.standaloneTransferAgent = ""
+		}
+	}
+
 	return m
 }
 
@@ -320,15 +340,26 @@ func (m *concreteManifest) getAdapterNames(adapters map[string]NewAdapterFunc) [
 // RegisterNewTransferAdapterFunc registers a new function for creating upload
 // or download adapters. If a function with that name & direction is already
 // registered, it is overridden
-func (m *concreteManifest) RegisterNewAdapterFunc(name string, dir Direction, f NewAdapterFunc) {
+func (m *concreteManifest) RegisterNewAdapterFunc(name string, dir Direction, custom bool, f NewAdapterFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	var wasCustom bool
 	switch dir {
 	case Upload:
+		wasCustom = m.customUploadAdapters[name]
+
 		m.uploadAdapterFuncs[name] = f
+		m.customUploadAdapters[name] = custom
 	case Download:
+		wasCustom = m.customDownloadAdapters[name]
+
 		m.downloadAdapterFuncs[name] = f
+		m.customDownloadAdapters[name] = custom
+	}
+
+	if wasCustom && !custom {
+		fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: custom %s transfer adapter %q ignored due to conflict with standard adapter", dir, name))
 	}
 }
 
@@ -372,6 +403,16 @@ func (m *concreteManifest) NewDownloadAdapter(name string) Adapter {
 // Create a new upload adapter by name, or BasicAdapterName if doesn't exist
 func (m *concreteManifest) NewUploadAdapter(name string) Adapter {
 	return m.NewAdapterOrDefault(name, Upload)
+}
+
+func (m *concreteManifest) isCustomAdapter(name, operation string) bool {
+	switch operation {
+	case "upload":
+		return m.customUploadAdapters[name]
+	case "download":
+		return m.customDownloadAdapters[name]
+	}
+	return false
 }
 
 // Env is any object with a config.Environment interface.
