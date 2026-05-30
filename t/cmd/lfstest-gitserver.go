@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -466,7 +467,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	}
 
 	res := []lfsObject{}
-	testingChunked := testingChunkedTransferEncoding(r)
+	testingChunked := testingChunkedTransferEncoding(repo)
 	testingTus := testingTusUploadInBatchReq(r)
 	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
 	testingCustomTransfer := testingCustomTransfer(r)
@@ -764,16 +765,11 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if testingChunkedTransferEncoding(r) {
-			valid := false
-			for _, value := range r.TransferEncoding {
-				if value == "chunked" {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				debug(id, "Chunked transfer encoding expected")
+		if testingChunkedTransferEncoding(repo) {
+			if !slices.Contains(r.TransferEncoding, "chunked") {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Chunked transfer encoding required"))
+				return
 			}
 		}
 
@@ -1600,8 +1596,8 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	return false
 }
 
-func testingChunkedTransferEncoding(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
+func testingChunkedTransferEncoding(repo string) bool {
+	return repo == "batch-storage-upload-encoding-chunked"
 }
 
 func testingTusUploadInBatchReq(r *http.Request) bool {

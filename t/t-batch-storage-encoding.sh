@@ -301,3 +301,75 @@ begin_test "batch storage HTTP download with invalid encoding"
   grep "unsupported lfs\.transfer\.httpDownloadEncoding" pull.log
 )
 end_test
+
+begin_test "batch storage HTTP upload with chunked transfer encoding"
+(
+  set -e
+
+  # This repository name announces to the server that it should
+  # include in the "header" JSON element of its Batch API responses
+  # a "Transfer-Encoding" key with the value "chunked", and that the
+  # server should expect a corresponding HTTP header during object uploads.
+  reponame="batch-storage-upload-encoding-chunked"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="storage-upload-encoding-chunked"
+  contents_oid=$(calc_oid "$contents")
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  # To confirm that when the object was uploaded, the PUT request included a
+  # Transfer-Encoding header and did not include a Content-Length header,
+  # we filter out the initial portion of the trace log with the headers
+  # from the Batch and Locking API requests.
+  prog="$(printf 'index($0, " PUT %s/storage/") > 0 { f=1 } f' "$GITSERVER")"
+  awk "$prog" push.log >put.log
+
+  grep "> Transfer-Encoding: chunked" put.log
+  [ 0 -eq "$(grep -c -i "> Content-Length:" put.log)" ]
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
+begin_test "batch storage HTTP upload without transfer encoding"
+(
+  set -e
+
+  reponame="batch-storage-upload-encoding-none"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  contents="storage-upload-encoding-none"
+  contents_oid=$(calc_oid "$contents")
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  # To confirm that when the object was uploaded, the PUT request included a
+  # Content-Length header and did not include a Transfer-Encoding header,
+  # we filter out the initial portion of the trace log with the headers
+  # from the Batch and Locking API requests.
+  prog="$(printf 'index($0, " PUT %s/storage/") > 0 { f=1 } f' "$GITSERVER")"
+  awk "$prog" push.log >put.log
+
+  grep "> Content-Length: ${#contents}$" put.log
+  [ 0 -eq "$(grep -c -i "> Transfer-Encoding:" put.log)" ]
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
