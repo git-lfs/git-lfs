@@ -5,7 +5,7 @@ Debian and RPM package formats and across multiple architectures, the
 GitHub Actions workflows for this repository run package build scripts
 in a set of Docker containers.  The containers are based on Docker images
 created from the Dockerfiles in the `git-lfs/build-dockers`
-[repository](https://github.com/git-lfs/build-dockers).
+[repository](https://github.com/git-lfs/build-dock$ docker/run_dockers.bsh {OS NAME}_{OS VERSION} -- bashers).
 
 Each Docker image contains either the `debian_script.bsh` script or
 `centos_script.bsh` script from the `git-lfs/build-dockers` repository,
