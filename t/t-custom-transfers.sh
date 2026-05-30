@@ -7,7 +7,7 @@ begin_test "custom-transfer-wrong-path"
   set -e
 
   # this repo name is the indicator to the server to support custom transfer
-  reponame="test-custom-transfer-fail"
+  reponame="custom-transfer-wrong-path"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
@@ -43,7 +43,7 @@ begin_test "custom-transfer-upload-download"
   set -e
 
   # this repo name is the indicator to the server to support custom transfer
-  reponame="test-custom-transfer-1"
+  reponame="custom-transfer-upload-download"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" $reponame
@@ -115,7 +115,7 @@ begin_test "custom-transfer-standalone"
   set -e
 
   # setup a git repo to be used as a local repo, not remote
-  reponame="test-custom-transfer-standalone"
+  reponame="custom-transfer-standalone"
   setup_remote_repo "$reponame"
 
   # clone directly, not through lfstest-gitserver
@@ -204,7 +204,7 @@ begin_test "custom-transfer-standalone-urlmatch"
   set -e
 
   # setup a git repo to be used as a local repo, not remote
-  reponame="test-custom-transfer-standalone-urlmatch"
+  reponame="custom-transfer-standalone-urlmatch"
   setup_remote_repo "$reponame"
 
   # clone directly, not through lfstest-gitserver

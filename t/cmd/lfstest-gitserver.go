@@ -468,9 +468,9 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 
 	res := []lfsObject{}
 	testingChunked := testingChunkedTransferEncoding(repo)
-	testingTus := testingTusUploadInBatchReq(r)
-	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
-	testingCustomTransfer := testingCustomTransfer(r)
+	testingTus := testingTusUploadInBatchReq(repo)
+	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(repo)
+	testingCustomTransfer := testingCustomTransfer(repo)
 	var transferChoice string
 	var searchForTransfer string
 	hashAlgo := "sha256"
@@ -1600,14 +1600,16 @@ func testingChunkedTransferEncoding(repo string) bool {
 	return repo == "batch-storage-upload-encoding-chunked"
 }
 
-func testingTusUploadInBatchReq(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-tus-upload")
+func testingTusUploadInBatchReq(repo string) bool {
+	return strings.HasPrefix(repo, "batch-storage-upload-tus")
 }
-func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-tus-upload-interrupt")
+
+func testingTusUploadInterruptedInBatchReq(repo string) bool {
+	return repo == "batch-storage-upload-tus-interrupt"
 }
-func testingCustomTransfer(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-custom-transfer")
+
+func testingCustomTransfer(repo string) bool {
+	return strings.HasPrefix(repo, "custom-transfer-")
 }
 
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
