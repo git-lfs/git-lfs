@@ -37,7 +37,8 @@ without querying the server, by using the following config option:
   configure a custom transfer agent for individual remotes.
   `lfs.standalonetransferagent` unconditionally configures a custom transfer
   agent for all remotes.  The custom transfer agent must be specified in
-  a `lfs.customtransfer.<name>` settings group.
+  a `lfs.customtransfer.<name>` settings group, or else must be the internal
+  `lfs-standalone-file` transfer adapter.  Other values will be ignored.
 
 ## Defining a Custom Transfer Type
 

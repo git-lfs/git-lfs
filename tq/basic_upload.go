@@ -211,7 +211,7 @@ func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCall
 }
 
 func configureBasicUploadAdapter(m *concreteManifest) {
-	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(BasicAdapterName, Upload, false, func(name string, dir Direction) Adapter {
 		switch dir {
 		case Upload:
 			bu := &basicUploadAdapter{newAdapterBase(m.fs, name, dir, nil)}

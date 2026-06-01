@@ -13,6 +13,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/locking"
 	"github.com/git-lfs/git-lfs/v3/tq"
 	"github.com/git-lfs/git-lfs/v3/tr"
+	"github.com/rubyist/tracerx"
 )
 
 type verifyState byte
@@ -55,6 +56,8 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 		return
 	}
 
+	tracerx.Printf("verifying locks for %s", ref.Name)
+
 	lockClient := newLockClient()
 	lockClient.RemoteRef = ref
 	ours, theirs, err := lockClient.SearchLocksVerifiable(0, false)
@@ -84,6 +87,8 @@ func (lv *lockVerifier) Verify(ref *git.Ref) {
 	lv.addLocks(ref, ours, lv.ourLocks)
 	lv.addLocks(ref, theirs, lv.theirLocks)
 	lv.verifiedRefs[ref.Refspec()] = true
+
+	tracerx.Printf("verified locks for %s", ref.Name)
 }
 
 func (lv *lockVerifier) addLocks(ref *git.Ref, locks []locking.Lock, set map[string]*refLock) {

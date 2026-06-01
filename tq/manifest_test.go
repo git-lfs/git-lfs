@@ -13,6 +13,7 @@ func TestManifestIsConfigurable(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "3",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 3, m.MaxRetries())
@@ -22,6 +23,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "-1",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
@@ -29,6 +31,7 @@ func TestManifestClampsValidValues(t *testing.T) {
 
 func TestLazyManifestConcurrentUpgrade(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, nil))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 
@@ -55,6 +58,7 @@ func TestManifestIgnoresNonInts(t *testing.T) {
 	cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
 		"lfs.transfer.maxretries": "not_an_int",
 	}))
+	defer cli.Close()
 
 	m := NewManifest(nil, cli, "", "")
 	assert.Equal(t, 8, m.MaxRetries())
