@@ -11,6 +11,10 @@ begin_test "batch storage HTTP download of corrupt object"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  initial_sha="$(git rev-parse HEAD)"
 
   # This content announces to the server that it should corrupt the
   # contents of the object before returning it.
@@ -18,8 +22,8 @@ begin_test "batch storage HTTP download of corrupt object"
   contents_oid="$(calc_oid "$contents")"
   printf "%s" "$contents" > a.dat
 
-  git add .gitattributes a.dat
-  git commit -m "initial commit"
+  git add a.dat
+  git commit -m "add a.dat"
 
   git push origin main
 
@@ -39,6 +43,37 @@ begin_test "batch storage HTTP download of corrupt object"
   grep "Failed to fetch some objects" pull.log
 
   refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  expected="${contents_oid:0:10} - a.dat"
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 1 -eq "${PIPESTATUS[0]}" ]
+
+  grep "objects: openError: a.dat ($contents_oid) could not be checked: .*" fsck.log
+
+  # Test again using "git pull", which should not advance HEAD after the
+  # smudge filter reports an error.
+  git reset --hard HEAD^
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git pull origin main 2>&1 | tee pull.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "expected OID $contents_oid, got $inverted_contents_oid after ${#contents} bytes written" pull.log
+  grep "Smudge error: Error downloading a.dat ($contents_oid)" pull.log
+
+  refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  [ "$initial_sha" = "$(git rev-parse HEAD)" ]
+
+  [ -z "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -56,13 +91,17 @@ begin_test "batch storage SSH download of corrupt object"
   git config lfs.url "$sshurl"
 
   git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  initial_sha="$(git rev-parse HEAD)"
 
   contents="storage-download-corrupt"
   contents_oid="$(calc_oid "$contents")"
   printf "%s" "$contents" > a.dat
 
-  git add .gitattributes a.dat
-  git commit -m "initial commit"
+  git add a.dat
+  git commit -m "add a.dat"
 
   git push origin main
 
@@ -88,6 +127,37 @@ begin_test "batch storage SSH download of corrupt object"
   grep "Failed to fetch some objects" pull.log
 
   refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  expected="${contents_oid:0:10} - a.dat"
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 1 -eq "${PIPESTATUS[0]}" ]
+
+  grep "objects: openError: a.dat ($contents_oid) could not be checked: .*" fsck.log
+
+  # Test again using "git pull", which should not advance HEAD after the
+  # smudge filter reports an error.
+  git reset --hard HEAD^
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git pull origin main 2>&1 | tee pull.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "expected OID $contents_oid, got $inverted_contents_oid after ${#contents} bytes written" pull.log
+  grep "Smudge error: Error downloading a.dat ($contents_oid)" pull.log
+
+  refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  [ "$initial_sha" = "$(git rev-parse HEAD)" ]
+
+  [ -z "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
 
@@ -102,6 +172,10 @@ begin_test "batch storage custom adapter download of corrupt object"
   clone_repo "$reponame" "$reponame"
 
   git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  initial_sha="$(git rev-parse HEAD)"
 
   # This content announces to the server that it should corrupt the
   # contents of the object before returning it.
@@ -109,8 +183,8 @@ begin_test "batch storage custom adapter download of corrupt object"
   contents_oid="$(calc_oid "$contents")"
   printf "%s" "$contents" > a.dat
 
-  git add .gitattributes a.dat
-  git commit -m "initial commit"
+  git add a.dat
+  git commit -m "add a.dat"
 
   git config lfs.customTransfer.testcustom.path lfstest-customadapter
 
@@ -140,5 +214,40 @@ begin_test "batch storage custom adapter download of corrupt object"
   grep "Failed to fetch some objects" pull.log
 
   refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  expected="${contents_oid:0:10} - a.dat"
+  [ "$expected" = "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 1 -eq "${PIPESTATUS[0]}" ]
+
+  grep "objects: openError: a.dat ($contents_oid) could not be checked: .*" fsck.log
+
+  # Test again using "git pull", which should not advance HEAD after the
+  # smudge filter reports an error.
+  git reset --hard HEAD^
+
+  GIT_TRACE=1 GIT_TRANSFER_TRACE=1 git pull origin main 2>&1 | tee pull.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "tq: starting transfer adapter" pull.log
+  grep "xfer: started custom adapter process" pull.log
+
+  grep "downloaded file failed checks" pull.log
+  grep "has an invalid hash $inverted_contents_oid, expected $contents_oid" pull.log
+  grep "Smudge error: Error downloading a.dat ($contents_oid)" pull.log
+
+  refute_local_object "$contents_oid"
+  refute_local_object "$inverted_contents_oid"
+
+  [ "$initial_sha" = "$(git rev-parse HEAD)" ]
+
+  [ -z "$(git lfs ls-files)" ]
+
+  git lfs fsck --objects 2>&1 | tee fsck.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  grep "Git LFS fsck OK" fsck.log
 )
 end_test
