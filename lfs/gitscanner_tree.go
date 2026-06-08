@@ -18,7 +18,7 @@ func runScanTree(cb GitScannerFoundPointer, ref string, filter *filepathfilter.F
 	// We don't use the nameMap approach here since that's imprecise when >1 file
 	// can be using the same content
 	treeShas, err := lsTreeBlobs(ref, func(t *git.TreeBlob) bool {
-		return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
+		return t != nil && t.Size < BlobSizeCutoff && filter.Allows(t.Filename)
 	})
 	if err != nil {
 		return err
@@ -44,11 +44,11 @@ func runScanLFSFiles(cb GitScannerFoundPointer, ref string, filter *filepathfilt
 	var err error
 	if git.IsGitVersionAtLeast("2.42.0") {
 		treeShas, err = lsFilesBlobs(func(t *git.TreeBlob) bool {
-			return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
+			return t != nil && t.Size < BlobSizeCutoff && filter.Allows(t.Filename)
 		})
 	} else {
 		treeShas, err = lsTreeBlobs(ref, func(t *git.TreeBlob) bool {
-			return t != nil && t.Size < blobSizeCutoff && filter.Allows(t.Filename)
+			return t != nil && t.Size < BlobSizeCutoff && filter.Allows(t.Filename)
 		})
 	}
 	// We don't use the nameMap approach here since that's imprecise when >1 file
@@ -210,7 +210,7 @@ func catFileBatchTreeForPointers(treeblobs *TreeBlobChannelWrapper, gitEnv, osEn
 			if err := oscanner.Err(); err != nil {
 				return nil, nil, err
 			}
-		} else if t.Size < blobSizeCutoff {
+		} else if t.Size < BlobSizeCutoff {
 			hasNext = pscanner.Scan(t.Oid)
 
 			// It's intentional that we insert nil for
