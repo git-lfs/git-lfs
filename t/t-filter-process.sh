@@ -190,8 +190,7 @@ begin_test "filter-process: pointer extension"
 )
 end_test
 
-# https://github.com/git-lfs/git-lfs/issues/1697
-begin_test "filter process: add a file with 1024 bytes"
+begin_test "filter process: non-pointer file of maximum pointer size"
 (
   set -e
 
@@ -199,7 +198,12 @@ begin_test "filter process: add a file with 1024 bytes"
   cd repo-issue-1697
   git init
   git lfs track "*.dat"
-  dd if=/dev/zero of=first.dat bs=1024 count=1
+
+  # Test with a file size equal to the size of the read buffer used when
+  # decoding pointers.  See https://github.com/git-lfs/git-lfs/issues/1697
+  # and https://github.com/git-lfs/git-lfs/pull/1699.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  head -c "$max_pointer_size" /dev/zero >first.dat
   printf "any contents" > second.dat
   git add .
 )
@@ -217,7 +221,11 @@ begin_test "filter process: hash-object --stdin --path does not hang"
   contents_oid="$(calc_oid "$contents")"
   expected=$(pointer "$contents_oid" 4 | git hash-object --stdin)
 
-  dd if=/dev/zero of=first.dat bs=1000 count=1
+  # Test with a file size smaller than the size of the read buffer used when
+  # decoding pointers.  See https://github.com/git-lfs/git-lfs/issues/3884
+  # and https://github.com/git-lfs/git-lfs/pull/3902.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  head -c $((max_pointer_size * 1000 / 1024)) /dev/zero >first.dat
   echo a > second.dat
   # Works for existing file longer than this one.
   output=$(printf test | git hash-object --path first.dat --stdin)
@@ -229,9 +237,13 @@ begin_test "filter process: hash-object --stdin --path does not hang"
   output=$(printf test | git hash-object --path third.dat --stdin)
   [ "$expected" = "$output" ]
 
-  dd if=/dev/zero of=large.dat bs=65537 count=1
+  # Test with a file size larger than the maximum length of a Git packet line
+  # (plus some arbitrary additional padding).
+  max_pktline_len="$(lfstest-getlimit --max-pktline-len)"
+  contents_size=$((max_pktline_len + max_pointer_size + 1))
+  head -c "$contents_size" /dev/zero >large.dat
   oid=$(calc_oid_file large.dat)
-  expected=$(pointer "$oid" 65537 | git hash-object --stdin)
+  expected=$(pointer "$oid" "$contents_size" | git hash-object --stdin)
   output=$(git hash-object --path third.dat --stdin <large.dat)
   [ "$expected" = "$output" ]
   git add .
