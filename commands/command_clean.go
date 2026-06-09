@@ -17,9 +17,8 @@ import (
 // error is non-fatal, otherwise they will halt using the built in
 // `commands.Panic`.
 //
-// If fileSize is given as a non-negative (>= 0) integer, that value is used
-// with preference to os.Stat(fileName).Size(). If it is given as negative, the
-// value from the `stat(1)` call will be used instead.
+// If the total size of the object is unknown until it is read, fileSize
+// should be a negative integer.
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
