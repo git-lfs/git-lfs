@@ -194,8 +194,8 @@ begin_test "filter process: non-pointer file of maximum pointer size"
 (
   set -e
 
-  mkdir repo-issue-1697
-  cd repo-issue-1697
+  mkdir repo-file-max-pointer-size
+  cd repo-file-max-pointer-size
   git init
   git lfs track "*.dat"
 
@@ -205,6 +205,7 @@ begin_test "filter process: non-pointer file of maximum pointer size"
   max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
   head -c "$max_pointer_size" /dev/zero >first.dat
   printf "any contents" > second.dat
+
   git add .
 )
 end_test
@@ -219,22 +220,23 @@ begin_test "filter process: hash-object --stdin --path does not hang"
   git lfs track "*.dat"
   contents="test"
   contents_oid="$(calc_oid "$contents")"
-  expected=$(pointer "$contents_oid" 4 | git hash-object --stdin)
+  expected="$(pointer "$contents_oid" "${#contents}" | git hash-object --stdin)"
 
   # Test with a file size smaller than the size of the read buffer used when
   # decoding pointers.  See https://github.com/git-lfs/git-lfs/issues/3884
   # and https://github.com/git-lfs/git-lfs/pull/3902.
   max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
   head -c $((max_pointer_size * 1000 / 1024)) /dev/zero >first.dat
-  echo a > second.dat
-  # Works for existing file longer than this one.
-  output=$(printf test | git hash-object --path first.dat --stdin)
+  echo "a" >second.dat
+
+  # Works for existing file longer than the input data.
+  output="$(printf "%s" "$contents"| git hash-object --path first.dat --stdin)"
   [ "$expected" = "$output" ]
-  # Works for existing file shorter than this one.
-  output=$(printf test | git hash-object --path second.dat --stdin)
+  # Works for existing file shorter than the input data.
+  output="$(printf "%s" "$contents" | git hash-object --path second.dat --stdin)"
   [ "$expected" = "$output" ]
   # Works for absent file.
-  output=$(printf test | git hash-object --path third.dat --stdin)
+  output="$(printf "%s" "$contents" | git hash-object --path third.dat --stdin)"
   [ "$expected" = "$output" ]
 
   # Test with a file size larger than the maximum length of a Git packet line
@@ -242,10 +244,12 @@ begin_test "filter process: hash-object --stdin --path does not hang"
   max_pktline_len="$(lfstest-getlimit --max-pktline-len)"
   contents_size=$((max_pktline_len + max_pointer_size + 1))
   head -c "$contents_size" /dev/zero >large.dat
-  oid=$(calc_oid_file large.dat)
-  expected=$(pointer "$oid" "$contents_size" | git hash-object --stdin)
-  output=$(git hash-object --path third.dat --stdin <large.dat)
+  contents_oid="$(calc_oid_file large.dat)"
+
+  expected="$(pointer "$contents_oid" "$contents_size" | git hash-object --stdin)"
+  output="$(git hash-object --path large.dat --stdin <large.dat)"
   [ "$expected" = "$output" ]
+
   git add .
 )
 end_test
