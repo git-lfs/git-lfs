@@ -51,11 +51,8 @@ func main() {
 							panic(err)
 						}
 
-						f, err := os.OpenFile(pathname, os.O_WRONLY|os.O_CREATE, 0o644)
+						f, err := os.OpenFile(pathname, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 						if err != nil {
-							panic(err)
-						}
-						if err = f.Truncate(0); err != nil {
 							panic(err)
 						}
 						f.Close()
