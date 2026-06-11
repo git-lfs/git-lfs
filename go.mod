@@ -20,7 +20,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/ssgelm/cookiejarparser v1.0.1
 	github.com/stretchr/testify v1.6.1
-	github.com/xeipuuv/gojsonschema v0.0.0-20170210233622-6b67b3fab74d
+	github.com/xeipuuv/gojsonschema v1.2.0
 	golang.org/x/net v0.56.0
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
