@@ -15,7 +15,7 @@ require (
 	github.com/leonelquinteros/gotext v1.5.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
-	github.com/pkg/errors v0.0.0-20170505043639-c605e284fe17
+	github.com/pkg/errors v0.9.1
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
 	github.com/spf13/cobra v1.7.0
 	github.com/ssgelm/cookiejarparser v1.0.1
