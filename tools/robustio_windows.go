@@ -60,7 +60,7 @@ func RobustRemove(path string) error {
 			return os.Remove(path)
 		},
 		retry.RetryIf(isFileInUseError),
-		retry.DelayType(func(n uint, config *retry.Config) time.Duration {
+		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
 			return time.Duration(robustRemoveRetryDelaysMs[n]) * time.Millisecond
 		}),
 		retry.Attempts(uint(len(robustRemoveRetryDelaysMs)+1)),

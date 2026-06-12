@@ -3,7 +3,7 @@
 module github.com/git-lfs/git-lfs/v3
 
 require (
-	github.com/avast/retry-go v2.4.2+incompatible
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/dpotapov/go-spnego v0.0.0-20210315154721-298b63a54430
 	github.com/git-lfs/gitobj/v2 v2.1.1
 	github.com/git-lfs/go-netrc v0.0.0-20250218165306-ba0029b43d11
