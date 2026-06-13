@@ -38,6 +38,25 @@ var (
 	// above the provided size.
 	migrateImportAboveFmt string
 
+	// migrateImportAboveExcludeByTypeFmt indicates the presence of the
+	// --above-exclude-by-type=<regexes> flag and modifies --above=<size> to
+	// ignore files where the 'file' utility's analysis matches the
+	// given regex chain. Example, ASCII|Unicode;postscript will match
+	// ASCII or Unicode files, unless they are also postscript.
+	migrateImportAboveExcludeByTypeFmt string
+
+	// migrateImportAboveExcludeByPathFmt indicates the presence of the
+	// --above-exclude-by-path=<regexes> flag and skips the expensive analysis
+	// of --above-exclude-by-type where the path is reliable enough.
+	// Example: .(c|h|cxx|hxx|java|kt|kts|go|rb|py)$ skips by extension.
+	migrateImportAboveExcludeByPathFmt string
+
+	// migrateImportAboveIncludeByPathFmt indicates the presence of the
+	// --above-include-by-path=<regex> flag and skips the expensive analysis
+	// of --above-exclude-by-type where the path is reliable enough.
+	// Example, .(png|gif|jpg|jpeg|png|exe|lib|so)$ tracks by extension.
+	migrateImportAboveIncludeByPathFmt string
+
 	// migrateEverything indicates the presence of the --everything flag,
 	// and instructs 'git lfs migrate' to migrate all local references.
 	migrateEverything bool
@@ -396,6 +415,9 @@ func init() {
 
 	importCmd := NewCommand("import", migrateImportCommand)
 	importCmd.Flags().StringVar(&migrateImportAboveFmt, "above", "", "--above=<n>")
+	importCmd.Flags().StringVar(&migrateImportAboveIncludeByPathFmt, "above-include-by-path", "", "--above-include-by-path=<regex><!<regex>>* matching paths are tracked by above without examining type")
+	importCmd.Flags().StringVar(&migrateImportAboveExcludeByPathFmt, "above-exclude-by-path", "", "--above-exclude-by-path=<regex><!<regex>>* matching paths are skipped by above without examining type")
+	importCmd.Flags().StringVar(&migrateImportAboveExcludeByTypeFmt, "above-exclude-by-type", "", "--above-exclude-by-type=<regex><!<regex>>* skipped by above if '/bin/file file' output matches, second RE countermands, etc.")
 	importCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	importCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
