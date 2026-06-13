@@ -51,8 +51,9 @@ var (
 )
 
 type hostData struct {
-	host string
-	mode creds.AccessMode
+	scheme string
+	host   string
+	mode   creds.AccessMode
 }
 
 type Client struct {
@@ -487,9 +488,9 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 		Renegotiation: tls.RenegotiateFreelyAsClient,
 	}
 
-	if isClientCertEnabledForHost(c, host) {
+	if isClientCertEnabledForURL(c, u) {
 		tracerx.Printf("http: client cert for %s", host)
-		cert, err := getClientCertForHost(c, host)
+		cert, err := getClientCertForURL(c, u)
 		if err != nil {
 			return nil, err
 		}
@@ -499,10 +500,10 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 		}
 	}
 
-	if isCertVerificationDisabledForHost(c, host) {
+	if isCertVerificationDisabledForURL(c, u) {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	} else {
-		tr.TLSClientConfig.RootCAs = getRootCAsForHostFromGitconfig(c, host)
+		tr.TLSClientConfig.RootCAs = getRootCAsForURLFromGitconfig(c, u)
 	}
 
 	if err := c.configureProtocols(u, tr); err != nil {
@@ -527,7 +528,7 @@ func (c *Client) HttpClient(u *url.URL, access creds.AccessMode) (*http.Client, 
 		c.hostClients = make(map[hostData]*http.Client)
 	}
 
-	hd := hostData{host: host, mode: access}
+	hd := hostData{scheme: u.Scheme, host: host, mode: access}
 
 	if client, ok := c.hostClients[hd]; ok {
 		return client, nil
