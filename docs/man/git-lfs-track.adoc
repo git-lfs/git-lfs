@@ -63,8 +63,20 @@ Disabled by default.
   Do not list patterns that are excluded in the output; only list patterns that
   are tracked.
 `--no-modify-attrs`::
-  Makes matched entries stat-dirty so that Git can re-index files you wish to
-  convert to LFS. Does not modify any `.gitattributes` file(s).
+   Makes matched entries stat-dirty so that Git can re-index files you wish to
+   convert to LFS. Does not modify any `.gitattributes` file(s).
+`--min-size`::
+   Automatically track files that are larger than the given size. Size values
+   can be specified in human-readable format (e.g., "1MB", "500KB", "1GB").
+   Uses both decimal (KB, MB, GB) and binary (KiB, MiB, GiB) units. When this
+   option is provided, Git LFS is configured to automatically convert any file
+   exceeding the threshold to LFS. The `lfs.autotracksize` option is set in
+   `.lfsconfig` and `* filter=lfs` is added to `.gitattributes`. Existing files
+   larger than the threshold are touched so they will be re-indexed by Git on
+   the next `git add`.
+   +
+   Both `.lfsconfig` and `.gitattributes` must be committed to the repository
+   for the autotrack setting to apply to all clones.
 
 == EXAMPLES
 
@@ -81,6 +93,18 @@ locked:
 * Configure Git LFS to track the file named `project [1].psd`:
 +
 `git lfs track --filename "project [1].psd"`
+* Automatically track all files larger than 10 megabytes, persisting the
+   setting in `.lfsconfig`:
++
+`git lfs track --min-size 10MB`
++
+Then commit the configuration:
++
+[source,role="primary"]
+----
+git add .gitattributes .lfsconfig
+git commit -m "enable autotrack for files larger than 10MB"
+----
 
 == SEE ALSO
 

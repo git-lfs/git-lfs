@@ -804,3 +804,154 @@ EOF
   diff -u actual expected
 )
 end_test
+
+begin_test "track --min-size"
+(
+  set -e
+
+  reponame="track_min_size_persistent"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Create files of various sizes
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # Track files >= 1KB (1000 bytes)
+  git lfs track --min-size 1KB 2>&1 | tee track.log
+
+  # Verify config was set
+  grep "Set lfs.autotracksize to 1KB" track.log
+  grep "Tracking all files through Git LFS filter" track.log
+
+  # Verify .lfsconfig was created with the threshold
+  grep "autotracksize = 1000" .lfsconfig
+
+  # Verify .gitattributes has * filter=lfs
+  grep "^\\* filter=lfs" .gitattributes
+
+  # Add the small file via git (should pass through clean filter unchanged)
+  git add small.dat 2>&1
+  # The small file should NOT be in LFS objects
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # Now add the large file
+  git add large.dat 2>&1
+  # The large file SHOULD be in LFS objects
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+
+  # Ensure the lfs.autotracksize key was NOT written to .git/config (only .lfsconfig)
+  ! grep "autotracksize" "$(git rev-parse --git-dir)/config"
+)
+end_test
+
+begin_test "track --min-size dry-run"
+(
+  set -e
+
+  reponame="track_min_size_dry_run"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  git lfs track --min-size 1KB --dry-run 2>&1 | tee track.log
+
+  grep "Would set lfs.autotracksize" track.log
+
+  # Ensure nothing was actually modified
+  ! grep "filter=lfs" .gitattributes 2>/dev/null
+  ! test -f .lfsconfig
+)
+end_test
+
+begin_test "track --min-size clone shares config"
+(
+  set -e
+
+  reponame="track_min_size_clone"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  git lfs track --min-size 1KB 2>&1 | tee track.log
+  grep "Set lfs.autotracksize to 1KB" track.log
+  grep "autotracksize = 1000" .lfsconfig
+  grep "^\\* filter=lfs" .gitattributes
+
+  git add .gitattributes .lfsconfig small.dat large.dat
+  git commit -m "add autotrack config and files"
+
+  # Verify autotrack worked: large file is LFS pointer in history
+  large_oid="$(calc_oid_file large.dat)"
+  assert_pointer "main" "large.dat" "$large_oid" 10240
+  # Small file should NOT be a pointer in history
+  refute_pointer "main" "small.dat"
+
+  # Clone fresh from local filesystem (creates a bare repo as origin)
+  cd "$TRASHDIR"
+  git init --bare "${reponame}.git"
+  cd "$reponame"
+  git remote add origin "$TRASHDIR/${reponame}.git"
+  git push origin main 2>&1
+
+  cd "$TRASHDIR"
+  git clone "$TRASHDIR/${reponame}.git" "${reponame}_clone"
+  cd "${reponame}_clone"
+
+  # Verify .lfsconfig and .gitattributes were cloned
+  test -f .lfsconfig
+  grep "autotracksize = 1000" .lfsconfig
+  grep "^\\* filter=lfs" .gitattributes
+)
+end_test
+
+begin_test "track --min-size with various size units"
+(
+  set -e
+
+  reponame="track_min_size_units"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Test with different size formats
+  git lfs track --min-size 10MB 2>&1 | tee track.log
+  grep "Set lfs.autotracksize to 10MB" track.log
+
+  # 10MB = 10000000 bytes
+  grep "autotracksize = 10000000" .lfsconfig
+)
+end_test
+
+begin_test "track --min-size does not affect already-tracked patterns"
+(
+  set -e
+
+  reponame="track_min_size_with_patterns"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # First track a pattern
+  git lfs track "*.dat" 2>&1
+  grep "Tracking \"\*.dat\"" track.log 2>/dev/null || true
+
+  # Then set min-size
+  git lfs track --min-size 1KB 2>&1 | tee track.log
+  grep "Set lfs.autotracksize to 1KB" track.log
+  grep "autotracksize = 1000" .lfsconfig
+
+  # Both .dat files should be in LFS objects (pattern matching takes precedence)
+  git add small.dat large.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test

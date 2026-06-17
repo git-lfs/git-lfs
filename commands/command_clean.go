@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -43,6 +44,19 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 				file = localFile
 			}
 		}
+	}
+
+	if autoTrackSize := cfg.AutoTrackSize(); autoTrackSize > 0 && fileSize >= 0 && fileSize < autoTrackSize {
+		content, err := io.ReadAll(from)
+		if err != nil {
+			return nil, err
+		}
+		if ptr, decodeErr := lfs.DecodePointer(bytes.NewReader(content)); decodeErr == nil && ptr != nil {
+			to.Write(content)
+			return ptr, nil
+		}
+		to.Write(content)
+		return nil, nil
 	}
 
 	cleaned, err := gf.Clean(from, fileName, fileSize, cb)

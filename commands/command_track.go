@@ -15,6 +15,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/tools"
+	"github.com/git-lfs/git-lfs/v3/tools/humanize"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,7 @@ var (
 	trackNoExcludedFlag     bool
 	trackFilenameFlag       bool
 	trackJSONFlag           bool
+	trackMinSizeFlag        string
 )
 
 func trackCommand(cmd *cobra.Command, args []string) {
@@ -46,7 +48,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		installHooks(false)
 	}
 
-	if len(args) == 0 {
+	if len(args) == 0 && trackMinSizeFlag == "" {
 		listPatterns()
 		return
 	}
@@ -77,6 +79,7 @@ func trackCommand(cmd *cobra.Command, args []string) {
 	changedAttribLines := make(map[string]string)
 	var readOnlyPatterns []string
 	var writeablePatterns []string
+	var sawError bool
 ArgsLoop:
 	for _, unsanitizedPattern := range args {
 		pattern := tools.TrimCurrentPrefix(cleanRootPath(unsanitizedPattern))
@@ -118,6 +121,46 @@ ArgsLoop:
 		Print(tr.Tr.Get("Tracking %q", unescapeAttrPattern(encodedArg)))
 	}
 
+	if trackMinSizeFlag != "" {
+		minSize, err := humanize.ParseBytes(trackMinSizeFlag)
+		if err != nil {
+			Exit(tr.Tr.Get("Invalid size: %q", trackMinSizeFlag))
+		}
+
+		if !trackNoModifyAttrsFlag {
+			if _, err := cfg.SetGitLocalFileKey(filepath.Join(cfg.LocalWorkingDir(), ".lfsconfig"), "lfs.autotracksize", fmt.Sprintf("%d", minSize)); err != nil {
+				LoggedError(err, tr.Tr.Get("Error setting lfs.autotracksize: %s", err))
+			}
+			Print(tr.Tr.Get("Set lfs.autotracksize to %s", trackMinSizeFlag))
+		} else {
+			Print(tr.Tr.Get("Would set lfs.autotracksize to %s and add filter to .gitattributes", trackMinSizeFlag))
+		}
+
+		largeFiles, err := findLargeFiles(int64(minSize))
+		if err != nil {
+			Exit(tr.Tr.Get("Error finding large files: %s", err))
+		}
+
+		for _, f := range largeFiles {
+			if trackVerboseLoggingFlag || trackDryRunFlag {
+				Print(tr.Tr.Get("Found large file: %s", f))
+			}
+			if !trackDryRunFlag {
+				now := time.Now()
+				err := os.Chtimes(f, now, now)
+				if err != nil {
+					LoggedError(err, tr.Tr.Get("Error marking %q modified: %s", f, err))
+					sawError = true
+					continue
+				}
+			}
+		}
+
+		if len(largeFiles) == 0 {
+			Print(tr.Tr.Get("No existing files found exceeding size %s", trackMinSizeFlag))
+		}
+	}
+
 	// Now read the whole local attributes file and iterate over the contents,
 	// replacing any lines where the values have changed, and appending new lines
 	// change this:
@@ -141,6 +184,12 @@ ArgsLoop:
 		}
 		defer attributesFile.Close()
 
+		autoTrackAttribLine := ""
+		autoTrackAttribFound := false
+		if trackMinSizeFlag != "" {
+			autoTrackAttribLine = fmt.Sprintf("%s filter=lfs%s", escapeAttrPattern("*"), lineEnd)
+		}
+
 		if len(attribContents) > 0 {
 			scanner := bufio.NewScanner(bytes.NewReader(attribContents))
 			for scanner.Scan() {
@@ -151,6 +200,10 @@ ArgsLoop:
 				}
 
 				pattern := unescapeAttrPattern(fields[0])
+				if autoTrackAttribLine != "" && pattern == "*" {
+					autoTrackAttribFound = true
+				}
+
 				if newline, ok := changedAttribLines[pattern]; ok {
 					// Replace this line (newline already embedded)
 					attributesFile.WriteString(newline)
@@ -164,10 +217,15 @@ ArgsLoop:
 
 			// Our method of writing also made sure there's always a newline at end
 		}
+
+		if autoTrackAttribLine != "" && !autoTrackAttribFound {
+			attributesFile.WriteString(autoTrackAttribLine)
+			Print(tr.Tr.Get("Tracking all files through Git LFS filter"))
+		}
 	}
 
 	modified := false
-	sawError := false
+	sawError = false
 	// Any items left in the map, write new lines at the end of the file
 	// Note this is only new patterns, not ones which changed locking flags
 	for pattern, newline := range changedAttribLines {
@@ -407,6 +465,37 @@ func unescapeAttrPattern(escaped string) string {
 	return unescaped
 }
 
+func findLargeFiles(minSize int64) ([]string, error) {
+	cwd, err := tools.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	cwd = tools.ResolveSymlinks(cwd)
+
+	lsFiles, err := git.NewLsFiles(cwd, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	var largeFiles []string
+	for path := range lsFiles.Files {
+		if strings.HasPrefix(path, "../") {
+			continue
+		}
+
+		fullPath := filepath.Join(cwd, path)
+		info, err := os.Stat(fullPath)
+		if err != nil {
+			continue
+		}
+		if info.Size() >= minSize {
+			largeFiles = append(largeFiles, path)
+		}
+	}
+
+	return largeFiles, nil
+}
+
 func init() {
 	RegisterCommand("track", trackCommand, func(cmd *cobra.Command) {
 		cmd.Flags().BoolVarP(&trackLockableFlag, "lockable", "l", false, "make pattern lockable, i.e. read-only unless locked")
@@ -417,5 +506,6 @@ func init() {
 		cmd.Flags().BoolVarP(&trackNoExcludedFlag, "no-excluded", "", false, "skip listing excluded paths")
 		cmd.Flags().BoolVarP(&trackFilenameFlag, "filename", "", false, "treat this pattern as a literal filename")
 		cmd.Flags().BoolVarP(&trackJSONFlag, "json", "j", false, "print output in JSON")
+		cmd.Flags().StringVarP(&trackMinSizeFlag, "min-size", "", "", "track files larger than this size (e.g. \"10MB\", \"1GB\")")
 	})
 }
