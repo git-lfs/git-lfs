@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"errors"
 	"io"
 )
 
@@ -19,6 +20,17 @@ func (r *EagerEOFByteReader) Read(p []byte) (n int, err error) {
 		err = io.EOF
 	}
 	return
+}
+
+// Seek() could mirror the implementation of the Seek() method
+// of bytes.Reader.  However, at present we do not need this method
+// to be functional for any tests, so we can just stub it out instead.
+func (r *EagerEOFByteReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (r *EagerEOFByteReader) Close() error {
+	return nil
 }
 
 func NewEagerEOFByteReader(b []byte) *EagerEOFByteReader {
