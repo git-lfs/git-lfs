@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBothCallbackReadersInvokeCallbackOnEagerEOF(t *testing.T) {
@@ -280,4 +282,42 @@ func TestBodyCallbackReaderResetsProgress(t *testing.T) {
 	assert.EqualValues(t, bufSize, actualTotalSize)
 	assert.EqualValues(t, readBufSize, actualReadSoFar)
 	assert.Equal(t, -readBufSize, actualReadSinceLast)
+}
+
+func TestFileBodyCallbackReaderIgnoresClose(t *testing.T) {
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
+
+	filePath := t.TempDir() + "/testFileBodyCallback"
+
+	err := os.WriteFile(filePath, buf, 0644)
+	require.Nil(t, err)
+
+	f, err := os.Open(filePath)
+	require.Nil(t, err)
+	defer f.Close()
+
+	fbr := NewFileBodyWithCallback(f, int64(bufSize), nil)
+
+	// The underlying os.File should not be closed and reads should
+	// still proceed.
+	err = fbr.Close()
+
+	assert.Nil(t, err)
+
+	p := make([]byte, bufSize-1)
+
+	n, err := fbr.Read(p)
+
+	assert.Equal(t, bufSize-1, n)
+	assert.Nil(t, err)
+
+	// Closing the underlying os.File should result in a read error.
+	err = f.Close()
+
+	assert.Nil(t, err)
+
+	n, err = fbr.Read(p)
+
+	assert.Error(t, err)
 }
