@@ -235,3 +235,49 @@ func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
 
 	assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
 }
+
+func TestBodyCallbackReaderResetsProgress(t *testing.T) {
+	var (
+		calls               int
+		actualTotalSize     int64
+		actualReadSoFar     int64
+		actualReadSinceLast int
+	)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		actualTotalSize = totalSize
+		actualReadSoFar = readSoFar
+		actualReadSinceLast = readSinceLast
+
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
+
+	br := NewByteBodyWithCallback(buf, int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+	readBufSize := len(p)
+
+	n, err := br.Read(p)
+
+	assert.Equal(t, readBufSize, n)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
+	assert.EqualValues(t, bufSize, actualTotalSize)
+	assert.EqualValues(t, readBufSize, actualReadSoFar)
+	assert.Equal(t, readBufSize, actualReadSinceLast)
+
+	// Note that ResetProgress() is only used to pass a decrement
+	// to the callback, as the caller is expected to create a new
+	// underlying buffer and retry the read operation.
+	br.ResetProgress()
+
+	assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
+	assert.EqualValues(t, bufSize, actualTotalSize)
+	assert.EqualValues(t, readBufSize, actualReadSoFar)
+	assert.Equal(t, -readBufSize, actualReadSinceLast)
+}
