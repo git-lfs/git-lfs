@@ -9,6 +9,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCopyWithCallback(t *testing.T) {
+	var calls int
+	allReadSoFar := make([]int64, 0, 2)
+
+	buf := bytes.NewBufferString("BOOYA")
+	bufSize := buf.Len()
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		allReadSoFar = append(allReadSoFar, readSoFar)
+
+		assert.EqualValues(t, bufSize, totalSize)
+
+		return nil
+	}
+
+	n, err := CopyWithCallback(io.Discard, buf, int64(bufSize), cb)
+
+	// The underlying bytes.Buffer should always return a nil error
+	// when the last byte is read.
+	assert.Nil(t, err)
+	assert.EqualValues(t, bufSize, n)
+
+	assert.Equal(t, 1, calls)
+	assert.Len(t, allReadSoFar, 1)
+	assert.EqualValues(t, bufSize, allReadSoFar[0])
+}
+
 func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
 	r := NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
 
