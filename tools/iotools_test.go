@@ -1,4 +1,4 @@
-package tools_test
+package tools
 
 import (
 	"bytes"
@@ -6,12 +6,11 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
-	r := tools.NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
+	r := NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
 
 	var buf [4]byte
 	n, err := r.Read(buf[:])
@@ -22,7 +21,7 @@ func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
 }
 
 func TestRetriableReaderReturnsEOFs(t *testing.T) {
-	r := tools.NewRetriableReader(bytes.NewBuffer([]byte{ /* empty */ }))
+	r := NewRetriableReader(bytes.NewBuffer([]byte{ /* empty */ }))
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])
@@ -34,7 +33,7 @@ func TestRetriableReaderReturnsEOFs(t *testing.T) {
 func TestRetriableReaderMakesErrorsRetriable(t *testing.T) {
 	expected := errors.New("example error")
 
-	r := tools.NewRetriableReader(&ErrReader{expected})
+	r := NewRetriableReader(&ErrReader{expected})
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])
@@ -50,7 +49,7 @@ func TestRetriableReaderDoesNotRewrap(t *testing.T) {
 	// underlying reader was a *RetriableReader itself.
 	expected := errors.NewRetriableError(errors.New("example error"))
 
-	r := tools.NewRetriableReader(&ErrReader{expected})
+	r := NewRetriableReader(&ErrReader{expected})
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])
