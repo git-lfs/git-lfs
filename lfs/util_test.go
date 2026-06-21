@@ -2,6 +2,7 @@ package lfs
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"testing"
 
@@ -12,61 +13,57 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBodyWithCallback(t *testing.T) {
-	called := 0
-	calledRead := make([]int64, 0, 2)
+func TestBothCallbackReadersWithCallback(t *testing.T) {
+	var calls int
+	allReadSoFar := make([]int64, 0, 2)
 
-	cb := func(total int64, read int64, current int) error {
-		called += 1
-		calledRead = append(calledRead, read)
-		assert.Equal(t, 5, int(total))
+	buf := []byte("BOOYA")
+	bufSize := len(buf)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		allReadSoFar = append(allReadSoFar, readSoFar)
+
+		assert.EqualValues(t, bufSize, totalSize)
+
 		return nil
 	}
-	reader := tools.NewByteBodyWithCallback([]byte("BOOYA"), 5, cb)
 
-	readBuf := make([]byte, 3)
-	n, err := reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "BOO", string(readBuf[0:n]))
+	readBuf := make([]byte, bufSize-2)
+	readBufSize := len(readBuf)
 
-	n, err = reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "YA", string(readBuf[0:n]))
-
-	assert.Equal(t, 2, called)
-	assert.Len(t, calledRead, 2)
-	assert.Equal(t, 3, int(calledRead[0]))
-	assert.Equal(t, 5, int(calledRead[1]))
-}
-
-func TestReadWithCallback(t *testing.T) {
-	called := 0
-	calledRead := make([]int64, 0, 2)
-
-	reader := &tools.CallbackReader{
-		TotalSize: 5,
-		Reader:    bytes.NewBufferString("BOOYA"),
-		C: func(total int64, read int64, current int) error {
-			called += 1
-			calledRead = append(calledRead, read)
-			assert.Equal(t, 5, int(total))
-			return nil
-		},
+	r := &tools.CallbackReader{
+		C:         cb,
+		TotalSize: int64(bufSize),
+		Reader:    bytes.NewReader(buf),
 	}
+	br := tools.NewByteBodyWithCallback(buf, int64(bufSize), cb)
 
-	readBuf := make([]byte, 3)
-	n, err := reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "BOO", string(readBuf[0:n]))
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
 
-	n, err = reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "YA", string(readBuf[0:n]))
+		n, err := reader.Read(readBuf)
 
-	assert.Equal(t, 2, called)
-	assert.Len(t, calledRead, 2)
-	assert.Equal(t, 3, int(calledRead[0]))
-	assert.Equal(t, 5, int(calledRead[1]))
+		// The underlying bytes.Reader should always return
+		// a nil error when the last byte is read.
+		assert.Equal(t, readBufSize, n)
+		assert.Nil(t, err)
+		assert.Equal(t, buf[:readBufSize], readBuf)
+
+		n, err = reader.Read(readBuf)
+
+		assert.Equal(t, bufSize-readBufSize, n)
+		assert.Nil(t, err)
+		assert.Equal(t, buf[readBufSize:], readBuf[:bufSize-readBufSize])
+
+		assert.Equal(t, 2, calls)
+		assert.Len(t, allReadSoFar, 2)
+		assert.EqualValues(t, readBufSize, allReadSoFar[0])
+		assert.EqualValues(t, bufSize, allReadSoFar[1])
+
+		calls = 0
+		allReadSoFar = allReadSoFar[:0]
+	}
 }
 
 func TestCopyCallbackFileThrottle(t *testing.T) {
