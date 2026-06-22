@@ -15,7 +15,7 @@ type BodyWithCallback struct {
 }
 
 func NewFileBodyWithCallback(f *os.File, totalSize int64, cb CopyCallback) *BodyWithCallback {
-	return NewBodyWithCallback(NewFileBody(f), totalSize, cb)
+	return NewBodyWithCallback(newNopClosingFile(f), totalSize, cb)
 }
 
 func NewBodyWithCallback(body ReadSeekCloser, totalSize int64, cb CopyCallback) *BodyWithCallback {
@@ -96,14 +96,14 @@ type ReadSeekCloser interface {
 	io.ReadCloser
 }
 
-func NewFileBody(f *os.File) ReadSeekCloser {
-	return &closingFileReader{File: f}
+func newNopClosingFile(f *os.File) ReadSeekCloser {
+	return &nopClosingFile{File: f}
 }
 
-type closingFileReader struct {
+type nopClosingFile struct {
 	*os.File
 }
 
-func (r *closingFileReader) Close() error {
+func (r *nopClosingFile) Close() error {
 	return nil
 }
