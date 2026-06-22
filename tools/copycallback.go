@@ -13,16 +13,32 @@ type callbackState struct {
 	readSize  int64
 }
 
+func (cs *callbackState) doCallback(readSinceLast int) error {
+	if cs.callback == nil {
+		return nil
+	}
+
+	return cs.callback(cs.totalSize, cs.readSize, readSinceLast)
+}
+
+func (cs *callbackState) doCallbackIfRequired(n int, err error) error {
+	if cs.callback == nil || (err != nil && err != io.EOF) {
+		return err
+	}
+
+	if n == 0 {
+		return err
+	}
+
+	return cs.doCallback(n)
+}
+
 func (cs *callbackState) read(r io.Reader, p []byte) (int, error) {
 	n, err := r.Read(p)
 
-	if n > 0 {
-		cs.readSize += int64(n)
+	cs.readSize += int64(n)
 
-		if (err == nil || err == io.EOF) && cs.callback != nil {
-			err = cs.callback(cs.totalSize, cs.readSize, n)
-		}
-	}
+	err = cs.doCallbackIfRequired(n, err)
 
 	return n, err
 }
@@ -70,7 +86,7 @@ func (r *BodyWithCallback) Seek(offset int64, whence int) (int64, error) {
 // ResetProgress calls the callback with a negative read size equal to the
 // total number of bytes read so far, effectively "resetting" the progress.
 func (r *BodyWithCallback) ResetProgress() error {
-	return r.state.callback(r.state.totalSize, r.state.readSize, -int(r.state.readSize))
+	return r.state.doCallback(-int(r.state.readSize))
 }
 
 type CallbackReader struct {
