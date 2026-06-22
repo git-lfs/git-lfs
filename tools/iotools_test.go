@@ -37,6 +37,28 @@ func TestCopyWithCallback(t *testing.T) {
 	assert.EqualValues(t, bufSize, allReadSoFar[0])
 }
 
+func TestClosingByteReaderNopClose(t *testing.T) {
+	buf := []byte{0x1}
+	bufSize := len(buf)
+
+	r := NewClosingByteReader(buf)
+
+	// The underlying bytes.Reader has no Close() method and so reads
+	// should still proceed.
+	err := r.Close()
+
+	assert.Nil(t, err)
+
+	p := make([]byte, bufSize+1)
+
+	n, err := r.Read(p)
+
+	// The underlying bytes.Reader should always return
+	// a nil error when the last byte is read.
+	assert.Equal(t, bufSize, n)
+	assert.Nil(t, err)
+}
+
 func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
 	r := NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
 

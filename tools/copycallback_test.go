@@ -87,7 +87,7 @@ func TestBothCallbackReadersCountReads(t *testing.T) {
 	bufSize := len(buf)
 
 	r := NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
-	br := NewByteBodyWithCallback(buf, int64(bufSize), cb)
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
 
 	p := make([]byte, 1)
 
@@ -188,7 +188,7 @@ func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
 	buf := []byte{0x1, 0x2, 0x3, 0x4}
 	bufSize := len(buf)
 
-	br := NewByteBodyWithCallback(buf, int64(bufSize), cb)
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
 
 	offset := 1
 	br.Seek(int64(offset), io.SeekStart)
@@ -242,7 +242,7 @@ func TestBodyCallbackReaderResetsProgress(t *testing.T) {
 	buf := []byte{0x1, 0x2, 0x3, 0x4}
 	bufSize := len(buf)
 
-	br := NewByteBodyWithCallback(buf, int64(bufSize), cb)
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
 
 	p := make([]byte, bufSize-1)
 	readBufSize := len(p)

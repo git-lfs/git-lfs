@@ -35,7 +35,7 @@ func TestBothCallbackReadersWithCallback(t *testing.T) {
 	readBufSize := len(readBuf)
 
 	r := tools.NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
-	br := tools.NewByteBodyWithCallback(buf, int64(bufSize), cb)
+	br := tools.NewBodyWithCallback(tools.NewClosingByteReader(buf), int64(bufSize), cb)
 
 	for _, reader := range []io.Reader{r, br} {
 		t.Logf("testing with reader: %T", reader)

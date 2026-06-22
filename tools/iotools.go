@@ -36,6 +36,19 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 	return io.Copy(writer, cbReader)
 }
 
+type ClosingByteReader struct {
+	*bytes.Reader
+}
+
+// Close() is simply a no-op to complete the io.ReadSeekCloser interface.
+func (r *ClosingByteReader) Close() error {
+	return nil
+}
+
+func NewClosingByteReader(b []byte) *ClosingByteReader {
+	return &ClosingByteReader{bytes.NewReader(b)}
+}
+
 // Get a new Hash instance of the type used to hash LFS content
 func NewLfsContentHash() hash.Hash {
 	return sha256.New()
