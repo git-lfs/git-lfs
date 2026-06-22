@@ -69,14 +69,23 @@ Disabled by default.
    Automatically track files that are larger than the given size. Size values
    can be specified in human-readable format (e.g., "1MB", "500KB", "1GB").
    Uses both decimal (KB, MB, GB) and binary (KiB, MiB, GiB) units. When this
-   option is provided, Git LFS is configured to automatically convert any file
-   exceeding the threshold to LFS. The `lfs.autotracksize` option is set in
-   `.lfsconfig` and `* filter=lfs` is added to `.gitattributes`. Existing files
+   option is provided, the threshold is written as a custom attribute in
+   `.gitattributes` as `* filter=lfs autotracksize=<bytes>`. Existing files
    larger than the threshold are touched so they will be re-indexed by Git on
    the next `git add`.
    +
-   Both `.lfsconfig` and `.gitattributes` must be committed to the repository
-   for the autotrack setting to apply to all clones.
+   Multiple `autotracksize` thresholds can be set for different file patterns
+   by editing `.gitattributes` directly, e.g.:
+   +
+   [source,role="secondary"]
+   ----
+   *.dat filter=lfs autotracksize=1000000
+   *.txt filter=lfs autotracksize=500000
+   * filter=lfs autotracksize=10000000
+   ----
+   +
+   The `.gitattributes` file must be committed to the repository for the
+   autotrack setting to apply to all clones.
 
 == EXAMPLES
 
@@ -93,8 +102,7 @@ locked:
 * Configure Git LFS to track the file named `project [1].psd`:
 +
 `git lfs track --filename "project [1].psd"`
-* Automatically track all files larger than 10 megabytes, persisting the
-   setting in `.lfsconfig`:
+* Automatically track all files larger than 10 megabytes:
 +
 `git lfs track --min-size 10MB`
 +
@@ -102,8 +110,19 @@ Then commit the configuration:
 +
 [source,role="primary"]
 ----
-git add .gitattributes .lfsconfig
+git add .gitattributes
 git commit -m "enable autotrack for files larger than 10MB"
+----
+* Set different thresholds for different file types by editing `.gitattributes`
+   directly:
++
+[source,role="primary"]
+----
+# Track .dat files larger than 1MB, .txt files larger than 500KB,
+# and everything else larger than 10MB
+*.dat filter=lfs autotracksize=1000000
+*.txt filter=lfs autotracksize=500000
+* filter=lfs autotracksize=10000000
 ----
 
 == SEE ALSO

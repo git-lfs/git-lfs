@@ -121,19 +121,17 @@ ArgsLoop:
 		Print(tr.Tr.Get("Tracking %q", unescapeAttrPattern(encodedArg)))
 	}
 
+	var minSize uint64
 	if trackMinSizeFlag != "" {
-		minSize, err := humanize.ParseBytes(trackMinSizeFlag)
+		minSize, err = humanize.ParseBytes(trackMinSizeFlag)
 		if err != nil {
 			Exit(tr.Tr.Get("Invalid size: %q", trackMinSizeFlag))
 		}
 
-		if !trackNoModifyAttrsFlag {
-			if _, err := cfg.SetGitLocalFileKey(filepath.Join(cfg.LocalWorkingDir(), ".lfsconfig"), "lfs.autotracksize", fmt.Sprintf("%d", minSize)); err != nil {
-				LoggedError(err, tr.Tr.Get("Error setting lfs.autotracksize: %s", err))
-			}
-			Print(tr.Tr.Get("Set lfs.autotracksize to %s", trackMinSizeFlag))
+		if trackNoModifyAttrsFlag {
+			Print(tr.Tr.Get("Would set autotracksize to %s and add filter to .gitattributes", trackMinSizeFlag))
 		} else {
-			Print(tr.Tr.Get("Would set lfs.autotracksize to %s and add filter to .gitattributes", trackMinSizeFlag))
+			Print(tr.Tr.Get("Set autotracksize to %s in .gitattributes", trackMinSizeFlag))
 		}
 
 		largeFiles, err := findLargeFiles(int64(minSize))
@@ -187,7 +185,7 @@ ArgsLoop:
 		autoTrackAttribLine := ""
 		autoTrackAttribFound := false
 		if trackMinSizeFlag != "" {
-			autoTrackAttribLine = fmt.Sprintf("%s filter=lfs%s", escapeAttrPattern("*"), lineEnd)
+			autoTrackAttribLine = fmt.Sprintf("%s filter=lfs autotracksize=%d%s", escapeAttrPattern("*"), minSize, lineEnd)
 		}
 
 		if len(attribContents) > 0 {
@@ -201,10 +199,10 @@ ArgsLoop:
 
 				pattern := unescapeAttrPattern(fields[0])
 				if autoTrackAttribLine != "" && pattern == "*" {
+					// Replace the existing * line with one that includes autotracksize
+					attributesFile.WriteString(autoTrackAttribLine)
 					autoTrackAttribFound = true
-				}
-
-				if newline, ok := changedAttribLines[pattern]; ok {
+				} else if newline, ok := changedAttribLines[pattern]; ok {
 					// Replace this line (newline already embedded)
 					attributesFile.WriteString(newline)
 					// Remove from map so we know we don't have to add it to the end

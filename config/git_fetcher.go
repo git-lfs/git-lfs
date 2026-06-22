@@ -185,7 +185,6 @@ func keyIsUnsafe(key string) bool {
 
 var safeKeys = []string{
 	"lfs.allowincompletepush",
-	"lfs.autotracksize",
 	"lfs.fetchexclude",
 	"lfs.fetchinclude",
 	"lfs.gitprotocol",

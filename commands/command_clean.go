@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
@@ -46,7 +47,8 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 		}
 	}
 
-	if autoTrackSize := cfg.AutoTrackSize(); autoTrackSize > 0 && fileSize >= 0 && fileSize < autoTrackSize {
+	autoTrackSize, _ := gitattr.GetAutoTrackSize(cfg.LocalWorkingDir(), fileName)
+	if autoTrackSize > 0 && fileSize >= 0 && fileSize < autoTrackSize {
 		content, err := io.ReadAll(from)
 		if err != nil {
 			return nil, err

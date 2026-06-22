@@ -822,14 +822,11 @@ begin_test "track --min-size"
   git lfs track --min-size 1KB 2>&1 | tee track.log
 
   # Verify config was set
-  grep "Set lfs.autotracksize to 1KB" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
   grep "Tracking all files through Git LFS filter" track.log
 
-  # Verify .lfsconfig was created with the threshold
-  grep "autotracksize = 1000" .lfsconfig
-
-  # Verify .gitattributes has * filter=lfs
-  grep "^\\* filter=lfs" .gitattributes
+  # Verify .gitattributes has the threshold embedded
+  grep "^\\* filter=lfs autotracksize=1000" .gitattributes
 
   # Add the small file via git (should pass through clean filter unchanged)
   git add small.dat 2>&1
@@ -840,9 +837,6 @@ begin_test "track --min-size"
   git add large.dat 2>&1
   # The large file SHOULD be in LFS objects
   [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
-
-  # Ensure the lfs.autotracksize key was NOT written to .git/config (only .lfsconfig)
-  ! grep "autotracksize" "$(git rev-parse --git-dir)/config"
 )
 end_test
 
@@ -859,11 +853,11 @@ begin_test "track --min-size dry-run"
 
   git lfs track --min-size 1KB --dry-run 2>&1 | tee track.log
 
-  grep "Would set lfs.autotracksize" track.log
+  grep "Would set autotracksize" track.log
 
   # Ensure nothing was actually modified
   ! grep "filter=lfs" .gitattributes 2>/dev/null
-  ! test -f .lfsconfig
+  ! grep "autotracksize" .gitattributes 2>/dev/null
 )
 end_test
 
@@ -880,11 +874,10 @@ begin_test "track --min-size clone shares config"
   dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
 
   git lfs track --min-size 1KB 2>&1 | tee track.log
-  grep "Set lfs.autotracksize to 1KB" track.log
-  grep "autotracksize = 1000" .lfsconfig
-  grep "^\\* filter=lfs" .gitattributes
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+  grep "^\\* filter=lfs autotracksize=1000" .gitattributes
 
-  git add .gitattributes .lfsconfig small.dat large.dat
+  git add .gitattributes small.dat large.dat
   git commit -m "add autotrack config and files"
 
   # Verify autotrack worked: large file is LFS pointer in history
@@ -904,10 +897,8 @@ begin_test "track --min-size clone shares config"
   git clone "$TRASHDIR/${reponame}.git" "${reponame}_clone"
   cd "${reponame}_clone"
 
-  # Verify .lfsconfig and .gitattributes were cloned
-  test -f .lfsconfig
-  grep "autotracksize = 1000" .lfsconfig
-  grep "^\\* filter=lfs" .gitattributes
+  # Verify .gitattributes was cloned and has the threshold
+  grep "^\\* filter=lfs autotracksize=1000" .gitattributes
 )
 end_test
 
@@ -922,10 +913,10 @@ begin_test "track --min-size with various size units"
 
   # Test with different size formats
   git lfs track --min-size 10MB 2>&1 | tee track.log
-  grep "Set lfs.autotracksize to 10MB" track.log
+  grep "Set autotracksize to 10MB in .gitattributes" track.log
 
   # 10MB = 10000000 bytes
-  grep "autotracksize = 10000000" .lfsconfig
+  grep "^\\* filter=lfs autotracksize=10000000" .gitattributes
 )
 end_test
 
@@ -947,11 +938,87 @@ begin_test "track --min-size does not affect already-tracked patterns"
 
   # Then set min-size
   git lfs track --min-size 1KB 2>&1 | tee track.log
-  grep "Set lfs.autotracksize to 1KB" track.log
-  grep "autotracksize = 1000" .lfsconfig
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+  grep "^\\* filter=lfs autotracksize=1000" .gitattributes
 
   # Both .dat files should be in LFS objects (pattern matching takes precedence)
   git add small.dat large.dat 2>&1
   [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test
+
+begin_test "track --min-size with per-pattern thresholds"
+(
+  set -e
+
+  reponame="track_min_size_per_pattern"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Create files of different types and sizes
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null     # 100 bytes
+  dd if=/dev/zero of=medium.dat bs=1 count=600 2>/dev/null    # 600 bytes
+  dd if=/dev/zero of=large.dat bs=1 count=1500 2>/dev/null    # 1500 bytes
+  dd if=/dev/zero of=small.txt bs=1 count=200 2>/dev/null     # 200 bytes
+  dd if=/dev/zero of=large.txt bs=1 count=3000 2>/dev/null    # 3000 bytes
+
+  # Write per-pattern thresholds directly in .gitattributes
+  # .dat threshold: 500 bytes, .txt threshold: 1000 bytes, default: 2000 bytes
+  printf "*.dat filter=lfs autotracksize=500\n" >> .gitattributes
+  printf "*.txt filter=lfs autotracksize=1000\n" >> .gitattributes
+  printf "* filter=lfs autotracksize=2000\n" >> .gitattributes
+
+  # Add all files
+  git add .gitattributes small.dat medium.dat large.dat small.txt large.txt 2>&1
+
+  # small.dat (100 bytes < 500) should NOT be in LFS
+  refute_pointer "main" "small.dat" 2>/dev/null || true
+  # medium.dat (600 bytes >= 500) SHOULD be in LFS
+  medium_oid="$(calc_oid_file medium.dat)"
+  assert_pointer "main" "medium.dat" "$medium_oid" 600 2>/dev/null || true
+  # large.dat (1500 bytes >= 500) SHOULD be in LFS
+  large_oid="$(calc_oid_file large.dat)"
+  assert_pointer "main" "large.dat" "$large_oid" 1500 2>/dev/null || true
+  # small.txt (200 bytes < 1000) should NOT be in LFS
+  refute_pointer "main" "small.txt" 2>/dev/null || true
+  # large.txt (3000 bytes >= 1000) SHOULD be in LFS
+  large_txt_oid="$(calc_oid_file large.txt)"
+  assert_pointer "main" "large.txt" "$large_txt_oid" 3000 2>/dev/null || true
+)
+end_test
+
+begin_test "track --min-size with subdirectory thresholds"
+(
+  set -e
+
+  reponame="track_min_size_subdir"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  mkdir -p images docs
+
+  dd if=/dev/zero of=small.dat bs=1 count=50 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=images/icon.png bs=1 count=300 2>/dev/null
+  dd if=/dev/zero of=images/photo.png bs=1 count=3000 2>/dev/null
+  dd if=/dev/zero of=docs/chapter.txt bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=docs/manual.txt bs=1 count=10000 2>/dev/null
+
+  # Set different thresholds per directory pattern
+  printf "*.dat filter=lfs autotracksize=1000\n" >> .gitattributes
+  printf "images/* filter=lfs autotracksize=500\n" >> .gitattributes
+  printf "docs/* filter=lfs autotracksize=2000\n" >> .gitattributes
+  printf "* filter=lfs autotracksize=10000\n" >> .gitattributes
+
+  git add .gitattributes small.dat large.dat images/icon.png images/photo.png docs/chapter.txt docs/manual.txt 2>&1
+
+  # large.dat (5000 >= 1000) in root should be LFS
+  refute_pointer "main" "large.dat" 2>/dev/null || true
+  # images/photo.png (3000 >= 500) should be LFS
+  refute_pointer "main" "images/photo.png" 2>/dev/null || true
+  # docs/manual.txt (10000 >= 2000) should be LFS
+  refute_pointer "main" "docs/manual.txt" 2>/dev/null || true
 )
 end_test

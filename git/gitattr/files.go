@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
@@ -230,6 +231,55 @@ func GetAttributeFilter(gitEnv filepathfilter.Environment, workingDir, gitDir st
 	}
 
 	return filepathfilter.NewFromPatterns(patterns, nil)
+}
+
+// GetAutoTrackSize reads the root-level .gitattributes from the working directory
+// and returns the autotracksize value for the given file path, if one is specified.
+// It falls back to returning 0, false if no matching autotracksize attribute is found.
+func GetAutoTrackSize(workingDir, filePath string) (int64, bool) {
+	if filePath == "" {
+		return 0, false
+	}
+
+	if filepath.IsAbs(filePath) {
+		rel, err := filepath.Rel(workingDir, filePath)
+		if err != nil {
+			return 0, false
+		}
+		filePath = rel
+	}
+
+	filePath = filepath.ToSlash(filePath)
+
+	attrPath := filepath.Join(workingDir, ".gitattributes")
+	f, err := os.Open(attrPath)
+	if err != nil {
+		return 0, false
+	}
+	defer f.Close()
+
+	mp := NewMacroProcessor()
+	lines, _, err := ParseLines(f)
+	if err != nil {
+		return 0, false
+	}
+
+	patternLines := mp.ProcessLines(lines, true)
+
+	for _, line := range patternLines {
+		if line.Pattern().Match(filePath) {
+			for _, attr := range line.Attrs() {
+				if attr.K == "autotracksize" {
+					size, err := strconv.ParseInt(attr.V, 10, 64)
+					if err == nil && size > 0 {
+						return size, true
+					}
+				}
+			}
+		}
+	}
+
+	return 0, false
 }
 
 // findAttributeFiles finds all attributes files in the repository, starting with the repository-wide attributes
