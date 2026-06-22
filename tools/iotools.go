@@ -31,11 +31,8 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 		return io.Copy(writer, reader)
 	}
 
-	cbReader := &CallbackReader{
-		C:         cb,
-		TotalSize: totalSize,
-		Reader:    reader,
-	}
+	cbReader := NewCallbackReader(reader, totalSize, cb)
+
 	return io.Copy(writer, cbReader)
 }
 

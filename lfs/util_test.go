@@ -34,11 +34,7 @@ func TestBothCallbackReadersWithCallback(t *testing.T) {
 	readBuf := make([]byte, bufSize-2)
 	readBufSize := len(readBuf)
 
-	r := &tools.CallbackReader{
-		C:         cb,
-		TotalSize: int64(bufSize),
-		Reader:    bytes.NewReader(buf),
-	}
+	r := tools.NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
 	br := tools.NewByteBodyWithCallback(buf, int64(bufSize), cb)
 
 	for _, reader := range []io.Reader{r, br} {
@@ -121,11 +117,7 @@ func (c *copyCallbackFileThrottleTestCase) setup(t *testing.T) (*os.File, error)
 		r = testutil.NewEagerEOFByteReader(buf)
 	}
 
-	c.callbackReader = &tools.CallbackReader{
-		C:         cb,
-		TotalSize: initialTotalSize,
-		Reader:    r,
-	}
+	c.callbackReader = tools.NewCallbackReader(r, initialTotalSize, cb)
 
 	return f, err
 }

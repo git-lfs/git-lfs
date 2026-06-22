@@ -87,6 +87,14 @@ func (w *CallbackReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func NewCallbackReader(r io.Reader, totalSize int64, cb CopyCallback) *CallbackReader {
+	return &CallbackReader{
+		C:         cb,
+		TotalSize: totalSize,
+		Reader:    r,
+	}
+}
+
 // prevent import cycle
 type ReadSeekCloser interface {
 	io.Seeker

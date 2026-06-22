@@ -35,13 +35,9 @@ func TestBothCallbackReadersInvokeCallbackOnEagerEOF(t *testing.T) {
 	initialTotalSize := 3 * int64(bufSize)
 	initialReadSize := initialTotalSize - int64(bufSize)
 
-	r := &CallbackReader{
-		C:         cb,
-		TotalSize: initialTotalSize,
-		ReadSize:  initialReadSize,
-		Reader:    testutil.NewEagerEOFByteReader(buf),
-	}
+	r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
 	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
+	r.ReadSize = initialReadSize
 	br.readSize = initialReadSize
 
 	p := make([]byte, bufSize+1)
@@ -90,11 +86,7 @@ func TestBothCallbackReadersCountReads(t *testing.T) {
 	buf := []byte{0x1, 0x2, 0x3, 0x4}
 	bufSize := len(buf)
 
-	r := &CallbackReader{
-		C:         cb,
-		TotalSize: int64(bufSize),
-		Reader:    bytes.NewReader(buf),
-	}
+	r := NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
 	br := NewByteBodyWithCallback(buf, int64(bufSize), cb)
 
 	p := make([]byte, 1)
@@ -126,11 +118,7 @@ func TestBothCallbackReadersPreferCallbackErrorOverEOF(t *testing.T) {
 	buf := []byte{0x1, 0x2}
 	bufSize := len(buf)
 
-	r := &CallbackReader{
-		C:         cb,
-		TotalSize: int64(bufSize),
-		Reader:    testutil.NewEagerEOFByteReader(buf),
-	}
+	r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), int64(bufSize), cb)
 	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), int64(bufSize), cb)
 
 	p := make([]byte, bufSize-1)
@@ -171,11 +159,7 @@ func TestBothCallbackReadersSkipCallbackAfterReadError(t *testing.T) {
 	buf := []byte{0x1, 0x2}
 	bufSize := len(buf)
 
-	r := &CallbackReader{
-		C:         cb,
-		TotalSize: int64(bufSize),
-		Reader:    testutil.NewErrReader(io.ErrUnexpectedEOF),
-	}
+	r := NewCallbackReader(testutil.NewErrReader(io.ErrUnexpectedEOF), int64(bufSize), cb)
 	br := NewBodyWithCallback(testutil.NewErrReader(io.ErrUnexpectedEOF), int64(bufSize), cb)
 
 	p := make([]byte, bufSize-1)
