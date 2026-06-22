@@ -48,7 +48,7 @@ func TestBothCallbackReadersInvokeCallbackOnEagerEOF(t *testing.T) {
 		n, err := reader.Read(p)
 
 		assert.Equal(t, bufSize, n)
-		assert.Nil(t, err)
+		assert.Equal(t, io.EOF, err)
 
 		assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
 		assert.EqualValues(t, initialTotalSize, actualTotalSize)

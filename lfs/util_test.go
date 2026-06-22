@@ -150,7 +150,11 @@ func (c *copyCallbackFileThrottleTestCase) Assert(t *testing.T) {
 	//          sees that the initial total has been reached.
 	n, err = c.callbackReader.Read(buf)
 	assert.EqualValues(t, c.readerBufSize, n)
-	assert.Nil(t, err)
+	if c.delayedEOF {
+		assert.Nil(t, err)
+	} else {
+		assert.Equal(t, io.EOF, err)
+	}
 
 	if c.delayedEOF {
 		// Final EOF Read: No message should be logged because no

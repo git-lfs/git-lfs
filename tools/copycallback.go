@@ -23,11 +23,11 @@ func (cs *callbackState) doCallback(readSinceLast int) error {
 
 func (cs *callbackState) doCallbackIfRequired(n int, err error) error {
 	if cs.callback == nil || (err != nil && err != io.EOF) {
-		return err
+		return nil
 	}
 
 	if n == 0 {
-		return err
+		return nil
 	}
 
 	return cs.doCallback(n)
@@ -38,7 +38,14 @@ func (cs *callbackState) read(r io.Reader, p []byte) (int, error) {
 
 	cs.readSize += int64(n)
 
-	err = cs.doCallbackIfRequired(n, err)
+	callbackErr := cs.doCallbackIfRequired(n, err)
+
+	// We only perform a callback if Read() returned no error or EOF,
+	// so if the callback returned an error, we can return it to the
+	// caller without masking a non-repeatable error condition.
+	if callbackErr != nil {
+		err = callbackErr
+	}
 
 	return n, err
 }
