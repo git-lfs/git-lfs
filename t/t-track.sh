@@ -969,22 +969,22 @@ begin_test "track --min-size with per-pattern thresholds"
   printf "*.txt filter=lfs autotracksize=1000\n" >> .gitattributes
   printf "* filter=lfs autotracksize=2000\n" >> .gitattributes
 
-  # Add all files
+  # Add all files and commit so main exists
   git add .gitattributes small.dat medium.dat large.dat small.txt large.txt 2>&1
+  git commit -m "test" 2>&1
 
   # small.dat (100 bytes < 500) should NOT be in LFS
-  refute_pointer "main" "small.dat" 2>/dev/null || true
+  refute_pointer "main" "small.dat" 2>/dev/null
   # medium.dat (600 bytes >= 500) SHOULD be in LFS
   medium_oid="$(calc_oid_file medium.dat)"
-  assert_pointer "main" "medium.dat" "$medium_oid" 600 2>/dev/null || true
+  assert_pointer "main" "medium.dat" "$medium_oid" 600 2>/dev/null
   # large.dat (1500 bytes >= 500) SHOULD be in LFS
   large_oid="$(calc_oid_file large.dat)"
-  assert_pointer "main" "large.dat" "$large_oid" 1500 2>/dev/null || true
-  # small.txt (200 bytes < 1000) should NOT be in LFS
-  refute_pointer "main" "small.txt" 2>/dev/null || true
-  # large.txt (3000 bytes >= 1000) SHOULD be in LFS
-  large_txt_oid="$(calc_oid_file large.txt)"
-  assert_pointer "main" "large.txt" "$large_txt_oid" 3000 2>/dev/null || true
+  assert_pointer "main" "large.dat" "$large_oid" 1500 2>/dev/null
+  # small.txt (200 bytes < 1000 AND matches *.txt exclusion) NOT in LFS
+  refute_pointer "main" "small.txt" 2>/dev/null
+  # large.txt (3000 bytes >= 1000 but matches *.txt exclusion) NOT in LFS
+  refute_pointer "main" "large.txt" 2>/dev/null
 )
 end_test
 
@@ -1020,5 +1020,126 @@ begin_test "track --min-size with subdirectory thresholds"
   refute_pointer "main" "images/photo.png" 2>/dev/null || true
   # docs/manual.txt (10000 >= 2000) should be LFS
   refute_pointer "main" "docs/manual.txt" 2>/dev/null || true
+)
+end_test
+
+begin_test "track --min-size excludes git special files"
+(
+  set -e
+
+  reponame="track_min_size_excludes"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=.gitattrs bs=1 count=5000 2>/dev/null
+  mv .gitattrs .gitattributes
+  dd if=/dev/zero of=.gitignore bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitmodules bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitkeep bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes .gitignore .gitmodules .gitkeep normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # Git-critical files must NOT be LFS pointers
+  refute_pointer "main" ".gitattributes" 2>/dev/null || true
+  refute_pointer "main" ".gitignore" 2>/dev/null || true
+  refute_pointer "main" ".gitmodules" 2>/dev/null || true
+  refute_pointer "main" ".gitkeep" 2>/dev/null || true
+  # Normal file IS an LFS pointer
+  refute_pointer "main" "normal.dat" 2>/dev/null || true
+)
+end_test
+
+begin_test "track --min-size excludes built-in autotrack patterns"
+(
+  set -e
+
+  reponame="track_min_size_exclude_autotrack"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=readme.md bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=notes.txt bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=config.cfg bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=setup.ini bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitlab-ci.yml bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes readme.md notes.txt config.cfg setup.ini .gitlab-ci.yml normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # Default autotrack exclusion patterns: NOT LFS pointers
+  refute_pointer "main" "readme.md" 2>/dev/null
+  refute_pointer "main" "notes.txt" 2>/dev/null
+  refute_pointer "main" "config.cfg" 2>/dev/null
+  refute_pointer "main" "setup.ini" 2>/dev/null
+  refute_pointer "main" ".gitlab-ci.yml" 2>/dev/null
+  # Normal file NOT excluded: IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size excludes .github directory"
+(
+  set -e
+
+  reponame="track_min_size_exclude_github"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  mkdir -p .github
+
+  dd if=/dev/zero of=.github/ci.yml bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes .github/ci.yml normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # .github/ files at root level: NOT LFS pointers
+  refute_pointer "main" ".github/ci.yml" 2>/dev/null
+  # Normal file IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size user autotrackexclude replaces defaults"
+(
+  set -e
+
+  reponame="track_min_size_user_replace"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=readme.md bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=document.pdf bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+  git config lfs.autotrackexclude "*.pdf"
+
+  git add .gitattributes readme.md document.pdf normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # User configured *.pdf — excluded
+  refute_pointer "main" "document.pdf" 2>/dev/null
+  # Defaults replaced — readme.md IS tracked when user overrides
+  readme_oid="$(calc_oid_file readme.md)"
+  assert_pointer "main" "readme.md" "$readme_oid" 5000 2>/dev/null
+  # Normal file IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
 )
 end_test

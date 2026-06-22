@@ -84,8 +84,23 @@ Disabled by default.
    * filter=lfs autotracksize=10000000
    ----
    +
-   The `.gitattributes` file must be committed to the repository for the
-   autotrack setting to apply to all clones.
+    The `.gitattributes` file must be committed to the repository for the
+    autotrack setting to apply to all clones.
+    +
+    The following files are always excluded from LFS tracking at the filter
+    level and can never become LFS pointers, even if explicitly tracked:
+    `.gitattributes`, `.gitignore`, `.gitmodules`, `.mailmap`, `.gitkeep`.
+    +
+    Additional files are excluded from automatic tracking by default via the
+    `lfs.autotrackexclude` config option:
+    +
+    [source,role="secondary"]
+    ----
+    .gitlab-ci.yml   *.md             *.txt
+    *.cfg            *.ini            .github/*
+    ----
+    +
+    When `lfs.autotrackexclude` is set, it replaces these defaults entirely.
 
 == EXAMPLES
 
