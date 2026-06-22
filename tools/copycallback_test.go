@@ -37,8 +37,8 @@ func TestBothCallbackReadersInvokeCallbackOnEagerEOF(t *testing.T) {
 
 	r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
 	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
-	r.ReadSize = initialReadSize
-	br.readSize = initialReadSize
+	r.state.readSize = initialReadSize
+	br.state.readSize = initialReadSize
 
 	p := make([]byte, bufSize+1)
 
@@ -192,11 +192,11 @@ func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
 
 	offset := 1
 	br.Seek(int64(offset), io.SeekStart)
-	assert.EqualValues(t, offset, br.readSize)
+	assert.EqualValues(t, offset, br.state.readSize)
 
 	offset++
 	br.Seek(1, io.SeekCurrent)
-	assert.EqualValues(t, offset, br.readSize)
+	assert.EqualValues(t, offset, br.state.readSize)
 
 	p := make([]byte, bufSize)
 
@@ -211,7 +211,7 @@ func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
 	assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
 
 	br.Seek(-1, io.SeekEnd)
-	assert.EqualValues(t, bufSize-1, br.readSize)
+	assert.EqualValues(t, bufSize-1, br.state.readSize)
 
 	n, err = br.Read(p)
 
