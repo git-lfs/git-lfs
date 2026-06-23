@@ -8,7 +8,7 @@ git-lfs-track - View or add Git LFS paths to Git attributes
 
 [source,role=synopsis,subs="verbatim,quotes"]
 ----
-*git lfs track* [_options_] [_<pattern>_...]
+*git lfs track* [_options_] [_<pattern>_...] [--min-size <size>]
 ----
 
 == DESCRIPTION
@@ -68,11 +68,13 @@ Disabled by default.
 `--min-size`::
    Automatically track files that are larger than the given size. Size values
    can be specified in human-readable format (e.g., "1MB", "500KB", "1GB").
-   Uses both decimal (KB, MB, GB) and binary (KiB, MiB, GiB) units. When this
-   option is provided, the threshold is written as a custom attribute in
-   `.gitattributes` as `* filter=lfs autotracksize=<bytes>`. Existing files
-   larger than the threshold are touched so they will be re-indexed by Git on
-   the next `git add`.
+   Uses both decimal (KB, MB, GB) and binary (KiB, MiB, GiB) units. This option
+   requires at least one `<pattern>` argument. The threshold is written as the
+   `autotracksize` custom attribute on the given pattern(s) in `.gitattributes`
+   (e.g., `*.dat filter=lfs ... autotracksize=<bytes>`). Use
+   `git lfs track "*" --min-size <size>` to apply it to all files. Existing
+   files larger than the threshold are touched so they will be re-indexed by
+   Git on the next `git add`.
    +
    Multiple `autotracksize` thresholds can be set for different file patterns
    by editing `.gitattributes` directly, e.g.:
@@ -119,7 +121,11 @@ locked:
 `git lfs track --filename "project [1].psd"`
 * Automatically track all files larger than 10 megabytes:
 +
-`git lfs track --min-size 10MB`
+`git lfs track "*" --min-size 10MB`
++
+* Automatically track `.dat` files larger than 1 megabyte:
++
+`git lfs track "*.dat" --min-size 1MB`
 +
 Then commit the configuration:
 +

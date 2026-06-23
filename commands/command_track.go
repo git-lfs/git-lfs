@@ -48,8 +48,12 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		installHooks(false)
 	}
 
-	if len(args) == 0 && trackMinSizeFlag == "" {
-		listPatterns()
+	if len(args) == 0 {
+		if trackMinSizeFlag == "" {
+			listPatterns()
+		} else {
+			Exit(tr.Tr.Get("--min-size requires a filename or glob pattern"))
+		}
 		return
 	}
 
@@ -76,6 +80,14 @@ func trackCommand(cmd *cobra.Command, args []string) {
 		Exit(tr.Tr.Get("Current directory %q outside of Git working directory %q.", wd, cfg.LocalWorkingDir()))
 	}
 
+	var minSize uint64
+	if trackMinSizeFlag != "" {
+		minSize, err = humanize.ParseBytes(trackMinSizeFlag)
+		if err != nil {
+			Exit(tr.Tr.Get("Invalid size: %q", trackMinSizeFlag))
+		}
+	}
+
 	changedAttribLines := make(map[string]string)
 	var readOnlyPatterns []string
 	var writeablePatterns []string
@@ -93,7 +105,7 @@ ArgsLoop:
 			encodedArg = escapeAttrPattern(pattern)
 		}
 
-		if !trackNoModifyAttrsFlag {
+		if !trackNoModifyAttrsFlag && trackMinSizeFlag == "" {
 			for _, known := range knownPatterns {
 				if unescapeAttrPattern(known.Path) == path.Join(relpath, pattern) &&
 					((trackLockableFlag && known.Lockable) || // enabling lockable & already lockable (no change)
@@ -110,7 +122,11 @@ ArgsLoop:
 			lockableArg = " " + gitattr.LockableAttrib
 		}
 
-		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s", encodedArg, lockableArg, lineEnd)
+		minSizeAttr := ""
+		if trackMinSizeFlag != "" {
+			minSizeAttr = fmt.Sprintf(" autotracksize=%d", minSize)
+		}
+		changedAttribLines[pattern] = fmt.Sprintf("%s filter=lfs diff=lfs merge=lfs -text%v%s%s", encodedArg, lockableArg, minSizeAttr, lineEnd)
 
 		if trackLockableFlag {
 			readOnlyPatterns = append(readOnlyPatterns, pattern)
@@ -121,13 +137,7 @@ ArgsLoop:
 		Print(tr.Tr.Get("Tracking %q", unescapeAttrPattern(encodedArg)))
 	}
 
-	var minSize uint64
 	if trackMinSizeFlag != "" {
-		minSize, err = humanize.ParseBytes(trackMinSizeFlag)
-		if err != nil {
-			Exit(tr.Tr.Get("Invalid size: %q", trackMinSizeFlag))
-		}
-
 		if trackNoModifyAttrsFlag {
 			Print(tr.Tr.Get("Would set autotracksize to %s and add filter to .gitattributes", trackMinSizeFlag))
 		} else {
@@ -182,12 +192,6 @@ ArgsLoop:
 		}
 		defer attributesFile.Close()
 
-		autoTrackAttribLine := ""
-		autoTrackAttribFound := false
-		if trackMinSizeFlag != "" {
-			autoTrackAttribLine = fmt.Sprintf("%s filter=lfs autotracksize=%d%s", escapeAttrPattern("*"), minSize, lineEnd)
-		}
-
 		if len(attribContents) > 0 {
 			scanner := bufio.NewScanner(bytes.NewReader(attribContents))
 			for scanner.Scan() {
@@ -198,11 +202,7 @@ ArgsLoop:
 				}
 
 				pattern := unescapeAttrPattern(fields[0])
-				if autoTrackAttribLine != "" && pattern == "*" {
-					// Replace the existing * line with one that includes autotracksize
-					attributesFile.WriteString(autoTrackAttribLine)
-					autoTrackAttribFound = true
-				} else if newline, ok := changedAttribLines[pattern]; ok {
+				if newline, ok := changedAttribLines[pattern]; ok {
 					// Replace this line (newline already embedded)
 					attributesFile.WriteString(newline)
 					// Remove from map so we know we don't have to add it to the end
@@ -212,13 +212,6 @@ ArgsLoop:
 					attributesFile.WriteString(line + lineEnd)
 				}
 			}
-
-			// Our method of writing also made sure there's always a newline at end
-		}
-
-		if autoTrackAttribLine != "" && !autoTrackAttribFound {
-			attributesFile.WriteString(autoTrackAttribLine)
-			Print(tr.Tr.Get("Tracking all files through Git LFS filter"))
 		}
 	}
 
