@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -121,4 +122,18 @@ var (
 // Undent removes all leading tabs in the given string "str", line-wise.
 func Undent(str string) string {
 	return tabRe.ReplaceAllString(str, "")
+}
+
+// FormatFraction returns a string in the format "x/y" if y >= 0.
+// If y < 0, a string in the format "x/?" is returned, with the
+// number of "?" characters equal to the length of x when formatted
+// as a decimal integer.
+func FormatFraction(x, y int64) string {
+	s := fmt.Sprintf("%d/", x)
+	if y >= 0 {
+		s += fmt.Sprintf("%d", y)
+	} else {
+		s += strings.Repeat("?", len(s)-1)
+	}
+	return s
 }

@@ -274,7 +274,7 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 			mode:          initialTotalUnknown,
 			readerBufSize: 32 * 1024,
 			expectedFractions: []string{
-				"65536/-1",
+				"65536/?????",
 				"131072/131072",
 			},
 		},

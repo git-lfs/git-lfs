@@ -73,7 +73,9 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 			return nil
 		}
 
-		_, err := fmt.Fprintf(file, "%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)
+		writtenFraction := tools.FormatFraction(written, total)
+
+		_, err := fmt.Fprintf(file, "%s %d/%d %s %s\n", event, index, totalFiles, writtenFraction, filename)
 		file.Sync()
 
 		prevTotal = total

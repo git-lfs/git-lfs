@@ -132,7 +132,7 @@ begin_test "progress log: unknown initial size (smudge)"
   # Confirm that the callback created by the CopyCallbackFile() method
   # of lfs.GitFilter reports the final object size in the progress log.
   #
-  # Note that we will probably not see a preceding entry with a "-1"
+  # Note that we will probably not see a preceding entry with a "????"-style
   # field indicating an unknown total size because an EOF is usually provided
   # at the same time the final bytes are read from the HTTP download stream.
   # Once EOF is reached, the Read() method of tools.CallbackReader should pass
@@ -180,7 +180,7 @@ begin_test "progress log: unknown initial size (fetch/pull)"
   # Confirm that the callback created by the ensureAdapterBegun() method
   # of tq.TransferQueue reports the final object size in the progress log.
   #
-  # Note that we will probably not see a preceding entry with a "-1"
+  # Note that we will probably not see a preceding entry with a "????"-style
   # field indicating an unknown total size because an EOF is usually provided
   # at the same time the final bytes are read from the HTTP download stream.
   # Once EOF is reached, the Read() method of tools.CallbackReader should pass
@@ -203,7 +203,7 @@ begin_test "progress log: unknown initial size (fetch/pull)"
   # Confirm that the callback created by the ensureAdapterBegun() method
   # of tq.TransferQueue reports the final object size in the progress log.
   #
-  # Note that we will probably not see a preceding entry with a "-1"
+  # Note that we will probably not see a preceding entry with a "????"-style
   # field indicating an unknown total size because an EOF is usually provided
   # at the same time the final bytes are read from the HTTP download stream.
   # Once EOF is reached, the Read() method of tools.CallbackReader should pass
