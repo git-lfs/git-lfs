@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -84,11 +83,9 @@ func isAutoTrackExcluded(fileName string) bool {
 func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
 	// Git-critical files must never become LFS pointers
 	if gitCriticalExcluded(fileName) {
-		content, err := io.ReadAll(from)
-		if err != nil {
+		if _, err := tools.Spool(to, from, cfg.TempDir()); err != nil {
 			return nil, err
 		}
-		to.Write(content)
 		return nil, nil
 	}
 
@@ -113,18 +110,54 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 	}
 
 	autoTrackSize, _ := gitattr.GetAutoTrackSize(cfg.LocalWorkingDir(), fileName)
-	if autoTrackSize > 0 && fileSize >= 0 && (isAutoTrackExcluded(fileName) || fileSize < autoTrackSize) {
-		content, err := io.ReadAll(from)
+
+	if autoTrackSize > 0 {
+		tmpfile, err := os.CreateTemp(cfg.TempDir(), "")
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			tmpfile.Close()
+			os.Remove(tmpfile.Name())
+		}()
+
+		n, err := io.Copy(tmpfile, from)
 		if err != nil {
 			return nil, err
 		}
 
-		if ptr, decodeErr := lfs.DecodePointer(bytes.NewReader(content)); decodeErr == nil && ptr != nil {
-			to.Write(content)
+		if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+
+		// Check if content is already a pointer (already tracked in LFS)
+		if ptr, decodeErr := lfs.DecodePointer(tmpfile); decodeErr == nil && ptr != nil {
+			if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+				return nil, err
+			}
+			if _, err := io.Copy(to, tmpfile); err != nil {
+				return nil, err
+			}
 			return ptr, nil
 		}
-		to.Write(content)
-		return nil, nil
+
+		// Pass through if excluded or under the autotrack threshold
+		if isAutoTrackExcluded(fileName) || n < autoTrackSize {
+			if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+				return nil, err
+			}
+			if _, err := io.Copy(to, tmpfile); err != nil {
+				return nil, err
+			}
+			return nil, nil
+		}
+
+		// File exceeds threshold, re-read from temp file for gf.Clean
+		if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		from = tmpfile
+		fileSize = n
 	}
 
 	cleaned, err := gf.Clean(from, fileName, fileSize, cb)
