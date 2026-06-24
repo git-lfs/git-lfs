@@ -3,6 +3,8 @@ package lfshttp
 import (
 	"bytes"
 	"encoding/json"
+	goerrors "errors"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -13,6 +15,69 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/rubyist/tracerx"
 )
+
+// sshAuthenticateNotFoundExitCode is the conventional POSIX shell exit code
+// returned when a command cannot be found.  When the remote `ssh` invocation
+// exits with this status, we treat the `git-lfs-authenticate` command as
+// unavailable on the server and fall back to the guessed LFS endpoint rather
+// than treating the failure as fatal.
+const sshAuthenticateNotFoundExitCode = 127
+
+// sshAuthenticateNotFoundMessages are case-insensitive substrings of the
+// stderr output produced when `git-lfs-authenticate` is not available on the
+// server.  Not every server uses the conventional 127 exit code: Gerrit, for
+// example, runs the command through a restricted shell that returns a generic
+// exit code 1 with a "not found"-style message.  The substrings are anchored
+// to the command name so that unrelated "not found" errors (such as a missing
+// repository) are not misclassified.
+var sshAuthenticateNotFoundMessages = []string{
+	"git-lfs-authenticate: not found",         // Gerrit
+	"git-lfs-authenticate: command not found", // bash, sh
+	"git-lfs-authenticate: no such file",      // direct exec by path
+	"command not found: git-lfs-authenticate", // zsh
+}
+
+// isSSHAuthenticateUnavailable reports whether the error and captured stderr
+// from running `git-lfs-authenticate` over SSH indicate that the command is
+// not available on the server, in which case Git LFS should fall back to the
+// guessed LFS endpoint instead of failing the request.
+func isSSHAuthenticateUnavailable(err error, stderr string) bool {
+	var exitErr *exec.ExitError
+	if !goerrors.As(err, &exitErr) {
+		// The command never ran to completion (e.g. the local ssh
+		// binary is missing); this is a genuine error, not an
+		// unavailable git-lfs-authenticate command.
+		return false
+	}
+
+	if exitErr.ExitCode() == sshAuthenticateNotFoundExitCode {
+		return true
+	}
+
+	msg := strings.ToLower(stderr)
+	for _, needle := range sshAuthenticateNotFoundMessages {
+		if strings.Contains(msg, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+// sshAuthenticateUnavailableError indicates that the `git-lfs-authenticate`
+// command is not available on the SSH server.  Callers should fall back to the
+// guessed LFS endpoint per the server discovery specification instead of
+// failing the request.
+type sshAuthenticateUnavailableError struct {
+	err error
+}
+
+func (e *sshAuthenticateUnavailableError) Error() string {
+	return e.err.Error()
+}
+
+func (e *sshAuthenticateUnavailableError) Unwrap() error {
+	return e.err
+}
 
 type SSHResolver interface {
 	Resolve(Endpoint, string) (sshAuthResponse, error)
@@ -100,6 +165,16 @@ func (c *sshAuthClient) Resolve(e Endpoint, method string) (sshAuthResponse, err
 	// Processing result
 	if err != nil {
 		res.Message = strings.TrimSpace(errbuf.String())
+
+		// If the git-lfs-authenticate command is not available on the
+		// server, signal this distinctly so the caller can fall back to
+		// the guessed LFS endpoint instead of failing outright.  This
+		// covers both the conventional command-not-found exit code (127)
+		// and servers such as Gerrit that return a generic exit code
+		// with a "not found"-style message.
+		if isSSHAuthenticateUnavailable(err, res.Message) {
+			err = &sshAuthenticateUnavailableError{err: err}
+		}
 	} else {
 		err = json.Unmarshal(outbuf.Bytes(), &res)
 		if res.ExpiresIn == 0 && res.ExpiresAt.IsZero() {

@@ -1,6 +1,9 @@
 package lfshttp
 
 import (
+	goerrors "errors"
+	"fmt"
+	"os/exec"
 	"sync"
 	"testing"
 	"time"
@@ -8,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	sshp "github.com/git-lfs/git-lfs/v3/ssh"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSSHCacheResolveFromCache(t *testing.T) {
@@ -205,6 +209,157 @@ func TestSSHCacheResolveWithError(t *testing.T) {
 	res2, err := cache.Resolve(e, "post")
 	assert.Nil(t, err)
 	assert.Equal(t, "", res2.Href)
+}
+
+// countingResolver always returns the configured error and records how many
+// times Resolve was called.
+type countingResolver struct {
+	err   error
+	calls int
+}
+
+func (r *countingResolver) Resolve(e Endpoint, method string) (sshAuthResponse, error) {
+	r.calls++
+	return sshAuthResponse{}, r.err
+}
+
+func newTestClient(t *testing.T, resolver SSHResolver) *Client {
+	t.Helper()
+	c, err := NewClient(NewContext(nil, nil, nil))
+	assert.Nil(t, err)
+	c.SSH = resolver
+	c.sshTries = 5
+	return c
+}
+
+func testSSHEndpoint() Endpoint {
+	return Endpoint{
+		Url:         "https://git-server.com/foo/bar.git/info/lfs",
+		OriginalUrl: "git@git-server.com:foo/bar.git",
+		SSHMetadata: sshp.SSHMetadata{
+			UserAndHost: "git@git-server.com",
+			Path:        "foo/bar.git",
+		},
+	}
+}
+
+func TestSSHResolveFallsBackWhenAuthenticateUnavailable(t *testing.T) {
+	resolver := &countingResolver{
+		err: &sshAuthenticateUnavailableError{
+			err: errors.New("bash: git-lfs-authenticate: command not found"),
+		},
+	}
+	c := newTestClient(t, resolver)
+
+	res, err := c.sshResolveWithRetries(testSSHEndpoint(), "GET")
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	assert.Equal(t, "", res.Href)
+
+	// The unavailable command should not be retried.
+	assert.Equal(t, 1, resolver.calls)
+}
+
+func TestSSHResolveUsesGuessedEndpointWhenAuthenticateUnavailable(t *testing.T) {
+	resolver := &countingResolver{
+		err: &sshAuthenticateUnavailableError{
+			err: errors.New("bash: git-lfs-authenticate: command not found"),
+		},
+	}
+	c := newTestClient(t, resolver)
+
+	req, err := c.NewRequest("GET", testSSHEndpoint(), "objects/batch", nil)
+	assert.Nil(t, err)
+	assert.Equal(t,
+		"https://git-server.com/foo/bar.git/info/lfs/objects/batch",
+		req.URL.String())
+}
+
+func TestSSHResolveFailsForOtherErrors(t *testing.T) {
+	resolver := &countingResolver{err: errors.New("permission denied")}
+	c := newTestClient(t, resolver)
+
+	_, err := c.sshResolveWithRetries(testSSHEndpoint(), "GET")
+	assert.NotNil(t, err)
+
+	// Non-fallback errors are retried sshTries+1 times.
+	assert.Equal(t, 6, resolver.calls)
+}
+
+// exitErrorWithCode runs a trivial command that exits with the given status so
+// that tests can obtain a real *exec.ExitError.
+func exitErrorWithCode(t *testing.T, code int) error {
+	t.Helper()
+	err := exec.Command("sh", "-c", fmt.Sprintf("exit %d", code)).Run()
+	var exitErr *exec.ExitError
+	require.True(t, goerrors.As(err, &exitErr))
+	require.Equal(t, code, exitErr.ExitCode())
+	return err
+}
+
+func TestIsSSHAuthenticateUnavailable(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		exitCode int
+		stderr   string
+		want     bool
+	}{
+		{
+			name:     "command not found exit code",
+			exitCode: 127,
+			stderr:   "",
+			want:     true,
+		},
+		{
+			name:     "gerrit generic exit code with message",
+			exitCode: 1,
+			stderr:   "fatal: Gerrit Code Review: git-lfs-authenticate: not found",
+			want:     true,
+		},
+		{
+			name:     "bash command not found message",
+			exitCode: 1,
+			stderr:   "bash: git-lfs-authenticate: command not found",
+			want:     true,
+		},
+		{
+			name:     "zsh command not found message",
+			exitCode: 1,
+			stderr:   "zsh: command not found: git-lfs-authenticate",
+			want:     true,
+		},
+		{
+			name:     "no such file message",
+			exitCode: 1,
+			stderr:   "git-lfs-authenticate: No such file or directory",
+			want:     true,
+		},
+		{
+			name:     "unrelated not found error is not a fallback",
+			exitCode: 1,
+			stderr:   "Repository not found",
+			want:     false,
+		},
+		{
+			name:     "generic error without message is fatal",
+			exitCode: 1,
+			stderr:   "",
+			want:     false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := exitErrorWithCode(t, tc.exitCode)
+			assert.Equal(t, tc.want, isSSHAuthenticateUnavailable(err, tc.stderr))
+		})
+	}
+}
+
+func TestIsSSHAuthenticateUnavailableNonExitError(t *testing.T) {
+	// A failure to start the command (not an *exec.ExitError) is a genuine
+	// error, never an "unavailable" signal, even with a matching message.
+	err := errors.New("exec: \"ssh\": executable file not found in $PATH")
+	assert.False(t, isSSHAuthenticateUnavailable(err,
+		"git-lfs-authenticate: not found"))
 }
 
 func assertCacheLen(t *testing.T, cache *sshCache, expected int) {
