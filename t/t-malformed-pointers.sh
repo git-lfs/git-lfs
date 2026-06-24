@@ -14,10 +14,20 @@ begin_test "malformed pointers"
   git add .gitattributes
   git commit -m "initial commit"
 
-  lfstest-genrandom --base64 1023 >malformed_small.dat
-  lfstest-genrandom --base64 1024 >malformed_exact.dat
-  lfstest-genrandom --base64 1025 >malformed_large.dat
-  lfstest-genrandom --base64 1048576 >malformed_xxl.dat
+  # Test with file sizes smaller than, equal to, and larger than the
+  # size of the read buffer used when decoding pointers.
+  # See https://github.com/git-lfs/git-lfs/issues/1729
+  # and https://github.com/git-lfs/git-lfs/pull/1796.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  lfstest-genrandom --base64 $((max_pointer_size - 1)) >malformed_small.dat
+  lfstest-genrandom --base64 "$max_pointer_size" >malformed_exact.dat
+  lfstest-genrandom --base64 $((max_pointer_size + 1)) >malformed_large.dat
+
+  # Test with a file size significantly larger than the default pipe capacity
+  # of Linux/macOS.  See https://github.com/git-lfs/git-lfs/pull/1922
+  # and https://github.com/git-lfs/git-lfs/pull/1932.
+  max_pipe_capacity="65536"
+  lfstest-genrandom --base64 $((max_pipe_capacity * 16)) >malformed_xxl.dat
 
   git \
     -c "filter.lfs.process=" \

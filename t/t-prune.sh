@@ -1479,8 +1479,12 @@ begin_test "prune doesn't hang on long lines in diff"
     git lfs untrack "*.dat" 2>&1 | tee untrack.log
     grep "Untracking \"\*.dat\"" untrack.log
 
-    # Exceed the default buffer size that would be used by bufio.Scanner
-    dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
+    # Test with a file size significantly larger than the maximum size
+    # of the token buffer used by the bufio.Scanner interface.
+    # See https://github.com/git-lfs/git-lfs/pull/4557.
+    max_bufio_scan_token_size="$(lfstest-getlimit --max-bufio-scan-token-size)"
+    head -c $((max_bufio_scan_token_size * 2)) /dev/zero | tr '\0' 'A' >test.dat
+
     git add .gitattributes test.dat
 
     git commit -m untracked
@@ -1508,8 +1512,12 @@ begin_test "prune doesn't hang on long lines in stash diff"
     git lfs untrack "*.dat" 2>&1 | tee untrack.log
     grep "Untracking \"\*.dat\"" untrack.log
 
-    # Exceed the default buffer size that would be used by bufio.Scanner
-    dd if=/dev/zero bs=1024 count=128 | tr '\0' 'A' >test.dat
+    # Test with a file size significantly larger than the maximum size
+    # of the token buffer used by the bufio.Scanner interface.
+    # See https://github.com/git-lfs/git-lfs/pull/4557.
+    max_bufio_scan_token_size="$(lfstest-getlimit --max-bufio-scan-token-size)"
+    head -c $((max_bufio_scan_token_size * 2)) /dev/zero | tr '\0' 'A' >test.dat
+
     git stash
 
     git lfs prune

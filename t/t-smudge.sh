@@ -55,9 +55,14 @@ begin_test "smudge with invalid pointer"
   [ "not a git-lfs file" = "$(echo "not a git-lfs file" | git lfs smudge)" ]
   [ "version " = "$(echo "version " | git lfs smudge)" ]
 
-  # force use of a spool file with non-pointer input longer than max buffer
-  spool="$(lfstest-genrandom --base64 2048)"
-  [ "$spool" = "$(echo "$spool" | git lfs smudge)" ]
+  # Test with input data larger than the internal memory buffer used
+  # to spool data between streams, so a temporary file is used as well.
+  # See https://github.com/git-lfs/git-lfs/pull/1922,
+  # https://github.com/git-lfs/git-lfs/pull/1932,
+  # and https://github.com/git-lfs/git-lfs/pull/5617.
+  max_spool_mem_buffer_size="$(lfstest-getlimit --max-spool-mem-buffer-size)"
+  spool="$(lfstest-genrandom --base64 $((max_spool_mem_buffer_size * 2)))"
+  [ "$spool" = "$(printf "%s" "$spool" | git lfs smudge)" ]
 )
 end_test
 

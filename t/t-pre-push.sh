@@ -1248,10 +1248,10 @@ begin_test "pre-push does not traverse Git objects server has"
   clone_repo "$reponame" "$reponame"
 
   endpoint=$(git config remote.origin.url)
-  contents_oid=$(calc_oid 'hi\n')
   git config "lfs.$endpoint.locksverify" false
   git lfs track "*.dat"
   echo "hi" > a.dat
+  contents_oid="$(calc_oid_file "a.dat")"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
@@ -1264,8 +1264,8 @@ begin_test "pre-push does not traverse Git objects server has"
 
   assert_server_object "$reponame" $contents_oid "refs/heads/main"
 
-  contents2_oid=$(calc_oid 'hello\n')
   echo "hello" > b.dat
+  contents2_oid="$(calc_oid_file "b.dat")"
   git add .gitattributes b.dat
   git commit -m "add b.dat"
 

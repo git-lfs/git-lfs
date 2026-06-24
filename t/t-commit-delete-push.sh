@@ -12,8 +12,8 @@ begin_test "commit, delete, then push"
 
   git lfs track "*.dat"
 
-  deleted_oid=$(calc_oid "deleted\n")
   echo "deleted" > deleted.dat
+  deleted_oid="$(calc_oid_file "deleted.dat")"
   git add deleted.dat .gitattributes
   git commit -m "add deleted file"
 
@@ -21,8 +21,8 @@ begin_test "commit, delete, then push"
 
   assert_pointer "main" "deleted.dat" "$deleted_oid" 8
 
-  added_oid=$(calc_oid "added\n")
   echo "added" > added.dat
+  added_oid="$(calc_oid_file "added.dat")"
   git add added.dat
   git commit -m "add file"
 
