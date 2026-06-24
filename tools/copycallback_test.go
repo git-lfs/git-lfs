@@ -2,6 +2,7 @@ package tools
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
 
@@ -111,6 +112,81 @@ func TestBothCallbackReadersCountReads(t *testing.T) {
 		}
 
 		actualReadSoFar = 0
+	}
+}
+
+func TestBothCallbackReadersPreferCallbackErrorOverEOF(t *testing.T) {
+	cbErr := errors.New("callback error")
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		return cbErr
+	}
+
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
+
+	r := &CallbackReader{
+		C:         cb,
+		TotalSize: int64(bufSize),
+		Reader:    testutil.NewEagerEOFByteReader(buf),
+	}
+	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
+
+		n, err := reader.Read(p)
+
+		assert.Equal(t, bufSize-1, n)
+		assert.Equal(t, cbErr, err)
+
+		n, err = reader.Read(p)
+
+		// We expect the EOF from EagerEOFByteReader's Read() method
+		// to be replaced with the callback function's own error.
+		assert.Equal(t, 1, n)
+		assert.Equal(t, cbErr, err)
+
+		// We expect no callback to be performed when no bytes are
+		// available to be read, so no error should be returned.
+		n, err = reader.Read(p)
+
+		assert.Zero(t, n)
+		assert.Equal(t, io.EOF, err)
+	}
+}
+
+func TestBothCallbackReadersSkipCallbackAfterReadError(t *testing.T) {
+	var calls int
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
+
+	r := &CallbackReader{
+		C:         cb,
+		TotalSize: int64(bufSize),
+		Reader:    testutil.NewErrReader(io.ErrUnexpectedEOF),
+	}
+	br := NewBodyWithCallback(testutil.NewErrReader(io.ErrUnexpectedEOF), int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
+
+		n, err := reader.Read(p)
+
+		assert.Zero(t, n)
+		assert.Equal(t, io.ErrUnexpectedEOF, err)
+
+		assert.Zero(t, calls, "expected no call to callback, got %d", calls)
 	}
 }
 

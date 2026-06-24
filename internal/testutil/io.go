@@ -5,6 +5,30 @@ import (
 	"io"
 )
 
+type ErrReader struct {
+	err error
+}
+
+// Read() always returns the given error, akin to the ErrReader type from the
+// "testing/iotest" package but with a complete io.ReadSeekCloser interface.
+func (r *ErrReader) Read(p []byte) (int, error) {
+	return 0, r.err
+}
+
+// Seek() is simply a no-op to complete the io.ReadSeekCloser interface.
+func (r *ErrReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
+}
+
+// Close() is simply a no-op to complete the io.ReadSeekCloser interface.
+func (r *ErrReader) Close() error {
+	return nil
+}
+
+func NewErrReader(err error) *ErrReader {
+	return &ErrReader{err}
+}
+
 type EagerEOFByteReader struct {
 	b []byte
 	i int
