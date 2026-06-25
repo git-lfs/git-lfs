@@ -176,6 +176,83 @@ func TestBothCallbackReadersSkipCallbackAfterReadError(t *testing.T) {
 	}
 }
 
+func TestBothCallbackReadersInvokeCallbackOnEOFWhenTotalSizeIncorrect(t *testing.T) {
+	var (
+		calls           int
+		actualTotalSize int64
+		actualReadSoFar int64
+	)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		actualTotalSize = totalSize
+		actualReadSoFar = readSoFar
+
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
+
+	p := make([]byte, bufSize-1)
+	readBufSize := len(p)
+
+	testCases := []struct {
+		description      string
+		initialTotalSize int64
+	}{
+		{"initial total unknown", -1},
+		{"initial total overestimated", int64(bufSize) + 1},
+		{"initial total underestimated", int64(bufSize) - 1},
+	}
+
+	for _, tc := range testCases {
+		t.Logf("testing with %s", tc.description)
+
+		r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), tc.initialTotalSize, cb)
+		br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), tc.initialTotalSize, cb)
+
+		for _, reader := range []io.Reader{r, br} {
+			t.Logf("testing with reader: %T", reader)
+
+			n, err := reader.Read(p)
+
+			assert.Equal(t, readBufSize, n)
+			assert.Nil(t, err)
+
+			assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
+			assert.EqualValues(t, tc.initialTotalSize, actualTotalSize)
+			assert.EqualValues(t, readBufSize, actualReadSoFar)
+
+			n, err = reader.Read(p)
+
+			// We expect an immediate EOF from the EagerEOFByteReader's
+			// Read() method once the final byte has been read.
+			assert.Equal(t, 1, n)
+			assert.Equal(t, io.EOF, err)
+
+			assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
+			assert.EqualValues(t, bufSize, actualTotalSize)
+			assert.EqualValues(t, bufSize, actualReadSoFar)
+
+			// Read again and check that no callback is made after last
+			// byte has been read (since the updated total matched the
+			// number of bytes read).
+			calls = 0
+
+			n, err = reader.Read(p)
+
+			assert.Zero(t, n)
+			assert.Equal(t, io.EOF, err)
+
+			assert.Zero(t, calls, "expected no call to callback, got %d", calls)
+
+			actualTotalSize = 0
+			actualReadSoFar = 0
+		}
+	}
+}
+
 func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
 	var calls int
 

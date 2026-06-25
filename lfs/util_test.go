@@ -68,6 +68,8 @@ type copyCallbackFileThrottleTestMode int
 
 const (
 	initialTotalCorrect copyCallbackFileThrottleTestMode = iota
+	initialTotalOverestimated
+	initialTotalUnderestimated
 	initialTotalUnknown
 )
 
@@ -105,10 +107,16 @@ func (c *copyCallbackFileThrottleTestCase) setup(t *testing.T) (*os.File, error)
 		return f, fmt.Errorf("unable to create progress log callback: %w", err)
 	}
 
-	// The Assert() method makes four separate reads.
+	// The Assert() method requires at least four separate reads,
+	// and three additional reads if we are simulating an underestimated
+	// initial total size.
 	bufSize := 4 * c.readerBufSize
 	initialTotalSize := bufSize
 	switch c.mode {
+	case initialTotalOverestimated:
+		bufSize -= c.readerBufSize
+	case initialTotalUnderestimated:
+		bufSize += 3 * c.readerBufSize
 	case initialTotalUnknown:
 		initialTotalSize = -1
 	}
@@ -144,31 +152,80 @@ func (c *copyCallbackFileThrottleTestCase) Assert(t *testing.T) {
 
 	c.fakeClock.Add(tasklog.DefaultLoggingThrottle / 2)
 
-	// Read #3: No message should be logged as the full deadline
-	//          has not passed.
-	n, err = c.callbackReader.Read(buf)
-	assert.EqualValues(t, c.readerBufSize, n)
-	assert.Nil(t, err)
-
-	// Read #4: When the total size is initially unknown and EOF is
-	//          delayed, no message should be logged as the full deadline
-	//          has not passed.
+	// Read #3: When the total size was initially correct, unknown, or
+	//          underestimated, or when EOF is delayed, no message
+	//          should be logged as the full deadline has not passed.
 	//
-	//          Otherwise, a message should be logged even though the
-	//          full deadline has not passed because the callback
-	//          sees that the initial total has been reached.
+	//          However, when the total size was initially overestimated
+	//          and EOF is not delayed, a message should be logged
+	//          because the actual total is now known.
 	n, err = c.callbackReader.Read(buf)
 	assert.EqualValues(t, c.readerBufSize, n)
-	if c.delayedEOF {
+	if c.mode != initialTotalOverestimated || c.delayedEOF {
 		assert.Nil(t, err)
 	} else {
 		assert.Equal(t, io.EOF, err)
 	}
 
+	if c.mode != initialTotalOverestimated {
+		// Read #4: When the total size was initially unknown and
+		//          EOF is delayed, no message should be logged as
+		//          the full deadline has not passed.
+		//
+		//          Otherwise, a message should be logged even though
+		//          the full deadline has not passed either because
+		//          the initial total has been reached or because the
+		//          actual total is now known.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		if c.mode == initialTotalUnderestimated || c.delayedEOF {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, io.EOF, err)
+		}
+	}
+
+	if c.mode == initialTotalUnderestimated {
+		// Read #5: No message should be logged as the deadline
+		//          has not passed, even though the initial total
+		//          has been exceeded.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		assert.Nil(t, err)
+
+		c.fakeClock.Add(tasklog.DefaultLoggingThrottle)
+
+		// Read #6: A message should be logged as the deadline
+		//          has passed, even though the initial total
+		//          has been exceeded.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		assert.Nil(t, err)
+
+		// Read #7: When EOF is delayed, no message should be logged
+		//          as the deadline has not passed, even though the
+		//          initial total has been exceeded.
+		//
+		//          Otherwise, a message should be logged even though
+		//          the deadline has not passed because the actual
+		//          total is now known.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		if c.delayedEOF {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, io.EOF, err)
+		}
+	}
+
 	if c.delayedEOF {
-		// Final EOF Read: No message should be logged because no
-		//                 callback will be made when no bytes are
-		//                 available to be read.
+		// Final EOF Read: When the total size was initially correct,
+		//                 no callback should be made and so no
+		//                 message should be logged.
+		//
+		//                 Otherwise, a message should be logged
+		//                 as the actual total is now known, even
+		//                 though the deadline has not passed.
 		n, err = c.callbackReader.Read(buf)
 		assert.Zero(t, n)
 		assert.Equal(t, io.EOF, err)
@@ -195,11 +252,30 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 				"131072/131072",
 			},
 		},
+		"initial total overestimated": {
+			mode:          initialTotalOverestimated,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/131072",
+				"98304/98304",
+			},
+		},
+		"initial total underestimated": {
+			mode:          initialTotalUnderestimated,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/131072",
+				"131072/131072",
+				"196608/131072",
+				"229376/229376",
+			},
+		},
 		"initial total unknown": {
 			mode:          initialTotalUnknown,
 			readerBufSize: 32 * 1024,
 			expectedFractions: []string{
 				"65536/-1",
+				"131072/131072",
 			},
 		},
 	} {

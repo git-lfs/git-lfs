@@ -26,7 +26,12 @@ func (cs *callbackState) doCallbackIfRequired(n int, err error) error {
 		return nil
 	}
 
-	if n == 0 {
+	if err == io.EOF && cs.readSize != cs.totalSize {
+		// If the total size was initially unknown or incorrect,
+		// make a final callback with the total amount of data read
+		// as the total size.
+		cs.totalSize = cs.readSize
+	} else if n == 0 {
 		return nil
 	}
 
