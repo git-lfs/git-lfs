@@ -60,7 +60,7 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 			return nil
 		}
 
-		logOptional := written < total
+		logOptional := total < 0 || written < total
 		if logOptional && now.Before(deadline) {
 			return nil
 		}

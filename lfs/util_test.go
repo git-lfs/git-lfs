@@ -68,6 +68,7 @@ type copyCallbackFileThrottleTestMode int
 
 const (
 	initialTotalCorrect copyCallbackFileThrottleTestMode = iota
+	initialTotalUnknown
 )
 
 type copyCallbackFileThrottleTestCase struct {
@@ -107,6 +108,10 @@ func (c *copyCallbackFileThrottleTestCase) setup(t *testing.T) (*os.File, error)
 	// The Assert() method makes four separate reads.
 	bufSize := 4 * c.readerBufSize
 	initialTotalSize := bufSize
+	switch c.mode {
+	case initialTotalUnknown:
+		initialTotalSize = -1
+	}
 
 	buf := make([]byte, bufSize)
 
@@ -145,7 +150,11 @@ func (c *copyCallbackFileThrottleTestCase) Assert(t *testing.T) {
 	assert.EqualValues(t, c.readerBufSize, n)
 	assert.Nil(t, err)
 
-	// Read #4: A message should be logged even though the
+	// Read #4: When the total size is initially unknown and EOF is
+	//          delayed, no message should be logged as the full deadline
+	//          has not passed.
+	//
+	//          Otherwise, a message should be logged even though the
 	//          full deadline has not passed because the callback
 	//          sees that the initial total has been reached.
 	n, err = c.callbackReader.Read(buf)
@@ -184,6 +193,13 @@ func TestCopyCallbackFileThrottle(t *testing.T) {
 			expectedFractions: []string{
 				"65536/131072",
 				"131072/131072",
+			},
+		},
+		"initial total unknown": {
+			mode:          initialTotalUnknown,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/-1",
 			},
 		},
 	} {
