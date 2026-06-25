@@ -1226,10 +1226,10 @@ begin_test "pre-push uses optimization if remote URL matches"
   clone_repo "$reponame" "$reponame"
 
   endpoint=$(git config remote.origin.url)
-  contents_oid=$(calc_oid 'hi\n')
   git config "lfs.$endpoint.locksverify" false
   git lfs track "*.dat"
   echo "hi" > a.dat
+  contents_oid="$(calc_oid_file "a.dat")"
   git add .gitattributes a.dat
   git commit -m "add a.dat"
 
