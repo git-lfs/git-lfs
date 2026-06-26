@@ -347,7 +347,13 @@ begin_test "filter process: don't trust file size on disk when cleaning"
   git add .gitattributes
   git commit -m "initial commit"
 
-  dd if=/dev/zero of=large.dat bs=65537 count=1
+  # Test with a file size larger than the size of the read buffer used when
+  # decoding pointers.  See the secondary issue reported in
+  # https://github.com/git-lfs/git-lfs/issues/4974#issuecomment-2717907543
+  # and https://github.com/git-lfs/git-lfs/pull/6011.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  contents_size=$((max_pointer_size * 2))
+  head -c "$contents_size" /dev/zero >large.dat
   oid=$(calc_oid_file large.dat)
 
   GIT_TRACE_PACKET=1 git \
@@ -357,7 +363,7 @@ begin_test "filter process: don't trust file size on disk when cleaning"
     -c "filter.lfs.required=true" \
     add large.dat
 
-  expected="$(pointer "$oid" 65537)"
+  expected="$(pointer "$oid" "$contents_size")"
   got="$(git cat-file -p :large.dat)"
 
   diff -u <(echo "$expected") <(echo "$got")
