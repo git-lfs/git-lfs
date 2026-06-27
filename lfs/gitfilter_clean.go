@@ -70,10 +70,6 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
 
-	if fileSize <= 0 {
-		cb = nil
-	}
-
 	ptr, buf, err := DecodeFrom(reader)
 
 	by := make([]byte, BlobSizeCutoff)
