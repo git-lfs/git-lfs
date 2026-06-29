@@ -620,6 +620,13 @@ test : fmt $(.DEFAULT_GOAL)
 integration : bin/git-lfs$(X)
 	make -C t test
 
+# benchplot builds the benchmark plotting tool.
+.PHONY : benchplot
+benchplot : bin/benchplot$(X)
+
+bin/benchplot$(X) :
+	cd tools/benchplot && $(GO) build -o ../../bin/benchplot$(X) .
+
 # go.sum is a lockfile based on the contents of go.mod.
 go.sum : go.mod
 	$(GO) mod verify >/dev/null
