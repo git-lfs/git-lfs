@@ -19,7 +19,7 @@ require (
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
 	github.com/spf13/cobra v1.7.0
 	github.com/ssgelm/cookiejarparser v1.0.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	golang.org/x/net v0.56.0
 	golang.org/x/sync v0.21.0
