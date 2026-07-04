@@ -12,7 +12,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/jmhodges/clock v1.2.0
 	github.com/klauspost/compress v1.18.7
-	github.com/leonelquinteros/gotext v1.5.0
+	github.com/leonelquinteros/gotext v1.7.2
 	github.com/mattn/go-isatty v0.0.22
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.9.1
