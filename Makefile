@@ -154,6 +154,7 @@ PKGS += git
 PKGS += git/gitattr
 PKGS += git/githistory
 PKGS += git
+PKGS += internal/testutil
 PKGS += lfs
 PKGS += lfsapi
 PKGS += lfshttp

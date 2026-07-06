@@ -1,4 +1,4 @@
-package tools_test
+package tools
 
 import (
 	"bytes"
@@ -6,12 +6,61 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCopyWithCallback(t *testing.T) {
+	var calls int
+	allReadSoFar := make([]int64, 0, 2)
+
+	buf := bytes.NewBufferString("BOOYA")
+	bufSize := buf.Len()
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		allReadSoFar = append(allReadSoFar, readSoFar)
+
+		assert.EqualValues(t, bufSize, totalSize)
+
+		return nil
+	}
+
+	n, err := CopyWithCallback(io.Discard, buf, int64(bufSize), cb)
+
+	// The underlying bytes.Buffer should always return a nil error
+	// when the last byte is read.
+	assert.Nil(t, err)
+	assert.EqualValues(t, bufSize, n)
+
+	assert.Equal(t, 1, calls)
+	assert.Len(t, allReadSoFar, 1)
+	assert.EqualValues(t, bufSize, allReadSoFar[0])
+}
+
+func TestClosingByteReaderNopClose(t *testing.T) {
+	buf := []byte{0x1}
+	bufSize := len(buf)
+
+	r := NewClosingByteReader(buf)
+
+	// The underlying bytes.Reader has no Close() method and so reads
+	// should still proceed.
+	err := r.Close()
+
+	assert.Nil(t, err)
+
+	p := make([]byte, bufSize+1)
+
+	n, err := r.Read(p)
+
+	// The underlying bytes.Reader should always return
+	// a nil error when the last byte is read.
+	assert.Equal(t, bufSize, n)
+	assert.Nil(t, err)
+}
+
 func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
-	r := tools.NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
+	r := NewRetriableReader(bytes.NewBuffer([]byte{0x1, 0x2, 0x3, 0x4}))
 
 	var buf [4]byte
 	n, err := r.Read(buf[:])
@@ -22,7 +71,7 @@ func TestRetriableReaderReturnsSuccessfulReads(t *testing.T) {
 }
 
 func TestRetriableReaderReturnsEOFs(t *testing.T) {
-	r := tools.NewRetriableReader(bytes.NewBuffer([]byte{ /* empty */ }))
+	r := NewRetriableReader(bytes.NewBuffer([]byte{ /* empty */ }))
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])
@@ -34,7 +83,7 @@ func TestRetriableReaderReturnsEOFs(t *testing.T) {
 func TestRetriableReaderMakesErrorsRetriable(t *testing.T) {
 	expected := errors.New("example error")
 
-	r := tools.NewRetriableReader(&ErrReader{expected})
+	r := NewRetriableReader(&ErrReader{expected})
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])
@@ -50,7 +99,7 @@ func TestRetriableReaderDoesNotRewrap(t *testing.T) {
 	// underlying reader was a *RetriableReader itself.
 	expected := errors.NewRetriableError(errors.New("example error"))
 
-	r := tools.NewRetriableReader(&ErrReader{expected})
+	r := NewRetriableReader(&ErrReader{expected})
 
 	var buf [1]byte
 	n, err := r.Read(buf[:])

@@ -1,24 +1,27 @@
 package tools
 
 import (
+	"bytes"
+	"errors"
 	"io"
-	"sync/atomic"
+	"os"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCopyCallbackReaderCallsCallbackUnderfilledBuffer(t *testing.T) {
+func TestBothCallbackReadersInvokeCallbackOnEagerEOF(t *testing.T) {
 	var (
-		calls               uint32
+		calls               int
 		actualTotalSize     int64
 		actualReadSoFar     int64
 		actualReadSinceLast int
 	)
 
 	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
-		atomic.AddUint32(&calls, 1)
-
+		calls++
 		actualTotalSize = totalSize
 		actualReadSoFar = readSoFar
 		actualReadSinceLast = readSinceLast
@@ -26,75 +29,356 @@ func TestCopyCallbackReaderCallsCallbackUnderfilledBuffer(t *testing.T) {
 		return nil
 	}
 
+	// We simulate a larger buffer which has not yet been fully read.
 	buf := []byte{0x1}
-	r := &CallbackReader{
-		C:         cb,
-		TotalSize: 3,
-		ReadSize:  2,
-		Reader:    &EOFReader{b: buf},
+	bufSize := len(buf)
+	initialTotalSize := 3 * int64(bufSize)
+	initialReadSize := initialTotalSize - int64(bufSize)
+
+	r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
+	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), initialTotalSize, cb)
+	r.state.readSize = initialReadSize
+	br.state.readSize = initialReadSize
+
+	p := make([]byte, bufSize+1)
+
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
+
+		n, err := reader.Read(p)
+
+		assert.Equal(t, bufSize, n)
+		assert.Equal(t, io.EOF, err)
+
+		assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
+		assert.EqualValues(t, initialTotalSize, actualTotalSize)
+		assert.EqualValues(t, initialTotalSize, actualReadSoFar)
+		assert.Equal(t, bufSize, actualReadSinceLast)
+
+		// Read again and check that no callback is made after last
+		// byte has been read (since the simulated initial total
+		// matched the simulated number of bytes read).
+		calls = 0
+
+		n, err = reader.Read(p)
+
+		assert.Zero(t, n)
+		assert.Equal(t, io.EOF, err)
+
+		assert.Zero(t, calls, "expected no call to callback, got %d", calls)
+
+		calls = 0
+		actualTotalSize = 0
+		actualReadSoFar = 0
+		actualReadSinceLast = 0
+	}
+}
+
+func TestBothCallbackReadersCountReads(t *testing.T) {
+	var actualReadSoFar int64
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		actualReadSoFar = readSoFar
+
+		return nil
 	}
 
-	p := make([]byte, len(buf)+1)
-	n, err := r.Read(p)
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
 
-	assert.Equal(t, 1, n)
-	assert.Nil(t, err)
+	r := NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
 
-	assert.EqualValues(t, 1, calls, "expected 1 call(s) to callback, got %d", calls)
-	assert.EqualValues(t, 3, actualTotalSize)
-	assert.EqualValues(t, 2+1, actualReadSoFar)
-	assert.EqualValues(t, 1, actualReadSinceLast)
-}
+	p := make([]byte, 1)
 
-type EOFReader struct {
-	b []byte
-	i int
-}
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
 
-var _ io.Reader = (*EOFReader)(nil)
+		for i := 1; i <= bufSize; i++ {
+			n, err := reader.Read(p)
 
-func (r *EOFReader) Read(p []byte) (n int, err error) {
-	n = copy(p, r.b[r.i:])
-	r.i += n
+			// The underlying bytes.Reader should always return
+			// a nil error when the last byte is read.
+			assert.Equal(t, 1, n)
+			assert.Nil(t, err)
 
-	if r.i == len(r.b) {
-		err = io.EOF
+			assert.EqualValues(t, i, actualReadSoFar)
+		}
+
+		actualReadSoFar = 0
 	}
-	return
 }
 
-func TestEOFReaderReturnsEOFs(t *testing.T) {
-	r := EOFReader{[]byte{0x1}, 0}
+func TestBothCallbackReadersPreferCallbackErrorOverEOF(t *testing.T) {
+	cbErr := errors.New("callback error")
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		return cbErr
+	}
 
-	p := make([]byte, 2)
-	n, err := r.Read(p)
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
 
-	assert.Equal(t, 1, n)
-	assert.Equal(t, io.EOF, err)
+	r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), int64(bufSize), cb)
+	br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
+
+		n, err := reader.Read(p)
+
+		assert.Equal(t, bufSize-1, n)
+		assert.Equal(t, cbErr, err)
+
+		n, err = reader.Read(p)
+
+		// We expect the EOF from EagerEOFByteReader's Read() method
+		// to be replaced with the callback function's own error.
+		assert.Equal(t, 1, n)
+		assert.Equal(t, cbErr, err)
+
+		// We expect no callback to be performed when no bytes are
+		// available to be read, so no error should be returned.
+		n, err = reader.Read(p)
+
+		assert.Zero(t, n)
+		assert.Equal(t, io.EOF, err)
+	}
 }
 
-func TestBodyCallbackReaderCountsReads(t *testing.T) {
-	br := NewByteBodyWithCallback([]byte{0x1, 0x2, 0x3, 0x4}, 4, nil)
+func TestBothCallbackReadersSkipCallbackAfterReadError(t *testing.T) {
+	var calls int
 
-	assert.EqualValues(t, 0, br.readSize)
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
 
-	p := make([]byte, 8)
-	n, err := br.Read(p)
+		return nil
+	}
 
-	assert.Equal(t, 4, n)
-	assert.Nil(t, err)
-	assert.EqualValues(t, 4, br.readSize)
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
+
+	r := NewCallbackReader(testutil.NewErrReader(io.ErrUnexpectedEOF), int64(bufSize), cb)
+	br := NewBodyWithCallback(testutil.NewErrReader(io.ErrUnexpectedEOF), int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
+
+		n, err := reader.Read(p)
+
+		assert.Zero(t, n)
+		assert.Equal(t, io.ErrUnexpectedEOF, err)
+
+		assert.Zero(t, calls, "expected no call to callback, got %d", calls)
+	}
+}
+
+func TestBothCallbackReadersInvokeCallbackOnEOFWhenTotalSizeIncorrect(t *testing.T) {
+	var (
+		calls           int
+		actualTotalSize int64
+		actualReadSoFar int64
+	)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		actualTotalSize = totalSize
+		actualReadSoFar = readSoFar
+
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2}
+	bufSize := len(buf)
+
+	p := make([]byte, bufSize-1)
+	readBufSize := len(p)
+
+	testCases := []struct {
+		description      string
+		initialTotalSize int64
+	}{
+		{"initial total unknown", -1},
+		{"initial total overestimated", int64(bufSize) + 1},
+		{"initial total underestimated", int64(bufSize) - 1},
+	}
+
+	for _, tc := range testCases {
+		t.Logf("testing with %s", tc.description)
+
+		r := NewCallbackReader(testutil.NewEagerEOFByteReader(buf), tc.initialTotalSize, cb)
+		br := NewBodyWithCallback(testutil.NewEagerEOFByteReader(buf), tc.initialTotalSize, cb)
+
+		for _, reader := range []io.Reader{r, br} {
+			t.Logf("testing with reader: %T", reader)
+
+			n, err := reader.Read(p)
+
+			assert.Equal(t, readBufSize, n)
+			assert.Nil(t, err)
+
+			assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
+			assert.EqualValues(t, tc.initialTotalSize, actualTotalSize)
+			assert.EqualValues(t, readBufSize, actualReadSoFar)
+
+			n, err = reader.Read(p)
+
+			// We expect an immediate EOF from the EagerEOFByteReader's
+			// Read() method once the final byte has been read.
+			assert.Equal(t, 1, n)
+			assert.Equal(t, io.EOF, err)
+
+			assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
+			assert.EqualValues(t, bufSize, actualTotalSize)
+			assert.EqualValues(t, bufSize, actualReadSoFar)
+
+			// Read again and check that no callback is made after last
+			// byte has been read (since the updated total matched the
+			// number of bytes read).
+			calls = 0
+
+			n, err = reader.Read(p)
+
+			assert.Zero(t, n)
+			assert.Equal(t, io.EOF, err)
+
+			assert.Zero(t, calls, "expected no call to callback, got %d", calls)
+
+			actualTotalSize = 0
+			actualReadSoFar = 0
+		}
+	}
 }
 
 func TestBodyCallbackReaderUpdatesOffsetOnSeek(t *testing.T) {
-	br := NewByteBodyWithCallback([]byte{0x1, 0x2, 0x3, 0x4}, 4, nil)
+	var calls int
 
-	br.Seek(1, io.SeekStart)
-	assert.EqualValues(t, 1, br.readSize)
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
 
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
+
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
+
+	offset := 1
+	br.Seek(int64(offset), io.SeekStart)
+	assert.EqualValues(t, offset, br.state.readSize)
+
+	offset++
 	br.Seek(1, io.SeekCurrent)
-	assert.EqualValues(t, 2, br.readSize)
+	assert.EqualValues(t, offset, br.state.readSize)
+
+	p := make([]byte, bufSize)
+
+	n, err := br.Read(p)
+
+	// The underlying bytes.Reader should always return
+	// a nil error when the last byte is read.
+	assert.Equal(t, bufSize-offset, n)
+	assert.Nil(t, err)
+	assert.Equal(t, buf[offset:], p[:bufSize-offset])
+
+	assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
 
 	br.Seek(-1, io.SeekEnd)
-	assert.EqualValues(t, 3, br.readSize)
+	assert.EqualValues(t, bufSize-1, br.state.readSize)
+
+	n, err = br.Read(p)
+
+	assert.Equal(t, 1, n)
+	assert.Nil(t, err)
+	assert.Equal(t, buf[bufSize-1], p[0])
+
+	assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
+}
+
+func TestBodyCallbackReaderResetsProgress(t *testing.T) {
+	var (
+		calls               int
+		actualTotalSize     int64
+		actualReadSoFar     int64
+		actualReadSinceLast int
+	)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		actualTotalSize = totalSize
+		actualReadSoFar = readSoFar
+		actualReadSinceLast = readSinceLast
+
+		return nil
+	}
+
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
+
+	br := NewBodyWithCallback(NewClosingByteReader(buf), int64(bufSize), cb)
+
+	p := make([]byte, bufSize-1)
+	readBufSize := len(p)
+
+	n, err := br.Read(p)
+
+	assert.Equal(t, readBufSize, n)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 1, calls, "expected 1 call to callback, got %d", calls)
+	assert.EqualValues(t, bufSize, actualTotalSize)
+	assert.EqualValues(t, readBufSize, actualReadSoFar)
+	assert.Equal(t, readBufSize, actualReadSinceLast)
+
+	// Note that ResetProgress() is only used to pass a decrement
+	// to the callback, as the caller is expected to create a new
+	// underlying buffer and retry the read operation.
+	br.ResetProgress()
+
+	assert.Equal(t, 2, calls, "expected 2 calls to callback, got %d", calls)
+	assert.EqualValues(t, bufSize, actualTotalSize)
+	assert.EqualValues(t, readBufSize, actualReadSoFar)
+	assert.Equal(t, -readBufSize, actualReadSinceLast)
+}
+
+func TestFileBodyCallbackReaderIgnoresClose(t *testing.T) {
+	buf := []byte{0x1, 0x2, 0x3, 0x4}
+	bufSize := len(buf)
+
+	filePath := t.TempDir() + "/testFileBodyCallback"
+
+	err := os.WriteFile(filePath, buf, 0644)
+	require.Nil(t, err)
+
+	f, err := os.Open(filePath)
+	require.Nil(t, err)
+	defer f.Close()
+
+	fbr := NewFileBodyWithCallback(f, int64(bufSize), nil)
+
+	// The underlying os.File should not be closed and reads should
+	// still proceed.
+	err = fbr.Close()
+
+	assert.Nil(t, err)
+
+	p := make([]byte, bufSize-1)
+
+	n, err := fbr.Read(p)
+
+	assert.Equal(t, bufSize-1, n)
+	assert.Nil(t, err)
+
+	// Closing the underlying os.File should result in a read error.
+	err = f.Close()
+
+	assert.Nil(t, err)
+
+	n, err = fbr.Read(p)
+
+	assert.Error(t, err)
 }

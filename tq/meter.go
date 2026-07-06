@@ -275,7 +275,8 @@ func (m *Meter) logBytes(direction, name string, read, total int64) {
 		return
 	}
 
-	line := fmt.Sprintf("%s %d/%d %d/%d %s\n", direction, idx, m.estimatedFiles, read, total, name)
+	readFraction := tools.FormatFraction(read, total)
+	line := fmt.Sprintf("%s %d/%d %s %s\n", direction, idx, m.estimatedFiles, readFraction, name)
 	if err := m.Logger.Write([]byte(line)); err != nil {
 		m.fileIndexMutex.Lock()
 		m.Logger = nil
