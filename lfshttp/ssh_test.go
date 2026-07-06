@@ -225,8 +225,7 @@ func (r *countingResolver) Resolve(e Endpoint, method string) (sshAuthResponse, 
 
 func newTestClient(t *testing.T, resolver SSHResolver) *Client {
 	t.Helper()
-	c, err := NewClient(NewContext(nil, nil, nil))
-	assert.Nil(t, err)
+	c := NewClient(NewContext(nil, nil, nil))
 	c.SSH = resolver
 	c.sshTries = 5
 	return c
