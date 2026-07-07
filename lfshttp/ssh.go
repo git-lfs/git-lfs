@@ -54,10 +54,12 @@ func isSSHAuthenticateUnavailable(err error, stderr string) bool {
 		return true
 	}
 
-	msg := strings.ToLower(stderr)
-	for _, needle := range sshAuthenticateNotFoundMessages {
-		if strings.Contains(msg, needle) {
-			return true
+	if exitErr.ExitCode() != 0 {
+		msg := strings.ToLower(stderr)
+		for _, needle := range sshAuthenticateNotFoundMessages {
+			if strings.Contains(msg, needle) {
+				return true
+			}
 		}
 	}
 	return false

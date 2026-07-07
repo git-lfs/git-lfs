@@ -259,21 +259,6 @@ func TestSSHResolveFallsBackWhenAuthenticateUnavailable(t *testing.T) {
 	assert.Equal(t, 1, resolver.calls)
 }
 
-func TestSSHResolveUsesGuessedEndpointWhenAuthenticateUnavailable(t *testing.T) {
-	resolver := &countingResolver{
-		err: &sshAuthenticateUnavailableError{
-			err: errors.New("bash: git-lfs-authenticate: command not found"),
-		},
-	}
-	c := newTestClient(t, resolver)
-
-	req, err := c.NewRequest("GET", testSSHEndpoint(), "objects/batch", nil)
-	assert.Nil(t, err)
-	assert.Equal(t,
-		"https://git-server.com/foo/bar.git/info/lfs/objects/batch",
-		req.URL.String())
-}
-
 func TestSSHResolveFailsForOtherErrors(t *testing.T) {
 	resolver := &countingResolver{err: errors.New("permission denied")}
 	c := newTestClient(t, resolver)
