@@ -2,11 +2,21 @@ package gitattr
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func setupAutoTrackSizeTest(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	err := os.WriteFile(filepath.Join(dir, ".gitattributes"), []byte(content), 0644)
+	assert.NoError(t, err)
+	return dir
+}
 
 func TestParseLines(t *testing.T) {
 	lines, _, err := ParseLines(strings.NewReader("*.dat filter=lfs"))
@@ -185,4 +195,85 @@ func TestParseLinesWithMacros(t *testing.T) {
 	assert.Equal(t, lines[2].(PatternLine).Pattern().String(), "*.txt")
 	assert.Len(t, lines[2].Attrs(), 1)
 	assert.Equal(t, lines[2].Attrs()[0], &Attr{K: "text", V: "true"})
+}
+
+func TestGetAutoTrackSizeMatch(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=100\n")
+	size, ok := GetAutoTrackSize(dir, "foo.dat")
+	assert.True(t, ok)
+	assert.EqualValues(t, 100, size)
+}
+
+func TestGetAutoTrackSizeSubdirMatch(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=200\n")
+	size, ok := GetAutoTrackSize(dir, "subdir/data.dat")
+	assert.True(t, ok)
+	assert.EqualValues(t, 200, size)
+}
+
+func TestGetAutoTrackSizeNoMatch(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=100\n")
+	size, ok := GetAutoTrackSize(dir, "foo.txt")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeNoAttribute(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat filter=lfs\n")
+	size, ok := GetAutoTrackSize(dir, "foo.dat")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeNoGitattributes(t *testing.T) {
+	dir := t.TempDir()
+	size, ok := GetAutoTrackSize(dir, "foo.dat")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeEmptyFile(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "\n")
+	size, ok := GetAutoTrackSize(dir, "foo.dat")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeEmptyPath(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=100\n")
+	size, ok := GetAutoTrackSize(dir, "")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeZeroOrNegative(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=0\n*.txt autotracksize=-5\n")
+	size, ok := GetAutoTrackSize(dir, "foo.dat")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+
+	size, ok = GetAutoTrackSize(dir, "foo.txt")
+	assert.False(t, ok)
+	assert.EqualValues(t, 0, size)
+}
+
+func TestGetAutoTrackSizeMultiplePatterns(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=100\n*.txt autotracksize=50\n")
+	size, ok := GetAutoTrackSize(dir, "notes.txt")
+	assert.True(t, ok)
+	assert.EqualValues(t, 50, size)
+}
+
+func TestGetAutoTrackSizeWithFilterLfs(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "* filter=lfs autotracksize=500\n")
+	size, ok := GetAutoTrackSize(dir, "bigfile.dat")
+	assert.True(t, ok)
+	assert.EqualValues(t, 500, size)
+}
+
+func TestGetAutoTrackSizeAbsolutePath(t *testing.T) {
+	dir := setupAutoTrackSizeTest(t, "*.dat autotracksize=100\n")
+	size, ok := GetAutoTrackSize(dir, filepath.Join(dir, "foo.dat"))
+	assert.True(t, ok)
+	assert.EqualValues(t, 100, size)
 }

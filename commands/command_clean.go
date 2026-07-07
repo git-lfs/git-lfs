@@ -3,14 +3,70 @@ package commands
 import (
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
+	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
 )
+
+// gitCriticalExcluded checks files that must never become LFS pointers because
+// Git reads them directly as text files. This guard is independent of any
+// autotracksize setting or user config.
+func gitCriticalExcluded(fileName string) bool {
+	if fileName == "" {
+		return false
+	}
+	switch filepath.Base(fileName) {
+	case ".gitattributes", ".gitignore", ".gitmodules", ".mailmap", ".gitkeep":
+		return true
+	}
+	return false
+}
+
+// defaultAutoTrackExclusions are the default patterns for the
+// lfs.autotrackexclude config key. These are used when the user has not
+// set the key. They are NOT applied if the user provides their own value.
+var defaultAutoTrackExclusions = []string{
+	".gitlab-ci.yml",
+	".github/*",
+	"*.md",
+	"*.txt",
+	"*.cfg",
+	"*.ini",
+}
+
+// isAutoTrackExcluded checks whether a file should be excluded from automatic
+// LFS tracking. It uses the user-configured lfs.autotrackexclude if set,
+// otherwise falls back to defaultAutoTrackExclusions.
+func isAutoTrackExcluded(fileName string) bool {
+	if fileName == "" {
+		return false
+	}
+
+	base := filepath.Base(fileName)
+
+	patterns := defaultAutoTrackExclusions
+	if val, ok := cfg.Git.Get("lfs.autotrackexclude"); ok && val != "" {
+		patterns = strings.Fields(val)
+	}
+
+	for _, pattern := range patterns {
+		if matched, _ := filepath.Match(pattern, base); matched {
+			return true
+		}
+		if matched, _ := filepath.Match(pattern, fileName); matched {
+			return true
+		}
+	}
+
+	return false
+}
 
 // clean cleans an object read from the given `io.Reader`, "from", and writes
 // out a corresponding pointer to the `io.Writer`, "to". If there were any
@@ -25,6 +81,14 @@ import (
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
 func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
+	// Git-critical files must never become LFS pointers
+	if gitCriticalExcluded(fileName) {
+		if _, err := tools.Spool(to, from, cfg.TempDir()); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
 	var cb tools.CopyCallback
 	var file *os.File
 
@@ -45,6 +109,57 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 		}
 	}
 
+	autoTrackSize, _ := gitattr.GetAutoTrackSize(cfg.LocalWorkingDir(), fileName)
+
+	if autoTrackSize > 0 {
+		tmpfile, err := os.CreateTemp(cfg.TempDir(), "")
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			tmpfile.Close()
+			os.Remove(tmpfile.Name())
+		}()
+
+		n, err := io.Copy(tmpfile, from)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+
+		// Check if content is already a pointer (already tracked in LFS)
+		if ptr, decodeErr := lfs.DecodePointer(tmpfile); decodeErr == nil && ptr != nil {
+			if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+				return nil, err
+			}
+			if _, err := io.Copy(to, tmpfile); err != nil {
+				return nil, err
+			}
+			return ptr, nil
+		}
+
+		// Pass through if excluded or under the autotrack threshold
+		if isAutoTrackExcluded(fileName) || n < autoTrackSize {
+			if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+				return nil, err
+			}
+			if _, err := io.Copy(to, tmpfile); err != nil {
+				return nil, err
+			}
+			return nil, nil
+		}
+
+		// File exceeds threshold, re-read from temp file for gf.Clean
+		if _, err := tmpfile.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		from = tmpfile
+		fileSize = n
+	}
+
 	cleaned, err := gf.Clean(from, fileName, fileSize, cb)
 	if file != nil {
 		file.Close()
@@ -55,10 +170,6 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 	}
 
 	if errors.IsCleanPointerError(err) {
-		// If the contents read from the working directory was _already_
-		// a pointer, we'll get a `CleanPointerError`, with the context
-		// containing the bytes that we should write back out to Git.
-
 		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
 		return nil, err
 	}
