@@ -18,8 +18,8 @@ import (
 )
 
 func TestAPIBatch(t *testing.T) {
-	require.NotNil(t, batchReqSchema, batchReqSchema.Source)
-	require.NotNil(t, batchResSchema, batchResSchema.Source)
+	require.NotNil(t, batchReqSchema)
+	require.NotNil(t, batchResSchema)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/objects/batch" {
@@ -75,8 +75,8 @@ func TestAPIBatch(t *testing.T) {
 }
 
 func TestAPIBatchOnlyBasic(t *testing.T) {
-	require.NotNil(t, batchReqSchema, batchReqSchema.Source)
-	require.NotNil(t, batchResSchema, batchResSchema.Source)
+	require.NotNil(t, batchReqSchema)
+	require.NotNil(t, batchResSchema)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/objects/batch" {
