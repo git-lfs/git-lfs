@@ -71,7 +71,6 @@ func TestWithNonFatal500WithBody(t *testing.T) {
 	nonFatalCodes := map[int]string{
 		501: "custom 501 error",
 		507: "custom 507 error",
-		509: "custom 509 error",
 	}
 
 	for nonFatalCode, expectedErr := range nonFatalCodes {
@@ -97,7 +96,7 @@ func TestWithNonFatal500WithBody(t *testing.T) {
 		srv.Close()
 	}
 
-	assert.EqualValues(t, 3, called)
+	assert.EqualValues(t, 2, called)
 }
 
 func TestAuthErrWithoutBody(t *testing.T) {
@@ -156,7 +155,6 @@ func TestWithNonFatal500WithoutBody(t *testing.T) {
 	nonFatalCodes := map[int]string{
 		501: "Not Implemented:",
 		507: "Insufficient server storage:",
-		509: "Bandwidth limit exceeded:",
 	}
 
 	for nonFatalCode, errPrefix := range nonFatalCodes {
@@ -180,5 +178,164 @@ func TestWithNonFatal500WithoutBody(t *testing.T) {
 		srv.Close()
 	}
 
-	assert.EqualValues(t, 3, called)
+	assert.EqualValues(t, 2, called)
+}
+
+func TestRateLimitedWithBody(t *testing.T) {
+	c := NewClient(nil)
+
+	var called uint32
+
+	tests := []struct {
+		name          string
+		statusCode    int
+		retryAfter    string
+		wantRetriable bool
+		wantLater     bool
+		serverMessage string
+	}{
+		{
+			name:          "429 without Retry-After",
+			statusCode:    429,
+			retryAfter:    "",
+			wantRetriable: true,
+			serverMessage: "custom 429 error",
+		},
+		{
+			name:          "429 with Retry-After",
+			statusCode:    429,
+			retryAfter:    "60",
+			wantLater:     true,
+			serverMessage: "custom 429 error",
+		},
+		{
+			name:          "509 without Retry-After",
+			statusCode:    509,
+			retryAfter:    "",
+			wantRetriable: true,
+			serverMessage: "custom 509 error",
+		},
+		{
+			name:          "509 with Retry-After",
+			statusCode:    509,
+			retryAfter:    "120",
+			wantLater:     true,
+			serverMessage: "custom 509 error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.String() != "/test" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				atomic.AddUint32(&called, 1)
+				w.Header().Set("Content-Type", "application/json")
+				if tt.retryAfter != "" {
+					w.Header().Set("Retry-After", tt.retryAfter)
+				}
+
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(`{"message":"` + tt.serverMessage + `"}`))
+			}))
+
+			req, err := http.NewRequest("GET", srv.URL+"/test", nil)
+			assert.Nil(t, err)
+
+			_, err = c.Do(req)
+			assert.Error(t, err)
+
+			if tt.wantLater {
+				_, ok := errors.IsRetriableLaterError(err)
+				assert.True(t, ok)
+			} else if tt.wantRetriable {
+				assert.True(t, tt.wantRetriable, errors.IsRetriableError(err))
+			}
+
+			srv.Close()
+		})
+	}
+
+	assert.EqualValues(t, 4, called)
+}
+
+func TestRateLimitedWithoutBody(t *testing.T) {
+	c := NewClient(nil)
+
+	var called uint32
+
+	tests := []struct {
+		name          string
+		statusCode    int
+		retryAfter    string
+		wantRetriable bool
+		wantLater     bool
+		wantPrefix    string
+	}{
+		{
+			name:          "429 without Retry-After",
+			statusCode:    429,
+			retryAfter:    "",
+			wantRetriable: true,
+			wantPrefix:    "Rate limit exceeded:",
+		},
+		{
+			name:       "429 with Retry-After",
+			statusCode: 429,
+			retryAfter: "60",
+			wantLater:  true,
+			wantPrefix: "Rate limit exceeded:",
+		},
+		{
+			name:          "509 without Retry-After",
+			statusCode:    509,
+			retryAfter:    "",
+			wantRetriable: true,
+			wantPrefix:    "Bandwidth limit exceeded:",
+		},
+		{
+			name:       "509 with Retry-After",
+			statusCode: 509,
+			retryAfter: "120",
+			wantLater:  true,
+			wantPrefix: "Bandwidth limit exceeded:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.String() != "/test" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				atomic.AddUint32(&called, 1)
+				if tt.retryAfter != "" {
+					w.Header().Set("Retry-After", tt.retryAfter)
+				}
+				w.WriteHeader(tt.statusCode)
+			}))
+
+			req, err := http.NewRequest("GET", srv.URL+"/test", nil)
+			assert.Nil(t, err)
+
+			_, err = c.Do(req)
+			assert.Error(t, err)
+
+			if tt.wantLater {
+				_, ok := errors.IsRetriableLaterError(err)
+				assert.True(t, ok)
+			} else if tt.wantRetriable {
+				assert.True(t, tt.wantRetriable, errors.IsRetriableError(err))
+			}
+
+			srv.Close()
+		})
+	}
+
+	assert.EqualValues(t, 4, called)
 }

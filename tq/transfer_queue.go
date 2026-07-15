@@ -496,6 +496,7 @@ func (q *TransferQueue) collectBatches() {
 		if len(next) == 0 && len(pending) != 0 {
 			// There are some pending that could not be queued.
 			// Wait the requested time before resuming loop.
+			tracerx.Printf("tq: rate limited, waiting %s before retrying", minWaitTime)
 			time.Sleep(minWaitTime)
 		} else if len(next) == 0 && len(pending) == 0 && closing {
 			// There are no items remaining, it is safe to break
@@ -584,7 +585,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 		var err error
 		bRes, err = Batch(q.manifest, q.direction, q.remote, q.ref, batch.ToTransfers())
 		if err != nil {
-			var hasNonRetriableObjects = false
+			hasNonRetriableObjects := false
 			// If there was an error making the batch API call, mark all of
 			// the objects for retry if possible.  If any should not be retried,
 			// they will be marked as failed.
@@ -1050,13 +1051,34 @@ func (q *TransferQueue) canRetryObject(oid string, err error) bool {
 	return q.canRetry(err)
 }
 
+// canRetryObjectLater returns the time at which the object identified by oid
+// may be retried and whether a retry should be done for the object.
+// If oid has reached its retry limit or the retry delay exceeds the configured
+// maximum, canRetryObjectLater returns false.
 func (q *TransferQueue) canRetryObjectLater(oid string, err error) (time.Time, bool) {
 	if count, ok := q.rc.CanRetry(oid); !ok {
 		tracerx.Printf("tq: refusing to retry %q, too many retries (%d)", oid, count)
 		return time.Time{}, false
 	}
 
-	return q.canRetryLater(err)
+	retryAt, canRetry := q.canRetryLater(err)
+	if !canRetry {
+		return time.Time{}, false
+	}
+
+	delay := time.Until(retryAt).Seconds()
+	maxRetryAfter := float64(q.manifest.Upgrade().MaxRetryAfter())
+	if delay > maxRetryAfter {
+		tracerx.Printf(
+			"tq: refusing to retry %q, retry after %.0fs exceeds maximum %ds",
+			oid,
+			delay,
+			int(maxRetryAfter),
+		)
+		return time.Time{}, false
+	}
+
+	return retryAt, true
 }
 
 // Errors returns any errors encountered during transfer.
