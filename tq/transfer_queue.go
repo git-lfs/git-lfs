@@ -496,6 +496,7 @@ func (q *TransferQueue) collectBatches() {
 		if len(next) == 0 && len(pending) != 0 {
 			// There are some pending that could not be queued.
 			// Wait the requested time before resuming loop.
+			tracerx.Printf("tq: rate limited, waiting %s before retrying", minWaitTime)
 			time.Sleep(minWaitTime)
 		} else if len(next) == 0 && len(pending) == 0 && closing {
 			// There are no items remaining, it is safe to break
