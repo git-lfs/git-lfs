@@ -62,13 +62,19 @@ begin_test "ssh with proxy command in lfs.url (custom variant)"
 )
 end_test
 
-begin_test "SSH Gerrit use-case (fallback to HTTPS)"
-(
+# ssh_authenticate_unavailable_test performs a test which expects "git push"
+# to fail, but only after the Git LFS client correctly defaults to a
+# fallback HTTPS URL when the "git-lfs-authenticate" command is reported as
+# not found on the SSH remote.
+#
+# The SSH client used by the tests is triggered by the repository name to
+# simulate a specific exit code and optional error message indicating that
+# the "git-lfs-authenticate" command is not available.
+ssh_authenticate_unavailable_test() {
+  local reponame="$1"
+
   set -e
 
-  # This repository name announces to the SSH test utility that it should
-  # exit with code 1 and the
-  reponame="ssh-gerrit-without-lfs-plugin"
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
@@ -97,43 +103,27 @@ begin_test "SSH Gerrit use-case (fallback to HTTPS)"
   [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
   [ 2 -eq "$(grep -c -F "ssh: git@$invalid_host does not provide git-lfs-authenticate, falling back to guessed LFS endpoint" push.log)" ]
   [ 2 -eq "$(grep -c -F "HTTP: POST https://$invalid_host/$reponame/" push.log)" ]
+}
+
+begin_test "SSH Gerrit use-case (fallback to HTTPS)"
+(
+    set -e
+
+    # This repository name announces to the SSH test utility that it should
+    # exit as if the "git-lfs-authenticate" command was not found.
+    reponame="ssh-unavailable"
+    ssh_authenticate_unavailable_test "$reponame"
 )
 end_test
 
 begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS)"
 (
-  set -e
+    set -e
 
-  # This repository name announces to the SSH test utility that it should
-  # exit as if the "git-lfs-authenticate" command was not found.
-  reponame="ssh-unavailable"
-  setup_remote_repo "$reponame"
-  clone_repo "$reponame" "$reponame"
-
-  # We construct an invalid host name (127.0.0.1.invalid) to guarantee that
-  # the HTTPS fallback URL, which will default to port 443, cannot contact
-  # any local or remote services not controlled by our test suite.
-  gitserver_hostport="${GITSERVER#http://}"
-  gitserver_host="${gitserver_hostport/%:*/}"
-  gitserver_port="${gitserver_hostport/#*:/}"
-  invalid_host="$gitserver_host.invalid"
-  git config lfs.url "ssh://git@$invalid_host:$gitserver_port/$reponame"
-
-  git lfs track "*.dat"
-
-  contents="test"
-  printf "%s" "$contents" >test.dat
-
-  git add .gitattributes test.dat
-  git commit -m "initial commit"
-
-  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
-  [ 0 -ne "${PIPESTATUS[0]}" ]
-
-  # Requests to both the Locking API and the Batch API should fall back to
-  # an HTTPS URL, which should in turn fail because the host name is invalid.
-  [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
-  [ 2 -eq "$(grep -c -F "ssh: git@$invalid_host does not provide git-lfs-authenticate, falling back to guessed LFS endpoint" push.log)" ]
-  [ 2 -eq "$(grep -c -F "HTTP: POST https://$invalid_host/$reponame/" push.log)" ]
+    # This repository name announces to the SSH test utility that it should
+    # exit with a generic error status code and a message indicating that the
+    # "git-lfs-authenticate" command was not found.
+    reponame="ssh-unavailable-message"
+    ssh_authenticate_unavailable_test "$reponame"
 )
 end_test

@@ -137,11 +137,12 @@ func main() {
 
 	repo := remoteCmd[1]
 
-	if repo == "/ssh-unavailable" {
+	switch repo {
+	case "/ssh-unavailable":
 		os.Exit(127)
-	}
-
-	if repo == "/ssh-gerrit-without-lfs-plugin" {
+	case "/ssh-unavailable-message":
+		// Simulate the error message returned by a third-party utility
+		// which does not support the "git-lfs-authenticate" command.
 		fmt.Fprintf(os.Stderr, "fatal: Gerrit Code Review: git-lfs-authenticate: not found")
 		os.Exit(1)
 	}
