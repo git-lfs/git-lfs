@@ -53,8 +53,8 @@ func checkSufficientArgs(offset int) {
 
 func main() {
 	// expect args:
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-authenticate REPO OPERATION"
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1 "git-lfs-transfer REPO OPERATION"
+	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-authenticate REPO OPERATION"
+	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-transfer REPO OPERATION"
 	//   lfs-ssh-echo git@127.0.0.1 "git-upload-pack REPO"
 	//   lfs-ssh-echo git@127.0.0.1 "git-receive-pack REPO"
 	offset := 1
@@ -114,8 +114,8 @@ func main() {
 	}
 
 	checkSufficientArgs(offset)
-	if os.Args[offset] != "git@127.0.0.1" {
-		fmt.Fprintf(os.Stderr, "expected \"git@127.0.0.1\", got %q", os.Args[offset])
+	if os.Args[offset] != "git@127.0.0.1" && os.Args[offset] != "git@127.0.0.1.invalid" {
+		fmt.Fprintf(os.Stderr, "expected \"git@127.0.0.1\" or \"git@127.0.0.1.invalid\", got %q", os.Args[offset])
 		os.Exit(1)
 	}
 
@@ -136,6 +136,16 @@ func main() {
 	}
 
 	repo := remoteCmd[1]
+
+	switch repo {
+	case "/ssh-unavailable":
+		os.Exit(127)
+	case "/ssh-unavailable-message":
+		// Simulate the error message returned by a third-party utility
+		// which does not support the "git-lfs-authenticate" command.
+		fmt.Fprintf(os.Stderr, "fatal: Gerrit Code Review: git-lfs-authenticate: not found")
+		os.Exit(1)
+	}
 
 	r := &sshResponse{
 		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], repo),
