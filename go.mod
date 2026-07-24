@@ -10,6 +10,7 @@ require (
 	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/git-lfs/wildmatch/v2 v2.0.1
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jmhodges/clock v1.2.0
 	github.com/klauspost/compress v1.19.2
 	github.com/leonelquinteros/gotext v1.7.2
