@@ -14,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/google/shlex"
 )
 
 type sshResponse struct {
@@ -139,9 +141,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// just "git-lfs-(authenticate|transfer) REPO OPERATION" or "git-(upload|receive)-pack REPO"
-	remoteCmd := strings.Split(os.Args[offset+1], " ")
-	if len(remoteCmd) < 2 {
+	// Should be either "git-lfs-(authenticate|transfer) REPO OPERATION"
+	// or "git-(upload|receive)-pack REPO".
+	remoteCmd, err := shlex.Split(os.Args[offset+1])
+	if len(remoteCmd) < 2 || err != nil {
 		fmt.Fprintf(os.Stderr, "bad command line: %s\nargs: %v", remoteCmd, os.Args)
 		os.Exit(1)
 	}
@@ -149,7 +152,7 @@ func main() {
 	if remoteCmd[0] == "git-lfs-transfer" || remoteCmd[0] == "git-upload-pack" || remoteCmd[0] == "git-receive-pack" {
 		err := spawnCommand(os.Args[offset+1])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error running command %q: %v", remoteCmd[0], err)
+			fmt.Fprintf(os.Stderr, "error running command %q: %v", os.Args[offset+1], err)
 			os.Exit(1)
 		}
 		return
