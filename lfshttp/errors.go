@@ -62,7 +62,7 @@ func (c *Client) handleResponse(res *http.Response) error {
 		return errors.NewUnprocessableEntityError(err)
 	}
 
-	if res.StatusCode == 429 || res.StatusCode == 509 {
+	if res.StatusCode == 429 {
 		// The Retry-After header could be set, check to see if it exists.
 		h := res.Header.Get("Retry-After")
 		retLaterErr := errors.NewRetriableLaterError(err, h)

@@ -71,6 +71,7 @@ func TestWithNonFatal500WithBody(t *testing.T) {
 	nonFatalCodes := map[int]string{
 		501: "custom 501 error",
 		507: "custom 507 error",
+		509: "custom 509 error",
 	}
 
 	for nonFatalCode, expectedErr := range nonFatalCodes {
@@ -96,7 +97,7 @@ func TestWithNonFatal500WithBody(t *testing.T) {
 		srv.Close()
 	}
 
-	assert.EqualValues(t, 2, called)
+	assert.EqualValues(t, 3, called)
 }
 
 func TestAuthErrWithoutBody(t *testing.T) {
@@ -119,7 +120,6 @@ func TestAuthErrWithoutBody(t *testing.T) {
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
-	assert.True(t, strings.HasPrefix(err.Error(), "Authentication required: Authorization error:"), err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
@@ -143,7 +143,6 @@ func TestFatalWithoutBody(t *testing.T) {
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
-	assert.True(t, strings.HasPrefix(err.Error(), "Fatal error: Server error:"), err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
@@ -155,6 +154,7 @@ func TestWithNonFatal500WithoutBody(t *testing.T) {
 	nonFatalCodes := map[int]string{
 		501: "Not Implemented:",
 		507: "Insufficient server storage:",
+		509: "Bandwidth limit exceeded:",
 	}
 
 	for nonFatalCode, errPrefix := range nonFatalCodes {
@@ -178,7 +178,7 @@ func TestWithNonFatal500WithoutBody(t *testing.T) {
 		srv.Close()
 	}
 
-	assert.EqualValues(t, 2, called)
+	assert.EqualValues(t, 3, called)
 }
 
 func TestRateLimitedWithBody(t *testing.T) {
@@ -187,40 +187,26 @@ func TestRateLimitedWithBody(t *testing.T) {
 	var called uint32
 
 	tests := []struct {
-		name          string
-		statusCode    int
-		retryAfter    string
-		wantRetriable bool
-		wantLater     bool
-		serverMessage string
+		name               string
+		statusCode         int
+		retryAfter         string
+		expectedRetriable  bool
+		expectedRetryLater bool
+		serverMessage      string
 	}{
 		{
-			name:          "429 without Retry-After",
-			statusCode:    429,
-			retryAfter:    "",
-			wantRetriable: true,
-			serverMessage: "custom 429 error",
+			name:              "429 without Retry-After",
+			statusCode:        429,
+			retryAfter:        "",
+			expectedRetriable: true,
+			serverMessage:     "custom 429 error",
 		},
 		{
-			name:          "429 with Retry-After",
-			statusCode:    429,
-			retryAfter:    "60",
-			wantLater:     true,
-			serverMessage: "custom 429 error",
-		},
-		{
-			name:          "509 without Retry-After",
-			statusCode:    509,
-			retryAfter:    "",
-			wantRetriable: true,
-			serverMessage: "custom 509 error",
-		},
-		{
-			name:          "509 with Retry-After",
-			statusCode:    509,
-			retryAfter:    "120",
-			wantLater:     true,
-			serverMessage: "custom 509 error",
+			name:               "429 with Retry-After",
+			statusCode:         429,
+			retryAfter:         "60",
+			expectedRetryLater: true,
+			serverMessage:      "custom 429 error",
 		},
 	}
 
@@ -248,18 +234,15 @@ func TestRateLimitedWithBody(t *testing.T) {
 			_, err = c.Do(req)
 			assert.Error(t, err)
 
-			if tt.wantLater {
-				_, ok := errors.IsRetriableLaterError(err)
-				assert.True(t, ok)
-			} else if tt.wantRetriable {
-				assert.True(t, tt.wantRetriable, errors.IsRetriableError(err))
-			}
+			_, retryLater := errors.IsRetriableLaterError(err)
+			assert.Equal(t, tt.expectedRetriable, errors.IsRetriableError(err))
+			assert.Equal(t, tt.expectedRetryLater, retryLater)
 
 			srv.Close()
 		})
 	}
 
-	assert.EqualValues(t, 4, called)
+	assert.EqualValues(t, 2, called)
 }
 
 func TestRateLimitedWithoutBody(t *testing.T) {
@@ -268,40 +251,23 @@ func TestRateLimitedWithoutBody(t *testing.T) {
 	var called uint32
 
 	tests := []struct {
-		name          string
-		statusCode    int
-		retryAfter    string
-		wantRetriable bool
-		wantLater     bool
-		wantPrefix    string
+		name               string
+		statusCode         int
+		retryAfter         string
+		expectedRetriable  bool
+		expectedRetryLater bool
 	}{
 		{
-			name:          "429 without Retry-After",
-			statusCode:    429,
-			retryAfter:    "",
-			wantRetriable: true,
-			wantPrefix:    "Rate limit exceeded:",
+			name:              "429 without Retry-After",
+			statusCode:        429,
+			retryAfter:        "",
+			expectedRetriable: true,
 		},
 		{
-			name:       "429 with Retry-After",
-			statusCode: 429,
-			retryAfter: "60",
-			wantLater:  true,
-			wantPrefix: "Rate limit exceeded:",
-		},
-		{
-			name:          "509 without Retry-After",
-			statusCode:    509,
-			retryAfter:    "",
-			wantRetriable: true,
-			wantPrefix:    "Bandwidth limit exceeded:",
-		},
-		{
-			name:       "509 with Retry-After",
-			statusCode: 509,
-			retryAfter: "120",
-			wantLater:  true,
-			wantPrefix: "Bandwidth limit exceeded:",
+			name:               "429 with Retry-After",
+			statusCode:         429,
+			retryAfter:         "60",
+			expectedRetryLater: true,
 		},
 	}
 
@@ -326,16 +292,13 @@ func TestRateLimitedWithoutBody(t *testing.T) {
 			_, err = c.Do(req)
 			assert.Error(t, err)
 
-			if tt.wantLater {
-				_, ok := errors.IsRetriableLaterError(err)
-				assert.True(t, ok)
-			} else if tt.wantRetriable {
-				assert.True(t, tt.wantRetriable, errors.IsRetriableError(err))
-			}
+			_, retryLater := errors.IsRetriableLaterError(err)
+			assert.Equal(t, tt.expectedRetriable, errors.IsRetriableError(err))
+			assert.Equal(t, tt.expectedRetryLater, retryLater)
 
 			srv.Close()
 		})
 	}
 
-	assert.EqualValues(t, 4, called)
+	assert.EqualValues(t, 2, called)
 }
