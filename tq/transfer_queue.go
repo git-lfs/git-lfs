@@ -1063,7 +1063,7 @@ func (q *TransferQueue) canRetryObjectLater(oid string, err error) (time.Time, b
 
 	retryAt, canRetry := q.canRetryLater(err)
 	if !canRetry {
-		return time.Time{}, false
+		return retryAt, false
 	}
 
 	delay := time.Until(retryAt).Seconds()
