@@ -187,3 +187,75 @@ begin_test "batch storage HTTP download causes retries (missing header)"
   popd
 )
 end_test
+
+begin_test "batch storage HTTP upload abandons when Retry-After exceeds maxRetryTime"
+(
+  set -e
+
+  reponame="batch-storage-upload-retry-later-maxretrytime"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" batch-storage-repo-upload-maxretrytime
+
+  git config --local lfs.transfer.maxretrytime 5
+
+  contents="storage-upload-retry-later"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git push origin main\` to fail ..."
+    exit 1
+  fi
+
+  grep "tq: refusing to retry" push.log
+  grep "exceeds maximum" push.log
+)
+end_test
+
+begin_test "batch storage HTTP download abandons when Retry-After exceeds maxRetryTime"
+(
+  set -e
+
+  reponame="batch-storage-download-retry-later-maxretrytime"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" batch-storage-repo-download-maxretrytime
+
+  contents="storage-download-retry-later"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$oid"
+
+  pushd ..
+  git \
+    -c "filter.lfs.process=" \
+    -c "filter.lfs.smudge=cat" \
+    -c "filter.lfs.required=false" \
+    clone "$GITSERVER/$reponame" "$reponame-assert"
+
+  cd "$reponame-assert"
+
+  git config credential.helper lfstest
+  git config --local lfs.transfer.maxretrytime 5
+
+  GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected \`git lfs pull origin main\` to fail ..."
+    exit 1
+  fi
+
+  grep "tq: refusing to retry" pull.log
+  grep "exceeds maximum" pull.log
+  popd
+)
+end_test
