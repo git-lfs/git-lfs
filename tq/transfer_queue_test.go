@@ -176,7 +176,7 @@ func TestCanRetryObjectLater(t *testing.T) {
 			nil,
 			nil,
 			map[string]string{
-				"lfs.transfer.maxretryafter": "5",
+				"lfs.transfer.maxretrytime": "5",
 			},
 		),
 	)

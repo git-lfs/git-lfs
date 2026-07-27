@@ -1067,13 +1067,13 @@ func (q *TransferQueue) canRetryObjectLater(oid string, err error) (time.Time, b
 	}
 
 	delay := time.Until(retryAt).Seconds()
-	maxRetryAfter := float64(q.manifest.Upgrade().MaxRetryAfter())
-	if delay > maxRetryAfter {
+	maxRetryTime := float64(q.manifest.Upgrade().MaxRetryTime())
+	if delay > maxRetryTime {
 		tracerx.Printf(
 			"tq: refusing to retry %q, retry after %.0fs exceeds maximum %ds",
 			oid,
 			delay,
-			int(maxRetryAfter),
+			int(maxRetryTime),
 		)
 		return time.Time{}, false
 	}

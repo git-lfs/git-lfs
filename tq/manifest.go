@@ -18,14 +18,14 @@ import (
 const (
 	defaultMaxRetries    = 8
 	defaultMaxRetryDelay = 10
-	defaultMaxRetryAfter = 300
+	defaultMaxRetryTime  = 300
 )
 
 type Manifest interface {
 	APIClient() *lfsapi.Client
 	MaxRetries() int
 	MaxRetryDelay() int
-	MaxRetryAfter() int
+	MaxRetryTime() int
 	ConcurrentTransfers() int
 	IsStandaloneTransfer() bool
 	batchClient() BatchClient
@@ -74,8 +74,8 @@ func (m *lazyManifest) MaxRetryDelay() int {
 	return m.Upgrade().MaxRetryDelay()
 }
 
-func (m *lazyManifest) MaxRetryAfter() int {
-	return m.Upgrade().MaxRetryAfter()
+func (m *lazyManifest) MaxRetryTime() int {
+	return m.Upgrade().MaxRetryTime()
 }
 
 func (m *lazyManifest) ConcurrentTransfers() int {
@@ -151,7 +151,7 @@ type concreteManifest struct {
 	// time in seconds to wait between retry attempts when using backoff.
 	maxRetries              int
 	maxRetryDelay           int
-	maxRetryAfter           int
+	maxRetryTime            int
 	concurrentTransfers     int
 	basicTransfersOnly      bool
 	standaloneTransferAgent string
@@ -179,8 +179,8 @@ func (m *concreteManifest) MaxRetryDelay() int {
 	return m.maxRetryDelay
 }
 
-func (m *concreteManifest) MaxRetryAfter() int {
-	return m.maxRetryAfter
+func (m *concreteManifest) MaxRetryTime() int {
+	return m.maxRetryTime
 }
 
 func (m *concreteManifest) ConcurrentTransfers() int {
@@ -236,8 +236,8 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 		if v := git.Int("lfs.transfer.maxretrydelay", -1); v > -1 {
 			m.maxRetryDelay = v
 		}
-		if v := git.Int("lfs.transfer.maxretryafter", 0); v > 0 {
-			m.maxRetryAfter = v
+		if v := git.Int("lfs.transfer.maxretrytime", 0); v > 0 {
+			m.maxRetryTime = v
 		}
 		if v := git.Int("lfs.concurrenttransfers", 0); v > 0 {
 			m.concurrentTransfers = v
@@ -256,8 +256,8 @@ func newConcreteManifest(f *fs.Filesystem, apiClient *lfsapi.Client, operation, 
 	if m.maxRetryDelay < 1 {
 		m.maxRetryDelay = defaultMaxRetryDelay
 	}
-	if m.maxRetryAfter < 1 {
-		m.maxRetryAfter = defaultMaxRetryAfter
+	if m.maxRetryTime < 1 {
+		m.maxRetryTime = defaultMaxRetryTime
 	}
 
 	if m.concurrentTransfers < 1 {
