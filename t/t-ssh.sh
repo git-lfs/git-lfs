@@ -105,25 +105,26 @@ ssh_authenticate_unavailable_test() {
   [ 2 -eq "$(grep -c -F "HTTP: POST https://$invalid_host/$reponame/" push.log)" ]
 }
 
-begin_test "SSH Gerrit use-case (fallback to HTTPS)"
+begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS)"
 (
-    set -e
+  set -e
 
-    # This repository name announces to the SSH test utility that it should
-    # exit as if the "git-lfs-authenticate" command was not found.
-    reponame="ssh-unavailable"
-    ssh_authenticate_unavailable_test "$reponame"
+  # This repository name announces to the SSH test utility that it should
+  # exit as if the "git-lfs-authenticate" command was not found.
+  reponame="ssh-unavailable"
+  ssh_authenticate_unavailable_test "$reponame"
 )
 end_test
 
-begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS)"
+begin_test "SSH git-lfs-authenticate unavailable message (fallback to HTTPS)"
 (
-    set -e
+  set -e
 
-    # This repository name announces to the SSH test utility that it should
-    # exit with a generic error status code and a message indicating that the
-    # "git-lfs-authenticate" command was not found.
-    reponame="ssh-unavailable-message"
-    ssh_authenticate_unavailable_test "$reponame"
+  # This repository name announces to the SSH test utility that it should
+  # exit with a generic error status code and a message indicating that the
+  # "git-lfs-authenticate" command was not found, as may occur when using
+  # third-party tools such as Gerrit Code Review.
+  reponame="ssh-unavailable-message"
+  ssh_authenticate_unavailable_test "$reponame"
 )
 end_test
