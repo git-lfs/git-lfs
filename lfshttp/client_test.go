@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -263,6 +264,21 @@ func TestNewRequestWithBody(t *testing.T) {
 	assert.NotNil(t, req.Body)
 	assert.Equal(t, "15", req.Header.Get("Content-Length"))
 	assert.EqualValues(t, 15, req.ContentLength)
+}
+
+func TestNewRequestUsesGuessedEndpointWhenAuthenticateUnavailable(t *testing.T) {
+	resolver := &countingResolver{
+		err: &sshAuthenticateUnavailableError{
+			err: errors.New("bash: git-lfs-authenticate: command not found"),
+		},
+	}
+	c := newTestClient(t, resolver)
+
+	req, err := c.NewRequest("GET", testSSHEndpoint(), "objects/batch", nil)
+	assert.Nil(t, err)
+	assert.Equal(t,
+		"https://git-server.com/foo/bar.git/info/lfs/objects/batch",
+		req.URL.String())
 }
 
 func TestMarshalToRequest(t *testing.T) {
