@@ -91,7 +91,7 @@ func EncodePointer(writer io.Writer, pointer *Pointer) (int, error) {
 
 func DecodePointerFromBlob(b *gitobj.Blob) (*Pointer, error) {
 	// Check size before reading
-	if b.Size >= blobSizeCutoff {
+	if b.Size >= BlobSizeCutoff {
 		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("blob size exceeds Git LFS pointer size cutoff")))
 	}
 	return DecodePointer(b.Contents)
@@ -105,7 +105,7 @@ func DecodePointerFromFile(file string) (*Pointer, error) {
 	}
 	if !stat.Mode().IsRegular() {
 		return nil, errors.New(tr.Tr.Get("not a regular file: %q", file))
-	} else if stat.Size() >= blobSizeCutoff {
+	} else if stat.Size() >= BlobSizeCutoff {
 		return nil, errors.NewNotAPointerError(errors.New(tr.Tr.Get("file size exceeds Git LFS pointer size cutoff")))
 	}
 	f, err := os.OpenFile(file, os.O_RDONLY, 0644)
@@ -127,7 +127,7 @@ func DecodePointer(reader io.Reader) (*Pointer, error) {
 // If the pointer could not be decoded, an io.Reader containing the entire
 // blob's data will be returned, along with a parse error.
 func DecodeFrom(reader io.Reader) (*Pointer, io.Reader, error) {
-	buf := make([]byte, blobSizeCutoff)
+	buf := make([]byte, BlobSizeCutoff)
 	n, err := reader.Read(buf)
 	buf = buf[:n]
 

@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	// blobSizeCutoff is used to determine which files to scan for Git LFS
+	// BlobSizeCutoff is used to determine which files to scan for Git LFS
 	// pointers.  Any file with a size below this cutoff will be scanned.
-	blobSizeCutoff = 1024
+	BlobSizeCutoff = 1024
 
 	// stdoutBufSize is the size of the buffers given to a sub-process stdout
 	stdoutBufSize = 16384
@@ -32,7 +32,7 @@ type WrappedPointer struct {
 
 // catFileBatchCheck uses git cat-file --batch-check to get the type
 // and size of a git object. Any object that isn't of type blob and
-// under the blobSizeCutoff will be ignored. revs is a channel over
+// under the BlobSizeCutoff will be ignored. revs is a channel over
 // which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
 func catFileBatchCheck(revs *StringChannelWrapper, lockableSet *lockableNameSet) (*StringChannelWrapper, chan string, error) {

@@ -13,7 +13,7 @@ import (
 
 // runCatFileBatchCheck uses 'git cat-file --batch-check' to get the type and
 // size of a git object. Any object that isn't of type blob and under the
-// blobSizeCutoff will be ignored, unless it's a locked file. revs is a channel
+// BlobSizeCutoff will be ignored, unless it's a locked file. revs is a channel
 // over which strings containing git sha1s will be sent. It returns a channel
 // from which sha1 strings can be read.
 func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockableSet *lockableNameSet, revs *StringChannelWrapper, errCh chan error) error {
@@ -23,7 +23,7 @@ func runCatFileBatchCheck(smallRevCh chan string, lockableCh chan string, lockab
 	}
 
 	go func() {
-		scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout), limit: blobSizeCutoff}
+		scanner := &catFileBatchCheckScanner{s: bufio.NewScanner(cmd.Stdout), limit: BlobSizeCutoff}
 		for r := range revs.Results {
 			cmd.Stdin.Write([]byte(r + "\n"))
 			hasNext := scanner.Scan()
