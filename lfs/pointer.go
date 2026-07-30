@@ -278,7 +278,7 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 			continue
 		}
 
-		// Check for any potential confilct markers. ('|' marker can appear if changing merge.conflictStyle to "diff3").
+		// Check for any potential conflict markers. ('|' marker can appear if changing merge.conflictStyle to "diff3").
 		// We only check the first character as the length of the conflict markers can be changed.
 		// We do not return early to make sure that the file actually seems to be a pointer file first.
 		switch text[0] {
