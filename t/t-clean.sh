@@ -108,3 +108,16 @@ begin_test "clean stdin"
   fi
 )
 end_test
+
+begin_test "clean: pointer merge conflict detected and not converted"
+(
+  set -e
+
+  setup_local_repo_with_merge_conflict "clean-merge-conflict" \
+    "test.bin" "other" "other" "main"
+
+  # Check that an unresolved merge conflict is not converted
+  # to a Git LFS object.
+  diff -u "test.bin" <(git lfs clean <"test.bin")
+)
+end_test

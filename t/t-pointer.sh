@@ -654,3 +654,37 @@ begin_test "pointer: extension with multiple files"
   [ $(grep -c "clean:" "$LFSTEST_EXT_LOG") -eq 3 ]
 )
 end_test
+
+begin_test "pointer: merge conflict detected"
+(
+  set -e
+
+  setup_local_repo_with_merge_conflict "pointer-merge-conflict" \
+    "test.bin" "other" "other" "main"
+
+  git lfs pointer --check --file test.bin && exit 1
+
+  git lfs pointer --file test.bin 2>&1 | tee pointer.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "Pointer file conflict marker error" pointer.log
+  grep "found potential conflict markers in pointer file" pointer.log
+)
+end_test
+
+begin_test "pointer: incorrectly resolved merge conflict results in invalid pointer"
+(
+  set -e
+
+  setup_local_repo_with_merge_conflict "pointer-merge-conflict-bad-solution" \
+    "test.bin" "other" "other" "main"
+
+  # Remove all conflict markers from the file
+  sed -i -e "/^[<=>]/d" test.bin
+
+  # Ensure that git lfs does not treat the file as a valid pointer file
+  git lfs pointer --check --file test.bin && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test

@@ -1084,3 +1084,46 @@ pktize_delim() {
 pktize_flush() {
   printf '0000'
 }
+
+# setup_local_repo_with_merge_conflict initializes a Git repository that has
+# a merge conflict in it. The `pwd` is set to the repository's directory.
+#
+# The function requires 5 arguments:
+#
+# reponame: The name of the git repo we should create.
+# filename: The filename of the file that will be create with a merge conflict in it.
+# branch: The branch where the incomming merge conflict will come from
+# branch_contents: The text string contents of that will generate the merge conflict
+# main_contents: The text string that will be in conflict. This can not be the same
+#                as branch_contents, otherwise not conflict will be generated.
+#
+setup_local_repo_with_merge_conflict() {
+  local reponame="$1"
+  local filename="$2"
+  local branch="$3"
+  local branch_contents="$4"
+  local main_contents="$5"
+
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "$filename"
+  printf "%s" "$filename" >"$filename"
+  git add .gitattributes "$filename"
+  git commit -m "add $filename"
+
+  git checkout -b "$branch"
+
+  printf "%s" "$branch_contents" >"$filename"
+  git add "$filename"
+  git commit -m "$branch_contents"
+
+  git checkout main
+
+  printf "%s" "$main_contents" >"$filename"
+  git add "$filename"
+  git commit -m "$main_contents"
+
+  # This will exit nonzero because of the merge conflict.
+  git merge "$branch" || true
+}

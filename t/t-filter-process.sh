@@ -317,3 +317,74 @@ begin_test "filter process: git archive does not invoke SSH"
   true
 )
 end_test
+
+begin_test "filter process: pointer merge conflict detected and not converted"
+(
+  set -e
+
+  setup_local_repo_with_merge_conflict "filter-process-merge-conflict" \
+    "test.bin" "other" "other" "main"
+
+  # Git will choose "filter.lfs.process" over "filter.lfs.clean".
+  git config --global --unset filter.lfs.clean
+
+  # Check that conflicts are detected by Git correctly.
+  git diff --check 2>&1 | tee diff.log
+  [ 2 -eq "${PIPESTATUS[0]}" ]
+
+  [ 3 -eq "$(grep -c "leftover conflict marker" diff.log)" ]
+
+  contents_oid="$(calc_oid_file "test.bin")"
+
+  # Check that an unresolved merge conflict is not converted
+  # to a Git LFS object.
+  git add test.bin
+  git commit -m "commit with merge conflict"
+
+  refute_local_object "$contents_oid"
+)
+end_test
+
+begin_test "filter process: partially fixed merge conflict is still detected"
+(
+  set -e
+
+  setup_local_repo_with_merge_conflict "filter-process-partially-fixed-merge-conflict" \
+    "test.bin" "other" "other" "main"
+
+  cp test.bin test.bin_bak
+
+  # Define conflict marker removal patterns for us to try
+  patterns=(
+  '^[<]'
+  '^[=]'
+  '^[>]'
+  '^[<=]'
+  '^[<>]'
+  '^[=>]'
+  '^[<=>]'
+  )
+
+  i=1
+  for pattern in "${patterns[@]}"; do
+      echo "Partially removing conflict markers with: $pattern"
+      sed -e "/$pattern/d" test.bin_bak > test.bin
+      if [ $i -lt ${#patterns[@]} ]; then
+        # Check that the remaining conflict markers are still detected by git
+        git diff --check 2>&1 | tee diff.log
+        [ 2 -eq "${PIPESTATUS[0]}" ]
+
+        # There should be three conflict markers in the file to start with.
+        # We can calculate how many should be left with the pattern string length.
+        # There a three characters in the pattern besides the conflict markers,
+        conflict_markers_left=$((3 + 3 - ${#pattern}))
+        [ $conflict_markers_left -eq "$(grep -c "leftover conflict marker" diff.log)" ]
+      else
+        # All conflict markers should have been removed so check that none are detected
+        git diff --check 2>&1 | tee diff.log
+        [ 0 -eq "${PIPESTATUS[0]}" ]
+      fi
+      ((i++))
+  done
+)
+end_test
