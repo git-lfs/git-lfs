@@ -61,6 +61,14 @@ func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fil
 
 		_, err = to.Write(errors.GetContext(err, "bytes").([]byte))
 		return nil, err
+	} else if errors.IsPointerConflictMarkerError(err) {
+		// If the contents read from the working directory are the
+		// result of a merge conflict between two pointers, we'll get
+		// a `PointerConflictMarkerError` with the context containing
+		// the data that we should write back out to Git.
+
+		_, err = io.Copy(to, errors.GetContext(err, "reader").(io.Reader))
+		return nil, err
 	}
 
 	if err != nil {

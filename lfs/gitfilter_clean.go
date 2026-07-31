@@ -80,7 +80,7 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 	n, rerr := buf.Read(by)
 	by = by[:n]
 
-	if rerr != nil || errors.IsPointerConflictMarkerError(err) || (err == nil && len(by) < blobSizeCutoff) {
+	if rerr != nil || (err == nil && len(by) < blobSizeCutoff) {
 		err = errors.NewCleanPointerError(ptr, by)
 		return
 	}
@@ -90,6 +90,11 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 		// If there is still more data to be read from the file, tack on
 		// the original reader and continue the read from there.
 		from = io.MultiReader(from, reader)
+	}
+
+	if errors.IsPointerConflictMarkerError(err) {
+		errors.SetContext(err, "reader", from)
+		return
 	}
 
 	size, err = tools.CopyWithCallback(writer, from, fileSize, cb)
