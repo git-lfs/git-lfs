@@ -688,3 +688,26 @@ begin_test "pointer: incorrectly resolved merge conflict results in invalid poin
   true
 )
 end_test
+
+begin_test "pointer: merge conflict detected with lfs extension"
+(
+  set -e
+
+  # Setup custom extentions so the the pointer file contains additional "ext-0-" entries
+  git init pointer-merge-conflict-with-ext
+  cd pointer-merge-conflict-with-ext
+  setup_case_inverter_extension
+  cd ..
+
+  setup_local_repo_with_merge_conflict "pointer-merge-conflict-with-ext" \
+    "test.bin" "other" "other" "main"
+
+  git lfs pointer --check --file test.bin && exit 1
+
+  git lfs pointer --no-extensions --file test.bin 2>&1 | tee pointer.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "Pointer file conflict marker error" pointer.log
+  grep "found potential conflict markers in pointer file" pointer.log
+)
+end_test

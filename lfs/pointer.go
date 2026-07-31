@@ -312,6 +312,12 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 				kvps[key] = value
 				continue
 			}
+			if extRE.MatchString(key) {
+				// The pointer file can contain custom extention entries.
+				// However we do not record if these are present or not as
+				// we only care if all standard keys as these are optional.
+				continue
+			}
 			err = errors.NewNotAPointerError(errors.New(tr.Tr.Get("not a git-lfs pointer key on line %d: %s", line, text)))
 			return
 		}
