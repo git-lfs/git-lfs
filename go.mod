@@ -13,7 +13,7 @@ require (
 	github.com/jmhodges/clock v1.2.0
 	github.com/klauspost/compress v1.18.7
 	github.com/leonelquinteros/gotext v1.7.2
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.24
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.9.1
 	github.com/rubyist/tracerx v0.0.0-20170927163412-787959303086
