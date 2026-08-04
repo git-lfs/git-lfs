@@ -239,6 +239,19 @@ func (c *Client) sshResolveWithRetries(e Endpoint, method string) (*sshAuthRespo
 			return &sshRes, nil
 		}
 
+		// If the git-lfs-authenticate command is unavailable on the
+		// server, fall back to the guessed LFS endpoint (per the server
+		// discovery spec) by returning an empty response with no error.
+		// Retrying would not help, so stop immediately.
+		var unavailable *sshAuthenticateUnavailableError
+		if goerrors.As(err, &unavailable) {
+			tracerx.Printf(
+				"ssh: %s does not provide git-lfs-authenticate, falling back to guessed LFS endpoint",
+				e.SSHMetadata.UserAndHost,
+			)
+			return &sshAuthResponse{}, nil
+		}
+
 		tracerx.Printf(
 			"ssh: %s failed, error: %s, message: %s (try: %d/%d)",
 			e.SSHMetadata.UserAndHost, err.Error(), sshRes.Message, i,
