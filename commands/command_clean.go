@@ -6,7 +6,6 @@ import (
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfs"
-	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
 	"github.com/spf13/cobra"
@@ -18,37 +17,21 @@ import (
 // error is non-fatal, otherwise they will halt using the built in
 // `commands.Panic`.
 //
-// If fileSize is given as a non-negative (>= 0) integer, that value is used
-// with preference to os.Stat(fileName).Size(). If it is given as negative, the
-// value from the `stat(1)` call will be used instead.
+// If the total size of the object is unknown until it is read, fileSize
+// should be a negative integer.
 //
 // If the object read from "from" is _already_ a clean pointer, then it will be
 // written out verbatim to "to", without trying to make it a pointer again.
 func clean(gf *lfs.GitFilter, to io.Writer, from io.Reader, fileName string, fileSize int64) (*lfs.Pointer, error) {
-	var cb tools.CopyCallback
-	var file *os.File
-
-	if len(fileName) > 0 {
-		stat, err := os.Stat(fileName)
-		if err == nil && stat != nil {
-			if fileSize < 0 {
-				fileSize = stat.Size()
-			}
-
-			localCb, localFile, err := gf.CopyCallbackFile("clean", fileName, 1, 1)
-			if err != nil {
-				Error(err.Error())
-			} else {
-				cb = localCb
-				file = localFile
-			}
-		}
+	cb, file, err := gf.CopyCallbackFile("clean", fileName, 1, 1)
+	if file != nil {
+		defer file.Close()
+	}
+	if err != nil {
+		Error(err.Error())
 	}
 
 	cleaned, err := gf.Clean(from, fileName, fileSize, cb)
-	if file != nil {
-		file.Close()
-	}
 
 	if cleaned != nil {
 		defer cleaned.Teardown()

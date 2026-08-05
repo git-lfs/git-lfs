@@ -73,11 +73,6 @@ func processFiles(fileSpecifiers map[string]string, program string, outputFile s
 
 	filename := fileSpecifiers["D"]
 
-	stat, err := os.Stat(filename)
-	if err != nil {
-		return -1, err
-	}
-
 	inputFp, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return -1, err
@@ -85,7 +80,7 @@ func processFiles(fileSpecifiers map[string]string, program string, outputFile s
 	defer inputFp.Close()
 
 	gf := lfs.NewGitFilter(cfg)
-	_, err = clean(gf, outputFp, inputFp, filename, stat.Size())
+	_, err = clean(gf, outputFp, inputFp, filename, -1)
 	if err != nil {
 		return -1, err
 	}

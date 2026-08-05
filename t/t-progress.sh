@@ -82,6 +82,46 @@ begin_test "progress log: file counts"
 )
 end_test
 
+begin_test "progress log: unknown initial size (clean)"
+(
+  set -e
+
+  reponame="progress-log-unknown-total-clean"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  # Test with a file size larger than the size of the read buffer used when
+  # decoding pointers.  See the secondary issue reported in
+  # https://github.com/git-lfs/git-lfs/issues/4974#issuecomment-2717907543
+  # and https://github.com/git-lfs/git-lfs/pull/6011.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  contents_size=$((max_pointer_size * 2))
+  head -c "$contents_size" /dev/zero >large.dat
+
+  progress_log="$TRASHDIR/${reponame}-logs/progress.log"
+  GIT_LFS_PROGRESS="$progress_log" git add large.dat
+  cat "$progress_log"
+
+  # Confirm that the callback created by the CopyCallbackFile() method
+  # of lfs.GitFilter reports the final object size in the progress log.
+  #
+  # Note that we will probably not see a preceding entry with a "????"-style
+  # field indicating an unknown total size, even though a callback will
+  # likely be made after the read buffer used to decode pointers is copied
+  # and before the remainder of the data is copied.  Specifically, when
+  # io.Copy() reads from io.MultiReader() and reaches the end of the initial
+  # pointer detection buffer, a callback is likely to be made.  However,
+  # the callback will not write an entry because insufficient time will
+  # have elapsed, as it only writes if its throttling deadline has passed
+  # or if the byte count has just reached the expected total.
+  grep "clean 1/1 $contents_size/$contents_size large.dat" "$progress_log"
+)
+end_test
+
 begin_test "progress log: unknown initial size (smudge)"
 (
   set -e

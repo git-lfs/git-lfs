@@ -122,3 +122,32 @@ begin_test "clean stdin"
   fi
 )
 end_test
+
+begin_test "clean: ignore file size on disk when cleaning"
+(
+  set -e
+
+  reponame="clean-ignore-file-size"
+  git init "$reponame"
+  cd "$reponame"
+
+  # Test with a file size larger than the size of the read buffer used when
+  # decoding pointers.  See the secondary issue reported in
+  # https://github.com/git-lfs/git-lfs/issues/4974#issuecomment-2717907543
+  # and https://github.com/git-lfs/git-lfs/pull/6011.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  contents_size="$((max_pointer_size * 2))"
+  head -c "$contents_size" /dev/zero >large-actual.dat
+  contents_oid="$(calc_oid_file "large-actual.dat")"
+
+  # To replicate the reported issue, the "git-lfs clean" command's
+  # input from Git should be larger than the size of the pointer read buffer,
+  # but the file on disk should be smaller, so we just create an empty file.
+  touch large.dat
+
+  git lfs clean -- large.dat <large-actual.dat 2>&1 | tee clean.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  [ "$(pointer "$contents_oid" "$contents_size")" = "$(cat clean.log)" ]
+)
+end_test
