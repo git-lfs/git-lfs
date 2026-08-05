@@ -5,7 +5,7 @@ GIT_LFS_SHA ?= $(shell env -u GIT_TRACE git rev-parse --short HEAD)
 #
 # If Git LFS is being built for a published release, VERSION and GIT_LFS_SHA
 # should be identical.
-VERSION ?= $(shell env -u GIT_TRACE git describe HEAD)
+VERSION ?= $(shell env -u GIT_TRACE git describe HEAD 2>/dev/null || env -u GIT_TRACE git rev-parse --short HEAD)
 
 # PREFIX is VERSION without the leading v, for use in archive prefixes.
 PREFIX ?= $(patsubst v%,git-lfs-%,$(VERSION))
@@ -619,6 +619,13 @@ test : fmt $(.DEFAULT_GOAL)
 .PHONY : integration
 integration : bin/git-lfs$(X)
 	make -C t test
+
+# benchplot builds the benchmark plotting tool.
+.PHONY : benchplot
+benchplot : bin/benchplot$(X)
+
+bin/benchplot$(X) :
+	cd tools/benchplot && $(GO) build -o ../../bin/benchplot$(X) .
 
 # go.sum is a lockfile based on the contents of go.mod.
 go.sum : go.mod

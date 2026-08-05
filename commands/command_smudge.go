@@ -8,6 +8,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/filepathfilter"
 	"github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/git/gitattr"
 	"github.com/git-lfs/git-lfs/v3/lfs"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tools/humanize"
@@ -15,6 +16,23 @@ import (
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/spf13/cobra"
 )
+
+// smudgePassThrough returns true if a non-pointer file should pass through
+// the smudge filter unchanged (i.e., no NotAPointerError).
+func smudgePassThrough(filename string, n int64) bool {
+	// Git-critical files always pass through
+	if gitCriticalExcluded(filename) {
+		return true
+	}
+	autoTrackSize, _ := gitattr.GetAutoTrackSize(cfg.LocalWorkingDir(), filename)
+	if autoTrackSize > 0 && n < autoTrackSize {
+		return true
+	}
+	if isAutoTrackExcluded(filename) {
+		return true
+	}
+	return false
+}
 
 var (
 	// smudgeSkip is a command-line flag belonging to the "git-lfs smudge"
@@ -44,6 +62,9 @@ func delayedSmudge(gf *lfs.GitFilter, s *git.FilterProcessScanner, to io.Writer,
 		}
 
 		if n != 0 {
+			if smudgePassThrough(filename, n) {
+				return n, false, nil, nil
+			}
 			return 0, false, nil, errors.NewNotAPointerError(errors.New(
 				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))
@@ -107,6 +128,9 @@ func smudge(gf *lfs.GitFilter, to io.Writer, from io.Reader, filename string, sk
 		}
 
 		if n != 0 {
+			if smudgePassThrough(filename, n) {
+				return n, nil
+			}
 			return 0, errors.NewNotAPointerError(errors.New(
 				tr.Tr.Get("Unable to parse pointer at: %q", filename),
 			))

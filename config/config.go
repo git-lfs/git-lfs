@@ -195,6 +195,10 @@ func (c *Configuration) TransferBatchSize() int {
 	return c.Git.Int("lfs.transfer.batchSize", 0)
 }
 
+func (c *Configuration) AutoTrackSize() int64 {
+	return c.Git.Int64("lfs.autotracksize", 0)
+}
+
 func (c *Configuration) FetchIncludePaths() []string {
 	patterns, _ := c.Git.Get("lfs.fetchinclude")
 	return tools.CleanPaths(patterns, ",")
@@ -498,6 +502,10 @@ func (c *Configuration) SetGitSystemKey(key, val string) (string, error) {
 
 func (c *Configuration) SetGitLocalKey(key, val string) (string, error) {
 	return c.gitConfig.SetLocal(key, val)
+}
+
+func (c *Configuration) SetGitLocalFileKey(file, key, val string) (string, error) {
+	return c.gitConfig.SetFile(file, key, val)
 }
 
 func (c *Configuration) SetGitWorktreeKey(key, val string) (string, error) {

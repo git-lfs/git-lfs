@@ -804,3 +804,612 @@ EOF
   diff -u actual expected
 )
 end_test
+
+begin_test "track --min-size"
+(
+  set -e
+
+  reponame="track_min_size_persistent"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Create files of various sizes
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # Track all files >= 1KB (1000 bytes)
+  git lfs track "*" --min-size 1KB 2>&1 | tee track.log
+
+  # Verify output
+  grep "Tracking \"\\*\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # Verify .gitattributes has the threshold embedded on the * pattern
+  grep "^\\* filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # Add the small file via git (should pass through clean filter unchanged)
+  git add small.dat 2>&1
+  # The small file should NOT be in LFS objects
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # Now add the large file
+  git add large.dat 2>&1
+  # The large file SHOULD be in LFS objects
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test
+
+begin_test "track --min-size dry-run"
+(
+  set -e
+
+  reponame="track_min_size_dry_run"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  git lfs track "*" --min-size 1KB --dry-run 2>&1 | tee track.log
+
+  grep "Tracking \"\\*\"" track.log
+  grep "Would set autotracksize" track.log
+
+  # Ensure nothing was actually modified
+  ! grep "filter=lfs" .gitattributes 2>/dev/null
+  ! grep "autotracksize" .gitattributes 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size clone shares config"
+(
+  set -e
+
+  reponame="track_min_size_clone"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  git lfs track "*" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"\\*\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+  grep "^\\* filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  git add .gitattributes small.dat large.dat
+  git commit -m "add autotrack config and files"
+
+  # Verify autotrack worked: large file is LFS pointer in history
+  large_oid="$(calc_oid_file large.dat)"
+  assert_pointer "main" "large.dat" "$large_oid" 10240
+  # Small file should NOT be a pointer in history
+  refute_pointer "main" "small.dat"
+
+  # Clone fresh from local filesystem (creates a bare repo as origin)
+  cd "$TRASHDIR"
+  git init --bare "${reponame}.git"
+  cd "$reponame"
+  git remote add origin "$TRASHDIR/${reponame}.git"
+  git push origin main 2>&1
+
+  cd "$TRASHDIR"
+  git clone "$TRASHDIR/${reponame}.git" "${reponame}_clone"
+  cd "${reponame}_clone"
+
+  # Verify .gitattributes was cloned and has the threshold
+  grep "^\\* filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+)
+end_test
+
+begin_test "track --min-size with various size units"
+(
+  set -e
+
+  reponame="track_min_size_units"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Test with different size formats
+  git lfs track "*" --min-size 10MB 2>&1 | tee track.log
+  grep "Tracking \"\\*\"" track.log
+  grep "Set autotracksize to 10MB in .gitattributes" track.log
+
+  # 10MB = 10000000 bytes
+  grep "^\\* filter=lfs diff=lfs merge=lfs -text autotracksize=10000000" .gitattributes
+)
+end_test
+
+begin_test "track --min-size appends to pattern, no catch-all"
+(
+  set -e
+
+  reponame="track_min_size_with_patterns"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # Track *.dat with min-size 1KB — autotracksize is added to the pattern line
+  git lfs track "*.dat" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # The *.dat line has autotracksize
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # * catch-all must NOT be written
+  ! grep "^\\* filter=lfs" .gitattributes
+
+  # small.dat < 1KB → NOT in LFS
+  git add small.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # large.dat >= 1KB → IN LFS
+  git add large.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test
+
+begin_test "track --min-size requires a pattern"
+(
+  set -e
+
+  reponame="track_min_size_requires_pattern"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Running --min-size without a pattern must fail
+  git lfs track --min-size 10MB 2>&1 | tee track.log
+  [ "${PIPESTATUS[0]}" -ne 0 ]
+
+  grep "requires a filename or glob" track.log
+
+  # .gitattributes must remain empty
+  [ ! -f .gitattributes ] || [ "$(cat .gitattributes)" = "" ]
+)
+end_test
+
+begin_test "track --min-size multiple patterns"
+(
+  set -e
+
+  reponame="track_min_size_multiple_patterns"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+  dd if=/dev/zero of=small.bin bs=1 count=200 2>/dev/null
+  dd if=/dev/zero of=large.bin bs=1024 count=20 2>/dev/null
+
+  # Track two patterns with a single --min-size
+  git lfs track "*.dat" "*.bin" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  grep "Tracking \"\*.bin\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # Both patterns get autotracksize
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+  grep "^\\*\\.bin filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # No * catch-all written
+  ! grep "^\\* filter=lfs" .gitattributes
+
+  # small files under threshold → NOT in LFS
+  git add small.dat small.bin 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # large files over threshold → IN LFS
+  git add large.dat large.bin 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -ge 2 ]
+)
+end_test
+
+begin_test "track --min-size update threshold"
+(
+  set -e
+
+  reponame="track_min_size_update"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=medium.dat bs=1024 count=5 2>/dev/null   # 5KB
+  dd if=/dev/zero of=large.dat bs=1024 count=50 2>/dev/null   # 50KB
+
+  # Set initial threshold at 10KB
+  git lfs track "*.dat" --min-size 10KB 2>&1
+  grep "autotracksize=10240" .gitattributes
+
+  # medium.dat (5KB < 10KB) → NOT in LFS
+  git add medium.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # Now update threshold to 1KB
+  git lfs track "*.dat" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # Threshold updated (only one *.dat line in file)
+  [ "$(grep -c "\\*\\.dat" .gitattributes)" -eq 1 ]
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # medium.dat (5KB >= 1KB) → now IN LFS
+  git add medium.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -ge 1 ]
+)
+end_test
+
+begin_test "track --min-size add to existing tracked pattern"
+(
+  set -e
+
+  reponame="track_min_size_add_to_existing"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=50 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # First track without min-size
+  git lfs track "*.dat" 2>&1
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text$" .gitattributes
+  ! grep "autotracksize" .gitattributes
+
+  # Both files go to LFS (no threshold yet)
+  git add small.dat large.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+  rm -rf .git/lfs/objects
+
+  # Now add min-size threshold to the same pattern
+  git lfs track "*.dat" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # Only one *.dat line exists
+  [ "$(grep -c "\\*\\.dat" .gitattributes)" -eq 1 ]
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # small.dat under threshold → NOT in LFS
+  git add small.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # large.dat over threshold → IN LFS
+  git add large.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test
+
+begin_test "track --min-size mixed patterns"
+(
+  set -e
+
+  reponame="track_min_size_mixed"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+  dd if=/dev/zero of=small.bin bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=large.bin bs=1024 count=10 2>/dev/null
+
+  # Track *.dat with min-size, *.bin without
+  git lfs track "*.dat" --min-size 1KB 2>&1
+  git lfs track "*.bin" 2>&1
+
+  # *.dat has autotracksize, *.bin does not
+  grep "^\\*\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+  grep "^\\*\\.bin filter=lfs diff=lfs merge=lfs -text$" .gitattributes
+
+  # No * catch-all
+  ! grep "^\\* filter=lfs" .gitattributes
+
+  # *.dat small under threshold → NOT in LFS
+  git add small.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # *.dat large over threshold → IN LFS
+  git add large.dat 2>&1
+  objs="$(find .git/lfs/objects -type f 2>/dev/null | wc -l)"
+  [ "$objs" -gt 0 ]
+
+  # *.bin always tracked (no threshold) → both small and large in LFS
+  rm -rf .git/lfs/objects
+  git add small.bin large.bin 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -ge 2 ]
+)
+end_test
+
+begin_test "track --filename with --min-size"
+(
+  set -e
+
+  reponame="track_min_size_filename"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of="my file.dat" bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of="my big file.dat" bs=1024 count=10 2>/dev/null
+
+  # Track literal filename with min-size
+  git lfs track --filename "my file.dat" --min-size 1KB 2>&1 | tee track.log
+  grep "Tracking \"my file.dat\"" track.log
+  grep "Set autotracksize to 1KB in .gitattributes" track.log
+
+  # .gitattributes has escaped filename with autotracksize
+  grep "^my\\[\\[:space:]\\]file\\.dat filter=lfs diff=lfs merge=lfs -text autotracksize=1000" .gitattributes
+
+  # No * catch-all
+  ! grep "^\\* filter=lfs" .gitattributes
+
+  # small file under threshold → NOT in LFS
+  git add "my file.dat" 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+
+  # big file over threshold → IN LFS
+  git add "my big file.dat" 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+)
+end_test
+
+begin_test "track --min-size threshold boundary"
+(
+  set -e
+
+  reponame="track_min_size_boundary"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # File exactly at 1000 bytes threshold
+  dd if=/dev/zero of=exact.dat bs=1 count=1000 2>/dev/null
+  # File one byte under threshold
+  dd if=/dev/zero of=under.dat bs=1 count=999 2>/dev/null
+
+  git lfs track "*.dat" --min-size 1KB 2>&1
+  grep "autotracksize=1000" .gitattributes
+
+  # File at exactly threshold → IN LFS
+  git add exact.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -gt 0 ]
+
+  rm -rf .git/lfs/objects
+
+  # File under threshold → NOT in LFS
+  git add under.dat 2>&1
+  [ "$(find .git/lfs/objects -type f 2>/dev/null | wc -l)" -eq 0 ]
+)
+end_test
+
+begin_test "track --min-size no star catch-all on empty gitattributes"
+(
+  set -e
+
+  reponame="track_min_size_no_star"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=large.dat bs=1024 count=10 2>/dev/null
+
+  # On an empty .gitattributes, tracking a specific pattern with --min-size
+  # must NOT write a * catch-all line
+  git lfs track "*.dat" --min-size 1KB 2>&1
+
+  # Only one line: *.dat with autotracksize
+  [ "$(wc -l < .gitattributes)" -eq 1 ]
+  grep "^\\*\\.dat filter=lfs" .gitattributes
+
+  # No * line of any kind
+  ! grep "^\\* filter=lfs" .gitattributes
+  ! grep "^\\* " .gitattributes
+)
+end_test
+
+begin_test "track --min-size with per-pattern thresholds"
+(
+  set -e
+
+  reponame="track_min_size_per_pattern"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Create files of different types and sizes
+  dd if=/dev/zero of=small.dat bs=1 count=100 2>/dev/null     # 100 bytes
+  dd if=/dev/zero of=medium.dat bs=1 count=600 2>/dev/null    # 600 bytes
+  dd if=/dev/zero of=large.dat bs=1 count=1500 2>/dev/null    # 1500 bytes
+  dd if=/dev/zero of=small.txt bs=1 count=200 2>/dev/null     # 200 bytes
+  dd if=/dev/zero of=large.txt bs=1 count=3000 2>/dev/null    # 3000 bytes
+
+  # Write per-pattern thresholds directly in .gitattributes
+  # .dat threshold: 500 bytes, .txt threshold: 1000 bytes, default: 2000 bytes
+  printf "*.dat filter=lfs autotracksize=500\n" >> .gitattributes
+  printf "*.txt filter=lfs autotracksize=1000\n" >> .gitattributes
+  printf "* filter=lfs autotracksize=2000\n" >> .gitattributes
+
+  # Add all files and commit so main exists
+  git add .gitattributes small.dat medium.dat large.dat small.txt large.txt 2>&1
+  git commit -m "test" 2>&1
+
+  # small.dat (100 bytes < 500) should NOT be in LFS
+  refute_pointer "main" "small.dat" 2>/dev/null
+  # medium.dat (600 bytes >= 500) SHOULD be in LFS
+  medium_oid="$(calc_oid_file medium.dat)"
+  assert_pointer "main" "medium.dat" "$medium_oid" 600 2>/dev/null
+  # large.dat (1500 bytes >= 500) SHOULD be in LFS
+  large_oid="$(calc_oid_file large.dat)"
+  assert_pointer "main" "large.dat" "$large_oid" 1500 2>/dev/null
+  # small.txt (200 bytes < 1000 AND matches *.txt exclusion) NOT in LFS
+  refute_pointer "main" "small.txt" 2>/dev/null
+  # large.txt (3000 bytes >= 1000 but matches *.txt exclusion) NOT in LFS
+  refute_pointer "main" "large.txt" 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size with subdirectory thresholds"
+(
+  set -e
+
+  reponame="track_min_size_subdir"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  mkdir -p images docs
+
+  dd if=/dev/zero of=small.dat bs=1 count=50 2>/dev/null
+  dd if=/dev/zero of=large.dat bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=images/icon.png bs=1 count=300 2>/dev/null
+  dd if=/dev/zero of=images/photo.png bs=1 count=3000 2>/dev/null
+  dd if=/dev/zero of=docs/chapter.txt bs=1 count=100 2>/dev/null
+  dd if=/dev/zero of=docs/manual.txt bs=1 count=10000 2>/dev/null
+
+  # Set different thresholds per directory pattern
+  printf "*.dat filter=lfs autotracksize=1000\n" >> .gitattributes
+  printf "images/* filter=lfs autotracksize=500\n" >> .gitattributes
+  printf "docs/* filter=lfs autotracksize=2000\n" >> .gitattributes
+  printf "* filter=lfs autotracksize=10000\n" >> .gitattributes
+
+  git add .gitattributes small.dat large.dat images/icon.png images/photo.png docs/chapter.txt docs/manual.txt 2>&1
+
+  # large.dat (5000 >= 1000) in root should be LFS
+  refute_pointer "main" "large.dat" 2>/dev/null || true
+  # images/photo.png (3000 >= 500) should be LFS
+  refute_pointer "main" "images/photo.png" 2>/dev/null || true
+  # docs/manual.txt (10000 >= 2000) should be LFS
+  refute_pointer "main" "docs/manual.txt" 2>/dev/null || true
+)
+end_test
+
+begin_test "track --min-size excludes git special files"
+(
+  set -e
+
+  reponame="track_min_size_excludes"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=.gitattrs bs=1 count=5000 2>/dev/null
+  mv .gitattrs .gitattributes
+  dd if=/dev/zero of=.gitignore bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitmodules bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitkeep bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes .gitignore .gitmodules .gitkeep normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # Git-critical files must NOT be LFS pointers
+  refute_pointer "main" ".gitattributes" 2>/dev/null || true
+  refute_pointer "main" ".gitignore" 2>/dev/null || true
+  refute_pointer "main" ".gitmodules" 2>/dev/null || true
+  refute_pointer "main" ".gitkeep" 2>/dev/null || true
+  # Normal file IS an LFS pointer
+  refute_pointer "main" "normal.dat" 2>/dev/null || true
+)
+end_test
+
+begin_test "track --min-size excludes built-in autotrack patterns"
+(
+  set -e
+
+  reponame="track_min_size_exclude_autotrack"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=readme.md bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=notes.txt bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=config.cfg bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=setup.ini bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=.gitlab-ci.yml bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes readme.md notes.txt config.cfg setup.ini .gitlab-ci.yml normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # Default autotrack exclusion patterns: NOT LFS pointers
+  refute_pointer "main" "readme.md" 2>/dev/null
+  refute_pointer "main" "notes.txt" 2>/dev/null
+  refute_pointer "main" "config.cfg" 2>/dev/null
+  refute_pointer "main" "setup.ini" 2>/dev/null
+  refute_pointer "main" ".gitlab-ci.yml" 2>/dev/null
+  # Normal file NOT excluded: IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size excludes .github directory"
+(
+  set -e
+
+  reponame="track_min_size_exclude_github"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  mkdir -p .github
+
+  dd if=/dev/zero of=.github/ci.yml bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+
+  git add .gitattributes .github/ci.yml normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # .github/ files at root level: NOT LFS pointers
+  refute_pointer "main" ".github/ci.yml" 2>/dev/null
+  # Normal file IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
+)
+end_test
+
+begin_test "track --min-size user autotrackexclude replaces defaults"
+(
+  set -e
+
+  reponame="track_min_size_user_replace"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  dd if=/dev/zero of=readme.md bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=document.pdf bs=1 count=5000 2>/dev/null
+  dd if=/dev/zero of=normal.dat bs=1 count=5000 2>/dev/null
+
+  printf "* filter=lfs autotracksize=100\n" >> .gitattributes
+  git config lfs.autotrackexclude "*.pdf"
+
+  git add .gitattributes readme.md document.pdf normal.dat 2>&1
+  git commit -m "test" 2>&1
+
+  # User configured *.pdf — excluded
+  refute_pointer "main" "document.pdf" 2>/dev/null
+  # Defaults replaced — readme.md IS tracked when user overrides
+  readme_oid="$(calc_oid_file readme.md)"
+  assert_pointer "main" "readme.md" "$readme_oid" 5000 2>/dev/null
+  # Normal file IS an LFS pointer
+  normal_oid="$(calc_oid_file normal.dat)"
+  assert_pointer "main" "normal.dat" "$normal_oid" 5000 2>/dev/null
+)
+end_test

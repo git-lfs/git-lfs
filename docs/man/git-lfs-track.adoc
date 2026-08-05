@@ -8,7 +8,7 @@ git-lfs-track - View or add Git LFS paths to Git attributes
 
 [source,role=synopsis,subs="verbatim,quotes"]
 ----
-*git lfs track* [_options_] [_<pattern>_...]
+*git lfs track* [_options_] [_<pattern>_...] [--min-size <size>]
 ----
 
 == DESCRIPTION
@@ -63,8 +63,46 @@ Disabled by default.
   Do not list patterns that are excluded in the output; only list patterns that
   are tracked.
 `--no-modify-attrs`::
-  Makes matched entries stat-dirty so that Git can re-index files you wish to
-  convert to LFS. Does not modify any `.gitattributes` file(s).
+   Makes matched entries stat-dirty so that Git can re-index files you wish to
+   convert to LFS. Does not modify any `.gitattributes` file(s).
+`--min-size`::
+   Automatically track files that are larger than the given size. Size values
+   can be specified in human-readable format (e.g., "1MB", "500KB", "1GB").
+   Uses both decimal (KB, MB, GB) and binary (KiB, MiB, GiB) units. This option
+   requires at least one `<pattern>` argument. The threshold is written as the
+   `autotracksize` custom attribute on the given pattern(s) in `.gitattributes`
+   (e.g., `*.dat filter=lfs ... autotracksize=<bytes>`). Use
+   `git lfs track "*" --min-size <size>` to apply it to all files. Existing
+   files larger than the threshold are touched so they will be re-indexed by
+   Git on the next `git add`.
+   +
+   Multiple `autotracksize` thresholds can be set for different file patterns
+   by editing `.gitattributes` directly, e.g.:
+   +
+   [source,role="secondary"]
+   ----
+   *.dat filter=lfs autotracksize=1000000
+   *.txt filter=lfs autotracksize=500000
+   * filter=lfs autotracksize=10000000
+   ----
+   +
+    The `.gitattributes` file must be committed to the repository for the
+    autotrack setting to apply to all clones.
+    +
+    The following files are always excluded from LFS tracking at the filter
+    level and can never become LFS pointers, even if explicitly tracked:
+    `.gitattributes`, `.gitignore`, `.gitmodules`, `.mailmap`, `.gitkeep`.
+    +
+    Additional files are excluded from automatic tracking by default via the
+    `lfs.autotrackexclude` config option:
+    +
+    [source,role="secondary"]
+    ----
+    .gitlab-ci.yml   *.md             *.txt
+    *.cfg            *.ini            .github/*
+    ----
+    +
+    When `lfs.autotrackexclude` is set, it replaces these defaults entirely.
 
 == EXAMPLES
 
@@ -81,6 +119,32 @@ locked:
 * Configure Git LFS to track the file named `project [1].psd`:
 +
 `git lfs track --filename "project [1].psd"`
+* Automatically track all files larger than 10 megabytes:
++
+`git lfs track "*" --min-size 10MB`
++
+* Automatically track `.dat` files larger than 1 megabyte:
++
+`git lfs track "*.dat" --min-size 1MB`
++
+Then commit the configuration:
++
+[source,role="primary"]
+----
+git add .gitattributes
+git commit -m "enable autotrack for files larger than 10MB"
+----
+* Set different thresholds for different file types by editing `.gitattributes`
+   directly:
++
+[source,role="primary"]
+----
+# Track .dat files larger than 1MB, .txt files larger than 500KB,
+# and everything else larger than 10MB
+*.dat filter=lfs autotracksize=1000000
+*.txt filter=lfs autotracksize=500000
+* filter=lfs autotracksize=10000000
+----
 
 == SEE ALSO
 
