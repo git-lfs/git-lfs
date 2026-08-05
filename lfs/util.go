@@ -51,19 +51,41 @@ func (f *GitFilter) CopyCallbackFile(event, filename string, index, totalFiles i
 		return nil, file, wrapProgressError(err, event, logPath)
 	}
 
-	var prevWritten int64
+	var (
+		prevTotal       int64
+		prevWritten     int64
+		hasReachedTotal bool
+	)
 	deadline := f.clk.Now().Add(tasklog.DefaultLoggingThrottle)
 	cb := tools.CopyCallback(func(total int64, written int64, current int) error {
 		now := f.clk.Now()
-		if written != prevWritten && (!now.Before(deadline) || written >= total) {
-			_, err := fmt.Fprintf(file, "%s %d/%d %d/%d %s\n", event, index, totalFiles, written, total, filename)
-			file.Sync()
-			prevWritten = written
-			deadline = now.Add(tasklog.DefaultLoggingThrottle)
-			return wrapProgressError(err, event, logPath)
+
+		if total == prevTotal {
+			if written == prevWritten {
+				return nil
+			}
+		} else {
+			hasReachedTotal = false
 		}
 
-		return nil
+		logOptional := total < 0 || written < total || hasReachedTotal
+		if logOptional && now.Before(deadline) {
+			return nil
+		}
+
+		writtenFraction := tools.FormatFraction(written, total)
+
+		_, err := fmt.Fprintf(file, "%s %d/%d %s %s\n", event, index, totalFiles, writtenFraction, filename)
+		file.Sync()
+
+		prevTotal = total
+		prevWritten = written
+		if !logOptional {
+			hasReachedTotal = true
+		}
+
+		deadline = now.Add(tasklog.DefaultLoggingThrottle)
+		return wrapProgressError(err, event, logPath)
 	})
 
 	return cb, file, nil
