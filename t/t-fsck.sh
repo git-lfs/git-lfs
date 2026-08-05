@@ -142,7 +142,14 @@ create_invalid_pointers() {
   ext="${2:-dat}"
 
   git cat-file blob ":$valid" | awk '{ sub(/$/, "\r"); print }' >"crlf.$ext"
-  lfstest-genrandom --base64 1025 >"large.$ext"
+
+  # Test with a file size larger than the size of the read buffer used when
+  # decoding pointers.  See https://github.com/git-lfs/git-lfs/issues/1729,
+  # https://github.com/git-lfs/git-lfs/pull/1796,
+  # and https://github.com/git-lfs/git-lfs/pull/4525.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  lfstest-genrandom --base64 $((max_pointer_size + 1)) >"large.$ext"
+
   git \
     -c "filter.lfs.process=" \
     -c "filter.lfs.clean=cat" \

@@ -828,6 +828,7 @@ begin_test "checkout: read-only file"
   filename="a.txt"
 
   setup_remote_repo_with_file "$reponame" "$filename"
+  contents_oid="$(calc_oid_file "$filename")"
 
   pushd "$TRASHDIR" > /dev/null
     GIT_LFS_SKIP_SMUDGE=1 clone_repo "$reponame" "${reponame}-assert"
@@ -835,7 +836,7 @@ begin_test "checkout: read-only file"
     chmod a-w "$filename"
 
     refute_file_writeable "$filename"
-    assert_pointer "refs/heads/main" "$filename" "$(calc_oid "$filename\n")" 6
+    assert_pointer "refs/heads/main" "$filename" "$contents_oid" 6
 
     git lfs fetch
     git lfs checkout "$filename"

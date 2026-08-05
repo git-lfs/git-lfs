@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	// memoryBufferLimit is the number of bytes to buffer in memory before
+	// MemoryBufferLimit is the number of bytes to buffer in memory before
 	// spooling the contents of an `io.Reader` in `Spool()` to a temporary
 	// file on disk.
-	memoryBufferLimit = 1024
+	MemoryBufferLimit = 1024
 )
 
 // CopyWithCallback copies reader to writer while performing a progress callback
@@ -31,12 +31,22 @@ func CopyWithCallback(writer io.Writer, reader io.Reader, totalSize int64, cb Co
 		return io.Copy(writer, reader)
 	}
 
-	cbReader := &CallbackReader{
-		C:         cb,
-		TotalSize: totalSize,
-		Reader:    reader,
-	}
+	cbReader := NewCallbackReader(reader, totalSize, cb)
+
 	return io.Copy(writer, cbReader)
+}
+
+type ClosingByteReader struct {
+	*bytes.Reader
+}
+
+// Close() is simply a no-op to complete the io.ReadSeekCloser interface.
+func (r *ClosingByteReader) Close() error {
+	return nil
+}
+
+func NewClosingByteReader(b []byte) *ClosingByteReader {
+	return &ClosingByteReader{bytes.NewReader(b)}
 }
 
 // Get a new Hash instance of the type used to hash LFS content
@@ -102,15 +112,15 @@ func (r *RetriableReader) Read(b []byte) (int, error) {
 // Spool spools the contents from 'from' to 'to' by buffering the entire
 // contents of 'from' into a temporary file created in the directory "dir".
 // That buffer is held in memory until the file grows to larger than
-// 'memoryBufferLimit`, then the remaining contents are spooled to disk.
+// `MemoryBufferLimit`, then the remaining contents are spooled to disk.
 //
 // The temporary file is cleaned up after the copy is complete.
 //
 // The number of bytes written to "to", as well as any error encountered are
 // returned.
 func Spool(to io.Writer, from io.Reader, dir string) (n int64, err error) {
-	// First, buffer up to `memoryBufferLimit` in memory.
-	buf := make([]byte, memoryBufferLimit)
+	// First, buffer up to `MemoryBufferLimit` in memory.
+	buf := make([]byte, MemoryBufferLimit)
 	if bn, err := from.Read(buf); err != nil && err != io.EOF {
 		return int64(bn), err
 	} else {

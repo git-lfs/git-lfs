@@ -19,6 +19,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
+const (
+	SSHAdapterName = "ssh"
+)
+
 type SSHBatchClient struct {
 	maxRetries int
 	transfer   *ssh.SSHTransfer
@@ -44,7 +48,7 @@ func (a *SSHBatchClient) batchInternal(args []string, batchLines []string) (int,
 }
 
 func (a *SSHBatchClient) Batch(remote string, bReq *batchRequest) (*BatchResponse, error) {
-	bRes := &BatchResponse{TransferAdapterName: "ssh"}
+	bRes := &BatchResponse{TransferAdapterName: SSHAdapterName}
 	if len(bReq.Objects) == 0 {
 		return bRes, nil
 	}
@@ -154,6 +158,9 @@ type SSHAdapter struct {
 // WorkerStarting is called when a worker goroutine starts to process jobs
 // Implementations can run some startup logic here & return some context if needed
 func (a *SSHAdapter) WorkerStarting(workerNum int) (interface{}, error) {
+	if a.transfer == nil {
+		return nil, errors.New(tr.Tr.Get("missing SSH transfer connection for SSH transfer adapter"))
+	}
 	a.transfer.SetConnectionCountAtLeast(workerNum + 1)
 	return workerNum, nil
 }
@@ -413,12 +420,12 @@ func (a *SSHAdapter) Trace(format string, args ...interface{}) {
 }
 
 func configureSSHAdapter(m *concreteManifest) {
-	m.RegisterNewAdapterFunc("ssh", Upload, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Upload, false, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a
 	})
-	m.RegisterNewAdapterFunc("ssh", Download, func(name string, dir Direction) Adapter {
+	m.RegisterNewAdapterFunc(SSHAdapterName, Download, false, func(name string, dir Direction) Adapter {
 		a := &SSHAdapter{newAdapterBase(m.fs, name, dir, nil), nil, m.sshTransfer}
 		a.transferImpl = a
 		return a

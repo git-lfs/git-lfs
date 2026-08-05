@@ -79,7 +79,7 @@ function __git_lfs_clear_perform_completion_once_result
     __git_lfs_debug ""
     __git_lfs_debug "========= clearing previously set __git_lfs_perform_completion_once_result variable =========="
     set --erase __git_lfs_perform_completion_once_result
-    __git_lfs_debug "Succesfully erased the variable __git_lfs_perform_completion_once_result"
+    __git_lfs_debug "Successfully erased the variable __git_lfs_perform_completion_once_result"
 end
 
 function __git_lfs_requires_order_preservation

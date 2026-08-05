@@ -71,6 +71,15 @@ $ ssh git@git-server.com git-lfs-authenticate foo/bar.git wat
 Invalid LFS operation: "wat"
 ```
 
+If the `git-lfs-authenticate` command is not available on the server, Git LFS
+treats the command as unsupported and falls back to the guessed LFS endpoint
+described above, authenticating with the normal Git credential helper. This is
+detected either when the remote `ssh` invocation exits with status code 127
+(the conventional "command not found" status) or when its output contains a
+`git-lfs-authenticate: ... not found` message, as returned, for example, by
+Gerrit, which exits with a generic status code. Any other non-zero exit code is
+treated as a fatal error.
+
 ## Custom Configuration
 
 If Git LFS can't guess your LFS server, or you aren't using the

@@ -76,11 +76,11 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 
 	ptr, buf, err := DecodeFrom(reader)
 
-	by := make([]byte, blobSizeCutoff)
+	by := make([]byte, BlobSizeCutoff)
 	n, rerr := buf.Read(by)
 	by = by[:n]
 
-	if rerr != nil || (err == nil && len(by) < blobSizeCutoff) {
+	if rerr != nil || (err == nil && len(by) < BlobSizeCutoff) {
 		err = errors.NewCleanPointerError(ptr, by)
 		return
 	}

@@ -841,7 +841,7 @@ comparison_to_operator() {
 
 # Calculate the object ID from the string passed as the argument
 calc_oid() {
-  printf "$1" | $SHASUM | cut -f 1 -d " "
+  printf "%s" "$1" | $SHASUM | cut -f 1 -d " "
 }
 
 # Calculate the object ID from the file passed as the argument

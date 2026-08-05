@@ -14,7 +14,7 @@ jobs:
       matrix:
         go: ['1.26.x']
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -24,7 +24,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/290 and
       # https://github.com/actions/checkout/issues/882 for details.
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go }}
     - run: mkdir -p "$HOME/go/bin"
@@ -35,7 +35,7 @@ jobs:
     - run: choco install -y jq
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+    - uses: git-for-windows/setup-git-for-windows-sdk@v2
       with:
         flavor: minimal
       # We install the SDK so as to have access to the msgfmt.exe binary
@@ -58,7 +58,7 @@ jobs:
       shell: bash
       env:
         FORCE_LOCALIZE: true
-    - uses: azure/artifact-signing-action@v1.2.0
+    - uses: azure/artifact-signing-action@v2.0.0
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
@@ -76,7 +76,7 @@ jobs:
         timestamp-digest: SHA256
     - run: make release-windows-stage-2
       shell: bash
-    - uses: azure/artifact-signing-action@v1.2.0
+    - uses: azure/artifact-signing-action@v2.0.0
       with:
         azure-tenant-id: ${{ secrets.SPN_GIT_LFS_SIGNING_TENANT_ID }}
         azure-client-id: ${{ secrets.SPN_GIT_LFS_SIGNING_CLIENT_ID }}
@@ -108,13 +108,13 @@ jobs:
       matrix:
         go: ['1.26.x']
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go }}
     - run: make release
@@ -145,13 +145,13 @@ jobs:
       matrix:
         go: ['1.26.x']
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: sudo gem install asciidoctor
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go }}
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
@@ -181,7 +181,7 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -198,7 +198,7 @@ jobs:
     name: Build Linux ARM packages
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false

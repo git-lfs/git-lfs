@@ -12,7 +12,7 @@ jobs:
         go: ['1.26.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -22,7 +22,7 @@ jobs:
       # See https://github.com/actions/checkout/issues/290 and
       # https://github.com/actions/checkout/issues/882 for details.
     - run: sudo gem install asciidoctor
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go }}
     - run: sudo apt-get update && sudo apt-get -y install gettext libarchive-tools
@@ -48,12 +48,12 @@ jobs:
         go: ['1.25.x']
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go }}
     - run: script/cibuild
@@ -61,13 +61,13 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
     - run: gem install asciidoctor
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: '1.26.x'
     - run: mkdir -p "$HOME/go/bin"
@@ -78,7 +78,7 @@ jobs:
       shell: bash
     - run: GOPATH="$HOME/go" PATH="$HOME/go/bin:$PATH" go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
       shell: bash
-    - uses: git-for-windows/setup-git-for-windows-sdk@v1
+    - uses: git-for-windows/setup-git-for-windows-sdk@v2
       with:
         flavor: minimal
       # We install the SDK so as to have access to the msgfmt.exe binary
@@ -122,12 +122,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: '1.26.x'
     - run: git clone -b master https://github.com/git/git.git "$HOME/git"
@@ -146,12 +146,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
         ref: ${{ github.ref }}
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@v7
       with:
         go-version: '1.26.x'
     - run: git clone -b v2.0.0 https://github.com/git/git.git "$HOME/git"
@@ -167,7 +167,7 @@ jobs:
     name: Build Linux packages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false
@@ -179,7 +179,7 @@ jobs:
     name: Build Linux ARM packages
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
         persist-credentials: false

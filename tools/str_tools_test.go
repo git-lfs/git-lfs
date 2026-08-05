@@ -164,3 +164,23 @@ func TestUndentRemovesPreservesLinebreaks(t *testing.T) {
 	assert.Equal(t, "foo  \n", Undent("  foo  \n"))
 	assert.Equal(t, "\nfoo  \n", Undent("\n  foo  \n"))
 }
+
+func TestFormatFraction(t *testing.T) {
+	assert.Equal(t, "1/1", FormatFraction(1, 1))
+	assert.Equal(t, "33/100", FormatFraction(33, 100))
+	assert.Equal(t, "9876543/1234567890", FormatFraction(9876543, 1234567890))
+
+	// Allow numerator to exceed denominator
+	assert.Equal(t, "5000/200", FormatFraction(5000, 200))
+
+	// Allow zeroes in denominator
+	assert.Equal(t, "0/0", FormatFraction(0, 0))
+	assert.Equal(t, "99/0", FormatFraction(99, 0))
+
+	// Adjust unknown denominator to match length of numerator
+	assert.Equal(t, "0/?", FormatFraction(0, -1))
+	assert.Equal(t, "1/?", FormatFraction(1, -1))
+	assert.Equal(t, "88/??", FormatFraction(88, -88))
+	assert.Equal(t, "1138/????", FormatFraction(1138, -1))
+	assert.Equal(t, "6345789/???????", FormatFraction(6345789, -1))
+}

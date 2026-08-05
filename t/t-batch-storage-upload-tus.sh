@@ -8,7 +8,7 @@ begin_test "batch storage HTTP upload with tus protocol"
 
   # This repository name announces to the server that it should include
   # "tus" in the set of transfer adapters it supports.
-  reponame="test-tus-upload"
+  reponame="batch-storage-upload-tus"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" "$reponame"
@@ -65,7 +65,7 @@ begin_test "batch storage HTTP upload retries with tus protocol"
   # "tus" in the set of transfer adapters it supports, and that it should
   # interrupt object uploads if they start from a zero byte offset, but
   # otherwise allow them to complete.
-  reponame="test-tus-upload-interrupt"
+  reponame="batch-storage-upload-tus-interrupt"
   setup_remote_repo "$reponame"
 
   clone_repo "$reponame" "$reponame"

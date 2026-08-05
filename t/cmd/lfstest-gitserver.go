@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -62,6 +63,7 @@ var (
 		"status-storage-403", "status-storage-404", "status-storage-410", "status-storage-422", "status-storage-500", "status-storage-503",
 		"return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
+		"storage-download-corrupt",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
@@ -466,10 +468,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	}
 
 	res := []lfsObject{}
-	testingChunked := testingChunkedTransferEncoding(r)
-	testingTus := testingTusUploadInBatchReq(r)
-	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(r)
-	testingCustomTransfer := testingCustomTransfer(r)
+	testingChunked := testingChunkedTransferEncoding(repo)
+	testingTus := testingTusUploadInBatchReq(repo)
+	testingTusInterrupt := testingTusUploadInterruptedInBatchReq(repo)
+	testingCustomTransfer := testingCustomTransfer(repo)
 	var transferChoice string
 	var searchForTransfer string
 	hashAlgo := "sha256"
@@ -764,16 +766,11 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if testingChunkedTransferEncoding(r) {
-			valid := false
-			for _, value := range r.TransferEncoding {
-				if value == "chunked" {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				debug(id, "Chunked transfer encoding expected")
+		if testingChunkedTransferEncoding(repo) {
+			if !slices.Contains(r.TransferEncoding, "chunked") {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Chunked transfer encoding required"))
+				return
 			}
 		}
 
@@ -799,6 +796,11 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 
 		if by, ok := largeObjects.Get(repo, oid); ok {
 			switch oidHandlers[oid] {
+			case "storage-download-corrupt":
+				// Since the object contents are entirely
+				// lowercase we can "invert" the case of each
+				// character just by converting to uppercase.
+				by = bytes.ToUpper(by)
 			case "storage-download-retry-later":
 				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
@@ -1600,18 +1602,20 @@ func missingRequiredCreds(w http.ResponseWriter, r *http.Request, repo string) b
 	return false
 }
 
-func testingChunkedTransferEncoding(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-chunked-transfer-encoding")
+func testingChunkedTransferEncoding(repo string) bool {
+	return repo == "batch-storage-upload-encoding-chunked"
 }
 
-func testingTusUploadInBatchReq(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-tus-upload")
+func testingTusUploadInBatchReq(repo string) bool {
+	return strings.HasPrefix(repo, "batch-storage-upload-tus")
 }
-func testingTusUploadInterruptedInBatchReq(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-tus-upload-interrupt")
+
+func testingTusUploadInterruptedInBatchReq(repo string) bool {
+	return repo == "batch-storage-upload-tus-interrupt"
 }
-func testingCustomTransfer(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.String(), "/test-custom-transfer")
+
+func testingCustomTransfer(repo string) bool {
+	return strings.HasPrefix(repo, "custom-transfer-")
 }
 
 var lfsUrlRE = regexp.MustCompile(`\A/?([^/]+)/info/lfs`)
