@@ -183,11 +183,11 @@ func TestCanRetryObjectLater(t *testing.T) {
 	defer cli.Close()
 
 	tests := []struct {
-		name              string
-		err               error
-		setup             func(*TransferQueue)
-		wantCanRetry      bool
-		wantReadyTimeZero bool
+		name                  string
+		err                   error
+		setup                 func(*TransferQueue)
+		expectedCanRetry      bool
+		expectedReadyTimeZero bool
 	}{
 		{
 			name: "retry count exceeded",
@@ -196,22 +196,22 @@ func TestCanRetryObjectLater(t *testing.T) {
 				q.rc.MaxRetries = 1
 				q.rc.Increment("oid")
 			},
-			wantReadyTimeZero: true,
+			expectedReadyTimeZero: true,
 		},
 		{
-			name:              "non-retriable-later error",
-			err:               errors.NewRetriableError(errors.New("network error")),
-			wantReadyTimeZero: true,
+			name:                  "non-retriable-later error",
+			err:                   errors.NewRetriableError(errors.New("network error")),
+			expectedReadyTimeZero: true,
 		},
 		{
-			name:              "retry-after exceeds threshold",
-			err:               errors.NewRetriableLaterError(errors.New("rate limit"), "10"),
-			wantReadyTimeZero: true,
+			name:                  "retry-after exceeds threshold",
+			err:                   errors.NewRetriableLaterError(errors.New("rate limit"), "10"),
+			expectedReadyTimeZero: true,
 		},
 		{
-			name:              "retry-after within threshold",
-			err:               errors.NewRetriableLaterError(errors.New("rate limit"), "3"),
-			wantCanRetry:      true,
+			name:             "retry-after within threshold",
+			err:              errors.NewRetriableLaterError(errors.New("rate limit"), "3"),
+			expectedCanRetry: true,
 		},
 	}
 
@@ -229,8 +229,8 @@ func TestCanRetryObjectLater(t *testing.T) {
 
 			retryAt, canRetry := q.canRetryObjectLater("oid", tt.err)
 
-			assert.Equal(t, tt.wantCanRetry, canRetry)
-			assert.Equal(t, tt.wantReadyTimeZero, retryAt.IsZero())
+			assert.Equal(t, tt.expectedCanRetry, canRetry)
+			assert.Equal(t, tt.expectedReadyTimeZero, retryAt.IsZero())
 		})
 	}
 }
