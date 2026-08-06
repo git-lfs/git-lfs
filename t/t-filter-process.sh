@@ -333,3 +333,46 @@ begin_test "filter process: git archive does not invoke SSH"
   true
 )
 end_test
+
+begin_test "filter process: ignore file size on disk when cleaning"
+(
+  set -e
+
+  reponame="filter-process-ignore-file-size"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  # Test with a file size larger than the size of the read buffer used when
+  # decoding pointers.  See the secondary issue reported in
+  # https://github.com/git-lfs/git-lfs/issues/4974#issuecomment-2717907543
+  # and https://github.com/git-lfs/git-lfs/pull/6011.
+  max_pointer_size="$(lfstest-getlimit --max-pointer-size)"
+  contents_size=$((max_pointer_size * 2))
+  head -c "$contents_size" /dev/zero >large.dat
+  contents_oid="$(calc_oid_file "large.dat")"
+
+  # To replicate the reported issue, the "git-lfs filter-process" command's
+  # input from Git should be larger than the size of the pointer read buffer,
+  # but the file on disk should be smaller, so the lfstest-badlocalfile helper
+  # renames the initial file after Git has started piping its data, and then
+  # replaces the file with an empty file.
+  GIT_TRACE_PACKET=1 git \
+    -c "filter.lfs.process=lfstest-badlocalfile | git-lfs filter-process" \
+    -c "filter.lfs.clean=false"\
+    -c "filter.lfs.smudge=false" \
+    -c "filter.lfs.required=true" \
+    add large.dat 2>&1 | tee filter.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  [ 0 -eq "$(grep -c "unknown command" filter.log)" ]
+
+  expected="$(pointer "$contents_oid" "$contents_size")"
+  got="$(git cat-file -p :large.dat)"
+
+  diff -u <(echo "$expected") <(echo "$got")
+)
+end_test

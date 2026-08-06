@@ -2,114 +2,297 @@ package lfs
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 	"testing"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/internal/testutil"
 	"github.com/git-lfs/git-lfs/v3/tasklog"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/jmhodges/clock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBodyWithCallback(t *testing.T) {
-	called := 0
-	calledRead := make([]int64, 0, 2)
+func TestBothCallbackReadersWithCallback(t *testing.T) {
+	var calls int
+	allReadSoFar := make([]int64, 0, 2)
 
-	cb := func(total int64, read int64, current int) error {
-		called += 1
-		calledRead = append(calledRead, read)
-		assert.Equal(t, 5, int(total))
+	buf := []byte("BOOYA")
+	bufSize := len(buf)
+
+	cb := func(totalSize int64, readSoFar int64, readSinceLast int) error {
+		calls++
+		allReadSoFar = append(allReadSoFar, readSoFar)
+
+		assert.EqualValues(t, bufSize, totalSize)
+
 		return nil
 	}
-	reader := tools.NewByteBodyWithCallback([]byte("BOOYA"), 5, cb)
 
-	readBuf := make([]byte, 3)
-	n, err := reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "BOO", string(readBuf[0:n]))
+	readBuf := make([]byte, bufSize-2)
+	readBufSize := len(readBuf)
 
-	n, err = reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "YA", string(readBuf[0:n]))
+	r := tools.NewCallbackReader(bytes.NewReader(buf), int64(bufSize), cb)
+	br := tools.NewBodyWithCallback(tools.NewClosingByteReader(buf), int64(bufSize), cb)
 
-	assert.Equal(t, 2, called)
-	assert.Len(t, calledRead, 2)
-	assert.Equal(t, 3, int(calledRead[0]))
-	assert.Equal(t, 5, int(calledRead[1]))
-}
+	for _, reader := range []io.Reader{r, br} {
+		t.Logf("testing with reader: %T", reader)
 
-func TestReadWithCallback(t *testing.T) {
-	called := 0
-	calledRead := make([]int64, 0, 2)
+		n, err := reader.Read(readBuf)
 
-	reader := &tools.CallbackReader{
-		TotalSize: 5,
-		Reader:    bytes.NewBufferString("BOOYA"),
-		C: func(total int64, read int64, current int) error {
-			called += 1
-			calledRead = append(calledRead, read)
-			assert.Equal(t, 5, int(total))
-			return nil
-		},
+		// The underlying bytes.Reader should always return
+		// a nil error when the last byte is read.
+		assert.Equal(t, readBufSize, n)
+		assert.Nil(t, err)
+		assert.Equal(t, buf[:readBufSize], readBuf)
+
+		n, err = reader.Read(readBuf)
+
+		assert.Equal(t, bufSize-readBufSize, n)
+		assert.Nil(t, err)
+		assert.Equal(t, buf[readBufSize:], readBuf[:bufSize-readBufSize])
+
+		assert.Equal(t, 2, calls)
+		assert.Len(t, allReadSoFar, 2)
+		assert.EqualValues(t, readBufSize, allReadSoFar[0])
+		assert.EqualValues(t, bufSize, allReadSoFar[1])
+
+		calls = 0
+		allReadSoFar = allReadSoFar[:0]
 	}
-
-	readBuf := make([]byte, 3)
-	n, err := reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "BOO", string(readBuf[0:n]))
-
-	n, err = reader.Read(readBuf)
-	assert.Nil(t, err)
-	assert.Equal(t, "YA", string(readBuf[0:n]))
-
-	assert.Equal(t, 2, called)
-	assert.Len(t, calledRead, 2)
-	assert.Equal(t, 3, int(calledRead[0]))
-	assert.Equal(t, 5, int(calledRead[1]))
 }
 
-func TestCopyCallbackFileThrottle(t *testing.T) {
+type copyCallbackFileThrottleTestMode int
+
+const (
+	initialTotalCorrect copyCallbackFileThrottleTestMode = iota
+	initialTotalOverestimated
+	initialTotalUnderestimated
+	initialTotalUnknown
+)
+
+type copyCallbackFileThrottleTestCase struct {
+	mode          copyCallbackFileThrottleTestMode
+	readerBufSize int64
+	delayedEOF    bool
+
+	logFilePath    string
+	fakeClock      clock.FakeClock
+	callbackReader *tools.CallbackReader
+
+	expectedFractions []string
+}
+
+func (c *copyCallbackFileThrottleTestCase) setup(t *testing.T) (*os.File, error) {
 	tmpDir := t.TempDir()
-	logFile := tmpDir + "/git_lfs_progress.log"
+	c.logFilePath = tmpDir + "/git_lfs_progress.log"
 	osMf := config.UniqMapFetcher(map[string]string{
-		"GIT_LFS_PROGRESS": logFile,
+		"GIT_LFS_PROGRESS": c.logFilePath,
 	})
 	gitMf := config.UniqMapFetcher(map[string]string{})
 
-	fc := clock.NewFake()
+	c.fakeClock = clock.NewFake()
 	gf := GitFilter{
 		cfg: &config.Configuration{
 			Os:  config.EnvironmentOf(osMf),
 			Git: config.EnvironmentOf(gitMf),
 		},
-		clk: fc,
+		clk: c.fakeClock,
 	}
 
-	bufSize := int64(128 * 1024)
 	cb, f, err := gf.CopyCallbackFile("clean", "test_copy", 1, 1)
-	assert.NoError(t, err)
-	defer f.Close()
-
-	r := &tools.CallbackReader{
-		TotalSize: bufSize,
-		Reader:    bytes.NewReader(make([]byte, bufSize)),
-		C:         cb,
+	if err != nil {
+		return f, fmt.Errorf("unable to create progress log callback: %w", err)
 	}
-	readbuf := make([]byte, 32*1024)
-	r.Read(readbuf) // message skipped
 
-	fc.Add(tasklog.DefaultLoggingThrottle)
-	r.Read(readbuf) // message logged due to delay
+	// The Assert() method requires at least four separate reads,
+	// and three additional reads if we are simulating an underestimated
+	// initial total size.
+	bufSize := 4 * c.readerBufSize
+	initialTotalSize := bufSize
+	switch c.mode {
+	case initialTotalOverestimated:
+		bufSize -= c.readerBufSize
+	case initialTotalUnderestimated:
+		bufSize += 3 * c.readerBufSize
+	case initialTotalUnknown:
+		initialTotalSize = -1
+	}
 
-	fc.Add(tasklog.DefaultLoggingThrottle / 2)
-	r.Read(readbuf) // message skipped
+	buf := make([]byte, bufSize)
 
-	r.Read(readbuf) // message logged because reader is finished
+	var r io.Reader
+	if c.delayedEOF {
+		r = testutil.NewDeferredEOFByteReader(buf)
+	} else {
+		r = testutil.NewEagerEOFByteReader(buf)
+	}
 
-	logBytes, err := os.ReadFile(logFile)
+	c.callbackReader = tools.NewCallbackReader(r, initialTotalSize, cb)
+
+	return f, err
+}
+
+func (c *copyCallbackFileThrottleTestCase) Assert(t *testing.T) {
+	buf := make([]byte, c.readerBufSize)
+
+	// Read #1: No message should be logged as the deadline has not passed.
+	n, err := c.callbackReader.Read(buf)
+	assert.EqualValues(t, c.readerBufSize, n)
 	assert.Nil(t, err)
 
-	expectedLog := "clean 1/1 65536/131072 test_copy\nclean 1/1 131072/131072 test_copy\n"
+	c.fakeClock.Add(tasklog.DefaultLoggingThrottle)
+
+	// Read #2: A message should be logged as the deadline has passed.
+	n, err = c.callbackReader.Read(buf)
+	assert.EqualValues(t, c.readerBufSize, n)
+	assert.Nil(t, err)
+
+	c.fakeClock.Add(tasklog.DefaultLoggingThrottle / 2)
+
+	// Read #3: When the total size was initially correct, unknown, or
+	//          underestimated, or when EOF is delayed, no message
+	//          should be logged as the full deadline has not passed.
+	//
+	//          However, when the total size was initially overestimated
+	//          and EOF is not delayed, a message should be logged
+	//          because the actual total is now known.
+	n, err = c.callbackReader.Read(buf)
+	assert.EqualValues(t, c.readerBufSize, n)
+	if c.mode != initialTotalOverestimated || c.delayedEOF {
+		assert.Nil(t, err)
+	} else {
+		assert.Equal(t, io.EOF, err)
+	}
+
+	if c.mode != initialTotalOverestimated {
+		// Read #4: When the total size was initially unknown and
+		//          EOF is delayed, no message should be logged as
+		//          the full deadline has not passed.
+		//
+		//          Otherwise, a message should be logged even though
+		//          the full deadline has not passed either because
+		//          the initial total has been reached or because the
+		//          actual total is now known.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		if c.mode == initialTotalUnderestimated || c.delayedEOF {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, io.EOF, err)
+		}
+	}
+
+	if c.mode == initialTotalUnderestimated {
+		// Read #5: No message should be logged as the deadline
+		//          has not passed, even though the initial total
+		//          has been exceeded.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		assert.Nil(t, err)
+
+		c.fakeClock.Add(tasklog.DefaultLoggingThrottle)
+
+		// Read #6: A message should be logged as the deadline
+		//          has passed, even though the initial total
+		//          has been exceeded.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		assert.Nil(t, err)
+
+		// Read #7: When EOF is delayed, no message should be logged
+		//          as the deadline has not passed, even though the
+		//          initial total has been exceeded.
+		//
+		//          Otherwise, a message should be logged even though
+		//          the deadline has not passed because the actual
+		//          total is now known.
+		n, err = c.callbackReader.Read(buf)
+		assert.EqualValues(t, c.readerBufSize, n)
+		if c.delayedEOF {
+			assert.Nil(t, err)
+		} else {
+			assert.Equal(t, io.EOF, err)
+		}
+	}
+
+	if c.delayedEOF {
+		// Final EOF Read: When the total size was initially correct,
+		//                 no callback should be made and so no
+		//                 message should be logged.
+		//
+		//                 Otherwise, a message should be logged
+		//                 as the actual total is now known, even
+		//                 though the deadline has not passed.
+		n, err = c.callbackReader.Read(buf)
+		assert.Zero(t, n)
+		assert.Equal(t, io.EOF, err)
+	}
+
+	logBytes, err := os.ReadFile(c.logFilePath)
+	assert.Nil(t, err)
+
+	var expectedLog string
+	for _, expectedFraction := range c.expectedFractions {
+		expectedLog += fmt.Sprintf("clean 1/1 %s test_copy\n", expectedFraction)
+	}
+
 	assert.Equal(t, expectedLog, string(logBytes))
+}
+
+func TestCopyCallbackFileThrottle(t *testing.T) {
+	for desc, c := range map[string]*copyCallbackFileThrottleTestCase{
+		"initial total correct": {
+			mode:          initialTotalCorrect,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/131072",
+				"131072/131072",
+			},
+		},
+		"initial total overestimated": {
+			mode:          initialTotalOverestimated,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/131072",
+				"98304/98304",
+			},
+		},
+		"initial total underestimated": {
+			mode:          initialTotalUnderestimated,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/131072",
+				"131072/131072",
+				"196608/131072",
+				"229376/229376",
+			},
+		},
+		"initial total unknown": {
+			mode:          initialTotalUnknown,
+			readerBufSize: 32 * 1024,
+			expectedFractions: []string{
+				"65536/?????",
+				"131072/131072",
+			},
+		},
+	} {
+		for _, delayedEOF := range []bool{false, true} {
+			if delayedEOF {
+				c.delayedEOF = true
+				desc += " with delayed EOF"
+			}
+
+			f, err := c.setup(t)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			defer f.Close()
+
+			t.Run(desc, c.Assert)
+		}
+	}
 }
