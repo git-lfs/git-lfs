@@ -196,26 +196,22 @@ func TestCanRetryObjectLater(t *testing.T) {
 				q.rc.MaxRetries = 1
 				q.rc.Increment("oid")
 			},
-			wantCanRetry:      false,
 			wantReadyTimeZero: true,
 		},
 		{
 			name:              "non-retriable-later error",
 			err:               errors.NewRetriableError(errors.New("network error")),
-			wantCanRetry:      false,
 			wantReadyTimeZero: true,
 		},
 		{
 			name:              "retry-after exceeds threshold",
 			err:               errors.NewRetriableLaterError(errors.New("rate limit"), "10"),
-			wantCanRetry:      false,
 			wantReadyTimeZero: true,
 		},
 		{
 			name:              "retry-after within threshold",
 			err:               errors.NewRetriableLaterError(errors.New("rate limit"), "3"),
 			wantCanRetry:      true,
-			wantReadyTimeZero: false,
 		},
 	}
 

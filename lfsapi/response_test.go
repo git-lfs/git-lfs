@@ -199,7 +199,6 @@ func TestRateLimitedWithBody(t *testing.T) {
 		{
 			name:              "429 without Retry-After",
 			statusCode:        429,
-			retryAfter:        "",
 			expectedRetriable: true,
 			serverMessage:     "custom 429 error",
 		},
@@ -262,7 +261,6 @@ func TestRateLimitedWithoutBody(t *testing.T) {
 		{
 			name:              "429 without Retry-After",
 			statusCode:        429,
-			retryAfter:        "",
 			expectedRetriable: true,
 		},
 		{
