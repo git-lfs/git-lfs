@@ -193,15 +193,19 @@ begin_test "batch API HTTP upload causes retries (missing header)"
 )
 end_test
 
-begin_test "batch API HTTP upload abandons when Retry-After exceeds maxRetryTime"
+begin_test "batch API HTTP upload fails when Retry-After exceeds maxRetryTime"
 (
   set -e
 
-  reponame="upload-batch-retry-later-maxretrytime"
+  # This repository name announces to the server that it should
+  # respond to all Batch API requests with a 429 Too Many Requests
+  # status code and a Retry-After header until at least 10 seconds
+  # have passed after the first request to the Batch API.
+  reponame="upload-batch-retry-later-exceeds-max"
   setup_remote_repo "$reponame"
-  clone_repo "$reponame" batch-repo-upload-maxretrytime
+  clone_repo "$reponame" "$reponame"
 
-  git config --local lfs.transfer.maxretrytime 5
+  git config lfs.transfer.maxRetryTime 5
 
   contents="content"
   oid="$(calc_oid "$contents")"
@@ -212,12 +216,10 @@ begin_test "batch API HTTP upload abandons when Retry-After exceeds maxRetryTime
   git commit -m "initial commit"
 
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
-  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected \`git push origin main\` to fail ..."
-    exit 1
-  fi
+  [ 0 -ne "${PIPESTATUS[0]}" ]
 
-  grep "tq: refusing to retry" push.log
-  grep "exceeds maximum" push.log
+  grep -E "tq: refusing to retry \"$oid\", retry after [0-9]+s exceeds maximum 5s" push.log
+
+  refute_server_object "$reponame" "$oid"
 )
 end_test
