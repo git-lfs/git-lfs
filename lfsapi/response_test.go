@@ -120,6 +120,7 @@ func TestAuthErrWithoutBody(t *testing.T) {
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsAuthError(err))
+	assert.True(t, strings.HasPrefix(err.Error(), "Authentication required: Authorization error:"), err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
@@ -143,6 +144,7 @@ func TestFatalWithoutBody(t *testing.T) {
 	_, err = c.Do(req)
 	assert.NotNil(t, err)
 	assert.True(t, errors.IsFatalError(err))
+	assert.True(t, strings.HasPrefix(err.Error(), "Fatal error: Server error:"), err.Error())
 	assert.EqualValues(t, 1, called)
 }
 
