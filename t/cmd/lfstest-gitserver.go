@@ -446,7 +446,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 		}
 	}
 
-	if strings.HasSuffix(repo, "batch-retry-later") {
+	if strings.HasSuffix(repo, "batch-retry-later") || strings.HasSuffix(repo, "batch-retry-later-exceeds-max") {
 		if timeLeft, isWaiting := checkRateLimit("batch", "", repo, ""); isWaiting {
 			w.Header().Set("Retry-After", strconv.Itoa(timeLeft))
 			w.WriteHeader(http.StatusTooManyRequests)

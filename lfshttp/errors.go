@@ -89,7 +89,8 @@ func NewStatusCodeError(res *http.Response) error {
 
 func (e *statusCodeError) Error() string {
 	req := e.response.Request
-	return tr.Tr.Get("Invalid HTTP status for %s %s: %d",
+	return tr.Tr.Get(
+		"Invalid HTTP status for %s %s: %d",
 		req.Method,
 		strings.SplitN(req.URL.String(), "?", 2)[0],
 		e.response.StatusCode,

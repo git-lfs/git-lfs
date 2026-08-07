@@ -4,7 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +88,8 @@ func TestBatchSizeReturnsBatchSize(t *testing.T) {
 	defer cli.Close()
 
 	q := NewTransferQueue(
-		Upload, NewManifest(nil, cli, "", ""), "origin", WithBatchSize(3))
+		Upload, NewManifest(nil, cli, "", ""), "origin", WithBatchSize(3),
+	)
 
 	assert.Equal(t, 3, q.BatchSize())
 }
@@ -96,7 +99,8 @@ func TestUseAdapterReusesWhenNameMatches(t *testing.T) {
 	defer cli.Close()
 
 	q := NewTransferQueue(
-		Download, NewManifest(nil, cli, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin",
+	)
 
 	// Set an initial adapter.
 	q.useAdapter("basic")
@@ -114,7 +118,8 @@ func TestUseAdapterReusesWhenNameIsEmpty(t *testing.T) {
 	defer cli.Close()
 
 	q := NewTransferQueue(
-		Download, NewManifest(nil, cli, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin",
+	)
 
 	q.useAdapter("basic")
 	first := q.adapter
@@ -131,7 +136,8 @@ func TestUseAdapterSwitchesFromNonDefaultWhenNameIsEmpty(t *testing.T) {
 	defer cli.Close()
 
 	q := NewTransferQueue(
-		Download, NewManifest(nil, cli, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin",
+	)
 
 	q.useAdapter("ssh")
 	first := q.adapter
@@ -150,7 +156,8 @@ func TestUseAdapterSwitchesWhenNameDiffers(t *testing.T) {
 	defer cli.Close()
 
 	q := NewTransferQueue(
-		Download, NewManifest(nil, cli, "", ""), "origin")
+		Download, NewManifest(nil, cli, "", ""), "origin",
+	)
 
 	q.useAdapter("basic")
 	first := q.adapter
@@ -161,4 +168,69 @@ func TestUseAdapterSwitchesWhenNameDiffers(t *testing.T) {
 	assert.NotNil(t, q.adapter)
 	assert.NotSame(t, first, q.adapter, "expected a new adapter when name differs")
 	assert.Equal(t, "ssh", q.adapter.Name())
+}
+
+func TestCanRetryObjectLater(t *testing.T) {
+	cli := lfsapi.NewClient(
+		lfshttp.NewContext(
+			nil,
+			nil,
+			map[string]string{
+				"lfs.transfer.maxretrytime": "5",
+			},
+		),
+	)
+	defer cli.Close()
+
+	tests := []struct {
+		name                  string
+		err                   error
+		setup                 func(*TransferQueue)
+		expectedCanRetry      bool
+		expectedReadyTimeZero bool
+	}{
+		{
+			name: "retry count exceeded",
+			err:  errors.NewRetriableLaterError(errors.New("rate limit"), "10"),
+			setup: func(q *TransferQueue) {
+				q.rc.MaxRetries = 1
+				q.rc.Increment("oid")
+			},
+			expectedReadyTimeZero: true,
+		},
+		{
+			name:                  "non-retriable-later error",
+			err:                   errors.NewRetriableError(errors.New("network error")),
+			expectedReadyTimeZero: true,
+		},
+		{
+			name:                  "retry-after exceeds threshold",
+			err:                   errors.NewRetriableLaterError(errors.New("rate limit"), "10"),
+			expectedReadyTimeZero: true,
+		},
+		{
+			name:             "retry-after within threshold",
+			err:              errors.NewRetriableLaterError(errors.New("rate limit"), "3"),
+			expectedCanRetry: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := NewTransferQueue(
+				Download,
+				NewManifest(nil, cli, "", ""),
+				"origin",
+			)
+
+			if tt.setup != nil {
+				tt.setup(q)
+			}
+
+			retryAt, canRetry := q.canRetryObjectLater("oid", tt.err)
+
+			assert.Equal(t, tt.expectedCanRetry, canRetry)
+			assert.Equal(t, tt.expectedReadyTimeZero, retryAt.IsZero())
+		})
+	}
 }

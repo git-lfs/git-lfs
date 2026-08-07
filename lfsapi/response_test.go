@@ -182,3 +182,123 @@ func TestWithNonFatal500WithoutBody(t *testing.T) {
 
 	assert.EqualValues(t, 3, called)
 }
+
+func TestRateLimitedWithBody(t *testing.T) {
+	c := NewClient(nil)
+
+	var called uint32
+
+	tests := []struct {
+		name               string
+		statusCode         int
+		retryAfter         string
+		expectedRetriable  bool
+		expectedRetryLater bool
+		serverMessage      string
+	}{
+		{
+			name:              "429 without Retry-After",
+			statusCode:        429,
+			expectedRetriable: true,
+			serverMessage:     "custom 429 error",
+		},
+		{
+			name:               "429 with Retry-After",
+			statusCode:         429,
+			retryAfter:         "60",
+			expectedRetryLater: true,
+			serverMessage:      "custom 429 error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.String() != "/test" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				atomic.AddUint32(&called, 1)
+				w.Header().Set("Content-Type", "application/json")
+				if tt.retryAfter != "" {
+					w.Header().Set("Retry-After", tt.retryAfter)
+				}
+
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(`{"message":"` + tt.serverMessage + `"}`))
+			}))
+
+			req, err := http.NewRequest("GET", srv.URL+"/test", nil)
+			assert.Nil(t, err)
+
+			_, err = c.Do(req)
+			assert.Error(t, err)
+
+			_, retryLater := errors.IsRetriableLaterError(err)
+			assert.Equal(t, tt.expectedRetriable, errors.IsRetriableError(err))
+			assert.Equal(t, tt.expectedRetryLater, retryLater)
+
+			srv.Close()
+		})
+	}
+
+	assert.EqualValues(t, 2, called)
+}
+
+func TestRateLimitedWithoutBody(t *testing.T) {
+	c := NewClient(nil)
+
+	var called uint32
+
+	tests := []struct {
+		name               string
+		statusCode         int
+		retryAfter         string
+		expectedRetriable  bool
+		expectedRetryLater bool
+	}{
+		{
+			name:              "429 without Retry-After",
+			statusCode:        429,
+			expectedRetriable: true,
+		},
+		{
+			name:               "429 with Retry-After",
+			statusCode:         429,
+			retryAfter:         "60",
+			expectedRetryLater: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.String() != "/test" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				atomic.AddUint32(&called, 1)
+				if tt.retryAfter != "" {
+					w.Header().Set("Retry-After", tt.retryAfter)
+				}
+				w.WriteHeader(tt.statusCode)
+			}))
+
+			req, err := http.NewRequest("GET", srv.URL+"/test", nil)
+			assert.Nil(t, err)
+
+			_, err = c.Do(req)
+			assert.Error(t, err)
+
+			_, retryLater := errors.IsRetriableLaterError(err)
+			assert.Equal(t, tt.expectedRetriable, errors.IsRetriableError(err))
+			assert.Equal(t, tt.expectedRetryLater, retryLater)
+
+			srv.Close()
+		})
+	}
+
+	assert.EqualValues(t, 2, called)
+}

@@ -235,6 +235,16 @@ Must be an integer which is not negative. Use zero to disable delays
 between retries unless requested by a server. If the value is not an
 integer, is negative, or is not given, a value of ten will be used
 instead.
+* `lfs.transfer.maxRetryTime`
++
+Specifies the maximum time in seconds LFS will wait before aborting a
+transfer when a server requests a delay using the `Retry-After` header.
+If the server indicates a wait time longer than this value, LFS will
+log a warning and mark the transfer as failed rather than sleeping for
+the full requested duration.
++
+Must be an integer which is at least one. If the value is not an integer,
+is less than one, or is not given, a value of 300 will be used instead.
 * `lfs.transfer.maxverifies`
 +
 Specifies how many verification requests LFS will attempt per OID before

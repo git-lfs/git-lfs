@@ -187,3 +187,79 @@ begin_test "batch storage HTTP download causes retries (missing header)"
   popd
 )
 end_test
+
+begin_test "batch storage HTTP upload fails when Retry-After exceeds maxRetryTime"
+(
+  set -e
+
+  reponame="batch-storage-upload-retry-later-exceeds-max"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git config lfs.transfer.maxRetryTime 5
+
+  # This content announces to the server that it should respond to all
+  # object storage PUT requests with a 429 Too Many Requests
+  # status code and a Retry-After header until at least 10 seconds
+  # have passed after the first object storage PUT request.
+  contents="storage-upload-retry-later"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep -E "tq: refusing to retry \"$oid\", retry after [0-9]*s exceeds maximum 5s" push.log
+
+  refute_server_object "$reponame" "$oid"
+)
+end_test
+
+begin_test "batch storage HTTP download fails when Retry-After exceeds maxRetryTime"
+(
+  set -e
+
+  reponame="batch-storage-download-retry-later-exceeds-max"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  # This content announces to the server that it should respond to all
+  # object storage GET requests with a 429 Too Many Requests
+  # status code and a Retry-After header until at least 10 seconds
+  # have passed after the first object storage GET request.
+  contents="storage-download-retry-later"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+
+  git lfs track "*.dat"
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  git push origin main
+  assert_server_object "$reponame" "$oid"
+
+  pushd ..
+    git \
+      -c "filter.lfs.process=" \
+      -c "filter.lfs.smudge=cat" \
+      -c "filter.lfs.required=false" \
+      clone "$GITSERVER/$reponame" "$reponame-assert"
+
+    cd "$reponame-assert"
+
+    git config credential.helper lfstest
+    git config lfs.transfer.maxRetryTime 5
+
+    GIT_TRACE=1 git lfs pull origin main 2>&1 | tee pull.log
+    [ 0 -ne "${PIPESTATUS[0]}" ]
+
+    grep -E "tq: refusing to retry \"$oid\", retry after [0-9]+s exceeds maximum 5s" pull.log
+
+    refute_local_object "$oid"
+  popd
+)
+end_test
