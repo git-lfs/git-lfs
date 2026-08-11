@@ -165,10 +165,10 @@ func ParseLines(r io.Reader) ([]Line, string, error) {
 
 		var line Line
 		if pattern != "" {
-			matchPattern := wildmatch.NewWildmatch(pattern,
-				wildmatch.Basename, wildmatch.SystemCase,
-				wildmatch.GitAttributes,
-			)
+			matchPattern, err := newPattern(pattern)
+			if err != nil {
+				return nil, "", err
+			}
 			line = &patternLine{matchPattern, lineAttrs}
 		} else {
 			line = &macroLine{macro, lineAttrs}
@@ -181,6 +181,19 @@ func ParseLines(r io.Reader) ([]Line, string, error) {
 		return nil, "", err
 	}
 	return lines, splitter.LineEnding(), nil
+}
+
+func newPattern(pattern string) (matchPattern *wildmatch.Wildmatch, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = errors.New(tr.Tr.Get("invalid attribute pattern %q: %v", pattern, recovered))
+		}
+	}()
+
+	return wildmatch.NewWildmatch(pattern,
+		wildmatch.Basename, wildmatch.SystemCase,
+		wildmatch.GitAttributes,
+	), nil
 }
 
 // copies bufio.ScanLines(), counting LF vs CRLF in a file

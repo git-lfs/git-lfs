@@ -121,6 +121,26 @@ begin_test "post-checkout"
 )
 end_test
 
+begin_test "post-checkout with an invalid attribute pattern"
+(
+  set -e
+
+  reponame="post-checkout-invalid-attribute-pattern"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  echo 'Chromium[[:space]]Embedded[[:space]]Framework lockable' >.gitattributes
+
+  GIT_TRACE=1 git lfs post-checkout \
+    0000000000000000000000000000000000000000 \
+    0000000000000000000000000000000000000000 1 2>&1 | tee post-checkout.log
+
+  grep 'invalid attribute pattern "Chromium\[\[:space\]\]Embedded\[\[:space\]\]Framework": unclosed character class' post-checkout.log
+  [ "0" -eq "$(grep -c "panic:" post-checkout.log)" ]
+)
+end_test
+
 begin_test "post-checkout with subdirectories"
 (
   set -e

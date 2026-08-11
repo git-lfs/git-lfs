@@ -173,6 +173,7 @@ func AttrPathsFromReader(mp *MacroProcessor, fpath, workingDir string, rdr io.Re
 
 	lines, eol, err := ParseLines(rdr)
 	if err != nil {
+		tracerx.Printf("Error parsing attributes from %s: %v", fpath, err)
 		return nil
 	}
 
