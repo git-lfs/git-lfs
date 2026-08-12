@@ -57,6 +57,11 @@ type Environment interface {
 	All() map[string][]string
 }
 
+type orderedEnvironment interface {
+	Environment
+	SourceIndex(key string) (int, bool)
+}
+
 type environment struct {
 	// Fetcher is the `environment`'s source of data.
 	Fetcher Fetcher
@@ -93,6 +98,13 @@ func (e *environment) Int64(key string, def int64) int64 {
 
 func (e *environment) All() map[string][]string {
 	return e.Fetcher.All()
+}
+
+func (e *environment) SourceIndex(key string) (int, bool) {
+	if fetcher, ok := e.Fetcher.(orderedFetcher); ok {
+		return fetcher.SourceIndex(key)
+	}
+	return 0, false
 }
 
 // Int returns the int value associated with the given value, or the value

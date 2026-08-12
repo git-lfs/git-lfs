@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,5 +71,42 @@ func TestURLConfig(t *testing.T) {
 	for rawurl, expected := range getAll {
 		values := u.GetAll("http", rawurl, "key")
 		assert.Equal(t, expected, values, "get all: "+rawurl)
+	}
+}
+
+func TestURLConfigEqualMatchesFollowConfigOrder(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		config string
+		want   string
+	}{
+		{
+			name: "trailing slash last",
+			config: "http.https://host.com.key=without slash\n" +
+				"http.https://host.com/.key=with slash",
+			want: "with slash",
+		},
+		{
+			name: "trailing slash first",
+			config: "http.https://host.com/.key=with slash\n" +
+				"http.https://host.com.key=without slash",
+			want: "without slash",
+		},
+		{
+			name: "same key repeated last",
+			config: "http.https://host.com.key=first\n" +
+				"http.https://host.com/.key=with slash\n" +
+				"http.https://host.com.key=last",
+			want: "last",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fetcher, _, _ := readGitConfig(git.ParseConfigLines(test.config, false))
+			u := NewURLConfig(EnvironmentOf(fetcher))
+
+			value, ok := u.Get("http", "https://host.com/repo", "key")
+			assert.True(t, ok)
+			assert.Equal(t, test.want, value)
+		})
 	}
 }

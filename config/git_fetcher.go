@@ -12,12 +12,15 @@ import (
 )
 
 type GitFetcher struct {
-	vmu  sync.RWMutex
-	vals map[string][]string
+	vmu   sync.RWMutex
+	vals  map[string][]string
+	order map[string]int
 }
 
 func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
+	order := make(map[string]int)
+	nextIndex := 0
 	ignored := make([]string, 0)
 
 	extensions = make(map[string]Extension)
@@ -97,6 +100,8 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 				continue
 			}
 
+			order[key] = nextIndex
+			nextIndex++
 			vals[key] = append(vals[key], val)
 		}
 	}
@@ -108,7 +113,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 		}
 	}
 
-	gf = &GitFetcher{vals: vals}
+	gf = &GitFetcher{vals: vals, order: order}
 
 	return
 }
@@ -151,6 +156,15 @@ func (g *GitFetcher) All() map[string][]string {
 	}
 
 	return newmap
+}
+
+// SourceIndex returns a configuration key's last position in source order.
+func (g *GitFetcher) SourceIndex(key string) (int, bool) {
+	g.vmu.RLock()
+	defer g.vmu.RUnlock()
+
+	index, ok := g.order[g.caseFoldKey(key)]
+	return index, ok
 }
 
 func (g *GitFetcher) caseFoldKey(key string) string {

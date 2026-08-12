@@ -20,3 +20,9 @@ type Fetcher interface {
 	// environment.
 	All() map[string][]string
 }
+
+// orderedFetcher provides access to configuration key positions in source order.
+// Fetchers which do not preserve source order need not implement it.
+type orderedFetcher interface {
+	SourceIndex(key string) (int, bool)
+}

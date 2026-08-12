@@ -58,10 +58,11 @@ func (c *URLConfig) Bool(prefix, rawurl, key string, def bool) bool {
 
 func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 	type urlMatch struct {
-		key       string // The full configuration key
-		hostScore int    // A score indicating the strength of the host match
-		pathScore int    // A score indicating the strength of the path match
-		userMatch int    // Whether we matched on a username. 1 for yes, else 0
+		key         string // The full configuration key
+		hostScore   int    // A score indicating the strength of the host match
+		pathScore   int    // A score indicating the strength of the path match
+		userMatch   int    // Whether we matched on a username. 1 for yes, else 0
+		sourceIndex int    // The key's last position in Git configuration order
 	}
 
 	searchURL, err := url.Parse(rawurl)
@@ -70,6 +71,7 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 	}
 
 	config := c.git.All()
+	ordered, _ := c.git.(orderedEnvironment)
 
 	re := regexp.MustCompile(fmt.Sprintf(`\A%s\.(\S+)\.%s\z`, prefix, key))
 
@@ -93,6 +95,9 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 
 		match := urlMatch{
 			key: k,
+		}
+		if ordered != nil {
+			match.sourceIndex, _ = ordered.SourceIndex(k)
 		}
 
 		// Rule #1: Scheme must match exactly
@@ -152,7 +157,9 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 			continue
 		}
 
-		if match.pathScore == bestMatch.pathScore && match.userMatch > bestMatch.userMatch {
+		if match.pathScore == bestMatch.pathScore &&
+			(match.userMatch > bestMatch.userMatch ||
+				(match.userMatch == bestMatch.userMatch && match.sourceIndex > bestMatch.sourceIndex)) {
 			bestMatch = match
 			continue
 		}
