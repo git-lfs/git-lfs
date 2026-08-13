@@ -27,8 +27,10 @@ import (
 	"golang.org/x/net/http2"
 )
 
-const MediaType = "application/vnd.git-lfs+json"
-const RequestContentType = MediaType + "; charset=utf-8"
+const (
+	MediaType          = "application/vnd.git-lfs+json"
+	RequestContentType = MediaType + "; charset=utf-8"
+)
 
 const (
 	defaultConcurrentTransfers = 8
@@ -63,6 +65,8 @@ type Client struct {
 	TLSTimeout          int
 	ConcurrentTransfers int
 	SkipSSLVerify       bool
+
+	CanonicalizeHostname bool
 
 	Verbose          bool
 	DebuggingVerbose bool
@@ -101,19 +105,20 @@ func NewClient(ctx Context) *Client {
 	}
 
 	return &Client{
-		SSH:                 sshResolver,
-		DialTimeout:         gitEnv.Int("lfs.dialtimeout", 0),
-		KeepaliveTimeout:    gitEnv.Int("lfs.keepalive", 0),
-		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
-		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", DefaultConcurrentTransfers()),
-		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
-		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
-		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
-		gitEnv:              gitEnv,
-		osEnv:               osEnv,
-		uc:                  config.NewURLConfig(gitEnv),
-		sshTries:            gitEnv.Int("lfs.ssh.retries", 5),
-		credHelperContext:   creds.NewCredentialHelperContext(gitEnv, osEnv),
+		SSH:                  sshResolver,
+		DialTimeout:          gitEnv.Int("lfs.dialtimeout", 0),
+		KeepaliveTimeout:     gitEnv.Int("lfs.keepalive", 0),
+		TLSTimeout:           gitEnv.Int("lfs.tlstimeout", 0),
+		ConcurrentTransfers:  gitEnv.Int("lfs.concurrenttransfers", DefaultConcurrentTransfers()),
+		SkipSSLVerify:        !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
+		CanonicalizeHostname: gitEnv.Bool("lfs.negotiateAccess.canonicalizeHostname", true),
+		Verbose:              osEnv.Bool("GIT_CURL_VERBOSE", false),
+		DebuggingVerbose:     osEnv.Bool("LFS_DEBUG_HTTP", false),
+		gitEnv:               gitEnv,
+		osEnv:                osEnv,
+		uc:                   config.NewURLConfig(gitEnv),
+		sshTries:             gitEnv.Int("lfs.ssh.retries", 5),
+		credHelperContext:    creds.NewCredentialHelperContext(gitEnv, osEnv),
 	}
 }
 
@@ -525,7 +530,10 @@ func (c *Client) Transport(u *url.URL, access creds.AccessMode) (http.RoundTripp
 	if access == creds.NegotiateAccess {
 		// This technically copies a mutex, but we know since we've just created
 		// the object that this mutex is unlocked.
-		return &spnego.Transport{Transport: *tr}, nil
+		return &spnego.Transport{
+			Transport:      *tr,
+			NoCanonicalize: !c.CanonicalizeHostname,
+		}, nil
 	}
 	return tr, nil
 }
@@ -671,7 +679,7 @@ func (e testEnv) Bool(key string, def bool) bool {
 
 func (e testEnv) All() map[string][]string {
 	m := make(map[string][]string)
-	for k, _ := range e {
+	for k := range e {
 		m[k] = e.GetAll(k)
 	}
 	return m
