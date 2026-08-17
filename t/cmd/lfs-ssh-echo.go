@@ -55,11 +55,18 @@ func checkSufficientArgs(offset int) {
 
 func main() {
 	// expect args:
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-authenticate REPO OPERATION"
-	//   lfs-ssh-echo [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-transfer REPO OPERATION"
-	//   lfs-ssh-echo git@127.0.0.1 "git-upload-pack REPO"
-	//   lfs-ssh-echo git@127.0.0.1 "git-receive-pack REPO"
+	//   lfs-ssh-echo [-v[v[v]]] [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-authenticate REPO OPERATION"
+	//   lfs-ssh-echo [-v[v[v]]] [-p PORT [--]] git@127.0.0.1[.invalid] "git-lfs-transfer REPO OPERATION"
+	//   lfs-ssh-echo [-v[v[v]]] git@127.0.0.1 "git-upload-pack REPO"
+	//   lfs-ssh-echo [-v[v[v]]] git@127.0.0.1 "git-receive-pack REPO"
+
 	offset := 1
+
+	checkSufficientArgs(offset)
+	switch os.Args[offset] {
+	case "-v", "-vv", "-vvv":
+		offset += 1
+	}
 
 	checkSufficientArgs(offset)
 	if masterArg, found := strings.CutPrefix(os.Args[offset], "-oControlMaster="); found {
