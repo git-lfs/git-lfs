@@ -135,12 +135,12 @@ func main() {
 		return
 	}
 
-	repo := remoteCmd[1]
+	repo := strings.TrimLeft(remoteCmd[1], "/")
 
 	switch repo {
-	case "/ssh-unavailable":
+	case "ssh-unavailable":
 		os.Exit(127)
-	case "/ssh-unavailable-message":
+	case "ssh-unavailable-message":
 		// Simulate the error message returned by a third-party utility
 		// which does not support the "git-lfs-authenticate" command.
 		fmt.Fprintf(os.Stderr, "fatal: Gerrit Code Review: git-lfs-authenticate: not found")
@@ -151,11 +151,11 @@ func main() {
 		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], repo),
 	}
 	switch repo {
-	case "/ssh-expired-absolute":
+	case "ssh-expired-absolute":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
-	case "/ssh-expired-relative":
+	case "ssh-expired-relative":
 		r.ExpiresIn = -5
-	case "/ssh-expired-both":
+	case "ssh-expired-both":
 		r.ExpiresAt = time.Now().Add(-5 * time.Minute)
 		r.ExpiresIn = -5
 	}
