@@ -141,8 +141,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Should be either "git-lfs-(authenticate|transfer) REPO OPERATION"
-	// or "git-(upload|receive)-pack REPO".
+	// Should be either "git-lfs-(authenticate|transfer) 'REPO' OPERATION"
+	// or "git-(upload|receive)-pack 'REPO'".
 	remoteCmd, err := shlex.Split(os.Args[offset+1])
 	if len(remoteCmd) < 2 || err != nil {
 		fmt.Fprintf(os.Stderr, "bad command line: %s\nargs: %v", remoteCmd, os.Args)

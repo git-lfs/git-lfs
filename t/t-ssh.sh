@@ -103,7 +103,7 @@ ssh_authenticate_unavailable_test() {
   # Requests to both the Locking API and the Batch API should fall back to
   # an HTTPS URL, which should in turn fail because the host name is invalid.
   if echo "$encoded_reponame" | grep -qF "%0A"; then
-    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /${encoded_reponame%%%0A-newline}" push.log)" ]
+    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate '/${encoded_reponame%%%0A-newline}" push.log)" ]
   else
     [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
   fi
@@ -313,3 +313,37 @@ ssh_injection_test() {
     assert_remote_object_reponame_complete "$reponame.git$exploit" "$contents_oid" "${#contents}"
   fi
 }
+
+for remote_cmd in "authenticate" "transfer"; do
+  begin_test "git-lfs-$remote_cmd with injected command (lfs.url)"
+  (
+    set -e
+
+    ssh_injection_test "$remote_cmd" "default" "url" "raw"
+  )
+  end_test
+
+  begin_test "git-lfs-$remote_cmd with injected command (lfs.url, URL-encoded) (GIT_SSH_COMMAND)"
+  (
+    set -e
+
+    ssh_injection_test "$remote_cmd" "custom" "url" "encoded"
+  )
+  end_test
+
+  begin_test "git-lfs-$remote_cmd with injected command (lfs.pushurl, command list) (GIT_SSH_COMMAND)"
+  (
+    set -e
+
+    ssh_injection_test "$remote_cmd" "custom" "pushurl" "raw-list"
+  )
+  end_test
+
+  begin_test "git-lfs-$remote_cmd with injected command (lfs.pushurl, URL-encoded newline)"
+  (
+    set -e
+
+    ssh_injection_test "$remote_cmd" "default" "pushurl" "encoded-newline"
+  )
+  end_test
+done
