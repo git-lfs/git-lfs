@@ -48,9 +48,9 @@ func newSingleCheckout(gitEnv config.Environment, remote string) abstractCheckou
 type abstractCheckout interface {
 	Manifest() tq.Manifest
 	Skip() bool
-	Run(*lfs.WrappedPointer)
+	Run(*lfs.WrappedPointer) error
 	RunToPath(*lfs.WrappedPointer, string) error
-	Close()
+	Close() error
 }
 
 type singleCheckout struct {
@@ -71,9 +71,9 @@ func (c *singleCheckout) Skip() bool {
 	return false
 }
 
-func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
+func (c *singleCheckout) Run(p *lfs.WrappedPointer) error {
 	if !c.hasWorkTree {
-		return
+		return nil
 	}
 
 	dirWalker := tools.NewDirWalkerForFile("", p.Name, cfg)
@@ -83,7 +83,7 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 	if err != nil {
 		if !os.IsNotExist(err) {
 			LoggedError(err, tr.Tr.Get("Checkout error trying to check path for %q: %s", p.Name, err))
-			return
+			return err
 		}
 	} else {
 		// Check the content - either missing or still this pointer (not exist is ok)
@@ -95,34 +95,34 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 			output, err := git.DiffIndexWithPaths("HEAD", true, []string{p.Name})
 			if err != nil {
 				LoggedError(err, tr.Tr.Get("Checkout error trying to run diff-index: %s", err))
-				return
+				return err
 			}
 			if strings.HasPrefix(output, ":100644 000000 ") || strings.HasPrefix(output, ":100755 000000 ") {
 				// This file is deleted in the index.  Don't try
 				// to check it out.
-				return
+				return nil
 			}
 		} else {
 			if errors.IsNotAPointerError(err) || errors.IsBadPointerKeyError(err) {
 				// File has non-pointer content, leave it alone
-				return
+				return nil
 			}
 
 			LoggedError(err, tr.Tr.Get("Checkout error for %q: %s", p.Name, err))
-			return
+			return err
 		}
 	}
 
 	if filepointer != nil && filepointer.Oid != p.Oid {
 		// User has probably manually reset a file to another commit
 		// while leaving it a pointer; don't mess with this
-		return
+		return nil
 	}
 
 	if err != nil && os.IsNotExist(err) {
 		if err := dirWalker.WalkAndCreate(); err != nil {
 			LoggedError(err, tr.Tr.Get("Checkout error trying to create path for %q: %s", p.Name, err))
-			return
+			return err
 		}
 	}
 
@@ -130,16 +130,20 @@ func (c *singleCheckout) Run(p *lfs.WrappedPointer) {
 		if errors.IsDownloadDeclinedError(err) {
 			// acceptable error, data not local (fetch not run or include/exclude)
 			Error(tr.Tr.Get("Skipped checkout for %q, content not local. Use fetch to download.", p.Name))
-		} else {
-			FullError(errors.Wrap(err, tr.Tr.Get("could not check out %q", p.Name)))
+			return nil
 		}
-		return
+
+		err = errors.Wrap(err, tr.Tr.Get("could not check out %q", p.Name))
+		FullError(err)
+		return err
 	}
 
 	// errors are only returned when the gitIndexer is starting a new cmd
 	if err := c.gitIndexer.Add(p.Name); err != nil {
 		Panic(err, tr.Tr.Get("Could not update the index"))
 	}
+
+	return nil
 }
 
 // RunToPath checks out the pointer specified by p to the given path.  It does
@@ -149,10 +153,13 @@ func (c *singleCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
 	return gitfilter.SmudgeToFile(path, p, false, c.manifest, nil)
 }
 
-func (c *singleCheckout) Close() {
+func (c *singleCheckout) Close() error {
 	if err := c.gitIndexer.Close(); err != nil {
 		LoggedError(err, "%s\n%s", tr.Tr.Get("Error updating the Git index:"), c.gitIndexer.Output())
+		return err
 	}
+
+	return nil
 }
 
 type noOpCheckout struct {
@@ -175,8 +182,8 @@ func (c *noOpCheckout) RunToPath(p *lfs.WrappedPointer, path string) error {
 	return nil
 }
 
-func (c *noOpCheckout) Run(p *lfs.WrappedPointer) {}
-func (c *noOpCheckout) Close()                    {}
+func (c *noOpCheckout) Run(p *lfs.WrappedPointer) error { return nil }
+func (c *noOpCheckout) Close() error                    { return nil }
 
 // Don't fire up the update-index command until we have at least one file to
 // give it. Otherwise git interprets the lack of arguments to mean param-less update-index
