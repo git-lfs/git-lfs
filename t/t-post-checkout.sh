@@ -209,3 +209,43 @@ begin_test "post-checkout with subdirectories"
   [ "$(cat file3.big)" == "file 3 updated in branch2" ]
 )
 end_test
+
+begin_test "post-checkout with an invalid attribute pattern"
+(
+  set -e
+
+  reponame="post-checkout-invalid-attribute-pattern"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+
+  # Test with a ".gitattributes" file which contains a pattern with
+  # an incomplete POSIX named character class ("[[:space]]").
+  # See https://github.com/git-lfs/git-lfs/issues/6120.
+  invalid_pattern="file[[:space:]]with[[:space]]incomplete_class"
+  echo "$invalid_pattern lockable" >.gitattributes
+
+  GIT_TRACE=1 git lfs post-checkout \
+    0000000000000000000000000000000000000000 \
+    0000000000000000000000000000000000000000 1 2>&1 | tee post-checkout.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  grep "Error parsing attributes from .*$(escape_path "$PATH_SEPARATOR")\.gitattributes: invalid attribute pattern" post-checkout.log
+  grep -F "invalid attribute pattern \"$invalid_pattern\": unclosed character class" post-checkout.log
+  [ 0 -eq "$(grep -c "panic:" post-checkout.log)" ]
+
+  # Test with a ".gitattributes" file which contains a pattern with
+  # an invalid POSIX named character class.
+  invalid_pattern="file[[:space:]]with[[:invalid:]]class"
+  echo "$invalid_pattern lockable" >.gitattributes
+
+  GIT_TRACE=1 git lfs post-checkout \
+    0000000000000000000000000000000000000000 \
+    0000000000000000000000000000000000000000 1 2>&1 | tee post-checkout.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  grep "Error parsing attributes from .*$(escape_path "$PATH_SEPARATOR")\.gitattributes: invalid attribute pattern" post-checkout.log
+  grep -F "invalid attribute pattern \"$invalid_pattern\": wildmatch: unknown class" post-checkout.log
+  [ 0 -eq "$(grep -c "panic:" post-checkout.log)" ]
+)
+end_test

@@ -146,6 +146,15 @@ func TestParseLinesUnbalancedQuotes(t *testing.T) {
 		"unbalanced quote: %s", text))
 }
 
+func TestParseLinesInvalidPattern(t *testing.T) {
+	const text = "Chromium[[:space]]Embedded binary"
+	lines, _, err := ParseLines(strings.NewReader(text))
+
+	assert.Empty(t, lines)
+	assert.EqualError(t, err,
+		"invalid attribute pattern \"Chromium[[:space]]Embedded\": unclosed character class")
+}
+
 func TestParseLinesWithNoAttributes(t *testing.T) {
 	lines, _, err := ParseLines(strings.NewReader("*.dat"))
 
