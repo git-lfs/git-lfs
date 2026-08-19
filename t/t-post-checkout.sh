@@ -230,7 +230,7 @@ begin_test "post-checkout with an invalid attribute pattern"
     0000000000000000000000000000000000000000 1 2>&1 | tee post-checkout.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  grep "Error parsing attributes from .*/\.gitattributes: invalid attribute pattern" post-checkout.log
+  grep "Error parsing attributes from .*$(escape_path "$PATH_SEPARATOR")\.gitattributes: invalid attribute pattern" post-checkout.log
   grep -F "invalid attribute pattern \"$invalid_pattern\": unclosed character class" post-checkout.log
   [ 0 -eq "$(grep -c "panic:" post-checkout.log)" ]
 
@@ -244,7 +244,7 @@ begin_test "post-checkout with an invalid attribute pattern"
     0000000000000000000000000000000000000000 1 2>&1 | tee post-checkout.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
-  grep "Error parsing attributes from .*/\.gitattributes: invalid attribute pattern" post-checkout.log
+  grep "Error parsing attributes from .*$(escape_path "$PATH_SEPARATOR")\.gitattributes: invalid attribute pattern" post-checkout.log
   grep -F "invalid attribute pattern \"$invalid_pattern\": wildmatch: unknown class" post-checkout.log
   [ 0 -eq "$(grep -c "panic:" post-checkout.log)" ]
 )
