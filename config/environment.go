@@ -55,11 +55,10 @@ type Environment interface {
 	// All returns a copy of all the key/value pairs for the current
 	// environment.
 	All() map[string][]string
-}
 
-type orderedEnvironment interface {
-	Environment
-	SourceIndex(key string) (int, bool)
+	// SortedAll returns all key/value pairs ordered by each key's final source
+	// occurrence, or nil when the underlying source does not retain ordering.
+	SortedAll() []EnvironmentEntry
 }
 
 type environment struct {
@@ -100,11 +99,11 @@ func (e *environment) All() map[string][]string {
 	return e.Fetcher.All()
 }
 
-func (e *environment) SourceIndex(key string) (int, bool) {
-	if fetcher, ok := e.Fetcher.(orderedFetcher); ok {
-		return fetcher.SourceIndex(key)
+func (e *environment) SortedAll() []EnvironmentEntry {
+	if fetcher, ok := e.Fetcher.(sortedFetcher); ok {
+		return fetcher.SortedAll()
 	}
-	return 0, false
+	return nil
 }
 
 // Int returns the int value associated with the given value, or the value

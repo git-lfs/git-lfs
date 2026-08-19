@@ -12,15 +12,15 @@ import (
 )
 
 type GitFetcher struct {
-	vmu   sync.RWMutex
-	vals  map[string][]string
-	order map[string]int
+	vmu      sync.RWMutex
+	vals     map[string][]string
+	order    []string
+	hasOrder bool
 }
 
 func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensions map[string]Extension, uniqRemotes map[string]bool) {
 	vals := make(map[string][]string)
-	order := make(map[string]int)
-	nextIndex := 0
+	order := make([]string, 0)
 	ignored := make([]string, 0)
 
 	extensions = make(map[string]Extension)
@@ -100,8 +100,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 				continue
 			}
 
-			order[key] = nextIndex
-			nextIndex++
+			order = append(order, key)
 			vals[key] = append(vals[key], val)
 		}
 	}
@@ -113,7 +112,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 		}
 	}
 
-	gf = &GitFetcher{vals: vals, order: order}
+	gf = &GitFetcher{vals: vals, order: order, hasOrder: true}
 
 	return
 }
@@ -158,13 +157,36 @@ func (g *GitFetcher) All() map[string][]string {
 	return newmap
 }
 
-// SourceIndex returns a configuration key's last position in source order.
-func (g *GitFetcher) SourceIndex(key string) (int, bool) {
+// SortedAll returns a copy of all key/value pairs, ordered by each key's last
+// occurrence in the Git configuration sources.
+func (g *GitFetcher) SortedAll() []EnvironmentEntry {
 	g.vmu.RLock()
 	defer g.vmu.RUnlock()
 
-	index, ok := g.order[g.caseFoldKey(key)]
-	return index, ok
+	if !g.hasOrder {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(g.vals))
+	entries := make([]EnvironmentEntry, 0, len(g.vals))
+	for i := len(g.order) - 1; i >= 0; i-- {
+		key := g.order[i]
+		if seen[key] {
+			continue
+		}
+
+		seen[key] = true
+		entries = append(entries, EnvironmentEntry{
+			Key:    key,
+			Values: append([]string(nil), g.vals[key]...),
+		})
+	}
+
+	for left, right := 0, len(entries)-1; left < right; left, right = left+1, right-1 {
+		entries[left], entries[right] = entries[right], entries[left]
+	}
+
+	return entries
 }
 
 func (g *GitFetcher) caseFoldKey(key string) string {

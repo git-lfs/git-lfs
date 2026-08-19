@@ -56,14 +56,10 @@ func (e *delayedEnvironment) All() map[string][]string {
 	return e.env.All()
 }
 
-// SourceIndex returns a configuration key's last position in source order when
-// available.
-func (e *delayedEnvironment) SourceIndex(key string) (int, bool) {
+// SortedAll returns all configuration entries in source order when available.
+func (e *delayedEnvironment) SortedAll() []EnvironmentEntry {
 	e.Load()
-	if env, ok := e.env.(orderedEnvironment); ok {
-		return env.SourceIndex(key)
-	}
-	return 0, false
+	return e.env.SortedAll()
 }
 
 // Load reads and parses the .gitconfig by calling ReadGitConfig. It

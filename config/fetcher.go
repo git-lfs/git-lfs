@@ -21,8 +21,15 @@ type Fetcher interface {
 	All() map[string][]string
 }
 
-// orderedFetcher provides access to configuration key positions in source order.
-// Fetchers which do not preserve source order need not implement it.
-type orderedFetcher interface {
-	SourceIndex(key string) (int, bool)
+// EnvironmentEntry contains all values associated with a configuration key.
+type EnvironmentEntry struct {
+	Key    string
+	Values []string
+}
+
+// sortedFetcher provides all configuration entries ordered by each key's final
+// source occurrence. Fetchers which do not preserve source order need not
+// implement it.
+type sortedFetcher interface {
+	SortedAll() []EnvironmentEntry
 }
