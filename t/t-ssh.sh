@@ -176,3 +176,140 @@ begin_test "SSH git-lfs-authenticate invalid URL"
   grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
 )
 end_test
+
+ssh_injection_test() {
+  local remote_cmd="$1"
+  local ssh_cmd="$2"
+  local url_option="$3"
+  local injection="$4"
+
+  set -e
+
+  if [ "$remote_cmd" = "transfer" ]; then
+    setup_pure_ssh
+  fi
+
+  reponame="ssh-injection-${remote_cmd}-${ssh_cmd}-${url_option}-${injection}"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.bin"
+
+  contents="test"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >test.bin
+
+  git add .gitattributes test.bin
+  git commit -m "initial commit"
+
+  # Disable lock verification to reduce the number of requests in the
+  # log file and simplify the checks for SSH remote command injection.
+  git config lfs.locksVerify false
+
+  newline=$'\n'
+  newline_exploit=0
+  case "$injection" in
+    *-list)
+      # Windows does not permit vertical bar characters in file paths.
+      [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+      exploit_delim="||"
+      ;;
+    *-newline)
+      # Windows does not permit ASCII control characters in file paths.
+      [ "$IS_WINDOWS" -eq 1 ] && exit 0
+
+      exploit_delim="$newline"
+
+      newline_exploit=1
+      ;;
+    *)
+      exploit_delim=";"
+      ;;
+  esac
+
+  exploit="${exploit_delim} touch exploit"
+
+  encoded_exploit="${exploit//$newline/%0a}"
+  encoded_exploit="${encoded_exploit// /%20}"
+  encoded_exploit="${encoded_exploit//;/%3b}"
+  encoded_exploit="${encoded_exploit//|/%7c}"
+
+  if [ "$remote_cmd" = "authenticate" ]; then
+    sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+
+    # Disable SSH object transfer support to reduce the number of requests
+    # in the log file and simplify the checks for SSH remote command injection.
+    git config lfs.sshTransfer never
+
+    if [ 1 -eq "$newline_exploit" ]; then
+      # The "git credential fill" command will reject a "path" attribute
+      # which contains a line feed (LF) character, so we avoid passing
+      # that attribute to the command.
+      git config --global --unset credential.useHttpPath
+    fi
+  else
+    sshurl="$(ssh_remote "$reponame")"
+    remote_repo_path="$(native_path "$REMOTEDIR/$reponame.git$exploit")"
+
+    # Enforce SSH object transfer support, which also precludes SSH
+    # authentication requests for HTTP credentials and therefore simplifies
+    # checks for SSH remote command injection during object transfers.
+    git config lfs.sshTransfer always
+
+    # The scutiger git-lfs-transfer utility will reject object transfer
+    # requests unless a "remote" repository already exists in which to
+    # store the objects.
+    #
+    # On Windows we use the path returned by "cygpath -w" to avoid problems
+    # with automatic MSYS2 file path conversion when the final component of
+    # the full path includes a semicolon character, as the Windows drive
+    # letter is otherwise miscalculated.  For example, "/d/..." is converted
+    # to "C:/d/..." instead of "D:/...".
+    git init "$remote_repo_path"
+  fi
+
+  case "$injection" in
+    encoded*)
+      sshurl_with_exploit="$sshurl$encoded_exploit"
+      ;;
+    *)
+      sshurl_with_exploit="$sshurl$exploit"
+      ;;
+  esac
+
+  git config "lfs.$url_option" "$sshurl_with_exploit"
+
+  if [ "$ssh_cmd" = "custom" ]; then
+    export GIT_SSH_COMMAND="lfs-ssh-echo -vvv"
+  fi
+
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  rc="${PIPESTATUS[0]}"
+
+  [ ! -f exploit ]
+
+  [ 0 -eq "$rc" ]
+
+  refute_server_object "$reponame" "$contents_oid"
+
+  if [ "$remote_cmd" = "authenticate" ]; then
+    # We expect the lfs-ssh-echo utility to simulate a JSON response from the
+    # git-lfs-authenticate command, with an "href" element whose value is a
+    # URL constructed from the git-lfs-authenticate command's first argument.
+    # This argument contains a shell meta-character, so we expect that
+    # character to appear in the URL-encoded response.  We then expect
+    # the HTTP object transfer to succeed into a repository whose name
+    # contains the meta-character.
+    #
+    # Note that we need to URL-encode the repository name for the curl(1)
+    # command run by the assert_server_object() assertion.
+    assert_server_object "$reponame$encoded_exploit" "$contents_oid"
+  else
+    # We expect the lfs-ssh-echo utility to invoke the git-lfs-transfer
+    # utility with a fully quoted repository path argument.  This argument
+    # contains a shell meta-character so we expect the object transfer to
+    # succeed into a repository whose name contains that character.
+    assert_remote_object_reponame_complete "$reponame.git$exploit" "$contents_oid" "${#contents}"
+  fi
+}
