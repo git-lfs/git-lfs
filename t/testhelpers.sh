@@ -236,9 +236,20 @@ assert_server_object() {
 # size is stored in the "remote" copy of a repository
 assert_remote_object() {
   local reponame="$1"
+  shift
+
+  assert_remote_object_reponame_complete "$reponame.git" "$@"
+}
+
+# assert_remote_object_reponame_complete() confirms that an object file with
+# the given OID and size is stored in the "remote" copy of a repository
+# whose complete name is provided, including any ".git" extension
+assert_remote_object_reponame_complete() {
+  local reponame="$1"
   local oid="$2"
   local size="$3"
-  local destination="$(canonical_path "$REMOTEDIR/$reponame.git")"
+
+  local destination="$(canonical_path "$REMOTEDIR/$reponame")"
 
   pushd "$destination"
     local f="$(local_object_path "$oid")"

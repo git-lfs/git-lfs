@@ -149,6 +149,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	// If "git-lfs-(authenticate|transfer) REPO; touch exploit OPERATION"
+	// is supplied (or an equivalent with another shell command delimiter),
+	// then simulate the "touch" command and return an error.
+	//
+	// This condition should not occur unless the Git LFS client fails to
+	// properly quote the REPO argument.  In this case we skip trying to
+	// execute "git-lfs-authenticate" or "git-lfs-transfer" since the
+	// latter would fail due to a missing final argument, and we want to
+	// avoid inadvertently running an arbitrary program named
+	// "git-lfs-authenticate" if one happens to exist.
+	if len(remoteCmd) > 3 &&
+		(remoteCmd[0] == "git-lfs-authenticate" || remoteCmd[0] == "git-lfs-transfer") &&
+		remoteCmd[2] == "touch" && remoteCmd[3] == "exploit" {
+		if file, err := os.OpenFile("exploit", os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error simulating command %q: %v", os.Args[offset+1], err)
+		} else {
+			file.Close()
+		}
+		fmt.Fprintf(os.Stderr, "simulated command %q", os.Args[offset+1])
+		os.Exit(0)
+	}
+
 	if remoteCmd[0] == "git-lfs-transfer" || remoteCmd[0] == "git-upload-pack" || remoteCmd[0] == "git-receive-pack" {
 		err := spawnCommand(os.Args[offset+1])
 		if err != nil {
