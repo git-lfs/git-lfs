@@ -133,7 +133,7 @@ class DistroMapProgram
   end
 
   def distro_markdown
-    arch = {
+    platform_architectures = {
       "rpm" => ".x86_64",
       "deb" => "_amd64",
     }
@@ -141,9 +141,10 @@ class DistroMapProgram
       "rpm" => "-",
       "deb" => "_",
     }
-    result = @dmap.entries.map do |_k, v|
-      type = v[:package_type]
-      "[#{v[:name]}](https://packagecloud.io/github/git-lfs/packages/#{v[:component]}/git-lfs#{separator[type]}VERSION#{v[:package_tag]}#{arch[type]}.#{type}/download)\n"
+    result = @dmap.entries.values.map do |entry|
+      type = entry[:package_type]
+      arch = platform_architectures[type]
+      "[#{entry[:name]}](https://packagecloud.io/github/git-lfs/packages/#{entry[:component]}/git-lfs#{separator[type]}VERSION#{entry[:package_tag]}#{arch}.#{type}/download)\n"
     end.join
     @stdout.puts result
   end
