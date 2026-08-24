@@ -106,7 +106,6 @@ class DistroMap
           "debian/trixie",             # EOL June 2030
           "debian/forky",              # Current testing (Debian 14)
           "linuxmint/gigi",            # LMDE LTS release based on Debian 13
-          "ubuntu/questing",           # EOL July 2026
           "ubuntu/resolute",           # EOL July 2031
         ]
       },
