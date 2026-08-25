@@ -106,7 +106,6 @@ class DistroMap
           "debian/trixie",             # EOL June 2030
           "debian/forky",              # Current testing (Debian 14)
           "linuxmint/gigi",            # LMDE LTS release based on Debian 13
-          "ubuntu/questing",           # EOL July 2026
           "ubuntu/resolute",           # EOL July 2031
         ]
       },
@@ -134,17 +133,25 @@ class DistroMapProgram
   end
 
   def distro_markdown
-    arch = {
-      "rpm" => ".x86_64",
-      "deb" => "_amd64",
+    platform_architectures = {
+      "rpm" => [
+        { arch: ".x86_64" },
+      ],
+      "deb" => [
+        { arch: "_amd64", name: "AMD64" },
+        { arch: "_arm64", name: "ARM64" },
+      ],
     }
     separator = {
       "rpm" => "-",
       "deb" => "_",
     }
-    result = @dmap.entries.map do |_k, v|
-      type = v[:package_type]
-      "[#{v[:name]}](https://packagecloud.io/github/git-lfs/packages/#{v[:component]}/git-lfs#{separator[type]}VERSION#{v[:package_tag]}#{arch[type]}.#{type}/download)\n"
+    result = @dmap.entries.values.map do |entry|
+      type = entry[:package_type]
+      platform_architectures[type].map do |arch|
+        arch_name = arch.key?(:name) ? " (#{arch[:name]})" : ""
+        "[#{entry[:name]}#{arch_name}](https://packagecloud.io/github/git-lfs/packages/#{entry[:component]}/git-lfs#{separator[type]}VERSION#{entry[:package_tag]}#{arch[:arch]}.#{type}/download)\n"
+      end.join
     end.join
     @stdout.puts result
   end
