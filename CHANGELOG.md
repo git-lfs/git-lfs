@@ -93,6 +93,44 @@ contributors:
 * Update release process documentation and scripts #5920 (@chrisd8088)
 * Update license copyright dates and minimum supported Git version #5921 (@chrisd8088)
 
+## 3.6.1 (3 December 2024)
+
+This release introduces a security fix for Linux, macOS, and Windows
+systems, which has been assigned CVE-2024-53263.
+
+When Git LFS requests credentials from Git for a remote host, it passes
+portions of the host's URL to the `git-credential(1)` command without
+checking for embedded line-ending control characters, and then sends any
+credentials it receives back from the Git credential helper to the
+remote host.  By inserting URL-encoded control characters such as
+line feed (LF) or carriage return (CR) characters into the URL, an
+attacker may be able to retrieve a user's Git credentials.
+
+By default Git LFS will now report an error if a line-ending control
+character (LF or CR) or a null byte (NUL) is found in any value Git LFS
+would otherwise pass to the `git-credential(1)` command.
+
+For users who depend on the ability to pass bare carriage return
+characters in a Git credential request, Git LFS will now honour the
+`credential.protectProtocol` Git configuration option.  If this option
+is set to `false`, Git LFS will allow carriage return characters in the
+values it sends to the `git-credential(1)` command.  This option will be
+introduced in Git as part of the remedy for the vulnerability in Git
+designated as CVE-2024-52006.
+
+Git LFS v3.6.1 will be released in coordination with releases from
+several other projects including Git, Git for Windows, and Git Credential
+Manager (GCM).
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* @Ry0taK for reporting this to us responsibly
+
+### Bugs
+
+* Reject bare line-ending control characters in Git credential requests (@chrisd8088)
+
 ## 3.6.0 (20 November 2024)
 
 This release is a feature release which includes support for multi-stage
@@ -174,6 +212,18 @@ contributors:
 * chore: fix function names in comment #5709 (@rustfix)
 * Include remote error when pure SSH protocol fails #5674 (@bk2204)
 * Build release assets with 1.22 #5673 (@bk2204)
+* Build release assets with Go 1.21 #5668 (@bk2204)
+* script/packagecloud: instantiate distro map properly #5662 (@bk2204)
+* Install msgfmt on Windows in CI and release workflows #5666 (@chrisd8088)
+
+## 3.5.1 (7 March 2024)
+
+This release is a patch release which includes some fixes to the release
+process to properly build assets.  It should have no user-visible changes from
+v3.5.0.
+
+### Misc
+
 * Build release assets with Go 1.21 #5668 (@bk2204)
 * script/packagecloud: instantiate distro map properly #5662 (@bk2204)
 * Install msgfmt on Windows in CI and release workflows #5666 (@chrisd8088)
@@ -264,6 +314,16 @@ contributors:
 * FAQ: add an entry about proxies #5445 (@bk2204)
 * tq/transfer_test.go: enable and fix all tests #5442 (@chrisd8088)
 * Add a single source of truth for distro info #5439 (@bk2204)
+
+## 3.4.1 (13 Dec 2023)
+
+This is a bugfix release which resolves a bug introduced in the
+v3.4.0 release, where Git LFS may crash if the Git credential manager
+returns credentials containing one or more empty fields.
+
+### Bugs
+
+* Fix a panic in the credential code #5490 (@bk2204)
 
 ## 3.4.0 (26 July 2023)
 
