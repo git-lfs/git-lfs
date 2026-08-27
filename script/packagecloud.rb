@@ -57,7 +57,7 @@ package_files.each do |full_path|
       # script and our attempt to upload over the existing package failed
       # because PackageCloud doesn't allow that. Ignore the failure since we
       # already have the package uploaded.
-      if result.response != '{"filename":["has already been taken"]}'
+      if result.response !~ /{"filename":\["'.*' has already been taken"\]}/
         raise "packagecloud put_package failed, error: #{result.response}"
       end
     end
