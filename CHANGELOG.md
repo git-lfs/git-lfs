@@ -1,5 +1,165 @@
 # Git LFS Changelog
 
+## 3.8.0 (27 August 2026)
+
+This release is a feature release which adds support for
+zstd-compressed object downloads and introduces several new options,
+including the ability to fetch Git LFS objects for a list of references
+piped to standard input and the ability to limit how long Git LFS
+will wait when instructed by a server to retry an HTTP request.
+
+Git LFS now determines the case sensitivity of filesystems from the
+`core.ignoreCase` Git configuration option, respects global and
+system-wide Git attribute files when migrating repositories, and
+tries the default Git LFS HTTP URL derived from an SSH URL when
+HTTP authentication via SSH is not available.
+
+This Git LFS release improves SSH session reuse, parses invalid
+custom transfer adapter configurations and invalid Git attribute
+patterns without crashing, handles file deletion conflicts on Windows
+in the same manner as Git, resolves remote-tracking branches for
+downloads correctly, avoids re-reading working tree files during
+`clean` filter operations since the files may be in an inconsistent
+state, and terminates lengthy or endless HTTP authentication sequences
+after a limited number of requests.
+
+Note that we now provide official packages and support for versions
+of Linux distributions based on Debian 13 ("trixie").  We also now
+provide a source code package with all of our Go module dependencies
+in a `vendor` directory.
+
+This release is built using Go v1.27 and therefore requires macOS
+version 13 (Ventura) or later on macOS systems.
+
+We would like to extend special thanks to the following open-source
+contributors:
+
+* @aymanbagabas for rectifying our authentication timeouts on 32-bit systems
+* @bk2204 for augmenting our filesystem case-sensitivity support
+* @cynix for solving a race condition in our `clean` filter
+* @Diamondemon for improving Git attribute parsing in our `migrate` command
+* @fzlzjerry for resolving a crash in our Git attribute parsing code
+* @joshfriend for multiple corrections to our SSH and transfer queue code
+* @jylenhof for describing a new installation utility in our documentation
+* @lawrence3699 for making our `unlock` command ignore missing files
+* @manturovDan and @tamaracvjetkovic for fixing an infinite HTTP recursion bug
+* @markshep-wbg for ensuring our locking commands honour the `--remote` option
+* @mzr for introducing support for zstd-compressed HTTP object downloads
+* @opohorel for correcting our lock verification error messages
+* @osasisorae for standardizing the ways to output our main manual page
+* @sambostock for editing the documentation of our `track` command
+* @stanhu for helping our `smudge` filter avoid deletion conflicts on Windows
+* @star-ga for adding advice on case-insensitive filename patterns to our FAQ
+* @TheRootDaemon for creating an option to limit HTTP retry delay times
+* @vikhik for documenting our `--no-rewrite` migration option more clearly
+* @ypfaff for preventing duplication of extra HTTP headers in our retry logic
+* @zbleness for implementing a fallback to our hybrid SSH/HTTP authentication
+* @zh1C for revising our `pointer` command to support pointer extensions
+
+### Features
+
+* Enhance LFS transfer retries with maximum retry time limit #6304 (@TheRootDaemon)
+* fall back to guessed endpoint when git-lfs-authenticate is unavailable #6286 (@zbleness)
+* add lfs.httpDownloadEncoding with zstd and gzip support #6196 (@mzr)
+* Use `core.ignorecase` to determine case sensitivity #6212 (@bk2204)
+* Full support of special attributes in `migrate` #6170 (@Diamondemon)
+* feat: git lfs pointer support extensions #6093 (@zh1C)
+* fetch: allow providing refs via stdin #6088 (@larsxschneider)
+
+### Bugs
+
+* gitattr: handle invalid wildmatch patterns #6324 (@fzlzjerry)
+* filter-process: Ignore file size in working copy when cleaning #6011 (@cynix)
+* Handle unknown object sizes in progress log and fix throttling #6288 (@chrisd8088)
+* Fix standalone adapter crash and ignore invalid custom adapter names #6252 (@chrisd8088)
+* Reuse SSH sessions when possible and only close at client exit #6266 (@chrisd8088)
+* locking: ignore missing files after unlock #6244 (@lawrence3699)
+* Fix remote ref resolution for download operations #6250 (@larsxschneider)
+* Fix concurrent map/struct races in sshCache and lazyManifest #6243 (@joshfriend)
+* Fix `--remote` option when a git push remote is set #6228 (@markshep-wbg)
+* Fix adapter reuse when server returns empty transfer adapter name #6240 (@joshfriend)
+* commands: fix format string type mismatch in lockverifier #6237 (@opohorel)
+* Fix extra header duplication on retry #6204 (@ypfaff)
+* tools: add RobustRemove() for Windows to handle file lock errors #6221 (@stanhu)
+* transform DoWithAuth from recursive to loop approach to prevent endless authentication attempts #6018 (@manturovDan)
+* lfshttp: fix auth response ExpiresIn data type #6200 (@aymanbagabas)
+* commands: show root help for -h #6172 (@osasisorae)
+* Handle `git lfs checkout` merge conflict option file paths correctly #6136 (@chrisd8088)
+* Support Macro in migrate `--fixup` #6126 (@Diamondemon)
+
+### Misc
+
+* Add missing patch version entries in primary change log #6334 (@chrisd8088)
+* Update Linux distributions and include Debian ARM64 links in releases #6333 (@chrisd8088)
+* Upgrade to Go v1.27 #6332 (@chrisd8088)
+* Remove stale Linux distributions before v3.8.0 release #6291 (@chrisd8088)
+* t/t-pre-push.sh: use calc\_oid\_file in URL optimization test #6287 (@larsxschneider)
+* Update tests to dynamically match internal program limits #6285 (@chrisd8088)
+* Update Go modules and Dependabot configuration #6278 (@chrisd8088)
+* Add corrupt object download tests #6274 (@chrisd8088)
+* Fix and revise chunked transfer encoding test #6273 (@chrisd8088)
+* Temporarily restore concurrency limit to historical fixed default #6258 (@chrisd8088)
+* Simplify client structure initializations #6254 (@chrisd8088)
+* Use consistent exit functions for all commands #6255 (@chrisd8088)
+* Add `--add-i386` option to RPM build script #6251 (@chrisd8088)
+* Update Linux distribution package list for v3.8.0 release #6248 (@chrisd8088)
+* Scale default concurrent transfers by CPU count #6241 (@joshfriend)
+* Fix and refactor HTTP encoding and retry tests #6207 (@chrisd8088)
+* Update Windows release signing action #6222 (@chrisd8088)
+* Simplify object storage directory traversals #6223 (@chrisd8088)
+* Upgrade to Go v1.26 and build separate Windows resource files on 386 and amd64 platforms #6220 (@chrisd8088)
+* Various gopls lint cleanups for package `git` #6211 (@bk2204)
+* Log additional HTTP request headers when tracing #6195 (@chrisd8088)
+* Docs: recommend bracket-glob patterns for cross-platform case safety in FAQ (refs #6187) #6192 (@star-ga)
+* Improve formatting of manual page synopses #6188 (@chrisd8088)
+* docs(README): add mise alternative method installation #6169 (@jylenhof)
+* Makefile,script: add vendored source release asset #6159 (@chrisd8088)
+* Correct and improve `grep -v` and `grep -c` usage in tests #6151 (@chrisd8088)
+* Add missing backticks around `--no-modify-attrs` #6154 (@sambostock)
+* Add missing options to manual pages and make JSON options consistent #6152 (@chrisd8088)
+* Detect invalid object IDs and repo names in test functions #6142 (@chrisd8088)
+* Use relative paths exclusively for internal checkout and pull operations #6140 (@chrisd8088)
+* Fix manual page formatting errors from AsciiDoc conversion #6138 (@chrisd8088)
+* Add a FAQ entry re memory usage by Git when cloning #6137 (@chrisd8088)
+* docs: Provide clearer instructions for non destructive imports #6111 (@vikhik)
+* Upgrade to Go 1.25 #6116 (@chrisd8088)
+* commands: use Exit() function to exit with a warning message #6095 (@larsxschneider)
+
+## 3.7.1 (16 October 2025)
+
+This release introduces security fixes for Linux, macOS, and Windows
+systems, which have been collectively assigned CVE-2025-26625.
+
+When populating a Git repository's working tree with the contents of
+Git LFS objects, certain Git LFS commands may write to files visible
+outside the current Git working tree if symbolic or hard links exist
+which collide with the paths of files tracked by Git LFS.
+
+Git LFS has resolved this problem by revising the `git lfs checkout` and
+`git lfs pull` commands so that they check for symbolic links in the same
+manner as performed by Git before writing to files in the working tree.
+These commands now also remove existing files in the working tree before
+writing new files in their place.
+
+As well, Git LFS has resolved a problem whereby the `git lfs checkout` and
+`git lfs pull` commands, when run in a bare repository, could write to
+files visible outside the repository.  While a specific and relatively
+unlikely set of conditions were required for this to occur, it is no
+longer possible under any circumstances.
+
+We would like to extend a special thanks to the following open-source
+contributors:
+
+* Apple Product Security for reporting this to us responsibly
+
+### Bugs
+
+* Detect symbolic links on checkout and pull (@chrisd8088)
+
+### Misc
+
+* Upgrade to Go 1.25 (@chrisd8088)
+
 ## 3.7.0 (26 June 2025)
 
 This release is a feature release which introduces several new options
