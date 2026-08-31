@@ -149,7 +149,7 @@ You can check for unreachable objects by default by setting
 `lfs.pruneverifyunreachablealways` to true.
 
 By default, `--verify-remote` halts execution if a file cannot be
-verified. Set `--when-unverified=continue` to not halt exceution but
+verified. Set `--when-unverified=continue` to not halt execution but
 continue deleting all objects that can be verified.
 
 == DEFAULT REMOTE
