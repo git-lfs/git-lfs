@@ -196,6 +196,7 @@ jobs:
         PACKAGECLOUD_TOKEN: ${{secrets.PACKAGECLOUD_TOKEN}}
   build-docker-arm:
     name: Build Linux ARM packages
+    environment: production
     runs-on: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@v7
