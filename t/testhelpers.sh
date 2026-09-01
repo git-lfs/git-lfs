@@ -59,8 +59,37 @@ refute_pointer() {
 # $ local_object_path "some-oid"
 local_object_path() {
   local oid="$1"
-  local cfg=`git lfs env | grep LocalMediaDir`
-  echo "${cfg#LocalMediaDir=}/${oid:0:2}/${oid:2:2}/$oid"
+
+  local lfsdir="$(git config lfs.storage)"
+  if [ -z "$lfsdir" ]; then
+    lfsdir="lfs"
+  fi
+
+  if ! is_absolute_path "$lfsdir"; then
+    # The --git-dir option is supported by "git rev-parse" since Git v2.0.0,
+    # while the --git-common-dir option was not introduced until v2.5.0.
+    local gitdir="$(canonical_path "$(git rev-parse --git-dir)")"
+
+    if [ -f "$gitdir/commondir" ] && [ ! -d "$gitdir/objects" ]; then
+      # We trim all trailing line-ending characters to match how Git
+      # reads the "commondir" file's contents.
+      local commondir="$(cat "$gitdir/commondir"; printf "EOF")"
+      commondir="${commondir%EOF}"
+      while [[ $commondir == *[$'\r\n'] ]]; do
+        commondir="${commondir%?}"
+      done
+
+      if is_absolute_path "$commondir"; then
+        gitdir="$commondir"
+      else
+        gitdir+="/$commondir"
+      fi
+    fi
+
+    lfsdir="$gitdir/$lfsdir"
+  fi
+
+  echo "${lfsdir}/objects/${oid:0:2}/${oid:2:2}/$oid"
 }
 
 # assert_local_object confirms that an object file is stored for the given oid &
@@ -923,6 +952,28 @@ canonical_path() {
 # realpath(3) were called on it, and then escapes it.
 canonical_path_escaped() {
   printf "%s" "$(escape_path "$(lfstest-realpath "$(native_path "$1")")")"
+}
+
+# is_absolute_path returns true (i.e., zero) if the given path is absolute.
+is_absolute_path() {
+  local path="$1"
+
+  if [ "$IS_WINDOWS" -eq 1 ]; then
+    # Note that drive-local relative paths such as "\Users" will be
+    # converted to absolute Unix-style paths by the "cygpath -u" command,
+    # so we check for them first and also handle UNC paths as well.
+    if [ "${path:0:1}" = '\' ]; then
+      [ "${path:1:1}" = '\' ]
+      return
+    fi
+
+    # In the Git Bash/MSYS2 environment, the "cygpath -u" command will
+    # convert paths with explicit drive letters such as "C:\Users" to
+    # absolute Unix-style paths with the form "/c/Users".
+    path="$(cygpath -u "$path")"
+  fi
+
+  [ "${path:0:1}" = '/' ]
 }
 
 cat_end() {
