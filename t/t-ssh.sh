@@ -28,7 +28,7 @@ begin_test "ssh with proxy command in lfs.url (default variant)"
   fi
 
   grep 'expected.*git@127.0.0.1' push.log
-  grep "lfs-ssh-echo -- -oProxyCommand" push.log
+  grep "lfs-ssh-echo '--' '-oProxyCommand[^']*'" push.log
 )
 end_test
 
@@ -58,7 +58,7 @@ begin_test "ssh with proxy command in lfs.url (custom variant)"
   fi
 
   grep 'expected.*git@127.0.0.1' push.log
-  grep "lfs-ssh-echo oProxyCommand" push.log
+  grep "lfs-ssh-echo 'oProxyCommand[^']*'" push.log
 )
 end_test
 

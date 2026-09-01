@@ -12,7 +12,6 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/git-lfs/v3/tools"
-	"github.com/rubyist/tracerx"
 )
 
 type sshVariant string
@@ -42,7 +41,6 @@ func GetLFSExeAndArgs(osEnv config.Environment, gitEnv config.Environment, meta 
 	exe, args, needShell, multiplexing, controlPath := GetExeAndArgs(osEnv, gitEnv, meta, multiplexDesired, multiplexControlPath)
 	args = append(args, strings.Join(subprocess.ShellQuote([]string{command, meta.Path, operation}), " "))
 	exe, args = FormatArgs(exe, args, needShell)
-	tracerx.Printf("run_command: %s %s", exe, strings.Join(args, " "))
 	return exe, args, multiplexing, controlPath
 }
 
