@@ -28,7 +28,7 @@ begin_test "ssh with proxy command in lfs.url (default variant)"
   fi
 
   grep 'expected.*git@127.0.0.1' push.log
-  grep "lfs-ssh-echo '--' '-oProxyCommand[^']*'" push.log
+  grep "lfs-ssh-echo -- '-oProxyCommand[^']*'" push.log
 )
 end_test
 
@@ -97,13 +97,19 @@ ssh_authenticate_unavailable_test() {
   git add .gitattributes test.dat
   git commit -m "initial commit"
 
+  # Disable SSH object transfer support to reduce the number of requests
+  # in the log file and simplify the checks of the "git-lfs-authenticate"
+  # command's arguments.
+  git config lfs.sshTransfer never
+
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
   [ 0 -ne "${PIPESTATUS[0]}" ]
 
   # Requests to both the Locking API and the Batch API should fall back to
   # an HTTPS URL, which should in turn fail because the host name is invalid.
   if echo "$encoded_reponame" | grep -qF "%0A"; then
-    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate '/${encoded_reponame%%%0A-newline}" push.log)" ]
+    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate '\\\\''/${encoded_reponame%%%0A-newline}" push.log)" ]
+    [ 2 -eq "$(grep -c "exec (cont\.): -newline'\\\\'' upload" push.log)" ]
   else
     [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
   fi
@@ -237,6 +243,7 @@ ssh_injection_test() {
 
   if [ "$remote_cmd" = "authenticate" ]; then
     sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+    log_match_path="/$reponame$exploit"
 
     # Disable SSH object transfer support to reduce the number of requests
     # in the log file and simplify the checks for SSH remote command injection.
@@ -251,6 +258,10 @@ ssh_injection_test() {
   else
     sshurl="$(ssh_remote "$reponame")"
     remote_repo_path="$(native_path "$REMOTEDIR/$reponame.git$exploit")"
+    log_match_path="$remote_repo_path"
+    if [ "$IS_WINDOWS" -eq 1 ]; then
+      log_match_path="/${log_match_path//\\//}"
+    fi
 
     # Enforce SSH object transfer support, which also precludes SSH
     # authentication requests for HTTP credentials and therefore simplifies
@@ -282,6 +293,14 @@ ssh_injection_test() {
 
   if [ "$ssh_cmd" = "custom" ]; then
     export GIT_SSH_COMMAND="lfs-ssh-echo -vvv"
+
+    log_match="sh -c '$GIT_SSH_COMMAND.*'\\\\''git-lfs-$remote_cmd '\\\\''\\\\'\\\\'''\\\\''$log_match_path'\\\\''\\\\'\\\\'''\\\\'' upload'\\\\'''"
+  else
+    log_match="lfs-ssh-echo.*'git-lfs-$remote_cmd '\\\\''$log_match_path'\\\\'' upload'"
+  fi
+
+  if [ 1 -eq "$newline_exploit" ]; then
+    IFS="$newline" read -d '' -r log_match log_cont_match <<<"$log_match" || true
   fi
 
   GIT_TRACE=1 git push origin main 2>&1 | tee push.log
@@ -290,6 +309,11 @@ ssh_injection_test() {
   [ ! -f exploit ]
 
   [ 0 -eq "$rc" ]
+
+  grep "exec: $log_match" push.log
+  if [ ! -z "$log_cont_match" ]; then
+    grep "exec (cont.): $log_cont_match" push.log
+  fi
 
   refute_server_object "$reponame" "$contents_oid"
 
