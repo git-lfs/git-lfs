@@ -11,7 +11,7 @@ require (
 	github.com/git-lfs/wildmatch/v2 v2.0.1
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/jmhodges/clock v1.2.0
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.19.2
 	github.com/leonelquinteros/gotext v1.7.2
 	github.com/mattn/go-isatty v0.0.24
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
