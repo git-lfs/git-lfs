@@ -6,6 +6,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testEnvironment map[string]string
+
+func (e testEnvironment) Get(key string) (string, bool) {
+	value, ok := e[key]
+	return value, ok
+}
+
+func (e testEnvironment) Bool(key string, def bool) bool {
+	value, ok := e[key]
+	if !ok {
+		return def
+	}
+	return value == "true"
+}
+
 func TestPatternMatch(t *testing.T) {
 	assertPatternMatch(t, "*",
 		"a",
@@ -104,6 +119,38 @@ func TestPatternMatch(t *testing.T) {
 	// Absolute
 	assertPatternMatch(t, "*.dat", "/path/to/sub/.git/test.dat")
 	assertPatternMatch(t, "**/.git", "/path/to/sub/.git")
+}
+
+func TestLiteralPathPattern(t *testing.T) {
+	pattern := NewLiteralPathPattern("dir/literal[1]*?.dat", nil)
+
+	assert.True(t, pattern.Match("dir/literal[1]*?.dat"))
+	assert.False(t, pattern.Match("dir/literal1x.dat"))
+	assert.False(t, pattern.Match("other/dir/literal[1]*?.dat"))
+}
+
+func TestLiteralPathPatternMatchesDirectoryContents(t *testing.T) {
+	pattern := NewLiteralPathPattern("dir/", nil)
+
+	assert.True(t, pattern.Match("dir"))
+	assert.True(t, pattern.Match("dir/file.dat"))
+	assert.True(t, pattern.Match("dir/nested/file.dat"))
+	assert.False(t, pattern.Match("directory/file.dat"))
+	assert.False(t, pattern.Match("other/dir/file.dat"))
+}
+
+func TestLiteralPathPatternRespectsCoreIgnoreCase(t *testing.T) {
+	pattern := NewLiteralPathPattern("Dir/File.dat", testEnvironment{"core.ignorecase": "true"})
+
+	assert.True(t, pattern.Match("dir/file.DAT"))
+	assert.False(t, pattern.Match("other/dir/file.dat"))
+}
+
+func TestLiteralPathPatternMatchesRepositoryRoot(t *testing.T) {
+	pattern := NewLiteralPathPattern(".", nil)
+
+	assert.True(t, pattern.Match("file.dat"))
+	assert.True(t, pattern.Match("dir/file.dat"))
 }
 
 func assertPatternMatch(t *testing.T, pattern string, filenames ...string) {

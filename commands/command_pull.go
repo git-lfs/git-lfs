@@ -17,6 +17,7 @@ import (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
+	args, paths := splitArgsAtDash(cmd, args)
 	requireGitVersion()
 	setupRepository()
 
@@ -29,6 +30,13 @@ func pullCommand(cmd *cobra.Command, args []string) {
 
 	includeArg, excludeArg := getIncludeExcludeArgs(cmd)
 	filter := buildFilepathFilter(cfg, includeArg, excludeArg, true)
+	if len(paths) > 0 {
+		var err error
+		filter, err = buildFilepathFilterForPaths(filter, paths)
+		if err != nil {
+			Exit(tr.Tr.Get("Invalid path argument: %s", err))
+		}
+	}
 	pull(filter)
 }
 
