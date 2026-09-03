@@ -63,6 +63,10 @@ var (
 	// migrateFixup is the flag indicating whether or not to infer the
 	// included and excluded filepath patterns.
 	migrateFixup bool
+
+	// migrateRewriteCommitHashesInCommitMessages is the flag indicating whether
+	// or not the commit hashes mentioned in commit messages should be rewritten
+	migrateRewriteCommitHashesInCommitMessages bool
 )
 
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
@@ -122,6 +126,8 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 		BlobFn:            opts.BlobFn,
 		TreePreCallbackFn: opts.TreePreCallbackFn,
 		TreeCallbackFn:    opts.TreeCallbackFn,
+
+		RewriteCommitHashesInCommitMessages: opts.RewriteCommitHashesInCommitMessages,
 	}, nil
 }
 
@@ -401,11 +407,13 @@ func init() {
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
+	importCmd.Flags().BoolVar(&migrateRewriteCommitHashesInCommitMessages, "rewrite-messages", false, "Rewrite commit hashes in commit messages")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
 	exportCmd.Flags().StringVar(&objectMapFilePath, "object-map", "", "Object map file")
 	exportCmd.Flags().StringVar(&exportRemote, "remote", "", "Remote from which to download objects")
+	exportCmd.Flags().BoolVar(&migrateRewriteCommitHashesInCommitMessages, "rewrite-messages", false, "Rewrite commit hashes in commit messages")
 
 	RegisterCommand("migrate", nil, func(cmd *cobra.Command) {
 		cmd.PersistentFlags().StringVarP(&includeArg, "include", "I", "", "Include a list of paths")
