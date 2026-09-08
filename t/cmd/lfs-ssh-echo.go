@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -137,6 +138,10 @@ func main() {
 
 	repo := strings.TrimLeft(remoteCmd[1], "/")
 
+	// We avoid using the url.PathEscape() function because it URL-encodes
+	// path separator ("/") characters.
+	urlRepo := (&url.URL{Path: repo}).EscapedPath()
+
 	switch repo {
 	case "ssh-unavailable":
 		os.Exit(127)
@@ -145,10 +150,12 @@ func main() {
 		// which does not support the "git-lfs-authenticate" command.
 		fmt.Fprintf(os.Stderr, "fatal: Gerrit Code Review: git-lfs-authenticate: not found")
 		os.Exit(1)
+	case "ssh-invalid-url":
+		urlRepo = repo + "\n-newline"
 	}
 
 	r := &sshResponse{
-		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], repo),
+		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], urlRepo),
 	}
 	switch repo {
 	case "ssh-expired-absolute":

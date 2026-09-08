@@ -128,3 +128,33 @@ begin_test "SSH git-lfs-authenticate unavailable message (fallback to HTTPS)"
   ssh_authenticate_unavailable_test "$reponame"
 )
 end_test
+
+begin_test "SSH git-lfs-authenticate invalid URL"
+(
+  set -e
+
+  # This repository name announces to the SSH test utility that it should
+  # return a JSON response containing a URL with invalid encoding.
+  reponame="ssh-invalid-url"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  sshurl="${GITSERVER/http:\/\//ssh://git@}/$reponame"
+  git config lfs.url "$sshurl"
+
+  git lfs track "*.bin"
+
+  contents="test"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >test.bin
+
+  git add .gitattributes test.bin
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 git push origin main 2>&1 | tee push.log
+  [ 0 -ne "${PIPESTATUS[0]}" ]
+
+  grep "batch request: parse \"$GITSERVER/$reponame\\\\n-newline.*\": net/url: invalid control character in URL" push.log
+  grep "Uploading LFS objects:   0% (0/1), 0 B" push.log
+)
+end_test
