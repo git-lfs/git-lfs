@@ -143,7 +143,7 @@ func main() {
 	urlRepo := (&url.URL{Path: repo}).EscapedPath()
 
 	switch repo {
-	case "ssh-unavailable":
+	case "ssh-unavailable", "ssh-unavailable\n-newline":
 		os.Exit(127)
 	case "ssh-unavailable-message":
 		// Simulate the error message returned by a third-party utility
