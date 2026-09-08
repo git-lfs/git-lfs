@@ -78,6 +78,8 @@ ssh_authenticate_unavailable_test() {
   setup_remote_repo "$reponame"
   clone_repo "$reponame" "$reponame"
 
+  encoded_reponame="${reponame/%-newline/%0A-newline}"
+
   # We construct an invalid host name (127.0.0.1.invalid) to guarantee that
   # the HTTPS fallback URL, which will default to port 443, cannot contact
   # any local or remote services not controlled by our test suite.
@@ -85,7 +87,7 @@ ssh_authenticate_unavailable_test() {
   gitserver_host="${gitserver_hostport/%:*/}"
   gitserver_port="${gitserver_hostport/#*:/}"
   invalid_host="$gitserver_host.invalid"
-  git config lfs.url "ssh://git@$invalid_host:$gitserver_port/$reponame"
+  git config lfs.url "ssh://git@$invalid_host:$gitserver_port/$encoded_reponame"
 
   git lfs track "*.dat"
 
@@ -100,9 +102,13 @@ ssh_authenticate_unavailable_test() {
 
   # Requests to both the Locking API and the Batch API should fall back to
   # an HTTPS URL, which should in turn fail because the host name is invalid.
-  [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
+  if echo "$encoded_reponame" | grep -qF "%0A"; then
+    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /${encoded_reponame%%%0A-newline}" push.log)" ]
+  else
+    [ 2 -eq "$(grep -c "exec: lfs-ssh-echo.*git-lfs-authenticate /$reponame upload" push.log)" ]
+  fi
   [ 2 -eq "$(grep -c -F "ssh: git@$invalid_host does not provide git-lfs-authenticate, falling back to guessed LFS endpoint" push.log)" ]
-  [ 2 -eq "$(grep -c -F "HTTP: POST https://$invalid_host/$reponame/" push.log)" ]
+  [ 2 -eq "$(grep -c -F "HTTP: POST https://$invalid_host/$encoded_reponame/" push.log)" ]
 }
 
 begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS)"
@@ -112,6 +118,18 @@ begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS)"
   # This repository name announces to the SSH test utility that it should
   # exit as if the "git-lfs-authenticate" command was not found.
   reponame="ssh-unavailable"
+  ssh_authenticate_unavailable_test "$reponame"
+)
+end_test
+
+begin_test "SSH git-lfs-authenticate unavailable (fallback to HTTPS, URL-encoded newline)"
+(
+  set -e
+
+  # This repository name (after a line feed character is interpolated)
+  # announces to the SSH test utility that it should exit as if the
+  # "git-lfs-authenticate" command was not found.
+  reponame="ssh-unavailable-newline"
   ssh_authenticate_unavailable_test "$reponame"
 )
 end_test
