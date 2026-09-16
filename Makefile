@@ -532,7 +532,6 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 			echo "Signing $$i ..." && \
 			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$i" && \
 			echo "Notarizing $$i ..." && \
-			jq -e ".notarize.path = \"$$i\" | .apple_id.username = \"$(DARWIN_DEV_USER)\"" script/macos/manifest.json > "$$temp/manifest.json"; \
 			for j in 1 2 3; \
 			do \
 				script/notarize "$$i" && break; \
