@@ -83,23 +83,12 @@ TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 # GZIP is the "gzip" command.
 GZIP ?= gzip
 
-# CERT_SHA1 is the SHA-1 hash of the Windows code-signing cert to use.  The
-# actual signature is made with SHA-256.
-CERT_SHA1 ?= 30a531ed3a246d3d07a4273adaef31552bf6473a
-
 # CERT_FILE is the PKCS#12 file holding the certificate.
 CERT_FILE ?=
 
 # CERT_PASS is the password for the certificate.  It must not contain
 # double-quotes.
 CERT_PASS ?=
-
-# CERT_ARGS are additional arguments to pass when signing Windows binaries.
-ifneq ("$(CERT_FILE)$(CERT_PASS)","")
-CERT_ARGS ?= -f "$(CERT_FILE)" -p "$(CERT_PASS)"
-else
-CERT_ARGS ?= -sha1 $(CERT_SHA1)
-endif
 
 # DARWIN_KEYCHAIN_ID is the name of the keychain (with suffix) where the
 # certificate is located.
@@ -125,9 +114,6 @@ XGOTEXT ?= xgotext
 
 # CODESIGN is the macOS signing tool.
 CODESIGN ?= codesign
-
-# SIGNTOOL is the Windows signing tool.
-SIGNTOOL ?= signtool.exe
 
 # FORCE_LOCALIZE forces localization to be run if set to non-empty.
 FORCE_LOCALIZE ?=
