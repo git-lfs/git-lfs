@@ -83,17 +83,6 @@ TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 # GZIP is the "gzip" command.
 GZIP ?= gzip
 
-# CERT_FILE is the PKCS#12 file holding the certificate.
-CERT_FILE ?=
-
-# CERT_PASS is the password for the certificate.  It must not contain
-# double-quotes.
-CERT_PASS ?=
-
-# DARWIN_KEYCHAIN_ID is the name of the keychain (with suffix) where the
-# certificate is located.
-DARWIN_KEYCHAIN_ID ?= lfs.keychain
-
 export DARWIN_DEV_USER DARWIN_DEV_PASS DARWIN_DEV_TEAM
 
 # SOURCES is a listing of all .go files in this and child directories, excluding
@@ -111,9 +100,6 @@ MO = $(patsubst po/%.po,po/build/%.mo,$(PO))
 
 # XGOTEXT is the string extractor for gotext.
 XGOTEXT ?= xgotext
-
-# CODESIGN is the macOS signing tool.
-CODESIGN ?= codesign
 
 # FORCE_LOCALIZE forces localization to be run if set to non-empty.
 FORCE_LOCALIZE ?=
@@ -520,47 +506,29 @@ release-windows-rebuild: bin/releases/git-lfs-windows-assets-$(VERSION).tar.gz
 # be run on a macOS machine with a suitable version of XCode.
 .PHONY : release-darwin
 release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/git-lfs-darwin-arm64-$(VERSION).zip
-	@cert_id=$$(security find-identity -vp codesigning $(DARWIN_KEYCHAIN_ID) | grep '^ *1)' | awk '{print $$2}') && \
+	@status="1" && \
+	root="$$(pwd -P)" && \
+	script/macos/create-keychain && \
 	for i in $^; do \
-		temp=$$(mktemp -d) && \
-		root=$$(pwd -P) && \
+		temp="$$(mktemp -d)" && \
 		( \
 			$(BSDTAR) -C "$$temp" -xf "$$i" && \
 			echo "Signing git-lfs binary for $$i ..." && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$temp/$(PREFIX)/git-lfs" && \
+			script/macos/codesign "$$temp/$(PREFIX)/git-lfs" && \
 			(cd "$$temp" && $(BSDTAR) --format zip -cf "$$root/$$i" "$(PREFIX)") && \
 			echo "Signing $$i ..." && \
-			$(CODESIGN) --keychain $(DARWIN_KEYCHAIN_ID) -s "$$cert_id" --force --timestamp -v --options runtime "$$i" && \
+			script/macos/codesign "$$i" && \
 			echo "Notarizing $$i ..." && \
-			for j in 1 2 3; \
-			do \
+			for j in 1 2 3; do \
 				script/notarize "$$i" && break; \
 			done; \
 		); \
-		status="$$?"; [ -n "$$temp" ] && $(RM) -r "$$temp"; [ "$$status" -eq 0 ] || exit "$$status"; \
-	done
-
-.PHONY : release-write-certificate
-release-write-certificate:
-	@echo "Writing certificate to $(CERT_FILE)"
-	@echo "$$CERT_CONTENTS" | base64 --decode >"$$CERT_FILE"
-	@printf 'Wrote %d bytes (SHA256 %s) to certificate file\n' $$(wc -c <"$$CERT_FILE") $$(shasum -ba 256 "$$CERT_FILE" | cut -d' ' -f1)
-
-# release-import-certificate imports the given certificate into the macOS
-# keychain "lfs".  It is not generally recommended to run this on a user system,
-# since it creates a new keychain and modifies the keychain search path.
-.PHONY : release-import-certificate
-release-import-certificate:
-	@[ -n "$(CI)" ] || { echo "Don't run this target by hand." >&2; false; }
-	@echo "Creating keychain"
-	security create-keychain -p default $(DARWIN_KEYCHAIN_ID)
-	security set-keychain-settings $(DARWIN_KEYCHAIN_ID)
-	security unlock-keychain -p default $(DARWIN_KEYCHAIN_ID)
-	@echo "Importing certificate from $(CERT_FILE)"
-	@security import "$$CERT_FILE" -f pkcs12 -k $(DARWIN_KEYCHAIN_ID) -P "$$CERT_PASS" -A
-	@echo "Verifying import and setting permissions"
-	security default-keychain -s $(DARWIN_KEYCHAIN_ID)
-	security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k default $(DARWIN_KEYCHAIN_ID) >/dev/null
+		status="$$?"; \
+		[ -n "$$temp" ] && $(RM) -rf "$$temp"; \
+		[ "$$status" -eq 0 ] || break; \
+	done; \
+	script/macos/remove-keychain; \
+	[ "$$status" -eq 0 ] || exit "$$status"
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
 # to a specific kind or subset of tests to run.

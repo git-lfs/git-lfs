@@ -120,17 +120,13 @@ jobs:
     - run: make release
       env:
           FORCE_LOCALIZE: true
-    - run: CERT_FILE="$HOME/cert.p12" make release-write-certificate
-      env:
-        CERT_CONTENTS: ${{secrets.GATEWATCHER_DEVELOPER_ID_CERT}}
-    - run: CERT_FILE="$HOME/cert.p12" make release-import-certificate
-      env:
-        CERT_PASS: ${{secrets.GATEWATCHER_DEVELOPER_ID_PASSWORD}}
     - run: make release-darwin
       env:
         DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
         DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
         DARWIN_DEV_TEAM: ${{secrets.MACOS_DEV_TEAM}}
+        DEVELOPER_ID_CERT: ${{secrets.GATEWATCHER_DEVELOPER_ID_CERT}}
+        DEVELOPER_ID_PASSWORD: ${{secrets.GATEWATCHER_DEVELOPER_ID_PASSWORD}}
     - uses: actions/upload-artifact@v7
       with:
         name: macos-assets
