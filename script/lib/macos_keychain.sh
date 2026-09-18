@@ -3,6 +3,8 @@
 KEYCHAIN_ID="lfs.keychain-db"
 KEYCHAIN_PATH="$HOME/Library/Keychains/${KEYCHAIN_ID}"
 
+KEYCHAIN_NOTARIZATION_PROFILE="notarytool-profile"
+
 check_var_exists() {
   var="$1"
   val="$(eval echo "\$$var")"

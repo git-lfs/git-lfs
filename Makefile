@@ -83,8 +83,6 @@ TAR_XFORM_CMD ?= $(shell $(TAR) --version | grep -q 'GNU tar' && echo 's')
 # GZIP is the "gzip" command.
 GZIP ?= gzip
 
-export DARWIN_DEV_USER DARWIN_DEV_PASS DARWIN_DEV_TEAM
-
 # SOURCES is a listing of all .go files in this and child directories, excluding
 # that in vendor.
 SOURCES = $(shell find . -type f -name '*.go' | grep -v vendor)
@@ -520,7 +518,7 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 			script/macos/codesign "$$i" && \
 			echo "Notarizing $$i ..." && \
 			for j in 1 2 3; do \
-				script/notarize "$$i" && break; \
+				script/macos/notarize "$$i" && break; \
 			done; \
 		); \
 		status="$$?"; \

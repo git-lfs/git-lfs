@@ -122,11 +122,11 @@ jobs:
           FORCE_LOCALIZE: true
     - run: make release-darwin
       env:
-        DARWIN_DEV_USER: ${{secrets.MACOS_DEV_USER}}
-        DARWIN_DEV_PASS: ${{secrets.MACOS_DEV_PASS}}
-        DARWIN_DEV_TEAM: ${{secrets.MACOS_DEV_TEAM}}
         DEVELOPER_ID_CERT: ${{secrets.GATEWATCHER_DEVELOPER_ID_CERT}}
         DEVELOPER_ID_PASSWORD: ${{secrets.GATEWATCHER_DEVELOPER_ID_PASSWORD}}
+        APP_STORE_CONNECT_API_BASE64_PRIVATE_KEY: ${{secrets.GATEWATCHER_APP_STORE_CONNECT_API_BASE64_PRIVATE_KEY}}
+        APP_STORE_CONNECT_API_KEY_ID: ${{secrets.GATEWATCHER_APP_STORE_CONNECT_API_KEY_ID}}
+        APP_STORE_CONNECT_API_ISSUER_ID: ${{secrets.GATEWATCHER_APP_STORE_CONNECT_API_ISSUER_ID}}
     - uses: actions/upload-artifact@v7
       with:
         name: macos-assets

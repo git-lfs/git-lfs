@@ -1,7 +1,8 @@
 #!/bin/sh -e
 
-# Stores the signing credentials provided in the
-# DEVELOPER_ID_* environment variables into a dedicated keychain.
+# Stores the signing and notariziation credentials provided in the
+# DEVELOPER_ID_* and APP_STORE_CONNECT_API_* environment variables
+# into a dedicated keychain.
 
 . "$(dirname "$0")/../lib/macos_keychain.sh"
 
@@ -12,6 +13,9 @@ fi
 
 check_var_exists "DEVELOPER_ID_CERT"
 check_var_exists "DEVELOPER_ID_PASSWORD"
+check_var_exists "APP_STORE_CONNECT_API_BASE64_PRIVATE_KEY"
+check_var_exists "APP_STORE_CONNECT_API_KEY_ID"
+check_var_exists "APP_STORE_CONNECT_API_ISSUER_ID"
 
 password="$(head -c 40 /dev/urandom | base64)"
 
@@ -25,6 +29,7 @@ security default-keychain -s "$KEYCHAIN_ID"
 
 tmp_dir="$(mktemp -d "$HOME/$(basename "$0").XXXXXXXX")"
 cert_file="$tmp_dir/developer_id_cert.p12"
+key_file="$tmp_dir/app_store_connect_api_key.p8"
 
 set +e
 (
@@ -43,11 +48,25 @@ set +e
   echo "Setting '$KEYCHAIN_ID' keychain permissions ..."
   security "set-key-partition-list" -S "apple-tool:,apple:,codesign:" \
     -s -k "$password" "$KEYCHAIN_ID" >/dev/null
+
+  echo "Writing App Store Connect API key to PKCS#8 file ..."
+  echo "$APP_STORE_CONNECT_API_BASE64_PRIVATE_KEY" | \
+    base64 --decode >"$key_file"
+
+  printf 'Wrote %d bytes (SHA-256 %s) to key file\n' \
+    "$(wc -c <"$key_file")" "$(shasum -ba 256 "$key_file" | cut -d' ' -f1)"
+
+  echo "Storing App Store Connect API key and credentials in keychain ..."
+  xcrun notarytool store-credentials "$KEYCHAIN_NOTARIZATION_PROFILE" \
+    --keychain "$KEYCHAIN_PATH" \
+    --key "$key_file" \
+    --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
+    --issuer "$APP_STORE_CONNECT_API_ISSUER_ID"
 )
 status="$?"
 set -e
 
-echo "Cleaning up certificate file ..."
+echo "Cleaning up certificate and key files ..."
 rm -rf "$tmp_dir" || true
 
 exit "$status"
