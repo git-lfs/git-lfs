@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -105,7 +106,18 @@ func main() {
 	}
 
 	checkSufficientArgs(offset)
+	var port string
 	if os.Args[offset] == "-p" {
+		p, err := strconv.Atoi(os.Args[offset+1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "unable to parse port %q: %v", os.Args[offset+1], err)
+			os.Exit(1)
+		}
+		if p < 1 {
+			fmt.Fprintf(os.Stderr, "invalid port: %d", p)
+			os.Exit(1)
+		}
+		port = fmt.Sprintf(":%d", p)
 		offset += 2
 	}
 
@@ -155,7 +167,7 @@ func main() {
 	}
 
 	r := &sshResponse{
-		Href: fmt.Sprintf("http://127.0.0.1:%s/%s.git/info/lfs", os.Args[2], urlRepo),
+		Href: fmt.Sprintf("http://127.0.0.1%s/%s.git/info/lfs", port, urlRepo),
 	}
 	switch repo {
 	case "ssh-expired-absolute":
