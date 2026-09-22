@@ -676,3 +676,7 @@ func (e testEnv) All() map[string][]string {
 	}
 	return m
 }
+
+func (e testEnv) SortedAll() []config.EnvironmentEntry {
+	return nil
+}
