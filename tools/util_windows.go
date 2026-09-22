@@ -4,6 +4,7 @@
 package tools
 
 import (
+	"errors"
 	"io"
 	"os"
 	"unsafe"
@@ -20,7 +21,13 @@ var (
 // Instructs the file system to copy a range of file bytes on behalf of an application.
 //
 // https://docs.microsoft.com/windows/win32/api/winioctl/ni-winioctl-fsctl_duplicate_extents_to_file
-const fsctlDuplicateExtentsToFile = 623428
+const (
+	fsctlDuplicateExtentsToFile = 623428
+
+	// fileSupportsBlockRefcounting indicates that a volume supports block
+	// cloning through FSCTL_DUPLICATE_EXTENTS_TO_FILE.
+	fileSupportsBlockRefcounting = 0x08000000
+)
 
 // duplicateExtentsData = DUPLICATE_EXTENTS_DATA structure
 // Contains parameters for the FSCTL_DUPLICATE_EXTENTS control code that performs the Block Cloning operation.
@@ -95,10 +102,19 @@ func CloneFile(writer io.Writer, reader io.Reader) (success bool, err error) {
 	}
 
 	fileSize := srcStat.Size()
-
 	err = dst.Truncate(fileSize) // set file size. There is a requirement "The destination region must not extend past the end of file."
 	if err != nil {
 		return
+	}
+
+	// Some network file systems support block cloning but not volume
+	// information queries, so only skip the sync when the source volume
+	// explicitly reports that block cloning is unsupported.
+	blockCloningSupported, supportErr := volumeSupportsBlockCloning(src)
+	if fileSize > 0 && (supportErr != nil || blockCloningSupported) {
+		if err = syncFileBeforeClone(src); err != nil {
+			return false, err
+		}
 	}
 
 	offset := int64(0)
@@ -126,6 +142,41 @@ func CloneFile(writer io.Writer, reader io.Reader) (success bool, err error) {
 	}
 
 	return err == nil, err
+}
+
+func volumeSupportsBlockCloning(file *os.File) (bool, error) {
+	var flags uint32
+	err := windows.GetVolumeInformationByHandle(
+		windows.Handle(file.Fd()),
+		nil,
+		0,
+		nil,
+		nil,
+		&flags,
+		nil,
+		0,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return flags&fileSupportsBlockRefcounting != 0, nil
+}
+
+// syncFileBeforeClone commits the source contents to stable storage before a
+// block clone maps its disk extents into the destination. Checkout opens LFS
+// objects read-only, but FlushFileBuffers requires a handle with write access,
+// so open a short-lived writable handle to the same path for the sync.
+func syncFileBeforeClone(src *os.File) (err error) {
+	writable, err := os.OpenFile(src.Name(), os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, writable.Close())
+	}()
+
+	return writable.Sync()
 }
 
 // call FSCTL_DUPLICATE_EXTENTS_TO_FILE IOCTL
