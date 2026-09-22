@@ -67,6 +67,6 @@ status="$?"
 set -e
 
 echo "Cleaning up certificate and key files ..."
-rm -rf "$tmp_dir" || true
+rm -rf "$tmp_dir"
 
 exit "$status"

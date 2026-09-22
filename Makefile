@@ -525,7 +525,7 @@ release-darwin: bin/releases/git-lfs-darwin-amd64-$(VERSION).zip bin/releases/gi
 		[ -n "$$temp" ] && $(RM) -rf "$$temp"; \
 		[ "$$status" -eq 0 ] || break; \
 	done; \
-	script/macos/remove-keychain; \
+	script/macos/remove-keychain || status="$$?"; \
 	[ "$$status" -eq 0 ] || exit "$$status"
 
 # TEST_TARGETS is a list of all phony test targets. Each one of them corresponds
