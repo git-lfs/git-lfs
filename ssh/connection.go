@@ -2,6 +2,9 @@ package ssh
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -171,6 +174,10 @@ func (st *SSHTransfer) setConnectionCount(n int) error {
 				continue
 			}
 			tracerx.Printf("terminating pure SSH connection (#%d) (resetting total from %d to %d)", tn+i, count, n)
+			if st.controlPath != "" {
+				os.RemoveAll(filepath.Join(st.controlPath, ".."))
+				st.controlPath = ""
+			}
 			if err := item.End(); err != nil {
 				return err
 			}
@@ -192,11 +199,14 @@ func (st *SSHTransfer) setConnectionCount(n int) error {
 	}
 	if n == 0 && count > 0 {
 		tracerx.Printf("terminating pure SSH connection (#0) (resetting total from %d to %d)", count, n)
+		if st.controlPath != "" {
+			os.RemoveAll(filepath.Join(st.controlPath, ".."))
+			st.controlPath = ""
+		}
 		if err := st.conn[0].End(); err != nil {
 			return err
 		}
 		st.conn = nil
-		st.controlPath = ""
 	}
 	return nil
 }
