@@ -263,3 +263,21 @@ EOF
   assert_local_object "$bar_oid" "3"
 )
 end_test
+
+begin_test "migrate import (--rewrite-messages, --no-rewrite)"
+(
+  set -e
+
+  setup_single_local_branch_tracked_corrupt
+
+  git lfs migrate import --everything --rewrite-messages --yes --no-rewrite 2>&1 \
+    | tee migrate.log
+
+  if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+    echo >&2 "Expected 'git lfs migrate ...' to fail, didn't ..."
+    exit 1
+  fi
+
+  grep -qe "--no-rewrite and --rewrite-messages cannot be combined" migrate.log
+)
+end_test
