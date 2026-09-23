@@ -645,8 +645,18 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 	q.meter.Start()
 
 	toTransfer := make([]*Transfer, 0, len(bRes.Objects))
+	seenOids := make(map[string]struct{}, len(bRes.Objects))
 
 	for _, o := range bRes.Objects {
+		if _, seen := seenOids[o.Oid]; seen {
+			// A Batch response must list each OID at most once. Extra
+			// entries would otherwise be enqueued again and call wait.Done()
+			// a second time for the same Add(), panicking the WaitGroup.
+			q.errorc <- errors.New(tr.Tr.Get("[%v] The server returned a duplicate OID.", o.Oid))
+			continue
+		}
+		seenOids[o.Oid] = struct{}{}
+
 		if o.Error != nil {
 			q.errorc <- errors.Wrapf(o.Error, "[%v] %v", o.Oid, o.Error.Message)
 			q.Skip(o.Size)
