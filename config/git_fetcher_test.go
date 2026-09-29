@@ -37,22 +37,30 @@ func TestReadGitConfigKeys(t *testing.T) {
 	}{
 		{
 			name:   "lfs safe key",
-			config: "lfs.fetchinclude=/foo/bar",
+			config: "lfs.fetchinclude\n/foo/bar\x00",
 			expectedKeys: map[string][]string{
 				"lfs.fetchinclude": []string{"/foo/bar"},
 			},
 			safeKeys: []string{"lfs.fetchinclude"},
 		},
 		{
+			name:   "lfs safe key (value with newline)",
+			config: "lfs.fetchinclude\n/foo\n/bar\x00",
+			expectedKeys: map[string][]string{
+				"lfs.fetchinclude": []string{"/foo\n/bar"},
+			},
+			safeKeys: []string{"lfs.fetchinclude"},
+		},
+		{
 			name:   "lfs unsafe key",
-			config: "lfs.storage=/foo/bar",
+			config: "lfs.storage\n/foo/bar\x00",
 			expectedKeys: map[string][]string{
 				"lfs.storage": []string{"/foo/bar"},
 			},
 		},
 		{
 			name:   "lfs remote key",
-			config: "remote.origin.lfsurl=https://example.com/foo/bar.git/info/lfs",
+			config: "remote.origin.lfsurl\nhttps://example.com/foo/bar.git/info/lfs\x00",
 			expectedKeys: map[string][]string{
 				"remote.origin.lfsurl": []string{"https://example.com/foo/bar.git/info/lfs"},
 			},
@@ -60,7 +68,7 @@ func TestReadGitConfigKeys(t *testing.T) {
 		},
 		{
 			name:   "lfs remote key (multi-part subsection)",
-			config: "remote.other.origin.lfsurl=https://example.com/foo/bar.git/info/lfs",
+			config: "remote.other.origin.lfsurl\nhttps://example.com/foo/bar.git/info/lfs\x00",
 			expectedKeys: map[string][]string{
 				"remote.other.origin.lfsurl": []string{"https://example.com/foo/bar.git/info/lfs"},
 			},
@@ -68,22 +76,22 @@ func TestReadGitConfigKeys(t *testing.T) {
 		},
 		{
 			name:   "non-lfs remote key",
-			config: "remote.origin.pushurl=https://example.com/foo/bar.git",
+			config: "remote.origin.pushurl\nhttps://example.com/foo/bar.git\x00",
 			expectedKeys: map[string][]string{
 				"remote.origin.pushurl": []string{"https://example.com/foo/bar.git"},
 			},
 		},
 		{
 			name:   "non-lfs remote key (multi-part subsection)",
-			config: "remote.other.origin.pushurl=https://example.com/foo/bar.git",
+			config: "remote.other.origin.pushurl\nhttps://example.com/foo/bar.git\x00",
 			expectedKeys: map[string][]string{
 				"remote.other.origin.pushurl": []string{"https://example.com/foo/bar.git"},
 			},
 		},
 		{
 			name: "non-lfs remote key (multiple values)",
-			config: "remote.origin.pushurl=https://example.com/foo/bar.git\n" +
-				"remote.origin.pushurl=https://example.com/foo/baz.git",
+			config: "remote.origin.pushurl\nhttps://example.com/foo/bar.git\x00" +
+				"remote.origin.pushurl\nhttps://example.com/foo/baz.git\x00",
 			expectedKeys: map[string][]string{
 				"remote.origin.pushurl": []string{
 					"https://example.com/foo/bar.git",
@@ -93,35 +101,35 @@ func TestReadGitConfigKeys(t *testing.T) {
 		},
 		{
 			name:   "non-lfs remote key (empty value)",
-			config: "remote.origin.pushurl=",
+			config: "remote.origin.pushurl\n\x00",
 			expectedKeys: map[string][]string{
 				"remote.origin.pushurl": []string{""},
 			},
 		},
 		{
 			name:   "non-lfs remote key (no subsection)",
-			config: "remote.origin=unknown",
+			config: "remote.origin\nunknown\x00",
 			expectedKeys: map[string][]string{
 				"remote.origin": []string{"unknown"},
 			},
 		},
 		{
 			name:   "lfs remote default key",
-			config: "remote.lfsdefault=upstream",
+			config: "remote.lfsdefault\nupstream\x00",
 			expectedKeys: map[string][]string{
 				"remote.lfsdefault": []string{"upstream"},
 			},
 		},
 		{
 			name:   "non-lfs remote default key",
-			config: "remote.pushdefault=upstream",
+			config: "remote.pushdefault\nupstream\x00",
 			expectedKeys: map[string][]string{
 				"remote.pushdefault": []string{"upstream"},
 			},
 		},
 		{
 			name:   "lfs access key",
-			config: "lfs.https://example.com.access=basic",
+			config: "lfs.https://example.com.access\nbasic\x00",
 			expectedKeys: map[string][]string{
 				"lfs.https://example.com.access": []string{"basic"},
 			},
@@ -129,16 +137,16 @@ func TestReadGitConfigKeys(t *testing.T) {
 		},
 		{
 			name:   "non-lfs access key",
-			config: "other.example.access=none",
+			config: "other.example.access\nnone\x00",
 			expectedKeys: map[string][]string{
 				"other.example.access": []string{"none"},
 			},
 		},
 		{
 			name: "lfs custom transfer keys",
-			config: "lfs.customtransfer.demo.path=/usr/bin/demo\n" +
-				"lfs.customtransfer.demo.args=-v --quiet\n" +
-				"lfs.customtransfer.demo.direction=upload",
+			config: "lfs.customtransfer.demo.path\n/usr/bin/demo\x00" +
+				"lfs.customtransfer.demo.args\n-v --quiet\x00" +
+				"lfs.customtransfer.demo.direction\nupload\x00",
 			expectedKeys: map[string][]string{
 				"lfs.customtransfer.demo.path":      []string{"/usr/bin/demo"},
 				"lfs.customtransfer.demo.args":      []string{"-v --quiet"},
@@ -147,9 +155,9 @@ func TestReadGitConfigKeys(t *testing.T) {
 		},
 		{
 			name: "lfs extension keys",
-			config: "lfs.extension.demo.clean=ext-clean %f\n" +
-				"lfs.extension.demo.smudge=ext-smudge %f\n" +
-				"lfs.extension.demo.priority=1",
+			config: "lfs.extension.demo.clean\next-clean %f\x00" +
+				"lfs.extension.demo.smudge\next-smudge %f\x00" +
+				"lfs.extension.demo.priority\n1\x00",
 			expectedKeys: map[string][]string{
 				"lfs.extension.demo.clean":    []string{"ext-clean %f"},
 				"lfs.extension.demo.smudge":   []string{"ext-smudge %f"},

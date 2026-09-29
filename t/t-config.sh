@@ -346,3 +346,52 @@ begin_test "config: env with duplicate lfs.* values"
   [ 0 -eq "$(grep -c -F 'git config "remote.origin.pushurl"' env.log)" ]
 )
 end_test
+
+begin_test "config: newline in lfsconfig value does not inject another key"
+(
+  set -e
+
+  reponame="config-newline-lfsconfig"
+  git init "$reponame"
+  cd "$reponame"
+
+  # A newline embedded in one option's value must not be parsed as a
+  # separate option.  Here the value of the "lfs.fetchinclude" option
+  # attempts to inject an "lfs.url" option which would override the
+  # real endpoint because it would appear as the final "lfs.url" value.
+  git config --file=.lfsconfig lfs.url http://real-endpoint
+  git config --file=.lfsconfig lfs.fetchinclude \
+    "$(printf 'x\nlfs.url=http://injected-endpoint')"
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
+
+  # Stage the file and remove it from the working tree so that Git LFS reads
+  # the configuration from the index blob instead.
+  git add .lfsconfig
+  rm .lfsconfig
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
+
+  # Commit the file, then remove it from the index so that Git LFS reads
+  # the configuration from the HEAD blob instead.
+  git commit -m "add lfsconfig"
+  git rm --cached .lfsconfig
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
+)
+end_test
