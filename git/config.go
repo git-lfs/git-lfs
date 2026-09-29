@@ -50,7 +50,7 @@ func NewReadOnlyConfig(workdir, gitdir string) *Configuration {
 }
 
 func ParseConfigEntries(config string, onlySafeKeys bool) *ConfigurationSource {
-	entries := strings.Split(config, "\n")
+	entries := strings.Split(config, "\x00")
 
 	source := &ConfigurationSource{
 		Entries:      make([]ConfigurationEntry, 0, len(entries)),
@@ -58,7 +58,7 @@ func ParseConfigEntries(config string, onlySafeKeys bool) *ConfigurationSource {
 	}
 
 	for _, e := range entries {
-		fields := strings.SplitN(e, "=", 2)
+		fields := strings.SplitN(e, "\n", 2)
 
 		if len(fields) < 2 {
 			continue
@@ -212,7 +212,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 		return nil, err
 	}
 
-	out, err := c.gitConfig("-l", "-f", filename)
+	out, err := c.gitConfig("-l", "-z", "-f", filename)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 }
 
 func (c *Configuration) RevisionSource(revision string) (*ConfigurationSource, error) {
-	out, err := c.gitConfig("-l", "--blob", revision)
+	out, err := c.gitConfig("-l", "-z", "--blob", revision)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (c *Configuration) RevisionSource(revision string) (*ConfigurationSource, e
 }
 
 func (c *Configuration) Source() (*ConfigurationSource, error) {
-	out, err := c.gitConfig("-l")
+	out, err := c.gitConfig("-l", "-z")
 	if err != nil {
 		return nil, err
 	}
