@@ -27,8 +27,10 @@ import (
 	"golang.org/x/net/http2"
 )
 
-const MediaType = "application/vnd.git-lfs+json"
-const RequestContentType = MediaType + "; charset=utf-8"
+const (
+	MediaType          = "application/vnd.git-lfs+json"
+	RequestContentType = MediaType + "; charset=utf-8"
+)
 
 const (
 	defaultConcurrentTransfers = 8
@@ -66,6 +68,7 @@ type Client struct {
 
 	Verbose          bool
 	DebuggingVerbose bool
+	TraceTLS         bool
 	VerboseOut       io.Writer
 
 	hostClients map[hostData]*http.Client
@@ -91,6 +94,7 @@ func NewClient(ctx Context) *Client {
 	osEnv := ctx.OSEnv()
 
 	cacheCreds := gitEnv.Bool("lfs.cachecredentials", true)
+	curlVerbose := osEnv.Bool("GIT_CURL_VERBOSE", false)
 
 	// SSHResolver resolves LFS endpoint authentication by running
 	// git-lfs-authenticate over SSH. The returned credentials (URL
@@ -107,7 +111,8 @@ func NewClient(ctx Context) *Client {
 		TLSTimeout:          gitEnv.Int("lfs.tlstimeout", 0),
 		ConcurrentTransfers: gitEnv.Int("lfs.concurrenttransfers", DefaultConcurrentTransfers()),
 		SkipSSLVerify:       !gitEnv.Bool("http.sslverify", true) || osEnv.Bool("GIT_SSL_NO_VERIFY", false),
-		Verbose:             osEnv.Bool("GIT_CURL_VERBOSE", false),
+		Verbose:             curlVerbose,
+		TraceTLS:            curlVerbose || osEnv.Bool("GIT_TRANSFER_TRACE", false),
 		DebuggingVerbose:    osEnv.Bool("LFS_DEBUG_HTTP", false),
 		gitEnv:              gitEnv,
 		osEnv:               osEnv,
@@ -310,7 +315,14 @@ func (c *Client) extraHeaders(u *url.URL) map[string][]string {
 	return m
 }
 
-func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote string, via []*http.Request) (*http.Request, *http.Response, error) {
+func (c *Client) DoWithRedirect(
+	cli *http.Client,
+	req *http.Request,
+	remote string,
+	via []*http.Request,
+) (*http.Request, *http.Response, error) {
+	req = c.traceTLS(req)
+
 	tracedReq, err := c.traceRequest(req)
 	if err != nil {
 		return nil, nil, err
@@ -671,7 +683,7 @@ func (e testEnv) Bool(key string, def bool) bool {
 
 func (e testEnv) All() map[string][]string {
 	m := make(map[string][]string)
-	for k, _ := range e {
+	for k := range e {
 		m[k] = e.GetAll(k)
 	}
 	return m
