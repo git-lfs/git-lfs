@@ -623,6 +623,18 @@ func TestEndpointParsing(t *testing.T) {
 				Operation: "",
 			},
 		},
+		"remote helper url": {
+			"remote://git-lfs/git-lfs.git",
+			lfshttp.Endpoint{
+				Url: "remote://git-lfs/git-lfs.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "",
+					Path:        "",
+					Port:        "",
+				},
+				Operation: "",
+			},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}
