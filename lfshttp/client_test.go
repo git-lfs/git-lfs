@@ -7,10 +7,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 
+	"github.com/dpotapov/go-spnego"
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/stretchr/testify/assert"
@@ -234,6 +237,27 @@ func TestNewClientWithOSSSLVerify(t *testing.T) {
 	}
 }
 
+func TestNewClientCanonicalizeHostname(t *testing.T) {
+	c := NewClient(nil)
+	assert.True(t, c.CanonicalizeHostname)
+
+	for _, value := range []string{"true", "1", "t"} {
+		c = NewClient(NewContext(nil, nil, map[string]string{
+			"lfs.negotiateAccess.canonicalizeHostname": value,
+		}))
+		t.Logf("lfs.negotiateAccess.canonicalizeHostname: %q", value)
+		assert.True(t, c.CanonicalizeHostname)
+	}
+
+	for _, value := range []string{"false", "0", "f"} {
+		c = NewClient(NewContext(nil, nil, map[string]string{
+			"lfs.negotiateAccess.canonicalizeHostname": value,
+		}))
+		t.Logf("lfs.negotiateAccess.canonicalizeHostname: %q", value)
+		assert.False(t, c.CanonicalizeHostname)
+	}
+}
+
 func TestNewRequest(t *testing.T) {
 	tests := [][]string{
 		{"https://example.com", "a", "https://example.com/a"},
@@ -428,7 +452,7 @@ func TestExtraHeadersForDuplication(t *testing.T) {
 		gitConfig: git.NewConfig("", ""),
 		osEnv:     make(testEnv),
 		gitEnv: config.EnvironmentOf(config.MapFetcher(map[string][]string{
-			"http.extraheader": []string{
+			"http.extraheader": {
 				fmt.Sprintf("%s: %s", extraHeaderKey, extraHeaderValue),
 				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value1),
 				fmt.Sprintf("%s: %s", extraHeader2Key, extraHeader2Value2),
@@ -455,4 +479,31 @@ func TestExtraHeadersForDuplication(t *testing.T) {
 	// Ensure headers are not duplicated on retry (regression test for #6202)
 	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should still be present only once after second call")
 	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should still be present only twice after first call")
+}
+
+func TestNegotiateTransportHostnameCanonicalization(t *testing.T) {
+	u, err := url.Parse("https://example.com")
+	require.Nil(t, err)
+
+	c := NewClient(nil)
+	tr, err := c.Transport(u, creds.NegotiateAccess)
+	require.Nil(t, err)
+
+	// asserts hostname canonicalization is enabled by default
+	spnegoTr, ok := tr.(*spnego.Transport)
+	require.True(t, ok)
+	require.False(t, spnegoTr.NoCanonicalize)
+
+	// configures the client to disable hostname canonicalization
+	c = NewClient(NewContext(nil, nil, map[string]string{
+		"lfs.negotiateAccess.canonicalizeHostname": "false",
+	}))
+
+	tr, err = c.Transport(u, creds.NegotiateAccess)
+	require.Nil(t, err)
+
+	// asserts hostname canonicalization is disabled after configuration
+	spnegoTr, ok = tr.(*spnego.Transport)
+	require.True(t, ok)
+	assert.True(t, spnegoTr.NoCanonicalize)
 }
