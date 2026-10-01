@@ -1,0 +1,20 @@
+#!/bin/sh -e
+
+# Notarizes the file given on the command line with the App Store Connect
+# API credentials stored in the notarization profile of a dedicated keychain.
+#
+# The notarization credentials must be stored in the keychain using
+# the "create-keychain" script.
+
+if [ "$#" != 1 ]; then
+  echo "Usage: $0 <file>"
+  exit 1
+fi
+
+. "$(dirname "$0")/../lib/macos_keychain.sh"
+
+check_keychain_exists
+
+xcrun notarytool submit "$1" --wait \
+  --keychain "$KEYCHAIN_PATH" \
+  --keychain-profile "$KEYCHAIN_NOTARIZATION_PROFILE"

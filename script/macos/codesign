@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+# Signs the file given on the command line with the Apple Developer ID
+# credentials stored in a dedicated keychain.
+#
+# The Developer ID credentials must be stored in the keychain using
+# the "create-keychain" script.
+
+if [ "$#" != 1 ]; then
+  echo "Usage: $0 <file>"
+  exit 1
+fi
+
+. "$(dirname "$0")/../lib/macos_keychain.sh"
+
+check_keychain_exists
+
+cert_id="$(security find-identity -v -p codesigning "$KEYCHAIN_ID" | \
+             grep '^ *1)' | awk '{print $2}')"
+
+codesign --keychain "$KEYCHAIN_ID" -s "$cert_id" \
+  --force --timestamp -v --options runtime "$1"
