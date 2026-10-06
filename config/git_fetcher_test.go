@@ -102,6 +102,21 @@ func TestReadGitConfigKeys(t *testing.T) {
 				"remote.pushdefault": []string{"upstream"},
 			},
 		},
+		{
+			name:   "lfs access key",
+			config: "lfs.https://example.com.access=basic",
+			expectedKeys: map[string][]string{
+				"lfs.https://example.com.access": []string{"basic"},
+			},
+			safeKeys: []string{"lfs.https://example.com.access"},
+		},
+		{
+			name:   "non-lfs access key",
+			config: "other.example.access=none",
+			expectedKeys: map[string][]string{
+				"other.example.access": []string{"none"},
+			},
+		},
 	}
 
 	assert := func(t *testing.T, config string, onlySafeKeys bool, expectedKeys map[string][]string) {
