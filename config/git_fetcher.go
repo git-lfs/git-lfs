@@ -88,7 +88,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 				allowed = true
 				remote := strings.Join(parts[1:len(parts)-1], ".")
 				uniqRemotes[remote] = remote == "origin"
-			} else if len(parts) > 2 && parts[len(parts)-1] == "access" {
+			} else if len(parts) > 2 && parts[0] == "lfs" && parts[len(parts)-1] == "access" {
 				allowed = true
 			}
 

@@ -282,6 +282,23 @@ begin_test "config: ignoring non-lfs remote keys in lfsconfig"
 )
 end_test
 
+begin_test "config: ignoring non-lfs access keys in lfsconfig"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-access"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --file=.lfsconfig other.example.access unsafe
+
+  git lfs env >env.log 2>&1
+
+  grep -F "warning: These unsafe '.lfsconfig' keys were ignored:" env.log
+  grep "^  other\.example\.access$" env.log
+)
+end_test
+
 begin_test "config respects include.* directives when GIT_CONFIG is set"
 (
   set -e
