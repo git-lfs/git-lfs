@@ -65,7 +65,12 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 		return
 	}
 
-	defer tmp.Close()
+	defer func() {
+		tmp.Close()
+		if err != nil {
+			os.Remove(tmp.Name())
+		}
+	}()
 
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
