@@ -80,7 +80,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 
 				extensions[name] = ext
 			} else if len(parts) > 1 && parts[0] == "remote" {
-				if gc.OnlySafeKeys && (len(parts) == 3 && parts[2] != "lfsurl") {
+				if gc.OnlySafeKeys && (len(parts) < 3 || parts[len(parts)-1] != "lfsurl") {
 					ignored = append(ignored, key)
 					continue
 				}
