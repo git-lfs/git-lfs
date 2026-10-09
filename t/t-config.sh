@@ -257,6 +257,31 @@ begin_test "config: ignoring unsafe lfsconfig keys"
 )
 end_test
 
+begin_test "config: ignoring non-lfs remote keys in lfsconfig"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-remote"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --file=.lfsconfig remote.origin.nonlfs unsafe
+  git config --file=.lfsconfig remote.other.origin.nonlfs unsafe
+  git config --file=.lfsconfig remote.origin unsafe
+  git config --file=.lfsconfig remote.lfsDefault unsafe
+  git config --file=.lfsconfig remote.pushDefault unsafe
+
+  git lfs env >env.log 2>&1
+
+  grep -F "warning: These unsafe '.lfsconfig' keys were ignored:" env.log
+  grep "^  remote\.origin\.nonlfs$" env.log
+  grep "^  remote\.other\.origin\.nonlfs$" env.log
+  grep "^  remote\.origin$" env.log
+  grep "^  remote\.lfsdefault$" env.log
+  grep "^  remote\.pushdefault$" env.log
+)
+end_test
+
 begin_test "config respects include.* directives when GIT_CONFIG is set"
 (
   set -e
