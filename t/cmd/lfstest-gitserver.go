@@ -1533,6 +1533,12 @@ var (
 )
 
 func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
+	checkingLock := r.Header.Get("X-Check-Lock") == "1"
+	if !checkingLock && repo == "locksunsupported" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
