@@ -372,6 +372,7 @@ refute_server_lock() {
   curl -v "$GITSERVER/$reponame.git/info/lfs/locks?refspec=$refspec" \
     -u "user:pass" \
     -o http.json \
+    -H "X-Check-Lock: 1" \
     -H "Accept:application/vnd.git-lfs+json" 2>&1 | tee http.log
 
   grep "200 OK" http.log
