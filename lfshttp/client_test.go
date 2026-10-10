@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -455,4 +456,41 @@ func TestExtraHeadersForDuplication(t *testing.T) {
 	// Ensure headers are not duplicated on retry (regression test for #6202)
 	assert.Equal(t, []string{extraHeaderValue}, req.Header[extraHeaderKey], "Header should still be present only once after second call")
 	assert.Equal(t, []string{extraHeader2Value1, extraHeader2Value2}, req.Header[extraHeader2Key], "Header with multiple values should still be present only twice after first call")
+}
+
+func TestDoWithUsernameInURLSendsNoAuthorizationHeader(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "/repo/lfs/locks", r.URL.Path)
+
+		// Go's net/http client would otherwise derive a "Basic"
+		// Authorization header from the username in the request URL,
+		// even though no password is available.
+		assert.Equal(t, "", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	userURL := strings.Replace(srv.URL, "http://", "http://user@", 1)
+
+	c := NewClient(NewContext(nil, nil, nil))
+
+	req, err := c.NewRequest("GET", Endpoint{Url: userURL + "/repo/lfs"}, "locks", nil)
+	require.Nil(t, err)
+	require.NotNil(t, req.URL.User)
+	assert.Equal(t, "user", req.URL.User.Username())
+
+	res, err := c.Do(req)
+	require.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+
+	// The caller's request is left intact so that the username remains
+	// available for credential lookups.
+	if assert.NotNil(t, req.URL.User) {
+		assert.Equal(t, "user", req.URL.User.Username())
+	}
 }

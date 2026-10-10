@@ -903,3 +903,119 @@ func TestClientRedirectReauthenticate(t *testing.T) {
 	assert.EqualValues(t, 2, called1)
 	assert.EqualValues(t, 1, called2)
 }
+
+func TestDoWithAuthUsernameInURL(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
+		actual := req.Header.Get("Authorization")
+		switch atomic.LoadUint32(&called) {
+		case 1:
+			// The first request must be anonymous, even though the
+			// endpoint URL contains a username, so that the server
+			// can reply with a 401 status and we can then prompt
+			// for credentials.
+			assert.Equal(t, "", actual)
+			w.Header().Set("Lfs-Authenticate", "Basic")
+			w.WriteHeader(http.StatusUnauthorized)
+		default:
+			assert.Equal(t, basicAuth("user", "pass"), actual)
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer srv.Close()
+
+	userURL := strings.Replace(srv.URL, "http://", "http://user@", 1)
+
+	cred := newMockCredentialHelper()
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url": userURL + "/repo/lfs",
+		},
+	))
+	c.Credentials = cred
+
+	endpoint := c.Endpoints.Endpoint("upload", "")
+	assert.Equal(t, userURL+"/repo/lfs", endpoint.Url)
+
+	access := c.Endpoints.AccessFor(endpoint.Url)
+	assert.Equal(t, creds.NoneAccess, access.Mode())
+
+	req, err := c.NewRequest("POST", endpoint, "foo", &authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", access, req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.EqualValues(t, 2, called)
+
+	// The username from the URL must still have been passed to the
+	// credential helper.
+	assert.True(t, cred.IsApproved(creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"pass"},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
+	})))
+	access = c.Endpoints.AccessFor(endpoint.Url)
+	assert.Equal(t, creds.BasicAccess, access.Mode())
+}
+
+func TestDoWithAuthUsernameInURLBasicAccess(t *testing.T) {
+	var called uint32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		atomic.AddUint32(&called, 1)
+		assert.Equal(t, "POST", req.Method)
+
+		body := &authRequest{}
+		err := json.NewDecoder(req.Body).Decode(body)
+		assert.Nil(t, err)
+		assert.Equal(t, "Approve", body.Test)
+
+		// With "basic" access configured, the credential helper
+		// supplies a password for the URL's username up front.
+		assert.Equal(t, basicAuth("user", "pass"), req.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	userURL := strings.Replace(srv.URL, "http://", "http://user@", 1)
+
+	cred := newMockCredentialHelper()
+	c := NewClient(lfshttp.NewContext(git.NewReadOnlyConfig("", ""),
+		nil, map[string]string{
+			"lfs.url":                             userURL + "/repo/lfs",
+			"lfs." + srv.URL + "/repo/lfs.access": "basic",
+		},
+	))
+	c.Credentials = cred
+
+	endpoint := c.Endpoints.Endpoint("upload", "")
+	access := c.Endpoints.AccessFor(endpoint.Url)
+	assert.Equal(t, creds.BasicAccess, access.Mode())
+
+	req, err := c.NewRequest("POST", endpoint, "foo", &authRequest{Test: "Approve"})
+	require.Nil(t, err)
+
+	res, err := c.DoWithAuth("", access, req)
+	require.Nil(t, err)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.EqualValues(t, 1, called)
+	assert.True(t, cred.IsApproved(creds.Creds(map[string][]string{
+		"username": []string{"user"},
+		"password": []string{"pass"},
+		"protocol": []string{"http"},
+		"host":     []string{srv.Listener.Addr().String()},
+	})))
+}
