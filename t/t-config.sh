@@ -318,3 +318,31 @@ begin_test "config respects include.* directives when GIT_CONFIG is set"
   grep "Endpoint=http://other-url/rest (auth=none)" env.log
 )
 end_test
+
+begin_test "config: env with duplicate lfs.* values"
+(
+  set -e
+
+  reponame="config-duplicate-lfs-warning"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --add lfs.url http://first-url
+  git config --add lfs.url http://second-url
+  git config --add lfs.url http://third-url
+
+  git config --add remote.origin.pushurl http://first-url
+  git config --add remote.origin.pushurl http://second-url
+
+  git lfs env >env.log 2>&1
+
+  [ 2 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = ["http://first-url"]' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = "http://second-url"' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = ["http://first-url" "http://second-url"]' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = "http://third-url"' env.log)" ]
+
+  [ 0 -eq "$(grep -c -F 'git config "remote.origin.pushurl"' env.log)" ]
+)
+end_test
