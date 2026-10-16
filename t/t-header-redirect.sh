@@ -139,6 +139,35 @@ begin_test "pre-push redirect to a different port drops sensitive headers"
 )
 end_test
 
+begin_test "pre-push HTTP to HTTPS redirect drops sensitive headers"
+(
+  set -e
+
+  # This repository name announces to the server that it should record
+  # which headers it receives carrying the "lfs-source-marker" value,
+  # and that it should not require an Authorization header.
+  reponame="header-redirect-scheme"
+
+  contents="scheme-test"
+  contents_oid="$(calc_oid "$contents")"
+
+  setup_header_redirect_repo "$reponame" "$contents"
+
+  # The "/redirect307/ssl/" path makes the server redirect to HTTPS on the
+  # same port.
+  source_url="$sslgitserver_http/redirect307/ssl/$reponame.git/info/lfs"
+  git config lfs.url "$source_url"
+
+  add_sensitive_headers "$source_url"
+
+  run_header_redirect_push "$source_url"
+
+  assert_redirect_headers
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
+
 begin_test "pre-push same-origin redirect retains headers"
 (
   set -e

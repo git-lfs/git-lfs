@@ -189,6 +189,8 @@ func TestNewRequestForRetrySensitiveHeaders(t *testing.T) {
 		{"same origin", "http://example.com:8080/next", false},
 		{"different host", "http://other.example.com:8080/next", true},
 		{"different port", "http://example.com:8081/next", true},
+		// Keep the host and port identical so this checks the scheme alone.
+		{"different scheme", "https://example.com:8080/next", true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			req, err := http.NewRequest("GET", "http://example.com:8080/original", nil)
