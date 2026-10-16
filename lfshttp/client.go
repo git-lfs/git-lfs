@@ -591,12 +591,11 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 		return nil, errors.New(tr.Tr.Get("refusing insecure redirect: HTTPS to HTTP"))
 	}
 
-	sameHost := req.URL.Host == newReq.URL.Host
+	sameOrigin := req.URL.Scheme == newReq.URL.Scheme && req.URL.Host == newReq.URL.Host
 	for key := range req.Header {
-		if key == "Authorization" {
-			if !sameHost {
-				continue
-			}
+		// Credentials must not follow cross-origin redirects, even HTTP-to-HTTPS upgrades.
+		if !sameOrigin && key == "Authorization" {
+			continue
 		}
 		newReq.Header.Set(key, req.Header.Get(key))
 	}
