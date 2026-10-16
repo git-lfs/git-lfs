@@ -84,7 +84,10 @@ const (
 	headerRedirectAuthDownloadRepo   = "header-redirect-download-auth"
 	headerRedirectDirectDownloadRepo = "header-redirect-download-direct"
 
+	headerRedirectCookieRepo = "header-redirect-cookie"
+
 	headerRedirectSourceMarker = "lfs-source-marker"
+	headerRedirectSourceCookie = "lfs-source-cookie"
 )
 
 func main() {
@@ -344,7 +347,8 @@ func lfsUrl(repo, oid string, redirect bool) string {
 	if redirect {
 		redirectHost := server.URL
 		if repo == headerRedirectAuthDownloadRepo ||
-			repo == headerRedirectDirectDownloadRepo {
+			repo == headerRedirectDirectDownloadRepo ||
+			repo == headerRedirectCookieRepo {
 			// Start the object request on "localhost" before
 			// redirecting to "127.0.0.1".
 			redirectHost = strings.Replace(server.URL, "127.0.0.1", "localhost", 1)
@@ -476,6 +480,14 @@ type batchResp struct {
 }
 
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
+	if repo == headerRedirectCookieRepo {
+		http.SetCookie(w, &http.Cookie{
+			Name:  headerRedirectSourceCookie,
+			Value: headerRedirectSourceMarker,
+			Path:  "/",
+		})
+	}
+
 	checkingObject := r.Header.Get("X-Check-Object") == "1"
 	if !checkingObject && repo == "batchunsupported" {
 		w.WriteHeader(404)
@@ -1286,6 +1298,15 @@ func recordHeaderRedirectRequest(w http.ResponseWriter, r *http.Request, id, rep
 
 	var headers []string
 	for name, values := range r.Header {
+		if name == "Cookie" {
+			for _, cookie := range r.CookiesNamed(headerRedirectSourceCookie) {
+				if cookie.Value == headerRedirectSourceMarker {
+					headers = append(headers, name)
+					break
+				}
+			}
+			continue
+		}
 		if slices.Contains(values, headerRedirectSourceMarker) {
 			headers = append(headers, name)
 		}

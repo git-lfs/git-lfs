@@ -2,8 +2,9 @@
 
 . "$(dirname "$0")/testlib.sh"
 
-sensitive_headers=(Authorization)
+sensitive_headers=(Authorization Cookie)
 source_header_marker="lfs-source-marker"
+source_cookie_name="lfs-source-cookie"
 
 # The SSL test server also accepts HTTP connections on the same port.
 sslgitserver_http="${SSLGITSERVER/#https:/http:}"
@@ -33,9 +34,13 @@ setup_header_redirect_repo() {
 add_sensitive_headers() {
   local url="$1"
 
-  local header
+  local header value
   for header in "${sensitive_headers[@]}"; do
-    git config --add "http.$url.extraHeader" "$header: $source_header_marker"
+    value="$source_header_marker"
+    if [ "$header" = "Cookie" ]; then
+      value="$source_cookie_name=$source_header_marker"
+    fi
+    git config --add "http.$url.extraHeader" "$header: $value"
   done
   git config --add "http.$url.extraHeader" "X-Test-Benign: $source_header_marker"
 }
@@ -233,3 +238,38 @@ for mode in auth direct; do
   )
   end_test
 done
+
+begin_test "cookie from an earlier response does not follow a cross-origin redirect"
+(
+  set -e
+
+  # This repository name announces to the server that it should record
+  # which headers it receives carrying the "lfs-source-marker" value,
+  # include a Set-Cookie header in its Batch API responses, and use the
+  # "localhost" hostname in their object URLs.
+  reponame="header-redirect-cookie"
+
+  # This content announces to the server that its object URLs should be
+  # "/redirect307/objects/" URLs, which it will redirect to "127.0.0.1".
+  contents="redirect-storage-upload"
+  contents_oid="$(calc_oid "$contents")"
+
+  setup_header_redirect_repo "$reponame" "$contents"
+
+  source_url="${GITSERVER/127.0.0.1/localhost}/$reponame.git/info/lfs"
+  git config lfs.url "$source_url"
+
+  # Enable a cookie jar so the client keeps the Batch API response's cookie.
+  : > "$REMOTEDIR/$reponame-cookies.txt"
+  git config http.cookieFile "$REMOTEDIR/$reponame-cookies.txt"
+
+  run_header_redirect_push "$source_url"
+
+  # The cookie set by the Batch API response should accompany the initial
+  # object request to "localhost", but not the redirected one to "127.0.0.1".
+  assert_header_seen object-source Cookie
+  refute_header_seen object-target Cookie
+
+  assert_server_object "$reponame" "$contents_oid"
+)
+end_test
