@@ -179,7 +179,7 @@ func TestClientRedirect(t *testing.T) {
 }
 
 func TestNewRequestForRetrySensitiveHeaders(t *testing.T) {
-	sensitive := []string{"Authorization"}
+	sensitive := []string{"Authorization", "Cookie"}
 
 	for _, test := range []struct {
 		name  string

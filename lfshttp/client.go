@@ -594,7 +594,7 @@ func newRequestForRetry(req *http.Request, location string) (*http.Request, erro
 	sameOrigin := req.URL.Scheme == newReq.URL.Scheme && req.URL.Host == newReq.URL.Host
 	for key := range req.Header {
 		// Credentials must not follow cross-origin redirects, even HTTP-to-HTTPS upgrades.
-		if !sameOrigin && key == "Authorization" {
+		if !sameOrigin && (key == "Authorization" || key == "Cookie") {
 			continue
 		}
 		newReq.Header.Set(key, req.Header.Get(key))
