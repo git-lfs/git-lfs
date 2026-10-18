@@ -28,11 +28,28 @@ func TestGetCanonicalization(t *testing.T) {
 
 func TestReadGitConfigKeys(t *testing.T) {
 	tests := []struct {
-		name         string
-		config       string
-		expectedKeys map[string][]string
-		safeKeys     []string
+		name             string
+		config           string
+		expectedKeys     map[string][]string
+		safeKeys         []string
+		expectedExts     map[string]Extension
+		expectedSafeExts map[string]Extension
 	}{
+		{
+			name:   "lfs safe key",
+			config: "lfs.fetchinclude=/foo/bar",
+			expectedKeys: map[string][]string{
+				"lfs.fetchinclude": []string{"/foo/bar"},
+			},
+			safeKeys: []string{"lfs.fetchinclude"},
+		},
+		{
+			name:   "lfs unsafe key",
+			config: "lfs.storage=/foo/bar",
+			expectedKeys: map[string][]string{
+				"lfs.storage": []string{"/foo/bar"},
+			},
+		},
 		{
 			name:   "lfs remote key",
 			config: "remote.origin.lfsurl=https://example.com/foo/bar.git/info/lfs",
@@ -117,22 +134,65 @@ func TestReadGitConfigKeys(t *testing.T) {
 				"other.example.access": []string{"none"},
 			},
 		},
+		{
+			name: "lfs custom transfer keys",
+			config: "lfs.customtransfer.demo.path=/usr/bin/demo\n" +
+				"lfs.customtransfer.demo.args=-v --quiet\n" +
+				"lfs.customtransfer.demo.direction=upload",
+			expectedKeys: map[string][]string{
+				"lfs.customtransfer.demo.path":      []string{"/usr/bin/demo"},
+				"lfs.customtransfer.demo.args":      []string{"-v --quiet"},
+				"lfs.customtransfer.demo.direction": []string{"upload"},
+			},
+		},
+		{
+			name: "lfs extension keys",
+			config: "lfs.extension.demo.clean=ext-clean %f\n" +
+				"lfs.extension.demo.smudge=ext-smudge %f\n" +
+				"lfs.extension.demo.priority=1",
+			expectedKeys: map[string][]string{
+				"lfs.extension.demo.clean":    []string{"ext-clean %f"},
+				"lfs.extension.demo.smudge":   []string{"ext-smudge %f"},
+				"lfs.extension.demo.priority": []string{"1"},
+			},
+			safeKeys: []string{"lfs.extension.demo.priority"},
+			expectedExts: map[string]Extension{
+				"demo": Extension{
+					Name:     "demo",
+					Clean:    "ext-clean %f",
+					Smudge:   "ext-smudge %f",
+					Priority: 1,
+				},
+			},
+			expectedSafeExts: map[string]Extension{
+				"demo": Extension{
+					Name:     "demo",
+					Priority: 1,
+				},
+			},
+		},
 	}
 
-	assert := func(t *testing.T, config string, onlySafeKeys bool, expectedKeys map[string][]string) {
+	assert := func(t *testing.T, config string, onlySafeKeys bool, expectedKeys map[string][]string, expectedExts map[string]Extension) {
 		source := git.ParseConfigLines(config, onlySafeKeys)
-		fetcher, _, _ := readGitConfig(source)
+		fetcher, exts, _ := readGitConfig(source)
 
 		if expectedKeys == nil {
 			assert.Empty(t, fetcher.All())
 		} else {
 			assert.Equal(t, expectedKeys, fetcher.All())
 		}
+
+		if expectedExts == nil {
+			assert.Empty(t, exts)
+		} else {
+			assert.Equal(t, expectedExts, exts)
+		}
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert(t, test.config, false, test.expectedKeys)
+			assert(t, test.config, false, test.expectedKeys, test.expectedExts)
 		})
 
 		expectedSafeKeys := make(map[string][]string, len(test.safeKeys))
@@ -143,7 +203,34 @@ func TestReadGitConfigKeys(t *testing.T) {
 		}
 
 		t.Run(test.name+" (safe keys only)", func(t *testing.T) {
-			assert(t, test.config, true, expectedSafeKeys)
+			assert(t, test.config, true, expectedSafeKeys, test.expectedSafeExts)
 		})
 	}
+}
+
+func TestReadGitConfigValues(t *testing.T) {
+	fetcher, _, _ := readGitConfig(&git.ConfigurationSource{
+		Lines: []string{
+			"lfs.fetchinclude=/foo",
+			"lfs.fetchinclude=/bar",
+			"lfs.locksverify=false",
+		},
+	})
+
+	assert.Equal(t, []string{"/foo", "/bar"}, fetcher.GetAll("lfs.fetchinclude"))
+	assert.Equal(t, []string{"false"}, fetcher.GetAll("lfs.locksverify"))
+
+	// Get returns the last value, matching Git's precedence.
+	value, ok := fetcher.Get("lfs.fetchinclude")
+	assert.True(t, ok)
+	assert.Equal(t, "/bar", value)
+
+	value, ok = fetcher.Get("lfs.locksverify")
+	assert.True(t, ok)
+	assert.Equal(t, "false", value)
+
+	// Get returns false and an empty string for a nonexistent key.
+	value, ok = fetcher.Get("lfs.pushurl")
+	assert.False(t, ok)
+	assert.Empty(t, value)
 }
