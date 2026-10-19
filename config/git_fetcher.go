@@ -26,17 +26,13 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 	for _, gc := range configs {
 		uniqKeys := make(map[string]string)
 
-		for _, line := range gc.Lines {
-			pieces := strings.SplitN(line, "=", 2)
-			if len(pieces) < 2 {
-				continue
-			}
-
+		for _, entry := range gc.Entries {
 			allowed := !gc.OnlySafeKeys
 
 			// We don't need to change the case of the key here,
 			// since Git will already have canonicalized it for us.
-			key, val := pieces[0], pieces[1]
+			key := entry.Key
+			val := entry.Value
 
 			if origKey, ok := uniqKeys[key]; ok {
 				if ShowConfigWarnings && len(vals[key]) > 0 && vals[key][len(vals[key])-1] != val && strings.HasPrefix(key, gitConfigWarningPrefix) {
