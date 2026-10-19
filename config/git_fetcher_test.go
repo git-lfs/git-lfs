@@ -174,7 +174,7 @@ func TestReadGitConfigKeys(t *testing.T) {
 	}
 
 	assert := func(t *testing.T, config string, onlySafeKeys bool, expectedKeys map[string][]string, expectedExts map[string]Extension) {
-		source := git.ParseConfigLines(config, onlySafeKeys)
+		source := git.ParseConfigEntries(config, onlySafeKeys)
 		fetcher, exts, _ := readGitConfig(source)
 
 		if expectedKeys == nil {
@@ -210,15 +210,19 @@ func TestReadGitConfigKeys(t *testing.T) {
 
 func TestReadGitConfigValues(t *testing.T) {
 	fetcher, _, _ := readGitConfig(&git.ConfigurationSource{
-		Lines: []string{
-			"lfs.fetchinclude=/foo",
-			"lfs.fetchinclude=/bar",
-			"lfs.locksverify=false",
+		Entries: []git.ConfigurationEntry{
+			{Key: "lfs.fetchinclude", Value: "/foo"},
+			{Key: "lfs.fetchinclude", Value: "/bar"},
+			{Key: "lfs.locksverify", Value: "false"},
+			{Key: "lfs.url", Value: "https://example.com/foo\nlfs.customtransfer.demo.path=injected"},
+			{Key: "remote.origin.url", Value: "https://example.com/foo\nlfs.extension.demo.clean=injected"},
 		},
 	})
 
 	assert.Equal(t, []string{"/foo", "/bar"}, fetcher.GetAll("lfs.fetchinclude"))
 	assert.Equal(t, []string{"false"}, fetcher.GetAll("lfs.locksverify"))
+	assert.Equal(t, []string{"https://example.com/foo\nlfs.customtransfer.demo.path=injected"}, fetcher.GetAll("lfs.url"))
+	assert.Equal(t, []string{"https://example.com/foo\nlfs.extension.demo.clean=injected"}, fetcher.GetAll("remote.origin.url"))
 
 	// Get returns the last value, matching Git's precedence.
 	value, ok := fetcher.Get("lfs.fetchinclude")
@@ -229,8 +233,25 @@ func TestReadGitConfigValues(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "false", value)
 
+	value, ok = fetcher.Get("lfs.url")
+	assert.True(t, ok)
+	assert.Equal(t, "https://example.com/foo\nlfs.customtransfer.demo.path=injected", value)
+
+	value, ok = fetcher.Get("remote.origin.url")
+	assert.True(t, ok)
+	assert.Equal(t, "https://example.com/foo\nlfs.extension.demo.clean=injected", value)
+
 	// Get returns false and an empty string for a nonexistent key.
 	value, ok = fetcher.Get("lfs.pushurl")
+	assert.False(t, ok)
+	assert.Empty(t, value)
+
+	// Injected keys should be ignored.
+	value, ok = fetcher.Get("lfs.customtransfer.demo.path")
+	assert.False(t, ok)
+	assert.Empty(t, value)
+
+	value, ok = fetcher.Get("lfs.extension.demo.clean")
 	assert.False(t, ok)
 	assert.Empty(t, value)
 }
