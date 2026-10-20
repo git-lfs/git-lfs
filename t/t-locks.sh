@@ -222,7 +222,7 @@ begin_test "list locks with a limit"
   grep "main -> main" push.log
 
   git lfs lock --json "g_1.dat" | tee lock.log
-  assert_server_lock "$reponame" "$(assert_log "lock.log" g_1.dat)"
+  assert_server_lock "$reponame" "$(assert_lock "lock.log" g_1.dat)"
 
   git lfs lock --json "g_2.dat" | tee lock.log
   assert_server_lock "$reponame" "$(assert_lock "lock.log" g_2.dat)"
