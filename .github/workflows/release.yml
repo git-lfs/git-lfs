@@ -175,7 +175,7 @@ jobs:
   build-docker:
     name: Build Linux Packages
     environment: production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7
       with:
