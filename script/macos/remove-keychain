@@ -1,0 +1,14 @@
+#!/bin/sh -e
+
+# Removes the dedicated keychain used to sign and notarize files.
+
+. "$(dirname "$0")/../lib/macos_keychain.sh"
+
+if [ -z "$CI" ]; then
+  echo "This script should only be run in a CI environment." >&2
+  exit 1
+fi
+
+echo "Removing '$KEYCHAIN_ID' keychain ..."
+security delete-keychain "$KEYCHAIN_ID" || true
+rm -f "$KEYCHAIN_PATH"
