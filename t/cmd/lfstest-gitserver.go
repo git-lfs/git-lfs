@@ -78,6 +78,11 @@ var (
 	multiStageCredRE = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
 )
 
+const (
+	headerRedirectAuthDownloadRepo   = "header-redirect-download-auth"
+	headerRedirectDirectDownloadRepo = "header-redirect-download-direct"
+)
+
 func main() {
 	repoDir = os.Getenv("LFSTEST_DIR")
 
@@ -321,11 +326,18 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func lfsUrl(repo, oid string, redirect bool) string {
-	repo = url.QueryEscape(repo)
+	encodedRepo := url.QueryEscape(repo)
 	if redirect {
-		return server.URL + "/redirect307/objects/" + oid + "?r=" + repo
+		redirectHost := server.URL
+		if repo == headerRedirectAuthDownloadRepo ||
+			repo == headerRedirectDirectDownloadRepo {
+			// Start the object request on "localhost" before
+			// redirecting to "127.0.0.1".
+			redirectHost = strings.Replace(server.URL, "127.0.0.1", "localhost", 1)
+		}
+		return redirectHost + "/redirect307/objects/" + oid + "?r=" + encodedRepo
 	}
-	return server.URL + "/storage/" + oid + "?r=" + repo
+	return server.URL + "/storage/" + oid + "?r=" + encodedRepo
 }
 
 const (
@@ -572,7 +584,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			}
 		}
 
-		if handler == "object-authenticated" {
+		if handler == "object-authenticated" ||
+			(repo == headerRedirectDirectDownloadRepo && action == "download") {
 			o.Authenticated = true
 		}
 
@@ -1198,19 +1211,34 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send a redirect to info/lfs
-	// Make it either absolute or relative depending on subpath
+	// Send a 307 redirect for a "/redirect307/<route>/<path>" URL,
+	// where the route determines the redirect's destination:
+	//   rel:     <path> as a relative URL on the same server
+	//   abs:     <path> as an absolute URL on the main server
+	//   ssl:     <path> as an HTTPS URL with the same host and port
+	//            as those of the original request
+	//   objects: <path> under "/storage/" on the main server
 	parts := strings.Split(r.URL.Path, "/")
+
 	// first element is always blank since rooted
+	// the second element is "redirect307" and the third is the route name
+	if len(parts) < 3 {
+		http.NotFound(w, r)
+		return
+	}
+
 	var redirectTo string
-	if parts[2] == "rel" {
+	switch parts[2] {
+	case "rel":
 		redirectTo = "/" + strings.Join(parts[3:], "/")
-	} else if parts[2] == "abs" {
+	case "abs":
 		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
-	} else if parts[2] == "objects" {
+	case "ssl":
+		redirectTo = "https://" + r.Host + "/" + strings.Join(parts[3:], "/")
+	case "objects":
 		repo := r.URL.Query().Get("r")
 		redirectTo = server.URL + "/storage/" + strings.Join(parts[3:], "/") + "?r=" + repo
-	} else {
+	default:
 		debug(id, "Invalid URL for redirect: %v", r.URL)
 		w.WriteHeader(404)
 		return
