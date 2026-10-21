@@ -23,6 +23,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
@@ -82,7 +83,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
-	serverTLS = httptest.NewTLSServer(mux)
 	serverClientCert = httptest.NewUnstartedServer(mux)
 
 	//setup Client Cert server
@@ -92,12 +92,28 @@ func main() {
 	certPool := x509.NewCertPool()
 	certPool.AddCert(rootCert)
 
+	// StartTLS() supplies httptest's default certificate, which we then
+	// reuse for the SSL server.
 	serverClientCert.TLS = &tls.Config{
-		Certificates: []tls.Certificate{serverTLS.TLS.Certificates[0]},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    certPool,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		ClientCAs:  certPool,
 	}
 	serverClientCert.StartTLS()
+
+	// The SSL server accepts both HTTP and HTTPS connections on its port,
+	// so we start it with Start() rather than StartTLS(), which would
+	// require TLS for all connections.
+	serverTLS = httptest.NewUnstartedServer(mux)
+	serverTLS.TLS = &tls.Config{
+		Certificates: serverClientCert.TLS.Certificates,
+		NextProtos:   []string{"http/1.1"},
+	}
+	serverTLS.Listener = &dualProtocolListener{
+		Listener: serverTLS.Listener,
+		config:   serverTLS.TLS,
+	}
+	serverTLS.Start()
+	serverTLSURL := "https://" + serverTLS.Listener.Addr().String()
 
 	stopch := make(chan bool)
 
@@ -139,7 +155,7 @@ func main() {
 	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
 	defer os.RemoveAll(urlname)
 
-	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
+	sslurlname := writeTestStateFile([]byte(serverTLSURL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
 	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-client-cert-url")
@@ -163,7 +179,7 @@ func main() {
 	defer os.RemoveAll(ckecertname)
 
 	debug("init", "server url: %s", server.URL)
-	debug("init", "server tls url: %s", serverTLS.URL)
+	debug("init", "server tls url: %s", serverTLSURL)
 	debug("init", "server client cert url: %s", serverClientCert.URL)
 
 	<-stopch
@@ -172,6 +188,43 @@ func main() {
 	serverClientCert.Close()
 	debug("close", "git server done")
 }
+
+// dualProtocolListener accepts both plain HTTP and TLS connections on
+// one port, so tests can redirect from HTTP to HTTPS without a port change.
+type dualProtocolListener struct {
+	net.Listener
+	config *tls.Config
+}
+
+func (l *dualProtocolListener) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	r := bufio.NewReader(conn)
+
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	b, err := r.Peek(1)
+	conn.SetReadDeadline(time.Time{})
+
+	pc := &peekedConn{Conn: conn, r: r}
+
+	// Check for TLS handshake record type (RFC 8446 sections 5.1 and B.1).
+	if err == nil && b[0] == 0x16 {
+		return tls.Server(pc, l.config), nil
+	}
+
+	return pc, nil
+}
+
+// peekedConn reads through the buffer which holds the byte peeked by Accept().
+type peekedConn struct {
+	net.Conn
+	r *bufio.Reader
+}
+
+func (c *peekedConn) Read(p []byte) (int, error) { return c.r.Read(p) }
 
 // writeTestStateFile writes contents to either the file referenced by the
 // environment variable envVar, or defaultFilename if that's not set. Returns
