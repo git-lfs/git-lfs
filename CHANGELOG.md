@@ -1,5 +1,91 @@
 # Git LFS Changelog
 
+## 3.8.1 (22 October 2026)
+
+This release introduces security fixes for four vulnerabilities that
+have been assigned the identifiers CVE-2026-69260, CVE-2026-69261,
+CVE-2026-105802, and CVE-2026-105803.  These vulnerabilities apply
+to all of the operating systems supported by Git LFS.
+
+* CVE-2026-69260:
+
+  When Git LFS sends a remote command via SSH, it does not properly
+  format the argument it derives from the remote SSH URL.  Servers
+  which pass remote commands to a shell without sanitizing their
+  arguments may be induced to execute malicious programs.
+
+  Git LFS has resolved this problem by fully quoting the arguments
+  of the remote commands it sends via SSH.
+
+* CVE-2026-69261:
+
+  After receiving an HTTP redirection, Git LFS may forward Cookie
+  headers to a host other than the one for which they were intended.
+  If credentials or other secrets are stored in HTTP cookies, they
+  may be leaked to a potentially malicious host.
+
+  Git LFS has resolved this issue by only sending Cookie headers
+  to the hosts for which they were intended.
+
+* CVE-2026-105802:
+
+  When operating in a malicious repository which contains a submodule,
+  Git LFS may execute an arbitrary program after incorrectly parsing
+  line feed (LF) characters in the submodule's URL.
+
+  Git LFS has resolved this issue by always using an unambiguous
+  format to read and parse Git configuration options.
+
+* CVE-2026-105803:
+
+  When operating in a malicious repository, Git LFS may execute an
+  arbitrary program as a custom transfer adapter after incorrectly
+  filtering the options defined in an `.lfsconfig` file.
+
+  Git LFS has resolved this issue by restricting the configuration
+  of custom object transfer commands to local sources.
+
+As well as the changes listed above, Git LFS has resolved a problem
+with its encoding of the HTTPS URL it checks when a remote SSH host
+either does not support Git LFS commands or does not return an
+HTTP URL in response to an authentication request.
+
+We would like to extend a special thanks to the following security
+researchers for first reporting these issues to us in a responsible
+manner:
+
+* @dungNHVhust (CVE-2026-69260)
+* @izzysec (CVE-2026-105802)
+* @jthack (CVE-2026-105803)
+* @SnailSploit (CVE-2026-69261)
+
+In addition, we would like to thank the following researchers who
+also reported these issues to us responsibly:
+
+* Idan Bachar and Niv Levy (CVE-2026-105803)
+* @bughunter0xff (CVE-2026-105802)
+* @castilho101 (CVE-2026-105803)
+* @douglasday (CVE-2026-105803)
+* @evanconnelly (CVE-2026-105803)
+* @Hexix23 (CVE-2026-105803)
+* @izzysec (CVE-2026-69260)
+* Yonghwa Lee (Theori) (CVE-2026-105803)
+* Rojan Rijal (Ophion Security/Anthropic) (CVE-2026-105803)
+* @SAYUTIM (CVE-2026-69260)
+
+### Bugs
+
+* Parse configuration options unambiguously (@chrisd8088, @aniketgup)
+* Use strict matching for custom transfer configuration options (@chrisd8088, @aniketgup)
+* Limit protected HTTP headers to same origin (@aniketgup, @chrisd8088)
+* Fix shell quoting of paths with SSH (@bk2204, @chrisd8088)
+
+### Misc
+
+* Update some Linux workflow jobs for Ubuntu 26.04 runners (@chrisd8088)
+* Update code signing and notarization of macOS release assets (@chrisd8088)
+* Fix Linux release package build and upload issues (@chrisd8088)
+
 ## 3.8.0 (27 August 2026)
 
 This release is a feature release which adds support for
