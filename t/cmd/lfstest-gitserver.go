@@ -30,6 +30,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -73,14 +74,17 @@ var (
 		"auth-bearer", "auth-multistage",
 	}
 
-	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
-	dekInfoRE        = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
-	multiStageCredRE = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
+	reqCookieReposRE     = regexp.MustCompile(`\A/require-cookie-`)
+	headerRedirectRepoRE = regexp.MustCompile(`\Aheader-redirect-[a-z0-9-]+\z`)
+	dekInfoRE            = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
+	multiStageCredRE     = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
 )
 
 const (
 	headerRedirectAuthDownloadRepo   = "header-redirect-download-auth"
 	headerRedirectDirectDownloadRepo = "header-redirect-download-direct"
+
+	headerRedirectSourceMarker = "lfs-source-marker"
 )
 
 func main() {
@@ -146,7 +150,17 @@ func main() {
 		}
 
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r, id) {
+			repo, err := repoFromLfsUrl(r.URL.Path)
+			if err == nil && strings.HasSuffix(r.URL.Path, "/objects/batch") {
+				if !recordHeaderRedirectRequest(w, r, id, repo, "batch-target") {
+					return
+				}
+			}
+
+			// Header-redirect fixtures must accept requests after
+			// an Authorization header has been dropped by the
+			// client when it follows an HTTP redirection.
+			if (err == nil && headerRedirectRepoRE.MatchString(repo)) || !skipIfBadAuth(w, r, id) {
 				lfsHandler(w, r, id)
 			}
 
@@ -772,6 +786,9 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := r.URL.Query().Get("r")
+	if !recordHeaderRedirectRequest(w, r, id, repo, "object-target") {
+		return
+	}
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 	if missingRequiredCreds(w, r, repo) {
@@ -1227,6 +1244,12 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var repo string
+	if len(parts) > 3 {
+		repo = strings.TrimSuffix(parts[3], ".git")
+	}
+	stage := "batch-source"
+
 	var redirectTo string
 	switch parts[2] {
 	case "rel":
@@ -1236,15 +1259,55 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 	case "ssl":
 		redirectTo = "https://" + r.Host + "/" + strings.Join(parts[3:], "/")
 	case "objects":
-		repo := r.URL.Query().Get("r")
+		repo = r.URL.Query().Get("r")
 		redirectTo = server.URL + "/storage/" + strings.Join(parts[3:], "/") + "?r=" + repo
+
+		stage = "object-source"
 	default:
 		debug(id, "Invalid URL for redirect: %v", r.URL)
 		w.WriteHeader(404)
 		return
 	}
+
+	if !recordHeaderRedirectRequest(w, r, id, repo, stage) {
+		return
+	}
+
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+// recordHeaderRedirectRequest records headers carrying the source marker
+// or fails the fixture request on I/O errors.
+func recordHeaderRedirectRequest(w http.ResponseWriter, r *http.Request, id, repo, stage string) bool {
+	if !headerRedirectRepoRE.MatchString(repo) {
+		return true
+	}
+
+	var headers []string
+	for name, values := range r.Header {
+		if slices.Contains(values, headerRedirectSourceMarker) {
+			headers = append(headers, name)
+		}
+	}
+	sort.Strings(headers)
+
+	headerFilePath := filepath.Join(repoDir, repo+".headers")
+	file, err := os.OpenFile(headerFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		debug(id, "unable to open header record file %q: %v", headerFilePath, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+	defer file.Close()
+
+	if _, err = fmt.Fprintf(file, "%s %s\n", stage, strings.Join(headers, ",")); err != nil {
+		debug(id, "unable to write header record file %q: %v", headerFilePath, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+
+	return true
 }
 
 func limitsHandler(w http.ResponseWriter, r *http.Request) {
