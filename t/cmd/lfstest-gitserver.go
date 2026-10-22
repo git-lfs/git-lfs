@@ -598,7 +598,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	}
 
 	debug(id, "RESPONSE: 200")
-	debug(id, string(by))
+	debug(id, "%s", string(by))
 
 	w.WriteHeader(200)
 	w.Write(by)
