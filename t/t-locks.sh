@@ -166,17 +166,17 @@ begin_test "list a single lock (SSH; git-lfs-transfer)"
   cat trace.log
   [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git.* download" trace.log
 
   GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=always lfs locks --path "f.dat" 2>trace.log | tee locks.log
   [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git.* download" trace.log
 
   GIT_TRACE=1 git -c lfs."$sshurl".sshtransfer=negotiate lfs locks --path "f.dat" 2>trace.log | tee locks.log
   [ $(wc -l < locks.log) -eq 1 ]
   grep "f.dat" locks.log
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git.* download" trace.log
 )
 end_test
 
