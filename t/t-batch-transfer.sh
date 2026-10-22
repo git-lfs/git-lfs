@@ -142,6 +142,52 @@ begin_test "batch transfers fail with an unknown hash algorithm"
 )
 end_test
 
+begin_test "batch transfers anonymize action authorization headers in trace logs"
+(
+  set -e
+
+  reponame="batch-test-action-authorization"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+
+  # This content announces to the server that it should include an
+  # "Authorization" header with the credentials "YWN0aW9uOnNlY3JldA==" in the
+  # actions it returns in Batch API responses.
+  contents="send-action-authorization"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >a.dat
+
+  git add .gitattributes a.dat
+  git commit -m "initial commit"
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin main 2>&1 | tee push.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git push' to succeed ..."
+    exit 1
+  fi
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  grep 'trace git-lfs: HTTP: .*"Authorization":"Basic \* \* \* \* \*"' push.log
+  [ "0" -eq "$(grep -c "YWN0aW9uOnNlY3JldA" push.log)" ]
+
+  rm -rf .git/lfs/objects
+
+  GIT_TRACE=1 GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs fetch' to succeed ..."
+    exit 1
+  fi
+
+  assert_local_object "$contents_oid" "${#contents}"
+
+  grep 'trace git-lfs: HTTP: .*"Authorization":"Basic \* \* \* \* \*"' fetch.log
+  [ "0" -eq "$(grep -c "YWN0aW9uOnNlY3JldA" fetch.log)" ]
+)
+end_test
+
 begin_test "batch transfers with ssh endpoint (git-lfs-authenticate)"
 (
   set -e
