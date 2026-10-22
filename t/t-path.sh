@@ -10,7 +10,7 @@ begin_test "does not look in current directory for git"
   git init "$reponame"
   cd "$reponame"
 
-  cp "$BINPATH/lfstest-badpathcheck$X" "git$X"
+  cp "$BINPATH/lfstest-exploitcheck$X" "git$X"
 
   # This should always succeed, even if git-lfs is incorrectly searching for
   # executables in the current directory first, because the "git-lfs env"
@@ -78,7 +78,7 @@ begin_test "does not look in current directory for git with credential helper"
   # Go's new security checks for this command only.  We will revisit this
   # when we address the larger issue of re-adopting Go's own logic for
   # locating executable programs.
-  cp "$BINPATH/lfstest-badpathcheck$X" "git$X"
+  cp "$BINPATH/lfstest-exploitcheck$X" "git$X"
   GODEBUG=execerrdot=0 \
     PATH="$BINPATH:$GITPATH:$SHELLPATH" "$GITPATH/git$X" add "git$X"
   rm "git$X"
@@ -166,7 +166,7 @@ begin_test "does not look in current directory for wrong binary using PATHEXT"
   # named "." with any path extension from PATHEXT and execute that file
   # instead, so we create a malicious file named "..exe" to check this case.
   touch "git$X"
-  cp "$BINPATH/lfstest-badpathcheck$X" ".$X"
+  cp "$BINPATH/lfstest-exploitcheck$X" ".$X"
 
   # This should always succeed, even if git-lfs is incorrectly searching for
   # executables in the current directory first, because the "git-lfs env"
