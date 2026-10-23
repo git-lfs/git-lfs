@@ -23,12 +23,14 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -72,9 +74,20 @@ var (
 		"auth-bearer", "auth-multistage",
 	}
 
-	reqCookieReposRE = regexp.MustCompile(`\A/require-cookie-`)
-	dekInfoRE        = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
-	multiStageCredRE = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
+	reqCookieReposRE     = regexp.MustCompile(`\A/require-cookie-`)
+	headerRedirectRepoRE = regexp.MustCompile(`\Aheader-redirect-[a-z0-9-]+\z`)
+	dekInfoRE            = regexp.MustCompile(`DEK-Info: AES-128-CBC,([a-fA-F0-9]*)`)
+	multiStageCredRE     = regexp.MustCompile(`\Acred(\d+)of(\d+)\z`)
+)
+
+const (
+	headerRedirectAuthDownloadRepo   = "header-redirect-download-auth"
+	headerRedirectDirectDownloadRepo = "header-redirect-download-direct"
+
+	headerRedirectCookieRepo = "header-redirect-cookie"
+
+	headerRedirectSourceMarker = "lfs-source-marker"
+	headerRedirectSourceCookie = "lfs-source-cookie"
 )
 
 func main() {
@@ -82,7 +95,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	server = httptest.NewServer(mux)
-	serverTLS = httptest.NewTLSServer(mux)
 	serverClientCert = httptest.NewUnstartedServer(mux)
 
 	//setup Client Cert server
@@ -92,12 +104,28 @@ func main() {
 	certPool := x509.NewCertPool()
 	certPool.AddCert(rootCert)
 
+	// StartTLS() supplies httptest's default certificate, which we then
+	// reuse for the SSL server.
 	serverClientCert.TLS = &tls.Config{
-		Certificates: []tls.Certificate{serverTLS.TLS.Certificates[0]},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    certPool,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		ClientCAs:  certPool,
 	}
 	serverClientCert.StartTLS()
+
+	// The SSL server accepts both HTTP and HTTPS connections on its port,
+	// so we start it with Start() rather than StartTLS(), which would
+	// require TLS for all connections.
+	serverTLS = httptest.NewUnstartedServer(mux)
+	serverTLS.TLS = &tls.Config{
+		Certificates: serverClientCert.TLS.Certificates,
+		NextProtos:   []string{"http/1.1"},
+	}
+	serverTLS.Listener = &dualProtocolListener{
+		Listener: serverTLS.Listener,
+		config:   serverTLS.TLS,
+	}
+	serverTLS.Start()
+	serverTLSURL := "https://" + serverTLS.Listener.Addr().String()
 
 	stopch := make(chan bool)
 
@@ -125,7 +153,17 @@ func main() {
 		}
 
 		if strings.Contains(r.URL.Path, "/info/lfs") {
-			if !skipIfBadAuth(w, r, id) {
+			repo, err := repoFromLfsUrl(r.URL.Path)
+			if err == nil && strings.HasSuffix(r.URL.Path, "/objects/batch") {
+				if !recordHeaderRedirectRequest(w, r, id, repo, "batch-target") {
+					return
+				}
+			}
+
+			// Header-redirect fixtures must accept requests after
+			// an Authorization header has been dropped by the
+			// client when it follows an HTTP redirection.
+			if (err == nil && headerRedirectRepoRE.MatchString(repo)) || !skipIfBadAuth(w, r, id) {
 				lfsHandler(w, r, id)
 			}
 
@@ -139,7 +177,7 @@ func main() {
 	urlname := writeTestStateFile([]byte(server.URL), "LFSTEST_URL", "lfstest-gitserver")
 	defer os.RemoveAll(urlname)
 
-	sslurlname := writeTestStateFile([]byte(serverTLS.URL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
+	sslurlname := writeTestStateFile([]byte(serverTLSURL), "LFSTEST_SSL_URL", "lfstest-gitserver-ssl")
 	defer os.RemoveAll(sslurlname)
 
 	clientCertUrlname := writeTestStateFile([]byte(serverClientCert.URL), "LFSTEST_CLIENT_CERT_URL", "lfstest-gitserver-client-cert-url")
@@ -163,7 +201,7 @@ func main() {
 	defer os.RemoveAll(ckecertname)
 
 	debug("init", "server url: %s", server.URL)
-	debug("init", "server tls url: %s", serverTLS.URL)
+	debug("init", "server tls url: %s", serverTLSURL)
 	debug("init", "server client cert url: %s", serverClientCert.URL)
 
 	<-stopch
@@ -172,6 +210,43 @@ func main() {
 	serverClientCert.Close()
 	debug("close", "git server done")
 }
+
+// dualProtocolListener accepts both plain HTTP and TLS connections on
+// one port, so tests can redirect from HTTP to HTTPS without a port change.
+type dualProtocolListener struct {
+	net.Listener
+	config *tls.Config
+}
+
+func (l *dualProtocolListener) Accept() (net.Conn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	r := bufio.NewReader(conn)
+
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	b, err := r.Peek(1)
+	conn.SetReadDeadline(time.Time{})
+
+	pc := &peekedConn{Conn: conn, r: r}
+
+	// Check for TLS handshake record type (RFC 8446 sections 5.1 and B.1).
+	if err == nil && b[0] == 0x16 {
+		return tls.Server(pc, l.config), nil
+	}
+
+	return pc, nil
+}
+
+// peekedConn reads through the buffer which holds the byte peeked by Accept().
+type peekedConn struct {
+	net.Conn
+	r *bufio.Reader
+}
+
+func (c *peekedConn) Read(p []byte) (int, error) { return c.r.Read(p) }
 
 // writeTestStateFile writes contents to either the file referenced by the
 // environment variable envVar, or defaultFilename if that's not set. Returns
@@ -268,11 +343,19 @@ func lfsHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func lfsUrl(repo, oid string, redirect bool) string {
-	repo = url.QueryEscape(repo)
+	encodedRepo := url.QueryEscape(repo)
 	if redirect {
-		return server.URL + "/redirect307/objects/" + oid + "?r=" + repo
+		redirectHost := server.URL
+		if repo == headerRedirectAuthDownloadRepo ||
+			repo == headerRedirectDirectDownloadRepo ||
+			repo == headerRedirectCookieRepo {
+			// Start the object request on "localhost" before
+			// redirecting to "127.0.0.1".
+			redirectHost = strings.Replace(server.URL, "127.0.0.1", "localhost", 1)
+		}
+		return redirectHost + "/redirect307/objects/" + oid + "?r=" + encodedRepo
 	}
-	return server.URL + "/storage/" + oid + "?r=" + repo
+	return server.URL + "/storage/" + oid + "?r=" + encodedRepo
 }
 
 const (
@@ -397,6 +480,14 @@ type batchResp struct {
 }
 
 func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
+	if repo == headerRedirectCookieRepo {
+		http.SetCookie(w, &http.Cookie{
+			Name:  headerRedirectSourceCookie,
+			Value: headerRedirectSourceMarker,
+			Path:  "/",
+		})
+	}
+
 	checkingObject := r.Header.Get("X-Check-Object") == "1"
 	if !checkingObject && repo == "batchunsupported" {
 		w.WriteHeader(404)
@@ -519,7 +610,8 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 			}
 		}
 
-		if handler == "object-authenticated" {
+		if handler == "object-authenticated" ||
+			(repo == headerRedirectDirectDownloadRepo && action == "download") {
 			o.Authenticated = true
 		}
 
@@ -598,7 +690,7 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 	}
 
 	debug(id, "RESPONSE: 200")
-	debug(id, string(by))
+	debug(id, "%s", string(by))
 
 	w.WriteHeader(200)
 	w.Write(by)
@@ -706,6 +798,9 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo := r.URL.Query().Get("r")
+	if !recordHeaderRedirectRequest(w, r, id, repo, "object-target") {
+		return
+	}
 	parts := strings.Split(r.URL.Path, "/")
 	oid := parts[len(parts)-1]
 	if missingRequiredCreds(w, r, repo) {
@@ -1145,25 +1240,95 @@ func redirect307Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send a redirect to info/lfs
-	// Make it either absolute or relative depending on subpath
+	// Send a 307 redirect for a "/redirect307/<route>/<path>" URL,
+	// where the route determines the redirect's destination:
+	//   rel:     <path> as a relative URL on the same server
+	//   abs:     <path> as an absolute URL on the main server
+	//   ssl:     <path> as an HTTPS URL with the same host and port
+	//            as those of the original request
+	//   objects: <path> under "/storage/" on the main server
 	parts := strings.Split(r.URL.Path, "/")
+
 	// first element is always blank since rooted
+	// the second element is "redirect307" and the third is the route name
+	if len(parts) < 3 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var repo string
+	if len(parts) > 3 {
+		repo = strings.TrimSuffix(parts[3], ".git")
+	}
+	stage := "batch-source"
+
 	var redirectTo string
-	if parts[2] == "rel" {
+	switch parts[2] {
+	case "rel":
 		redirectTo = "/" + strings.Join(parts[3:], "/")
-	} else if parts[2] == "abs" {
+	case "abs":
 		redirectTo = server.URL + "/" + strings.Join(parts[3:], "/")
-	} else if parts[2] == "objects" {
-		repo := r.URL.Query().Get("r")
+	case "ssl":
+		redirectTo = "https://" + r.Host + "/" + strings.Join(parts[3:], "/")
+	case "objects":
+		repo = r.URL.Query().Get("r")
 		redirectTo = server.URL + "/storage/" + strings.Join(parts[3:], "/") + "?r=" + repo
-	} else {
+
+		stage = "object-source"
+	default:
 		debug(id, "Invalid URL for redirect: %v", r.URL)
 		w.WriteHeader(404)
 		return
 	}
+
+	if !recordHeaderRedirectRequest(w, r, id, repo, stage) {
+		return
+	}
+
 	w.Header().Set("Location", redirectTo)
 	w.WriteHeader(307)
+}
+
+// recordHeaderRedirectRequest records headers carrying the source marker
+// or fails the fixture request on I/O errors.
+func recordHeaderRedirectRequest(w http.ResponseWriter, r *http.Request, id, repo, stage string) bool {
+	if !headerRedirectRepoRE.MatchString(repo) {
+		return true
+	}
+
+	var headers []string
+	for name, values := range r.Header {
+		if name == "Cookie" {
+			for _, cookie := range r.CookiesNamed(headerRedirectSourceCookie) {
+				if cookie.Value == headerRedirectSourceMarker {
+					headers = append(headers, name)
+					break
+				}
+			}
+			continue
+		}
+		if slices.Contains(values, headerRedirectSourceMarker) {
+			headers = append(headers, name)
+		}
+	}
+	sort.Strings(headers)
+
+	headerFilePath := filepath.Join(repoDir, repo+".headers")
+	file, err := os.OpenFile(headerFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		debug(id, "unable to open header record file %q: %v", headerFilePath, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+	defer file.Close()
+
+	if _, err = fmt.Fprintf(file, "%s %s\n", stage, strings.Join(headers, ",")); err != nil {
+		debug(id, "unable to write header record file %q: %v", headerFilePath, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	}
+
+	return true
 }
 
 func limitsHandler(w http.ResponseWriter, r *http.Request) {
@@ -1368,6 +1533,12 @@ var (
 )
 
 func locksHandler(w http.ResponseWriter, r *http.Request, repo string) {
+	checkingLock := r.Header.Get("X-Check-Lock") == "1"
+	if !checkingLock && repo == "locksunsupported" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	dec := json.NewDecoder(r.Body)
 	enc := json.NewEncoder(w)
 
