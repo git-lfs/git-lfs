@@ -2,6 +2,7 @@
 set -eu
 
 prefix="/usr/local"
+configure_git_lfs=1
 
 if [ "${PREFIX:-}" != "" ] ; then
   prefix=${PREFIX:-}
@@ -13,6 +14,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --local)
       prefix="$HOME/.local"
+      shift
+      ;;
+    --bin)
+      configure_git_lfs=0
       shift
       ;;
     *)
@@ -38,4 +43,6 @@ pushd "$( dirname "${BASH_SOURCE[0]}" )" > /dev/null
 popd > /dev/null
 
 PATH+=:"$prefix/bin"
-git lfs install
+if [ "$configure_git_lfs" -eq 1 ]; then
+  git lfs install
+fi
