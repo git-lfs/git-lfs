@@ -200,9 +200,13 @@ func main() {
 					line = synopsisQuotesRegex.ReplaceAllString(line, "")
 				}
 
-				// indent bullets and definition lists
+				// indent bullets, ordered list items and definition lists
 				if strings.HasPrefix(line, "*") {
 					lastLineWasList = true
+				} else if strings.HasPrefix(line, ". ") {
+					lastLineWasList = true
+					line = strings.TrimPrefix(line, ". ")
+					line = "  " + line
 				} else if strings.HasSuffix(line, "::") {
 					lastLineWasList = true
 					line = strings.TrimSuffix(line, ":")
