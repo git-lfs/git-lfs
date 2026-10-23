@@ -344,6 +344,9 @@ func configureBasicDownloadAdapter(m *concreteManifest) {
 func (a *basicDownloadAdapter) makeRequest(t *Transfer, req *http.Request) (*http.Response, error) {
 	res, err := a.doHTTP(t, req)
 	if errors.IsAuthError(err) && len(req.Header.Get("Authorization")) == 0 {
+		if res != nil {
+			res.Body.Close()
+		}
 		return a.makeRequest(t, req)
 	}
 
