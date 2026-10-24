@@ -16,10 +16,10 @@ import (
 	"github.com/rubyist/tracerx"
 )
 
-// isCertVerificationDisabledForHost returns whether SSL certificate verification
-// has been disabled for the given host, or globally
-func isCertVerificationDisabledForHost(c *Client, host string) bool {
-	hostSslVerify, _ := c.uc.Get("http", fmt.Sprintf("https://%v", host), "sslverify")
+// isCertVerificationDisabledForURL returns whether SSL certificate verification
+// has been disabled for the given URL, or globally
+func isCertVerificationDisabledForURL(c *Client, u *url.URL) bool {
+	hostSslVerify, _ := c.uc.Get("http", u.String(), "sslverify")
 	if hostSslVerify == "false" {
 		return true
 	}
@@ -27,11 +27,11 @@ func isCertVerificationDisabledForHost(c *Client, host string) bool {
 	return c.SkipSSLVerify
 }
 
-// isClientCertEnabledForHost returns whether client certificate
-// are configured for the given host
-func isClientCertEnabledForHost(c *Client, host string) bool {
-	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
-	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+// isClientCertEnabledForURL returns whether client certificate
+// are configured for the given URL
+func isClientCertEnabledForURL(c *Client, u *url.URL) bool {
+	_, hostSslKeyOk := c.uc.Get("http", u.String(), "sslKey")
+	_, hostSslCertOk := c.uc.Get("http", u.String(), "sslCert")
 
 	return hostSslKeyOk && hostSslCertOk
 }
@@ -68,11 +68,11 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	return buf, nil
 }
 
-// getClientCertForHost returns a client certificate for a specific host (which may
-// be "host:port" loaded from the gitconfig
-func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
-	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
-	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+// getClientCertForURL returns a client certificate for a specific URL loaded
+// from the gitconfig
+func getClientCertForURL(c *Client, u *url.URL) (*tls.Certificate, error) {
+	hostSslKey, _ := c.uc.Get("http", u.String(), "sslKey")
+	hostSslCert, _ := c.uc.Get("http", u.String(), "sslCert")
 
 	hostSslKey, err := tools.ExpandPath(hostSslKey, false)
 	if err != nil {
@@ -115,20 +115,20 @@ func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
 	return &certobj, nil
 }
 
-// getRootCAsForHostFromGitconfig returns a certificate pool for that
-// specific host (which may be "host:port" or just "host") loaded from the
-// Git configuration and environment settings, if any are defined.
+// getRootCAsForURLFromGitconfig returns a certificate pool for that
+// specific URL loaded from the Git configuration and environment settings,
+// if any are defined.
 // May return nil if it doesn't have anything to add, in which case the default
 // RootCAs will be used if passed to TLSClientConfig.RootCAs
-func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
+func getRootCAsForURLFromGitconfig(c *Client, u *url.URL) *x509.CertPool {
 	// don't init pool, want to return nil not empty if none found; init only on successful add cert
 	var pool *x509.CertPool
 
-	url := fmt.Sprintf("https://%v/", host)
+	rawurl := u.String()
 	uc := config.NewURLConfig(c.gitEnv)
 
-	backend, _ := uc.Get("http", url, "sslbackend")
-	schannelUseSslCaInfoStrValue, _ := uc.Get("http", url, "schannelusesslcainfo")
+	backend, _ := uc.Get("http", rawurl, "sslbackend")
+	schannelUseSslCaInfoStrValue, _ := uc.Get("http", rawurl, "schannelusesslcainfo")
 	schannelUseSslCaInfo := config.Bool(schannelUseSslCaInfoStrValue, false)
 
 	if backend == "schannel" && !schannelUseSslCaInfo {
@@ -142,7 +142,7 @@ func getRootCAsForHostFromGitconfig(c *Client, host string) *x509.CertPool {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// http.<url>/.sslcainfo or http.<url>.sslcainfo
-	if cafile, ok := uc.Get("http", url, "sslcainfo"); ok {
+	if cafile, ok := uc.Get("http", rawurl, "sslcainfo"); ok {
 		return appendCertsFromFile(pool, cafile)
 	}
 	// GIT_SSL_CAPATH
