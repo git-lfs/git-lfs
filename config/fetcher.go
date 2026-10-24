@@ -20,3 +20,16 @@ type Fetcher interface {
 	// environment.
 	All() map[string][]string
 }
+
+// EnvironmentEntry contains all values associated with a configuration key.
+type EnvironmentEntry struct {
+	Key    string
+	Values []string
+}
+
+// sortedFetcher provides all configuration entries ordered by each key's final
+// source occurrence. Fetchers which do not preserve source order need not
+// implement it.
+type sortedFetcher interface {
+	SortedAll() []EnvironmentEntry
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -58,68 +59,59 @@ func (c *URLConfig) Bool(prefix, rawurl, key string, def bool) bool {
 
 func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 	type urlMatch struct {
-		key       string // The full configuration key
-		hostScore int    // A score indicating the strength of the host match
-		pathScore int    // A score indicating the strength of the path match
-		userMatch int    // Whether we matched on a username. 1 for yes, else 0
+		values    []string // The values associated with the configuration key
+		hostScore int      // A score indicating the strength of the host match
+		pathScore int      // A score indicating the strength of the path match
+		userMatch int      // Whether we matched on a username. 1 for yes, else 0
 	}
 
-	searchURL, err := url.Parse(rawurl)
+	searchURL, err := normalizeURL(rawurl, false)
 	if err != nil {
 		return nil
 	}
 
-	config := c.git.All()
+	config, ordered := c.configEntries()
+	re := regexp.MustCompile(fmt.Sprintf(`\A%s\.(\S+)\.%s\z`, regexp.QuoteMeta(prefix), regexp.QuoteMeta(key)))
 
-	re := regexp.MustCompile(fmt.Sprintf(`\A%s\.(\S+)\.%s\z`, prefix, key))
+	bestMatch := urlMatch{}
+	foundMatch := false
 
-	bestMatch := urlMatch{
-		key:       "",
-		hostScore: 0,
-		pathScore: 0,
-		userMatch: 0,
-	}
-
-	for k := range config {
+	for _, entry := range config {
 		// Ensure we're examining the correct type of key and parse out the URL
-		matches := re.FindStringSubmatch(k)
+		matches := re.FindStringSubmatch(entry.Key)
 		if matches == nil {
 			continue
 		}
-		configURL, err := url.Parse(matches[1])
+		configURL, err := normalizeURL(matches[1], true)
 		if err != nil {
 			continue
 		}
 
 		match := urlMatch{
-			key: k,
+			values: entry.Values,
 		}
 
 		// Rule #1: Scheme must match exactly
-		if searchURL.Scheme != configURL.Scheme {
+		if searchURL.scheme != configURL.scheme {
 			continue
 		}
 
 		// Rule #2: Hosts must match exactly, or through wildcards. More exact
 		// matches should take priority over wildcard matches
-		match.hostScore = compareHosts(searchURL.Hostname(), configURL.Hostname())
+		match.hostScore = compareHosts(searchURL.hostname, configURL.hostname)
 
 		if match.hostScore == 0 {
 			continue
 		}
 
-		if match.hostScore < bestMatch.hostScore {
-			continue
-		}
-
 		// Rule #3: Port Number must match exactly
-		if portForURL(searchURL) != portForURL(configURL) {
+		if searchURL.port != configURL.port {
 			continue
 		}
 
 		// Rule #4: Configured path must match exactly, or as a prefix of
 		// slash-delimited path elements
-		match.pathScore = comparePaths(searchURL.Path, configURL.Path)
+		match.pathScore = comparePaths(searchURL.path, configURL.path)
 
 		if match.pathScore == 0 {
 			continue
@@ -128,58 +120,56 @@ func (c *URLConfig) getAll(prefix, rawurl, key string) []string {
 		// Rule #5: Username must match exactly if present in the config.
 		// If not present, config matches on any username but with lower
 		// priority than an exact username match.
-		if configURL.User != nil {
-			if searchURL.User == nil {
+		if configURL.hasUserinfo && configURL.userinfo != "" {
+			if !searchURL.hasUserinfo || searchURL.userinfo == "" {
 				continue
 			}
 
-			if searchURL.User.Username() != configURL.User.Username() {
+			if searchURL.username != configURL.username {
 				continue
 			}
 
 			match.userMatch = 1
 		}
 
-		// Now combine our various scores to determine if we have found a best
-		// match. Host score > path score > user score
-		if match.hostScore > bestMatch.hostScore {
+		// Combine scores in the same order Git uses. When entries are in source
+		// order, an equally specific later entry replaces the earlier one.
+		better := !foundMatch ||
+			match.hostScore > bestMatch.hostScore ||
+			(match.hostScore == bestMatch.hostScore && match.pathScore > bestMatch.pathScore) ||
+			(match.hostScore == bestMatch.hostScore && match.pathScore == bestMatch.pathScore && match.userMatch > bestMatch.userMatch)
+		equal := foundMatch && match.hostScore == bestMatch.hostScore &&
+			match.pathScore == bestMatch.pathScore && match.userMatch == bestMatch.userMatch
+		if better || (ordered && equal) {
 			bestMatch = match
-			continue
-		}
-
-		if match.pathScore > bestMatch.pathScore {
-			bestMatch = match
-			continue
-		}
-
-		if match.pathScore == bestMatch.pathScore && match.userMatch > bestMatch.userMatch {
-			bestMatch = match
-			continue
+			foundMatch = true
 		}
 	}
 
-	if bestMatch.key == "" {
+	if !foundMatch {
 		return nil
 	}
 
-	return c.git.GetAll(bestMatch.key)
+	return bestMatch.values
 }
 
-func portForURL(u *url.URL) string {
-	port := u.Port()
-	if port != "" {
-		return port
+func (c *URLConfig) configEntries() ([]EnvironmentEntry, bool) {
+	if entries := c.git.SortedAll(); entries != nil {
+		return entries, true
 	}
-	switch u.Scheme {
-	case "http":
-		return "80"
-	case "https":
-		return "443"
-	case "ssh":
-		return "22"
-	default:
-		return ""
+
+	all := c.git.All()
+	keys := make([]string, 0, len(all))
+	for key := range all {
+		keys = append(keys, key)
 	}
+	sort.Strings(keys)
+
+	entries := make([]EnvironmentEntry, 0, len(keys))
+	for _, key := range keys {
+		entries = append(entries, EnvironmentEntry{Key: key, Values: all[key]})
+	}
+	return entries, false
 }
 
 // compareHosts compares a hostname with a configuration hostname to determine
@@ -193,11 +183,8 @@ func compareHosts(searchHostname, configHostname string) int {
 		return 0
 	}
 
-	score := len(searchHost) + 1
-
 	for i, subdomain := range searchHost {
 		if configHost[i] == "*" {
-			score--
 			continue
 		}
 
@@ -206,48 +193,39 @@ func compareHosts(searchHostname, configHostname string) int {
 		}
 	}
 
-	return score
+	return len(configHostname) + 1
 }
 
 // comparePaths compares a path with a configuration path to determine a match.
 // It returns an integer indicating the strength of the match, or 0 if the two
 // paths did not match.
 func comparePaths(rawSearchPath, rawConfigPath string) int {
-	f := func(c rune) bool {
-		return c == '/'
-	}
-	searchPath := strings.FieldsFunc(rawSearchPath, f)
-	configPath := strings.FieldsFunc(rawConfigPath, f)
-
-	if len(searchPath) < len(configPath) {
-		return 0
+	if score := pathMatchScore(rawSearchPath, rawConfigPath); score > 0 {
+		return score
 	}
 
-	// Start with a base score of 1, so we return something above 0 for a
-	// zero-length path
-	score := 1
-
-	for i, element := range configPath {
-		searchElement := searchPath[i]
-
-		if element == searchElement {
-			score += 2
+	parts := strings.Split(rawSearchPath, slash)
+	for i := 0; i+2 < len(parts); i++ {
+		if !strings.HasSuffix(parts[i], gitExt) || parts[i+1] != infoPart || parts[i+2] != lfsPart {
 			continue
 		}
 
-		if isDefaultLFSUrl(searchElement, searchPath, i+1) {
-			if searchElement[0:len(searchElement)-4] == element {
-				// Since we matched without the `.git` prefix, only add one
-				// point to the score instead of 2
-				score++
-				continue
-			}
-		}
+		parts[i] = strings.TrimSuffix(parts[i], gitExt)
+		return pathMatchScore(strings.Join(parts, slash), rawConfigPath)
+	}
+	return 0
+}
 
-		return 0
+func pathMatchScore(searchPath, configPath string) int {
+	if configPath == slash {
+		return 1
 	}
 
-	return score
+	configPath = strings.TrimSuffix(configPath, slash)
+	if searchPath == configPath || strings.HasPrefix(searchPath, configPath+slash) {
+		return len(configPath) + 1
+	}
+	return 0
 }
 
 func (c *URLConfig) hostsAndPaths(rawurl string) (hosts, paths []string) {

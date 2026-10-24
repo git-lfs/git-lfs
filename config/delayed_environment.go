@@ -56,6 +56,12 @@ func (e *delayedEnvironment) All() map[string][]string {
 	return e.env.All()
 }
 
+// SortedAll returns all configuration entries in source order when available.
+func (e *delayedEnvironment) SortedAll() []EnvironmentEntry {
+	e.Load()
+	return e.env.SortedAll()
+}
+
 // Load reads and parses the .gitconfig by calling ReadGitConfig. It
 // also sets values on the configuration instance `g.config`.
 //
