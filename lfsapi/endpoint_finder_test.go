@@ -623,6 +623,18 @@ func TestEndpointParsing(t *testing.T) {
 				Operation: "",
 			},
 		},
+		"remote helper url": {
+			"remote://git-lfs/git-lfs.git",
+			lfshttp.Endpoint{
+				Url: "remote://git-lfs/git-lfs.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "",
+					Path:        "",
+					Port:        "",
+				},
+				Operation: "",
+			},
+		},
 		// Percent-encoded path separators are unencoded in the
 		// SSH path and so are left unencoded in the fallback URL.
 		"encoded ssh (encoded path separators only)": {
