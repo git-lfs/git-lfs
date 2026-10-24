@@ -90,6 +90,7 @@ func getIncludeExcludeArgs(cmd *cobra.Command) (include, exclude *string) {
 }
 
 func fetchCommand(cmd *cobra.Command, args []string) {
+	args, paths := splitArgsAtDash(cmd, args)
 	setupRepository()
 
 	var refs []*git.Ref
@@ -149,6 +150,9 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 		if fetchRecentArg {
 			Exit(tr.Tr.Get("Cannot combine --all with --recent"))
 		}
+		if len(paths) > 0 {
+			Exit(tr.Tr.Get("Cannot combine --all with paths"))
+		}
 		if include != nil || exclude != nil {
 			Exit(tr.Tr.Get("Cannot combine --all with --include or --exclude"))
 		}
@@ -168,6 +172,13 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 
 	} else { // !all
 		filter := buildFilepathFilter(cfg, include, exclude, true)
+		if len(paths) > 0 {
+			var err error
+			filter, err = buildFilepathFilterForPaths(filter, paths)
+			if err != nil {
+				Exit(tr.Tr.Get("Invalid path argument: %s", err))
+			}
+		}
 
 		// Fetch refs sequentially per arg order; duplicates in later refs will be ignored
 		for _, ref := range refs {

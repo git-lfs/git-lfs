@@ -180,6 +180,33 @@ func (w *wm) String() string {
 	return w.p
 }
 
+type literalPath struct {
+	p        string
+	caseFold bool
+}
+
+// NewLiteralPathPattern returns a pattern which matches a repository-relative
+// path literally. A directory path also matches all of its descendants.
+func NewLiteralPathPattern(p string, gitEnv Environment) Pattern {
+	p = strings.TrimSuffix(p, "/")
+	caseFold := gitEnv != nil && gitEnv.Bool("core.ignorecase", false)
+	if caseFold {
+		p = strings.ToLower(p)
+	}
+	return &literalPath{p: p, caseFold: caseFold}
+}
+
+func (p *literalPath) Match(filename string) bool {
+	if p.caseFold {
+		filename = strings.ToLower(filename)
+	}
+	return p.p == "." || filename == p.p || strings.HasPrefix(filename, p.p+"/")
+}
+
+func (p *literalPath) String() string {
+	return p.p
+}
+
 const (
 	sep byte = '/'
 )
