@@ -70,6 +70,8 @@ type Client struct {
 
 	hostClients map[hostData]*http.Client
 	clientMu    sync.Mutex
+	retryAfter  map[string]time.Time
+	retryMu     sync.Mutex
 
 	httpLogger *syncLogger
 
@@ -327,6 +329,11 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 
 	requests := max(0, retries) + 1
 	for i := 0; i < requests; i++ {
+		if err := c.waitForRetryAfter(req.Context(), req.URL.Hostname()); err != nil {
+			c.traceResponse(req, tracedReq, nil)
+			return nil, nil, err
+		}
+
 		res, err = cli.Do(req)
 		if err == nil {
 			break

@@ -67,6 +67,9 @@ func (c *Client) handleResponse(res *http.Response) error {
 		h := res.Header.Get("Retry-After")
 		retLaterErr := errors.NewRetriableLaterError(err, h)
 		if retLaterErr != nil {
+			if retryAt, ok := errors.IsRetriableLaterError(retLaterErr); ok && res.Request != nil {
+				c.setRetryAfter(res.Request.URL.Hostname(), retryAt)
+			}
 			return retLaterErr
 		}
 		return errors.NewRetriableError(err)
