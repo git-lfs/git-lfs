@@ -42,3 +42,9 @@ func TestRepositoryPermissions(t *testing.T) {
 		assert.Equal(t, v, fs.RepositoryPermissions(false))
 	}
 }
+
+func TestRepositoryPermissionsZero(t *testing.T) {
+	fs := Filesystem{repoPerms: 0}
+	assert.Equal(t, os.FileMode(0), fs.RepositoryPermissions(false))
+	assert.Equal(t, os.FileMode(0), fs.RepositoryPermissions(true))
+}
