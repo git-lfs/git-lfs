@@ -91,9 +91,13 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 		ExitWithError(err)
 	}
 
+	checkoutFailed := false
+
 	meter.Start()
 	for _, p := range pointers {
-		singleCheckout.Run(p)
+		if err := singleCheckout.Run(p); err != nil {
+			checkoutFailed = true
+		}
 
 		// not strictly correct (parallel) but we don't have a callback & it's just local
 		// plus only 1 slot in channel so it'll block & be close
@@ -102,7 +106,13 @@ func checkoutCommand(cmd *cobra.Command, args []string) {
 	}
 
 	meter.Finish()
-	singleCheckout.Close()
+	if err := singleCheckout.Close(); err != nil {
+		checkoutFailed = true
+	}
+
+	if checkoutFailed {
+		ExitWithCode(2)
+	}
 }
 
 func checkoutConflict(file string, stage git.IndexStage) {

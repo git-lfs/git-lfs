@@ -50,6 +50,9 @@ func pull(filter *filepathfilter.Filter) {
 	// will chdir to root of working tree, if one exists
 	singleCheckout := newSingleCheckout(cfg.Git, remote)
 	q := newDownloadQueue(singleCheckout.Manifest(), remote, tq.WithProgress(meter))
+
+	checkoutFailed := false
+
 	gitscanner := lfs.NewGitScanner(cfg, func(p *lfs.WrappedPointer, err error) {
 		if err != nil {
 			LoggedError(err, tr.Tr.Get("Scanner error: %s", err))
@@ -63,7 +66,9 @@ func pull(filter *filepathfilter.Filter) {
 		// no need to download objects that exist locally already
 		lfs.LinkOrCopyFromReference(cfg, p.Oid, p.Size)
 		if cfg.LFSObjectExists(p.Oid, p.Size) {
-			singleCheckout.Run(p)
+			if err := singleCheckout.Run(p); err != nil {
+				checkoutFailed = true
+			}
 			return
 		}
 
@@ -82,7 +87,9 @@ func pull(filter *filepathfilter.Filter) {
 	go func() {
 		for t := range dlwatch {
 			for _, p := range pointers.All(t.Oid) {
-				singleCheckout.Run(p)
+				if err := singleCheckout.Run(p); err != nil {
+					checkoutFailed = true
+				}
 			}
 		}
 		wg.Done()
@@ -99,7 +106,9 @@ func pull(filter *filepathfilter.Filter) {
 	wg.Wait()
 	tracerx.PerformanceSince("process queue", processQueue)
 
-	singleCheckout.Close()
+	if err := singleCheckout.Close(); err != nil {
+		checkoutFailed = true
+	}
 
 	success := true
 	for _, err := range q.Errors() {
@@ -111,6 +120,10 @@ func pull(filter *filepathfilter.Filter) {
 		c := getAPIClient()
 		e := c.Endpoints.Endpoint("download", remote)
 		Exit(tr.Tr.Get("Failed to fetch some objects from '%s'", e.Url))
+	}
+
+	if checkoutFailed {
+		ExitWithCode(2)
 	}
 
 	if singleCheckout.Skip() {
