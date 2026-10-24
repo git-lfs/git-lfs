@@ -55,13 +55,13 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 		return err
 	}
 
-	if req.Header.Get("Transfer-Encoding") == "chunked" {
+	if isChunkedTransferEncoding(req.Header.Get("Transfer-Encoding")) {
 		req.TransferEncoding = []string{"chunked"}
+		req.ContentLength = -1
 	} else {
 		req.Header.Set("Content-Length", strconv.FormatInt(t.Size, 10))
+		req.ContentLength = t.Size
 	}
-
-	req.ContentLength = t.Size
 
 	f, err := os.OpenFile(t.Path, os.O_RDONLY, 0644)
 	if err != nil {
@@ -208,6 +208,18 @@ func newStartCallbackReader(r lfsapi.ReadSeekCloser, cb func() error) *startCall
 		ReadSeekCloser: r,
 		cb:             cb,
 	}
+}
+
+// isChunkedTransferEncoding reports whether the Transfer-Encoding header value
+// contains "chunked" as a transfer-coding token. Tokens are case-insensitive
+// and the header may be a comma-separated list per RFC 7230 §3.3.1.
+func isChunkedTransferEncoding(v string) bool {
+	for _, tok := range strings.Split(v, ",") {
+		if strings.EqualFold(strings.TrimSpace(tok), "chunked") {
+			return true
+		}
+	}
+	return false
 }
 
 func configureBasicUploadAdapter(m *concreteManifest) {
