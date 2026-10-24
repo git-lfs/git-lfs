@@ -47,6 +47,10 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			ExitWithError(errors.New(tr.Tr.Get("--no-rewrite and --fixup cannot be combined")))
 		}
 
+		if migrateRewriteCommitHashesInCommitMessages {
+			ExitWithError(errors.New(tr.Tr.Get("--no-rewrite and --rewrite-messages cannot be combined")))
+		}
+
 		if len(args) == 0 {
 			ExitWithError(errors.New(tr.Tr.Get("Expected one or more files with --no-rewrite")))
 		}
@@ -259,7 +263,8 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 			}), nil
 		},
 
-		UpdateRefs: true,
+		UpdateRefs:                          true,
+		RewriteCommitHashesInCommitMessages: migrateRewriteCommitHashesInCommitMessages,
 	})
 
 	if err := checkoutNonBare(l); err != nil {
