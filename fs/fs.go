@@ -93,6 +93,21 @@ func (f *Filesystem) ObjectPathname(oid string) string {
 	return filepath.Join(f.localObjectDir(oid), oid)
 }
 
+// RemoveEmptyObjectDirs removes the two levels of directories in the local
+// storage directory which would contain the object with the given ID, so
+// long as they are empty.  If a directory can not be removed, for instance
+// because it still contains other objects, then it and its parent are left
+// in place and no error is returned.
+func (f *Filesystem) RemoveEmptyObjectDirs(oid string) {
+	dir := f.localObjectDir(oid)
+	for _, d := range []string{dir, filepath.Dir(dir)} {
+		if err := os.Remove(d); err != nil {
+			return
+		}
+		tracerx.Printf("removed empty object directory: %s", d)
+	}
+}
+
 func (f *Filesystem) DecodePathname(path string) string {
 	return string(DecodePathBytes([]byte(path)))
 }
