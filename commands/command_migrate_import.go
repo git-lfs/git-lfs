@@ -147,8 +147,9 @@ func migrateImportCommand(cmd *cobra.Command, args []string) {
 	}
 
 	migrate(args, rewriter, l, &githistory.RewriteOptions{
-		Verbose:           migrateVerbose,
-		ObjectMapFilePath: objectMapFilePath,
+		Verbose:                migrateVerbose,
+		ObjectMapFilePath:      objectMapFilePath,
+		AppendOldShaToMessages: appendOldShaToMessages,
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
 			if filepath.Base(path) == ".gitattributes" {
 				return b, nil

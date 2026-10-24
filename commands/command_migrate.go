@@ -63,6 +63,10 @@ var (
 	// migrateFixup is the flag indicating whether or not to infer the
 	// included and excluded filepath patterns.
 	migrateFixup bool
+
+	// appendOldShaToMessages is the flag indicating whether or not to append
+	// to rewritten commit messages the old commit SHA.
+	appendOldShaToMessages bool
 )
 
 // migrate takes the given command and arguments, *gitobj.ObjectDatabase, as well
@@ -115,9 +119,10 @@ func rewriteOptions(args []string, opts *githistory.RewriteOptions, l *tasklog.L
 		Include: include,
 		Exclude: exclude,
 
-		UpdateRefs:        opts.UpdateRefs,
-		Verbose:           opts.Verbose,
-		ObjectMapFilePath: opts.ObjectMapFilePath,
+		UpdateRefs:             opts.UpdateRefs,
+		Verbose:                opts.Verbose,
+		ObjectMapFilePath:      opts.ObjectMapFilePath,
+		AppendOldShaToMessages: opts.AppendOldShaToMessages,
 
 		BlobFn:            opts.BlobFn,
 		TreePreCallbackFn: opts.TreePreCallbackFn,
@@ -401,6 +406,7 @@ func init() {
 	importCmd.Flags().BoolVar(&migrateNoRewrite, "no-rewrite", false, "Add new history without rewriting previous")
 	importCmd.Flags().StringVarP(&migrateCommitMessage, "message", "m", "", "With --no-rewrite, an optional commit message")
 	importCmd.Flags().BoolVar(&migrateFixup, "fixup", false, "Infer filepaths based on .gitattributes")
+	importCmd.Flags().BoolVar(&appendOldShaToMessages, "append-old-sha", false, "Append old commit SHA to rewritten commit messages")
 
 	exportCmd := NewCommand("export", migrateExportCommand)
 	exportCmd.Flags().BoolVar(&migrateVerbose, "verbose", false, "Verbose logging")
