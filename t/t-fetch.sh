@@ -83,6 +83,25 @@ begin_test "fetch"
 )
 end_test
 
+begin_test "fetch --all with a revision range"
+(
+  set -e
+  cd clone
+
+  for source in args stdin
+  do
+    rm -rf .git/lfs/objects
+    if [ "$source" = args ]; then
+      git lfs fetch --all origin origin/main..origin/newbranch
+    else
+      printf 'origin/main..origin/newbranch\n' | git lfs fetch --all --stdin origin
+    fi
+    refute_local_object "$contents_oid"
+    assert_local_object "$b_oid" 1
+  done
+)
+end_test
+
 begin_test "fetch --json"
 (
   set -e
