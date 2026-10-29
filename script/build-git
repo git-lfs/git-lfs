@@ -55,6 +55,13 @@ if test -n "$CURLDIR"; then
     "CURLDIR=$CURLDIR" \
     >> config.mak
 fi
+
+# Force the use of GCC's C17 dialect for Git versions earlier than 2.48.0
+# to avoid conflicts with the new reserved keywords in C23.
+if grep -q "struct thread_local {" "builtin/index-pack.c"; then
+  printf "%s\n" "CFLAGS += -std=gnu17" >>config.mak
+fi
+
 make -j4
 sudo make install
 

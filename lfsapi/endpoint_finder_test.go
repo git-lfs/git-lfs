@@ -623,6 +623,95 @@ func TestEndpointParsing(t *testing.T) {
 				Operation: "",
 			},
 		},
+		// Percent-encoded path separators are unencoded in the
+		// SSH path and so are left unencoded in the fallback URL.
+		"encoded ssh (encoded path separators only)": {
+			"ssh://git@example.com/foo%2Fbar%2Fbaz.git",
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo/bar/baz.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        "/foo/bar/baz.git",
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "ssh://git@example.com/foo%2Fbar%2Fbaz.git",
+			},
+		},
+		// Percent-encoded path separators are unencoded in the
+		// SSH path and so are left unencoded in the fallback URL.
+		//
+		// Note that OriginalUrl field does not match the original URL
+		// because the "net/url" Go package reconstructs parsed URLs
+		// inconsistently when encoded path separators are mixed
+		// with certain unencoded characters.  See, for reference:
+		//   https://github.com/golang/go/issues/73549
+		//   https://github.com/golang/go/issues/14815#issuecomment-202659932
+		"partially encoded ssh (encoded path separators only)": {
+			"ssh://git@example.com/foo%2Fbar%2F<baz>.git",
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo/bar/%3Cbaz%3E.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        "/foo/bar/<baz>.git",
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "ssh://git@example.com/foo/bar/%3Cbaz%3E.git",
+			},
+		},
+		"unencoded ssh": {
+			"ssh://git@example.com/foo/bar (baz).git",
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo/bar%20%28baz%29.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        "/foo/bar (baz).git",
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "ssh://git@example.com/foo/bar%20%28baz%29.git",
+			},
+		},
+		"unencoded git+ssh": {
+			"git+ssh://git@example.com/foo/bar 'baz!.git",
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo/bar%20%27baz%21.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        "/foo/bar 'baz!.git",
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "git+ssh://git@example.com/foo/bar%20%27baz%21.git",
+			},
+		},
+		"unencoded ssh+git": {
+			"ssh+git://git@example.com/foo\\|/bar{baz}.git",
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo%5C%7C/bar%7Bbaz%7D.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        "/foo\\|/bar{baz}.git",
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "ssh+git://git@example.com/foo%5C%7C/bar%7Bbaz%7D.git",
+			},
+		},
+		"unencoded bare ssh": {
+			`git@example.com:foo^/bar "baz".git`,
+			lfshttp.Endpoint{
+				Url: "https://example.com/foo%5E/bar%20%22baz%22.git",
+				SSHMetadata: ssh.SSHMetadata{
+					UserAndHost: "git@example.com",
+					Path:        `foo^/bar "baz".git`,
+					Port:        "",
+				},
+				Operation:   "",
+				OriginalUrl: "ssh://git@example.com/foo%5E/bar%20%22baz%22.git",
+			},
+		},
 	} {
 		t.Run(desc, c.Assert)
 	}

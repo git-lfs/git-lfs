@@ -26,26 +26,22 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 	for _, gc := range configs {
 		uniqKeys := make(map[string]string)
 
-		for _, line := range gc.Lines {
-			pieces := strings.SplitN(line, "=", 2)
-			if len(pieces) < 2 {
-				continue
-			}
-
+		for _, entry := range gc.Entries {
 			allowed := !gc.OnlySafeKeys
 
 			// We don't need to change the case of the key here,
 			// since Git will already have canonicalized it for us.
-			key, val := pieces[0], pieces[1]
+			key := entry.Key
+			val := entry.Value
 
 			if origKey, ok := uniqKeys[key]; ok {
 				if ShowConfigWarnings && len(vals[key]) > 0 && vals[key][len(vals[key])-1] != val && strings.HasPrefix(key, gitConfigWarningPrefix) {
 					fmt.Fprintln(os.Stderr, tr.Tr.Get("warning: These `git config` values clash:"))
 					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", origKey, vals[key])
-					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", pieces[0], val)
+					fmt.Fprintf(os.Stderr, "  git config %q = %q\n", key, val)
 				}
 			} else {
-				uniqKeys[key] = pieces[0]
+				uniqKeys[key] = key
 			}
 
 			parts := strings.Split(key, ".")
@@ -80,7 +76,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 
 				extensions[name] = ext
 			} else if len(parts) > 1 && parts[0] == "remote" {
-				if gc.OnlySafeKeys && (len(parts) == 3 && parts[2] != "lfsurl") {
+				if gc.OnlySafeKeys && (len(parts) < 3 || parts[len(parts)-1] != "lfsurl") {
 					ignored = append(ignored, key)
 					continue
 				}
@@ -88,7 +84,7 @@ func readGitConfig(configs ...*git.ConfigurationSource) (gf *GitFetcher, extensi
 				allowed = true
 				remote := strings.Join(parts[1:len(parts)-1], ".")
 				uniqRemotes[remote] = remote == "origin"
-			} else if len(parts) > 2 && parts[len(parts)-1] == "access" {
+			} else if len(parts) > 2 && parts[0] == "lfs" && parts[len(parts)-1] == "access" {
 				allowed = true
 			}
 

@@ -49,15 +49,37 @@ func NewReadOnlyConfig(workdir, gitdir string) *Configuration {
 
 }
 
-func ParseConfigLines(lines string, onlySafeKeys bool) *ConfigurationSource {
-	return &ConfigurationSource{
-		Lines:        strings.Split(lines, "\n"),
+func ParseConfigEntries(config string, onlySafeKeys bool) *ConfigurationSource {
+	entries := strings.Split(config, "\x00")
+
+	source := &ConfigurationSource{
+		Entries:      make([]ConfigurationEntry, 0, len(entries)),
 		OnlySafeKeys: onlySafeKeys,
 	}
+
+	for _, e := range entries {
+		fields := strings.SplitN(e, "\n", 2)
+
+		if len(fields) < 2 {
+			continue
+		}
+
+		source.Entries = append(source.Entries, ConfigurationEntry{
+			Key:   fields[0],
+			Value: fields[1],
+		})
+	}
+
+	return source
+}
+
+type ConfigurationEntry struct {
+	Key   string
+	Value string
 }
 
 type ConfigurationSource struct {
-	Lines        []string
+	Entries      []ConfigurationEntry
 	OnlySafeKeys bool
 }
 
@@ -190,27 +212,27 @@ func (c *Configuration) FileSource(filename string) (*ConfigurationSource, error
 		return nil, err
 	}
 
-	out, err := c.gitConfig("-l", "-f", filename)
+	out, err := c.gitConfig("-l", "-z", "-f", filename)
 	if err != nil {
 		return nil, err
 	}
-	return ParseConfigLines(out, true), nil
+	return ParseConfigEntries(out, true), nil
 }
 
 func (c *Configuration) RevisionSource(revision string) (*ConfigurationSource, error) {
-	out, err := c.gitConfig("-l", "--blob", revision)
+	out, err := c.gitConfig("-l", "-z", "--blob", revision)
 	if err != nil {
 		return nil, err
 	}
-	return ParseConfigLines(out, true), nil
+	return ParseConfigEntries(out, true), nil
 }
 
 func (c *Configuration) Source() (*ConfigurationSource, error) {
-	out, err := c.gitConfig("-l")
+	out, err := c.gitConfig("-l", "-z")
 	if err != nil {
 		return nil, err
 	}
-	return ParseConfigLines(out, false), nil
+	return ParseConfigEntries(out, false), nil
 }
 
 func (c *Configuration) gitConfig(args ...string) (string, error) {
