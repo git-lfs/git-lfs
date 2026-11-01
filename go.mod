@@ -13,7 +13,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jmhodges/clock v1.2.0
 	github.com/klauspost/compress v1.20.3
-	github.com/leonelquinteros/gotext v1.7.2
+	github.com/leonelquinteros/gotext v1.8.0
 	github.com/mattn/go-isatty v0.0.24
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
 	github.com/pkg/errors v0.9.1
@@ -45,4 +45,4 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 )
 
-go 1.26.0
+go 1.27
