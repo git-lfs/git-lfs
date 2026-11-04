@@ -6,8 +6,6 @@ begin_test "binary installer can skip Git configuration"
 (
   set -e
 
-  # The installer is a Unix shell script and is not used by Windows packages.
-  [ "$IS_WINDOWS" -eq 1 ] && exit 0
 
   package="$TRASHDIR/install-script-package"
   prefix="$TRASHDIR/install-script-prefix"
@@ -20,9 +18,9 @@ begin_test "binary installer can skip Git configuration"
   # flag and invokes Git LFS, our executable will leave a sentinel file
   # and log messages we can detect, and should also cause the script
   # to exit with an error status.
-  cp "$BINPATH/lfstest-executecheck" "$binpath/git-lfs"
+  cp "$BINPATH/lfstest-executecheck$X" "$binpath/git-lfs$X"
 
-  cp "$BINPATH/git-lfs" "$package"
+  cp "$BINPATH/git-lfs$X" "$package"
   cp "$ROOTDIR/script/install.sh" "$package"
 
   PATH="$fake_bin:$PATH" PREFIX="$prefix" \
@@ -33,6 +31,6 @@ begin_test "binary installer can skip Git configuration"
 
   [ 0 -eq "$(grep -c "execute: .*git-lfs install" install.log)" ]
 
-  [ -x "$prefix/bin/git-lfs" ]
+  [ -x "$prefix/bin/git-lfs$X" ]
 )
 end_test
