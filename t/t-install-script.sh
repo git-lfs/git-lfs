@@ -13,9 +13,6 @@ begin_test "binary installer can skip Git configuration"
   prefix="$TRASHDIR/install-script-prefix"
   fake_bin="$TRASHDIR/install-script-bin"
   mkdir -p "$package" "$prefix" "$fake_bin"
-  cp "$ROOTDIR/script/install.sh" "$package/install.sh"
-  printf '#!/usr/bin/env bash\n' > "$package/git-lfs"
-  chmod +x "$package/install.sh" "$package/git-lfs"
 
   # We create an executable with the same name as the Git LFS client
   # in a directory that we place first in the system path when running
@@ -24,6 +21,9 @@ begin_test "binary installer can skip Git configuration"
   # and log messages we can detect, and should also cause the script
   # to exit with an error status.
   cp "$BINPATH/lfstest-executecheck" "$binpath/git-lfs"
+
+  cp "$BINPATH/git-lfs" "$package"
+  cp "$ROOTDIR/script/install.sh" "$package"
 
   PATH="$fake_bin:$PATH" PREFIX="$prefix" \
     "$package/install.sh" --skip-config 2>&1 | tee install.log
