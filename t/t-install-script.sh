@@ -6,11 +6,12 @@ begin_test "binary installer can skip Git configuration"
 (
   set -e
 
+  testroot="$TRASHDIR/install-script-skip-config"
+  binpath="$testroot/bin"
+  package="$testroot/package"
+  prefix="$testroot/install"
 
-  package="$TRASHDIR/install-script-package"
-  prefix="$TRASHDIR/install-script-prefix"
-  fake_bin="$TRASHDIR/install-script-bin"
-  mkdir -p "$package" "$prefix" "$fake_bin"
+  mkdir -p "$binpath" "$package" "$prefix"
 
   # We create an executable with the same name as the Git LFS client
   # in a directory that we place first in the system path when running
@@ -23,7 +24,7 @@ begin_test "binary installer can skip Git configuration"
   cp "$BINPATH/git-lfs$X" "$package"
   cp "$ROOTDIR/script/install.sh" "$package"
 
-  PATH="$fake_bin:$PATH" PREFIX="$prefix" \
+  PATH="$binpath:$PATH" PREFIX="$prefix" \
     "$package/install.sh" --skip-config 2>&1 | tee install.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
