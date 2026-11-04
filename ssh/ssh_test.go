@@ -32,6 +32,60 @@ func TestSSHGetLFSExeAndArgs(t *testing.T) {
 		"user@foo.com",
 		"git-lfs-authenticate user/repo upload",
 	}, args)
+
+	meta.Path = "user/repo with spaces"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo with spaces' upload",
+	}, args)
+
+	meta.Path = "user/repo;with;semicolons"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo;with;semicolons' upload",
+	}, args)
+
+	meta.Path = "user/repo&with&ampersands"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo&with&ampersands' upload",
+	}, args)
+
+	meta.Path = "user/repo|with|verticalbars"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo|with|verticalbars' upload",
+	}, args)
+
+	meta.Path = "user/repo\nwith\nlinefeeds"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo\nwith\nlinefeeds' upload",
+	}, args)
+
+	meta.Path = "user/repo'with'singlequotes"
+
+	exe, args, _, _ = ssh.GetLFSExeAndArgs(cli.OSEnv(), cli.GitEnv(), &meta, "git-lfs-authenticate", "upload", false, "")
+	assert.Equal(t, "ssh", exe)
+	assert.Equal(t, []string{
+		"user@foo.com",
+		"git-lfs-authenticate 'user/repo'\\''with'\\''singlequotes' upload",
+	}, args)
 }
 
 func TestSSHGetExeAndArgsSsh(t *testing.T) {

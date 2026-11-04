@@ -105,6 +105,37 @@ begin_test "lock with good ref (--remote overrides push default)"
 )
 end_test
 
+begin_test "lock with invalid default push remote in .lfsconfig"
+(
+  set -e
+
+  reponame="fetch-invalid-remote-push-default"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  # Both of these invalid configurations should be ignored and the "origin"
+  # remote should be used instead.
+  #
+  # The repository name in this URL announces to the server that it should
+  # respond to all Locking API requests with a 404 Not Found status code,
+  # unless an X-Check-Lock header is provided with the value "1".
+  git config --file .lfsconfig remote.other.origin.url \
+    "$GITSERVER/locksunsupported.git"
+  git config --file .lfsconfig remote.pushDefault other.origin
+
+  GIT_CURL_VERBOSE=1 git lfs lock --json "test.bin" 2>lock.log | tee lock.json
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  id="$(assert_lock lock.json "test.bin")"
+  assert_server_lock "$reponame" "$id" "refs/heads/main"
+
+  refute_server_lock "locksunsupported" "$id" "refs/heads/main"
+
+  [ 0 -eq "$(grep -c "locksunsupported" lock.log)" ]
+  [ 0 -eq "$(grep -c "404 Not Found" lock.log)" ]
+)
+end_test
+
 begin_test "lock with bad ref"
 (
   set -e

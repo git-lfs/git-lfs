@@ -154,7 +154,7 @@ func NewFrom(v Values) *Configuration {
 	c.Git = &delayedEnvironment{
 		callback: func() Environment {
 			source := &git.ConfigurationSource{
-				Lines: make([]string, 0, len(v.Git)),
+				Entries: make([]git.ConfigurationEntry, 0, len(v.Git)),
 			}
 
 			for key, values := range v.Git {
@@ -169,7 +169,10 @@ func NewFrom(v Values) *Configuration {
 				}
 				for _, value := range values {
 					fmt.Printf("Config: %s=%s\n", key, value)
-					source.Lines = append(source.Lines, fmt.Sprintf("%s=%s", key, value))
+					source.Entries = append(source.Entries, git.ConfigurationEntry{
+						Key:   key,
+						Value: value,
+					})
 				}
 			}
 

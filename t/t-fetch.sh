@@ -766,6 +766,56 @@ begin_test "fetch with no origin remote"
 )
 end_test
 
+begin_test "fetch with invalid default remote in .lfsconfig"
+(
+  set -e
+
+  reponame="fetch-invalid-default-remote"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.bin"
+
+  contents="test"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" >test.bin
+
+  git add .gitattributes test.bin
+  git commit -m "initial commit"
+
+  git push origin main
+
+  # We remove the explicit remote configuration for the "main" branch as
+  # this will otherwise take precedence over the "remote.lfsDefault" option.
+  #
+  # With Git versions prior to 2.28.0 the "branch.master.remote" option
+  # will be set instead, so we ignore any error when trying to unset this
+  # option.  (Note that regardless of the Git version, our repository
+  # template in "fixtures/templates" always sets HEAD to "refs/heads/main".)
+  git config --local --unset branch.main.remote || true
+
+  # Both of these invalid configurations should be ignored and the "origin"
+  # remote should be used instead.
+  #
+  # The repository name in this URL announces to the server that it should
+  # respond to all Batch API requests with a 404 Not Found status code,
+  # unless an X-Check-Object header is provided with the value "1".
+  git config --file .lfsconfig remote.other.origin.url \
+    "$GITSERVER/batchunsupported.git"
+  git config --file .lfsconfig remote.lfsDefault other.origin
+
+  rm -rf .git/lfs/objects
+
+  GIT_CURL_VERBOSE=1 git lfs fetch 2>&1 | tee fetch.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  assert_local_object "$contents_oid" "${#contents}"
+
+  [ 0 -eq "$(grep -c "batchunsupported" fetch.log)" ]
+  [ 0 -eq "$(grep -c "404 Not Found" fetch.log)" ]
+)
+end_test
+
 begin_test "fetch --prune"
 (
   set -e
