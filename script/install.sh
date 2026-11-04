@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
       prefix="$HOME/.local"
       shift
       ;;
-    --bin)
+    --skip-config)
       configure_git_lfs=0
       shift
       ;;

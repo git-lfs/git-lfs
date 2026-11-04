@@ -24,7 +24,7 @@ exit 99
 EOF
   chmod +x "$fake_bin/git"
 
-  PATH="$fake_bin:$PATH" PREFIX="$prefix" "$package/install.sh" --bin
+  PATH="$fake_bin:$PATH" PREFIX="$prefix" "$package/install.sh" --skip-config
 
   [ -x "$prefix/bin/git-lfs" ]
   [ ! -e "$TRASHDIR/git-invocations" ]

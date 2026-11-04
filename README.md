@@ -49,10 +49,10 @@ The binary packages include a script which will:
 - Run `git lfs install` to perform required global configuration changes.
 
 To install the binaries without changing Git configuration for the current
-user, pass `--bin` to the installer:
+user, pass `--skip-config` to the installer:
 
 ```ShellSession
-$ ./install.sh --bin
+$ ./install.sh --skip-config
 ```
 
 ```ShellSession
