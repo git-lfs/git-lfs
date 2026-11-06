@@ -11,7 +11,7 @@ import (
 
 func main() {
 	f, err := os.Create("execute")
-	if err != nil {
+	if err == nil {
 		f.Close()
 	}
 
