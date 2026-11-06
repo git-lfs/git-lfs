@@ -11,6 +11,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/lfsapi"
+	"github.com/git-lfs/git-lfs/v3/lfshttp"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
@@ -144,7 +145,7 @@ func (a *basicUploadAdapter) DoTransfer(ctx interface{}, t *Transfer, cb Progres
 	if res.StatusCode > 299 {
 		return errors.New(tr.Tr.Get("Invalid status for %s %s: %d",
 			req.Method,
-			strings.SplitN(req.URL.String(), "?", 2)[0],
+			strings.SplitN(lfshttp.RedactedURL(req.URL), "?", 2)[0],
 			res.StatusCode,
 		))
 	}
