@@ -52,6 +52,13 @@ The binary packages include a script which will:
 $ ./install.sh
 ```
 
+To install the binaries without changing Git configuration for the current
+user, pass `--skip-config` to the installer:
+
+```ShellSession
+$ ./install.sh --skip-config
+```
+
 Note that Debian and RPM packages are built for multiple Linux distributions and versions for both amd64 and i386.
 For arm64, only Debian packages are built and only for recent versions due to the cost of building in emulation.
 

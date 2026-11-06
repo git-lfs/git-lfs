@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+. "$(dirname "$0")/testlib.sh"
+
+begin_test "binary installer can skip Git configuration"
+(
+  set -e
+
+  testroot="$TRASHDIR/install-script-skip-config"
+  binpath="$testroot/bin"
+  package="$testroot/package"
+  prefix="$testroot/install"
+
+  mkdir -p "$binpath" "$package" "$prefix"
+
+  # We create an executable with the same name as the Git LFS client
+  # in a directory that we place first in the system path when running
+  # our installation script.  If the script ignores its --skip-config
+  # flag and invokes Git LFS, our executable will leave a sentinel file
+  # and log messages we can detect, and should also cause the script
+  # to exit with an error status.
+  cp "$BINPATH/lfstest-executecheck$X" "$binpath/git-lfs$X"
+
+  cp "$BINPATH/git-lfs$X" "$package"
+  cp "$ROOTDIR/script/install.sh" "$package"
+
+  PATH="$binpath:$PATH" PREFIX="$prefix" \
+    "$package/install.sh" --skip-config 2>&1 | tee install.log
+  [ 0 -eq "${PIPESTATUS[0]}" ]
+
+  [ ! -f execute ]
+
+  [ 0 -eq "$(grep -c "execute: .*git-lfs install" install.log)" ]
+
+  [ -x "$prefix/bin/git-lfs$X" ]
+)
+end_test
