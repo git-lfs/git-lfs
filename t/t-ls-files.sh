@@ -187,6 +187,130 @@ EOF)
 )
 end_test
 
+begin_test "ls-files: pointer has the same size as its object"
+(
+  set -e
+
+  reponame="ls-files-pointer-size"
+  git init "$reponame"
+  cd "$reponame"
+
+  git lfs track "*.dat"
+  contents="$(perl -e 'print "=" x 128')"
+  oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add .gitattributes a.dat
+  git commit -m "add asset"
+
+  [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+
+  git show HEAD:a.dat > a.dat
+  [ "128" -eq "$(wc -c < a.dat)" ]
+
+  mkdir subdir
+  for dir in . subdir; do
+    (
+      cd "$dir"
+      [ "${oid:0:10} - a.dat" = "$(git lfs ls-files)" ]
+
+      diff -u <(git lfs ls-files --debug) <(cat <<-EOF
+filepath: a.dat
+    size: 128
+checkout: false
+download: true
+     oid: sha256 $oid
+ version: https://git-lfs.github.com/spec/v1
+
+EOF)
+
+      diff -u <(git lfs ls-files --json) <(cat <<-EOF
+{
+ "files": [
+  {
+   "name": "a.dat",
+   "size": 128,
+   "checkout": false,
+   "downloaded": true,
+   "oid_type": "sha256",
+   "oid": "$oid",
+   "version": "https://git-lfs.github.com/spec/v1"
+  }
+ ]
+}
+EOF)
+    )
+  done
+
+  for field in oid size; do
+    if [ "$field" = "oid" ]; then
+      pointer "$(calc_oid other)" 128 > a.dat
+    else
+      pointer "$oid" 127 > a.dat
+    fi
+    [ "128" -eq "$(wc -c < a.dat)" ]
+    [ "${oid:0:10} * a.dat" = "$(git lfs ls-files HEAD)" ]
+    git lfs ls-files --debug HEAD | grep "checkout: true"
+    git lfs ls-files --json HEAD | grep '"checkout": true'
+  done
+
+  git show HEAD:a.dat > a.dat
+  git lfs checkout a.dat
+  [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+
+  git show HEAD:a.dat > a.dat
+  delete_local_object "$oid"
+  [ "${oid:0:10} - a.dat" = "$(git lfs ls-files)" ]
+  git lfs ls-files --json > status.json
+  grep '"checkout": false' status.json
+  grep '"downloaded": false' status.json
+)
+end_test
+
+begin_test "ls-files: pointer-shaped content from an extension"
+(
+  set -e
+
+  reponame="ls-files-pointer-content"
+  git init "$reponame"
+  cd "$reponame"
+
+  # Keep the content pointer's OID and size equal to the stored object's,
+  # while its extension metadata differs from the pointer in Git.
+  git config lfs.extension.fixture.clean "tr [:print:] ="
+  git config lfs.extension.fixture.smudge "cat .git/original-content"
+  git config lfs.extension.fixture.priority 0
+  git lfs track "*.dat"
+  pointer "$(calc_oid other)" 128 | tr '[:print:]' '=' > encoded
+  oid="$(calc_oid_file encoded)"
+  pointer "$oid" 128 > .git/original-content
+  cp .git/original-content a.dat
+  [ "128" -eq "$(wc -c < a.dat)" ]
+  git add .gitattributes a.dat
+  git commit -m "add pointer-shaped content"
+  git show HEAD:a.dat > git-pointer
+  grep "^oid sha256:$oid$" git-pointer
+  grep "^ext-0-fixture sha256:" git-pointer
+  cmp encoded "$(local_object_path "$oid")"
+
+  rm a.dat
+  git lfs checkout a.dat
+  cmp .git/original-content a.dat
+  [ "128" -eq "$(wc -c < a.dat)" ]
+  git lfs pointer --check --file=a.dat
+
+  mkdir subdir
+  for dir in . subdir; do
+    (
+      cd "$dir"
+      [ "${oid:0:10} * a.dat" = "$(git lfs ls-files)" ]
+      git lfs ls-files --debug | grep "checkout: true"
+      git lfs ls-files --json | grep '"checkout": true'
+    )
+  done
+)
+end_test
+
+
 begin_test "ls-files: checkout and download status (run within subdirectory)"
 (
   set -e

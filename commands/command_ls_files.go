@@ -182,8 +182,18 @@ func lsFilesCommand(cmd *cobra.Command, args []string) {
 // Returns true if a pointer appears to be properly smudge on checkout
 func fileExistsOfSize(p *lfs.WrappedPointer) bool {
 	path := cfg.Filesystem().DecodePathname(p.Name)
-	info, err := os.Stat(filepath.Join(cfg.LocalWorkingDir(), path))
-	return err == nil && info.Size() == p.Size
+	path = filepath.Join(cfg.LocalWorkingDir(), path)
+	info, err := os.Stat(path)
+	if err != nil || info.Size() != p.Size {
+		return false
+	}
+	if info.Size() < lfs.BlobSizeCutoff {
+		// A pointer may have the same size as the file it represents.
+		if filepointer, err := lfs.DecodePointerFromFile(path); err == nil && filepointer.Encoded() == p.Encoded() {
+			return false
+		}
+	}
+	return true
 }
 
 func lsFilesMarker(p *lfs.WrappedPointer) string {
