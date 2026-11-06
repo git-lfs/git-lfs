@@ -48,15 +48,15 @@ The binary packages include a script which will:
 - Install Git LFS binaries onto the system `$PATH`.  On Windows in particular, you may need to restart your command shell so any change to `$PATH` will take effect and Git can locate the Git LFS binary.
 - Run `git lfs install` to perform required global configuration changes.
 
+```ShellSession
+$ ./install.sh
+```
+
 To install the binaries without changing Git configuration for the current
 user, pass `--skip-config` to the installer:
 
 ```ShellSession
 $ ./install.sh --skip-config
-```
-
-```ShellSession
-$ ./install.sh
 ```
 
 Note that Debian and RPM packages are built for multiple Linux distributions and versions for both amd64 and i386.
