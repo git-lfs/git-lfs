@@ -14,6 +14,7 @@ import (
 	"github.com/git-lfs/git-lfs/v3/errors"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCloneFile(t *testing.T) {
@@ -48,12 +49,24 @@ func TestCloneFile(t *testing.T) {
 			as := assert.New(t)
 
 			src, err := os.CreateTemp(testDir, tc.name+"_src")
-			as.NoError(err)
+			require.NoError(t, err)
+			srcName := src.Name()
+			t.Cleanup(func() { os.Remove(srcName) })
+
 			dst, err := os.CreateTemp(testDir, tc.name+"_dst")
-			as.NoError(err)
+			require.NoError(t, err)
+			defer dst.Close()
+			dstName := dst.Name()
+			t.Cleanup(func() { os.Remove(dstName) })
 
 			srcHash, err := fillFile(src, tc.size)
-			as.NoError(err)
+			require.NoError(t, err)
+			require.NoError(t, src.Close())
+
+			// Checkout opens LFS objects read-only before attempting a clone.
+			src, err = os.Open(srcName)
+			require.NoError(t, err)
+			defer src.Close()
 
 			ok, err := CloneFile(dst, src)
 			as.NoError(err)
@@ -67,6 +80,21 @@ func TestCloneFile(t *testing.T) {
 			as.Equal(srcHash, dstHash)
 		})
 	}
+}
+
+func TestSyncFileBeforeCloneWithReadOnlyHandle(t *testing.T) {
+	writer, err := os.CreateTemp(t.TempDir(), "src")
+	require.NoError(t, err)
+	defer writer.Close()
+
+	_, err = writer.WriteString("unflushed content")
+	require.NoError(t, err)
+
+	src, err := os.Open(writer.Name())
+	require.NoError(t, err)
+	defer src.Close()
+
+	require.NoError(t, syncFileBeforeClone(src))
 }
 
 func fillFile(target *os.File, size int64) (hash string, err error) {
@@ -84,11 +112,6 @@ func fillFile(target *os.File, size int64) (hash string, err error) {
 	}
 
 	err = target.Truncate(size)
-	if err != nil {
-		return "", err
-	}
-
-	err = target.Sync()
 	if err != nil {
 		return "", err
 	}
