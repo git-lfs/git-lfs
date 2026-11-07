@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 
@@ -125,6 +126,42 @@ func TestFilterProcessScannerReadsRequestHeadersAndPayload(t *testing.T) {
 	assert.Equal(t, []byte("first\nsecond\n"), payload)
 }
 
+func TestFilterProcessScannerRejectsPayloadWithoutFlushPacket(t *testing.T) {
+	var from, to bytes.Buffer
+
+	pl := pktline.NewPktline(nil, &from)
+	// Headers
+	require.Nil(t, pl.WritePacketList([]string{"command=clean", "pathname=foo.bin"}))
+	// A single payload packet, after which the stream ends without the
+	// terminating flush packet
+	writePayloadPacket(t, &from, "first")
+
+	req, err := readRequest(NewFilterProcessScanner(&from, &to))
+	require.Nil(t, err)
+
+	payload, err := io.ReadAll(req.Payload)
+	assert.EqualError(t, err, io.ErrUnexpectedEOF.Error())
+	assert.Equal(t, []byte("first"), payload)
+}
+
+func TestFilterProcessScannerRejectsPayloadWithTruncatedPacket(t *testing.T) {
+	var from, to bytes.Buffer
+
+	pl := pktline.NewPktline(nil, &from)
+	// Headers
+	require.Nil(t, pl.WritePacketList([]string{"command=clean", "pathname=foo.bin"}))
+	// A packet header which promises 65516 bytes, of which only five
+	// follow, and no terminating flush packet
+	fmt.Fprintf(&from, "fff0%s", "first")
+
+	req, err := readRequest(NewFilterProcessScanner(&from, &to))
+	require.Nil(t, err)
+
+	payload, err := io.ReadAll(req.Payload)
+	assert.EqualError(t, err, io.ErrUnexpectedEOF.Error())
+	assert.Empty(t, payload)
+}
+
 func TestFilterProcessScannerRejectsInvalidHeaderPackets(t *testing.T) {
 	from := bytes.NewBuffer([]byte{
 		0x30, 0x30, 0x30, 0x33, // 0003 (invalid packet length)
@@ -146,6 +183,15 @@ func TestFilterProcessScannerWritesLists(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "000ahello\n000cgoodbye\n0000", to.String())
+}
+
+// writePayloadPacket writes the given string, "data", to the given writer, "w",
+// as a single pkt-line packet without a trailing LF.
+func writePayloadPacket(t *testing.T, w io.Writer, data string) {
+	t.Helper()
+
+	_, err := fmt.Fprintf(w, "%04x%s", len(data)+4, data)
+	require.Nil(t, err)
 }
 
 // readRequest performs a single scan operation on the given

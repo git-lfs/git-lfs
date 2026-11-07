@@ -65,7 +65,16 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 		return
 	}
 
-	defer tmp.Close()
+	defer func() {
+		tmp.Close()
+
+		if err != nil {
+			// The contents of the temporary file are incomplete, so
+			// they will never be moved into place as an object, and
+			// the file should not be left behind
+			os.Remove(tmp.Name())
+		}
+	}()
 
 	oidHash := sha256.New()
 	writer := io.MultiWriter(oidHash, tmp)
