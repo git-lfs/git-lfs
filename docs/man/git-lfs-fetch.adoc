@@ -109,6 +109,19 @@ If no refs are given as arguments, the currently checked out ref is
 used. In addition, if enabled, recently changed refs and commits are
 also included. See <<_recent_changes>> for details.
 
+== RESUMING INTERRUPTED DOWNLOADS
+
+If a download of an object is interrupted, the partial data is kept as
+`<oid>.part` in the `.git/lfs/incomplete/` directory. A later fetch of
+that object resumes from the number of bytes already present, provided
+that the server supports HTTP range requests. If the server rejects the
+resume, or if the partial file holds more data than the expected object
+size, the download starts over from the beginning.
+
+When the download completes, the object is moved to its final location
+in the local object store. A partially downloaded `.part` file is only
+kept while the object is still incomplete.
+
 == RECENT CHANGES
 
 If the `--recent` option is specified, or if the gitconfig option
