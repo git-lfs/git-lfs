@@ -65,6 +65,16 @@ func (f *GitFilter) copyToTemp(reader io.Reader, fileSize int64, cb tools.CopyCa
 		return
 	}
 
+	// When the input turns out to be a pointer, the caller never receives the
+	// cleaned asset and so never removes the empty temporary file. This runs
+	// after the Close below, because Windows cannot remove open files.
+	// See https://github.com/git-lfs/git-lfs/issues/6363.
+	defer func() {
+		if errors.IsCleanPointerError(err) {
+			os.Remove(tmp.Name())
+		}
+	}()
+
 	defer tmp.Close()
 
 	oidHash := sha256.New()
