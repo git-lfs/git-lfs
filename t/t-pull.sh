@@ -261,8 +261,8 @@ begin_test "pull: skip directory file conflicts"
   touch dir1 dir2/dir3
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
@@ -278,8 +278,8 @@ begin_test "pull: skip directory file conflicts"
 
   pushd dir2
     git lfs pull 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected pull to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' pull.log
@@ -331,8 +331,8 @@ begin_test "pull: skip directory symlink conflicts"
   ln -s ../../link2 dir2/dir3
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
@@ -355,8 +355,8 @@ begin_test "pull: skip directory symlink conflicts"
   ln -s ../link2 dir2/dir3
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
@@ -375,8 +375,8 @@ begin_test "pull: skip directory symlink conflicts"
 
   pushd dir2
     git lfs pull 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected pull to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' pull.log
@@ -401,8 +401,8 @@ begin_test "pull: skip directory symlink conflicts"
   ln -s ../../link2 dir2/dir3
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
@@ -424,8 +424,8 @@ begin_test "pull: skip directory symlink conflicts"
   ln -s ../link2 dir2/dir3
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' pull.log
@@ -443,8 +443,8 @@ begin_test "pull: skip directory symlink conflicts"
 
   pushd dir2
     git lfs pull 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected pull to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' pull.log
@@ -500,8 +500,8 @@ begin_test "pull: skip file symlink conflicts"
   ln -s ../../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' pull.log
@@ -526,8 +526,8 @@ begin_test "pull: skip file symlink conflicts"
   ln -s ../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' pull.log
@@ -547,8 +547,8 @@ begin_test "pull: skip file symlink conflicts"
 
   pushd dir1/dir2
     git lfs pull 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected pull to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
       exit 1
     fi
     grep '"a\.dat": not a regular file' pull.log
@@ -574,8 +574,8 @@ begin_test "pull: skip file symlink conflicts"
   ln -s ../../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' pull.log
@@ -597,8 +597,8 @@ begin_test "pull: skip file symlink conflicts"
   ln -s ../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' pull.log
@@ -616,8 +616,8 @@ begin_test "pull: skip file symlink conflicts"
 
   pushd dir1/dir2
     git lfs pull 2>&1 | tee pull.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected pull to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
       exit 1
     fi
     grep '"a\.dat": not a regular file' pull.log
@@ -717,9 +717,19 @@ begin_test "pull: skip case-based symlink conflicts"
   git checkout -- A.dat dir1/a.dat DIR3 dir1/dir2
 
   git lfs pull 2>&1 | tee pull.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected pull to succeed ..."
-    exit 1
+  res="${PIPESTATUS[0]}"
+  if [ "$collision" -eq "0" ]; then
+    # case-sensitive filesystem
+    if [ "0" -ne "$res" ]; then
+      echo >&2 "fatal: expected pull to succeed ..."
+      exit 1
+    fi
+  else
+    # case-insensitive filesystem
+    if [ "0" -eq "$res" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
+      exit 1
+    fi
   fi
   if [ "$collision" -gt "0" ]; then
     # case-insensitive filesystem
@@ -794,7 +804,11 @@ begin_test "pull: skip changed files"
   mkdir a.dat
 
   rm -rf .git/lfs/objects
-  git lfs pull
+  git lfs pull 2>&1 | tee pull.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected pull to fail ..."
+    exit 1
+  fi
   assert_local_object "$contents_oid" 1
 
   [ -d "a.dat" ]
@@ -803,7 +817,11 @@ begin_test "pull: skip changed files"
   rm -rf .git/lfs/objects
 
   pushd a.dat
-    git lfs pull
+    git lfs pull 2>&1 | tee pull.log
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected pull to fail ..."
+      exit 1
+    fi
   popd
 
   assert_local_object "$contents_oid" 1
@@ -1118,10 +1136,10 @@ begin_test "pull: read-only directory"
     chmod a-w dir
   fi
   git lfs pull 2>&1 | tee pull.log
-  # Note that although the pull command should log an error, at present
-  # we still expect a zero exit code.
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs pull' to succeed ..."
+  # The file could not be written to the working tree, so the command reports
+  # the error and exits non-zero.
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs pull' to fail ..."
     exit 1
   fi
 
