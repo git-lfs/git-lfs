@@ -93,6 +93,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 	setupRepository()
 
 	var refs []*git.Ref
+	var refspecs []string
 
 	if len(args) > 0 {
 		// Remote is first arg
@@ -115,6 +116,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 					Panic(err, tr.Tr.Get("Invalid ref argument: %v", line))
 				}
 				refs = append(refs, ref)
+				refspecs = append(refspecs, line)
 			}
 		}
 		if err := scanner.Err(); err != nil {
@@ -126,6 +128,7 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			Panic(err, tr.Tr.Get("Invalid ref argument: %v", args[1:]))
 		}
 		refs = resolvedrefs
+		refspecs = args[1:]
 	} else if !fetchAllArg {
 		ref, err := git.CurrentRef()
 		if err != nil {
@@ -156,12 +159,8 @@ func fetchCommand(cmd *cobra.Command, args []string) {
 			printProgress(tr.Tr.Get("Ignoring global include / exclude paths to fulfil --all"))
 		}
 
-		if len(refs) > 0 {
-			refShas := make([]string, 0, len(refs))
-			for _, ref := range refs {
-				refShas = append(refShas, ref.Sha)
-			}
-			success = fetchRefs(refShas, watcher)
+		if len(refspecs) > 0 {
+			success = fetchRefs(refspecs, watcher)
 		} else {
 			success = fetchAll(watcher)
 		}
