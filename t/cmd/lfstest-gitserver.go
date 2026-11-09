@@ -70,7 +70,7 @@ var (
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
 		"storage-download-encoding-zstd-1", "storage-download-encoding-zstd-2", "storage-download-encoding-zstd-3",
-		"send-verify-action", "send-deprecated-links", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
+		"send-verify-action", "send-deprecated-links", "send-action-authorization", "redirect-storage-upload", "batch-hash-algo-empty", "batch-hash-algo-invalid",
 		"auth-bearer", "auth-multistage",
 	}
 
@@ -646,6 +646,10 @@ func lfsBatchHandler(w http.ResponseWriter, r *http.Request, id, repo string) {
 					Header: map[string]string{},
 				}
 				a = serveExpired(a, repo, handler)
+
+				if handler == "send-action-authorization" {
+					a.Header["Authorization"] = "Basic YWN0aW9uOnNlY3JldA=="
+				}
 
 				if handler == "send-deprecated-links" {
 					o.Links[action] = a
