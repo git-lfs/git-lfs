@@ -8,13 +8,20 @@ git-lfs-pull - Download all Git LFS files for current ref & checkout
 
 [source,role=synopsis,subs="verbatim,quotes"]
 ----
-*git lfs pull* [_options_] [_<remote>_]
+*git lfs pull* [_options_] [_<remote>_] [*--* [_<path>_...]]
 ----
 
 == DESCRIPTION
 
 Download Git LFS objects for the currently checked out ref, and update
 the working copy with the downloaded content if required.
+
+One or more literal file or directory paths may be provided after `--` to
+restrict the objects which are downloaded and the files which are updated in
+the working copy. Paths are interpreted relative to the current working
+directory, and a directory path includes all files below that directory. The
+paths also respect any include and exclude paths in the Git configuration or
+supplied with `--include` and `--exclude`.
 
 This is generally equivalent to running the following two commands:
 
@@ -81,6 +88,15 @@ string clears the value.
 Without arguments, pull downloads from the default remote. The default
 remote is the same as for `git pull`, i.e. based on the remote branch
 you're tracking first, or origin otherwise.
+
+== EXAMPLES
+
+* Pull the LFS object for a file from the default remote
++
+`git lfs pull -- path/to/file.dat`
+* Pull the LFS objects below a directory from origin
++
+`git lfs pull origin -- path/to/directory`
 
 == SEE ALSO
 
