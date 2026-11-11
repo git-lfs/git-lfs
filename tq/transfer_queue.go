@@ -193,6 +193,7 @@ type TransferQueue struct {
 	adapterInProgress bool
 	adapterInitMutex  sync.Mutex
 	dryRun            bool
+	verifyOnly        bool
 	cb                tools.CopyCallback
 	meter             *Meter
 	errors            []error
@@ -269,6 +270,15 @@ type Option func(*TransferQueue)
 func DryRun(dryRun bool) Option {
 	return func(tq *TransferQueue) {
 		tq.dryRun = dryRun
+	}
+}
+
+// VerifyOnly marks downloads as verification-only: adapters still run, but
+// a successfully verified download is discarded instead of being installed
+// at its destination path.
+func VerifyOnly(verifyOnly bool) Option {
+	return func(tq *TransferQueue) {
+		tq.verifyOnly = verifyOnly
 	}
 }
 
@@ -671,6 +681,7 @@ func (q *TransferQueue) enqueueAndCollectRetriesFor(batch batch) (batch, error) 
 			// Pick t[0], since it will cover all transfers with the
 			// same OID.
 			tr := newTransfer(o, objects.First().Name, objects.First().Path)
+			tr.VerifyOnly = q.verifyOnly
 
 			if a, err := tr.Rel(q.direction.String()); err != nil {
 				if q.canRetryObject(tr.Oid, err) {
