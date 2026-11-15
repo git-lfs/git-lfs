@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -315,8 +316,15 @@ func (a *customAdapter) DoTransfer(ctx interface{}, t *Transfer, cb ProgressCall
 				if err = tools.VerifyFileHash(t.Oid, resp.Path); err != nil {
 					return errors.New(tr.Tr.Get("downloaded file failed checks: %v", err))
 				}
-				// Move file to final location
-				if err = tools.RenameFileCopyPermissions(resp.Path, t.Path); err != nil {
+				if t.VerifyOnly {
+					// The download only proves the object exists
+					// on the remote; discard it rather than
+					// replacing the local copy.
+					if err := os.Remove(resp.Path); err != nil {
+						a.Trace("xfer: unable to remove verify-only download %q: %v", resp.Path, err)
+					}
+				} else if err = tools.RenameFileCopyPermissions(resp.Path, t.Path); err != nil {
+					// Move file to final location
 					return errors.New(tr.Tr.Get("failed to copy downloaded file: %v", err))
 				}
 			} else if a.direction == Upload {

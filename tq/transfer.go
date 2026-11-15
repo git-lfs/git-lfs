@@ -57,6 +57,7 @@ type Transfer struct {
 	Error         *ObjectError `json:"error,omitempty"`
 	Path          string       `json:"path,omitempty"`
 	Missing       bool         `json:"-"`
+	VerifyOnly    bool         `json:"-"`
 }
 
 func (t *Transfer) Rel(name string) (*Action, error) {
