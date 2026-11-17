@@ -24,7 +24,7 @@ begin_test "binary installer can skip Git configuration"
   cp "$BINPATH/git-lfs$X" "$package"
   cp "$ROOTDIR/script/install.sh" "$package"
 
-  PATH="$binpath:$PATH" PREFIX="$prefix" \
+  PATH="$binpath:$PATH" PREFIX="$(canonical_path "$prefix")" \
     "$package/install.sh" --skip-config 2>&1 | tee install.log
   [ 0 -eq "${PIPESTATUS[0]}" ]
 
