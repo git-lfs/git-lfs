@@ -318,6 +318,24 @@ ext-10-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
 size 12345`,
 
+		// extension before version
+		`ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
+
+		// trailing characters after an ext key
+		`version https://git-lfs.github.com/spec/v1
+ext-0-foo:()[] sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
+
+		// non-word characters in an ext name
+		`version https://git-lfs.github.com/spec/v1
+ext-0-foo-bar sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393
+size 12345`,
+
 		// bad ext oid
 		`version https://git-lfs.github.com/spec/v1
 ext-0-foo sha256:boom
