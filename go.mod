@@ -10,8 +10,9 @@ require (
 	github.com/git-lfs/pktline v0.0.0-20210330133718-06e9096e2825
 	github.com/git-lfs/wildmatch/v2 v2.0.1
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jmhodges/clock v1.2.0
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.3
 	github.com/leonelquinteros/gotext v1.7.2
 	github.com/mattn/go-isatty v0.0.24
 	github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0
@@ -21,9 +22,9 @@ require (
 	github.com/ssgelm/cookiejarparser v1.1.0
 	github.com/stretchr/testify v1.12.1
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/net v0.58.0
-	golang.org/x/sync v0.22.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/net v0.61.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/sys v0.49.0
 )
 
 require (
@@ -40,8 +41,8 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )
 
-go 1.25.0
+go 1.26.0

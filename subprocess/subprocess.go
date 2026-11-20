@@ -172,7 +172,15 @@ func FormatPercentSequences(pattern string, replacements map[string]string) stri
 }
 
 func Trace(name string, args ...string) {
-	tracerx.Printf("exec: %s %s", name, quotedArgs(args))
+	cmd := fmt.Sprintf("%s %s", name, quotedArgs(args))
+	prefix := "exec"
+
+	for i, line := range strings.Split(cmd, "\n") {
+		if i == 1 {
+			prefix += " (cont.)"
+		}
+		tracerx.Printf("%s: %s", prefix, line)
+	}
 }
 
 func quotedArgs(args []string) string {
@@ -182,7 +190,7 @@ func quotedArgs(args []string) string {
 
 	quoted := make([]string, len(args))
 	for i, arg := range args {
-		quoted[i] = fmt.Sprintf("'%s'", arg)
+		quoted[i] = ShellQuoteSingle(arg)
 	}
 	return strings.Join(quoted, " ")
 }

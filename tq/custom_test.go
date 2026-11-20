@@ -33,6 +33,49 @@ func TestCustomTransferBasicConfig(t *testing.T) {
 	assert.Equal(t, cd.concurrent, true, "concurrent should be defaulted")
 }
 
+func TestCustomTransferPathConfigMatchesCompleteKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		expected bool
+	}{
+		{
+			name:     "exact",
+			key:      "lfs.customtransfer.testcustom.path",
+			expected: true,
+		},
+		{
+			name: "access suffix",
+			key:  "lfs.customtransfer.testcustom.path.access",
+		},
+		{
+			name: "access suffix with extra prefix",
+			key:  "extra.lfs.customtransfer.testcustom.path.access",
+		},
+		{
+			name: "remote prefix",
+			key:  "remote.lfs.customtransfer.testcustom.path",
+		},
+		{
+			name: "remote prefix with extra suffix",
+			key:  "remote.lfs.customtransfer.testcustom.path.extra",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cli := lfsapi.NewClient(lfshttp.NewContext(nil, nil, map[string]string{
+				test.key: "/path/to/binary",
+			}))
+			defer cli.Close()
+
+			m := NewManifest(nil, cli, "", "").Upgrade()
+			assert.Equal(t, test.expected, m.isCustomAdapter("testcustom", "download"))
+			assert.Equal(t, test.expected, m.isCustomAdapter("testcustom", "upload"))
+		})
+	}
+}
+
 func TestCustomTransferDownloadConfig(t *testing.T) {
 	path := "/path/to/binary"
 	args := "-c 1 --whatever"

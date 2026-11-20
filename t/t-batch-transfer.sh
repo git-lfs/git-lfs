@@ -211,7 +211,7 @@ assert_ssh_transfer_sessions() {
 
   local max_expected_nonctrl=$(( max_expected_start - expected_ctrl ))
 
-  local lines="$(grep "exec: lfs-ssh-echo.*git-lfs-transfer .*${reponame}.git $direction" "$log")"
+  local lines="$(grep "exec: lfs-ssh-echo.*git-lfs-transfer .*${reponame}.git.* $direction" "$log")"
   local ctrl_count="$(printf '%s' "$lines" | grep -c -- '-oControlMaster=yes')"
   local nonctrl_count="$(printf '%s' "$lines" | grep -c -- '-oControlMaster=no')"
 

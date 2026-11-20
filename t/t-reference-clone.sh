@@ -3,20 +3,22 @@
 . "$(dirname "$0")/testlib.sh"
 
 assert_same_inode() {
-  local repo1=$1
-  local repo2=$2
-  local oid=$3
+  local repo1="$1"
+  local repo2="$2"
+  local oid="$3"
 
-  if ! uname -s | grep -qE 'CYGWIN|MSYS|MINGW'; then
-    cfg1=$(cd "$repo1"; git lfs env | grep LocalMediaDir)
-    f1="${cfg1:14}/${oid:0:2}/${oid:2:2}/$oid"
-    inode1=$(ls -i $f1 | cut -f1 -d\ )
+  if [ "$IS_WINDOWS" -eq 0 ]; then
+    pushd "$repo1"
+      f1="$(local_object_path "$oid")"
+      inode1="$(ls -i "$f1" | cut -f1 -d " ")"
+    popd
 
-    cfg2=$(cd "$repo2"; git lfs env | grep LocalMediaDir)
-    f2="${cfg2:14}/${oid:0:2}/${oid:2:2}/$oid"
-    inode2=$(ls -i $f2 | cut -f1 -d\ )
+    pushd "$repo2"
+      f2="$(local_object_path "$oid")"
+      inode2="$(ls -i "$f2" | cut -f1 -d " ")"
+    popd
 
-    [ "$inode1" == "$inode2" ]
+    [ "$inode1" = "$inode2" ]
   fi
 }
 

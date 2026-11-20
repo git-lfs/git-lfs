@@ -22,12 +22,17 @@ func (c *ShellQuoteTestCase) Assert(t *testing.T) {
 
 func TestShellQuote(t *testing.T) {
 	for desc, c := range map[string]ShellQuoteTestCase{
+		"empty":          {[]string{""}, []string{"''"}},
 		"simple":         {[]string{"foo", "bar", "an_id"}, []string{"foo", "bar", "an_id"}},
+		"safe chars":     {[]string{"F00-bar", "/foo.bar", "foo@bar"}, []string{"F00-bar", "/foo.bar", "foo@bar"}},
+		"unsafe chars":   {[]string{"foo;bar", "foo&bar", "foo|bar"}, []string{"'foo;bar'", "'foo&bar'", "'foo|bar'"}},
+		"mixed chars":    {[]string{"F00-;bar", "/foo&bar", "@foo, (bar.)"}, []string{"'F00-;bar'", "'/foo&bar'", "'@foo, (bar.)'"}},
 		"leading space":  {[]string{" foo", "bar"}, []string{"' foo'", "bar"}},
 		"trailing space": {[]string{"foo", "bar "}, []string{"foo", "'bar '"}},
 		"internal space": {[]string{"foo bar", "baz quux"}, []string{"'foo bar'", "'baz quux'"}},
+		"newlines":       {[]string{"foo\nbar", "foo\rbar"}, []string{"'foo\nbar'", "'foo\rbar'"}},
 		"backslash":      {[]string{`foo\bar`, `b\az`}, []string{`'foo\bar'`, `'b\az'`}},
-		"quotes":         {[]string{`foo"bar`, "b'az"}, []string{`'foo"bar'`, "'b'\\''az'"}},
+		"quotes":         {[]string{`foo"bar`, "b'az", "''"}, []string{`'foo"bar'`, "'b'\\''az'", `''\'''\'''`}},
 		"mixed quotes":   {[]string{`"foo'ba\"r\"'"`}, []string{`'"foo'\''ba\"r\"'\''"'`}},
 	} {
 		t.Run(desc, c.Assert)
@@ -54,9 +59,13 @@ func (c *FormatForShellQuotedArgsTestCase) Assert(t *testing.T) {
 
 func TestFormatForShellQuotedArgs(t *testing.T) {
 	for desc, c := range map[string]FormatForShellQuotedArgsTestCase{
+		"empty":       {"foo", []string{"", "bar", " "}, []string{"-c", "foo '' bar ' '"}},
 		"simple":      {"foo", []string{"bar", "baz"}, []string{"-c", "foo bar baz"}},
+		"unsafe":      {"foo", []string{";bar", "b|a&z"}, []string{"-c", "foo ';bar' 'b|a&z'"}},
 		"spaces":      {"foo quux", []string{" bar", "baz "}, []string{"-c", "foo quux ' bar' 'baz '"}},
+		"newlines":    {"foo", []string{"bar\n", "\r\nbaz"}, []string{"-c", "foo 'bar\n' '\r\nbaz'"}},
 		"backslashes": {"bin/foo", []string{"\\bar", "b\\az"}, []string{"-c", "bin/foo '\\bar' 'b\\az'"}},
+		"quotes":      {"foo", []string{"'baz'", `"baz"`, `b'a"z`}, []string{"-c", `foo ''\''baz'\''' '"baz"' 'b'\''a"z'`}},
 	} {
 		t.Run(desc, c.Assert)
 	}

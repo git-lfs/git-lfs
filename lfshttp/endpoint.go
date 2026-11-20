@@ -61,7 +61,13 @@ func EndpointFromSshUrl(u *url.URL) Endpoint {
 
 	// Fallback URL for using HTTPS while still using SSH for git
 	// u.Host includes host & port so can't use SSH port
-	endpoint.Url = fmt.Sprintf("https://%s%s", host, u.Path)
+	//
+	// The path used for SSH has been URL-decoded, so we re-encode it to
+	// ensure that the path segments of the fallback URL match exactly.
+	// Note that any percent-encoded slash characters in the original URL
+	// will be converted to path separators in both the SSH path and the
+	// fallback HTTPS URL.
+	endpoint.Url = fmt.Sprintf("https://%s%s", host, (&url.URL{Path: u.Path}).EscapedPath())
 
 	return endpoint
 }
