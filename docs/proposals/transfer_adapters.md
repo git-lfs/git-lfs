@@ -13,7 +13,7 @@ supported by opening this up to other protocols might include:
 
 ## API extensions
 
-See the [API documentation](../http-v1-batch.md) for specifics. All changes
+See the [batch API documentation](../api/batch.md) for specifics. All changes
 are optional extras so there are no breaking changes to the API.
 
 The current HTTP GET/PUT system will remain the default. When a version of the
