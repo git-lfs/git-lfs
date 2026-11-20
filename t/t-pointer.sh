@@ -324,6 +324,58 @@ begin_test "pointer --check (with valid pointer)"
 )
 end_test
 
+begin_test "pointer --check (with extension before version)"
+(
+  set -e
+
+  reponame="pointer---check-extension-before-version"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '%s\n' \
+    'ext-0-foo sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' \
+    'version https://git-lfs.github.com/spec/v1' \
+    'oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393' \
+    'size 12345' \
+    >before-version.ptr
+
+  git lfs pointer --check --file before-version.ptr && exit 1
+  git lfs pointer --check --stdin < before-version.ptr && exit 1
+  git lfs pointer --check --no-strict --file before-version.ptr && exit 1
+  git lfs pointer --check --no-strict --stdin < before-version.ptr && exit 1
+  git lfs pointer --check --strict --file before-version.ptr && exit 1
+  git lfs pointer --check --strict --stdin < before-version.ptr && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test
+
+begin_test "pointer --check (with malformed extension key)"
+(
+  set -e
+
+  reponame="pointer---check-malformed-extension-key"
+  git init "$reponame"
+  cd "$reponame"
+
+  printf '%s\n' \
+    'version https://git-lfs.github.com/spec/v1' \
+    'ext-0-foo:()[] sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' \
+    'oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393' \
+    'size 12345' \
+    >malformed-ext.ptr
+
+  git lfs pointer --check --file malformed-ext.ptr && exit 1
+  git lfs pointer --check --stdin < malformed-ext.ptr && exit 1
+  git lfs pointer --check --no-strict --file malformed-ext.ptr && exit 1
+  git lfs pointer --check --no-strict --stdin < malformed-ext.ptr && exit 1
+  git lfs pointer --check --strict --file malformed-ext.ptr && exit 1
+  git lfs pointer --check --strict --stdin < malformed-ext.ptr && exit 1
+  # Make the result of the subshell a success.
+  true
+)
+end_test
+
 begin_test "pointer --check (with invalid pointer)"
 (
   set -e

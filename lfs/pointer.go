@@ -27,7 +27,7 @@ var (
 	oidType     = "sha256"
 	oidRE       = regexp.MustCompile(`\A[0-9a-f]{64}\z`)
 	matcherRE   = regexp.MustCompile("git-media|hawser|git-lfs")
-	extRE       = regexp.MustCompile(`\Aext-\d{1}-\w+`)
+	extRE       = regexp.MustCompile(`\Aext-\d{1}-\w+\z`)
 	pointerKeys = []string{"version", "oid", "size"}
 )
 
@@ -291,7 +291,9 @@ func decodeKVData(data []byte) (kvps map[string]string, exts map[string]string, 
 		}
 
 		if expected := pointerKeys[line]; key != expected {
-			if !extRE.MatchString(key) {
+			// An extension entry is only valid after the version header line;
+			// the version must always be the first entry in the pointer.
+			if line == 0 || !extRE.MatchString(key) {
 				err = errors.NewBadPointerKeyError(expected, key)
 				return
 			}
