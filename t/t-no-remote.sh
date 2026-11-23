@@ -21,6 +21,7 @@ begin_test "fetch lfs-tracked file despite no remote"
   mkdir $reponame_dst
   cd $reponame_dst
   git init . --bare
+  export GIT_DIR="$(native_path "$PWD")"
   echo $(pwd)
   git fetch "$GITSERVER/$reponame_src" refs/heads/main:refs/heads/main
   git archive $rev -o archive.out
@@ -47,6 +48,7 @@ begin_test "fallback ignored when remote present"
   mkdir $reponame_dst_2
   cd $reponame_dst_2
   git init . --bare
+  export GIT_DIR="$(native_path "$PWD")"
   echo $(pwd)
   # This part is subtle
   # Add repo A as a remote and fetch from it

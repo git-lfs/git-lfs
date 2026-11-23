@@ -521,8 +521,8 @@ setup_remote_repo() {
   mkdir -p "$repodir"
   cd "$repodir"
   git init --bare
-  git config http.receivepack true
-  git config receive.denyCurrentBranch ignore
+  git --git-dir=. config http.receivepack true
+  git --git-dir=. config receive.denyCurrentBranch ignore
 }
 
 # creates a bare remote repository for a local clone. Useful to test pushing to

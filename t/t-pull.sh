@@ -1224,6 +1224,7 @@ begin_test "pull: bare repository"
   git clone --bare "$GITSERVER/$reponame" "${reponame}-assert"
 
   cd "${reponame}-assert"
+  export GIT_DIR="$(native_path "$PWD")"
   [ ! -e lfs ]
   refute_local_object "$contents_oid"
 

@@ -4,10 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/git-lfs/git-lfs/v3/git"
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 	test "github.com/git-lfs/git-lfs/v3/t/cmd/util"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/stretchr/testify/assert"
@@ -69,6 +71,35 @@ func TestParseRefs(t *testing.T) {
 	assert.Equal(t, "abc123", r.Sha, "prefix: HEAD")
 	assert.Equal(t, "HEAD", r.Name, "prefix: HEAD")
 	assert.Equal(t, RefTypeHEAD, r.Type, "prefix: HEAD")
+}
+
+func TestRepoFixturesWithAlternateGitDefaults(t *testing.T) {
+	t.Cleanup(subprocess.ResetEnvironment)
+	t.Setenv("GIT_CONFIG_COUNT", "2")
+	t.Setenv("GIT_CONFIG_KEY_0", "init.defaultBranch")
+	t.Setenv("GIT_CONFIG_VALUE_0", "main")
+	t.Setenv("GIT_CONFIG_KEY_1", "safe.bareRepository")
+	t.Setenv("GIT_CONFIG_VALUE_1", "explicit")
+	subprocess.ResetEnvironment()
+
+	fixtures := []struct {
+		name   string
+		create func(test.RepoCallback) *test.Repo
+	}{
+		{"worktree", test.NewRepo},
+		{"bare", test.NewBareRepo},
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.name, func(t *testing.T) {
+			repo := fixture.create(t)
+			t.Cleanup(repo.Cleanup)
+			gitDir := "--git-dir=" + repo.GitDir
+			head := test.RunGitCommand(t, true, gitDir, "symbolic-ref", "HEAD")
+			assert.Equal(t, "refs/heads/master", strings.TrimSpace(head))
+			email := test.RunGitCommand(t, true, gitDir, "config", "--local", "user.email")
+			assert.Equal(t, "git-lfs@example.com", strings.TrimSpace(email))
+		})
+	}
 }
 
 func TestCurrentRefAndCurrentRemoteRef(t *testing.T) {
@@ -465,13 +496,19 @@ func TestWorktreesBareRepo(t *testing.T) {
 	}
 
 	repo := test.NewBareRepo(t)
-	repo.Pushd()
-	defer func() {
-		repo.Popd()
-		repo.Cleanup()
-	}()
+	defer repo.Cleanup()
+	gitDir, err := filepath.Abs(repo.GitDir)
+	if err != nil {
+		t.Fatalf("cannot resolve bare fixture directory: %v", err)
+	}
 
-	worktrees, err := GetAllWorktrees(repo.Path)
+	// Refresh Git LFS's cached environment now and after Setenv's cleanup.
+	t.Cleanup(subprocess.ResetEnvironment)
+	t.Setenv("GIT_DIR", gitDir)
+	subprocess.ResetEnvironment()
+	repo.Pushd()
+
+	worktrees, err := GetAllWorktrees(gitDir)
 	assert.NoError(t, err)
 	assert.Nil(t, worktrees)
 }
