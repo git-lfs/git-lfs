@@ -40,12 +40,13 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 
 	tracked := trackedFromExportFilter(filter)
 	gitfilter := lfs.NewGitFilter(cfg)
+	ignoreCase := cfg.Git.Bool("core.ignorecase", false)
 
 	opts := &githistory.RewriteOptions{
 		Verbose:           migrateVerbose,
 		ObjectMapFilePath: objectMapFilePath,
 		BlobFn: func(path string, b *gitobj.Blob) (*gitobj.Blob, error) {
-			if filepath.Base(path) == ".gitattributes" {
+			if isMigrateAttrs(filepath.Base(path), ignoreCase) {
 				return b, nil
 			}
 
@@ -71,33 +72,7 @@ func migrateExportCommand(cmd *cobra.Command, args []string) {
 				return t, nil
 			}
 
-			ours := tracked
-			theirs, err := trackedFromAttrs(db, t)
-			if err != nil {
-				return nil, err
-			}
-
-			// Create a blob of the attributes that are optionally
-			// present in the "t" tree's .gitattributes blob, and
-			// union in the patterns that we've tracked.
-			//
-			// Perform this Union() operation each time we visit a
-			// root tree such that if the underlying .gitattributes
-			// is present and has a diff between commits in the
-			// range of commits to migrate, those changes are
-			// preserved.
-			blob, err := trackedToBlob(db, theirs.Clone().Union(ours))
-			if err != nil {
-				return nil, err
-			}
-
-			// Finally, return a copy of the tree "t" that has the
-			// new .gitattributes file included/replaced.
-			return t.Merge(&gitobj.TreeEntry{
-				Name:     ".gitattributes",
-				Filemode: 0100644,
-				Oid:      blob,
-			}), nil
+			return mergeMigrateAttrs(db, t, tracked, ignoreCase)
 		},
 
 		UpdateRefs: true,
