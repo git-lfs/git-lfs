@@ -64,6 +64,7 @@ var (
 		"return-expired-action", "return-expired-action-forever", "return-invalid-size",
 		"object-authenticated", "storage-upload-retry", "storage-upload-retry-later", "storage-upload-retry-later-no-header", "unknown-oid",
 		"storage-download-corrupt",
+		"storage-download-oversized", "storage-download-oversized-encoding-gzip", "storage-download-oversized-encoding-zstd",
 		"storage-download-retry-later", "storage-download-retry-later-no-header", "storage-download-retry",
 		"storage-download-retry-range", "storage-download-retry-range-rejected", "storage-download-retry-no-invalid-range",
 		"storage-download-encoding-gzip", "storage-download-encoding-zstd", "storage-download-encoding-zstd-retry-range",
@@ -801,6 +802,14 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 				// lowercase we can "invert" the case of each
 				// character just by converting to uppercase.
 				by = bytes.ToUpper(by)
+			case "storage-download-oversized":
+				by = append(by, []byte("-oversized")...)
+			case "storage-download-oversized-encoding-gzip":
+				by = append(by, []byte("-oversized")...)
+				compress = true
+			case "storage-download-oversized-encoding-zstd":
+				by = append(by, []byte("-oversized")...)
+				zstdCompress = true
 			case "storage-download-retry-later":
 				if secsToWait, wait := checkRateLimit("storage", "download", repo, oid); wait {
 					statusCode = http.StatusTooManyRequests
