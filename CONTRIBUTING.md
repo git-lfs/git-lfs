@@ -43,10 +43,11 @@ community time to discuss it before a lot of code has been written.
 
 The Git LFS teams mark issues and pull requests with the following labels:
 
-* `bug` - An issue describing a bug.
-* `enhancement` - An issue for a possible new feature.
-* `review` - A pull request ready to be reviewed.
-* `release` - A checklist issue showing items marked for an upcoming release.
+* `bug` - An issue describing a bug or a PR which resolves a bug.
+* `docs` - A PR which only modifies our documentation.
+* `enhancement` - An issue describing a possible new feature or a PR which
+introduces such a feature.
+* `tests` - A PR which only modifies the test suite.
 
 ## Branching strategy
 
@@ -65,13 +66,20 @@ In general, contributors should develop on branches based off of `main` and pull
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
 * Follow the [style guide][style] where possible.
-* Write tests.
+* Write tests to verify any changes in the Git LFS client.
+  * Avoid introducing tests before or after client code changes. Tests should
+    accompany the related code changes in a commit.
+  * Ensure all tests pass on all supported platforms after each commit.
+  * Whenever possible write shell integration tests, especially for any changes
+    which involve Git, I/O, or file operations.
 * Update documentation as necessary.  Commands have [man pages](./docs/man).
 * Keep your change as focused as possible. If there are multiple changes you
 would like to make that are not dependent upon each other, consider submitting
 them as separate pull requests.
-* Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
-* Explain the rationale for your change in the pull request. You can often use
+* Implement [logically separate][separate-commits] changes in individual
+  commits.
+* Write [good commit messages][good-commits].
+* Explain the rationale for your changes in the pull request. You can often use
   part of a good commit message as a starting point.
 
 ## Discussions
@@ -170,5 +178,7 @@ If you are the current maintainer, see
 - [GitHub Help](https://help.github.com)
 
 [fork]: https://github.com/git-lfs/git-lfs/fork
+[good-commits]: https://git-scm.com/docs/SubmittingPatches#describe-changes
 [pr]: https://github.com/git-lfs/git-lfs/compare
-[style]: https://github.com/golang/go/wiki/CodeReviewComments
+[separate-commits]: https://git-scm.com/docs/SubmittingPatches#separate-commits
+[style]: https://go.dev/wiki/CodeReviewComments
