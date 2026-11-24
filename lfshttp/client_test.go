@@ -178,6 +178,42 @@ func TestClientRedirect(t *testing.T) {
 	assert.EqualError(t, err, "refusing insecure redirect: HTTPS to HTTP")
 }
 
+func TestNewRequestForRetrySensitiveHeaders(t *testing.T) {
+	sensitive := []string{"Authorization", "Cookie"}
+
+	for _, test := range []struct {
+		name  string
+		to    string
+		strip bool
+	}{
+		{"same origin", "http://example.com:8080/next", false},
+		{"different host", "http://other.example.com:8080/next", true},
+		{"different port", "http://example.com:8081/next", true},
+		// Keep the host and port identical so this checks the scheme alone.
+		{"different scheme", "https://example.com:8080/next", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "http://example.com:8080/original", nil)
+			require.NoError(t, err)
+			for _, header := range sensitive {
+				req.Header.Set(header, "sensitive")
+			}
+			req.Header.Set("X-Test-Benign", "keep")
+
+			redirected, err := newRequestForRetry(req, test.to)
+			require.NoError(t, err)
+			for _, header := range sensitive {
+				if test.strip {
+					assert.Empty(t, redirected.Header.Get(header), "%s must not follow the redirect", header)
+				} else {
+					assert.Equal(t, "sensitive", redirected.Header.Get(header), "%s must survive a same-origin redirect", header)
+				}
+			}
+			assert.Equal(t, "keep", redirected.Header.Get("X-Test-Benign"), "benign header must survive %s redirect", test.name)
+		})
+	}
+}
+
 func TestNewClient(t *testing.T) {
 	c := NewClient(NewContext(nil, nil, map[string]string{
 		"lfs.dialtimeout":         "151",

@@ -172,7 +172,7 @@ like this:
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
 * `path`: the file which the transfer process should read the upload data from
-* `action`: the `upload` action copied from the response from the batch API.
+* `action`: the `upload` action copied from the response from the Batch API.
   This contains `href` and `header` contents, which are named per HTTP
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,
@@ -212,7 +212,7 @@ like this:
 * `event`: Always `download` to identify this message
 * `oid`: the identifier of the LFS object
 * `size`: the size of the LFS object
-* `action`: the `download` action copied from the response from the batch API.
+* `action`: the `download` action copied from the response from the Batch API.
   This contains `href` and `header` contents, which are named per HTTP
   conventions, but can be interpreted however the custom transfer agent wishes
   (this is an NFS example, but it doesn't even have to be an URL). Generally,

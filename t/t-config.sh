@@ -257,6 +257,48 @@ begin_test "config: ignoring unsafe lfsconfig keys"
 )
 end_test
 
+begin_test "config: ignoring non-lfs remote keys in lfsconfig"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-remote"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --file=.lfsconfig remote.origin.nonlfs unsafe
+  git config --file=.lfsconfig remote.other.origin.nonlfs unsafe
+  git config --file=.lfsconfig remote.origin unsafe
+  git config --file=.lfsconfig remote.lfsDefault unsafe
+  git config --file=.lfsconfig remote.pushDefault unsafe
+
+  git lfs env >env.log 2>&1
+
+  grep -F "warning: These unsafe '.lfsconfig' keys were ignored:" env.log
+  grep "^  remote\.origin\.nonlfs$" env.log
+  grep "^  remote\.other\.origin\.nonlfs$" env.log
+  grep "^  remote\.origin$" env.log
+  grep "^  remote\.lfsdefault$" env.log
+  grep "^  remote\.pushdefault$" env.log
+)
+end_test
+
+begin_test "config: ignoring non-lfs access keys in lfsconfig"
+(
+  set -e
+
+  reponame="config-unsafe-lfsconfig-access"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --file=.lfsconfig other.example.access unsafe
+
+  git lfs env >env.log 2>&1
+
+  grep -F "warning: These unsafe '.lfsconfig' keys were ignored:" env.log
+  grep "^  other\.example\.access$" env.log
+)
+end_test
+
 begin_test "config respects include.* directives when GIT_CONFIG is set"
 (
   set -e
@@ -274,5 +316,82 @@ begin_test "config respects include.* directives when GIT_CONFIG is set"
   git config include.path "$(pwd)/.git/b.config"
   GIT_CONFIG="$(pwd)/.git/config" git lfs env | tee env.log
   grep "Endpoint=http://other-url/rest (auth=none)" env.log
+)
+end_test
+
+begin_test "config: env with duplicate lfs.* values"
+(
+  set -e
+
+  reponame="config-duplicate-lfs-warning"
+  git init "$reponame"
+  cd "$reponame"
+
+  git config --add lfs.url http://first-url
+  git config --add lfs.url http://second-url
+  git config --add lfs.url http://third-url
+
+  git config --add remote.origin.pushurl http://first-url
+  git config --add remote.origin.pushurl http://second-url
+
+  git lfs env >env.log 2>&1
+
+  [ 2 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = ["http://first-url"]' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = "http://second-url"' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = ["http://first-url" "http://second-url"]' env.log)" ]
+  [ 1 -eq "$(grep -c -F 'git config "lfs.url" = "http://third-url"' env.log)" ]
+
+  [ 0 -eq "$(grep -c -F 'git config "remote.origin.pushurl"' env.log)" ]
+)
+end_test
+
+begin_test "config: newline in lfsconfig value does not inject another key"
+(
+  set -e
+
+  reponame="config-newline-lfsconfig"
+  git init "$reponame"
+  cd "$reponame"
+
+  # A newline embedded in one option's value must not be parsed as a
+  # separate option.  Here the value of the "lfs.fetchinclude" option
+  # attempts to inject an "lfs.url" option which would override the
+  # real endpoint because it would appear as the final "lfs.url" value.
+  git config --file=.lfsconfig lfs.url http://real-endpoint
+  git config --file=.lfsconfig lfs.fetchinclude \
+    "$(printf 'x\nlfs.url=http://injected-endpoint')"
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
+
+  # Stage the file and remove it from the working tree so that Git LFS reads
+  # the configuration from the index blob instead.
+  git add .lfsconfig
+  rm .lfsconfig
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
+
+  # Commit the file, then remove it from the index so that Git LFS reads
+  # the configuration from the HEAD blob instead.
+  git commit -m "add lfsconfig"
+  git rm --cached .lfsconfig
+
+  git lfs env >env.log 2>&1
+
+  grep -F "Endpoint=http://real-endpoint (auth=none)" env.log
+
+  [ 0 -eq "$(grep -c -F 'warning: These `git config` values clash:' env.log)" ]
+  [ 0 -eq "$(grep -c -F 'git config "lfs.url" = "http://injected-endpoint"' env.log)" ]
 )
 end_test

@@ -364,7 +364,8 @@ func configureDefaultCustomAdapters(git Env, m *concreteManifest) {
 func configureCustomAdapters(git Env, m *concreteManifest) {
 	configureDefaultCustomAdapters(git, m)
 
-	pathRegex := regexp.MustCompile(`lfs\.((?i)customtransfer\.([^.]+))\.path`)
+	pathRegex := regexp.MustCompile(`\Alfs\.((?i)customtransfer\.([^.]+))\.path\z`)
+
 	for k, _ := range git.All() {
 		match := pathRegex.FindStringSubmatch(k)
 		if match == nil {

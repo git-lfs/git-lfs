@@ -326,7 +326,7 @@ begin_test "filter process: git archive does not invoke SSH"
   git push origin main 2>&1
   cd ..
   GIT_TRACE=1 git clone "$sshurl" "$reponame-2" 2>&1 | tee trace.log
-  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git download" trace.log
+  grep "lfs-ssh-echo.*git-lfs-transfer .*$reponame.git.* download" trace.log
   cd "$reponame-2"
   GIT_TRACE=1 GIT_TRACE_PACKET=1 git archive -o foo.tar HEAD 2>&1 | tee archive.log
   grep 'pure SSH' archive.log && exit 1
