@@ -125,25 +125,23 @@ func ParseLines(r io.Reader) ([]Line, string, error) {
 			}
 			applied = strings.TrimSpace(text[last+1:])
 		default:
-			splits := strings.SplitN(text, " ", 2)
-
-			if strings.HasPrefix(splits[0], attrPrefix) {
-				macro = splits[0][len(attrPrefix):]
-			} else {
-				pattern = splits[0]
+			// Git separates the pattern from its attributes, and
+			// the attributes from each other, with spaces or tabs.
+			first := text
+			if i := strings.IndexFunc(text, isBlank); i >= 0 {
+				first, applied = text[:i], text[i:]
 			}
-			if len(splits) == 2 {
-				applied = splits[1]
+
+			if strings.HasPrefix(first, attrPrefix) {
+				macro = first[len(attrPrefix):]
+			} else {
+				pattern = first
 			}
 		}
 
 		var lineAttrs lineAttrs
 
-		for _, s := range strings.Split(applied, " ") {
-			if s == "" {
-				continue
-			}
-
+		for _, s := range strings.FieldsFunc(applied, isBlank) {
 			var attr Attr
 
 			if strings.HasPrefix(s, "-") {
@@ -181,6 +179,12 @@ func ParseLines(r io.Reader) ([]Line, string, error) {
 		return nil, "", err
 	}
 	return lines, splitter.LineEnding(), nil
+}
+
+// isBlank reports whether r separates the pattern and the attributes of a
+// .gitattributes line: a space or a tab, as in Git.
+func isBlank(r rune) bool {
+	return r == ' ' || r == '\t'
 }
 
 func newPattern(pattern string) (matchPattern *wildmatch.Wildmatch, err error) {
