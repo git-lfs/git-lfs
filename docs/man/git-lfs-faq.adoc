@@ -207,8 +207,8 @@ could run `git config http.sslCAPath /etc/ssl/certs`.  Note that it's also
 possible to set these configuration options on a per-URL basis, like so: `git
 config http.https://example.com/.sslCAPath /etc/ssl/certs`.
 +
-Note that PKCS#12 files are a Git for Windows extension to Git and are not
-supported by Git LFS.  Additionally, take into account the information about
+Note that PKCS#12 files are not supported for certificate authorities.
+Additionally, take into account the information about
 TLS-intercepting proxies above if this configuration is because of a
 TLS-intercepting proxy.
 
@@ -223,11 +223,18 @@ corresponding key, use `http.sslKey` with a file containing a PEM-encoded key.
 If it is encrypted, you will be prompted using the credential helper for the
 passphrase.
 +
+Alternatively, `http.sslCert` can point to a PKCS#12 (`.p12` or `.pfx`) file
+holding both the certificate and the key; do not set `http.sslKey` in that case.
+Set `http.sslCertType` to `P12` if the file does not have one of those
+extensions.  If the file is password-protected, you will be prompted using the
+credential helper, as with an encrypted PEM key.  Any self-signed root
+certificate in the file is not sent to the server and is not used to verify it.
++
 Usually you will want to specify these values on a per-URL basis, such as the
 following: `git config http.https://example.com/.sslKey
 /home/user/.certs/mine.key`.
 +
-Note that PKCS#8 and PKCS#12 files are not supported by Git LFS.
+Note that PKCS#8 key files are not supported by Git LFS.
 
 [[cat-git-features]]
 === Working with Git Features

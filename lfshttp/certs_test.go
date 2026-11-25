@@ -1,15 +1,23 @@
 package lfshttp
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/stretchr/testify/assert"
+	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
 var testCert = `-----BEGIN CERTIFICATE-----
@@ -265,4 +273,59 @@ func TestCertVerifyDisabledHostConfig(t *testing.T) {
 	if assert.True(t, ok) {
 		assert.False(t, tr.TLSClientConfig.InsecureSkipVerify)
 	}
+}
+
+func TestParseP12(t *testing.T) {
+	rootKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	rootTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "root"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	rootDER, err := x509.CreateCertificate(rand.Reader, rootTmpl, rootTmpl, &rootKey.PublicKey, rootKey)
+	assert.Nil(t, err)
+	root, _ := x509.ParseCertificate(rootDER)
+
+	interKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	interTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "inter"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	interDER, err := x509.CreateCertificate(rand.Reader, interTmpl, root, &interKey.PublicKey, rootKey)
+	assert.Nil(t, err)
+	inter, _ := x509.ParseCertificate(interDER)
+
+	leafKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	leafTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(3), Subject: pkix.Name{CommonName: "client"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+	leafDER, err := x509.CreateCertificate(rand.Reader, leafTmpl, inter, &leafKey.PublicKey, interKey)
+	assert.Nil(t, err)
+	leaf, _ := x509.ParseCertificate(leafDER)
+
+	// Root and intermediate listed before the leaf's usual position.
+	pfx, err := pkcs12.Modern.Encode(leafKey, leaf, []*x509.Certificate{root, inter}, "secret")
+	assert.Nil(t, err)
+
+	cert, err := parseP12(pfx, "secret")
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{leafDER, interDER}, cert.Certificate, "chain is leaf + intermediate, no root")
+
+	_, err = parseP12(pfx, "wrong")
+	assert.Equal(t, pkcs12.ErrIncorrectPassword, err)
+	_, err = parseP12(pfx, "")
+	assert.Equal(t, pkcs12.ErrIncorrectPassword, err)
+}
+
+func TestIsClientCertEnabledForP12(t *testing.T) {
+	p12 := NewClient(NewContext(nil, nil, map[string]string{"http.https://h/.sslcert": "/x/a.p12"}))
+	assert.True(t, isClientCertEnabledForHost(p12, "h"))
+	typed := NewClient(NewContext(nil, nil, map[string]string{
+		"http.https://h/.sslcert": "/x/a.bin", "http.https://h/.sslcerttype": "P12"}))
+	assert.True(t, isClientCertEnabledForHost(typed, "h"))
+	pem := NewClient(NewContext(nil, nil, map[string]string{"http.https://h/.sslcert": "/x/a.pem"}))
+	assert.False(t, isClientCertEnabledForHost(pem, "h"))
 }

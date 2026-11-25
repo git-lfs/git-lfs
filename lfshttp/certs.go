@@ -1,6 +1,8 @@
 package lfshttp
 
 import (
+	"bytes"
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -8,12 +10,15 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/config"
+	"github.com/git-lfs/git-lfs/v3/creds"
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tools"
 	"github.com/git-lfs/git-lfs/v3/tr"
 	"github.com/rubyist/tracerx"
+	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
 // isCertVerificationDisabledForHost returns whether SSL certificate verification
@@ -31,36 +36,56 @@ func isCertVerificationDisabledForHost(c *Client, host string) bool {
 // are configured for the given host
 func isClientCertEnabledForHost(c *Client, host string) bool {
 	_, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
-	_, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
+	hostSslCert, hostSslCertOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
-	return hostSslKeyOk && hostSslCertOk
+	// A PKCS#12 file holds the key too, so no separate sslKey is needed.
+	return hostSslCertOk && (hostSslKeyOk || isP12ForHost(c, host, hostSslCert))
+}
+
+// isP12ForHost returns whether the client certificate configured for the
+// given host is a PKCS#12 file, either by http.sslCertType or by extension.
+func isP12ForHost(c *Client, host, certPath string) bool {
+	if t, ok := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCertType"); ok {
+		return strings.EqualFold(t, "P12")
+	}
+	ext := strings.ToLower(filepath.Ext(certPath))
+	return ext == ".p12" || ext == ".pfx"
+}
+
+// fillPassphrase prompts for the passphrase protecting the file at path, using
+// the credential helper. The caller must call Approve or Reject on the result.
+func fillPassphrase(c *Client, path string) (*creds.CredentialHelperWrapper, creds.Creds, string, error) {
+	fileurl := fmt.Sprintf("cert:///%s", filepath.ToSlash(path))
+	url, err := url.Parse(fileurl)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	credWrapper := c.credHelperContext.GetCredentialHelper(nil, url)
+
+	credWrapper.Input["username"] = []string{""}
+
+	filled, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
+	if err != nil {
+		tracerx.Printf("Error filling credentials for %q: %v", fileurl, err)
+		return nil, nil, "", err
+	}
+	return &credWrapper, filled, filled["password"][0], nil
 }
 
 // decryptPEMBlock decrypts an encrypted PEM block representing a private key,
 // prompting for credentials using the credential helper, and returns a
 // decrypted PEM block representing that same private key.
 func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]byte, error) {
-	fileurl := fmt.Sprintf("cert:///%s", filepath.ToSlash(path))
-	url, err := url.Parse(fileurl)
+	credWrapper, filled, pass, err := fillPassphrase(c, path)
 	if err != nil {
 		return nil, err
 	}
-	credWrapper := c.credHelperContext.GetCredentialHelper(nil, url)
-
-	credWrapper.Input["username"] = []string{""}
-
-	creds, err := credWrapper.CredentialHelper.Fill(credWrapper.Input)
-	if err != nil {
-		tracerx.Printf("Error filling credentials for %q: %v", fileurl, err)
-		return nil, err
-	}
-	pass := creds["password"][0]
 	decrypted, err := x509.DecryptPEMBlock(block, []byte(pass))
 	if err != nil {
-		credWrapper.CredentialHelper.Reject(creds)
+		credWrapper.CredentialHelper.Reject(filled)
 		return nil, err
 	}
-	credWrapper.CredentialHelper.Approve(creds)
+	credWrapper.CredentialHelper.Approve(filled)
 
 	// decrypted is a DER blob, but we need a PEM-encoded block.
 	toEncode := &pem.Block{Type: block.Type, Headers: nil, Bytes: decrypted}
@@ -68,20 +93,99 @@ func decryptPEMBlock(c *Client, block *pem.Block, path string, key []byte) ([]by
 	return buf, nil
 }
 
+// loadP12 reads a PKCS#12 file holding a client key and certificate chain.
+// An empty password is tried first; otherwise the credential helper is asked.
+func loadP12(c *Client, path string) (*tls.Certificate, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		tracerx.Printf("Error reading client cert file %q: %v", path, err)
+		return nil, errors.Wrap(err, tr.Tr.Get("Error reading client cert file %q", path))
+	}
+
+	cert, err := parseP12(data, "")
+	if err == pkcs12.ErrIncorrectPassword {
+		credWrapper, filled, pass, ferr := fillPassphrase(c, path)
+		if ferr != nil {
+			return nil, ferr
+		}
+		cert, err = parseP12(data, pass)
+		if err == pkcs12.ErrIncorrectPassword {
+			credWrapper.CredentialHelper.Reject(filled)
+		} else if err == nil {
+			credWrapper.CredentialHelper.Approve(filled)
+		}
+	}
+	if err != nil {
+		tracerx.Printf("Unable to read client cert file %q: %v", path, err)
+		return nil, errors.Wrap(err, tr.Tr.Get("Error reading client cert file %q", path))
+	}
+	return cert, nil
+}
+
+// parseP12 decodes a PKCS#12 bundle into a TLS certificate. The leaf is the
+// certificate matching the private key; the chain follows the issuers up to,
+// but not including, a self-signed root, which the server does not need.
+func parseP12(data []byte, password string) (*tls.Certificate, error) {
+	key, first, others, err := pkcs12.DecodeChain(data, password)
+	if err != nil {
+		return nil, err
+	}
+	signer, ok := key.(crypto.Signer)
+	if !ok {
+		return nil, errors.New(tr.Tr.Get("unsupported private key type %T", key))
+	}
+
+	// Don't assume the leaf comes first: pick the cert matching the key.
+	all := append([]*x509.Certificate{first}, others...)
+	var leaf *x509.Certificate
+	for _, cand := range all {
+		if pub, ok := cand.PublicKey.(interface{ Equal(crypto.PublicKey) bool }); ok && pub.Equal(signer.Public()) {
+			leaf = cand
+			break
+		}
+	}
+	if leaf == nil {
+		return nil, errors.New(tr.Tr.Get("no certificate matches the private key"))
+	}
+
+	chain := [][]byte{leaf.Raw}
+	cur := leaf
+	for range all {
+		var next *x509.Certificate
+		for _, cand := range all {
+			if bytes.Equal(cand.RawSubject, cur.RawIssuer) && !bytes.Equal(cand.Raw, cur.Raw) {
+				next = cand
+				break
+			}
+		}
+		if next == nil || bytes.Equal(next.RawSubject, next.RawIssuer) {
+			break // no issuer bundled, or reached the self-signed root
+		}
+		chain = append(chain, next.Raw)
+		cur = next
+	}
+
+	return &tls.Certificate{Certificate: chain, PrivateKey: signer, Leaf: leaf}, nil
+}
+
 // getClientCertForHost returns a client certificate for a specific host (which may
 // be "host:port" loaded from the gitconfig
 func getClientCertForHost(c *Client, host string) (*tls.Certificate, error) {
-	hostSslKey, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
+	hostSslKey, hostSslKeyOk := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslKey")
 	hostSslCert, _ := c.uc.Get("http", fmt.Sprintf("https://%v/", host), "sslCert")
 
-	hostSslKey, err := tools.ExpandPath(hostSslKey, false)
-	if err != nil {
-		return nil, errors.Wrap(err, tr.Tr.Get("Error resolving key path %q", hostSslKey))
-	}
-
-	hostSslCert, err = tools.ExpandPath(hostSslCert, false)
+	hostSslCert, err := tools.ExpandPath(hostSslCert, false)
 	if err != nil {
 		return nil, errors.Wrap(err, tr.Tr.Get("Error resolving cert path %q", hostSslCert))
+	}
+
+	if !hostSslKeyOk && isP12ForHost(c, host, hostSslCert) {
+		return loadP12(c, hostSslCert)
+	}
+
+	hostSslKey, err = tools.ExpandPath(hostSslKey, false)
+	if err != nil {
+		return nil, errors.Wrap(err, tr.Tr.Get("Error resolving key path %q", hostSslKey))
 	}
 
 	cert, err := os.ReadFile(hostSslCert)
