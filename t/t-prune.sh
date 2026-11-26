@@ -1450,6 +1450,13 @@ begin_test "prune does not invoke external diff programs"
 
   clone_repo "remote-$reponame" "clone-$reponame"
 
+  # Git 2.54 and later start a detached `git maintenance run --auto` after
+  # every commit, and its geometric repack removes loose objects while
+  # `git lfs prune` is still reading them, which fails this test with
+  # "missing object" from time to time.  See
+  # https://github.com/git-lfs/git-lfs/issues/6309.
+  git config maintenance.auto false
+
   git config diff.word.textconv 'false'
   echo "*.dot diff=word" >.git/info/attributes
 
