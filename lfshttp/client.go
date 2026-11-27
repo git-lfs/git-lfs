@@ -316,6 +316,10 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 		return nil, nil, err
 	}
 
+	// Never let the net/http client see any userinfo in the request
+	// URL, so that it does not add an Authorization header on its own.
+	sendReq := requestWithoutUserinfo(req)
+
 	var retries int
 	if n, ok := Retries(req); ok {
 		retries = n
@@ -327,7 +331,7 @@ func (c *Client) DoWithRedirect(cli *http.Client, req *http.Request, remote stri
 
 	requests := max(0, retries) + 1
 	for i := 0; i < requests; i++ {
-		res, err = cli.Do(req)
+		res, err = cli.Do(sendReq)
 		if err == nil {
 			break
 		}
@@ -579,6 +583,40 @@ func (c *Client) CurrentUser() (string, string) {
 	userName, _ := c.gitEnv.Get("user.name")
 	userEmail, _ := c.gitEnv.Get("user.email")
 	return userName, userEmail
+}
+
+// requestWithoutUserinfo returns a shallow copy of the given request whose
+// URL omits any userinfo component, or the request itself if its URL has none.
+//
+// Go's net/http client adds a "Basic" Authorization header derived from the
+// URL's userinfo to any request which lacks an Authorization header of its
+// own.  Since we send our first request to an endpoint without credentials
+// so as to learn what kind of authentication the server expects, a URL such
+// as https://user@example.com/ would otherwise cause that request to carry
+// the credentials "user:" (i.e., the username with an empty password).  Some
+// servers reject such requests with a 403 status rather than the 401 status
+// which would prompt us to look up credentials, and the stray header also
+// means that the request does not look anonymous, unlike Git's own first
+// request for the same remote.
+//
+// We leave the caller's request untouched so the username remains available
+// for use when requesting credentials from a credential helper.  Credentials
+// supplied with an explicit password in a URL are set as an Authorization
+// header by the lfsapi package before the request reaches this point, so
+// those are unaffected.
+func requestWithoutUserinfo(req *http.Request) *http.Request {
+	if req.URL == nil || req.URL.User == nil {
+		return req
+	}
+
+	u := *req.URL
+	u.User = nil
+
+	r := new(http.Request)
+	*r = *req
+	r.URL = &u
+
+	return r
 }
 
 func newRequestForRetry(req *http.Request, location string) (*http.Request, error) {
