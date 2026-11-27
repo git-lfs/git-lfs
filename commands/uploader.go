@@ -29,30 +29,43 @@ func uploadForRefUpdates(ctx *uploadContext, updates []*git.RefUpdate, pushAll b
 			exclude = append(exclude, remoteRefSha)
 		}
 	}
+
+	// We scan the refs one at a time, so that the objects found for each
+	// ref are sent with that ref's transfer queue.  Any history which a ref
+	// shares with the refs scanned before it has already been searched for
+	// Git LFS objects, so we keep a list of those refs and exclude them
+	// from the later scans.  Otherwise the shared history is traversed
+	// again in full for every ref.
+	scanned := make([]string, 0, len(updates))
 	for _, update := range updates {
 		// initialized here to prevent looped defer
 		q := ctx.NewQueue(
 			tq.RemoteRef(update.RemoteRef()),
 		)
-		err := uploadRangeOrAll(gitscanner, ctx, q, exclude, update, pushAll)
+		err := uploadRangeOrAll(gitscanner, ctx, q, exclude, scanned, update, pushAll)
 		ctx.CollectErrors(q)
 
 		if err != nil {
 			return errors.Wrap(err, tr.Tr.Get("ref %q:", update.LocalRef().Name))
 		}
+
+		scanned = append(scanned, update.LocalRefCommitish())
 	}
 
 	return nil
 }
 
-func uploadRangeOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, exclude []string, update *git.RefUpdate, pushAll bool) error {
+func uploadRangeOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue, exclude, scanned []string, update *git.RefUpdate, pushAll bool) error {
 	cb := ctx.gitScannerCallback(q)
 	if pushAll {
-		if err := g.ScanRefWithDeleted(update.LocalRefCommitish(), cb); err != nil {
+		if err := g.ScanRefs([]string{update.LocalRefCommitish()}, scanned, cb); err != nil {
 			return err
 		}
 	} else {
-		if err := g.ScanMultiRangeToRemote(update.LocalRefCommitish(), exclude, cb); err != nil {
+		allExclude := make([]string, 0, len(exclude)+len(scanned))
+		allExclude = append(allExclude, exclude...)
+		allExclude = append(allExclude, scanned...)
+		if err := g.ScanMultiRangeToRemote(update.LocalRefCommitish(), allExclude, cb); err != nil {
 			return err
 		}
 	}
