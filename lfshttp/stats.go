@@ -55,7 +55,7 @@ func (c *Client) LogRequest(r *http.Request, reqKey string) *http.Request {
 	}
 
 	t := &httpTransfer{
-		URL:    strings.SplitN(r.URL.String(), "?", 2)[0],
+		URL:    strings.SplitN(RedactedURL(r.URL), "?", 2)[0],
 		Method: r.Method,
 		Key:    reqKey,
 	}

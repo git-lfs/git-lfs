@@ -2,11 +2,26 @@ package lfshttp
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/git-lfs/git-lfs/v3/errors"
 	"github.com/git-lfs/git-lfs/v3/tr"
 )
+
+// RedactedURL returns u in a form that is safe to show to the user or to write
+// to a log.  A remote URL can carry credentials (https://user:token@host/repo.git
+// is a common way to authenticate in CI), and error messages end up in CI job
+// logs while the http log ends up in .git/lfs/logs/http, so the user info must
+// not be part of either.  Git itself prints the same URLs without credentials.
+func RedactedURL(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	clean := *u
+	clean.User = nil
+	return clean.String()
+}
 
 type httpError interface {
 	Error() string
@@ -92,7 +107,7 @@ func (e *statusCodeError) Error() string {
 	return tr.Tr.Get(
 		"Invalid HTTP status for %s %s: %d",
 		req.Method,
-		strings.SplitN(req.URL.String(), "?", 2)[0],
+		strings.SplitN(RedactedURL(req.URL), "?", 2)[0],
 		e.response.StatusCode,
 	)
 }
@@ -117,11 +132,11 @@ func defaultError(res *http.Response) error {
 		509: "Bandwidth limit exceeded: %s",
 	}
 	if f, ok := defaultErrors[res.StatusCode]; ok {
-		msg = tr.Tr.Get(f, res.Request.URL)
+		msg = tr.Tr.Get(f, RedactedURL(res.Request.URL))
 	} else if res.StatusCode < 500 {
-		msg = tr.Tr.Get("Client error %s from HTTP %d", res.Request.URL, res.StatusCode)
+		msg = tr.Tr.Get("Client error %s from HTTP %d", RedactedURL(res.Request.URL), res.StatusCode)
 	} else {
-		msg = tr.Tr.Get("Server error %s from HTTP %d", res.Request.URL, res.StatusCode)
+		msg = tr.Tr.Get("Server error %s from HTTP %d", RedactedURL(res.Request.URL), res.StatusCode)
 	}
 
 	return errors.New(msg)
