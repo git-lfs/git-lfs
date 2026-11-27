@@ -2,9 +2,12 @@ package fs
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeNone(t *testing.T) {
@@ -41,4 +44,30 @@ func TestRepositoryPermissions(t *testing.T) {
 		assert.Equal(t, k, fs.RepositoryPermissions(true))
 		assert.Equal(t, v, fs.RepositoryPermissions(false))
 	}
+}
+
+func TestRemoveEmptyObjectDirs(t *testing.T) {
+	fs := Filesystem{LFSStorageDir: t.TempDir(), repoPerms: 0644}
+
+	retained := "aabb" + strings.Repeat("0", 60)
+	sameDir := "aabb" + strings.Repeat("1", 60)
+	sameParent := "aacc" + strings.Repeat("2", 60)
+	unique := "ddee" + strings.Repeat("3", 60)
+
+	for _, oid := range []string{retained, sameDir, sameParent, unique} {
+		path, err := fs.ObjectPath(oid)
+		require.Nil(t, err)
+		require.Nil(t, os.WriteFile(path, []byte(oid), 0644))
+	}
+	for _, oid := range []string{sameDir, sameParent, unique} {
+		require.Nil(t, os.Remove(fs.ObjectPathname(oid)))
+		fs.RemoveEmptyObjectDirs(oid)
+	}
+
+	objectDir := fs.LFSObjectDir()
+	assert.FileExists(t, fs.ObjectPathname(retained))
+	assert.DirExists(t, filepath.Join(objectDir, "aa", "bb"))
+	assert.NoDirExists(t, filepath.Join(objectDir, "aa", "cc"))
+	assert.NoDirExists(t, filepath.Join(objectDir, "dd"))
+	assert.DirExists(t, objectDir)
 }

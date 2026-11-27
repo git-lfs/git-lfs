@@ -364,6 +364,7 @@ func pruneDeleteFiles(prunableObjects []string, logger *tasklog.Logger) {
 			problems.WriteRune('\n')
 			continue
 		}
+		cfg.Filesystem().RemoveEmptyObjectDirs(oid)
 		deletedFiles++
 		task.Count(1)
 	}

@@ -1523,3 +1523,61 @@ begin_test "prune doesn't hang on long lines in stash diff"
     git lfs prune
 )
 end_test
+
+begin_test "prune removes empty object directories"
+(
+  set -e
+
+  reponame="prune_empty_object_dirs"
+  setup_remote_repo "remote_$reponame"
+
+  clone_repo "remote_$reponame" "clone_$reponame"
+
+  git lfs track "*.dat" 2>&1 | tee track.log
+  grep "Tracking \"\*.dat\"" track.log
+
+  # The content below has been chosen so that the object ID of the retained
+  # object shares both of its object directories with the first object
+  # which will be deleted, only its top-level object directory with the
+  # second, and neither directory with the third.
+  content_retain="Keep: current version"
+  content_samedir="To delete: shares both object directories 11497"
+  content_sameparent="To delete: shares one object directory 146"
+  content_unique="To delete: shares no object directories"
+  oid_retain=$(calc_oid "$content_retain")
+  oid_samedir=$(calc_oid "$content_samedir")
+  oid_sameparent=$(calc_oid "$content_sameparent")
+  oid_unique=$(calc_oid "$content_unique")
+
+  [ "${oid_samedir:0:4}" = "${oid_retain:0:4}" ]
+  [ "${oid_sameparent:0:2}" = "${oid_retain:0:2}" ]
+  [ "${oid_sameparent:2:2}" != "${oid_retain:2:2}" ]
+  [ "${oid_unique:0:2}" != "${oid_retain:0:2}" ]
+
+  for content in "$content_unique" "$content_sameparent" \
+      "$content_samedir" "$content_retain"; do
+    printf "%s" "$content" >file.dat
+    git add .gitattributes file.dat
+    git commit -m "Update file.dat"
+  done
+
+  git push origin main
+
+  git config lfs.fetchrecentcommitsdays 0
+
+  git lfs prune 2>&1 | tee prune.log
+  grep "Deleting objects: 100% (3/3), done." prune.log
+
+  refute_local_object "$oid_samedir"
+  refute_local_object "$oid_sameparent"
+  refute_local_object "$oid_unique"
+  assert_local_object "$oid_retain" "${#content_retain}"
+
+  [ -d ".git/lfs/objects/${oid_samedir:0:2}/${oid_samedir:2:2}" ]
+  [ ! -e ".git/lfs/objects/${oid_sameparent:0:2}/${oid_sameparent:2:2}" ]
+  [ -d ".git/lfs/objects/${oid_sameparent:0:2}" ]
+  [ ! -e ".git/lfs/objects/${oid_unique:0:2}/${oid_unique:2:2}" ]
+  [ ! -e ".git/lfs/objects/${oid_unique:0:2}" ]
+  [ -d ".git/lfs/objects" ]
+)
+end_test
