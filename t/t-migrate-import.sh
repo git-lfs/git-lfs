@@ -12,8 +12,12 @@ begin_test "migrate import (default branch)"
   md_oid="$(calc_oid "$(git cat-file -p :a.md)")"
   txt_oid="$(calc_oid "$(git cat-file -p :a.txt)")"
   md_feature_oid="$(calc_oid "$(git cat-file -p my-feature:a.md)")"
+  md_contents="$(cat a.md)"
 
   git lfs migrate import
+
+  # The working copy keeps the file contents, not the pointer.
+  [ "$md_contents" = "$(cat a.md)" ]
 
   assert_pointer "refs/heads/main" "a.md" "$md_oid" "140"
   assert_pointer "refs/heads/main" "a.txt" "$txt_oid" "120"

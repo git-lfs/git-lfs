@@ -1329,7 +1329,7 @@ func Checkout(treeish string, paths []string, force bool) error {
 		args = append(args, append([]string{"--"}, paths...)...)
 	}
 
-	_, err := gitNoLFSSimple(args...)
+	_, err := gitSimple(args...)
 	return err
 }
 
