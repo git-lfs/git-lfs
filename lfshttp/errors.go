@@ -1,6 +1,7 @@
 package lfshttp
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
@@ -43,7 +44,11 @@ func (c *Client) handleResponse(res *http.Response) error {
 	cliErr := &ClientError{response: res}
 	err := DecodeJSON(res, cliErr)
 	if IsDecodeTypeError(err) {
-		err = nil
+		if res.StatusCode == http.StatusTooManyRequests {
+			err = responseBodyError(res)
+		} else {
+			err = nil
+		}
 	}
 
 	if err == nil {
@@ -99,6 +104,18 @@ func (e *statusCodeError) Error() string {
 
 func (e *statusCodeError) HTTPResponse() *http.Response {
 	return e.response
+}
+
+func responseBodyError(res *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
+	res.Body.Close()
+
+	message := strings.TrimSpace(string(body))
+	if message != "" {
+		return errors.New(message)
+	}
+
+	return defaultError(res)
 }
 
 func defaultError(res *http.Response) error {
