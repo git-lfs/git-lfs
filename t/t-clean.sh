@@ -28,6 +28,24 @@ begin_test "clean a pointer"
 )
 end_test
 
+begin_test "clean a pointer leaves no temporary file"
+(
+  set -e
+  clean_setup "pointer-tempfile"
+
+  # The temporary file is created before the input is decoded, so a pointer must
+  # not leave an empty file behind in the temporary directory.
+  # See https://github.com/git-lfs/git-lfs/issues/6363.
+  pointer cd293be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411 9 | git lfs clean >/dev/null
+
+  leftovers="$(ls -A .git/lfs/tmp 2>/dev/null | wc -l | tr -d ' ')"
+  if [ "0" != "$leftovers" ]; then
+    echo >&2 "fatal: expected no temporary files, found $leftovers in .git/lfs/tmp"
+    exit 1
+  fi
+)
+end_test
+
 begin_test "clean pseudo pointer"
 (
   set -e
