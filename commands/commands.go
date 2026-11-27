@@ -116,8 +116,17 @@ func newLockClient() *locking.Client {
 
 // newDownloadCheckQueue builds a checking queue, checks that objects are there but doesn't download
 func newDownloadCheckQueue(manifest tq.Manifest, remote string, options ...tq.Option) *tq.TransferQueue {
+	// A standalone transfer agent bypasses the batch API, so the queue
+	// cannot know which objects the remote has without asking the agent to
+	// transfer them. Marking them as transferred in dry-run mode would
+	// report every object as verified, so the agent must run for real.
+	// The downloaded content only serves to prove the object exists, so
+	// once its hash is verified it is discarded rather than moved over the
+	// local object.
+	dryRun := !manifest.IsStandaloneTransfer()
 	return newDownloadQueue(manifest, remote, append(options,
-		tq.DryRun(true),
+		tq.DryRun(dryRun),
+		tq.VerifyOnly(true),
 	)...)
 }
 
