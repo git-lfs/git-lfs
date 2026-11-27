@@ -228,6 +228,10 @@ func configureBasicUploadAdapter(m *concreteManifest) {
 func (a *basicUploadAdapter) makeRequest(t *Transfer, req *http.Request) (*http.Response, error) {
 	res, err := a.doHTTP(t, req)
 	if errors.IsAuthError(err) && len(req.Header.Get("Authorization")) == 0 {
+		if res != nil {
+			res.Body.Close()
+		}
+
 		// Construct a new body with just the raw file and no callbacks. Since
 		// all progress tracking happens when the net.http code copies our
 		// request body into a new request, we can safely make this request
