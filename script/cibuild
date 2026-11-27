@@ -12,6 +12,13 @@ if [[ $UNAME == MINGW* || $UNAME == MSYS* || $UNAME == CYGWIN* ]]; then
 fi
 
 # Build git-lfs-transfer from scutiger.
+if [ $WINDOWS -eq 1 ]; then
+  # The minimal Git for Windows SDK now contains Rust but lacks some of the
+  # libraries required to link against Windows APIs, so we use the Rust tools
+  # and MSVC toolchain provided by the GitHub Actions runners instead.
+  export PATH="$HOME/.cargo/bin:$PATH"
+  export RUSTUP_TOOLCHAIN="stable-x86_64-pc-windows-msvc"
+fi
 cargo install --root t/scutiger scutiger-lfs
 
 # Set GOPATH if it isn't already set.
