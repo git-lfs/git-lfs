@@ -196,6 +196,7 @@ begin_test "prune worktree (bare main)"
   cd ..
   git clone --bare "$GITSERVER/remote_${reponame}" "${reponame}-bare"
   cd "${reponame}-bare"
+  export GIT_DIR="$(native_path "$PWD")"
 
   # fetch all LFS objects
   git lfs fetch --all
@@ -211,6 +212,7 @@ begin_test "prune worktree (bare main)"
 
   # now add worktree on the branch
   git worktree add "../w1_$reponame" "branch1"
+  unset GIT_DIR
 
   # stage files in worktree
   cd "../w1_$reponame"

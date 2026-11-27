@@ -629,6 +629,7 @@ begin_test "fetch-all"
   cd ..
   git clone --bare "$GITSERVER/$reponame" "$reponame-bare"
   cd "$reponame-bare"
+  export GIT_DIR="$(native_path "$PWD")"
 
   # Perform the same assertion as above, on the same data
   git lfs fetch --all origin

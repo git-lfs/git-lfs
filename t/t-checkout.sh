@@ -1031,7 +1031,7 @@ begin_test "checkout: bare repository"
   git init --bare "$reponame"
   cd "$reponame"
 
-  git lfs checkout 2>&1 | tee checkout.log
+  git --git-dir=. lfs checkout 2>&1 | tee checkout.log
   if [ "0" -ne "${PIPESTATUS[0]}" ]; then
     echo >&2 "fatal: expected checkout to succeed ..."
     exit 1

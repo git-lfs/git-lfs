@@ -674,6 +674,7 @@ begin_test "env with bare repo"
   reponame="env-with-bare-repo"
   git init --bare $reponame
   cd $reponame
+  export GIT_DIR="$(native_path "$PWD")"
 
   localgit=$(canonical_path "$TRASHDIR/$reponame")
   localgitstore=$(canonical_path "$TRASHDIR/$reponame")

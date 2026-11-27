@@ -232,11 +232,12 @@ func newRepo(callback RepoCallback, settings *RepoCreateSettings) *Repo {
 	ret.fs = ret.cfg.Filesystem()
 	ret.gitfilter = lfs.NewGitFilter(ret.cfg)
 
-	// Configure default user/email so not reliant on env
-	ret.Pushd()
-	RunGitCommand(callback, true, "config", "user.name", "Git LFS Tests")
-	RunGitCommand(callback, true, "config", "user.email", "git-lfs@example.com")
-	ret.Popd()
+	// Select the fixture explicitly, including when it is bare. Set HEAD
+	// separately to support versions of Git predating git init --initial-branch.
+	gitDir := "--git-dir=" + ret.GitDir
+	RunGitCommand(callback, true, gitDir, "symbolic-ref", "HEAD", "refs/heads/master")
+	RunGitCommand(callback, true, gitDir, "config", "user.name", "Git LFS Tests")
+	RunGitCommand(callback, true, gitDir, "config", "user.email", "git-lfs@example.com")
 
 	return ret
 }

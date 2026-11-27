@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/git-lfs/git-lfs/v3/subprocess"
 	"github.com/git-lfs/gitobj/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,6 +30,11 @@ func DatabaseFromFixture(t *testing.T, name string) *gitobj.ObjectDatabase {
 	if err != nil {
 		t.Fatalf("gitobj: could not create object database: %v", err)
 	}
+
+	// Give Git subprocesses the explicit path to the bare fixture.
+	t.Cleanup(subprocess.ResetEnvironment)
+	t.Setenv("GIT_DIR", path)
+	subprocess.ResetEnvironment()
 	return db
 }
 
@@ -164,7 +170,7 @@ func copyToTmp(fixture string) (string, error) {
 	if err = copyDir(fixture, p); err != nil {
 		return "", err
 	}
-	return p, nil
+	return filepath.Abs(p)
 }
 
 // copyDir copies a directory (and recursively all files and subdirectories)
