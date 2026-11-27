@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"net/url"
+
 	"github.com/git-lfs/git-lfs/v3/config"
 	"github.com/git-lfs/git-lfs/v3/git"
 	"github.com/git-lfs/git-lfs/v3/lfs"
@@ -26,7 +28,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		endpoint := getAPIClient().Endpoints.Endpoint("download", defaultRemote)
 		if len(endpoint.Url) > 0 {
 			access := getAPIClient().Endpoints.AccessFor(endpoint.Url)
-			Print("Endpoint=%s (auth=%s)", endpoint.Url, access.Mode())
+			Print("Endpoint=%s (auth=%s)", redactEndpoint(endpoint.Url), access.Mode())
 			if len(endpoint.SSHMetadata.UserAndHost) > 0 {
 				Print("  SSH=%s:%s", endpoint.SSHMetadata.UserAndHost, endpoint.SSHMetadata.Path)
 			}
@@ -39,7 +41,7 @@ func envCommand(cmd *cobra.Command, args []string) {
 		}
 		remoteEndpoint := getAPIClient().Endpoints.Endpoint("download", remote)
 		remoteAccess := getAPIClient().Endpoints.AccessFor(remoteEndpoint.Url)
-		Print("Endpoint (%s)=%s (auth=%s)", remote, remoteEndpoint.Url, remoteAccess.Mode())
+		Print("Endpoint (%s)=%s (auth=%s)", remote, redactEndpoint(remoteEndpoint.Url), remoteAccess.Mode())
 		if len(remoteEndpoint.SSHMetadata.UserAndHost) > 0 {
 			Print("  SSH=%s:%s", remoteEndpoint.SSHMetadata.UserAndHost, remoteEndpoint.SSHMetadata.Path)
 		}
@@ -53,6 +55,15 @@ func envCommand(cmd *cobra.Command, args []string) {
 		value, _ := cfg.Git.Get(key)
 		Print("git config %s = %q", key, value)
 	}
+}
+
+// redactEndpoint masks embedded passwords before displaying endpoint URLs.
+func redactEndpoint(rawurl string) string {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return "<redacted endpoint>"
+	}
+	return u.Redacted()
 }
 
 func init() {
