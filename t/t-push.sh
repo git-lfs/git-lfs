@@ -981,6 +981,81 @@ begin_test 'push with multiple tag refs'
 )
 end_test
 
+begin_test 'push with multiple new refs and shared history'
+(
+  set -e
+
+  push_shared_history_setup "push-multi-ref-shared-history"
+
+  # None of these refs exist on the remote yet, and most of their history
+  # is shared.  Each object should be found exactly once, including those
+  # which are only reachable from a ref that is scanned after another ref
+  # which contains most of its history.
+  git lfs push --dry-run origin v1.0.0 main other v2.0.0 2>&1 | tee push.log
+  grep "push $contents_oid => a.dat" push.log
+  grep "push $contents2_oid => a.dat" push.log
+  grep "push $contents3_oid => b.dat" push.log
+  grep "push $contents4_oid => c.dat" push.log
+  [ 4 -eq "$(grep -c "^push " push.log)" ]
+
+  git push origin v1.0.0 main other v2.0.0
+
+  assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents2_oid"
+  assert_server_object "$reponame" "$contents3_oid"
+  assert_server_object "$reponame" "$contents4_oid"
+)
+end_test
+
+begin_test 'push with multiple refs and re-added data the server already has'
+(
+  set -e
+
+  reponame="push-multi-ref-readded-data"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="abc123"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git push origin main
+
+  assert_server_object "$reponame" "$contents_oid"
+
+  contents2="def456"
+  contents2_oid="$(calc_oid "$contents2")"
+  git rm a.dat
+  printf "%s" "$contents2" > b.dat
+  git add b.dat
+  git commit -m "replace a.dat with b.dat"
+
+  # On a second branch, add back the object which the server already has.
+  git checkout -b other
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat again"
+
+  # We remove the original object. The server already has this.
+  delete_local_object "$contents_oid"
+
+  # We use the URL so that we cannot take advantage of the existing "origin/*"
+  # refs that we know the server must have.  The object which was added back
+  # is not in the tip of main, so we may ask the server about it, but the
+  # push must succeed even though we no longer have the object locally.
+  git push "$(git config remote.origin.url)" main other 2>&1 | tee push.log
+
+  assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents2_oid"
+)
+end_test
+
 begin_test "push custom reference"
 (
   set -e

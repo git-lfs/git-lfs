@@ -62,7 +62,10 @@ func uploadRangeOrAll(g *lfs.GitScanner, ctx *uploadContext, q *tq.TransferQueue
 			return err
 		}
 	} else {
-		if err := g.ScanMultiRangeToRemote(update.LocalRefCommitish(), exclude, cb); err != nil {
+		allExclude := make([]string, 0, len(exclude)+len(scanned))
+		allExclude = append(allExclude, exclude...)
+		allExclude = append(allExclude, scanned...)
+		if err := g.ScanMultiRangeToRemote(update.LocalRefCommitish(), allExclude, cb); err != nil {
 			return err
 		}
 	}
