@@ -376,3 +376,64 @@ begin_test "filter process: ignore file size on disk when cleaning"
   diff -u <(echo "$expected") <(echo "$got")
 )
 end_test
+
+begin_test "filter process: clean request without terminating flush packet"
+(
+  set -e
+
+  reponame="filter-process-truncated-clean"
+  mkdir "$reponame"
+  cd "$reponame"
+  git init
+  git lfs install --local
+
+  contents="this is the content of a file which is not a pointer"
+  contents_oid="$(calc_oid "$contents")"
+
+  # Write a pkt-line packet holding the given data, plus a trailing LF
+  pktline () {
+    printf '%04x%s\n' $(( ${#1} + 5 )) "$1"
+  }
+
+  # Write the protocol handshake and a "clean" request for "test.dat" whose
+  # content is given by "contents"
+  write_request () {
+    pktline "git-filter-client"
+    pktline "version=2"
+    printf '0000'
+    pktline "capability=clean"
+    pktline "capability=smudge"
+    printf '0000'
+    pktline "command=clean"
+    pktline "pathname=test.dat"
+    printf '0000'
+    printf '%04x%s' $(( ${#contents} + 4 )) "$contents"
+  }
+
+  # A request whose content ends at a packet boundary, without the
+  # terminating flush packet, must not be treated as complete, so no object
+  # should be stored, and no temporary file should be left behind
+  write_request >request.bin
+
+  if git lfs filter-process <request.bin >response.bin 2>stderr.log
+  then
+    echo >&2 "expected truncated clean request to fail"
+    exit 1
+  fi
+
+  grep -q "unexpected EOF" stderr.log
+
+  refute_local_object "$contents_oid"
+  [ -z "$(find .git/lfs/tmp -type f 2>/dev/null)" ]
+
+  # The same request, terminated by a flush packet, succeeds and stores the
+  # object
+  write_request >request.bin
+  printf '0000' >>request.bin
+
+  git lfs filter-process <request.bin >response.bin
+
+  assert_local_object "$contents_oid" "${#contents}"
+  grep -q "$contents_oid" response.bin
+)
+end_test

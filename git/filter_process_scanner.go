@@ -178,7 +178,7 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 
 	req := &Request{
 		Header:  make(map[string]string),
-		Payload: pktline.NewPktlineReaderFromPktline(o.pl, 65536),
+		Payload: newRequestPayloadReader(o.pl),
 	}
 
 	for _, pair := range requestList {
@@ -189,6 +189,83 @@ func (o *FilterProcessScanner) readRequest() (*Request, error) {
 	}
 
 	return req, nil
+}
+
+// requestPayloadReader reads the payload of a filter-process request, which
+// Git sends as a series of pkt-line packets terminated by a flush packet.
+//
+// Unlike a *pktline.PktlineReader, it reports a payload which ends before the
+// terminating flush packet, or which contains a packet shorter than its length
+// header, as an io.ErrUnexpectedEOF error, so that callers do not mistake a
+// truncated request for a complete one.  A *pktline.PktlineReader reports both
+// a flush packet and a closed pipe as io.EOF, and returns a short packet as
+// data without any error.
+type requestPayloadReader struct {
+	// pl is the pkt-line stream from which the request was read, and from
+	// which the packets making up its payload are read as well.
+	pl *pktline.Pktline
+
+	// buf holds any payload data read from the stream which did not fit
+	// into the buffer given to the last call to Read.
+	buf []byte
+
+	// done is set to true once the terminating flush packet has been read.
+	done bool
+}
+
+// newRequestPayloadReader returns a new *requestPayloadReader, which reads
+// payload packets from the given pkt-line stream, "pl".
+func newRequestPayloadReader(pl *pktline.Pktline) *requestPayloadReader {
+	return &requestPayloadReader{
+		pl:  pl,
+		buf: make([]byte, 0, 65536),
+	}
+}
+
+func (r *requestPayloadReader) Read(p []byte) (int, error) {
+	if r.done {
+		return 0, io.EOF
+	}
+
+	n := copy(p, r.buf)
+	r.buf = r.buf[n:]
+
+	// Loop and grab as many packets as we can in a given "run", until we
+	// have either, a) overfilled the given buffer "p", or we have started
+	// to internally buffer in "r.buf".
+	for len(r.buf) == 0 {
+		chunk, plen, err := r.pl.ReadPacketWithLength()
+		if err != nil {
+			// Git terminates the payload with a flush packet, so a
+			// read error before one means the request was truncated
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return n, io.ErrUnexpectedEOF
+			}
+			return n, err
+		}
+
+		// A flush packet terminates the payload, and a delim packet
+		// was treated as the end of the payload before this reader was
+		// introduced, so continue to do so
+		if plen <= 1 {
+			r.done = true
+			return n, io.EOF
+		}
+
+		// A packet which is shorter than its length header was
+		// truncated in the middle of the packet
+		if plen-4 != len(chunk) {
+			return n, io.ErrUnexpectedEOF
+		}
+
+		// Figure out how much of the packet we can read into "p", and
+		// buffer the rest.
+		m := copy(p[n:], chunk)
+		r.buf = append(r.buf, chunk[m:]...)
+		n += m
+	}
+
+	return n, nil
 }
 
 // WriteList writes a list of strings to the underlying pktline data stream in
