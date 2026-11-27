@@ -58,6 +58,44 @@ begin_test "migrate export (default branch)"
 )
 end_test
 
+begin_test "migrate export (case-insensitive .gitattributes)"
+(
+  set -e
+
+  setup_single_local_branch_tracked
+  git config core.ignorecase true
+  git mv .gitattributes .GITATTRIBUTES
+  git commit -m "change case of .gitattributes"
+
+  git lfs migrate export --include="*.txt"
+
+  diff -u <(printf '%s\n' .gitattributes a.md a.txt) <(git ls-tree --name-only HEAD)
+  diff -u <(printf '%s\n' "*.txt filter=lfs diff=lfs merge=lfs -text" \
+    "*.md filter=lfs diff=lfs merge=lfs -text" "*.txt !text !filter !merge !diff") \
+    <(git cat-file -p HEAD:.gitattributes)
+  refute_pointer HEAD a.txt
+)
+end_test
+
+begin_test "migrate export (case-insensitive nested .gitattributes)"
+(
+  set -e
+
+  setup_single_local_branch_tracked
+  git config core.ignorecase true
+  mkdir sub
+  echo "*.txt filter=foo" | git lfs clean sub/.GITATTRIBUTES >sub/.GITATTRIBUTES
+  git add sub/.GITATTRIBUTES
+  git commit -m "add nested .GITATTRIBUTES stored as a pointer"
+
+  attrs="$(git rev-parse HEAD:sub/.GITATTRIBUTES)"
+  git lfs migrate export --include="*"
+
+  [ "$(git rev-parse HEAD:sub/.GITATTRIBUTES)" = "$attrs" ]
+  refute_pointer HEAD a.txt
+)
+end_test
+
 begin_test "migrate export (with remote)"
 (
   set -e

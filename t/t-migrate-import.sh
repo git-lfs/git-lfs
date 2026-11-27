@@ -642,6 +642,68 @@ EOF
 )
 end_test
 
+begin_test "migrate import (case-insensitive .gitattributes)"
+(
+  set -e
+
+  remove_and_create_local_repo "migrate-import-case-insensitive"
+  git config core.ignorecase true
+  echo "*.txt filter=foo" >.GITATTRIBUTES
+  printf '%s' data >a.bin
+  git add .GITATTRIBUTES a.bin
+  git commit -m "initial commit"
+
+  git lfs migrate import
+
+  diff -u <(printf '%s\n' .gitattributes a.bin) <(git ls-tree --name-only HEAD)
+  diff -u <(printf '%s\n' "*.txt filter=foo" "*.bin filter=lfs diff=lfs merge=lfs -text") \
+    <(git cat-file -p HEAD:.gitattributes)
+  [ "$(git check-attr --cached filter -- a.bin)" = "a.bin: filter: lfs" ]
+  assert_pointer HEAD a.bin "$(calc_oid data)" 4
+)
+end_test
+
+begin_test "migrate import (case-insensitive nested .gitattributes)"
+(
+  set -e
+
+  remove_and_create_local_repo "migrate-import-case-insensitive-nested"
+  git config core.ignorecase true
+  mkdir sub
+  echo "*.txt filter=foo" >sub/.GITATTRIBUTES
+  printf '%s' data >a.bin
+  git add a.bin sub/.GITATTRIBUTES
+  git commit -m "initial commit"
+
+  git lfs migrate import
+
+  diff -u <(printf '%s\n' "*.txt filter=foo") <(git cat-file -p HEAD:sub/.GITATTRIBUTES)
+  diff -u <(printf '%s\n' "*.bin filter=lfs diff=lfs merge=lfs -text") \
+    <(git cat-file -p HEAD:.gitattributes)
+  assert_pointer HEAD a.bin "$(calc_oid data)" 4
+)
+end_test
+
+begin_test "migrate import (distinct non-ASCII attributes filename)"
+(
+  set -e
+
+  remove_and_create_local_repo "migrate-import-non-ascii-attrs"
+  git config core.ignorecase true
+  name=$(printf '.G\304\260TATTRIBUTES')
+  echo "personal notes" >"$name"
+  printf '%s' data >a.bin
+  git add "$name" a.bin
+  git commit -m "initial commit"
+
+  git lfs migrate import --include="*.bin"
+
+  [ "$(git cat-file -p "HEAD:$name")" = "personal notes" ]
+  [ "$(git cat-file -p HEAD:.gitattributes)" = "*.bin filter=lfs diff=lfs merge=lfs -text" ]
+  assert_pointer HEAD a.bin "$(calc_oid data)" 4
+)
+end_test
+
 begin_test "migrate import (existing .gitattributes symlink)"
 (
   set -e
