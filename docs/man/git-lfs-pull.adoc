@@ -49,6 +49,10 @@ to `HEAD`, and any `.gitattributes` files in the index or current
 working tree will always be ignored. These constraints do not apply
 with prior versions of Git.
 
+If the contents of a Git LFS object cannot be written to a file in the
+working tree, this command reports the error and continues with the
+remaining files, and then exits with a non-zero status.
+
 == OPTIONS
 
 `-I <paths>`::

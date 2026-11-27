@@ -187,8 +187,8 @@ begin_test "checkout: skip directory file conflicts"
   touch dir1 dir2/dir3
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
@@ -200,8 +200,8 @@ begin_test "checkout: skip directory file conflicts"
 
   pushd dir2
     git lfs checkout 2>&1 | tee checkout.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected checkout to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' checkout.log
@@ -242,8 +242,8 @@ begin_test "checkout: skip directory symlink conflicts"
   ln -s ../../link2 dir2/dir3
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
@@ -262,8 +262,8 @@ begin_test "checkout: skip directory symlink conflicts"
   ln -s ../link2 dir2/dir3
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
@@ -278,8 +278,8 @@ begin_test "checkout: skip directory symlink conflicts"
 
   pushd dir2
     git lfs checkout 2>&1 | tee checkout.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected checkout to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' checkout.log
@@ -300,8 +300,8 @@ begin_test "checkout: skip directory symlink conflicts"
   ln -s ../../link2 dir2/dir3
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
@@ -319,8 +319,8 @@ begin_test "checkout: skip directory symlink conflicts"
   ln -s ../link2 dir2/dir3
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"dir1/a\.dat": not a directory' checkout.log
@@ -334,8 +334,8 @@ begin_test "checkout: skip directory symlink conflicts"
 
   pushd dir2
     git lfs checkout 2>&1 | tee checkout.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected checkout to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
       exit 1
     fi
     grep '"dir1/a\.dat": not a directory' checkout.log
@@ -380,8 +380,8 @@ begin_test "checkout: skip file symlink conflicts"
   ln -s ../../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' checkout.log
@@ -402,8 +402,8 @@ begin_test "checkout: skip file symlink conflicts"
   ln -s ../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' checkout.log
@@ -419,8 +419,8 @@ begin_test "checkout: skip file symlink conflicts"
 
   pushd dir1/dir2
     git lfs checkout 2>&1 | tee checkout.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected checkout to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
       exit 1
     fi
     grep '"a\.dat": not a regular file' checkout.log
@@ -442,8 +442,8 @@ begin_test "checkout: skip file symlink conflicts"
   ln -s ../../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' checkout.log
@@ -461,8 +461,8 @@ begin_test "checkout: skip file symlink conflicts"
   ln -s ../../../link2 dir1/dir2/dir3/a.dat
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
     exit 1
   fi
   grep '"a\.dat": not a regular file' checkout.log
@@ -476,8 +476,8 @@ begin_test "checkout: skip file symlink conflicts"
 
   pushd dir1/dir2
     git lfs checkout 2>&1 | tee checkout.log
-    if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-      echo >&2 "fatal: expected checkout to succeed ..."
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
       exit 1
     fi
     grep '"a\.dat": not a regular file' checkout.log
@@ -580,9 +580,19 @@ begin_test "checkout: skip case-based symlink conflicts"
   git checkout -- A.dat dir1/a.dat DIR3 dir1/dir2
 
   git lfs checkout 2>&1 | tee checkout.log
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected checkout to succeed ..."
-    exit 1
+  res="${PIPESTATUS[0]}"
+  if [ "$collision" -eq "0" ]; then
+    # case-sensitive filesystem
+    if [ "0" -ne "$res" ]; then
+      echo >&2 "fatal: expected checkout to succeed ..."
+      exit 1
+    fi
+  else
+    # case-insensitive filesystem
+    if [ "0" -eq "$res" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
+      exit 1
+    fi
   fi
   if [ "$collision" -eq "0" ]; then
     # case-sensitive filesystem
@@ -649,13 +659,21 @@ begin_test "checkout: skip changed files"
   rm a.dat
   mkdir a.dat
 
-  git lfs checkout
+  git lfs checkout 2>&1 | tee checkout.log
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected checkout to fail ..."
+    exit 1
+  fi
 
   [ -d "a.dat" ]
   assert_clean_index
 
   pushd a.dat
-    git lfs checkout
+    git lfs checkout 2>&1 | tee checkout.log
+    if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+      echo >&2 "fatal: expected checkout to fail ..."
+      exit 1
+    fi
   popd
 
   [ -d "a.dat" ]
@@ -803,10 +821,10 @@ begin_test "checkout: read-only directory"
     chmod a-w dir
   fi
   git lfs checkout 2>&1 | tee checkout.log
-  # Note that although the checkout command should log an error, at present
-  # we still expect a zero exit code.
-  if [ "0" -ne "${PIPESTATUS[0]}" ]; then
-    echo >&2 "fatal: expected 'git lfs checkout' to succeed ..."
+  # The file could not be written to the working tree, so the command reports
+  # the error and exits non-zero.
+  if [ "0" -eq "${PIPESTATUS[0]}" ]; then
+    echo >&2 "fatal: expected 'git lfs checkout' to fail ..."
     exit 1
   fi
 
