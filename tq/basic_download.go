@@ -305,7 +305,10 @@ func (a *basicDownloadAdapter) download(context *basicDownloadAdapterWorkerConte
 		}
 		return nil
 	}
-	written, err := tools.CopyWithCallback(dlFile, hasher, res.ContentLength, ccb)
+	// Keep the temporary file at the object's declared size even if the server
+	// sends more data. The writer still reports every byte as written, so the
+	// size and OID checks below cover the whole response.
+	written, err := tools.CopyWithCallback(newLimitWriter(dlFile, t.Size-fromByte), hasher, res.ContentLength, ccb)
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}

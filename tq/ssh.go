@@ -269,7 +269,9 @@ func (a *SSHAdapter) doDownload(t *Transfer, workerNum int, f *os.File, cb Progr
 		return nil
 	}
 	hasher := tools.NewHashingReader(data)
-	written, err := tools.CopyWithCallback(f, hasher, t.Size, ccb)
+	// Keep the temporary file at the object's declared size even if the server
+	// sends more data; every byte received is still hashed and counted.
+	written, err := tools.CopyWithCallback(newLimitWriter(f, t.Size), hasher, t.Size, ccb)
 	if err != nil {
 		return errors.Wrap(err, tr.Tr.Get("cannot write data to temporary file %q", dlfilename))
 	}
