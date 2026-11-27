@@ -103,10 +103,10 @@ setup, project principles, and the general submission process, also see
 
 ## Commit messages
 
- - Commit descriptions must be detailed, accurate, and understandable
-   without reading the code. Write in the style of detailed technical
-   documentation, avoiding jargon and buzzwords. Follow the relevant
-   guidance in
+- Commit descriptions must be detailed, accurate, and understandable
+  without reading the code. Write in the style of detailed technical
+  documentation, avoiding jargon and buzzwords. Follow the relevant
+  guidance in
   [Git's Guidelines](https://git-scm.com/docs/SubmittingPatches.html#describe-changes).
 - Write in English, using full sentences and logically separated
   paragraphs in the body. Explain the existing behavior and problem, then
