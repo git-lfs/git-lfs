@@ -178,7 +178,7 @@ func includeExcludeRefs(l *tasklog.Logger, args []string) (include, exclude []st
 
 	for _, name := range args {
 		var excluded bool
-		if strings.HasPrefix("^", name) {
+		if strings.HasPrefix(name, "^") {
 			name = name[1:]
 			excluded = true
 		}
