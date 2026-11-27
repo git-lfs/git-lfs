@@ -2,6 +2,8 @@ package ssh
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/git-lfs/git-lfs/v3/config"
@@ -21,10 +23,15 @@ type SSHTransfer struct {
 	operation    string
 	multiplexing bool
 	controlPath  string
+	// controlDir is the temporary directory this transfer created for
+	// controlPath, or "" when the caller supplied the path. It is removed at
+	// shutdown so repeated pure SSH transfers do not accumulate empty
+	// sock-* directories in the runtime directory.
+	controlDir string
 }
 
 func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string) (*SSHTransfer, error) {
-	conn, multiplexing, controlPath, err := startConnection(0, osEnv, gitEnv, meta, operation, "")
+	conn, multiplexing, controlPath, controlDir, err := startConnection(0, osEnv, gitEnv, meta, operation, "")
 	if err != nil {
 		return nil, err
 	}
@@ -36,30 +43,58 @@ func NewSSHTransfer(osEnv config.Environment, gitEnv config.Environment, meta *S
 		operation:    operation,
 		multiplexing: multiplexing,
 		controlPath:  controlPath,
+		controlDir:   controlDir,
 		conn:         []*PktlineConnection{conn},
 	}, nil
 }
 
-func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath string, err error) {
+// createdControlDir returns the temporary control directory this process must
+// remove, or "" when the control path belongs to a caller that manages it.
+func createdControlDir(explicitControlPath string, multiplexing bool, controlPath string) string {
+	if !multiplexing || controlPath == "" || explicitControlPath != "" {
+		return ""
+	}
+	return filepath.Dir(controlPath)
+}
+
+// removeControlDir deletes a control directory this process created for SSH
+// multiplexing. It is empty once the last master connection has exited, so a
+// failure is traced rather than returned: failing a transfer because the
+// cleanup did not succeed would be worse than leaving an empty directory.
+func removeControlDir(controlDir string) {
+	if controlDir == "" {
+		return
+	}
+	if err := os.RemoveAll(controlDir); err != nil {
+		tracerx.Printf("failed to remove pure SSH control directory %q: %s", controlDir, err)
+	}
+}
+
+func startConnection(id int, osEnv config.Environment, gitEnv config.Environment, meta *SSHMetadata, operation string, multiplexControlPath string) (conn *PktlineConnection, multiplexing bool, controlPath, controlDir string, err error) {
 	tracerx.Printf("spawning pure SSH connection (#%d)", id)
 	var errbuf bytes.Buffer
 	exe, args, multiplexing, controlPath := GetLFSExeAndArgs(osEnv, gitEnv, meta, "git-lfs-transfer", operation, true, multiplexControlPath)
+	controlDir = createdControlDir(multiplexControlPath, multiplexing, controlPath)
 	cmd, err := subprocess.ExecCommand(exe, args...)
 	if err != nil {
-		return nil, false, "", err
+		removeControlDir(controlDir)
+		return nil, false, "", "", err
 	}
 	r, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, false, "", err
+		removeControlDir(controlDir)
+		return nil, false, "", "", err
 	}
 	w, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, false, "", err
+		removeControlDir(controlDir)
+		return nil, false, "", "", err
 	}
 	cmd.Stderr = &errbuf
 	err = cmd.Start()
 	if err != nil {
-		return nil, false, "", err
+		removeControlDir(controlDir)
+		return nil, false, "", "", err
 	}
 
 	var pl Pktline
@@ -81,10 +116,11 @@ func startConnection(id int, osEnv config.Environment, gitEnv config.Environment
 		cmd.Wait()
 		err = errors.Join(err, errors.New(tr.Tr.Get("Failed to connect to remote SSH server: %s", cmd.Stderr)))
 		tracerx.Printf("pure SSH connection unsuccessful (#%d)", id)
+		removeControlDir(controlDir)
 	} else {
 		tracerx.Printf("pure SSH connection successful (#%d)", id)
 	}
-	return conn, multiplexing, controlPath, err
+	return conn, multiplexing, controlPath, controlDir, err
 }
 
 // Connection returns the nth connection (starting from 0) in this transfer
@@ -150,7 +186,7 @@ func (st *SSHTransfer) SetConnectionCountAtLeast(n int) error {
 }
 
 func (st *SSHTransfer) spawnConnection(n int) (*PktlineConnection, string, error) {
-	conn, _, controlPath, err := startConnection(n, st.osEnv, st.gitEnv, st.meta, st.operation, st.controlPath)
+	conn, _, controlPath, _, err := startConnection(n, st.osEnv, st.gitEnv, st.meta, st.operation, st.controlPath)
 	if err != nil {
 		tracerx.Printf("failed to spawn pure SSH connection (#%d): %s", n, err)
 		return nil, "", err
@@ -203,5 +239,11 @@ func (st *SSHTransfer) setConnectionCount(n int) error {
 
 func (st *SSHTransfer) Shutdown() error {
 	tracerx.Printf("shutting down pure SSH connections")
-	return st.SetConnectionCount(0)
+	err := st.SetConnectionCount(0)
+	st.lock.Lock()
+	controlDir := st.controlDir
+	st.controlDir = ""
+	st.lock.Unlock()
+	removeControlDir(controlDir)
+	return err
 }
