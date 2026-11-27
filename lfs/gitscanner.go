@@ -59,8 +59,8 @@ func NewGitScanner(cfg *config.Configuration, cb GitScannerFoundPointer) *GitSca
 // NewGitScannerForPush initializes a *GitScanner for a Git repository
 // in the current working directory, to scan for objects to push to the
 // given remote and for locks on non-LFS objects held by other users.
-// Needed for ScanMultiRangeToRemote(), and for ScanRefWithDeleted() when
-// used for a "git lfs push --all" command.
+// Needed for ScanMultiRangeToRemote(), and for ScanRefs() when used for
+// a "git lfs push --all" command.
 func NewGitScannerForPush(cfg *config.Configuration, remote string, cb GitScannerFoundLockable, potentialLockables GitScannerSet) *GitScanner {
 	return &GitScanner{
 		cfg:                cfg,

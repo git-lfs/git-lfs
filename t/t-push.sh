@@ -274,6 +274,75 @@ begin_test "push --all (no ref args)"
 )
 end_test
 
+# helper used by the push tests with multiple refs which share history
+push_shared_history_setup() {
+  reponame="$1"
+  setup_remote_repo "$reponame"
+  clone_repo "$reponame" "$reponame"
+
+  git lfs track "*.dat"
+  git add .gitattributes
+  git commit -m "initial commit"
+
+  contents="abc123"
+  contents_oid="$(calc_oid "$contents")"
+  printf "%s" "$contents" > a.dat
+  git add a.dat
+  git commit -m "add a.dat"
+
+  git tag v1.0.0
+
+  contents2="def456"
+  contents2_oid="$(calc_oid "$contents2")"
+  printf "%s" "$contents2" > a.dat
+  git add a.dat
+  git commit -m "update a.dat"
+
+  git checkout -b other
+
+  contents3="ghi789"
+  contents3_oid="$(calc_oid "$contents3")"
+  printf "%s" "$contents3" > b.dat
+  git add b.dat
+  git commit -m "add b.dat"
+
+  git tag -m v2.0.0 -a v2.0.0
+
+  git checkout main
+
+  contents4="jkl012"
+  contents4_oid="$(calc_oid "$contents4")"
+  printf "%s" "$contents4" > c.dat
+  git add c.dat
+  git commit -m "add c.dat"
+}
+
+begin_test "push --all (multiple refs with shared history)"
+(
+  set -e
+
+  push_shared_history_setup "push-all-shared-history"
+
+  # Most of the history is shared between the two branches and two tags.
+  # Each object should be found exactly once, including those which are
+  # only reachable from a ref that is scanned after another ref which
+  # contains most of its history.
+  git lfs push --dry-run --all origin 2>&1 | tee push.log
+  grep "push $contents_oid => a.dat" push.log
+  grep "push $contents2_oid => a.dat" push.log
+  grep "push $contents3_oid => b.dat" push.log
+  grep "push $contents4_oid => c.dat" push.log
+  [ 4 -eq "$(grep -c "^push " push.log)" ]
+
+  git lfs push --all origin
+
+  assert_server_object "$reponame" "$contents_oid"
+  assert_server_object "$reponame" "$contents2_oid"
+  assert_server_object "$reponame" "$contents3_oid"
+  assert_server_object "$reponame" "$contents4_oid"
+)
+end_test
+
 begin_test "push --all (1 ref arg)"
 (
   set -e
