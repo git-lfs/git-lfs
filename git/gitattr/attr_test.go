@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseLines(t *testing.T) {
@@ -194,4 +195,22 @@ func TestParseLinesWithMacros(t *testing.T) {
 	assert.Equal(t, lines[2].(PatternLine).Pattern().String(), "*.txt")
 	assert.Len(t, lines[2].Attrs(), 1)
 	assert.Equal(t, lines[2].Attrs()[0], &Attr{K: "text", V: "true"})
+}
+
+func TestParseLinesTabSeparated(t *testing.T) {
+	lines, _, err := ParseLines(strings.NewReader(
+		"*.dat\tfilter=lfs diff=lfs\n*.bin  \tmerge=lfs\t-text"))
+
+	assert.NoError(t, err)
+	require.Len(t, lines, 2)
+
+	assert.Equal(t, lines[0].(PatternLine).Pattern().String(), "*.dat")
+	require.Len(t, lines[0].Attrs(), 2)
+	assert.Equal(t, lines[0].Attrs()[0], &Attr{K: "filter", V: "lfs"})
+	assert.Equal(t, lines[0].Attrs()[1], &Attr{K: "diff", V: "lfs"})
+
+	assert.Equal(t, lines[1].(PatternLine).Pattern().String(), "*.bin")
+	require.Len(t, lines[1].Attrs(), 2)
+	assert.Equal(t, lines[1].Attrs()[0], &Attr{K: "merge", V: "lfs"})
+	assert.Equal(t, lines[1].Attrs()[1], &Attr{K: "text", V: "false"})
 }
