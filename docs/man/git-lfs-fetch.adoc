@@ -8,8 +8,8 @@ git-lfs-fetch - Download all Git LFS files for a given ref
 
 [source,role=synopsis,subs="verbatim,quotes"]
 ----
-*git lfs fetch* [_options_] [_<remote>_ [_<ref>_...]]
-*git lfs fetch* [_options_] _<remote>_ *--stdin*
+*git lfs fetch* [_options_] [_<remote>_ [_<ref>_...]] [*--* [_<path>_...]]
+*git lfs fetch* [_options_] _<remote>_ *--stdin* [*--* [_<path>_...]]
 ----
 
 == DESCRIPTION
@@ -19,6 +19,12 @@ See <<_default_remote>> and <<_default_refs>> for what happens if you don't
 specify.
 
 This does not update the working copy.
+
+One or more literal file or directory paths may be provided after `--` to
+restrict the objects which are downloaded. Paths are interpreted relative to
+the current working directory, and a directory path includes all files below
+that directory. The paths also respect any include and exclude paths in the Git
+configuration or supplied with `--include` and `--exclude`.
 
 == OPTIONS
 
@@ -39,8 +45,9 @@ This does not update the working copy.
   Download all objects that are referenced by any commit reachable from the refs
   provided as arguments. If no refs are provided, then all refs are fetched.
   This is primarily for backup and migration purposes. Cannot be combined with
-  --recent or --include/--exclude. Ignores any globally configured include and
-  exclude paths to ensure that all objects are downloaded.
+  --recent, --include/--exclude, or paths after `--`. Ignores any globally
+  configured include and exclude paths to ensure that all objects are
+  downloaded.
 `--stdin`::
   Read a list of newline-delimited refs from standard input instead of the
   command line.
@@ -158,6 +165,12 @@ by any commit in the `main` and `develop` branches
 * Fetch the LFS objects for a branch from origin
 +
 `git lfs fetch origin mybranch`
+* Fetch the LFS object for a file in the current ref
++
+`git lfs fetch -- path/to/file.dat`
+* Fetch the LFS objects below a directory for a branch from origin
++
+`git lfs fetch origin mybranch -- path/to/directory`
 * Fetch the LFS objects for 2 branches and a commit from origin
 +
 `git lfs fetch origin main mybranch e445b45c1c9c6282614f201b62778e4c0688b5c8`
